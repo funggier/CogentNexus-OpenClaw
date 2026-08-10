@@ -14,6 +14,10 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Failure classification and dry-run recovery planning
 - Safe internal recovery adaptation with retry budgets and circuit breaking
 - Machine-readable runtime, executable, and OpenClaw skill capability registry
+- Cross-platform deterministic supervisor with confirmed health probes, verified recovery, cooldowns, and circuit breaking
+- Native scheduler templates for Windows Task Scheduler, systemd, launchd, cron, Docker Compose, and Kubernetes
+- Fixed or adaptive concurrency admission with one inference lane as the safe default
+- Durable context handoff with integrity binding, worker leases, generation fencing, and session rotation thresholds
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -34,6 +38,7 @@ Requires Python 3.10 or newer and PyYAML.
     python -m pip install -r requirements-dev.txt
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
     python skills/cogentnexus/scripts/cogent.py self-test
+    python skills/cogentnexus/scripts/phase3.py self-test
 
 ## Quick start
 
@@ -43,9 +48,13 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/cogent.py verify run --task-id CNX-001 --exists artifact.py --hash artifact.py
     python skills/cogentnexus/scripts/cogent.py recover plan --task-id CNX-001
     python skills/cogentnexus/scripts/cogent.py capability find "GitHub repository"
+    python skills/cogentnexus/scripts/phase3.py supervisor tick
+    python skills/cogentnexus/scripts/phase3.py concurrency status
+    python skills/cogentnexus/scripts/phase3.py context status --used-tokens 18000 --maximum-tokens 32768
+    python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
 
 Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally excluded from version control.
 
 ## Status
 
-Phase 2 is implemented. Recovery remains dry-run by default and safe apply is limited to reversible internal state adaptations; permission bypass, dependency installation, deletion, and external actions are never automatic.
+Phase 3 is implemented. Periodic supervision is deterministic and consumes no inference lane. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.

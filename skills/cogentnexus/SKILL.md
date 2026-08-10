@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Phase 2 recovery policies, capability registry, directory integrity, and circuit-broken safe adaptation."
+description: "Validate Windows, systemd, launchd, cron, Docker, and Kubernetes templates."
 ---
 
 # CogentNexus
@@ -9,12 +9,12 @@ Use this single entry point. Keep private reasoning private; expose useful statu
 
 ## Kernel
 
-1. **Purpose** â€” define the real objective and observable success criteria.
-2. **Understanding** â€” identify facts, constraints, authorization, and risks.
-3. **Capability and resources** â€” query observed capabilities and runtime facts.
-4. **Decision** â€” choose the smallest robust, authorized plan.
-5. **Action and check** â€” execute, verify, and preserve completed work.
-6. **Recovery and reflection** â€” classify failure, change strategy within policy, and finish only with evidence.
+1. **Purpose** - define the real objective and observable success criteria.
+2. **Understanding** - identify facts, constraints, authorization, and risks.
+3. **Capability and resources** - query observed capabilities and runtime facts.
+4. **Decision** - choose the smallest robust, authorized plan.
+5. **Action and check** - execute, verify, and preserve completed work.
+6. **Recovery and reflection** - classify failure, change strategy within policy, and finish only with evidence.
 
 Never expose chain-of-thought, store unrequested secrets, bypass authorization, or claim intended work as completed.
 
@@ -26,12 +26,15 @@ Never expose chain-of-thought, store unrequested secrets, bypass authorization, 
 - Verify file or directory manifests against the current state revision.
 - Reject absent, stale, failed, or changed completion evidence.
 - Classify failures before retry; dry-run recovery by default.
-- Auto-apply only reversible internal state adaptations.
+- Auto-apply only reversible, authorized runtime adaptations.
 - Stop when retry budget is exhausted or one strategy repeats twice.
+- Default to one inference lane; exceed it only within an explicit or adaptive ceiling.
+- Commit a durable handoff before rotating or abandoning a session.
 - Never auto-bypass permissions, install dependencies, delete data, or perform external actions.
 - Preserve monotonic ledger history without chain-of-thought.
 
-Use `python skills/cogentnexus/scripts/cogent.py --help`. Read [runtime-toolkit.md](references/runtime-toolkit.md) for commands, [recovery-controller.md](references/recovery-controller.md) after failure, [capability-registry.md](references/capability-registry.md) before selecting tools, and [artifact-integrity.md](references/artifact-integrity.md) for completion evidence.
+Use python skills/cogentnexus/scripts/cogent.py --help for Phase 1-2 task operations.
+Use python skills/cogentnexus/scripts/phase3.py --help for supervision, concurrency, continuity, and scheduler adapters.
 
 ## Module routing
 
@@ -42,18 +45,25 @@ Use `python skills/cogentnexus/scripts/cogent.py --help`. Read [runtime-toolkit.
 - Durable information: [minimal-memory.md](references/minimal-memory.md).
 - Reusable failure lessons: [lesson-learning.md](references/lesson-learning.md).
 - Risky, long-running, or resumed work: [task-resumption.md](references/task-resumption.md).
+- Runtime supervision and health recovery: [runtime-supervisor.md](references/runtime-supervisor.md).
+- Inference and worker admission: [concurrency-manager.md](references/concurrency-manager.md).
+- Token pressure and session rotation: [context-continuity.md](references/context-continuity.md).
+- Native scheduling and deployment: [scheduler-adapters.md](references/scheduler-adapters.md).
 - Final delivery: [output-verification.md](references/output-verification.md).
 - Runtime changes: [architecture.md](references/architecture.md).
+- Toolkit commands: [runtime-toolkit.md](references/runtime-toolkit.md), [recovery-controller.md](references/recovery-controller.md), [capability-registry.md](references/capability-registry.md), and [artifact-integrity.md](references/artifact-integrity.md).
 
 For simple tasks, apply the Kernel internally.
 
 ## Runtime loop
 
-    load/recover â†’ probe â†’ capability query â†’ bounded action â†’ verify
-    PASS â†’ transactional commit
-    FAIL â†’ classify â†’ dry-run recovery plan â†’ safe apply or request authority
+    load/recover -> probe -> admission -> bounded action -> verify
+    PASS -> transactional commit
+    FAIL -> classify -> dry-run recovery -> safe apply or request authority
+    CONTEXT PRESSURE -> verify -> handoff -> release lease -> fresh session
 
 ## Validation
 
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
     python skills/cogentnexus/scripts/cogent.py self-test
+    python skills/cogentnexus/scripts/phase3.py self-test

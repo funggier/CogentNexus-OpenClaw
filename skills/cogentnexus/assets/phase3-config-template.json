@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "supervisor": {
+    "intervalSeconds": 300,
+    "commandTimeoutSeconds": 30,
+    "confirmDelaySeconds": 1,
+    "verifyDelaySeconds": 3,
+    "cooldownSeconds": 300,
+    "maximumRecoveriesPerHour": 3,
+    "ollamaMode": "auto",
+    "allowOllamaStart": false
+  },
+  "concurrency": {
+    "mode": "fixed",
+    "inferenceLanes": 1,
+    "maxInferenceLanes": 1,
+    "executionLanes": 2,
+    "verificationLanes": 2,
+    "supervisorLanes": 1,
+    "minimumFreeMemoryGB": 2,
+    "leaseSeconds": 1800
+  },
+  "contextContinuity": {
+    "softLimit": 0.55,
+    "handoffLimit": 0.7,
+    "criticalLimit": 0.82,
+    "reserveTokens": 16384,
+    "leaseSeconds": 1800
+  }
+}

@@ -2,25 +2,17 @@
 
 Use before major actions in large, risky, or interruption-prone work.
 
-Estimate context remaining, runtime, output size, file count, tool-call count, concurrency limits, current progress, and prior failures. Exact measurement is unnecessary.
+Estimate context remaining, runtime, output size, file count, tool-call count, concurrency limits, current progress, and prior failures. Prefer small complete steps, durable checkpoints, and verified partial value.
 
-- **Low risk:** proceed normally.
-- **Medium risk:** split work, reduce complexity, checkpoint, or defer optional work.
-- **High risk:** do not continue blindly; persist state, reduce scope, or request the smallest necessary decision.
+For local or bounded models:
 
-Prefer small complete steps. Avoid unnecessary full-project reads and oversized outputs. Preserve verified work. If interrupted, resume from the last checkpoint. Prefer partial verified value over total failure.
+1. Externalize the item manifest.
+2. Process bounded units and checkpoint verified results.
+3. Validate counts, dependencies, schemas, and artifacts deterministically.
+4. Treat inference output as a proposal until validation passes.
+5. Change strategy after repeated failure.
+6. Never keep the only copy of progress in one inference.
 
-## Local-model completion policy
+Concurrency is resource policy, not a universal constant. Default to one inference lane. A host may use adaptive multi-lane execution only after capability and memory admission, within an explicit ceiling. On a single-lane host, end the owner turn before a detached inference worker starts so it cannot queue behind itself.
 
-For local models, especially tasks containing six or more explicit items, dependency graphs, or long multi-step output:
-
-1. Externalize the complete item manifest before execution and count it deterministically.
-2. Process bounded batches and checkpoint every material verified batch.
-3. Validate counts, uniqueness, dependencies, schemas, and file state with code or tools rather than model self-assessment.
-4. Treat an inference response as a proposal until the validator passes.
-5. After validator failure, reconstruct from the source constraints and error list in a fresh attempt; do not merely echo-edit the rejected answer.
-6. Reserve enough output budget for a final answer when reasoning mode is enabled.
-7. Stop repeated identical retries and change strategy, model, decomposition, or validator.
-8. Never let one long inference be the only copy of task progress.
-
-On this host, respect the single inference lane: do not start a nested CLI agent from an active session when it would queue behind itself. Use a 32K effective context cap and staged checkpoints for larger work; longer timeout does not replace progress validation.
+When context reaches the configured soft threshold, checkpoint. At handoff threshold, route new heavy work to a clean detached session. At critical threshold, commit and rotate before continuing.

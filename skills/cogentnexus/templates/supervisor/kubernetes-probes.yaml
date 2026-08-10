@@ -1,0 +1,10 @@
+livenessProbe:
+  exec:
+    command: ["{{PYTHON}}", "{{PHASE3}}", "--root", "{{ROOT}}", "supervisor", "tick"]
+  periodSeconds: 300
+  timeoutSeconds: 90
+readinessProbe:
+  exec:
+    command: ["{{PYTHON}}", "{{PHASE3}}", "--root", "{{ROOT}}", "supervisor", "tick"]
+  periodSeconds: 60
+  timeoutSeconds: 30
