@@ -172,6 +172,12 @@ def process_alive(pid):
         if not handle: return False
         ctypes.windll.kernel32.CloseHandle(handle)
         return True
+    stat = Path(f"/proc/{pid}/stat")
+    if stat.exists():
+        try:
+            # A finished child can remain waitable as a Unix zombie; it owns no work.
+            if stat.read_text(encoding="utf-8").split(") ",1)[1].split(" ",1)[0] == "Z": return False
+        except (OSError, IndexError): pass
     try: os.kill(pid, 0); return True
     except PermissionError: return True
     except (OSError, ProcessLookupError): return False
