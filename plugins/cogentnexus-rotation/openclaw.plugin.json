@@ -1,0 +1,42 @@
+{
+  "id": "cogentnexus-rotation",
+  "name": "CogentNexus Rotation Controller",
+  "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "cogentRoot": {
+        "type": "string"
+      },
+      "pythonCommand": {
+        "type": "string"
+      },
+      "agentId": {
+        "type": "string"
+      },
+      "model": {
+        "type": "string"
+      },
+      "timeoutSeconds": {
+        "type": "integer",
+        "minimum": 60,
+        "maximum": 86400
+      }
+    },
+    "additionalProperties": false
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "cogent_rotation"
+    ]
+  },
+  "toolMetadata": {
+    "cogent_rotation": {
+      "optional": true
+    }
+  }
+}

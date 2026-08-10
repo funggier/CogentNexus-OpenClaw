@@ -625,7 +625,9 @@ def context_monitor(args):
     return 0 if all(item.get("status") == "observed" for item in result["observations"]) else 2
 
 def handoff_inspect(args):
-    emit(read_json(handoff_path(args.root, args.task_id)))
+    handoff = read_json(handoff_path(args.root, args.task_id))
+    validate_handoff(handoff)
+    emit(handoff)
 
 def lease_expired(value):
     return not value or datetime.fromisoformat(value) <= datetime.now(timezone.utc)
