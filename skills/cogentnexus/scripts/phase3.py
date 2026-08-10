@@ -147,7 +147,14 @@ def append_runtime_event(root, event_type, summary, data=None):
 def run_command(argv, timeout=30):
     started = time.monotonic()
     try:
-        proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+        proc = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            creationflags=flags,
+        )
         return {
             "ok": proc.returncode == 0,
             "exitCode": proc.returncode,
