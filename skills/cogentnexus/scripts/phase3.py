@@ -46,7 +46,8 @@ DEFAULT_CONFIG = {
         "handoffLimit": 0.70,
         "criticalLimit": 0.82,
         "reserveTokens": 16384,
-        "leaseSeconds": 1800
+        "leaseSeconds": 1800,
+        "autoMonitor": True
     }
 }
 
@@ -144,20 +145,22 @@ def append_runtime_event(root, event_type, summary, data=None):
             os.fsync(handle.fileno())
     return event
 
+def background_options():
+    return (
+        {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+        if os.name == "nt"
+        else {"start_new_session": True}
+    )
+
 def run_command(argv, timeout=30):
     started = time.monotonic()
     try:
-        background = (
-            {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
-            if os.name == "nt"
-            else {"start_new_session": True}
-        )
         proc = subprocess.run(
             argv,
             capture_output=True,
             text=True,
             timeout=timeout,
-            **background,
+            **background_options(),
         )
         return {
             "ok": proc.returncode == 0,
@@ -328,7 +331,13 @@ def supervisor_tick(args):
             state["updatedAt"] = now()
             state["components"] = state["components"]
             status = "healthy" if not unhealthy else "circuit-open" if circuit_open else "degraded"
-            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "probes": probes, "recoveries": recoveries, "executeSafe": bool(args.execute_safe)}
+            context_monitor = {"status": "disabled", "bindingCount": 0, "observations": []}
+            if args.fixture is None and config["contextContinuity"].get("autoMonitor", True):
+                try:
+                    context_monitor = monitor_context_bindings(root, execute_safe=bool(args.execute_safe))
+                except Exception as exc:
+                    context_monitor = {"status": "error", "error": str(exc), "bindingCount": 0, "observations": []}
+            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "probes": probes, "recoveries": recoveries, "contextMonitor": context_monitor, "executeSafe": bool(args.execute_safe)}
             atomic_json(base / "health.json", snapshot)
             atomic_json(base / "supervisor-state.json", state)
             append_runtime_event(root, "OBSERVATION", f"Supervisor tick: {status}", {"unhealthy": unhealthy, "recoveryCount": len(recoveries)})
@@ -462,19 +471,19 @@ def task_state_path(root, task_id):
 def handoff_path(root, task_id):
     return root.resolve() / "tasks" / task_id / "handoff.json"
 
-def context_checkpoint(args):
-    root = args.root.resolve()
-    state = read_json(task_state_path(root, args.task_id))
-    path = handoff_path(root, args.task_id)
+def prepare_handoff(root, task_id, owner_session, next_action, used_tokens, maximum_tokens):
+    root = root.resolve()
+    state = read_json(task_state_path(root, task_id))
+    path = handoff_path(root, task_id)
     previous = read_json(path, {"generation": 0})
-    decision = context_decision(args.used_tokens, args.maximum_tokens, load_config(root))
+    decision = context_decision(used_tokens, maximum_tokens, load_config(root))
     payload = {
         "schemaVersion": 1,
-        "taskId": args.task_id,
+        "taskId": task_id,
         "generation": int(previous.get("generation", 0)) + 1,
         "status": "prepared",
         "createdAt": now(),
-        "ownerSession": args.owner_session,
+        "ownerSession": owner_session,
         "workerSession": None,
         "leaseId": None,
         "leaseExpiresAt": None,
@@ -486,15 +495,134 @@ def context_checkpoint(args):
         "importantDiscoveries": state.get("importantDiscoveries", []),
         "knownFailures": state.get("knownFailures", []),
         "recoveryHint": state.get("recoveryHint"),
-        "nextAction": args.next_action,
+        "nextAction": next_action,
         "contextDecision": decision,
         "authorization": {"inheritTaskScope": True, "externalActionsRequireExistingAuthority": True}
     }
     payload["contractHash"] = handoff_contract(payload)
     with file_lock(path.parent / ".handoff.lock"):
         atomic_json(path, payload)
-    append_runtime_event(root, "COMMIT", f"Handoff prepared for {args.task_id}", {"generation": payload["generation"], "stateRevision": payload["stateRevision"], "action": decision["action"]})
+    append_runtime_event(root, "COMMIT", f"Handoff prepared for {task_id}", {"generation": payload["generation"], "stateRevision": payload["stateRevision"], "action": decision["action"]})
+    return payload
+
+def context_checkpoint(args):
+    payload = prepare_handoff(args.root, args.task_id, args.owner_session, args.next_action, args.used_tokens, args.maximum_tokens)
     emit(payload)
+
+def bindings_path(root):
+    return runtime_dir(root) / "context-bindings.json"
+
+def context_bind(args):
+    root = args.root.resolve()
+    read_json(task_state_path(root, args.task_id))
+    path = bindings_path(root)
+    with file_lock(path.parent / ".context-bindings.lock"):
+        registry = read_json(path, {"schemaVersion": 1, "bindings": []})
+        registry["bindings"] = [item for item in registry["bindings"] if item["taskId"] != args.task_id]
+        binding = {
+            "taskId": args.task_id,
+            "sessionKey": args.session_key,
+            "ownerSession": args.owner_session or args.session_key,
+            "nextAction": args.next_action,
+            "enabled": True,
+            "boundAt": now(),
+            "lastAction": None,
+            "lastStateRevision": None,
+            "lastObservedAt": None,
+        }
+        registry["bindings"].append(binding)
+        atomic_json(path, registry)
+    append_runtime_event(root, "COMMIT", f"Context session bound for {args.task_id}", {"sessionKey": args.session_key})
+    emit(binding)
+
+def context_unbind(args):
+    path = bindings_path(args.root)
+    with file_lock(path.parent / ".context-bindings.lock"):
+        registry = read_json(path, {"schemaVersion": 1, "bindings": []})
+        before = len(registry["bindings"])
+        registry["bindings"] = [item for item in registry["bindings"] if item["taskId"] != args.task_id]
+        if len(registry["bindings"]) == before:
+            raise SystemExit("context binding not found")
+        atomic_json(path, registry)
+    append_runtime_event(args.root, "COMMIT", f"Context session unbound for {args.task_id}")
+    emit({"unbound": True, "taskId": args.task_id})
+
+def load_openclaw_sessions(sessions_json=None):
+    if sessions_json:
+        document = read_json(Path(sessions_json))
+    else:
+        executable = openclaw_executable()
+        if not executable:
+            raise RuntimeError("openclaw CLI unavailable")
+        proc = subprocess.run(
+            [executable, "sessions", "--json", "--limit", "all"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            **background_options(),
+        )
+        if proc.returncode:
+            raise RuntimeError(proc.stderr.strip() or "openclaw sessions failed")
+        document = json.loads(proc.stdout)
+    sessions = document.get("sessions")
+    if not isinstance(sessions, list):
+        raise RuntimeError("invalid OpenClaw sessions document")
+    return {item.get("key"): item for item in sessions if isinstance(item, dict) and item.get("key")}
+
+def monitor_context_bindings(root, sessions_json=None, execute_safe=False, only_task=None):
+    root = root.resolve()
+    path = bindings_path(root)
+    registry = read_json(path, {"schemaVersion": 1, "bindings": []})
+    selected = [item for item in registry["bindings"] if item.get("enabled") and (not only_task or item["taskId"] == only_task)]
+    if not selected:
+        return {"status": "idle", "bindingCount": 0, "observations": []}
+    sessions = load_openclaw_sessions(sessions_json)
+    observations = []
+    changed = False
+    for binding in selected:
+        item = sessions.get(binding["sessionKey"])
+        if not item:
+            observations.append({"taskId": binding["taskId"], "sessionKey": binding["sessionKey"], "status": "missing"})
+            continue
+        used, maximum = item.get("totalTokens"), item.get("contextTokens")
+        fresh = item.get("totalTokensFresh") is True
+        if isinstance(used, bool) or not isinstance(used, int) or isinstance(maximum, bool) or not isinstance(maximum, int) or maximum <= 0:
+            observations.append({"taskId": binding["taskId"], "sessionKey": binding["sessionKey"], "status": "invalid-usage"})
+            continue
+        decision = context_decision(used, maximum, load_config(root))
+        state = read_json(task_state_path(root, binding["taskId"]))
+        checkpointed = False
+        should_checkpoint = (
+            execute_safe and fresh and decision["action"] != "CONTINUE"
+            and (binding.get("lastAction") != decision["action"] or binding.get("lastStateRevision") != state.get("revision"))
+        )
+        if should_checkpoint:
+            prepare_handoff(root, binding["taskId"], binding["ownerSession"], binding["nextAction"], used, maximum)
+            checkpointed = True
+            binding["lastAction"] = decision["action"]
+            binding["lastStateRevision"] = state.get("revision")
+            changed = True
+        binding["lastObservedAt"] = now()
+        changed = True
+        observations.append({
+            "taskId": binding["taskId"], "sessionKey": binding["sessionKey"], "status": "observed",
+            "fresh": fresh, "decision": decision, "checkpointed": checkpointed,
+            "rotationRequired": decision["action"] == "ROTATE",
+        })
+    if changed:
+        with file_lock(path.parent / ".context-bindings.lock"):
+            current = read_json(path, {"schemaVersion": 1, "bindings": []})
+            updates = {item["taskId"]: item for item in registry["bindings"]}
+            current["bindings"] = [updates.get(item["taskId"], item) for item in current["bindings"]]
+            atomic_json(path, current)
+    result = {"status": "observed", "bindingCount": len(selected), "observations": observations}
+    append_runtime_event(root, "OBSERVATION", "Context bindings monitored", {"bindingCount": len(selected), "checkpointCount": len([item for item in observations if item.get("checkpointed")])})
+    return result
+
+def context_monitor(args):
+    result = monitor_context_bindings(args.root, args.sessions_json, args.execute_safe, args.task_id)
+    emit(result)
+    return 0 if all(item.get("status") == "observed" for item in result["observations"]) else 2
 
 def handoff_inspect(args):
     emit(read_json(handoff_path(args.root, args.task_id)))
@@ -610,6 +738,17 @@ def self_test(args):
         released = call(script, root, "context", "release", "--task-id", "T1", "--worker-session", "worker-1", "--lease-id", lease["leaseId"], "--result", "rotated", "--summary", "checkpoint")
         if released.returncode:
             raise SystemExit(released.stderr)
+        sessions_fixture = root / "sessions.json"
+        atomic_json(sessions_fixture, {"sessions": [{"key": "session-main", "totalTokens": 75, "contextTokens": 100, "totalTokensFresh": True}]})
+        bound = call(script, root, "context", "bind", "--task-id", "T1", "--session-key", "session-main", "--owner-session", "main", "--next-action", "continue after rotation")
+        monitored = call(script, root, "context", "monitor", "--task-id", "T1", "--sessions-json", str(sessions_fixture), "--execute-safe")
+        repeated = call(script, root, "context", "monitor", "--task-id", "T1", "--sessions-json", str(sessions_fixture), "--execute-safe")
+        if bound.returncode or monitored.returncode or repeated.returncode:
+            raise SystemExit("automatic context monitoring failed")
+        first_observation = json.loads(monitored.stdout)["observations"][0]
+        second_observation = json.loads(repeated.stdout)["observations"][0]
+        if not first_observation["checkpointed"] or second_observation["checkpointed"]:
+            raise SystemExit("automatic checkpoint deduplication failed")
         tampered_path = handoff_path(root, "T1")
         tampered = read_json(tampered_path)
         tampered["nextAction"] = "tampered"
@@ -678,6 +817,9 @@ def main():
     ci = context.add_parser("inspect"); ci.add_argument("--task-id", required=True); ci.set_defaults(func=handoff_inspect)
     cc = context.add_parser("claim"); cc.add_argument("--task-id", required=True); cc.add_argument("--worker-session", required=True); cc.set_defaults(func=handoff_claim)
     cl = context.add_parser("release"); cl.add_argument("--task-id", required=True); cl.add_argument("--worker-session", required=True); cl.add_argument("--lease-id", required=True); cl.add_argument("--result", choices=["completed", "failed", "rotated"], required=True); cl.add_argument("--summary", required=True); cl.set_defaults(func=handoff_release)
+    cb = context.add_parser("bind"); cb.add_argument("--task-id", required=True); cb.add_argument("--session-key", required=True); cb.add_argument("--owner-session"); cb.add_argument("--next-action", required=True); cb.set_defaults(func=context_bind)
+    cu = context.add_parser("unbind"); cu.add_argument("--task-id", required=True); cu.set_defaults(func=context_unbind)
+    cm = context.add_parser("monitor"); cm.add_argument("--task-id"); cm.add_argument("--sessions-json"); cm.add_argument("--execute-safe", action="store_true"); cm.set_defaults(func=context_monitor)
 
     scheduler = areas.add_parser("scheduler").add_subparsers(dest="command_name", required=True)
     sd = scheduler.add_parser("detect"); sd.set_defaults(func=scheduler_cmd)

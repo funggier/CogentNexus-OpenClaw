@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Run probes and recovery fully backgrounded across Windows, Linux, macOS, cron, and containers."
+description: "Supervise runtime health and prepare durable handoffs from live OpenClaw token usage."
 ---
 
 # CogentNexus
@@ -30,6 +30,7 @@ Never expose chain-of-thought, store unrequested secrets, bypass authorization, 
 - Stop when retry budget is exhausted or one strategy repeats twice.
 - Default to one inference lane; exceed it only within an explicit or adaptive ceiling.
 - Commit a durable handoff before rotating or abandoning a session.
+- Observe bound OpenClaw sessions from fresh machine-readable token counts; never infer context pressure.
 - Never auto-bypass permissions, install dependencies, delete data, or perform external actions.
 - Preserve monotonic ledger history without chain-of-thought.
 
