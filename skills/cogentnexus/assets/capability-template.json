@@ -1,0 +1,14 @@
+{
+  "name": "filesystem.patch",
+  "description": "Apply bounded source changes",
+  "available": true,
+  "canRead": true,
+  "canWrite": true,
+  "destructive": false,
+  "requiresAuthorization": false,
+  "memoryCost": "low",
+  "reversible": true,
+  "source": "runtime",
+  "observedAt": "ISO-8601",
+  "evidence": "observed runtime fact"
+}

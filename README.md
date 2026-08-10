@@ -9,7 +9,11 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Bounded command execution with ACTION, OBSERVATION, and FAILURE events
 - Verification bound to state revision and artifact SHA-256
 - Completion rejection after artifact tampering
+- Deterministic file and directory artifact manifests
 - Cross-process writer locking and prepared-transaction recovery
+- Failure classification and dry-run recovery planning
+- Safe internal recovery adaptation with retry budgets and circuit breaking
+- Machine-readable runtime, executable, and OpenClaw skill capability registry
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -37,10 +41,11 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/cogent.py probe all --task-id CNX-001
     python skills/cogentnexus/scripts/cogent.py run --task-id CNX-001 --step compile --command "python -m py_compile artifact.py"
     python skills/cogentnexus/scripts/cogent.py verify run --task-id CNX-001 --exists artifact.py --hash artifact.py
+    python skills/cogentnexus/scripts/cogent.py recover plan --task-id CNX-001
+    python skills/cogentnexus/scripts/cogent.py capability find "GitHub repository"
 
 Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally excluded from version control.
 
 ## Status
 
-Phase 1.1 is implemented. Recovery policies and a machine-readable capability registry are planned for later phases.
-
+Phase 2 is implemented. Recovery remains dry-run by default and safe apply is limited to reversible internal state adaptations; permission bypass, dependency installation, deletion, and external actions are never automatic.
