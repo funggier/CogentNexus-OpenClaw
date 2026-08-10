@@ -4,10 +4,14 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+from artifact_manifest import fingerprint, matches
+from capability_registry import build_registry, check as check_capability, find as find_capabilities, get as get_capability
+from recovery_controller import apply_to_state, classify as classify_recovery, make_plan, recovery_state
+
 WORKSPACE=Path(__file__).resolve().parents[3]
 DEFAULT_ROOT=WORKSPACE/".cogent"
 TASK_ID_RE=re.compile(r"^[A-Za-z0-9._-]+$")
-EVENTS={"INTENT","ACTION","OBSERVATION","DECISION","VERIFICATION","COMMIT","ROLLBACK","FAILURE"}
+EVENTS={"INTENT","ACTION","OBSERVATION","DECISION","VERIFICATION","COMMIT","ROLLBACK","FAILURE","RECOVERY"}
 MANUAL_EVENTS={"ACTION","OBSERVATION","DECISION","FAILURE"}
 SECRET_RE=re.compile(r"(password|passwd|token|secret|authorization|api[-_]?key)",re.I)
 OUTPUT_LIMIT=4000
@@ -114,7 +118,7 @@ def task_init(args):
         state={"schemaVersion":2,"taskId":args.task_id,"goal":args.goal,"currentObjective":args.objective or args.goal,
           "status":"ready","revision":1,"completedSteps":[],"currentStep":None,"producedArtifacts":[],
           "importantDiscoveries":[],"pendingWork":[],"knownFailures":[],"recoveryHint":"Load committed state and select the smallest next step.",
-          "verification":{"status":"NOT_RUN","report":None},"updatedAt":now(),"ledgerSequence":1}
+          "verification":{"status":"NOT_RUN","report":None},"recovery":recovery_state({}),"updatedAt":now(),"ledgerSequence":1}
         event=next_event(paths,args,"INTENT","Task initialized",{"goal":args.goal}); transactional_state(paths,event,state)
     emit(state)
 
@@ -134,13 +138,12 @@ def completion_evidence(paths,state,artifacts):
     report=read_json(paths["verification"])
     if report.get("status")!="PASS": raise SystemExit("completion rejected: latest verification is not PASS")
     if report.get("verifiedStateRevision")!=state.get("revision"): raise SystemExit("completion rejected: verification is stale for current state revision")
-    hashes={item["target"]:item.get("value") for item in report.get("checks",[]) if item.get("type")=="sha256" and item.get("pass")}
+    evidence={item["target"]:item for item in report.get("checks",[]) if item.get("type")=="artifact" and item.get("pass")}
     for value in artifacts:
-        path=resolve_artifact(value); target=str(path)
-        if target not in hashes: raise SystemExit(f"completion rejected: artifact lacks hash evidence: {value}")
-        if not path.is_file() or sha256(path)!=hashes[target]: raise SystemExit(f"completion rejected: artifact changed after verification: {value}")
+        target=str(resolve_artifact(value)); expected=evidence.get(target)
+        if expected is None: raise SystemExit(f"completion rejected: artifact lacks integrity evidence: {value}")
+        if not matches(expected): raise SystemExit(f"completion rejected: artifact changed after verification: {value}")
     return report
-
 def state_commit(args):
     paths=task_paths(args)
     with writer_lock(paths["lock"]):
@@ -263,7 +266,9 @@ def verify_run(args):
     for value in args.exists:
         path=resolve_artifact(value); checks.append({"type":"exists","target":str(path),"pass":path.exists()})
     for value in args.hash:
-        path=resolve_artifact(value); checks.append({"type":"sha256","target":str(path),"pass":path.is_file(),"value":sha256(path) if path.is_file() else None})
+        item=fingerprint(resolve_artifact(value))
+        checks.append({"type":"artifact","target":item["target"],"pass":item["digest"] is not None,"kind":item["kind"],
+          "digest":item["digest"],"fileCount":item["fileCount"],"totalBytes":item["totalBytes"]})
     for command in args.command:
         started=time.monotonic()
         try:
@@ -285,6 +290,48 @@ def verify_show(args):
     emit(report if args.command_name=="inspect" else {"taskId":args.task_id,"status":report["status"],
       "verificationId":report.get("verificationId"),"verifiedStateRevision":report.get("verifiedStateRevision"),"timestamp":report["timestamp"]})
 
+def capability_path(args): return args.root.resolve()/"capabilities.json"
+def load_registry(args,refresh=False):
+    path=capability_path(args)
+    if refresh or not path.exists(): atomic_json(path,build_registry(WORKSPACE))
+    return read_json(path)
+def capability_cmd(args):
+    registry=load_registry(args,args.command_name=="sync")
+    if args.command_name=="sync": emit(registry); return
+    if args.command_name=="list": emit(registry["capabilities"]); return
+    if args.command_name=="find": emit(find_capabilities(registry,args.query)); return
+    item=get_capability(registry,args.name)
+    if args.command_name=="inspect":
+        if item is None: raise SystemExit("capability not found")
+        emit(item); return
+    checked=check_capability(item); emit(checked)
+    return 0 if checked.get("available") else 1
+def capability_availability(args):
+    registry=load_registry(args)
+    return {item["name"]:bool(check_capability(item).get("available")) for item in registry["capabilities"]}
+def recover_cmd(args):
+    state=load_state(args); paths=task_paths(args); classification=classify_recovery(ledger_records(paths["ledger"]))
+    if args.command_name=="classify": emit(classification); return
+    if args.command_name=="inspect": emit(recovery_state(state)); return
+    plan=make_plan(state,classification,capability_availability(args))
+    if args.command_name=="plan" or not args.execute_safe: emit({"dryRun":True,"plan":plan}); return
+    with writer_lock(paths["lock"]):
+        recover_pending_locked(paths); current=read_json(paths["state"])
+        plan=make_plan(current,classify_recovery(ledger_records(paths["ledger"])),capability_availability(args))
+        try: new=apply_to_state(current,plan)
+        except ValueError as exc: raise SystemExit(f"recovery rejected: {exc}")
+        new["schemaVersion"]=3; new["revision"]=int(current["revision"])+1; new["updatedAt"]=now()
+        event=next_event(paths,args,"RECOVERY",f"Applied recovery strategy: {plan['strategy']}",
+          {"planId":plan["planId"],"failureClass":plan["failureClass"],"strategy":plan["strategy"],"settings":plan["safeSettings"]})
+        new["ledgerSequence"]=event["sequence"]; transactional_state(paths,event,new)
+    emit({"dryRun":False,"plan":plan,"state":new})
+def policy_next(args):
+    state=load_state(args); records=ledger_records(task_paths(args)["ledger"])
+    if any(x.get("type")=="FAILURE" for x in records):
+        emit({"transition":"recover","taskId":args.task_id,"plan":make_plan(state,classify_recovery(records),capability_availability(args))}); return
+    transition="commit" if state.get("verification",{}).get("status")=="PASS" else "execute-or-verify"
+    emit({"transition":transition,"taskId":args.task_id,"stateRevision":state.get("revision"),"capabilitiesRegistry":str(capability_path(args))})
+
 def ledger_cmd(args):
     paths=task_paths(args)
     with writer_lock(paths["lock"]): recover_pending_locked(paths)
@@ -302,33 +349,43 @@ def call(script,root,*parts):
     return subprocess.run([sys.executable,str(script),"--root",str(root),*parts],capture_output=True,text=True)
 
 def self_test(args):
-    root=Path(tempfile.mkdtemp(prefix="cogent-self-test-")); script=Path(__file__).resolve(); artifact=root/"artifact.txt"
+    root=Path(tempfile.mkdtemp(prefix="cogent-self-test-")); script=Path(__file__).resolve(); artifact=root/"artifact"
     try:
         if call(script,root,"task","init","--task-id","TEST-1","--goal","test").returncode: raise SystemExit("init failed")
-        workers=[subprocess.Popen([sys.executable,str(script),"--root",str(root),"ledger","append","--task-id","TEST-1",
-          "--type","ACTION","--summary",f"parallel-{i}"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True) for i in range(8)]
+        workers=[subprocess.Popen([sys.executable,str(script),"--root",str(root),"ledger","append","--task-id","TEST-1","--type","ACTION","--summary",f"parallel-{i}"],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,text=True) for i in range(8)]
         for worker in workers:
             _,err=worker.communicate()
             if worker.returncode: raise SystemExit(err)
-        run=call(script,root,"run","--task-id","TEST-1","--step","health","--command",f"{sys.executable} --version")
-        if run.returncode: raise SystemExit(run.stderr or run.stdout)
-        artifact.write_text("verified",encoding="utf-8")
+        if call(script,root,"run","--task-id","TEST-1","--step","health","--command",f"{sys.executable} --version").returncode: raise SystemExit("run failed")
+        artifact.mkdir(); nested=artifact/"nested.txt"; nested.write_text("verified",encoding="utf-8")
         passed=call(script,root,"verify","run","--task-id","TEST-1","--exists",str(artifact),"--hash",str(artifact))
         if passed.returncode: raise SystemExit(passed.stderr or passed.stdout)
-        artifact.write_text("tampered",encoding="utf-8")
+        nested.write_text("tampered",encoding="utf-8")
         rejected=call(script,root,"state","commit","--task-id","TEST-1","--status","completed","--artifact",str(artifact))
-        if rejected.returncode==0 or "changed after verification" not in (rejected.stderr+rejected.stdout): raise SystemExit("tamper gate failed")
-        artifact.write_text("verified",encoding="utf-8")
-        passed=call(script,root,"verify","run","--task-id","TEST-1","--exists",str(artifact),"--hash",str(artifact))
-        completed=call(script,root,"state","commit","--task-id","TEST-1","--status","completed","--artifact",str(artifact))
-        valid=call(script,root,"ledger","validate","--task-id","TEST-1")
-        if passed.returncode or completed.returncode or valid.returncode: raise SystemExit(passed.stderr+completed.stderr+valid.stderr)
+        if rejected.returncode==0 or "changed after verification" not in (rejected.stderr+rejected.stdout): raise SystemExit("directory tamper gate failed")
+        nested.write_text("verified",encoding="utf-8")
+        if call(script,root,"verify","run","--task-id","TEST-1","--exists",str(artifact),"--hash",str(artifact)).returncode: raise SystemExit("reverify failed")
+        if call(script,root,"state","commit","--task-id","TEST-1","--status","completed","--artifact",str(artifact)).returncode: raise SystemExit("completion failed")
+        if call(script,root,"ledger","validate","--task-id","TEST-1").returncode: raise SystemExit("ledger validation failed")
+        if call(script,root,"capability","sync").returncode: raise SystemExit("capability sync failed")
+        found=call(script,root,"capability","find","python")
+        if found.returncode or "python.runtime" not in found.stdout: raise SystemExit("capability find failed")
+        if call(script,root,"task","init","--task-id","TEST-2","--goal","recover").returncode: raise SystemExit("recovery init failed")
+        if call(script,root,"ledger","append","--task-id","TEST-2","--type","FAILURE","--summary","memory exhausted","--data","class=oom").returncode: raise SystemExit("failure append failed")
+        dry=call(script,root,"recover","apply","--task-id","TEST-2")
+        if dry.returncode or '"dryRun": true' not in dry.stdout: raise SystemExit("dry-run failed")
+        before=json.loads(call(script,root,"state","inspect","--task-id","TEST-2").stdout)["revision"]
+        applied=call(script,root,"recover","apply","--task-id","TEST-2","--execute-safe")
+        after=json.loads(call(script,root,"state","inspect","--task-id","TEST-2").stdout)["revision"]
+        if applied.returncode or after!=before+1: raise SystemExit("safe apply failed")
+        call(script,root,"recover","apply","--task-id","TEST-2","--execute-safe")
+        blocked=call(script,root,"recover","apply","--task-id","TEST-2","--execute-safe")
+        if blocked.returncode==0 or "circuit breaker" not in (blocked.stderr+blocked.stdout): raise SystemExit("circuit breaker failed")
         records=json.loads(call(script,root,"ledger","show","--task-id","TEST-1").stdout)
-        if not any(r["type"]=="ACTION" for r in records) or not any(r["type"]=="OBSERVATION" for r in records): raise SystemExit("run events missing")
+        if not any(x["type"]=="ACTION" for x in records) or not any(x["type"]=="OBSERVATION" for x in records): raise SystemExit("run events missing")
         if (root/"tasks"/"TEST-1"/"transaction.json").exists(): raise SystemExit("transaction remained")
-        print("Cogent runtime Phase 1.1 self-test: PASS")
+        print("Cogent runtime Phase 2 self-test: PASS")
     finally: shutil.rmtree(root,ignore_errors=True)
-
 def add_task_id(parser,required=True): parser.add_argument("--task-id",required=required)
 
 def main():
@@ -353,6 +410,18 @@ def main():
     vr.add_argument("--command",action="append",default=[]); vr.add_argument("--timeout",type=int,default=120); vr.set_defaults(func=verify_run)
     for name in ("inspect","status"):
         p=verify.add_parser(name); add_task_id(p); p.set_defaults(func=verify_show)
+    recover=subs.add_parser("recover").add_subparsers(dest="command_name",required=True)
+    for name in ("classify","plan","inspect"):
+        p=recover.add_parser(name); add_task_id(p); p.set_defaults(func=recover_cmd)
+    ra=recover.add_parser("apply"); add_task_id(ra); ra.add_argument("--execute-safe",action="store_true"); ra.set_defaults(func=recover_cmd)
+    capability=subs.add_parser("capability").add_subparsers(dest="command_name",required=True)
+    for name in ("sync","list"):
+        p=capability.add_parser(name); p.set_defaults(func=capability_cmd)
+    cf=capability.add_parser("find"); cf.add_argument("query"); cf.set_defaults(func=capability_cmd)
+    for name in ("inspect","check"):
+        p=capability.add_parser(name); p.add_argument("name"); p.set_defaults(func=capability_cmd)
+    policy=subs.add_parser("policy").add_subparsers(dest="command_name",required=True)
+    pn=policy.add_parser("next"); add_task_id(pn); pn.set_defaults(func=policy_next)
     ledger=subs.add_parser("ledger").add_subparsers(dest="command_name",required=True)
     la=ledger.add_parser("append"); add_task_id(la); la.add_argument("--type",choices=sorted(MANUAL_EVENTS),required=True); la.add_argument("--summary",required=True)
     la.add_argument("--data",action="append",default=[]); la.set_defaults(func=ledger_append)

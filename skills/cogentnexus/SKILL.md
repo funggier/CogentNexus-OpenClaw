@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Phase 1.1 runtime hardening: execution logging, integrity-bound verification, locking, and crash recovery."
+description: "Phase 2 recovery policies, capability registry, directory integrity, and circuit-broken safe adaptation."
 ---
 
 # CogentNexus
@@ -9,52 +9,51 @@ Use this single entry point. Keep private reasoning private; expose useful statu
 
 ## Kernel
 
-1. **Purpose** — define the real objective and observable success criteria.
-2. **Understanding** — identify facts, unknowns, constraints, authorization, and risks.
-3. **Capability and resources** — use runtime observations instead of invented self-knowledge.
-4. **Decision** — choose the smallest robust plan.
-5. **Action and check** — execute, verify, and preserve completed work.
-6. **Reflection** — finish only when evidence meets success criteria.
+1. **Purpose** â€” define the real objective and observable success criteria.
+2. **Understanding** â€” identify facts, constraints, authorization, and risks.
+3. **Capability and resources** â€” query observed capabilities and runtime facts.
+4. **Decision** â€” choose the smallest robust, authorized plan.
+5. **Action and check** â€” execute, verify, and preserve completed work.
+6. **Recovery and reflection** â€” classify failure, change strategy within policy, and finish only with evidence.
 
-Never fabricate certainty, claim intended work as completed, expose chain-of-thought, store unrequested secrets, or expand authority.
+Never expose chain-of-thought, store unrequested secrets, bypass authorization, or claim intended work as completed.
 
 ## Runtime invariants
 
-- Give resumable work a stable task ID and load committed state first.
-- Execute bounded commands through the runtime when practical.
-- Record actions, observations, decisions, and failures without private reasoning.
-- Verify candidates deterministically before commit.
-- Bind verification to state revision and artifact hashes.
-- Reject completion when evidence is absent, stale, failed, or artifacts changed.
-- Serialize ledger/state writes and preserve monotonic append-only history.
-- Recover prepared transactions before continuing after interruption.
-- Resume from durable state and change strategy after repeated equivalent failure.
+- Load committed state and recover prepared transactions before action.
+- Query capability availability instead of inventing self-knowledge.
+- Execute bounded commands and record semantic outcomes.
+- Verify file or directory manifests against the current state revision.
+- Reject absent, stale, failed, or changed completion evidence.
+- Classify failures before retry; dry-run recovery by default.
+- Auto-apply only reversible internal state adaptations.
+- Stop when retry budget is exhausted or one strategy repeats twice.
+- Never auto-bypass permissions, install dependencies, delete data, or perform external actions.
+- Preserve monotonic ledger history without chain-of-thought.
 
-Use `python skills/cogentnexus/scripts/cogent.py --help`. Read [runtime-toolkit.md](references/runtime-toolkit.md) before state, run, probe, verify, or ledger operations.
+Use `python skills/cogentnexus/scripts/cogent.py --help`. Read [runtime-toolkit.md](references/runtime-toolkit.md) for commands, [recovery-controller.md](references/recovery-controller.md) after failure, [capability-registry.md](references/capability-registry.md) before selecting tools, and [artifact-integrity.md](references/artifact-integrity.md) for completion evidence.
 
 ## Module routing
 
-- For ambiguity, consequence, safety sensitivity, or low confidence, read [constitution.md](references/constitution.md).
-- For multi-step work, read [task-loop.md](references/task-loop.md).
-- For delegated, tool-heavy, multi-artifact, local-model, or previously failing work, read [execution-success.md](references/execution-success.md).
-- For large, resource-heavy, or interruption-prone work, read [resource-survival.md](references/resource-survival.md).
-- When information must survive a session, read [minimal-memory.md](references/minimal-memory.md).
-- After failure, recovery, correction, or reusable discovery, read [lesson-learning.md](references/lesson-learning.md).
-- Before risky, long-running, or resumed work, read [task-resumption.md](references/task-resumption.md).
-- Before final delivery, apply [output-verification.md](references/output-verification.md).
-- When changing runtime contracts, follow [architecture.md](references/architecture.md).
+- Ambiguous, consequential, or safety-sensitive work: [constitution.md](references/constitution.md).
+- Multi-step work: [task-loop.md](references/task-loop.md).
+- Tool-heavy, multi-artifact, local-model, or failing work: [execution-success.md](references/execution-success.md).
+- Large or interruption-prone work: [resource-survival.md](references/resource-survival.md).
+- Durable information: [minimal-memory.md](references/minimal-memory.md).
+- Reusable failure lessons: [lesson-learning.md](references/lesson-learning.md).
+- Risky, long-running, or resumed work: [task-resumption.md](references/task-resumption.md).
+- Final delivery: [output-verification.md](references/output-verification.md).
+- Runtime changes: [architecture.md](references/architecture.md).
 
-For simple tasks, apply the Kernel internally without ceremony.
+For simple tasks, apply the Kernel internally.
 
 ## Runtime loop
 
-```text
-load/recover → probe → execute bounded step → record outcome → verify → transactional commit → release temporary context → next
-```
+    load/recover â†’ probe â†’ capability query â†’ bounded action â†’ verify
+    PASS â†’ transactional commit
+    FAIL â†’ classify â†’ dry-run recovery plan â†’ safe apply or request authority
 
 ## Validation
 
-```powershell
-python skills/cogentnexus/scripts/validate.py --workspace-singleton
-python skills/cogentnexus/scripts/cogent.py self-test
-```
+    python skills/cogentnexus/scripts/validate.py --workspace-singleton
+    python skills/cogentnexus/scripts/cogent.py self-test

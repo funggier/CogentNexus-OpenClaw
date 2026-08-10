@@ -1,0 +1,22 @@
+{
+  "planId": "deterministic-id",
+  "taskId": "CNX-001",
+  "stateRevision": 1,
+  "failureClass": "timeout",
+  "strategy": "inspect-before-retry",
+  "safeSettings": {},
+  "manualActions": [
+    "Confirm whether process survived"
+  ],
+  "requiredCapabilities": [
+    "process.execute"
+  ],
+  "missingCapabilities": [],
+  "retryBudget": {
+    "used": 0,
+    "maximum": 3
+  },
+  "circuitOpen": false,
+  "autoApplicable": false,
+  "createdAt": "ISO-8601"
+}
