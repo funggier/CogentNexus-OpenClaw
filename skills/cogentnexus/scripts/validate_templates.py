@@ -6,6 +6,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates" / "supervisor"
+LIFECYCLE = ROOT / "templates" / "lifecycle"
 COMMAND_TEMPLATES = (
     "windows-task.xml", "cogentnexus-supervisor.service", "ai.cogentnexus.supervisor.plist",
     "cron.txt", "docker-compose.yml", "kubernetes-probes.yaml"
@@ -37,6 +38,27 @@ def main():
     for name in COMMAND_TEMPLATES:
         if "{{PHASE3}}" not in (TEMPLATES / name).read_text(encoding="utf-8"):
             raise SystemExit(f"missing Phase 3 placeholder: {name}")
+    lifecycle_names = (
+        "start-cogentnexus.cmd", "stop-cogentnexus.cmd",
+        "start-cogentnexus.sh", "stop-cogentnexus.sh", "README.md",
+    )
+    for name in lifecycle_names:
+        if not (LIFECYCLE / name).is_file():
+            raise SystemExit(f"missing lifecycle launcher: {name}")
+    start_contract = (
+        (LIFECYCLE / "start-cogentnexus.cmd").read_text(encoding="utf-8")
+        + (LIFECYCLE / "start-cogentnexus.sh").read_text(encoding="utf-8")
+    )
+    stop_contract = (
+        (LIFECYCLE / "stop-cogentnexus.cmd").read_text(encoding="utf-8")
+        + (LIFECYCLE / "stop-cogentnexus.sh").read_text(encoding="utf-8")
+    )
+    if start_contract.count("lifecycle start --provider") != 2:
+        raise SystemExit("portable start lifecycle contract failed")
+    if stop_contract.count("lifecycle stop --provider") != 2:
+        raise SystemExit("portable stop lifecycle contract failed")
+    if stop_contract.count("planned host shutdown") != 2:
+        raise SystemExit("portable maintenance reason contract failed")
     print("Cross-platform template validation: PASS")
     return 0
 

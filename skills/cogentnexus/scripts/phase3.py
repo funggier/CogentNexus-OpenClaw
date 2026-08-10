@@ -281,12 +281,95 @@ def recover_component(name, config):
             return run_command(["systemctl", "--user", "start", "ollama"], max(timeout, 60))
     return {"ok": False, "error": "no authorized recovery adapter"}
 
+def maintenance_path(root):
+    return runtime_dir(root) / "maintenance.json"
+
+def maintenance_status(root):
+    path = maintenance_path(root)
+    return read_json(path) if path.exists() else None
+
+def set_maintenance(root, reason, owner="operator"):
+    marker = {"schemaVersion": 1, "active": True, "createdAt": now(), "reason": reason, "owner": owner}
+    atomic_json(maintenance_path(root), marker)
+    append_runtime_event(root, "DECISION", "Intentional maintenance mode enabled", marker)
+    return marker
+
+def clear_maintenance(root):
+    path = maintenance_path(root)
+    previous = read_json(path) if path.exists() else None
+    try:
+        path.unlink()
+    except FileNotFoundError:
+        pass
+    append_runtime_event(root, "COMMIT", "Intentional maintenance mode cleared", {"previous": previous})
+    return previous
+
+def stop_ollama(config):
+    timeout = int(config["supervisor"]["commandTimeoutSeconds"])
+    if os.name == "nt":
+        executable = shutil.which("taskkill")
+        return run_command([executable, "/IM", "ollama.exe", "/T"], timeout) if executable else {"ok": False, "error": "taskkill unavailable"}
+    if shutil.which("systemctl"):
+        return run_command(["systemctl", "--user", "stop", "ollama"], max(timeout, 60))
+    return {"ok": False, "error": "no managed Ollama stop adapter"}
+
+def lifecycle_cmd(args):
+    root = args.root.resolve()
+    config = load_config(root)
+    marker = maintenance_status(root)
+    if args.command_name == "status":
+        emit({"maintenance": marker, "gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config), "startupHint": "After login, native OpenClaw startup plus the CogentNexus supervisor normally restores runtime; use lifecycle start for an immediate verified start."})
+        return 0
+    if args.command_name == "prepare":
+        emit({"maintenance": set_maintenance(root, args.reason, args.owner), "safeToPowerOff": True})
+        return 0
+    if args.command_name == "cancel":
+        emit({"cancelled": bool(clear_maintenance(root)), "maintenance": None})
+        return 0
+    if args.command_name == "stop":
+        marker = marker or set_maintenance(root, args.reason, args.owner)
+        executable = openclaw_executable()
+        results = {"gateway": run_command([executable, "gateway", "stop"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}}
+        if args.provider:
+            results["ollama"] = stop_ollama(config)
+        append_runtime_event(root, "ACTION", "Runtime stopped for intentional shutdown", {"providerRequested": bool(args.provider), "results": results})
+        emit({"maintenance": marker, "results": results, "safeToPowerOff": bool(results["gateway"].get("ok"))})
+        return 0 if results["gateway"].get("ok") else 2
+    if args.command_name == "start":
+        results = {}
+        initial = {"gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config)}
+        if args.provider and not initial["ollama"]["healthy"]:
+            results["ollama"] = recover_component("ollama", config)
+        else:
+            results["ollama"] = {"ok": True, "skipped": True, "reason": "already healthy"}
+        if initial["gateway"]["healthy"]:
+            results["gateway"] = {"ok": True, "skipped": True, "reason": "already healthy"}
+        else:
+            executable = openclaw_executable()
+            results["gateway"] = run_command([executable, "gateway", "start"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
+        time.sleep(float(config["supervisor"]["verifyDelaySeconds"]))
+        verified = {"gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config)}
+        healthy = verified["gateway"]["healthy"] and verified["ollama"]["healthy"]
+        if healthy:
+            clear_maintenance(root)
+        append_runtime_event(root, "VERIFICATION", "Runtime startup verified" if healthy else "Runtime startup incomplete", {"results": results, "verified": verified})
+        emit({"started": healthy, "maintenance": maintenance_status(root), "results": results, "verified": verified})
+        return 0 if healthy else 2
+    raise SystemExit("unknown lifecycle command")
+
 def supervisor_tick(args):
     root = args.root.resolve()
     config = load_config(root)
     base = runtime_dir(root)
     try:
         with file_lock(base / ".supervisor.lock", timeout=1, stale=max(120, int(config["supervisor"]["intervalSeconds"]))):
+            marker = maintenance_status(root)
+            if marker and marker.get("active"):
+                snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
+                atomic_json(base / "health.json", snapshot)
+                append_runtime_event(root, "OBSERVATION", "Supervisor tick skipped during intentional maintenance", {"reason": marker.get("reason")})
+                emit(snapshot)
+                return 0
             state = read_json(base / "supervisor-state.json", {"schemaVersion": 1, "components": {}, "updatedAt": None})
             probes = {}
             for name in ("gateway", "ollama", "resources"):
@@ -769,6 +852,11 @@ def self_test(args):
         config["supervisor"]["confirmDelaySeconds"] = 0
         config["supervisor"]["verifyDelaySeconds"] = 0
         atomic_json(config_path(root), config)
+        prepared = call(script, root, "lifecycle", "prepare", "--reason", "self-test")
+        paused = call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe")
+        cancelled = call(script, root, "lifecycle", "cancel")
+        if prepared.returncode or paused.returncode or cancelled.returncode or json.loads(paused.stdout)["status"] != "maintenance":
+            raise SystemExit("intentional maintenance fencing failed")
         healthy = call(script, root, "supervisor", "tick", "--fixture", "healthy")
         failures = [call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe") for _ in range(3)]
         blocked = call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe")
@@ -798,6 +886,13 @@ def main():
     parser = argparse.ArgumentParser(prog="cogent-phase3")
     add_root(parser)
     areas = parser.add_subparsers(dest="area", required=True)
+
+    lifecycle = areas.add_parser("lifecycle").add_subparsers(dest="command_name", required=True)
+    ls = lifecycle.add_parser("status"); ls.set_defaults(func=lifecycle_cmd)
+    lp = lifecycle.add_parser("prepare"); lp.add_argument("--reason", default="planned shutdown"); lp.add_argument("--owner", default="operator"); lp.set_defaults(func=lifecycle_cmd)
+    lc = lifecycle.add_parser("cancel"); lc.set_defaults(func=lifecycle_cmd)
+    lst = lifecycle.add_parser("stop"); lst.add_argument("--provider", action="store_true"); lst.add_argument("--reason", default="planned shutdown"); lst.add_argument("--owner", default="operator"); lst.set_defaults(func=lifecycle_cmd)
+    lstart = lifecycle.add_parser("start"); lstart.add_argument("--provider", action="store_true"); lstart.set_defaults(func=lifecycle_cmd)
 
     supervisor = areas.add_parser("supervisor").add_subparsers(dest="command_name", required=True)
     tick = supervisor.add_parser("tick")

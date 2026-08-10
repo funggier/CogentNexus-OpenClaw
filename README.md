@@ -16,6 +16,7 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Machine-readable runtime, executable, and OpenClaw skill capability registry
 - Cross-platform deterministic supervisor with confirmed health probes, verified recovery, cooldowns, and circuit breaking
 - Native scheduler templates for Windows Task Scheduler, systemd, launchd, cron, Docker Compose, and Kubernetes
+- Portable, maintenance-fenced lifecycle launchers for Windows, Linux, and macOS
 - Fixed or adaptive concurrency admission with one inference lane as the safe default
 - Durable context handoff with live OpenClaw token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
 - Minimal ledger records without chain-of-thought
@@ -54,6 +55,17 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/phase3.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
     python skills/cogentnexus/scripts/phase3.py context monitor --task-id TASK-1 --execute-safe
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
+
+## Start and stop safely
+
+Portable wrappers are available in `skills/cogentnexus/templates/lifecycle/`:
+
+- Windows: `start-cogentnexus.cmd` and `stop-cogentnexus.cmd`
+- Linux/macOS: `start-cogentnexus.sh` and `stop-cogentnexus.sh`
+
+Run a wrapper from the workspace whose runtime data should be stored under `.cogent`, or set `COGENTNEXUS_ROOT` to an absolute runtime-data directory. On Linux/macOS, make the shell wrappers executable once with `chmod +x`.
+
+The stop wrapper enables maintenance mode before stopping OpenClaw and the local provider, preventing the supervisor from immediately restarting them. The start wrapper verifies service health before clearing maintenance mode and is safe to invoke when services are already healthy.
 
 Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally excluded from version control.
 
