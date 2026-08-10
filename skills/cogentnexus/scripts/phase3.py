@@ -147,13 +147,17 @@ def append_runtime_event(root, event_type, summary, data=None):
 def run_command(argv, timeout=30):
     started = time.monotonic()
     try:
-        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+        background = (
+            {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+            if os.name == "nt"
+            else {"start_new_session": True}
+        )
         proc = subprocess.run(
             argv,
             capture_output=True,
             text=True,
             timeout=timeout,
-            creationflags=flags,
+            **background,
         )
         return {
             "ok": proc.returncode == 0,

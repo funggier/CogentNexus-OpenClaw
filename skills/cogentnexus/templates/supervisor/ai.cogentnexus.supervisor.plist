@@ -3,5 +3,6 @@
 <plist version="1.0"><dict>
 <key>Label</key><string>ai.cogentnexus.supervisor</string>
 <key>ProgramArguments</key><array><string>{{PYTHON}}</string><string>{{PHASE3}}</string><string>--root</string><string>{{ROOT}}</string><string>supervisor</string><string>tick</string><string>--execute-safe</string></array>
+<key>ProcessType</key><string>Background</string>
 <key>RunAtLoad</key><true/><key>StartInterval</key><integer>300</integer>
 </dict></plist>
