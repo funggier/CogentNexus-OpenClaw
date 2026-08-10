@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Supervise runtime health and prepare durable handoffs from live OpenClaw token usage."
+description: "Compile intent into verified workflows with deterministic continuation, fencing, checkpoints, and bounded LLM execution."
 ---
 
 # CogentNexus
@@ -9,65 +9,94 @@ Use this single entry point. Keep private reasoning private; expose useful statu
 
 ## Kernel
 
-1. **Purpose** - define the real objective and observable success criteria.
-2. **Understanding** - identify facts, constraints, authorization, and risks.
+1. **Purpose** - infer the requested outcome and observable success criteria.
+2. **Understanding** - identify facts, constraints, authorization, unknowns, and risks.
 3. **Capability and resources** - query observed capabilities and runtime facts.
-4. **Decision** - choose the smallest robust, authorized plan.
-5. **Action and check** - execute, verify, and preserve completed work.
-6. **Recovery and reflection** - classify failure, change strategy within policy, and finish only with evidence.
+4. **Intent compilation** - transform the request into the smallest capability-fit execution contract.
+5. **Decision** - choose the smallest robust, authorized plan.
+6. **Action and check** - execute, verify, checkpoint, and preserve completed work.
+7. **Recovery and reflection** - classify failure, change strategy within policy, and finish only with evidence.
 
-Never expose chain-of-thought, store unrequested secrets, bypass authorization, or claim intended work as completed.
+Never expose chain-of-thought, invent material requirements, store unrequested secrets, bypass authorization, or claim intended work as completed.
+
+## Intent compiler
+
+Compile simple requests internally: define observable acceptance criteria, inspect current state and existing solutions, choose executor size from observed capability, split dependency-heavy work into verifiable components, define validator/retry/dependencies, and keep orchestration and completion authority outside bounded generators.
+
+Select the smallest lane:
+
+- **Direct** - one small reversible action with immediately observable results.
+- **Verified** - multi-step, generated, structured, or integration-sensitive work.
+- **Durable** - long, resource-heavy, detached, costly-to-duplicate, or interruption-prone work.
+
+Do not require the user to perform decomposition or prompt engineering. Ask only for missing authority, irreversible external action, a consequential product choice, or undiscoverable required input.
+
+## Durable workflow controller
+
+For Durable work, compile a JSON workflow manifest and use the deterministic controller:
+
+    python skills/cogentnexus/scripts/workflow.py validate <manifest.json>
+    python skills/cogentnexus/scripts/workflow.py --root <workspace> init <manifest.json>
+    python skills/cogentnexus/scripts/workflow.py --root <workspace> run <task-id>
+    python skills/cogentnexus/scripts/workflow.py --root <workspace> status <task-id>
+
+`run` owns continuation: it selects the next dependency-ready step, executes one bounded command or Ollama generation, runs an external validator, hashes declared artifacts, checkpoints state and ledger evidence, retries only within the declared ceiling, and advances without waiting for conversational supervision.
+
+A live worker PID fences duplicate execution. After interruption, a valid produced artifact is recovered through its validator; an idempotent incomplete step is requeued; a non-idempotent interrupted step is blocked for review. The user must not need to say that a worker appears finished before the next verified step starts.
+
+Use command executors without a shell. Treat Ollama output as a candidate until its validator passes. Keep external side effects outside automatic retry unless idempotency is proven.
 
 ## Runtime invariants
 
 - Load committed state and recover prepared transactions before action.
 - Query capability availability instead of inventing self-knowledge.
 - Execute bounded commands and record semantic outcomes.
-- Verify file or directory manifests against the current state revision.
+- Verify manifests and artifacts against the current state revision.
 - Reject absent, stale, failed, or changed completion evidence.
-- Classify failures before retry; dry-run recovery by default.
-- Auto-apply only reversible, authorized runtime adaptations.
-- Stop when retry budget is exhausted or one strategy repeats twice.
-- Default to one inference lane; exceed it only within an explicit or adaptive ceiling.
-- Commit a durable handoff before rotating or abandoning a session.
-- Observe bound OpenClaw sessions from fresh machine-readable token counts; never infer context pressure.
+- Classify failures before retry; stop at the retry ceiling or after repeated strategy.
+- Separate model-generated work from deterministic repair in evidence.
+- Default to one inference lane unless admission permits more.
+- Fence duplicate workers with locks and live-worker identity.
+- Commit durable handoff state before rotation or abandonment.
 - Never auto-bypass permissions, install dependencies, delete data, or perform external actions.
 - Preserve monotonic ledger history without chain-of-thought.
 - Planned shutdown must establish maintenance mode before stopping services.
 - Lifecycle start must be idempotent and clear maintenance mode only after health verification.
 
-Use python skills/cogentnexus/scripts/cogent.py --help for Phase 1-2 task operations.
-Use python skills/cogentnexus/scripts/phase3.py --help for supervision, concurrency, continuity, scheduler adapters, and lifecycle operations.
-Portable lifecycle launchers are under templates/lifecycle for Windows, Linux, and macOS.
+Use `cogent.py` for Phase 1-2 task operations, `phase3.py` for supervision and continuity, and `workflow.py` for verified autonomous component workflows.
 
 ## Module routing
 
-- Ambiguous, consequential, or safety-sensitive work: [constitution.md](references/constitution.md).
+- Simple intent, lane selection, or prompt compilation: [intent-compiler.md](references/intent-compiler.md).
+- Durable workflow manifests and continuation: [workflow-runtime.md](references/workflow-runtime.md).
+- Ambiguous or safety-sensitive work: [constitution.md](references/constitution.md).
 - Multi-step work: [task-loop.md](references/task-loop.md).
-- Tool-heavy, multi-artifact, local-model, or failing work: [execution-success.md](references/execution-success.md).
+- Tool-heavy, local-model, or failing work: [execution-success.md](references/execution-success.md).
 - Large or interruption-prone work: [resource-survival.md](references/resource-survival.md).
 - Durable information: [minimal-memory.md](references/minimal-memory.md).
 - Reusable failure lessons: [lesson-learning.md](references/lesson-learning.md).
-- Risky, long-running, or resumed work: [task-resumption.md](references/task-resumption.md).
-- Runtime supervision and health recovery: [runtime-supervisor.md](references/runtime-supervisor.md).
-- Inference and worker admission: [concurrency-manager.md](references/concurrency-manager.md).
-- Token pressure and session rotation: [context-continuity.md](references/context-continuity.md).
-- Native scheduling and deployment: [scheduler-adapters.md](references/scheduler-adapters.md).
+- Risky or resumed work: [task-resumption.md](references/task-resumption.md).
+- Runtime supervision: [runtime-supervisor.md](references/runtime-supervisor.md).
+- Lifecycle: [runtime-lifecycle.md](references/runtime-lifecycle.md).
+- Admission: [concurrency-manager.md](references/concurrency-manager.md).
+- Context rotation: [context-continuity.md](references/context-continuity.md).
+- Scheduling: [scheduler-adapters.md](references/scheduler-adapters.md).
 - Final delivery: [output-verification.md](references/output-verification.md).
 - Runtime changes: [architecture.md](references/architecture.md).
-- Toolkit commands: [runtime-toolkit.md](references/runtime-toolkit.md), [recovery-controller.md](references/recovery-controller.md), [capability-registry.md](references/capability-registry.md), and [artifact-integrity.md](references/artifact-integrity.md).
+- Toolkit: [runtime-toolkit.md](references/runtime-toolkit.md), [recovery-controller.md](references/recovery-controller.md), [capability-registry.md](references/capability-registry.md), and [artifact-integrity.md](references/artifact-integrity.md).
 
-For simple tasks, apply the Kernel internally.
+For simple tasks, apply the Kernel internally and answer concisely.
 
 ## Runtime loop
 
-    load/recover -> probe -> admission -> bounded action -> verify
-    PASS -> transactional commit
-    FAIL -> classify -> dry-run recovery -> safe apply or request authority
-    CONTEXT PRESSURE -> verify -> handoff -> release lease -> fresh session
+    intent -> compile -> select lane -> load/recover -> probe -> bounded action
+    PASS -> validate -> hash -> checkpoint -> automatically start next ready step
+    FAIL -> classify -> bounded retry or materially different strategy
+    INTERRUPT -> fence -> inspect validator/artifacts -> recover, requeue, or block
 
 ## Validation
 
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
+    python skills/cogentnexus/scripts/workflow.py self-test
     python skills/cogentnexus/scripts/cogent.py self-test
     python skills/cogentnexus/scripts/phase3.py self-test

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "taskId": "WF-001",
+  "goal": "Produce a verified artifact",
+  "steps": [
+    {
+      "id": "generate",
+      "dependsOn": [],
+      "executor": {
+        "type": "command",
+        "argv": ["python", "generate.py"],
+        "timeoutSeconds": 300
+      },
+      "validator": {
+        "argv": ["python", "validate.py"],
+        "timeoutSeconds": 60
+      },
+      "outputs": ["artifact.json"],
+      "maximumAttempts": 2,
+      "idempotent": true
+    }
+  ]
+}
+
