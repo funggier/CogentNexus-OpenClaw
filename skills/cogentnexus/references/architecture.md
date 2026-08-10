@@ -1,22 +1,13 @@
 # Architecture and Extension Contract
 
-CogentNexus is a modular monolith: one discoverable OpenClaw skill and one `SKILL.md`.
+CogentNexus is a modular monolith: one discoverable OpenClaw skill and one SKILL.md.
 
-## Directories
+- SKILL.md: stable kernel and routing.
+- references/: cognitive and operational contracts.
+- scripts/: deterministic portable runtime.
+- assets/: configuration defaults.
+- templates/: native scheduler and deployment adapters.
 
-- `SKILL.md`: stable kernel, routing, invariants, validation command.
-- `references/`: cognitive modules loaded only when routed.
-- `scripts/`: deterministic state management and validation.
-- `assets/`: non-executable templates.
+Portable logic must remain in Python standard-library code. Platform-specific behavior belongs behind an adapter or template. Windows Task Scheduler, systemd, launchd, cron, Docker, and Kubernetes must call the same supervisor contract. Do not run an inference inside the periodic supervisor.
 
-## Adding a module
-
-1. Give it one responsibility and a clear trigger.
-2. Put detailed behavior in `references/<module>.md`.
-3. Add exactly one routing bullet in `SKILL.md`.
-4. Avoid duplicating Kernel invariants.
-5. Add required-file checks to `scripts/validate.py`.
-6. Run validation and an interruption/resume acceptance test.
-7. Update the version only for material behavioral changes.
-
-Do not add nested `SKILL.md` files. They would create separate discoverable skills and break the single-entry architecture.
+Every new module needs one responsibility, one routing entry, validation coverage, interruption/resume tests, and evidence-based completion. Do not add nested SKILL.md files.

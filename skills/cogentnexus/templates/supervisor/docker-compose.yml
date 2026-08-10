@@ -1,0 +1,8 @@
+services:
+  openclaw:
+    healthcheck:
+      test: ["CMD", "{{PYTHON}}", "{{PHASE3}}", "--root", "{{ROOT}}", "supervisor", "tick"]
+      interval: 5m
+      timeout: 90s
+      retries: 1
+    restart: unless-stopped

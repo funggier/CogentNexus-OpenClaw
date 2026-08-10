@@ -1,33 +1,17 @@
 # Task Resumption
 
-Use before risky or long-running work and whenever an interrupted task exists.
+Use for risky, long-running, detached, or interrupted work.
 
-## Checkpoint
+Active task truth lives under .cogent/tasks/<task-id>. State, ledger, verification, artifact evidence, and handoff must be sufficient to resume without conversation reconstruction.
 
-Write an atomic entry to `memory/interrupted-tasks.json` containing task ID, objective, state, completed steps, current/next action, timestamp, retry limit, and retry count. Prefer:
+Before resuming:
 
-```powershell
-python skills/cogentnexus/scripts/task_state.py checkpoint --task-id <id> --task "<objective>" --next-action "<next>"
-```
+1. Recover prepared transactions.
+2. Inspect state revision and latest ledger sequence.
+3. Verify previously completed artifacts.
+4. Inspect the handoff generation and lease.
+5. Confirm the task is not abandoned and does not conflict with the current request.
+6. Claim the handoff before action.
+7. Execute the smallest next unit and checkpoint after verification.
 
-Checkpoint after every material verified step, not after every trivial action.
-
-## Resume
-
-On session startup or task continuation:
-
-1. Inspect in-progress entries older than five minutes.
-2. Confirm the task was not explicitly abandoned and does not conflict with the current user request.
-3. Re-read affected state and verify completed work.
-4. Resume the smallest executable next action.
-5. Retry transient failures within the stored limit; diagnose before changing strategy.
-6. Remove the entry after verified completion.
-
-Do not silently resume an unrelated stale task during an active user request. Surface a conflict when resumption could materially interfere.
-
-## Failure-specific checks
-
-- File edit: re-read and compare expected state.
-- Command: confirm whether the process still exists before rerunning.
-- Multi-file change: inventory completed files, then continue in dependency order.
-- External operation: verify remote state before retrying to avoid duplication.
+Do not silently resume unrelated stale work. Do not rerun external operations until remote state is checked. A live lease fences duplicate workers; an expired lease may be reclaimed with a new lease identifier. TaskFlow may preserve owner and child lifecycle, while CogentNexus remains the source of task evidence.

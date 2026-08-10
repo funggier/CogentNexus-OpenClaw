@@ -1,0 +1,14 @@
+# Context Continuity
+
+Task lifetime must not depend on session lifetime.
+
+Threshold actions are CONTINUE, CHECKPOINT, HANDOFF, and ROTATE. Before handoff or rotation, verify the current unit and atomically commit task state. Create a minimal handoff outside session context:
+
+    python skills/cogentnexus/scripts/phase3.py context status --used-tokens N --maximum-tokens N
+    python skills/cogentnexus/scripts/phase3.py context checkpoint --task-id ID --owner-session SESSION --next-action ACTION --used-tokens N --maximum-tokens N
+    python skills/cogentnexus/scripts/phase3.py context claim --task-id ID --worker-session SESSION
+    python skills/cogentnexus/scripts/phase3.py context release --task-id ID --worker-session SESSION --lease-id ID --result completed --summary SUMMARY
+
+The handoff contains goal, state revision, verified artifacts, failures, next action, authorization boundary, generation, and lease. It excludes full conversation history, secrets, and chain-of-thought. A fresh worker receives only the handoff and required artifacts. With one inference lane, the owner must finish its turn before the detached worker starts. With multiple lanes, only independent artifact scopes may run concurrently.
+
+TaskFlow owns the durable parent/child lifecycle. CogentNexus owns task evidence and handoff fencing. The calling integration should create a managed TaskFlow, link the detached worker, persist only handoff identifiers in stateJson, and return a compact verified result to the owner.
