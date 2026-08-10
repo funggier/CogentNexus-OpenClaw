@@ -22,6 +22,15 @@
         "type": "integer",
         "minimum": 60,
         "maximum": 86400
+      },
+      "autoResume": {
+        "type": "boolean",
+        "description": "Schedule one durable continuation turn after a resumable interruption."
+      },
+      "autoResumeDelayMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 60000
       }
     },
     "additionalProperties": false

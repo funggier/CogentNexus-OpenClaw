@@ -21,7 +21,62 @@ type RotationConfig = {
   agentId?: string;
   model?: string;
   timeoutSeconds?: number;
+  autoResume?: boolean;
+  autoResumeDelayMs?: number;
 };
+
+export function isResumableInterruption(success: boolean, error?: string): boolean {
+  if (success || !error) return false;
+  return /(interrupt|context[_ -]?length[_ -]?exceeded|compaction|summari[sz]ation failed|timed?\s*out)/i.test(error);
+}
+
+export function autoResumeTag(runId: string): string {
+  return `cogent-resume-${runId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 96)}`;
+}
+
+type ResumeWorkflow = {
+  unscheduleSessionTurnsByTag(input: { sessionKey: string; tag: string }): Promise<unknown>;
+  scheduleSessionTurn(input: {
+    sessionKey: string;
+    delayMs: number;
+    deleteAfterRun: boolean;
+    deliveryMode: "announce";
+    name: string;
+    tag: string;
+    message: string;
+  }): Promise<unknown>;
+};
+
+export async function scheduleInterruptedResume(input: {
+  success: boolean;
+  error?: string;
+  runId?: string;
+  sessionKey?: string;
+  delayMs?: number;
+  workflow: ResumeWorkflow;
+  scheduledRuns: Set<string>;
+}): Promise<boolean> {
+  const { runId, sessionKey } = input;
+  if (!runId || !sessionKey || input.scheduledRuns.has(runId) || !isResumableInterruption(input.success, input.error)) return false;
+  const tag = autoResumeTag(runId);
+  await input.workflow.unscheduleSessionTurnsByTag({ sessionKey, tag });
+  await input.workflow.scheduleSessionTurn({
+    sessionKey,
+    delayMs: input.delayMs ?? 2000,
+    deleteAfterRun: true,
+    deliveryMode: "announce",
+    name: `CogentNexus resume ${runId.slice(0, 12)}`,
+    tag,
+    message: [
+      "The previous run was interrupted.",
+      "Resume automatically from committed CogentNexus durable state and the latest valid handoff.",
+      "Recover prepared transactions first, verify completed artifacts, and continue only the smallest recorded next action.",
+      "Do not repeat external side effects and do not claim completion without verification.",
+    ].join("\n"),
+  });
+  input.scheduledRuns.add(runId);
+  return true;
+}
 
 export function inspectHandoff(
   taskId: string,
@@ -82,9 +137,11 @@ const configSchema = Type.Object({
   agentId: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
   timeoutSeconds: Type.Optional(Type.Integer({ minimum: 60, maximum: 86400 })),
+  autoResume: Type.Optional(Type.Boolean({ description: "Schedule one durable continuation turn after a resumable interruption." })),
+  autoResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000 })),
 }, { additionalProperties: false });
 
-export default defineToolPlugin({
+const entry = defineToolPlugin({
   id: "cogentnexus-rotation",
   name: "CogentNexus Rotation Controller",
   description: "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
@@ -172,3 +229,26 @@ export default defineToolPlugin({
     }),
   })],
 });
+
+const registerTools = entry.register?.bind(entry);
+entry.register = (api) => {
+  registerTools?.(api);
+  const config = (api.pluginConfig ?? {}) as RotationConfig;
+  if (config.autoResume === false) return;
+  const scheduledRuns = new Set<string>();
+  api.on("agent_end", async (event, ctx) => {
+    const runId = event.runId ?? ctx.runId;
+    const sessionKey = ctx.sessionKey;
+    await scheduleInterruptedResume({
+      success: event.success,
+      error: event.error,
+      runId,
+      sessionKey,
+      delayMs: config.autoResumeDelayMs,
+      workflow: api.session.workflow,
+      scheduledRuns,
+    });
+  }, { priority: 50, timeoutMs: 10_000 });
+};
+
+export default entry;
