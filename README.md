@@ -17,7 +17,7 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Cross-platform deterministic supervisor with confirmed health probes, verified recovery, cooldowns, and circuit breaking
 - Native scheduler templates for Windows Task Scheduler, systemd, launchd, cron, Docker Compose, and Kubernetes
 - Fixed or adaptive concurrency admission with one inference lane as the safe default
-- Durable context handoff with integrity binding, worker leases, generation fencing, and session rotation thresholds
+- Durable context handoff with live OpenClaw token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -51,6 +51,8 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/phase3.py supervisor tick
     python skills/cogentnexus/scripts/phase3.py concurrency status
     python skills/cogentnexus/scripts/phase3.py context status --used-tokens 18000 --maximum-tokens 32768
+    python skills/cogentnexus/scripts/phase3.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
+    python skills/cogentnexus/scripts/phase3.py context monitor --task-id TASK-1 --execute-safe
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
 
 Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally excluded from version control.

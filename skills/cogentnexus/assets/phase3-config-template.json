@@ -25,6 +25,7 @@
     "handoffLimit": 0.7,
     "criticalLimit": 0.82,
     "reserveTokens": 16384,
-    "leaseSeconds": 1800
+    "leaseSeconds": 1800,
+    "autoMonitor": true
   }
 }
