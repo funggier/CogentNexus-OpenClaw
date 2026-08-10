@@ -1,0 +1,13 @@
+{
+  "taskId": "unique-task-id",
+  "task": "Objective",
+  "state": "in-progress",
+  "interruptible": true,
+  "data": {
+    "completedSteps": [],
+    "nextAction": "Smallest executable next step"
+  },
+  "timestamp": "ISO-8601",
+  "maxRetries": 3,
+  "retryCount": 0
+}

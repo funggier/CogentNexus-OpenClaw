@@ -1,0 +1,28 @@
+# Execution Manifest
+
+- Objective:
+- Target:
+- Constraints:
+- Must-have Definition of Done:
+  - [ ] Artifact/behavior:
+    - Evidence:
+    - Validator:
+- Optional quality:
+  - [ ] Improvement:
+- Executor and capability fit:
+- Preflight checks:
+  - [ ] Target and platform confirmed
+  - [ ] Existing state inspected
+  - [ ] Runtime/process health checked when relevant
+  - [ ] Validator available
+- Work items:
+  - ID:
+  - Dependency:
+  - Expected output:
+  - Validator:
+  - Status: pending
+  - Evidence:
+- Current checkpoint:
+- Retry count and changed strategy:
+- Integration checks:
+- Final status: pending

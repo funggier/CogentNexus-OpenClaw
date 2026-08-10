@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "CNX-001",
+  "goal": "Observable outcome",
+  "currentObjective": "Current bounded objective",
+  "status": "ready",
+  "revision": 1,
+  "completedSteps": [],
+  "currentStep": null,
+  "producedArtifacts": [],
+  "importantDiscoveries": [],
+  "pendingWork": [],
+  "knownFailures": [],
+  "recoveryHint": "Load committed state and select the smallest next step.",
+  "verification": {"status": "NOT_RUN", "report": null},
+  "updatedAt": "ISO-8601",
+  "ledgerSequence": 1
+}

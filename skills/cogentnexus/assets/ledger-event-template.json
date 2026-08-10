@@ -1,0 +1,8 @@
+{
+  "sequence": 1,
+  "timestamp": "ISO-8601",
+  "taskId": "CNX-001",
+  "type": "INTENT",
+  "summary": "Task initialized",
+  "data": {"goal": "Observable outcome"}
+}

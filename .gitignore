@@ -1,0 +1,35 @@
+# CogentNexus runtime state
+.cogent/
+memory/
+*.lock
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage/
+.venv/
+venv/
+
+# Build and editor artifacts
+build/
+dist/
+*.egg-info/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local credentials
+.env
+.env.*
+!.env.example
+credentials/
+secrets/
+*.pem
+*.key
+*.pfx
+*.p12
+
