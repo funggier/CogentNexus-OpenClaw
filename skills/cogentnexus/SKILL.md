@@ -33,9 +33,12 @@ Never expose chain-of-thought, store unrequested secrets, bypass authorization, 
 - Observe bound OpenClaw sessions from fresh machine-readable token counts; never infer context pressure.
 - Never auto-bypass permissions, install dependencies, delete data, or perform external actions.
 - Preserve monotonic ledger history without chain-of-thought.
+- Planned shutdown must establish maintenance mode before stopping services.
+- Lifecycle start must be idempotent and clear maintenance mode only after health verification.
 
 Use python skills/cogentnexus/scripts/cogent.py --help for Phase 1-2 task operations.
-Use python skills/cogentnexus/scripts/phase3.py --help for supervision, concurrency, continuity, and scheduler adapters.
+Use python skills/cogentnexus/scripts/phase3.py --help for supervision, concurrency, continuity, scheduler adapters, and lifecycle operations.
+Portable lifecycle launchers are under templates/lifecycle for Windows, Linux, and macOS.
 
 ## Module routing
 
