@@ -96,6 +96,7 @@ class Workflow:
         self.base = self.root / ".cogent" / "workflows" / task_id
         self.state_path = self.base / "state.json"; self.manifest_path = self.base / "manifest.json"
         self.ledger_path = self.base / "ledger.jsonl"; self.lock_path = self.base / ".lock"
+        self.controller_out = self.base / "controller.stdout.log"; self.controller_err = self.base / "controller.stderr.log"
     def read(self, path): return json.loads(path.read_text(encoding="utf-8"))
     def state(self): return self.read(self.state_path)
     def manifest(self): return self.read(self.manifest_path)
@@ -230,12 +231,64 @@ def tick(root, task_id):
         flow.save(state)
     return {"transition":"continue" if state["status"] not in TERMINAL else "terminal","step":step["id"],"state":state}
 
+def claim_controller(flow):
+    with lock(flow.lock_path):
+        state = flow.state(); owner = state.get("controllerPid")
+        if process_alive(owner) and owner != os.getpid(): return False, state
+        state["controllerPid"] = os.getpid(); state["controllerStartedAt"] = now(); flow.save(state)
+        flow.event("CONTROLLER_CLAIMED", "Workflow controller claimed", {"pid":os.getpid()})
+        return True, state
+
+def release_controller(flow):
+    with lock(flow.lock_path):
+        state = flow.state()
+        if state.get("controllerPid") == os.getpid():
+            state["controllerPid"] = None; state["controllerFinishedAt"] = now(); flow.save(state)
+            flow.event("CONTROLLER_RELEASED", "Workflow controller released", {"pid":os.getpid(),"status":state.get("status")})
+
 def run_workflow(root, task_id, maximum_ticks=100):
+    flow = Workflow(root, task_id); claimed, state = claim_controller(flow)
+    if not claimed: return {"status":"busy","history":[],"state":state}
     history = []
-    for _ in range(maximum_ticks):
-        result = tick(root, task_id); history.append({"transition":result["transition"],"step":result.get("step")})
-        if result["state"]["status"] in TERMINAL: return {"status":result["state"]["status"],"history":history,"state":result["state"]}
-    raise RuntimeError("maximum workflow ticks exceeded")
+    try:
+        for _ in range(maximum_ticks):
+            result = tick(root, task_id); history.append({"transition":result["transition"],"step":result.get("step")})
+            if result["state"]["status"] in TERMINAL: return {"status":result["state"]["status"],"history":history,"state":result["state"]}
+            if result["transition"] == "busy": return {"status":"busy","history":history,"state":result["state"]}
+        raise RuntimeError("maximum workflow ticks exceeded")
+    finally: release_controller(flow)
+
+def discover_workflows(root):
+    base = Path(root).resolve() / ".cogent" / "workflows"; found = []
+    if not base.is_dir(): return found
+    for directory in sorted(path for path in base.iterdir() if path.is_dir()):
+        try:
+            flow = Workflow(root, directory.name); state = flow.state(); manifest = flow.manifest()
+            if digest(manifest) != state.get("manifestHash"): raise ValueError("manifest integrity mismatch")
+            controller = state.get("controllerPid"); status = state.get("status")
+            runner_alive = any(process_alive(step.get("runnerPid")) for step in state.get("steps",{}).values() if step.get("status") == "running")
+            found.append({"taskId":directory.name,"status":status,"controllerPid":controller,"controllerAlive":process_alive(controller),"runnerAlive":runner_alive,"resumable":status not in TERMINAL})
+        except Exception as exc: found.append({"taskId":directory.name,"status":"invalid","resumable":False,"error":str(exc)})
+    return found
+
+def launch_controller(root, task_id):
+    flow = Workflow(root, task_id); command = [sys.executable,str(Path(__file__).resolve()),"--root",str(Path(root).resolve()),"run",task_id]
+    flags = 0; kwargs = {}
+    if os.name == "nt": flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+    else: kwargs["start_new_session"] = True
+    stdout = flow.controller_out.open("a",encoding="utf-8"); stderr = flow.controller_err.open("a",encoding="utf-8")
+    try: child = subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=stdout,stderr=stderr,close_fds=True,creationflags=flags,**kwargs)
+    finally: stdout.close(); stderr.close()
+    with lock(flow.lock_path): flow.event("CONTROLLER_LAUNCHED", "Detached workflow controller launched", {"pid":child.pid})
+    return {"taskId":task_id,"pid":child.pid}
+
+def supervise_workflows(root, execute=False, maximum=4):
+    workflows = discover_workflows(root); actions = []
+    for item in workflows:
+        if len(actions) >= maximum: break
+        if not item.get("resumable") or item.get("controllerAlive") or item.get("runnerAlive"): continue
+        actions.append(launch_controller(root,item["taskId"]) if execute else {"taskId":item["taskId"],"action":"would-launch"})
+    return {"status":"launched" if execute and actions else "observed","workflowCount":len(workflows),"actions":actions,"workflows":workflows}
 
 def self_test():
     with tempfile.TemporaryDirectory() as directory:
@@ -259,6 +312,13 @@ def self_test():
         value["taskId"]="WF-TEST-RETRY"; value["steps"][0]["validator"]={"argv":[py,"-c","raise SystemExit(1)"]}; value["steps"][0]["maximumAttempts"]=2
         manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest); failed=run_workflow(root,"WF-TEST-RETRY")
         assert failed["status"]=="blocked" and failed["state"]["steps"]["one"]["attempts"]==2
+        # Deterministic discovery launches a detached controller that survives the caller.
+        value["taskId"]="WF-TEST-SUPERVISE"; value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('one.txt').read_text()=='one'"]}; value["steps"][0]["maximumAttempts"]=2
+        (root/"one.txt").unlink(missing_ok=True); manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest)
+        observed=supervise_workflows(root); assert any(x.get("taskId")=="WF-TEST-SUPERVISE" for x in observed["actions"])
+        launched=supervise_workflows(root,execute=True,maximum=1); child_pid=launched["actions"][0]["pid"]; deadline=time.monotonic()+10
+        while time.monotonic()<deadline and (Workflow(root,"WF-TEST-SUPERVISE").state()["status"]!="completed" or process_alive(child_pid)): time.sleep(.05)
+        assert Workflow(root,"WF-TEST-SUPERVISE").state()["status"]=="completed" and not process_alive(child_pid)
     print("Cogent workflow self-test: PASS")
 
 def parser():
@@ -267,6 +327,7 @@ def parser():
     i=sub.add_parser("init"); i.add_argument("manifest",type=Path)
     for name in ("tick","run","status"):
         x=sub.add_parser(name); x.add_argument("task_id")
+    s=sub.add_parser("supervise"); s.add_argument("--execute",action="store_true"); s.add_argument("--maximum",type=int,default=4)
     sub.add_parser("self-test"); return p
 
 def main():
@@ -276,6 +337,7 @@ def main():
     if args.command=="tick": emit(tick(args.root,args.task_id)); return
     if args.command=="run": emit(run_workflow(args.root,args.task_id)); return
     if args.command=="status": emit(Workflow(args.root,args.task_id).state()); return
+    if args.command=="supervise": emit(supervise_workflows(args.root,args.execute,args.maximum)); return
     if args.command=="self-test": self_test(); return
 
 if __name__=="__main__": main()

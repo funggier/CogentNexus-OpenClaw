@@ -66,7 +66,7 @@ def main():
         raise SystemExit("Phase 1-2 CLI validation failed")
     if phase3.returncode or not all(word in phase3.stdout for word in ("supervisor", "concurrency", "context", "scheduler")):
         raise SystemExit("Phase 3 CLI validation failed")
-    if workflow.returncode or not all(word in workflow.stdout for word in ("validate", "init", "tick", "run", "status", "self-test")):
+    if workflow.returncode or not all(word in workflow.stdout for word in ("validate", "init", "tick", "run", "status", "supervise", "self-test")):
         raise SystemExit("Workflow CLI validation failed")
     workflow_test = subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow.py"), "self-test"], capture_output=True, text=True)
     if workflow_test.returncode or "PASS" not in workflow_test.stdout:

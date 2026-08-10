@@ -19,6 +19,8 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Portable, maintenance-fenced lifecycle launchers for Windows, Linux, and macOS
 - Fixed or adaptive concurrency admission with one inference lane as the safe default
 - Durable context handoff with live OpenClaw token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
+- Verified workflow DAGs with command/Ollama executors, deterministic validators, bounded retries, and artifact hashes
+- Always-on workflow discovery and detached controller resumption from the native periodic supervisor
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -40,6 +42,7 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
     python skills/cogentnexus/scripts/cogent.py self-test
     python skills/cogentnexus/scripts/phase3.py self-test
+    python skills/cogentnexus/scripts/workflow.py self-test
 
 ## Quick start
 
@@ -55,6 +58,10 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/phase3.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
     python skills/cogentnexus/scripts/phase3.py context monitor --task-id TASK-1 --execute-safe
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
+    python skills/cogentnexus/scripts/workflow.py validate workflow-manifest.json
+    python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json
+    python skills/cogentnexus/scripts/workflow.py --root . supervise
+    python skills/cogentnexus/scripts/workflow.py --root . supervise --execute
 
 ## Start and stop safely
 
@@ -71,4 +78,4 @@ Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally 
 
 ## Status
 
-Phase 3 is implemented. Periodic supervision is deterministic and consumes no inference lane. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.
+Phase 5 always-on resumption is implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.

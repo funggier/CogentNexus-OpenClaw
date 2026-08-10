@@ -27,5 +27,9 @@
     "reserveTokens": 16384,
     "leaseSeconds": 1800,
     "autoMonitor": true
+  },
+  "workflowAutomation": {
+    "enabled": true,
+    "maximumLaunchesPerTick": 2
   }
 }

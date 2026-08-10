@@ -1,6 +1,6 @@
 # Runtime Supervisor
 
-Use for deterministic host health checks and bounded recovery. The supervisor never calls an LLM.
+Use for deterministic host health, bounded recovery, context monitoring, and always-on workflow resumption. The periodic supervisor never calls an LLM.
 
 Commands:
 
@@ -10,4 +10,8 @@ Commands:
     python skills/cogentnexus/scripts/phase3.py supervisor status
     python skills/cogentnexus/scripts/phase3.py supervisor history
 
-Tick probes Gateway, the configured local provider, memory, and disk. It confirms a failed probe before recovery. Recovery requires --execute-safe, respects cooldown and hourly budgets, verifies afterward, and opens a circuit instead of restarting forever. When `contextContinuity.autoMonitor` is enabled, the same tick observes registered OpenClaw session usage and prepares deduplicated durable handoffs at configured thresholds. It does not spawn or rotate sessions. Runtime state and append-only events live under .cogent/runtime. Scheduler ticks must be deterministic and must not consume an inference lane.
+A tick probes Gateway, provider, memory, and disk; confirms failures; enforces cooldown, budgets, and circuit breaking; observes bound session pressure; and discovers non-terminal workflows.
+
+Without `--execute-safe`, workflow discovery is observation-only. With it, the supervisor launches a bounded number of detached workflow controllers. It does not execute workflow steps or inference inside the scheduler process. Controllers claim durable ownership and continue independently.
+
+Maintenance mode pauses health recovery, context actions, and workflow launches. Runtime evidence is stored under `.cogent/runtime`; workflow evidence remains under `.cogent/workflows`.

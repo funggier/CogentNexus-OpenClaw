@@ -48,6 +48,10 @@ DEFAULT_CONFIG = {
         "reserveTokens": 16384,
         "leaseSeconds": 1800,
         "autoMonitor": True
+    },
+    "workflowAutomation": {
+        "enabled": True,
+        "maximumLaunchesPerTick": 2
     }
 }
 
@@ -357,6 +361,18 @@ def lifecycle_cmd(args):
         return 0 if healthy else 2
     raise SystemExit("unknown lifecycle command")
 
+def monitor_workflows(root, config, execute=False):
+    workspace = root.parent if root.name == ".cogent" else root
+    script = Path(__file__).resolve().with_name("workflow.py")
+    maximum = max(1, int(config.get("workflowAutomation", {}).get("maximumLaunchesPerTick", 2)))
+    command = [sys.executable, str(script), "--root", str(workspace), "supervise", "--maximum", str(maximum)]
+    if execute: command.append("--execute")
+    result = run_command(command, int(config["supervisor"]["commandTimeoutSeconds"]))
+    if not result.get("ok"):
+        return {"status":"error","workflowCount":0,"actions":[],"error":result.get("stderr") or result.get("error") or "workflow supervisor failed"}
+    try: return json.loads(result.get("stdout") or "{}")
+    except json.JSONDecodeError as exc: return {"status":"error","workflowCount":0,"actions":[],"error":f"invalid workflow supervisor output: {exc}"}
+
 def supervisor_tick(args):
     root = args.root.resolve()
     config = load_config(root)
@@ -365,7 +381,7 @@ def supervisor_tick(args):
         with file_lock(base / ".supervisor.lock", timeout=1, stale=max(120, int(config["supervisor"]["intervalSeconds"]))):
             marker = maintenance_status(root)
             if marker and marker.get("active"):
-                snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
+                snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "workflowMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
                 atomic_json(base / "health.json", snapshot)
                 append_runtime_event(root, "OBSERVATION", "Supervisor tick skipped during intentional maintenance", {"reason": marker.get("reason")})
                 emit(snapshot)
@@ -420,7 +436,10 @@ def supervisor_tick(args):
                     context_monitor = monitor_context_bindings(root, execute_safe=bool(args.execute_safe))
                 except Exception as exc:
                     context_monitor = {"status": "error", "error": str(exc), "bindingCount": 0, "observations": []}
-            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "probes": probes, "recoveries": recoveries, "contextMonitor": context_monitor, "executeSafe": bool(args.execute_safe)}
+            workflow_monitor = {"status": "disabled", "workflowCount": 0, "actions": []}
+            if args.fixture is None and config.get("workflowAutomation", {}).get("enabled", True):
+                workflow_monitor = monitor_workflows(root, config, execute=bool(args.execute_safe))
+            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "probes": probes, "recoveries": recoveries, "contextMonitor": context_monitor, "workflowMonitor": workflow_monitor, "executeSafe": bool(args.execute_safe)}
             atomic_json(base / "health.json", snapshot)
             atomic_json(base / "supervisor-state.json", state)
             append_runtime_event(root, "OBSERVATION", f"Supervisor tick: {status}", {"unhealthy": unhealthy, "recoveryCount": len(recoveries)})
@@ -848,6 +867,9 @@ def self_test(args):
         if call(script, root, "concurrency", "release", "--owner", "one", "--lease-id", lease_id).returncode:
             raise SystemExit("lease release failed")
         config = load_config(root)
+        workflow_observation = monitor_workflows(root, config, execute=False)
+        if workflow_observation.get("status") != "observed" or workflow_observation.get("workflowCount") != 0:
+            raise SystemExit("workflow supervisor integration failed")
         config["supervisor"]["cooldownSeconds"] = 0
         config["supervisor"]["confirmDelaySeconds"] = 0
         config["supervisor"]["verifyDelaySeconds"] = 0

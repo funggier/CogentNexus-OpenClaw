@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Compile intent into verified workflows with deterministic continuation, fencing, checkpoints, and bounded LLM execution."
+description: "Restore exact validated runtime sources after transport truncation."
 ---
 
 # CogentNexus
@@ -46,6 +46,12 @@ A live worker PID fences duplicate execution. After interruption, a valid produc
 
 Use command executors without a shell. Treat Ollama output as a candidate until its validator passes. Keep external side effects outside automatic retry unless idempotency is proven.
 
+## Always-on resumption
+
+The native five-minute supervisor deterministically discovers non-terminal workflows. With `supervisor tick --execute-safe`, it launches bounded detached workflow controllers up to the configured ceiling. Controllers run outside the scheduler process, survive conversation/tool interruption, claim workflow ownership, and continue from verified state.
+
+The periodic supervisor must not call an LLM or wait for inference. It only probes, discovers, fences, and launches. The detached workflow controller owns execution, validation, retry, checkpointing, and terminal state. Live controller or step PIDs prevent duplicate execution; dead ownership is reclaimable from durable evidence.
+
 ## Runtime invariants
 
 - Load committed state and recover prepared transactions before action.
@@ -63,7 +69,7 @@ Use command executors without a shell. Treat Ollama output as a candidate until 
 - Planned shutdown must establish maintenance mode before stopping services.
 - Lifecycle start must be idempotent and clear maintenance mode only after health verification.
 
-Use `cogent.py` for Phase 1-2 task operations, `phase3.py` for supervision and continuity, and `workflow.py` for verified autonomous component workflows.
+Use `cogent.py` for Phase 1-2 task operations, `phase3.py` for health, continuity, and always-on workflow discovery, and `workflow.py` for verified autonomous component workflows.
 
 ## Module routing
 
