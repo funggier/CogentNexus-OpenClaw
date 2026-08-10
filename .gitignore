@@ -12,6 +12,7 @@ __pycache__/
 coverage/
 .venv/
 venv/
+node_modules/
 
 # Build and editor artifacts
 build/
@@ -32,4 +33,3 @@ secrets/
 *.key
 *.pfx
 *.p12
-
