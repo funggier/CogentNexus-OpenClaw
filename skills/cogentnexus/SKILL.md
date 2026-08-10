@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Restore exact validated runtime sources after transport truncation."
+description: "Compile intent into verified workflows with always-on continuation, fencing, checkpoints, and bounded LLM execution."
 ---
 
 # CogentNexus
