@@ -188,6 +188,8 @@ def openclaw_executable():
 def gateway_probe(timeout, fixture=None):
     if fixture in ("gateway-fail", "all-fail"):
         return {"name": "gateway", "enabled": True, "healthy": False, "evidence": "fixture"}
+    if fixture is not None:
+        return {"name": "gateway", "enabled": True, "healthy": True, "evidence": "fixture"}
     executable = openclaw_executable()
     if not executable:
         return {"name": "gateway", "enabled": True, "healthy": False, "evidence": "openclaw CLI unavailable"}
@@ -202,6 +204,8 @@ def ollama_probe(config, fixture=None):
         return {"name": "ollama", "enabled": False, "healthy": True, "evidence": "not installed"}
     if fixture in ("ollama-fail", "all-fail"):
         return {"name": "ollama", "enabled": True, "healthy": False, "evidence": "fixture"}
+    if fixture is not None:
+        return {"name": "ollama", "enabled": True, "healthy": True, "evidence": "fixture"}
     try:
         with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=10) as response:
             healthy = response.status == 200
@@ -225,6 +229,8 @@ def provider_probe(name, config, fixture=None):
         return gateway_probe(timeout, fixture)
     if name == "ollama":
         return ollama_probe(config, fixture)
+    if fixture is not None:
+        return {"name": "resources", "enabled": True, "healthy": fixture != "all-fail", "evidence": "fixture"}
     return resource_probe(DEFAULT_ROOT)
 
 def recovery_allowed(component_state, config):
