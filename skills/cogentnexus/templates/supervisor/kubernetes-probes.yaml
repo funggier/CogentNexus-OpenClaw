@@ -1,3 +1,5 @@
+stdin: false
+tty: false
 livenessProbe:
   exec:
     command: ["{{PYTHON}}", "{{PHASE3}}", "--root", "{{ROOT}}", "supervisor", "tick"]

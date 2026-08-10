@@ -16,3 +16,5 @@ Render templates with:
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
 
 Back up native scheduler configuration before installation or replacement. Installation and removal change system configuration and require explicit authority. Use absolute paths, non-interactive execution, overlap prevention, bounded runtime, and rollback evidence.
+
+Background execution is invariant across adapters. Windows child commands use `CREATE_NO_WINDOW`; POSIX child commands start in a new session. systemd disconnects stdin and writes diagnostics to the journal, launchd declares a background process type, cron detaches standard streams, and container templates explicitly disable stdin and TTY allocation. Runtime evidence remains available in the CogentNexus ledger even where scheduler output is discarded.

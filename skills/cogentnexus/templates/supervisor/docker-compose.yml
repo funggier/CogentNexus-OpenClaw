@@ -1,5 +1,7 @@
 services:
   openclaw:
+    stdin_open: false
+    tty: false
     healthcheck:
       test: ["CMD", "{{PYTHON}}", "{{PHASE3}}", "--root", "{{ROOT}}", "supervisor", "tick"]
       interval: 5m

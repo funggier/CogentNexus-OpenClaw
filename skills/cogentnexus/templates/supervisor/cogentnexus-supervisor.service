@@ -6,3 +6,6 @@ After=default.target
 Type=oneshot
 ExecStart={{PYTHON}} {{PHASE3}} --root {{ROOT}} supervisor tick --execute-safe
 TimeoutStartSec=90
+StandardInput=null
+StandardOutput=journal
+StandardError=journal

@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Validate Windows, systemd, launchd, cron, Docker, and Kubernetes templates."
+description: "Run probes and recovery fully backgrounded across Windows, Linux, macOS, cron, and containers."
 ---
 
 # CogentNexus
