@@ -96,6 +96,7 @@ class Workflow:
         self.base = self.root / ".cogent" / "workflows" / task_id
         self.state_path = self.base / "state.json"; self.manifest_path = self.base / "manifest.json"
         self.ledger_path = self.base / "ledger.jsonl"; self.lock_path = self.base / ".lock"
+        self.owner_path = self.base / "owner.json"; self.completion_path = self.base / "completion.json"
         self.controller_out = self.base / "controller.stdout.log"; self.controller_err = self.base / "controller.stderr.log"
     def read(self, path): return json.loads(path.read_text(encoding="utf-8"))
     def state(self): return self.read(self.state_path)
@@ -108,6 +109,29 @@ class Workflow:
         with self.ledger_path.open("a", encoding="utf-8", newline="\n") as handle: handle.write(json.dumps(record, ensure_ascii=False) + "\n"); handle.flush(); os.fsync(handle.fileno())
         return record
     def save(self, state): state["updatedAt"] = now(); state["revision"] = int(state.get("revision", 0))+1; atomic_json(self.state_path, state)
+
+def queue_terminal_completion(flow, state):
+    if state.get("status") not in TERMINAL or not flow.owner_path.is_file() or flow.completion_path.exists(): return None
+    owner = flow.read(flow.owner_path)
+    session_key = owner.get("ownerSessionKey")
+    if not isinstance(session_key, str) or not session_key.strip(): return None
+    notice = {"schemaVersion":1,"taskId":flow.task_id,"ownerSessionKey":session_key,"workflowStatus":state["status"],
+              "stateRevision":state.get("revision"),"createdAt":now(),"deliveryStatus":"pending"}
+    atomic_json(flow.completion_path, notice)
+    flow.event("WORKFLOW_COMPLETION_QUEUED", "Terminal workflow result queued for owner continuation",
+               {"workflowStatus":state["status"],"stateRevision":state.get("revision")})
+    return notice
+
+def bind_owner(root, task_id, session_key):
+    if not isinstance(session_key, str) or not session_key.strip() or len(session_key) > 512: raise ValueError("valid owner session key required")
+    flow = Workflow(root, task_id)
+    with lock(flow.lock_path):
+        state = flow.state()
+        binding = {"schemaVersion":1,"taskId":task_id,"ownerSessionKey":session_key.strip(),"boundAt":now()}
+        atomic_json(flow.owner_path, binding)
+        flow.event("WORKFLOW_OWNER_BOUND", "Workflow bound to an owner session")
+        notice = queue_terminal_completion(flow, state)
+    return {"binding":binding,"completion":notice}
 
 def initialize(root, manifest_file):
     manifest = validate_manifest(json.loads(Path(manifest_file).read_text(encoding="utf-8")))
@@ -214,7 +238,7 @@ def tick(root, task_id):
             if all(x == "completed" for x in statuses): state["status"]="completed"; flow.event("WORKFLOW_COMPLETED","All steps verified")
             elif any(x == "blocked" for x in statuses): state["status"]="blocked"
             else: state["status"]="failed"; flow.event("WORKFLOW_FAILED","No runnable step")
-            flow.save(state); return {"transition":"terminal","state":state}
+            flow.save(state); queue_terminal_completion(flow,state); return {"transition":"terminal","state":state}
         current = state["steps"][step["id"]]; current["status"]="running"; current["attempts"]+=1; current["startedAt"]=now(); current["runnerPid"]=os.getpid(); state["status"]="running"; flow.save(state); flow.event("STEP_STARTED",f"Started {step['id']}",{"attempt":current["attempts"],"runnerPid":os.getpid()})
     executor = step["executor"]; timeout = int(executor.get("timeoutSeconds",1800))
     result = run_argv(executor["argv"], flow.root, timeout) if executor["type"] == "command" else run_ollama(executor, flow.root, timeout)
@@ -235,6 +259,7 @@ def tick(root, task_id):
             flow.event("STEP_FAILED",f"Step {step['id']} failed",{"attempt":current["attempts"],"maximum":maximum,"execution":result,"validator":validator_result})
             if current["status"] == "blocked": state["status"]="blocked"
         flow.save(state)
+        if state["status"] in TERMINAL: queue_terminal_completion(flow,state)
     return {"transition":"continue" if state["status"] not in TERMINAL else "terminal","step":step["id"],"state":state}
 
 def claim_controller(flow):
@@ -249,7 +274,7 @@ def release_controller(flow):
     with lock(flow.lock_path):
         state = flow.state()
         if state.get("controllerPid") == os.getpid():
-            state["controllerPid"] = None; state["controllerFinishedAt"] = now(); flow.save(state)
+            state["controllerPid"] = None; state["controllerFinishedAt"] = now(); flow.save(state); queue_terminal_completion(flow,state)
             flow.event("CONTROLLER_RELEASED", "Workflow controller released", {"pid":os.getpid(),"status":state.get("status")})
 
 def run_workflow(root, task_id, maximum_ticks=100):
@@ -330,6 +355,8 @@ def self_test():
         else:
             while time.monotonic()<deadline and process_alive(child_pid): time.sleep(.05)
         assert Workflow(root,"WF-TEST-SUPERVISE").state()["status"]=="completed" and not process_alive(child_pid)
+        bound=bind_owner(root,"WF-TEST-SUPERVISE","agent:main:test-owner")
+        assert bound["completion"]["deliveryStatus"]=="pending" and Workflow(root,"WF-TEST-SUPERVISE").completion_path.is_file()
     print("Cogent workflow self-test: PASS")
 
 def parser():
@@ -338,6 +365,7 @@ def parser():
     i=sub.add_parser("init"); i.add_argument("manifest",type=Path)
     for name in ("tick","run","status"):
         x=sub.add_parser(name); x.add_argument("task_id")
+    b=sub.add_parser("bind-owner"); b.add_argument("task_id"); b.add_argument("--session-key",required=True)
     s=sub.add_parser("supervise"); s.add_argument("--execute",action="store_true"); s.add_argument("--maximum",type=int,default=4)
     sub.add_parser("self-test"); return p
 
@@ -348,6 +376,7 @@ def main():
     if args.command=="tick": emit(tick(args.root,args.task_id)); return
     if args.command=="run": emit(run_workflow(args.root,args.task_id)); return
     if args.command=="status": emit(Workflow(args.root,args.task_id).state()); return
+    if args.command=="bind-owner": emit(bind_owner(args.root,args.task_id,args.session_key)); return
     if args.command=="supervise": emit(supervise_workflows(args.root,args.execute,args.maximum)); return
     if args.command=="self-test": self_test(); return
 

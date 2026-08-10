@@ -1,7 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 
@@ -17,6 +17,7 @@ type Handoff = {
 
 type RotationConfig = {
   cogentRoot?: string;
+  workspaceDir?: string;
   pythonCommand?: string;
   agentId?: string;
   model?: string;
@@ -24,7 +25,119 @@ type RotationConfig = {
   autoResume?: boolean;
   autoResumeDelayMs?: number;
   autoRotate?: boolean;
+  autoWorkflowCompletion?: boolean;
+  completionPollMs?: number;
 };
+
+type WorkflowCompletion = {
+  schemaVersion: number;
+  taskId: string;
+  ownerSessionKey: string;
+  workflowStatus: string;
+  stateRevision?: number;
+  createdAt: string;
+  deliveryStatus: string;
+  deliveredAt?: string;
+};
+
+function workflowRuntime(workspaceDir: string): string {
+  const path = resolve(workspaceDir, "skills", "cogentnexus", "scripts", "workflow.py");
+  if (!existsSync(path)) throw new Error(`CogentNexus workflow runtime not found: ${path}`);
+  return path;
+}
+
+function workspacePath(workspaceDir: string, value: string): string {
+  const workspace = resolve(workspaceDir);
+  const path = resolve(workspace, value);
+  const rel = relative(workspace, path);
+  if (rel === "" || rel.startsWith("..") || rel.startsWith("/") || rel.startsWith("\\")) throw new Error("manifestPath must remain inside the workspace");
+  return path;
+}
+
+function runWorkflowCli(python: string, runtime: string, args: string[]) {
+  const result = spawnSync(python, [runtime, ...args], { encoding:"utf8", windowsHide:true, timeout:30_000 });
+  if (result.error) throw result.error;
+  if (result.status !== 0) throw new Error((result.stderr || result.stdout || "workflow command failed").trim());
+  return result.stdout.trim() ? JSON.parse(result.stdout) : {};
+}
+
+export function startBoundWorkflow(input: { workspaceDir:string; manifestPath:string; ownerSessionKey:string; pythonCommand?:string }) {
+  const workspace = resolve(input.workspaceDir);
+  const runtime = workflowRuntime(workspace);
+  const manifest = workspacePath(workspace, input.manifestPath);
+  if (!existsSync(manifest)) throw new Error(`workflow manifest not found: ${manifest}`);
+  const python = input.pythonCommand ?? "python";
+  const initialized = runWorkflowCli(python, runtime, ["--root",workspace,"init",manifest]);
+  const taskId = initialized?.taskId;
+  if (typeof taskId !== "string" || !taskId) throw new Error("workflow init returned no taskId");
+  runWorkflowCli(python, runtime, ["--root",workspace,"bind-owner",taskId,"--session-key",input.ownerSessionKey]);
+  const flowDir = resolve(workspace,".cogent","workflows",taskId);
+  const stdout = join(flowDir,"controller.stdout.log"), stderr = join(flowDir,"controller.stderr.log");
+  writeFileSync(stdout,"",{flag:"a"}); writeFileSync(stderr,"",{flag:"a"});
+  const child = spawn(python,[runtime,"--root",workspace,"run",taskId],{
+    detached:true,stdio:"ignore",windowsHide:true,
+  });
+  child.unref();
+  return {taskId,status:"started",controllerPid:child.pid,ownerBound:true};
+}
+
+export function workflowCompletionTag(notice: WorkflowCompletion): string {
+  const task = notice.taskId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80);
+  return `cogent-workflow-result-${task}-${notice.stateRevision ?? 0}`;
+}
+
+export function completionMessage(notice: WorkflowCompletion): string {
+  return [
+    `CogentNexus workflow ${notice.taskId} reached terminal status ${notice.workflowStatus}.`,
+    "Inspect the durable workflow state, ledger, validators, and artifact hashes now.",
+    "If completed, consume the verified result and continue the recorded goal or report the compact outcome.",
+    "If blocked or failed, classify the failure and resume safely only when authorized and materially useful.",
+    "Do not wait for the user to notice process or CPU changes, and do not claim domain success from workflow completion alone.",
+  ].join("\n");
+}
+
+export function pendingWorkflowCompletions(workspaceDir: string): Array<{ path: string; notice: WorkflowCompletion }> {
+  const base = resolve(workspaceDir, ".cogent", "workflows");
+  if (!existsSync(base)) return [];
+  const found: Array<{ path: string; notice: WorkflowCompletion }> = [];
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(entry.name)) continue;
+    const path = join(base, entry.name, "completion.json");
+    if (!existsSync(path)) continue;
+    try {
+      const notice = JSON.parse(readFileSync(path, "utf8")) as WorkflowCompletion;
+      if (notice.schemaVersion === 1 && notice.taskId === entry.name && notice.deliveryStatus === "pending" &&
+          typeof notice.ownerSessionKey === "string" && notice.ownerSessionKey.length > 0) found.push({ path, notice });
+    } catch { /* A partial or malformed outbox remains for operator inspection. */ }
+  }
+  return found;
+}
+
+function markCompletionDelivered(path: string, notice: WorkflowCompletion) {
+  const next = { ...notice, deliveryStatus: "delivered", deliveredAt: new Date().toISOString() };
+  const temporary = `${path}.${process.pid}.tmp`;
+  writeFileSync(temporary, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  renameSync(temporary, path);
+}
+
+export async function deliverWorkflowCompletion(api: any, path: string, notice: WorkflowCompletion) {
+  const tag = workflowCompletionTag(notice);
+  const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey: notice.ownerSessionKey });
+  const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/workflow" && flow.stateJson?.completionTag === tag);
+  if (!previous) {
+    const stateJson = { taskId:notice.taskId,workflowStatus:notice.workflowStatus,stateRevision:notice.stateRevision,completionTag:tag };
+    const flow = taskFlow.createManaged({controllerId:"cogentnexus/workflow",goal:`Continue after ${notice.taskId}`,currentStep:"terminal_result",stateJson});
+    const current = taskFlow.get(flow.flowId);
+    if (current?.syncMode === "managed") {
+      if (notice.workflowStatus === "completed") taskFlow.finish({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+      else taskFlow.fail({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+    }
+  }
+  await api.session.workflow.unscheduleSessionTurnsByTag({ sessionKey: notice.ownerSessionKey, tag });
+  await api.session.workflow.scheduleSessionTurn({sessionKey:notice.ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",
+    name:`CogentNexus workflow ${notice.taskId}`,tag,message:completionMessage(notice)});
+  markCompletionDelivered(path, notice);
+}
 
 type RotationObservation = { taskId?: string; sessionKey?: string; status?: string; rotationRequired?: boolean };
 
@@ -187,6 +300,9 @@ const configSchema = Type.Object({
   autoResume: Type.Optional(Type.Boolean({ description: "Schedule one durable continuation turn after a resumable interruption." })),
   autoResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000 })),
   autoRotate: Type.Optional(Type.Boolean({ description: "Automatically start a clean TaskFlow worker for a verified ROTATE handoff." })),
+  workspaceDir: Type.Optional(Type.String({ description: "Workspace containing .cogent/workflows completion outboxes." })),
+  autoWorkflowCompletion: Type.Optional(Type.Boolean({ description: "Automatically wake the bound owner when a workflow reaches a terminal state." })),
+  completionPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000 })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -232,16 +348,31 @@ const entry = defineToolPlugin({
         return { content: [{ type: "text", text: JSON.stringify(details) }], details };
       },
     }),
-  })],
+  }), tool({
+      name:"cogent_workflow_start",
+      label:"Start CogentNexus Workflow",
+      description:"Initialize, bind to the trusted current session, and launch a durable workflow so terminal results automatically continue in the owner session.",
+      parameters:Type.Object({manifestPath:Type.String({description:"Workflow-relative path to a schemaVersion 1 manifest."})},{additionalProperties:false}),
+      optional:true,
+      factory:({config,toolContext})=>({
+        name:"cogent_workflow_start",label:"Start CogentNexus Workflow",description:"Start an owner-bound durable workflow.",
+        parameters:Type.Object({manifestPath:Type.String()},{additionalProperties:false}),
+        async execute(_id:string,params:{manifestPath:string}) {
+          if(!toolContext.sessionKey) throw new Error("workflow start requires a trusted OpenClaw session context");
+          const details=startBoundWorkflow({workspaceDir:toolContext.workspaceDir ?? process.cwd(),manifestPath:params.manifestPath,ownerSessionKey:toolContext.sessionKey,pythonCommand:config.pythonCommand});
+          return {content:[{type:"text",text:JSON.stringify(details)}],details};
+        },
+      }),
+    }),
+  ],
 });
 
 const registerTools = entry.register?.bind(entry);
 entry.register = (api) => {
   registerTools?.(api);
   const config = (api.pluginConfig ?? {}) as RotationConfig;
-  if (config.autoResume === false) return;
   const scheduledRuns = new Set<string>();
-  api.on("agent_end", async (event, ctx) => {
+  if (config.autoResume !== false || config.autoRotate !== false) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
     const sessionKey = ctx.sessionKey;
     await scheduleInterruptedResume({
@@ -264,6 +395,30 @@ entry.register = (api) => {
       }
     }
   }, { priority: 50, timeoutMs: 10_000 });
+  if (config.autoWorkflowCompletion !== false) {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let active = false;
+    api.registerService({
+      id: "cogentnexus-workflow-completion",
+      start: async (ctx: any) => {
+        const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
+        const tick = async () => {
+          if (active) return;
+          active = true;
+          try {
+            for (const item of pendingWorkflowCompletions(workspaceDir)) {
+              try { await deliverWorkflowCompletion(api, item.path, item.notice); }
+              catch (error) { api.logger.warn(`CogentNexus workflow completion delivery failed for ${item.notice.taskId}: ${error instanceof Error ? error.message : String(error)}`); }
+            }
+          } finally { active = false; }
+        };
+        await tick();
+        interval = setInterval(() => { void tick(); }, config.completionPollMs ?? 5000);
+        interval.unref?.();
+      },
+      stop: async () => { if (interval) clearInterval(interval); interval = undefined; },
+    });
+  }
 };
 
 export default entry;

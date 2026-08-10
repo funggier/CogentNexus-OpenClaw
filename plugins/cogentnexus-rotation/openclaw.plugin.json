@@ -35,6 +35,19 @@
       "autoRotate": {
         "type": "boolean",
         "description": "Automatically start a clean TaskFlow worker for a verified ROTATE handoff."
+      },
+      "workspaceDir": {
+        "type": "string",
+        "description": "Workspace containing .cogent/workflows completion outboxes."
+      },
+      "autoWorkflowCompletion": {
+        "type": "boolean",
+        "description": "Automatically wake the bound owner when a workflow reaches a terminal state."
+      },
+      "completionPollMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 300000
       }
     },
     "additionalProperties": false
@@ -44,11 +57,15 @@
   },
   "contracts": {
     "tools": [
-      "cogent_rotation"
+      "cogent_rotation",
+      "cogent_workflow_start"
     ]
   },
   "toolMetadata": {
     "cogent_rotation": {
+      "optional": true
+    },
+    "cogent_workflow_start": {
       "optional": true
     }
   }

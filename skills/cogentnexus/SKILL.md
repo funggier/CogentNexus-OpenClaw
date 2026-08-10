@@ -33,14 +33,17 @@ Do not require the user to perform decomposition or prompt engineering. Ask only
 
 ## Durable workflow controller
 
-For Durable work, compile a JSON workflow manifest and use the deterministic controller:
+For Durable work, compile a JSON workflow manifest. When the work belongs to the current OpenClaw conversation, start it through the `cogent_workflow_start` plugin tool; that tool atomically initializes the workflow, binds the trusted current owner session, and launches the detached controller. This is the default conversational path because terminal completion must wake the owner automatically. Use the CLI sequence below only for operator-managed or explicitly unbound workflows:
 
     python skills/cogentnexus/scripts/workflow.py validate <manifest.json>
     python skills/cogentnexus/scripts/workflow.py --root <workspace> init <manifest.json>
+    python skills/cogentnexus/scripts/workflow.py --root <workspace> bind-owner <task-id> --session-key <trusted-owner-session-key>
     python skills/cogentnexus/scripts/workflow.py --root <workspace> run <task-id>
     python skills/cogentnexus/scripts/workflow.py --root <workspace> status <task-id>
 
 `run` owns continuation: it selects the next dependency-ready step, executes one bounded command or Ollama generation, runs an external validator, hashes declared artifacts, checkpoints state and ledger evidence, retries only within the declared ceiling, and advances without waiting for conversational supervision.
+
+For a background workflow started on behalf of a conversation, bind its trusted owner session immediately after `init`. Terminal completion, blocking, or failure writes a durable outbox. The CogentNexus plugin claims that outbox idempotently, records a managed TaskFlow result, and schedules one owner continuation turn so the agent verifies the result and proceeds without waiting for a user prompt.
 
 A live worker PID fences duplicate execution. After interruption, a valid produced artifact is recovered through its validator; an idempotent incomplete step is requeued; a non-idempotent interrupted step is blocked for review. The user must not need to say that a worker appears finished before the next verified step starts.
 
