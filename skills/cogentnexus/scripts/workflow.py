@@ -323,7 +323,12 @@ def self_test():
         (root/"one.txt").unlink(missing_ok=True); manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest)
         observed=supervise_workflows(root); assert any(x.get("taskId")=="WF-TEST-SUPERVISE" for x in observed["actions"])
         launched=supervise_workflows(root,execute=True,maximum=1); child_pid=launched["actions"][0]["pid"]; deadline=time.monotonic()+10
-        while time.monotonic()<deadline and (Workflow(root,"WF-TEST-SUPERVISE").state()["status"]!="completed" or process_alive(child_pid)): time.sleep(.05)
+        while time.monotonic()<deadline and Workflow(root,"WF-TEST-SUPERVISE").state()["status"]!="completed": time.sleep(.05)
+        if os.name != "nt":
+            try: os.waitpid(child_pid,0)
+            except ChildProcessError: pass
+        else:
+            while time.monotonic()<deadline and process_alive(child_pid): time.sleep(.05)
         assert Workflow(root,"WF-TEST-SUPERVISE").state()["status"]=="completed" and not process_alive(child_pid)
     print("Cogent workflow self-test: PASS")
 
