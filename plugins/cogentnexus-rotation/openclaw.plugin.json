@@ -31,6 +31,10 @@
         "type": "integer",
         "minimum": 1000,
         "maximum": 60000
+      },
+      "autoRotate": {
+        "type": "boolean",
+        "description": "Automatically start a clean TaskFlow worker for a verified ROTATE handoff."
       }
     },
     "additionalProperties": false

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import entry, { autoResumeTag, isResumableInterruption, rotationIdentity, scheduleInterruptedResume } from "./index.js";
+import entry, { autoResumeTag, isResumableInterruption, rotationCandidates, rotationIdentity, scheduleInterruptedResume } from "./index.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
 
@@ -13,6 +13,15 @@ describe("cogentnexus-rotation", () => {
       runId: "cogent-rotate-cnx-phase4-001-3",
       childSessionKey: "agent:main:cogent-rotate-cnx-phase4-001-3",
     });
+  });
+
+  it("selects only verified rotation observations for the current owner session", () => {
+    const output = JSON.stringify({ observations: [
+      { taskId: "T1", sessionKey: "owner", status: "observed", rotationRequired: true },
+      { taskId: "T2", sessionKey: "other", status: "observed", rotationRequired: true },
+      { taskId: "T3", sessionKey: "owner", status: "observed", rotationRequired: false },
+    ] });
+    expect(rotationCandidates(output, "owner")).toEqual(["T1"]);
   });
 
   it("rotates before token pressure when the raw transcript is large", () => {

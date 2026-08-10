@@ -21,9 +21,9 @@
     "leaseSeconds": 1800
   },
   "contextContinuity": {
-    "softLimit": 0.55,
-    "handoffLimit": 0.7,
-    "criticalLimit": 0.82,
+    "softLimit": 0.25,
+    "handoffLimit": 0.35,
+    "criticalLimit": 0.45,
     "reserveTokens": 16384,
     "leaseSeconds": 1800,
     "autoMonitor": true

@@ -1,6 +1,6 @@
 ---
 name: "cogentnexus"
-description: "Compile intent into verified workflows with always-on continuation, fencing, checkpoints, and bounded LLM execution."
+description: "Verified workflows with always-on continuation and automatic TaskFlow session rotation."
 ---
 
 # CogentNexus
@@ -51,6 +51,14 @@ Use command executors without a shell. Treat Ollama output as a candidate until 
 The native five-minute supervisor deterministically discovers non-terminal workflows. With `supervisor tick --execute-safe`, it launches bounded detached workflow controllers up to the configured ceiling. Controllers run outside the scheduler process, survive conversation/tool interruption, claim workflow ownership, and continue from verified state.
 
 The periodic supervisor must not call an LLM or wait for inference. It only probes, discovers, fences, and launches. The detached workflow controller owns execution, validation, retry, checkpointing, and terminal state. Live controller or step PIDs prevent duplicate execution; dead ownership is reclaimable from durable evidence.
+
+## Automatic session rotation
+
+For a durable task explicitly bound to an OpenClaw session, context monitoring checkpoints at 25%, prepares handoff at 35%, and requests rotation at 45% by default. A verified ROTATE handoff is bridged through the CogentNexus rotation plugin into one generation-fenced managed TaskFlow and a clean temporary worker session.
+
+The worker claims the handoff before action, resumes only the recorded next step, verifies and commits evidence, releases its lease, and returns a compact result to the owner. Duplicate generations resolve to the existing flow. Unbound conversations, stale telemetry, invalid handoffs, and irreversible side effects never rotate automatically.
+
+Use `phase3.py context rotations` as the management view for bound session, generation, worker lease, status, decision, and result.
 
 ## Runtime invariants
 

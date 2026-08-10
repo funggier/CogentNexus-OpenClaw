@@ -23,7 +23,28 @@ type RotationConfig = {
   timeoutSeconds?: number;
   autoResume?: boolean;
   autoResumeDelayMs?: number;
+  autoRotate?: boolean;
 };
+
+type RotationObservation = { taskId?: string; sessionKey?: string; status?: string; rotationRequired?: boolean };
+
+export function rotationCandidates(output: string, sessionKey: string): string[] {
+  const document = JSON.parse(output) as { observations?: RotationObservation[] };
+  return (document.observations ?? [])
+    .filter((item) => item.status === "observed" && item.sessionKey === sessionKey && item.rotationRequired === true && typeof item.taskId === "string")
+    .map((item) => item.taskId as string);
+}
+
+export function monitorRotations(workspaceDir: string, config: RotationConfig, sessionKey: string): string[] {
+  const phase3Path = resolve(workspaceDir, "skills", "cogentnexus", "scripts", "phase3.py");
+  const cogentRoot = resolve(config.cogentRoot ?? join(workspaceDir, ".cogent"));
+  const result = spawnSync(config.pythonCommand ?? "python", [phase3Path, "--root", cogentRoot, "context", "monitor", "--execute-safe"], {
+    encoding: "utf8", windowsHide: true, timeout: 30_000,
+  });
+  if (result.error) throw result.error;
+  if (!result.stdout.trim()) throw new Error((result.stderr || "context monitor failed").trim());
+  return rotationCandidates(result.stdout, sessionKey);
+}
 
 export function isResumableInterruption(success: boolean, error?: string): boolean {
   if (success || !error) return false;
@@ -131,6 +152,32 @@ function launchWorker(args: string[]): ChildProcess {
   });
 }
 
+async function startRotation(api: any, taskFlow: any, ownerSessionKey: string, workspaceDir: string, config: RotationConfig, taskId: string) {
+  const checked = inspectHandoff(taskId, workspaceDir, config);
+  const identity = rotationIdentity(checked.handoff.taskId, checked.handoff.generation);
+  const plan = { taskId:checked.handoff.taskId,generation:checked.handoff.generation,ownerSessionKey,childSessionKey:identity.childSessionKey,runId:identity.runId,contractHash:checked.handoff.contractHash,action:"ROTATE" };
+  const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/rotation" && flow.stateJson?.runId === identity.runId);
+  const flow = previous ?? taskFlow.createManaged({controllerId:"cogentnexus/rotation",goal:checked.handoff.goal ?? `Resume ${checked.handoff.taskId}`,currentStep:"starting_detached_worker",stateJson:plan});
+  const linked = taskFlow.runTask({flowId:flow.flowId,runtime:"subagent",childSessionKey:identity.childSessionKey,runId:identity.runId,label:`CogentNexus ${checked.handoff.taskId}`,task:checked.handoff.nextAction ?? "Resume from durable handoff",status:"running",startedAt:Date.now(),lastEventAt:Date.now()});
+  if (!linked.created && !linked.found) throw new Error(linked.reason);
+  if (previous || !linked.created) return {...plan,status:"already-started",flowId:flow.flowId};
+  const cliArgs = ["agent","--session-key",identity.childSessionKey,"--message",workerPrompt(taskId,checked.phase3Path,checked.cogentRoot),"--json","--timeout",String(config.timeoutSeconds ?? 3600)];
+  if (config.agentId) cliArgs.splice(1,0,"--agent",config.agentId);
+  if (config.model) cliArgs.push("--model",config.model);
+  const child = launchWorker(cliArgs);
+  child.once("error", () => { const current=taskFlow.get(flow.flowId); if(current?.syncMode==="managed") taskFlow.fail({flowId:flow.flowId,expectedRevision:current.revision,stateJson:{...plan,launch:"failed"},endedAt:Date.now()}); });
+  child.once("exit", async (code) => {
+    const current=taskFlow.get(flow.flowId); if(!current || current.syncMode!=="managed") return;
+    const stateJson={...plan,exitCode:code};
+    if(code===0) taskFlow.finish({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+    else taskFlow.fail({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+    const tag=`cogent-rotation-result-${identity.runId}`;
+    await api.session.workflow.unscheduleSessionTurnsByTag({sessionKey:ownerSessionKey,tag});
+    await api.session.workflow.scheduleSessionTurn({sessionKey:ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",name:`CogentNexus result ${taskId}`,tag,message:`Temporary CogentNexus worker ${identity.childSessionKey} finished with exit code ${code}. Inspect durable task ${taskId}, verify its handoff and artifacts, then report only the compact verified result.`});
+  });
+  return {...plan,status:"started",flowId:flow.flowId};
+}
+
 const configSchema = Type.Object({
   cogentRoot: Type.Optional(Type.String()),
   pythonCommand: Type.Optional(Type.String()),
@@ -139,6 +186,7 @@ const configSchema = Type.Object({
   timeoutSeconds: Type.Optional(Type.Integer({ minimum: 60, maximum: 86400 })),
   autoResume: Type.Optional(Type.Boolean({ description: "Schedule one durable continuation turn after a resumable interruption." })),
   autoResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000 })),
+  autoRotate: Type.Optional(Type.Boolean({ description: "Automatically start a clean TaskFlow worker for a verified ROTATE handoff." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -180,50 +228,7 @@ const entry = defineToolPlugin({
         if (params.execute !== true) {
           return { content: [{ type: "text", text: JSON.stringify({ ...plan, status: "dry-run" }) }], details: plan };
         }
-
-        const taskFlow = api.runtime.tasks.flow.fromToolContext(toolContext);
-        const previous = taskFlow.list().find((flow) => {
-          const state = flow.stateJson as Record<string, unknown> | null | undefined;
-          return flow.controllerId === "cogentnexus/rotation" && state?.runId === identity.runId;
-        });
-        const flow = previous ?? taskFlow.createManaged({
-          controllerId: "cogentnexus/rotation",
-          goal: checked.handoff.goal ?? `Resume ${checked.handoff.taskId}`,
-          currentStep: "starting_detached_worker",
-          stateJson: plan,
-        });
-        const linked = taskFlow.runTask({
-          flowId: flow.flowId,
-          runtime: "subagent",
-          childSessionKey: identity.childSessionKey,
-          runId: identity.runId,
-          label: `CogentNexus ${checked.handoff.taskId}`,
-          task: checked.handoff.nextAction ?? "Resume from durable handoff",
-          status: "running",
-          startedAt: Date.now(),
-          lastEventAt: Date.now(),
-        });
-        if (!linked.created && !linked.found) throw new Error(linked.reason);
-        if (previous || !linked.created) {
-          const details = { ...plan, status: "already-started", flowId: flow.flowId };
-          return { content: [{ type: "text", text: JSON.stringify(details) }], details };
-        }
-
-        const cliArgs = ["agent", "--session-key", identity.childSessionKey, "--message", workerPrompt(params.taskId, checked.phase3Path, checked.cogentRoot), "--json", "--timeout", String(config.timeoutSeconds ?? 3600)];
-        if (config.agentId) cliArgs.splice(1, 0, "--agent", config.agentId);
-        if (config.model) cliArgs.push("--model", config.model);
-        const child = launchWorker(cliArgs);
-        child.once("error", () => {
-          taskFlow.fail({ flowId: flow.flowId, expectedRevision: flow.revision, stateJson: { ...plan, launch: "failed" }, endedAt: Date.now() });
-        });
-        child.once("exit", (code) => {
-          const current = taskFlow.get(flow.flowId);
-          if (!current || current.syncMode !== "managed") return;
-          const stateJson = { ...plan, exitCode: code };
-          if (code === 0) taskFlow.finish({ flowId: flow.flowId, expectedRevision: current.revision, stateJson, endedAt: Date.now() });
-          else taskFlow.fail({ flowId: flow.flowId, expectedRevision: current.revision, stateJson, endedAt: Date.now() });
-        });
-        const details = { ...plan, status: "started", flowId: flow.flowId };
+        const details = await startRotation(api, api.runtime.tasks.managedFlows.fromToolContext(toolContext), toolContext.sessionKey, workspaceDir, config, params.taskId);
         return { content: [{ type: "text", text: JSON.stringify(details) }], details };
       },
     }),
@@ -248,6 +253,16 @@ entry.register = (api) => {
       workflow: api.session.workflow,
       scheduledRuns,
     });
+    if (event.success && config.autoRotate !== false && sessionKey) {
+      try {
+        const workspaceDir = ctx.workspaceDir ?? process.cwd();
+        const taskIds = monitorRotations(workspaceDir, config, sessionKey);
+        const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey });
+        for (const taskId of taskIds) await startRotation(api, taskFlow, sessionKey, workspaceDir, config, taskId);
+      } catch (error) {
+        api.logger.warn(`CogentNexus automatic rotation skipped: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }, { priority: 50, timeoutMs: 10_000 });
 };
 

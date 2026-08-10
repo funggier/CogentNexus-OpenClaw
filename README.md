@@ -21,6 +21,7 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Durable context handoff with live OpenClaw token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
 - Verified workflow DAGs with command/Ollama executors, deterministic validators, bounded retries, and artifact hashes
 - Always-on workflow discovery and detached controller resumption from the native periodic supervisor
+- Automatic context-pressure rotation for bound durable tasks through a clean TaskFlow worker session
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -57,6 +58,7 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/phase3.py context status --used-tokens 18000 --maximum-tokens 32768
     python skills/cogentnexus/scripts/phase3.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
     python skills/cogentnexus/scripts/phase3.py context monitor --task-id TASK-1 --execute-safe
+    python skills/cogentnexus/scripts/phase3.py context rotations --task-id TASK-1
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
     python skills/cogentnexus/scripts/workflow.py validate workflow-manifest.json
     python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json

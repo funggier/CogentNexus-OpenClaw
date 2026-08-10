@@ -42,9 +42,9 @@ DEFAULT_CONFIG = {
         "leaseSeconds": 1800
     },
     "contextContinuity": {
-        "softLimit": 0.55,
-        "handoffLimit": 0.70,
-        "criticalLimit": 0.82,
+        "softLimit": 0.25,
+        "handoffLimit": 0.35,
+        "criticalLimit": 0.45,
         "reserveTokens": 16384,
         "leaseSeconds": 1800,
         "autoMonitor": True
@@ -726,6 +726,25 @@ def context_monitor(args):
     emit(result)
     return 0 if all(item.get("status") == "observed" for item in result["observations"]) else 2
 
+def context_rotations(args):
+    root = args.root.resolve()
+    registry = read_json(bindings_path(root), {"schemaVersion": 1, "bindings": []})
+    items = []
+    for binding in registry["bindings"]:
+        if args.task_id and binding["taskId"] != args.task_id:
+            continue
+        path = handoff_path(root, binding["taskId"])
+        item = {"taskId": binding["taskId"], "boundSessionKey": binding["sessionKey"], "ownerSession": binding["ownerSession"], "handoff": None}
+        if path.exists():
+            try:
+                handoff = read_json(path); validate_handoff(handoff)
+                item["handoff"] = {key: handoff.get(key) for key in ("generation", "status", "workerSession", "leaseId", "leaseExpiresAt", "claimedAt", "releasedAt", "resultSummary", "contextDecision")}
+            except Exception as exc:
+                item["handoff"] = {"status": "invalid", "error": str(exc)}
+        items.append(item)
+    emit({"schemaVersion": 1, "count": len(items), "rotations": items})
+    return 0
+
 def handoff_inspect(args):
     handoff = read_json(handoff_path(args.root, args.task_id))
     validate_handoff(handoff)
@@ -853,6 +872,9 @@ def self_test(args):
         second_observation = json.loads(repeated.stdout)["observations"][0]
         if not first_observation["checkpointed"] or second_observation["checkpointed"]:
             raise SystemExit("automatic checkpoint deduplication failed")
+        rotations = call(script, root, "context", "rotations", "--task-id", "T1")
+        if rotations.returncode or json.loads(rotations.stdout)["rotations"][0]["handoff"]["status"] != "prepared":
+            raise SystemExit(f"rotation management status failed rc={rotations.returncode}: stdout={rotations.stdout} stderr={rotations.stderr}")
         tampered_path = handoff_path(root, "T1")
         tampered = read_json(tampered_path)
         tampered["nextAction"] = "tampered"
@@ -939,6 +961,7 @@ def main():
     cb = context.add_parser("bind"); cb.add_argument("--task-id", required=True); cb.add_argument("--session-key", required=True); cb.add_argument("--owner-session"); cb.add_argument("--next-action", required=True); cb.set_defaults(func=context_bind)
     cu = context.add_parser("unbind"); cu.add_argument("--task-id", required=True); cu.set_defaults(func=context_unbind)
     cm = context.add_parser("monitor"); cm.add_argument("--task-id"); cm.add_argument("--sessions-json"); cm.add_argument("--execute-safe", action="store_true"); cm.set_defaults(func=context_monitor)
+    cr = context.add_parser("rotations"); cr.add_argument("--task-id"); cr.set_defaults(func=context_rotations)
 
     scheduler = areas.add_parser("scheduler").add_subparsers(dest="command_name", required=True)
     sd = scheduler.add_parser("detect"); sd.set_defaults(func=scheduler_cmd)
