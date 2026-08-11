@@ -28,6 +28,22 @@ jobs:
       - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/phase3.py self-test
+      - run: python skills/cogentnexus/scripts/workflow.py self-test
+      - name: Validate PowerShell installer syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path scripts/install.ps1),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+      - name: Validate POSIX installer syntax
+        if: runner.os != 'Windows'
+        run: sh -n scripts/install.sh
       - run: npm ci
         working-directory: plugins/cogentnexus-rotation
       - run: npm test

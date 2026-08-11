@@ -35,6 +35,23 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 
 The nested layout preserves the OpenClaw workspace contract and lets the runtime locate its workspace root deterministically.
 
+## Installation
+
+Automated installers copy the skill, validate it, build and link the OpenClaw
+plugin, restart Gateway, and verify runtime health.
+
+Windows PowerShell:
+
+    .\scripts\install.ps1
+
+Linux or macOS:
+
+    chmod +x scripts/install.sh
+    ./scripts/install.sh
+
+See [the installation guide](docs/INSTALL.md) for prerequisites, workspace
+selection, manual installation, updating, and troubleshooting.
+
 ## Validate
 
 Requires Python 3.10 or newer and PyYAML.
