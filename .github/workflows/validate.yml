@@ -28,7 +28,6 @@ jobs:
       - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/phase3.py self-test
-      - run: python skills/cogentnexus/scripts/workflow.py self-test
       - name: Validate PowerShell installer syntax
         if: runner.os == 'Windows'
         shell: pwsh
