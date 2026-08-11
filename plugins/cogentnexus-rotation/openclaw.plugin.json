@@ -52,6 +52,19 @@
       "enforcedMode": {
         "type": "boolean",
         "description": "Block conversational attempts to create unbound workflows or bind owner identity manually."
+      },
+      "preInferenceAdmission": {
+        "type": "boolean",
+        "description": "Route obvious durable owner requests before the selected conversational model receives the prompt."
+      },
+      "admissionMinimumScore": {
+        "type": "integer",
+        "minimum": 3,
+        "maximum": 20
+      },
+      "durableWorkerModel": {
+        "type": "string",
+        "description": "Ollama model used by automatically compiled bounded workflow components."
       }
     },
     "additionalProperties": false

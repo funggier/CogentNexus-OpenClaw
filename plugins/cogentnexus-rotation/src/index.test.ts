@@ -2,11 +2,45 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import entry, { autoResumeTag, completionMessage, deliverWorkflowCompletion, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
+import entry, { autoResumeTag, completionMessage, deliverWorkflowCompletion, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
+import { classifyDurableRequest, compileDurableIntake } from "./admission.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
 
 describe("cogentnexus-rotation", () => {
+  it("admits an explicit multi-phase request before inference", () => {
+    const prompt = `ทำงานจนเสร็จ ห้ามข้าม phase และต้องตรวจสอบ dependency\n\nPHASE 1\nออกแบบระบบ\n\nPHASE 2\nสร้างอย่างน้อย 40 services\n\nPHASE 3\nสร้างอย่างน้อย 30 tables`;
+    const decision = classifyDurableRequest(prompt);
+    expect(decision.lane).toBe("durable");
+    expect(decision.sections).toHaveLength(3);
+    expect(decision.reasons).toContain("explicit-components:3");
+  });
+
+  it("does not capture simple or internal continuation turns", () => {
+    expect(classifyDurableRequest("ช่วยอธิบายคำว่า cache").lane).toBe("direct");
+    expect(classifyDurableRequest("CogentNexus workflow X reached terminal status completed.").lane).toBe("direct");
+    expect(classifyDurableRequest("#cogent-direct PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC").lane).toBe("direct");
+  });
+
+  it("admits owner WebChat dispatches without depending on channel-specific trigger names", () => {
+    expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test",senderIsOwner:true})).toBe(true);
+    expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test"})).toBe(true);
+    expect(durableAdmissionEligible({sessionKey:"agent:main:subagent:test",senderIsOwner:true})).toBe(false);
+    expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test",senderIsOwner:false})).toBe(false);
+  });
+
+  it("compiles a bounded owner-startable manifest without invoking a model", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-admission-"));
+    const prompt = `PHASE 1\nDesign\nPHASE 2\nBuild\nPHASE 3\nVerify`;
+    const decision = classifyDurableRequest(`${prompt}\nDo this until complete with validators and at least 3 artifacts.`);
+    const intake = compileDurableIntake({workspaceDir:root,prompt,runId:"run/one",decision,model:"qwen3.5:9b-32k"});
+    const manifest = JSON.parse(readFileSync(join(root, intake.manifestPath), "utf8"));
+    expect(manifest.taskId).toBe("CNX-AUTO-run-one");
+    expect(manifest.steps.map((step:any)=>step.id)).toEqual(["component-01","component-02","component-03","assemble"]);
+    expect(manifest.steps[0].executor.includeFiles).toEqual([`.cogent/intake/${manifest.taskId}/request.txt`]);
+    expect(manifest.steps.at(-1).executor.type).toBe("concat");
+  });
+
   it("declares the rotation tool", () => {
     expect(getToolPluginMetadata(entry)?.tools.map((tool) => tool.name)).toEqual(["cogent_rotation", "cogent_workflow_start"]);
   });

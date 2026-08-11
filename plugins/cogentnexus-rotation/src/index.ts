@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from
 import { join, relative, resolve } from "node:path";
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
+import { classifyDurableRequest, compileDurableIntake } from "./admission.js";
 
 type Handoff = {
   taskId: string;
@@ -28,6 +29,9 @@ type RotationConfig = {
   autoWorkflowCompletion?: boolean;
   completionPollMs?: number;
   enforcedMode?: boolean;
+  preInferenceAdmission?: boolean;
+  admissionMinimumScore?: number;
+  durableWorkerModel?: string;
 };
 
 type WorkflowCompletion = {
@@ -71,17 +75,36 @@ export function startBoundWorkflow(input: { workspaceDir:string; manifestPath:st
   const manifest = workspacePath(workspace, input.manifestPath);
   if (!existsSync(manifest)) throw new Error(`workflow manifest not found: ${manifest}`);
   const python = input.pythonCommand ?? "python";
-  const initialized = runWorkflowCli(python, runtime, ["--root",workspace,"init",manifest,"--owner-session-key",input.ownerSessionKey]);
+  const requested = JSON.parse(readFileSync(manifest,"utf8"));
+  let initialized: any;
+  let existing = false;
+  try {
+    initialized = runWorkflowCli(python, runtime, ["--root",workspace,"init",manifest,"--owner-session-key",input.ownerSessionKey]);
+  } catch (error) {
+    const taskId = requested?.taskId;
+    const flowDir = typeof taskId === "string" ? resolve(workspace,".cogent","workflows",taskId) : "";
+    const statePath = flowDir ? resolve(flowDir,"state.json") : "";
+    const ownerPath = flowDir ? resolve(flowDir,"owner.json") : "";
+    if (!statePath || !ownerPath || !existsSync(statePath) || !existsSync(ownerPath)) throw error;
+    const state = JSON.parse(readFileSync(statePath,"utf8"));
+    const owner = JSON.parse(readFileSync(ownerPath,"utf8"));
+    if (state.taskId !== taskId || owner.ownerSessionKey !== input.ownerSessionKey) throw error;
+    initialized = state;
+    existing = true;
+  }
   const taskId = initialized?.taskId;
   if (typeof taskId !== "string" || !taskId) throw new Error("workflow init returned no taskId");
   const flowDir = resolve(workspace,".cogent","workflows",taskId);
+  if (existing && ["completed","blocked","failed","cancelled"].includes(initialized.status)) {
+    return {taskId,status:initialized.status,controllerPid:initialized.controllerPid,ownerBound:true,idempotentReplay:true};
+  }
   const stdout = join(flowDir,"controller.stdout.log"), stderr = join(flowDir,"controller.stderr.log");
   writeFileSync(stdout,"",{flag:"a"}); writeFileSync(stderr,"",{flag:"a"});
   const child = spawn(python,[runtime,"--root",workspace,"run",taskId],{
     detached:true,stdio:"ignore",windowsHide:true,
   });
   child.unref();
-  return {taskId,status:"started",controllerPid:child.pid,ownerBound:true};
+  return {taskId,status:"started",controllerPid:child.pid,ownerBound:true,idempotentReplay:existing};
 }
 
 export function workflowCompletionTag(notice: WorkflowCompletion): string {
@@ -165,6 +188,10 @@ export function enforcementDecision(toolName: string, params: Record<string, unk
   const initializesDirectly = invokesRuntime && /(?:^|[\s\"'])init(?:[\s\"']|$)/i.test(payload);
   if (!bypassesOwner && !initializesDirectly) return { block:false };
   return {block:true,blockReason:"CogentNexus Enforced Mode: conversational durable workflows must start through cogent_workflow_start with the trusted current owner session."};
+}
+
+export function durableAdmissionEligible(input: { sessionKey?: string; senderIsOwner?: boolean }) {
+  return Boolean(input.sessionKey && input.senderIsOwner !== false && !input.sessionKey.includes(":subagent:"));
 }
 
 type RotationObservation = { taskId?: string; sessionKey?: string; status?: string; rotationRequired?: boolean };
@@ -332,6 +359,9 @@ const configSchema = Type.Object({
   autoWorkflowCompletion: Type.Optional(Type.Boolean({ description: "Automatically wake the bound owner when a workflow reaches a terminal state." })),
   completionPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000 })),
   enforcedMode: Type.Optional(Type.Boolean({ description: "Block conversational attempts to create unbound workflows or bind owner identity manually." })),
+  preInferenceAdmission: Type.Optional(Type.Boolean({ description: "Route obvious durable owner requests before the selected conversational model receives the prompt." })),
+  admissionMinimumScore: Type.Optional(Type.Integer({ minimum: 3, maximum: 20 })),
+  durableWorkerModel: Type.Optional(Type.String({ description: "Ollama model used by automatically compiled bounded workflow components." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -402,6 +432,32 @@ entry.register = (api) => {
   const config = (api.pluginConfig ?? {}) as RotationConfig;
   const scheduledRuns = new Set<string>();
   api.on("before_tool_call", (event, ctx) => enforcementDecision(event.toolName, event.params, ctx.sessionKey, config.enforcedMode !== false), { priority: 1000 });
+  if (config.preInferenceAdmission !== false) api.on("before_agent_run", (event, ctx) => {
+    // Trigger names vary by channel/dispatch path (for example WebChat and
+    // sessions_send do not consistently report "user"). Trust the resolved
+    // owner bit and canonical session shape instead; classifier exclusions
+    // fence internal completion and continuation messages.
+    if (!durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner})) return { outcome:"pass" };
+    const ownerSessionKey = ctx.sessionKey!;
+    const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
+    if (decision.lane !== "durable") return { outcome:"pass" };
+    const workspaceDir = ctx.workspaceDir ?? process.cwd();
+    const intake = compileDurableIntake({
+      workspaceDir,
+      prompt:event.prompt,
+      runId:ctx.runId ?? randomUUID(),
+      decision,
+      model:config.durableWorkerModel ?? "qwen3.5:9b-32k",
+    });
+    const started = startBoundWorkflow({workspaceDir,manifestPath:intake.manifestPath,ownerSessionKey:ownerSessionKey,pythonCommand:config.pythonCommand});
+    return {
+      outcome:"block",
+      reason:"durable request admitted before conversational inference",
+      category:"cogentnexus_durable_admission",
+      metadata:{taskId:intake.taskId,score:decision.score,componentCount:intake.componentCount},
+      message:`CogentNexus admitted this as durable workflow ${started.taskId} before model inference. ${intake.componentCount} bounded components are running outside the WebChat turn; verified completion will return to this session automatically.`,
+    };
+  }, { priority: 2000, timeoutMs: 30_000 });
   if (config.autoResume !== false || config.autoRotate !== false) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
     const sessionKey = ctx.sessionKey;

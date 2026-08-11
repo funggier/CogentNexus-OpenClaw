@@ -2,7 +2,7 @@
 
 Keep supervision logic portable and use the native scheduler only as a trigger.
 
-- Windows: Task Scheduler every five minutes.
+- Windows: Task Scheduler every minute, allowed on battery power, with bounded restart-on-failure. The supervisor's own confirmation, cooldown, budget, and circuit breaker prevent restart storms.
 - Ubuntu and Linux: systemd user oneshot service and timer.
 - macOS: launchd LaunchAgent.
 - Minimal Unix: cron fallback.

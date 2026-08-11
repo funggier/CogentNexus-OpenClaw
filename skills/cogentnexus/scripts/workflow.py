@@ -83,11 +83,16 @@ def validate_manifest(value):
         deps = step.get("dependsOn", [])
         if not isinstance(deps, list) or any(not isinstance(x, str) for x in deps): raise ValueError(f"invalid dependsOn: {step_id}")
         executor = step.get("executor")
-        if not isinstance(executor, dict) or executor.get("type") not in {"command", "ollama"}: raise ValueError(f"invalid executor: {step_id}")
+        if not isinstance(executor, dict) or executor.get("type") not in {"command", "ollama", "concat"}: raise ValueError(f"invalid executor: {step_id}")
         if executor["type"] == "command" and (not isinstance(executor.get("argv"), list) or not executor["argv"] or any(not isinstance(x, str) for x in executor["argv"])): raise ValueError(f"command argv required: {step_id}")
         if executor["type"] == "ollama":
             if not isinstance(executor.get("model"), str) or not executor.get("output"): raise ValueError(f"ollama model/output required: {step_id}")
             if not executor.get("prompt") and not executor.get("promptFile"): raise ValueError(f"ollama prompt required: {step_id}")
+            include_files = executor.get("includeFiles", [])
+            if not isinstance(include_files, list) or any(not isinstance(x, str) for x in include_files): raise ValueError(f"invalid ollama includeFiles: {step_id}")
+        if executor["type"] == "concat":
+            if not isinstance(executor.get("inputs"), list) or not executor["inputs"] or any(not isinstance(x, str) for x in executor["inputs"]): raise ValueError(f"concat inputs required: {step_id}")
+            if not isinstance(executor.get("output"), str) or not executor["output"]: raise ValueError(f"concat output required: {step_id}")
         validator = step.get("validator")
         if validator is not None and (not isinstance(validator, dict) or not isinstance(validator.get("argv"), list) or not validator["argv"] or any(not isinstance(x, str) for x in validator["argv"])): raise ValueError(f"invalid validator: {step_id}")
         outputs = step.get("outputs", [])
@@ -192,6 +197,10 @@ def run_argv(argv, cwd, timeout, on_started=None):
 def run_ollama(executor, cwd, timeout):
     prompt = executor.get("prompt")
     if executor.get("promptFile"): prompt = confined_path(cwd, executor["promptFile"]).read_text(encoding="utf-8")
+    included = []
+    for value in executor.get("includeFiles", []):
+        included.append(f"\n\n--- Included file: {value} ---\n{confined_path(cwd, value).read_text(encoding='utf-8')}")
+    prompt = str(prompt or "") + "".join(included)
     payload = json.dumps({"model":executor["model"],"prompt":prompt,"stream":False,"think":bool(executor.get("think",False)),"options":executor.get("options",{})}).encode()
     request = urllib.request.Request(executor.get("url","http://127.0.0.1:11434/api/generate"), data=payload, headers={"Content-Type":"application/json"})
     start = time.perf_counter()
@@ -199,6 +208,16 @@ def run_ollama(executor, cwd, timeout):
         with urllib.request.urlopen(request, timeout=timeout) as response: data = json.load(response)
         output = confined_path(cwd, executor["output"]); output.parent.mkdir(parents=True, exist_ok=True); output.write_text(data.get("response", ""), encoding="utf-8")
         return {"ok":True,"exitCode":0,"stdout":"","stderr":"","seconds":round(time.perf_counter()-start,3),"evalCount":data.get("eval_count")}
+    except Exception as exc:
+        return {"ok":False,"exitCode":None,"stdout":"","stderr":str(exc)[-12000:],"seconds":round(time.perf_counter()-start,3)}
+
+def run_concat(executor, cwd):
+    start = time.perf_counter()
+    try:
+        chunks = [confined_path(cwd, value).read_text(encoding="utf-8") for value in executor["inputs"]]
+        output = confined_path(cwd, executor["output"]); output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("\n\n".join(chunks), encoding="utf-8")
+        return {"ok":True,"exitCode":0,"stdout":"","stderr":"","seconds":round(time.perf_counter()-start,3)}
     except Exception as exc:
         return {"ok":False,"exitCode":None,"stdout":"","stderr":str(exc)[-12000:],"seconds":round(time.perf_counter()-start,3)}
 
@@ -340,7 +359,9 @@ def tick(root, task_id):
             if running.get("status") != "running": raise RuntimeError("step execution ownership changed before child start")
             running["runnerPid"] = pid; flow.save(live)
             flow.event("STEP_PROCESS_STARTED", f"Child process started for {step['id']}", {"runnerPid":pid,"controllerPid":os.getpid()})
-    result = run_argv(executor["argv"], flow.root, timeout, record_runner) if executor["type"] == "command" else run_ollama(executor, flow.root, timeout)
+    if executor["type"] == "command": result = run_argv(executor["argv"], flow.root, timeout, record_runner)
+    elif executor["type"] == "ollama": result = run_ollama(executor, flow.root, timeout)
+    else: result = run_concat(executor, flow.root)
     validator_result = None
     if result["ok"] and step.get("validator"): validator_result = run_argv(step["validator"]["argv"], flow.root, int(step["validator"].get("timeoutSeconds",60))); result["ok"] = validator_result["ok"]
     with lock(flow.lock_path):
@@ -489,6 +510,16 @@ def self_test():
         recovered=run_workflow(root,value["taskId"])
         final_killed=killed_flow.state()
         assert recovered["status"]=="completed" and final_killed["steps"]["one"]["attempts"]==1, {"recovered":recovered,"final":final_killed,"artifactExists":(root/"killed.txt").exists()}
+        # Admission assembly uses the portable concat executor.
+        value={"schemaVersion":1,"taskId":"WF-TEST-CONCAT","goal":"assemble validated components","steps":[
+            {"id":"left","executor":{"type":"command","argv":[py,"-c","from pathlib import Path;Path('left.txt').write_text('left')"]},"outputs":["left.txt"],"idempotent":True},
+            {"id":"right","executor":{"type":"command","argv":[py,"-c","from pathlib import Path;Path('right.txt').write_text('right')"]},"outputs":["right.txt"],"idempotent":True},
+            {"id":"assemble","dependsOn":["left","right"],"executor":{"type":"concat","inputs":["left.txt","right.txt"],"output":"assembled.txt"},"outputs":["assembled.txt"],"idempotent":True}
+        ]}
+        manifest.write_text(json.dumps(value),encoding="utf-8")
+        initialize(root,manifest,operator_unbound=True,operator_reason="self-test concat workflow")
+        assembled=run_workflow(root,value["taskId"])
+        assert assembled["status"]=="completed" and (root/"assembled.txt").read_text()=="left\n\nright"
     print("Cogent workflow self-test: PASS")
 
 def parser():
