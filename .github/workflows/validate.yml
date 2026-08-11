@@ -28,6 +28,12 @@ jobs:
       - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/phase3.py self-test
+      - name: Test plugin path migration helper
+        shell: bash
+        run: |
+          printf '["/tmp/cogentnexus-rotation","/tmp/keep"]' | \
+            python scripts/filter_plugin_paths.py --plugin-id cogentnexus-rotation | \
+            python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
       - name: Validate PowerShell installer syntax
         if: runner.os == 'Windows'
         shell: pwsh
@@ -46,6 +52,8 @@ jobs:
       - run: npm ci
         working-directory: plugins/cogentnexus-rotation
       - run: npm test
+        working-directory: plugins/cogentnexus-rotation
+      - run: npm audit --omit=dev
         working-directory: plugins/cogentnexus-rotation
       - run: npm run plugin:validate
         working-directory: plugins/cogentnexus-rotation

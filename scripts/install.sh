@@ -6,14 +6,16 @@ REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 WORKSPACE=${OPENCLAW_WORKSPACE:-"$HOME/.openclaw/workspace"}
 SKIP_PLUGIN=0
 SKIP_GATEWAY_RESTART=0
+LINK_PLUGIN=0
 
-usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart]"; }
+usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--link-plugin]"; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workspace) [ "$#" -ge 2 ] || { usage; exit 2; }; WORKSPACE=$2; shift 2 ;;
     --skip-plugin) SKIP_PLUGIN=1; shift ;;
     --skip-gateway-restart) SKIP_GATEWAY_RESTART=1; shift ;;
+    --link-plugin) LINK_PLUGIN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage; exit 2 ;;
   esac
@@ -50,7 +52,20 @@ echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py" --workspace-singleton
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
-  (cd "$REPO_ROOT/plugins/cogentnexus-rotation" && npm ci && npm run plugin:validate && openclaw plugins install --link . --force)
+  (
+    cd "$REPO_ROOT/plugins/cogentnexus-rotation"
+    npm ci
+    npm run plugin:validate
+    if [ "$LINK_PLUGIN" -eq 1 ]; then
+      openclaw plugins install --link . --force
+    else
+      if current_paths=$(openclaw config get plugins.load.paths 2>/dev/null); then
+        filtered_paths=$(printf '%s' "$current_paths" | python "$REPO_ROOT/scripts/filter_plugin_paths.py" --plugin-id cogentnexus-rotation)
+        openclaw config set plugins.load.paths "$filtered_paths" --strict-json --replace
+      fi
+      openclaw plugins install . --force
+    fi
+  )
 fi
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then openclaw gateway restart; fi
 openclaw gateway status

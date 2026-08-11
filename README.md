@@ -52,6 +52,10 @@ Linux or macOS:
 See [the installation guide](docs/INSTALL.md) for prerequisites, workspace
 selection, manual installation, updating, and troubleshooting.
 
+For stable installations, use a versioned archive from
+[GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
+it against the published `SHA256SUMS.txt` before running the installer.
+
 ## Validate
 
 Requires Python 3.10 or newer and PyYAML.

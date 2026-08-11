@@ -2,7 +2,8 @@
 param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
     [switch]$SkipPlugin,
-    [switch]$SkipGatewayRestart
+    [switch]$SkipGatewayRestart,
+    [switch]$LinkPlugin
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,7 +52,19 @@ if (-not $SkipPlugin) {
         if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
         npm run plugin:validate
         if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
-        openclaw plugins install --link . --force
+        if ($LinkPlugin) {
+            openclaw plugins install --link . --force
+        }
+        else {
+            $currentPaths = openclaw config get plugins.load.paths 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                $filteredPaths = $currentPaths | python (Join-Path $repoRoot "scripts\filter_plugin_paths.py") --plugin-id cogentnexus-rotation
+                if ($LASTEXITCODE -ne 0) { throw "failed to inspect existing plugin load paths" }
+                openclaw config set plugins.load.paths $filteredPaths --strict-json --replace
+                if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
+            }
+            openclaw plugins install . --force
+        }
         if ($LASTEXITCODE -ne 0) { throw "plugin installation failed" }
     }
     finally { Pop-Location }

@@ -37,8 +37,33 @@ The POSIX installer also accepts `OPENCLAW_WORKSPACE`.
 Use `-SkipPlugin` or `--skip-plugin` to install only the skill. Use
 `-SkipGatewayRestart` or `--skip-gateway-restart` to leave Gateway unchanged.
 If a skill already exists, the installer creates a timestamped backup under
-`<workspace>/.cogent/install-backups`. The plugin is linked to the cloned
-repository, so keep the clone in place.
+`<workspace>/.cogent/install-backups`. By default the plugin is copied into
+OpenClaw, so the downloaded release directory may be removed after a successful
+installation. Developers can use `-LinkPlugin` or `--link-plugin` to link the
+plugin to a working tree instead.
+
+When upgrading from an older linked installation, the installer removes only
+load paths that identify themselves as `cogentnexus-rotation`; unrelated plugin
+paths and the existing CogentNexus configuration are preserved.
+
+## Install a GitHub Release
+
+Because this repository is private, authenticate GitHub CLI first with
+`gh auth login`. Then download and verify a fixed release:
+
+```powershell
+gh release download v0.1.0 --repo funggier/cogentnexus --pattern "cogentnexus-v0.1.0.zip" --pattern "SHA256SUMS.txt"
+$actual = (Get-FileHash .\cogentnexus-v0.1.0.zip -Algorithm SHA256).Hash.ToLower()
+$expected = ((Get-Content .\SHA256SUMS.txt | Select-String 'cogentnexus-v0.1.0.zip') -split '\s+')[0]
+if ($actual -ne $expected) { throw "Release checksum mismatch" }
+Expand-Archive .\cogentnexus-v0.1.0.zip
+cd .\cogentnexus-v0.1.0
+.\scripts\install.ps1
+```
+
+On Linux or macOS, download `cogentnexus-v0.1.0.tar.gz`, verify it with
+`sha256sum -c SHA256SUMS.txt --ignore-missing`, extract it, and run
+`./scripts/install.sh`.
 
 ## Manual installation
 
@@ -55,7 +80,7 @@ repository, so keep the clone in place.
    cd plugins/cogentnexus-rotation
    npm ci
    npm run plugin:validate
-   openclaw plugins install --link . --force
+   openclaw plugins install . --force
    ```
 
 4. Restart and verify:
