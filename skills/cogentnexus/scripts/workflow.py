@@ -37,21 +37,39 @@ def atomic_json(path, value):
 
 @contextmanager
 def lock(path, timeout=10):
+    """Acquire a process-scoped lock that the OS releases after a crash/kill."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + timeout
-    while True:
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, f"{os.getpid()} {time.time()}".encode()); os.close(fd); break
-        except FileExistsError:
+    handle = open(path, "a+b")
+    if handle.seek(0, os.SEEK_END) == 0:
+        handle.write(b"\0"); handle.flush()
+    acquired = False
+    try:
+        while not acquired:
             try:
-                if time.time() - path.stat().st_mtime > 300: path.unlink(); continue
-            except FileNotFoundError: continue
-            if time.monotonic() >= deadline: raise TimeoutError("workflow lock timeout")
-            time.sleep(.05)
-    try: yield
+                handle.seek(0)
+                if os.name == "nt":
+                    import msvcrt
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                else:
+                    import fcntl
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+            except OSError:
+                if time.monotonic() >= deadline: raise TimeoutError("workflow lock timeout")
+                time.sleep(.05)
+        handle.seek(0); handle.truncate(); handle.write(f"{os.getpid()} {time.time()}".encode()); handle.flush()
+        yield
     finally:
-        try: path.unlink()
-        except FileNotFoundError: pass
+        if acquired:
+            handle.seek(0)
+            if os.name == "nt":
+                import msvcrt
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
 
 def validate_manifest(value):
     if not isinstance(value, dict) or value.get("schemaVersion") != 1: raise ValueError("schemaVersion must be 1")
