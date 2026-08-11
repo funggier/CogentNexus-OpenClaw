@@ -50,7 +50,7 @@ Use command executors without a shell. Treat Ollama output as a candidate until 
 
 ## Enforced mode
 
-For conversational Durable work, owner binding is a runtime invariant, not model guidance. The `cogent_workflow_start` tool initializes the manifest and trusted owner binding atomically. Direct conversational attempts to call `workflow.py init`, use `--operator-unbound`, or bind an owner manually are blocked by the plugin hook. Operator-unbound workflows remain available only as an explicit audited CLI path with a recorded reason.
+For conversational Durable work, owner binding is a runtime invariant, not model guidance. The `cogent_workflow_start` tool initializes the manifest and trusted owner binding atomically. Direct conversational attempts to call `workflow.py init`, use `--operator-unbound`, or bind an owner manually are blocked at the plugin boundary and, for Codex-managed shells, again by the runtime. Operator-unbound workflows remain available only as an explicit audited CLI path with a recorded reason.
 
 Controllers reject workflows without a valid ownership mode. Completion delivery remains pending across gateway or scheduling failures, records attempt/error evidence, and retries idempotently until the tagged owner continuation is durably scheduled.
 

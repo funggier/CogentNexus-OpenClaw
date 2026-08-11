@@ -485,6 +485,9 @@ def parser():
 
 def main():
     args=parser().parse_args()
+    conversational = bool(os.environ.get("CODEX_THREAD_ID"))
+    if conversational and ((args.command == "init" and args.operator_unbound) or args.command == "bind-owner"):
+        raise SystemExit("CogentNexus Enforced Mode: conversational workflows must use cogent_workflow_start with trusted owner binding")
     if args.command=="validate": emit({"valid":True,"manifest":validate_manifest(json.loads(args.manifest.read_text(encoding="utf-8")))}); return
     if args.command=="init": emit(initialize(args.root,args.manifest,args.owner_session_key,args.operator_unbound,args.operator_reason)); return
     if args.command=="tick": emit(tick(args.root,args.task_id)); return
