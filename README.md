@@ -61,7 +61,7 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/phase3.py context rotations --task-id TASK-1
     python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
     python skills/cogentnexus/scripts/workflow.py validate workflow-manifest.json
-    python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json
+    python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json --operator-unbound --operator-reason "operator-managed workflow"
     python skills/cogentnexus/scripts/workflow.py --root . supervise
     python skills/cogentnexus/scripts/workflow.py --root . supervise --execute
 
@@ -80,4 +80,4 @@ Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally 
 
 ## Status
 
-Phase 5 always-on resumption is implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.
+Phase 4 verified workflows and Phase 5 always-on resumption are implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Command child PIDs are fenced independently from controller PIDs, so controller death cannot trigger a duplicate launch while the child is still active. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import entry, { autoResumeTag, completionMessage, deliverWorkflowCompletion, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
+import entry, { autoResumeTag, completionMessage, deliverWorkflowCompletion, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
 
@@ -16,6 +16,14 @@ describe("cogentnexus-rotation", () => {
       runId: "cogent-rotate-cnx-phase4-001-3",
       childSessionKey: "agent:main:cogent-rotate-cnx-phase4-001-3",
     });
+  });
+
+  it("blocks conversational unbound workflow creation but permits the trusted start tool", () => {
+    const direct = enforcementDecision("shell_command", {command:"python workflow.py init manifest.json --operator-unbound"}, "agent:main:owner");
+    expect(direct.block).toBe(true);
+    expect(enforcementDecision("cogent_workflow_start", {manifestPath:"manifest.json"}, "agent:main:owner").block).toBe(false);
+    expect(enforcementDecision("shell_command", {command:"python workflow.py init manifest.json --operator-unbound"}, undefined).block).toBe(false);
+    expect(enforcementDecision("openclaw__skill_workshop", {proposal_content:"document workflow.py init behavior"}, "agent:main:owner").block).toBe(false);
   });
 
   it("selects only verified rotation observations for the current owner session", () => {
@@ -118,6 +126,22 @@ describe("cogentnexus-rotation", () => {
       expect(finished).toHaveLength(1);
       expect(scheduled[0]).toMatchObject({sessionKey:"agent:main:owner",tag:"cogent-workflow-result-WF-2-9",deliveryMode:"announce"});
       expect(JSON.parse(readFileSync(path,"utf8")).deliveryStatus).toBe("delivered");
+      expect(JSON.parse(readFileSync(path,"utf8")).deliveryAttempts).toBe(1);
+    } finally { rmSync(root, { recursive:true, force:true }); }
+  });
+
+  it("keeps failed completion delivery pending with durable retry evidence", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cogent-delivery-retry-"));
+    try {
+      const path = join(root,"completion.json");
+      const notice = {schemaVersion:1,taskId:"WF-3",ownerSessionKey:"agent:main:owner",workflowStatus:"completed",stateRevision:2,createdAt:new Date().toISOString(),deliveryStatus:"pending"};
+      writeFileSync(path, JSON.stringify(notice));
+      const flow = {flowId:"flow-1",syncMode:"managed",revision:1};
+      const taskFlow = {list:()=>[],createManaged:()=>flow,get:()=>flow,finish:()=>{},fail:()=>{}};
+      const api = {runtime:{tasks:{managedFlows:{bindSession:()=>taskFlow}}},session:{workflow:{unscheduleSessionTurnsByTag:async()=>{},scheduleSessionTurn:async()=>{throw new Error("gateway unavailable");}}}};
+      await expect(deliverWorkflowCompletion(api,path,notice)).rejects.toThrow("gateway unavailable");
+      const saved = JSON.parse(readFileSync(path,"utf8"));
+      expect(saved).toMatchObject({deliveryStatus:"pending",deliveryAttempts:1,lastDeliveryError:"gateway unavailable"});
     } finally { rmSync(root, { recursive:true, force:true }); }
   });
 });

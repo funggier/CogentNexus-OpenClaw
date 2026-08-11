@@ -292,8 +292,11 @@ def maintenance_status(root):
     path = maintenance_path(root)
     return read_json(path) if path.exists() else None
 
-def set_maintenance(root, reason, owner="operator"):
-    marker = {"schemaVersion": 1, "active": True, "createdAt": now(), "reason": reason, "owner": owner}
+def set_maintenance(root, reason, owner="operator", recovery_policy="manual"):
+    if recovery_policy not in {"manual", "healthy-runtime"}:
+        raise ValueError("maintenance recovery policy must be manual or healthy-runtime")
+    marker = {"schemaVersion": 1, "active": True, "createdAt": now(), "reason": reason, "owner": owner,
+              "recoveryPolicy": recovery_policy}
     atomic_json(maintenance_path(root), marker)
     append_runtime_event(root, "DECISION", "Intentional maintenance mode enabled", marker)
     return marker
@@ -325,7 +328,7 @@ def lifecycle_cmd(args):
         emit({"maintenance": marker, "gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config), "startupHint": "After login, native OpenClaw startup plus the CogentNexus supervisor normally restores runtime; use lifecycle start for an immediate verified start."})
         return 0
     if args.command_name == "prepare":
-        emit({"maintenance": set_maintenance(root, args.reason, args.owner), "safeToPowerOff": True})
+        emit({"maintenance": set_maintenance(root, args.reason, args.owner, args.recovery_policy), "safeToPowerOff": True})
         return 0
     if args.command_name == "cancel":
         emit({"cancelled": bool(clear_maintenance(root)), "maintenance": None})
@@ -381,11 +384,19 @@ def supervisor_tick(args):
         with file_lock(base / ".supervisor.lock", timeout=1, stale=max(120, int(config["supervisor"]["intervalSeconds"]))):
             marker = maintenance_status(root)
             if marker and marker.get("active"):
-                snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "workflowMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
-                atomic_json(base / "health.json", snapshot)
-                append_runtime_event(root, "OBSERVATION", "Supervisor tick skipped during intentional maintenance", {"reason": marker.get("reason")})
-                emit(snapshot)
-                return 0
+                if marker.get("recoveryPolicy") == "healthy-runtime":
+                    gateway = provider_probe("gateway", config, args.fixture)
+                    provider = provider_probe("ollama", config, args.fixture)
+                    if gateway.get("healthy") and provider.get("healthy"):
+                        previous = clear_maintenance(root)
+                        append_runtime_event(root, "RECOVERY", "Stale restart maintenance cleared after runtime health verification", {"previous":previous})
+                        marker = None
+                if marker and marker.get("active"):
+                    snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "workflowMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
+                    atomic_json(base / "health.json", snapshot)
+                    append_runtime_event(root, "OBSERVATION", "Supervisor tick skipped during intentional maintenance", {"reason": marker.get("reason")})
+                    emit(snapshot)
+                    return 0
             state = read_json(base / "supervisor-state.json", {"schemaVersion": 1, "components": {}, "updatedAt": None})
             probes = {}
             for name in ("gateway", "ollama", "resources"):
@@ -901,6 +912,10 @@ def self_test(args):
         cancelled = call(script, root, "lifecycle", "cancel")
         if prepared.returncode or paused.returncode or cancelled.returncode or json.loads(paused.stdout)["status"] != "maintenance":
             raise SystemExit("intentional maintenance fencing failed")
+        auto_prepared = call(script, root, "lifecycle", "prepare", "--reason", "self-test restart", "--recovery-policy", "healthy-runtime")
+        auto_resumed = call(script, root, "supervisor", "tick", "--fixture", "healthy")
+        if auto_prepared.returncode or auto_resumed.returncode or maintenance_status(root) is not None or json.loads(auto_resumed.stdout).get("status") == "maintenance":
+            raise SystemExit("restart maintenance auto-resumption failed")
         healthy = call(script, root, "supervisor", "tick", "--fixture", "healthy")
         failures = [call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe") for _ in range(3)]
         blocked = call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe")
@@ -933,7 +948,7 @@ def main():
 
     lifecycle = areas.add_parser("lifecycle").add_subparsers(dest="command_name", required=True)
     ls = lifecycle.add_parser("status"); ls.set_defaults(func=lifecycle_cmd)
-    lp = lifecycle.add_parser("prepare"); lp.add_argument("--reason", default="planned shutdown"); lp.add_argument("--owner", default="operator"); lp.set_defaults(func=lifecycle_cmd)
+    lp = lifecycle.add_parser("prepare"); lp.add_argument("--reason", default="planned shutdown"); lp.add_argument("--owner", default="operator"); lp.add_argument("--recovery-policy", choices=["manual","healthy-runtime"], default="manual"); lp.set_defaults(func=lifecycle_cmd)
     lc = lifecycle.add_parser("cancel"); lc.set_defaults(func=lifecycle_cmd)
     lst = lifecycle.add_parser("stop"); lst.add_argument("--provider", action="store_true"); lst.add_argument("--reason", default="planned shutdown"); lst.add_argument("--owner", default="operator"); lst.set_defaults(func=lifecycle_cmd)
     lstart = lifecycle.add_parser("start"); lstart.add_argument("--provider", action="store_true"); lstart.set_defaults(func=lifecycle_cmd)

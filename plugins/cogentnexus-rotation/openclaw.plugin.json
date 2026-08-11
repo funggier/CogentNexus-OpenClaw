@@ -48,6 +48,10 @@
         "type": "integer",
         "minimum": 1000,
         "maximum": 300000
+      },
+      "enforcedMode": {
+        "type": "boolean",
+        "description": "Block conversational attempts to create unbound workflows or bind owner identity manually."
       }
     },
     "additionalProperties": false

@@ -127,31 +127,49 @@ def bind_owner(root, task_id, session_key):
     flow = Workflow(root, task_id)
     with lock(flow.lock_path):
         state = flow.state()
+        if state.get("status") not in {"ready", "completed", "blocked", "failed", "cancelled"}:
+            raise ValueError("owner binding cannot change while workflow execution is active")
         binding = {"schemaVersion":1,"taskId":task_id,"ownerSessionKey":session_key.strip(),"boundAt":now()}
         atomic_json(flow.owner_path, binding)
+        state["ownerMode"] = "session"
+        flow.save(state)
         flow.event("WORKFLOW_OWNER_BOUND", "Workflow bound to an owner session")
         notice = queue_terminal_completion(flow, state)
     return {"binding":binding,"completion":notice}
 
-def initialize(root, manifest_file):
+def initialize(root, manifest_file, owner_session_key=None, operator_unbound=False, operator_reason=None):
+    if bool(owner_session_key) == bool(operator_unbound):
+        raise ValueError("initialize requires exactly one of owner_session_key or operator_unbound")
+    if operator_unbound and (not isinstance(operator_reason, str) or len(operator_reason.strip()) < 8):
+        raise ValueError("operator-unbound workflows require an audit reason of at least 8 characters")
+    if owner_session_key and (not isinstance(owner_session_key, str) or not owner_session_key.strip() or len(owner_session_key) > 512):
+        raise ValueError("valid owner session key required")
     manifest = validate_manifest(json.loads(Path(manifest_file).read_text(encoding="utf-8")))
     flow = Workflow(root, manifest["taskId"])
     flow.base.mkdir(parents=True, exist_ok=True)
     with lock(flow.lock_path):
         if flow.state_path.exists(): raise ValueError("workflow already exists")
         atomic_json(flow.manifest_path, manifest)
+        if owner_session_key:
+            atomic_json(flow.owner_path, {"schemaVersion":1,"taskId":manifest["taskId"],"ownerSessionKey":owner_session_key.strip(),"boundAt":now()})
         steps = {s["id"]: {"status":"pending","attempts":0,"artifacts":{},"lastError":None,"startedAt":None,"completedAt":None} for s in manifest["steps"]}
-        state = {"schemaVersion":1,"taskId":manifest["taskId"],"manifestHash":digest(manifest),"status":"ready","revision":1,"steps":steps,"createdAt":now(),"updatedAt":now()}
-        atomic_json(flow.state_path, state); flow.event("WORKFLOW_CREATED", "Workflow initialized", {"manifestHash":state["manifestHash"]})
+        mode = "session" if owner_session_key else "operator-unbound"
+        state = {"schemaVersion":1,"taskId":manifest["taskId"],"manifestHash":digest(manifest),"status":"ready","revision":1,"ownerMode":mode,"steps":steps,"createdAt":now(),"updatedAt":now()}
+        atomic_json(flow.state_path, state)
+        flow.event("WORKFLOW_CREATED", "Workflow initialized", {"manifestHash":state["manifestHash"],"ownerMode":mode,"operatorReason":operator_reason.strip() if operator_unbound else None})
     return flow.state()
 
-def run_argv(argv, cwd, timeout):
+def run_argv(argv, cwd, timeout, on_started=None):
     start = time.perf_counter()
     try:
-        proc = subprocess.run([str(x) for x in argv], cwd=cwd, capture_output=True, text=True, timeout=timeout, shell=False)
-        return {"ok":proc.returncode==0,"exitCode":proc.returncode,"stdout":proc.stdout[-12000:],"stderr":proc.stderr[-12000:],"seconds":round(time.perf_counter()-start,3)}
+        proc = subprocess.Popen([str(x) for x in argv], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, shell=False)
+        if on_started: on_started(proc.pid)
+        stdout, stderr = proc.communicate(timeout=timeout)
+        return {"ok":proc.returncode==0,"exitCode":proc.returncode,"stdout":stdout[-12000:],"stderr":stderr[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
     except subprocess.TimeoutExpired as exc:
-        return {"ok":False,"exitCode":None,"stdout":str(exc.stdout or "")[-12000:],"stderr":"timeout","seconds":round(time.perf_counter()-start,3)}
+        proc.kill(); stdout, stderr = proc.communicate()
+        return {"ok":False,"exitCode":None,"stdout":str(stdout or exc.stdout or "")[-12000:],"stderr":str(stderr or "timeout")[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
 
 def run_ollama(executor, cwd, timeout):
     prompt = executor.get("prompt")
@@ -180,6 +198,61 @@ def artifact_hashes(root, outputs):
         found[value] = {"sha256":hashlib.sha256(path.read_bytes()).hexdigest(),"bytes":path.stat().st_size}
     return found
 
+def inspect_workflow(root, task_id):
+    flow = Workflow(root, task_id)
+    state, manifest = flow.state(), flow.manifest()
+    manifest_ok = digest(manifest) == state.get("manifestHash")
+    controller_pid = state.get("controllerPid")
+    controller_alive = process_alive(controller_pid)
+    steps = []
+    artifacts_ok = True
+    any_runner_alive = False
+    manifest_steps = {step["id"]: step for step in manifest.get("steps", [])}
+    for step_id, current in state.get("steps", {}).items():
+        configured = manifest_steps.get(step_id, {})
+        runner_pid = current.get("runnerPid")
+        runner_alive = process_alive(runner_pid)
+        any_runner_alive = any_runner_alive or runner_alive
+        checks = []
+        for output in configured.get("outputs", []):
+            expected = current.get("artifacts", {}).get(output)
+            path = confined_path(flow.root, output)
+            actual = None
+            if path.is_file():
+                actual = {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "bytes": path.stat().st_size}
+            matches = expected is not None and actual == expected
+            if current.get("status") == "completed" and not matches: artifacts_ok = False
+            checks.append({"path": output, "exists": path.is_file(), "matchesRecordedHash": matches,
+                           "expected": expected, "actual": actual})
+        steps.append({"id": step_id, "status": current.get("status"), "attempts": current.get("attempts", 0),
+                      "maximumAttempts": configured.get("maximumAttempts", 2), "runnerPid": runner_pid,
+                      "runnerAlive": runner_alive, "startedAt": current.get("startedAt"),
+                      "completedAt": current.get("completedAt"), "lastError": current.get("lastError"),
+                      "artifacts": checks})
+    ledger = []
+    if flow.ledger_path.exists():
+        ledger = [json.loads(line) for line in flow.ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    status = state.get("status")
+    completed_verified = status == "completed" and manifest_ok and artifacts_ok and all(x["status"] == "completed" for x in steps)
+    if completed_verified: condition, normal = "completed_verified", True
+    elif status == "running" and (controller_alive or any_runner_alive): condition, normal = "running_active", True
+    elif status in {"ready", "pending"}: condition, normal = "queued", True
+    elif status == "running": condition, normal = "stale_worker", False
+    elif status == "blocked": condition, normal = "blocked", False
+    elif status == "failed": condition, normal = "failed", False
+    elif status == "completed": condition, normal = "completed_unverified", False
+    else: condition, normal = str(status or "unknown"), False
+    return {"schemaVersion": 1, "taskId": task_id, "condition": condition, "normal": normal,
+            "workflowStatus": status, "completionVerified": completed_verified,
+            "stateRevision": state.get("revision"), "updatedAt": state.get("updatedAt"),
+            "manifestIntegrity": manifest_ok, "artifactIntegrity": artifacts_ok,
+            "controller": {"pid": controller_pid, "alive": controller_alive},
+            "runnerAlive": any_runner_alive, "steps": steps,
+            "lastEvent": ledger[-1] if ledger else None,
+            "evidence": {"state": str(flow.state_path), "manifest": str(flow.manifest_path),
+                         "ledger": str(flow.ledger_path), "controllerStdout": str(flow.controller_out),
+                         "controllerStderr": str(flow.controller_err)}}
+
 def choose_step(manifest, state):
     for step in manifest["steps"]:
         current = state["steps"][step["id"]]
@@ -194,8 +267,10 @@ def process_alive(pid):
         import ctypes
         handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
         if not handle: return False
+        exit_code = ctypes.c_ulong()
+        queried = ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
         ctypes.windll.kernel32.CloseHandle(handle)
-        return True
+        return bool(queried) and exit_code.value == 259  # STILL_ACTIVE
     stat = Path(f"/proc/{pid}/stat")
     if stat.exists():
         try:
@@ -239,9 +314,15 @@ def tick(root, task_id):
             elif any(x == "blocked" for x in statuses): state["status"]="blocked"
             else: state["status"]="failed"; flow.event("WORKFLOW_FAILED","No runnable step")
             flow.save(state); queue_terminal_completion(flow,state); return {"transition":"terminal","state":state}
-        current = state["steps"][step["id"]]; current["status"]="running"; current["attempts"]+=1; current["startedAt"]=now(); current["runnerPid"]=os.getpid(); state["status"]="running"; flow.save(state); flow.event("STEP_STARTED",f"Started {step['id']}",{"attempt":current["attempts"],"runnerPid":os.getpid()})
+        current = state["steps"][step["id"]]; current["status"]="running"; current["attempts"]+=1; current["startedAt"]=now(); current["runnerPid"]=None; current["controllerPid"]=os.getpid(); state["status"]="running"; flow.save(state); flow.event("STEP_STARTED",f"Started {step['id']}",{"attempt":current["attempts"],"controllerPid":os.getpid()})
     executor = step["executor"]; timeout = int(executor.get("timeoutSeconds",1800))
-    result = run_argv(executor["argv"], flow.root, timeout) if executor["type"] == "command" else run_ollama(executor, flow.root, timeout)
+    def record_runner(pid):
+        with lock(flow.lock_path):
+            live = flow.state(); running = live["steps"][step["id"]]
+            if running.get("status") != "running": raise RuntimeError("step execution ownership changed before child start")
+            running["runnerPid"] = pid; flow.save(live)
+            flow.event("STEP_PROCESS_STARTED", f"Child process started for {step['id']}", {"runnerPid":pid,"controllerPid":os.getpid()})
+    result = run_argv(executor["argv"], flow.root, timeout, record_runner) if executor["type"] == "command" else run_ollama(executor, flow.root, timeout)
     validator_result = None
     if result["ok"] and step.get("validator"): validator_result = run_argv(step["validator"]["argv"], flow.root, int(step["validator"].get("timeoutSeconds",60))); result["ok"] = validator_result["ok"]
     with lock(flow.lock_path):
@@ -265,6 +346,9 @@ def tick(root, task_id):
 def claim_controller(flow):
     with lock(flow.lock_path):
         state = flow.state(); owner = state.get("controllerPid")
+        mode = state.get("ownerMode")
+        if mode == "session" and not flow.owner_path.is_file(): raise ValueError("session-owned workflow is missing owner binding")
+        if mode not in {"session", "operator-unbound"}: raise ValueError("workflow lacks enforced ownership mode")
         if process_alive(owner) and owner != os.getpid(): return False, state
         state["controllerPid"] = os.getpid(); state["controllerStartedAt"] = now(); flow.save(state)
         flow.event("CONTROLLER_CLAIMED", "Workflow controller claimed", {"pid":os.getpid()})
@@ -329,23 +413,30 @@ def self_test():
             {"id":"one","executor":{"type":"command","argv":[py,"-c","from pathlib import Path;Path('one.txt').write_text('one')"]},"outputs":["one.txt"],"validator":{"argv":[py,"-c","from pathlib import Path;assert Path('one.txt').read_text()=='one'"]},"idempotent":True},
             {"id":"two","dependsOn":["one"],"executor":{"type":"command","argv":[py,"-c","from pathlib import Path;Path('two.txt').write_text(Path('one.txt').read_text()+' two')"]},"outputs":["two.txt"],"validator":{"argv":[py,"-c","from pathlib import Path;assert Path('two.txt').read_text()=='one two'"]},"idempotent":True}
         ]}
-        manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest); result=run_workflow(root,"WF-TEST")
+        manifest.write_text(json.dumps(value),encoding="utf-8")
+        try: initialize(root,manifest)
+        except ValueError as exc: assert "exactly one" in str(exc)
+        else: raise AssertionError("unenforced initialization unexpectedly succeeded")
+        initialize(root,manifest,operator_unbound=True,operator_reason="self-test operator workflow"); result=run_workflow(root,"WF-TEST")
         assert result["status"]=="completed" and (root/"two.txt").read_text()=="one two"
+        inspection=inspect_workflow(root,"WF-TEST"); assert inspection["normal"] and inspection["completionVerified"] and inspection["artifactIntegrity"]
+        (root/"two.txt").write_text("tampered")
+        inspection=inspect_workflow(root,"WF-TEST"); assert not inspection["normal"] and inspection["condition"]=="completed_unverified"
         # Simulate owner interruption after a child produced valid output.
-        flow=Workflow(root,"WF-TEST-RECOVER"); value["taskId"]="WF-TEST-RECOVER"; value["steps"]=value["steps"][:1]; manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest)
+        flow=Workflow(root,"WF-TEST-RECOVER"); value["taskId"]="WF-TEST-RECOVER"; value["steps"]=value["steps"][:1]; manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,operator_unbound=True,operator_reason="self-test recovery")
         state=flow.state(); state["steps"]["one"]["status"]="running"; state["steps"]["one"]["runnerPid"]=99999999; (root/"one.txt").write_text("one"); flow.save(state)
         recovered=tick(root,"WF-TEST-RECOVER"); assert recovered["state"]["status"]=="completed"
         # A live worker is fenced: another tick observes it but never executes it twice.
-        value["taskId"]="WF-TEST-BUSY"; manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest)
+        value["taskId"]="WF-TEST-BUSY"; manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,operator_unbound=True,operator_reason="self-test busy fencing")
         busy_flow=Workflow(root,"WF-TEST-BUSY"); state=busy_flow.state(); state["steps"]["one"]["status"]="running"; state["steps"]["one"]["runnerPid"]=os.getpid(); busy_flow.save(state)
         busy=tick(root,"WF-TEST-BUSY"); assert busy["transition"]=="busy" and busy["state"]["steps"]["one"]["attempts"]==0
         # A failed validation is retried only up to the declared ceiling.
         value["taskId"]="WF-TEST-RETRY"; value["steps"][0]["validator"]={"argv":[py,"-c","raise SystemExit(1)"]}; value["steps"][0]["maximumAttempts"]=2
-        manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest); failed=run_workflow(root,"WF-TEST-RETRY")
+        manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,operator_unbound=True,operator_reason="self-test retry ceiling"); failed=run_workflow(root,"WF-TEST-RETRY")
         assert failed["status"]=="blocked" and failed["state"]["steps"]["one"]["attempts"]==2
         # Deterministic discovery launches a detached controller that survives the caller.
         value["taskId"]="WF-TEST-SUPERVISE"; value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('one.txt').read_text()=='one'"]}; value["steps"][0]["maximumAttempts"]=2
-        (root/"one.txt").unlink(missing_ok=True); manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest)
+        (root/"one.txt").unlink(missing_ok=True); manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,owner_session_key="agent:main:test-owner")
         observed=supervise_workflows(root); assert any(x.get("taskId")=="WF-TEST-SUPERVISE" for x in observed["actions"])
         launched=supervise_workflows(root,execute=True,maximum=1); child_pid=launched["actions"][0]["pid"]; deadline=time.monotonic()+10
         while time.monotonic()<deadline and Workflow(root,"WF-TEST-SUPERVISE").state()["status"]!="completed": time.sleep(.05)
@@ -355,15 +446,38 @@ def self_test():
         else:
             while time.monotonic()<deadline and process_alive(child_pid): time.sleep(.05)
         assert Workflow(root,"WF-TEST-SUPERVISE").state()["status"]=="completed" and not process_alive(child_pid)
-        bound=bind_owner(root,"WF-TEST-SUPERVISE","agent:main:test-owner")
-        assert bound["completion"]["deliveryStatus"]=="pending" and Workflow(root,"WF-TEST-SUPERVISE").completion_path.is_file()
+        notice=Workflow(root,"WF-TEST-SUPERVISE").read(Workflow(root,"WF-TEST-SUPERVISE").completion_path)
+        assert notice["deliveryStatus"]=="pending" and Workflow(root,"WF-TEST-SUPERVISE").owner_path.is_file()
+        # Killing the controller must not cause a still-live command child to run twice.
+        value["taskId"]="WF-TEST-KILLED-CONTROLLER"
+        value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","import time;from pathlib import Path;time.sleep(1);Path('killed.txt').write_text('survived')"]}
+        value["steps"][0]["outputs"]=["killed.txt"]
+        value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('killed.txt').read_text()=='survived'"]}
+        manifest.write_text(json.dumps(value),encoding="utf-8")
+        initialize(root,manifest,operator_unbound=True,operator_reason="self-test killed controller")
+        controller=subprocess.Popen([py,str(Path(__file__).resolve()),"--root",str(root),"run",value["taskId"]],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        killed_flow=Workflow(root,value["taskId"]); deadline=time.monotonic()+5; runner_pid=None
+        while time.monotonic()<deadline:
+            runner_pid=killed_flow.state()["steps"]["one"].get("runnerPid")
+            if runner_pid and runner_pid != controller.pid: break
+            time.sleep(.05)
+        assert runner_pid and runner_pid != controller.pid and process_alive(runner_pid)
+        controller.terminate(); controller.wait(timeout=5)
+        fenced=supervise_workflows(root,execute=True,maximum=1)
+        observed=next(x for x in fenced["workflows"] if x.get("taskId")==value["taskId"])
+        assert observed["runnerAlive"] and not any(x.get("taskId")==value["taskId"] for x in fenced["actions"])
+        deadline=time.monotonic()+5
+        while time.monotonic()<deadline and process_alive(runner_pid): time.sleep(.05)
+        recovered=run_workflow(root,value["taskId"])
+        final_killed=killed_flow.state()
+        assert recovered["status"]=="completed" and final_killed["steps"]["one"]["attempts"]==1, {"recovered":recovered,"final":final_killed,"artifactExists":(root/"killed.txt").exists()}
     print("Cogent workflow self-test: PASS")
 
 def parser():
     p=argparse.ArgumentParser(description="CogentNexus deterministic workflow engine"); p.add_argument("--root",type=Path,default=Path.cwd()); sub=p.add_subparsers(dest="command",required=True)
     v=sub.add_parser("validate"); v.add_argument("manifest",type=Path)
-    i=sub.add_parser("init"); i.add_argument("manifest",type=Path)
-    for name in ("tick","run","status"):
+    i=sub.add_parser("init"); i.add_argument("manifest",type=Path); i.add_argument("--owner-session-key"); i.add_argument("--operator-unbound",action="store_true"); i.add_argument("--operator-reason")
+    for name in ("tick","run","status","inspect"):
         x=sub.add_parser(name); x.add_argument("task_id")
     b=sub.add_parser("bind-owner"); b.add_argument("task_id"); b.add_argument("--session-key",required=True)
     s=sub.add_parser("supervise"); s.add_argument("--execute",action="store_true"); s.add_argument("--maximum",type=int,default=4)
@@ -372,10 +486,11 @@ def parser():
 def main():
     args=parser().parse_args()
     if args.command=="validate": emit({"valid":True,"manifest":validate_manifest(json.loads(args.manifest.read_text(encoding="utf-8")))}); return
-    if args.command=="init": emit(initialize(args.root,args.manifest)); return
+    if args.command=="init": emit(initialize(args.root,args.manifest,args.owner_session_key,args.operator_unbound,args.operator_reason)); return
     if args.command=="tick": emit(tick(args.root,args.task_id)); return
     if args.command=="run": emit(run_workflow(args.root,args.task_id)); return
     if args.command=="status": emit(Workflow(args.root,args.task_id).state()); return
+    if args.command=="inspect": emit(inspect_workflow(args.root,args.task_id)); return
     if args.command=="bind-owner": emit(bind_owner(args.root,args.task_id,args.session_key)); return
     if args.command=="supervise": emit(supervise_workflows(args.root,args.execute,args.maximum)); return
     if args.command=="self-test": self_test(); return
