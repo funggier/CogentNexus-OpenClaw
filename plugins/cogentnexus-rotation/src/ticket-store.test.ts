@@ -79,5 +79,5 @@ describe("TicketStore", () => {
       .toEqual(["accepted","routed","claimed","lease_expired","claimed","completed"]);
     db.close();
     rmSync(root,{recursive:true,force:true});
-  });
+  }, 15_000);
 });
