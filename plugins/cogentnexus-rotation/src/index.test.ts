@@ -31,7 +31,8 @@ describe("cogentnexus-rotation", () => {
     expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test",senderIsOwner:true})).toBe(true);
     expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test"})).toBe(true);
     expect(durableAdmissionEligible({sessionKey:"agent:main:subagent:test",senderIsOwner:true})).toBe(false);
-    expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test",senderIsOwner:false})).toBe(false);
+    expect(durableAdmissionEligible({sessionKey:"agent:main:dashboard:test",senderIsOwner:false})).toBe(true);
+    expect(durableAdmissionEligible({sessionKey:"agent:main:cli:test",senderIsOwner:false})).toBe(false);
   });
 
   it("compiles a bounded owner-startable manifest without invoking a model", () => {

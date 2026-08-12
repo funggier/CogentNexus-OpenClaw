@@ -297,7 +297,14 @@ export function enforcementDecision(toolName: string, params: Record<string, unk
 }
 
 export function durableAdmissionEligible(input: { sessionKey?: string; senderIsOwner?: boolean }) {
-  return Boolean(input.sessionKey && input.senderIsOwner !== false && !input.sessionKey.includes(":subagent:"));
+  if (!input.sessionKey || input.sessionKey.includes(":subagent:")) return false;
+  if (input.senderIsOwner !== false) return true;
+  // Dashboard sessions are authenticated, direct control-UI conversations. In
+  // current OpenClaw builds their before_agent_run event can carry
+  // senderIsOwner=false because WebChat has no channel sender identity. The
+  // canonical dashboard namespace is therefore the owner-bound fallback; do
+  // not extend this exception to arbitrary CLI, channel, or agent sessions.
+  return /^agent:[^:]+:dashboard:[^:]+$/u.test(input.sessionKey);
 }
 
 export function activeWorkflowForRequest(workspaceDir: string, requestHash: string) {
