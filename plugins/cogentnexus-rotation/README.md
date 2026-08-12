@@ -23,6 +23,31 @@ Automatic rotation is enabled by default and applies only to tasks explicitly bo
 
 Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
 
+### WebChat admission notice
+
+On current OpenClaw releases, a successfully admitted request can be displayed
+as:
+
+> Your message could not be sent: CogentNexus admitted this as durable workflow
+> ... (blocked by cogentnexus-rotation)
+
+This wording does not by itself mean the workflow failed. Pre-inference
+admission intentionally returns a `block` hook decision so the conversational
+model does not also execute the same request. OpenClaw currently prefixes every
+such decision with `Your message could not be sent`, even when the replacement
+message is a successful durable-workflow receipt.
+
+Use the workflow identifier in the notice to inspect
+`.cogent/workflows/<id>/state.json`. A healthy admission has an owner-bound
+state such as `running`; verified completion is delivered to the bound owner
+session automatically. Treat the notice as a real failure only when the
+workflow directory is absent or its durable state is `failed` or `blocked` with
+corresponding evidence.
+
+This is a presentation limitation at the OpenClaw hook/UI boundary. A future
+OpenClaw `handled` or `accepted-without-inference` outcome would allow the same
+safety behavior to render as a normal receipt instead of a warning.
+
 Build and validate:
 
 ```bash

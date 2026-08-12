@@ -100,6 +100,14 @@ idempotent.
 
 ## Troubleshooting
 
+- WebChat shows `Your message could not be sent` followed by `CogentNexus
+  admitted this as durable workflow ... (blocked by cogentnexus-rotation)`:
+  copy the workflow ID from the notice and inspect
+  `.cogent/workflows/<id>/state.json`. If the workflow exists, is owner-bound,
+  and has state `running`, the request was accepted successfully. OpenClaw
+  labels every pre-inference `block` hook decision as an unsent message;
+  CogentNexus uses that decision to prevent duplicate model execution after
+  durable admission. Do not resubmit solely because of this wording.
 - `openclaw` not found: install or update OpenClaw and ensure it is on `PATH`.
 - Plugin validation fails: use Node.js 22+, run `npm ci`, and retry.
 - Gateway is unhealthy: run `openclaw status` and inspect the log path reported
