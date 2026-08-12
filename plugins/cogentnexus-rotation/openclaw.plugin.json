@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus Rotation Controller",
   "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -65,7 +65,33 @@
       "durableWorkerModel": {
         "type": "string",
         "description": "Ollama model used by automatically compiled bounded workflow components."
-      }
+      },
+      "ticketFirst": {
+        "type": "boolean",
+        "description": "Commit every eligible owner command to SQLite before inference. Disabled by default during Phase 0."
+      },
+      "ticketDatabasePath": {
+        "type": "string",
+        "description": "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime."
+      },
+      "ticketRecoveryPollMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 300000,
+        "description": "Deterministic expired-lease scan interval."
+      },
+      "ticketOutboxPollMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 300000,
+        "description": "Terminal Ticket delivery interval."
+      },
+      "ticketDispatchPollMs": {"type":"integer","minimum":1000,"maximum":300000,"description":"Bounded Ticket dispatch interval."},
+      "ticketDispatchLimit": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum Tickets claimed per dispatch tick."},
+      "ticketLeaseMs": {"type":"integer","minimum":5000,"maximum":3600000,"description":"Ticket worker lease and heartbeat extension."},
+      "ticketMinimumFreeMemoryBytes": {"type":"integer","minimum":0,"description":"Minimum observed free memory before Ticket dispatch."},
+      "ticketMinimumFreeDiskBytes": {"type":"integer","minimum":0,"description":"Minimum observed free disk before Ticket dispatch."},
+      "ticketMaximumRunning": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum linked running Ticket workflows."}
     },
     "additionalProperties": false
   },
@@ -75,7 +101,8 @@
   "contracts": {
     "tools": [
       "cogent_rotation",
-      "cogent_workflow_start"
+      "cogent_workflow_start",
+      "cogent_ticket_status"
     ]
   },
   "toolMetadata": {
@@ -83,6 +110,9 @@
       "optional": true
     },
     "cogent_workflow_start": {
+      "optional": true
+    },
+    "cogent_ticket_status": {
       "optional": true
     }
   }

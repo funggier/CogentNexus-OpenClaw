@@ -1,10 +1,14 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { statfsSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { freemem } from "node:os";
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
+import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
+import { TicketDispatcher } from "./ticket-dispatcher.js";
 
 type Handoff = {
   taskId: string;
@@ -32,7 +36,35 @@ type RotationConfig = {
   preInferenceAdmission?: boolean;
   admissionMinimumScore?: number;
   durableWorkerModel?: string;
+  ticketFirst?: boolean;
+  ticketDatabasePath?: string;
+  ticketRecoveryPollMs?: number;
+  ticketOutboxPollMs?: number;
+  ticketDispatchPollMs?: number;
+  ticketDispatchLimit?: number;
+  ticketLeaseMs?: number;
+  ticketMinimumFreeMemoryBytes?: number;
+  ticketMinimumFreeDiskBytes?: number;
+  ticketMaximumRunning?: number;
 };
+
+export type TicketResourceSnapshot = {freeMemoryBytes:number;freeDiskBytes:number;running:number};
+
+export function ticketResourceAdmission(snapshot: TicketResourceSnapshot, config: RotationConfig) {
+  const minimumMemory = config.ticketMinimumFreeMemoryBytes ?? 512 * 1024 * 1024;
+  const minimumDisk = config.ticketMinimumFreeDiskBytes ?? 512 * 1024 * 1024;
+  const maximumRunning = config.ticketMaximumRunning ?? 1;
+  const reasons:string[] = [];
+  if (snapshot.freeMemoryBytes < minimumMemory) reasons.push("memory");
+  if (snapshot.freeDiskBytes < minimumDisk) reasons.push("disk");
+  if (snapshot.running >= maximumRunning) reasons.push("concurrency");
+  return {admitted:reasons.length === 0,reasons,snapshot};
+}
+
+function ticketResourceSnapshot(workspaceDir:string, store:TicketStore):TicketResourceSnapshot {
+  const disk = statfsSync(workspaceDir);
+  return {freeMemoryBytes:freemem(),freeDiskBytes:Number(disk.bavail) * Number(disk.bsize),running:store.linkedRunning().length};
+}
 
 type WorkflowCompletion = {
   schemaVersion: number;
@@ -107,6 +139,58 @@ export function startBoundWorkflow(input: { workspaceDir:string; manifestPath:st
   return {taskId,status:"started",controllerPid:child.pid,ownerBound:true,idempotentReplay:existing};
 }
 
+export function dispatchTicketWorkflows(input:{workspaceDir:string;store:TicketStore;config:RotationConfig;now?:Date;snapshot?:TicketResourceSnapshot;
+  compile?:typeof compileDurableIntake;start?:typeof startBoundWorkflow}) {
+  const admission = ticketResourceAdmission(input.snapshot ?? ticketResourceSnapshot(input.workspaceDir,input.store),input.config);
+  if (!admission.admitted) return {admission,leases:[]};
+  const dispatcher = new TicketDispatcher(input.store);
+  const leases = dispatcher.dispatch({
+    limit:input.config.ticketDispatchLimit ?? 1,
+    leaseMs:input.config.ticketLeaseMs ?? 60_000,
+    now:input.now,
+    admit:()=>ticketResourceAdmission(input.snapshot ?? ticketResourceSnapshot(input.workspaceDir,input.store),input.config).admitted,
+    launch:(lease)=>{
+      const ticket = input.store.get(lease.ticketId);
+      if (!ticket || !ticket.workflowEligible) throw new Error("Ticket is not eligible for workflow dispatch");
+      const decision = classifyDurableRequest(ticket.prompt,input.config.admissionMinimumScore ?? 5);
+      if (decision.lane !== "durable") throw new Error("Ticket no longer satisfies durable admission policy");
+      const requestHash = durableRequestFingerprint(ticket.prompt);
+      const duplicate = activeWorkflowForRequest(input.workspaceDir,requestHash);
+      const intake = duplicate ? undefined : (input.compile ?? compileDurableIntake)({workspaceDir:input.workspaceDir,prompt:ticket.prompt,runId:ticket.runId,decision,model:input.config.durableWorkerModel ?? "qwen3.5:9b-32k"});
+      const started = duplicate ?? (input.start ?? startBoundWorkflow)({workspaceDir:input.workspaceDir,manifestPath:intake!.manifestPath,ownerSessionKey:ticket.ownerSessionKey,pythonCommand:input.config.pythonCommand});
+      const manifestPath = intake?.manifestPath ?? `.cogent/workflows/${started.taskId}/manifest.json`;
+      input.store.linkWorkflow({...lease,workflowId:started.taskId,manifestPath,now:input.now});
+    },
+  });
+  return {admission,leases};
+}
+
+export function reconcileTicketWorkflows(input:{workspaceDir:string;store:TicketStore;config:RotationConfig;now?:Date}) {
+  const results:Array<{ticketId:string;action:string}> = [];
+  for (const linked of input.store.linkedRunning()) {
+    const statePath = resolve(input.workspaceDir,".cogent","workflows",linked.workflowId,"state.json");
+    if (!existsSync(statePath)) continue;
+    let state:any;
+    try { state=JSON.parse(readFileSync(statePath,"utf8")); } catch { continue; }
+    try {
+      if (state.status === "completed") {
+        input.store.complete({...linked,result:{workflowId:linked.workflowId,status:state.status,stateRevision:state.revision},now:input.now});
+        results.push({ticketId:linked.ticketId,action:"completed"});
+      } else if (["failed","cancelled"].includes(state.status)) {
+        input.store.failAttempt({...linked,classification:"permanent",message:`workflow ${state.status}`,now:input.now});
+        results.push({ticketId:linked.ticketId,action:"failed"});
+      } else if (state.status === "blocked") {
+        input.store.failAttempt({...linked,classification:"capability",message:"workflow blocked",now:input.now});
+        results.push({ticketId:linked.ticketId,action:"waiting"});
+      } else {
+        input.store.heartbeat({...linked,leaseMs:input.config.ticketLeaseMs ?? 60_000,now:input.now});
+        results.push({ticketId:linked.ticketId,action:"heartbeat"});
+      }
+    } catch { /* A concurrent recovery or newer fencing generation owns the Ticket. */ }
+  }
+  return results;
+}
+
 export function workflowCompletionTag(notice: WorkflowCompletion): string {
   const task = notice.taskId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 80);
   return `cogent-workflow-result-${task}-${notice.stateRevision ?? 0}`;
@@ -173,6 +257,28 @@ export async function deliverWorkflowCompletion(api: any, path: string, notice: 
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeCompletion(path, {...notice,deliveryStatus:"pending",lastDeliveryError:message.slice(0,2000)});
+    throw error;
+  }
+}
+
+export function ticketOutboxTag(item: TicketOutbox) {
+  return `cogent-ticket-result-${item.ticketId.replace(/[^A-Za-z0-9_-]/g,"-").slice(0,96)}`;
+}
+
+export async function deliverTicketOutbox(api: any, store: TicketStore, item: TicketOutbox) {
+  const tag = ticketOutboxTag(item);
+  try {
+    await api.session.workflow.unscheduleSessionTurnsByTag({sessionKey:item.ownerSessionKey,tag});
+    await api.session.workflow.scheduleSessionTurn({
+      sessionKey:item.ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",
+      name:`CogentNexus Ticket ${item.ticketId}`,tag,
+      message:[`CogentNexus Ticket ${item.ticketId} reached terminal status ${item.terminalStatus}.`,
+        "Inspect the committed Ticket, event history, result, and validators before reporting or continuing.",
+        "Do not repeat external side effects and do not claim success from terminal state alone."].join("\n"),
+    });
+    store.markOutboxDelivered(item.outboxId);
+  } catch (error) {
+    store.markOutboxFailed(item.outboxId,error instanceof Error ? error.message : String(error));
     throw error;
   }
 }
@@ -378,6 +484,16 @@ const configSchema = Type.Object({
   preInferenceAdmission: Type.Optional(Type.Boolean({ description: "Route obvious durable owner requests before the selected conversational model receives the prompt." })),
   admissionMinimumScore: Type.Optional(Type.Integer({ minimum: 3, maximum: 20 })),
   durableWorkerModel: Type.Optional(Type.String({ description: "Ollama model used by automatically compiled bounded workflow components." })),
+  ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner command to SQLite before inference. Disabled by default during Phase 0." })),
+  ticketDatabasePath: Type.Optional(Type.String({ description: "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime." })),
+  ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease scan interval." })),
+  ticketOutboxPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Terminal Ticket delivery interval." })),
+  ticketDispatchPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Bounded Ticket dispatch interval." })),
+  ticketDispatchLimit: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum Tickets claimed per dispatch tick." })),
+  ticketLeaseMs: Type.Optional(Type.Integer({ minimum: 5000, maximum: 3600000, description: "Ticket worker lease and heartbeat extension." })),
+  ticketMinimumFreeMemoryBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free memory before Ticket dispatch." })),
+  ticketMinimumFreeDiskBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free disk before Ticket dispatch." })),
+  ticketMaximumRunning: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum linked running Ticket workflows." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -438,6 +554,23 @@ const entry = defineToolPlugin({
           return {content:[{type:"text",text:JSON.stringify(details)}],details};
         },
       }),
+    }), tool({
+      name:"cogent_ticket_status",
+      label:"CogentNexus Ticket Status",
+      description:"Read deterministic Ticket queue and outbox health without inference.",
+      parameters:Type.Object({},{additionalProperties:false}),
+      optional:true,
+      factory:({config,toolContext})=>({
+        name:"cogent_ticket_status",
+        label:"CogentNexus Ticket Status",
+        description:"Read Ticket runtime status.",
+        parameters:Type.Object({},{additionalProperties:false}),
+        async execute() {
+          const workspaceDir=toolContext.workspaceDir ?? process.cwd();
+          const details=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir)).snapshot();
+          return {content:[{type:"text",text:JSON.stringify(details)}],details};
+        },
+      }),
     }),
   ],
 });
@@ -455,8 +588,22 @@ entry.register = (api) => {
     // fence internal completion and continuation messages.
     if (!durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner})) return { outcome:"pass" };
     const ownerSessionKey = ctx.sessionKey!;
+    let acceptedTicket:ReturnType<TicketStore["accept"]> | undefined;
+    let ticketStore:TicketStore | undefined;
+    if (config.ticketFirst === true && ticketIntakeEligible(event.prompt)) {
+      const workspaceDir = ctx.workspaceDir ?? process.cwd();
+      const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
+      ticketStore = new TicketStore(databasePath);
+      acceptedTicket = ticketStore.accept({runId:ctx.runId ?? randomUUID(),ownerSessionKey,prompt:event.prompt});
+    }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
+    if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
     if (decision.lane !== "durable") return { outcome:"pass" };
+    if (acceptedTicket) return {
+      outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cogentnexus_ticket_admission",
+      metadata:{ticketId:acceptedTicket.ticketId,score:decision.score,componentCount:decision.sections.length,deduplicated:acceptedTicket.duplicate},
+      message:`CogentNexus committed Ticket ${acceptedTicket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
+    };
     const workspaceDir = ctx.workspaceDir ?? process.cwd();
     const requestHash = durableRequestFingerprint(event.prompt);
     const duplicate = activeWorkflowForRequest(workspaceDir, requestHash);
@@ -519,6 +666,38 @@ entry.register = (api) => {
         };
         await tick();
         interval = setInterval(() => { void tick(); }, config.completionPollMs ?? 5000);
+        interval.unref?.();
+      },
+      stop: async () => { if (interval) clearInterval(interval); interval = undefined; },
+    });
+  }
+  if (config.ticketFirst === true) {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    let active = false;
+    api.registerService({
+      id: "cogentnexus-ticket-recovery",
+      start: async (ctx: any) => {
+        const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
+        const store = new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+        const tick = async () => {
+          if (active) return;
+          active = true;
+          try {
+            const recovered = store.recoverExpired();
+            for (const item of recovered) api.logger.warn(`CogentNexus recovered expired Ticket ${item.ticketId} from worker ${item.previousWorkerId ?? "unknown"} generation ${item.previousLeaseGeneration}`);
+            for (const item of reconcileTicketWorkflows({workspaceDir,store,config})) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} workflow action ${item.action}`);
+            const dispatched = dispatchTicketWorkflows({workspaceDir,store,config});
+            if (!dispatched.admission.admitted) api.logger.info?.(`CogentNexus Ticket dispatch deferred: ${dispatched.admission.reasons.join(",")}`);
+            for (const item of store.pendingOutbox()) {
+              try { await deliverTicketOutbox(api,store,item); }
+              catch (error) { api.logger.warn(`CogentNexus Ticket completion delivery failed for ${item.ticketId}: ${error instanceof Error ? error.message : String(error)}`); }
+            }
+          } catch (error) {
+            api.logger.error(`CogentNexus Ticket recovery scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          } finally { active = false; }
+        };
+        await tick();
+        interval = setInterval(() => { void tick(); }, Math.min(config.ticketRecoveryPollMs ?? 15_000,config.ticketOutboxPollMs ?? 5000,config.ticketDispatchPollMs ?? 5000));
         interval.unref?.();
       },
       stop: async () => { if (interval) clearInterval(interval); interval = undefined; },

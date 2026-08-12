@@ -1,11 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverWorkflowCompletion, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
+import { DatabaseSync } from "node:sqlite";
+import { spawn } from "node:child_process";
+import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverTicketOutbox, deliverWorkflowCompletion, dispatchTicketWorkflows, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, reconcileTicketWorkflows, rotationCandidates, rotationIdentity, scheduleInterruptedResume, ticketOutboxTag, ticketResourceAdmission, workflowCompletionTag } from "./index.js";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
+import { TicketStore } from "./ticket-store.js";
+
+afterEach(() => vi.useRealTimers());
 
 describe("cogentnexus-rotation", () => {
   it("admits an explicit multi-phase request before inference", () => {
@@ -57,7 +62,7 @@ describe("cogentnexus-rotation", () => {
   });
 
   it("declares the rotation tool", () => {
-    expect(getToolPluginMetadata(entry)?.tools.map((tool) => tool.name)).toEqual(["cogent_rotation", "cogent_workflow_start"]);
+    expect(getToolPluginMetadata(entry)?.tools.map((tool) => tool.name)).toEqual(["cogent_rotation", "cogent_workflow_start", "cogent_ticket_status"]);
   });
 
   it("uses a deterministic generation-fenced identity", () => {
@@ -192,5 +197,173 @@ describe("cogentnexus-rotation", () => {
       const saved = JSON.parse(readFileSync(path,"utf8"));
       expect(saved).toMatchObject({deliveryStatus:"pending",deliveryAttempts:1,lastDeliveryError:"gateway unavailable"});
     } finally { rmSync(root, { recursive:true, force:true }); }
+  });
+
+  it("delivers a terminal Ticket outbox idempotently to its owner", async () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-delivery-"));
+    try {
+      const store = new TicketStore(join(root,"tickets.sqlite3"));
+      const ticket = store.accept({runId:"delivery",ownerSessionKey:"agent:main:owner",prompt:"work"});
+      const lease = store.claim({ticketId:ticket.ticketId,workerId:"worker",leaseMs:5000})!;
+      store.complete({...lease,result:{ok:true}});
+      const item = store.pendingOutbox()[0];
+      const scheduled:any[] = [];
+      const api = {session:{workflow:{
+        unscheduleSessionTurnsByTag:async()=>{},
+        scheduleSessionTurn:async(value:any)=>scheduled.push(value),
+      }}};
+      await deliverTicketOutbox(api,store,item);
+      expect(ticketOutboxTag(item)).toBe(`cogent-ticket-result-${ticket.ticketId}`);
+      expect(scheduled[0]).toMatchObject({sessionKey:"agent:main:owner",tag:ticketOutboxTag(item),deliveryMode:"announce"});
+      expect(store.pendingOutbox()).toEqual([]);
+      await deliverTicketOutbox(api,store,item);
+      expect(store.pendingOutbox()).toEqual([]);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("keeps failed Ticket delivery pending with persistent attempt and error evidence", async () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-delivery-retry-"));
+    try {
+      const path = join(root,"tickets.sqlite3");
+      const store = new TicketStore(path);
+      const ticket = store.accept({runId:"delivery-retry",ownerSessionKey:"agent:main:owner",prompt:"work"});
+      const lease = store.claim({ticketId:ticket.ticketId,workerId:"worker",leaseMs:5000})!;
+      store.complete({...lease,result:{ok:true}});
+      const item = store.pendingOutbox()[0];
+      const api = {session:{workflow:{
+        unscheduleSessionTurnsByTag:async()=>{},
+        scheduleSessionTurn:async()=>{throw new Error("gateway unavailable");},
+      }}};
+      await expect(deliverTicketOutbox(api,store,item)).rejects.toThrow("gateway unavailable");
+      expect(store.pendingOutbox()[0]).toMatchObject({outboxId:item.outboxId,deliveryAttempts:1});
+      const db = new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT delivery_status,delivery_attempts,last_delivery_error FROM ticket_outbox WHERE outbox_id=?").get(item.outboxId))
+        .toEqual({delivery_status:"pending",delivery_attempts:1,last_delivery_error:"gateway unavailable"});
+      db.close();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("registers the opt-in Ticket recovery service and reclaims an expired lease on start", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-13T00:00:02.000Z"));
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-recovery-"));
+    try {
+      const databasePath = join(root,"tickets.sqlite3");
+      const store = new TicketStore(databasePath);
+      const ticket = store.accept({runId:"recovery-service",ownerSessionKey:"agent:main:owner",prompt:"work"});
+      store.route(ticket.ticketId,true);
+      store.claim({ticketId:ticket.ticketId,workerId:"worker-a",leaseMs:1000,now:new Date("2026-08-13T00:00:00.000Z")});
+
+      const services:any[] = [];
+      const warnings:string[] = [];
+      const api:any = {
+        pluginConfig:{ticketFirst:true,ticketDatabasePath:databasePath,autoWorkflowCompletion:false},
+        registerTool:()=>{},
+        registerService:(service:any)=>services.push(service),
+        on:()=>{},
+        logger:{warn:(message:string)=>warnings.push(message),error:()=>{}},
+        session:{workflow:{}},
+        runtime:{tasks:{managedFlows:{}}},
+      };
+      entry.register?.(api);
+      expect(services.map(service=>service.id)).toEqual(["cogentnexus-ticket-recovery"]);
+
+      await services[0].start({config:{agents:{defaults:{workspace:root}}}});
+      expect(store.snapshot().tickets.waiting).toBe(1);
+      expect(warnings.some(message=>message.includes(`recovered expired Ticket ${ticket.ticketId}`))).toBe(true);
+      await services[0].stop();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("defers Ticket dispatch before claim when resource admission fails", () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-resource-"));
+    try {
+      const store = new TicketStore(join(root,"tickets.sqlite3"));
+      const ticket = store.accept({runId:"resource",ownerSessionKey:"owner",prompt:"PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC"});
+      store.route(ticket.ticketId,true);
+      expect(ticketResourceAdmission({freeMemoryBytes:1,freeDiskBytes:1,running:0},{} as any)).toMatchObject({admitted:false,reasons:["memory","disk"]});
+      const result = dispatchTicketWorkflows({workspaceDir:root,store,config:{} as any,snapshot:{freeMemoryBytes:1,freeDiskBytes:1,running:0}});
+      expect(result.leases).toEqual([]);
+      expect(store.snapshot().tickets.accepted).toBe(1);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("commits and routes a durable Ticket before returning the queued inference gate", async () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-gate-"));
+    try {
+      const databasePath = join(root,"tickets.sqlite3");
+      const hooks = new Map<string,any>();
+      const api:any = {pluginConfig:{ticketFirst:true,ticketDatabasePath:databasePath,autoWorkflowCompletion:false},registerTool:()=>{},registerService:()=>{},
+        on:(name:string,callback:any)=>hooks.set(name,callback),logger:{warn:()=>{},error:()=>{},info:()=>{}},session:{workflow:{}},runtime:{tasks:{managedFlows:{}}}};
+      entry.register?.(api);
+      const prompt = "PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC";
+      const decision = await hooks.get("before_agent_run")({prompt,senderIsOwner:true},{sessionKey:"agent:main:owner",runId:"gate-run",workspaceDir:root});
+      expect(decision).toMatchObject({outcome:"block",category:"cogentnexus_ticket_admission"});
+      const store = new TicketStore(databasePath);
+      expect(store.ready()).toHaveLength(1);
+      expect(existsSync(join(root,".cogent","intake"))).toBe(false);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("compiles, starts, links, heartbeats, and completes an admitted Ticket workflow", () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-bridge-"));
+    try {
+      const store = new TicketStore(join(root,"tickets.sqlite3"));
+      const prompt = "PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC";
+      const ticket = store.accept({runId:"bridge",ownerSessionKey:"agent:main:owner",prompt});
+      store.route(ticket.ticketId,true);
+      const compiled:any[] = [], started:any[] = [];
+      const now = new Date("2026-08-13T00:00:00.000Z");
+      const result = dispatchTicketWorkflows({workspaceDir:root,store,config:{ticketLeaseMs:5000} as any,now,
+        snapshot:{freeMemoryBytes:2**30,freeDiskBytes:2**30,running:0},
+        compile:(input:any)=>{compiled.push(input);return {taskId:"WF-BRIDGE",manifestPath:".cogent/intake/WF-BRIDGE/manifest.json",componentCount:3,assembledOutput:"out",requestHash:"hash"};},
+        start:(input:any)=>{started.push(input);return {taskId:"WF-BRIDGE",status:"started",controllerPid:123,ownerBound:true,idempotentReplay:false};},
+      });
+      expect(result.leases).toHaveLength(1);
+      expect(compiled[0]).toMatchObject({runId:"bridge",prompt});
+      expect(started[0]).toMatchObject({ownerSessionKey:"agent:main:owner",manifestPath:".cogent/intake/WF-BRIDGE/manifest.json"});
+      expect(store.get(ticket.ticketId)).toMatchObject({workflowId:"WF-BRIDGE",manifestPath:".cogent/intake/WF-BRIDGE/manifest.json"});
+
+      const workflow = join(root,".cogent","workflows","WF-BRIDGE");
+      mkdirSync(workflow,{recursive:true});
+      writeFileSync(join(workflow,"state.json"),JSON.stringify({taskId:"WF-BRIDGE",status:"running",revision:2}));
+      expect(reconcileTicketWorkflows({workspaceDir:root,store,config:{ticketLeaseMs:5000} as any,now:new Date("2026-08-13T00:00:01.000Z")}))
+        .toEqual([{ticketId:ticket.ticketId,action:"heartbeat"}]);
+      writeFileSync(join(workflow,"state.json"),JSON.stringify({taskId:"WF-BRIDGE",status:"completed",revision:3}));
+      expect(reconcileTicketWorkflows({workspaceDir:root,store,config:{ticketLeaseMs:5000} as any,now:new Date("2026-08-13T00:00:02.000Z")}))
+        .toEqual([{ticketId:ticket.ticketId,action:"completed"}]);
+      expect(store.snapshot()).toMatchObject({tickets:{completed:1},pendingOutbox:1});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("reclaims a killed worker and relinks the existing workflow after service restart", async () => {
+    const root = mkdtempSync(join(tmpdir(),"cogent-ticket-kill-"));
+    const child = spawn(process.execPath,["-e","setInterval(()=>{},1000)"],{stdio:"ignore",windowsHide:true});
+    try {
+      const store = new TicketStore(join(root,"tickets.sqlite3"));
+      const prompt = "PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC";
+      const ticket = store.accept({runId:"kill-restart",ownerSessionKey:"agent:main:owner",prompt});
+      store.route(ticket.ticketId,true);
+      const decision = classifyDurableRequest(prompt);
+      const intake = compileDurableIntake({workspaceDir:root,prompt,runId:"kill-restart",decision,model:"fixture"});
+      const workflow = join(root,".cogent","workflows",intake.taskId);
+      mkdirSync(workflow,{recursive:true});
+      writeFileSync(join(workflow,"manifest.json"),readFileSync(join(root,intake.manifestPath)));
+      writeFileSync(join(workflow,"state.json"),JSON.stringify({taskId:intake.taskId,status:"running",revision:1,controllerPid:child.pid}));
+      const first = store.claim({ticketId:ticket.ticketId,workerId:`worker-${child.pid}`,leaseMs:1000,now:new Date("2026-08-13T00:00:00.000Z")})!;
+      store.linkWorkflow({...first,workflowId:intake.taskId,manifestPath:intake.manifestPath,now:new Date("2026-08-13T00:00:00.000Z")});
+      child.kill();
+      await new Promise<void>((resolveExit)=>child.once("exit",()=>resolveExit()));
+
+      expect(store.recoverExpired({now:new Date("2026-08-13T00:00:02.000Z")})).toHaveLength(1);
+      let starts = 0;
+      const restarted = dispatchTicketWorkflows({workspaceDir:root,store,config:{ticketLeaseMs:5000} as any,now:new Date("2026-08-13T00:00:02.000Z"),
+        snapshot:{freeMemoryBytes:2**30,freeDiskBytes:2**30,running:0},start:()=>{starts++;throw new Error("existing workflow must be reused");}});
+      expect(restarted.leases).toHaveLength(1);
+      expect(restarted.leases[0].leaseGeneration).toBe(2);
+      expect(starts).toBe(0);
+      expect(store.get(ticket.ticketId)).toMatchObject({workflowId:intake.taskId,manifestPath:`.cogent/workflows/${intake.taskId}/manifest.json`});
+    } finally { if (!child.killed) child.kill(); rmSync(root,{recursive:true,force:true}); }
   });
 });
