@@ -52,16 +52,16 @@ Because this repository is private, authenticate GitHub CLI first with
 `gh auth login`. Then download and verify a fixed release:
 
 ```powershell
-gh release download v0.2.0 --repo funggier/cogentnexus --pattern "cogentnexus-v0.2.0.zip" --pattern "SHA256SUMS.txt"
-$actual = (Get-FileHash .\cogentnexus-v0.2.0.zip -Algorithm SHA256).Hash.ToLower()
-$expected = ((Get-Content .\SHA256SUMS.txt | Select-String 'cogentnexus-v0.2.0.zip') -split '\s+')[0]
+gh release download v0.2.1 --repo funggier/cogentnexus --pattern "cogentnexus-v0.2.1.zip" --pattern "SHA256SUMS.txt"
+$actual = (Get-FileHash .\cogentnexus-v0.2.1.zip -Algorithm SHA256).Hash.ToLower()
+$expected = ((Get-Content .\SHA256SUMS.txt | Select-String 'cogentnexus-v0.2.1.zip') -split '\s+')[0]
 if ($actual -ne $expected) { throw "Release checksum mismatch" }
-Expand-Archive .\cogentnexus-v0.2.0.zip
-cd .\cogentnexus-v0.2.0
+Expand-Archive .\cogentnexus-v0.2.1.zip
+cd .\cogentnexus-v0.2.1
 .\scripts\install.ps1
 ```
 
-On Linux or macOS, download `cogentnexus-v0.2.0.tar.gz`, verify it with
+On Linux or macOS, download `cogentnexus-v0.2.1.tar.gz`, verify it with
 `sha256sum -c SHA256SUMS.txt --ignore-missing`, extract it, and run
 `./scripts/install.sh`.
 
@@ -88,8 +88,8 @@ On Linux or macOS, download `cogentnexus-v0.2.0.tar.gz`, verify it with
    ```sh
    openclaw gateway restart
    openclaw gateway status
-   python <workspace>/skills/cogentnexus/scripts/phase3.py supervisor doctor
-   python <workspace>/skills/cogentnexus/scripts/phase3.py supervisor tick --execute-safe
+   python <workspace>/skills/cogentnexus/scripts/runtime.py supervisor doctor
+   python <workspace>/skills/cogentnexus/scripts/runtime.py supervisor tick --execute-safe
    ```
 
 ## Updating

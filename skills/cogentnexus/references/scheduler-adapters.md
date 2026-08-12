@@ -12,8 +12,8 @@ Keep supervision logic portable and use the native scheduler only as a trigger.
 
 Render templates with:
 
-    python skills/cogentnexus/scripts/phase3.py scheduler detect
-    python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
+    python skills/cogentnexus/scripts/runtime.py scheduler detect
+    python skills/cogentnexus/scripts/runtime.py scheduler render --backend systemd
 
 Back up native scheduler configuration before installation or replacement. Installation and removal change system configuration and require explicit authority. Use absolute paths, non-interactive execution, overlap prevention, bounded runtime, and rollback evidence.
 

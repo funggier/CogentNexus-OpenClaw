@@ -2,8 +2,8 @@
 setlocal
 set "SKILL_ROOT=%~dp0..\.."
 for %%I in ("%SKILL_ROOT%") do set "SKILL_ROOT=%%~fI"
-set "PHASE3=%SKILL_ROOT%\scripts\phase3.py"
+set "RUNTIME=%SKILL_ROOT%\scripts\runtime.py"
 if defined COGENTNEXUS_ROOT (set "RUNTIME_ROOT=%COGENTNEXUS_ROOT%") else (set "RUNTIME_ROOT=%CD%\.cogent")
 where python.exe >nul 2>&1 || (echo ERROR: python.exe was not found in PATH.& exit /b 9009)
-python.exe "%PHASE3%" --root "%RUNTIME_ROOT%" lifecycle stop --provider --reason "planned host shutdown" --owner "portable-launcher"
+python.exe "%RUNTIME%" --root "%RUNTIME_ROOT%" lifecycle stop --provider --reason "planned host shutdown" --owner "portable-launcher"
 exit /b %ERRORLEVEL%

@@ -13,10 +13,10 @@ EXPECTED = [
     "references/artifact-integrity.md", "references/runtime-supervisor.md", "references/concurrency-manager.md",
     "references/context-continuity.md", "references/scheduler-adapters.md",
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
-    "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/phase3.py", "scripts/workflow.py", "scripts/validate_templates.py",
+    "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/workflow.py", "scripts/validate_templates.py",
     "assets/task-state-template.json", "assets/execution-manifest-template.md", "assets/lesson-template.md",
     "assets/runtime-state-template.json", "assets/ledger-event-template.json", "assets/capability-template.json",
-    "assets/recovery-plan-template.json", "assets/phase3-config-template.json", "assets/workflow-manifest-template.json",
+    "assets/recovery-plan-template.json", "assets/runtime-config-template.json", "assets/workflow-manifest-template.json",
     "templates/supervisor/windows-task.xml", "templates/supervisor/cogentnexus-supervisor.service",
     "templates/supervisor/cogentnexus-supervisor.timer", "templates/supervisor/ai.cogentnexus.supervisor.plist",
     "templates/supervisor/cron.txt", "templates/supervisor/docker-compose.yml",
@@ -24,11 +24,11 @@ EXPECTED = [
 ]
 PYTHON_FILES = [
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
-    "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/phase3.py", "scripts/workflow.py", "scripts/validate_templates.py"
+    "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/workflow.py", "scripts/validate_templates.py"
 ]
 JSON_FILES = [
     "assets/task-state-template.json", "assets/runtime-state-template.json", "assets/ledger-event-template.json",
-    "assets/capability-template.json", "assets/recovery-plan-template.json", "assets/phase3-config-template.json",
+    "assets/capability-template.json", "assets/recovery-plan-template.json", "assets/runtime-config-template.json",
     "assets/workflow-manifest-template.json"
 ]
 
@@ -60,12 +60,12 @@ def main():
         if directories != ["cogentnexus"]:
             raise SystemExit(f"workspace skills must contain only cogentnexus; found: {directories}")
     phase2 = subprocess.run([sys.executable, str(ROOT / "scripts" / "cogent.py"), "--help"], capture_output=True, text=True)
-    phase3 = subprocess.run([sys.executable, str(ROOT / "scripts" / "phase3.py"), "--help"], capture_output=True, text=True)
+    runtime_cli = subprocess.run([sys.executable, str(ROOT / "scripts" / "runtime.py"), "--help"], capture_output=True, text=True)
     workflow = subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow.py"), "--help"], capture_output=True, text=True)
     if phase2.returncode or not all(word in phase2.stdout for word in ("state", "run", "probe", "verify", "ledger", "recover", "capability", "policy")):
         raise SystemExit("Phase 1-2 CLI validation failed")
-    if phase3.returncode or not all(word in phase3.stdout for word in ("supervisor", "concurrency", "context", "scheduler")):
-        raise SystemExit("Phase 3 CLI validation failed")
+    if runtime_cli.returncode or not all(word in runtime_cli.stdout for word in ("supervisor", "concurrency", "context", "scheduler")):
+        raise SystemExit("runtime CLI validation failed")
     if workflow.returncode or not all(word in workflow.stdout for word in ("validate", "init", "tick", "run", "status", "supervise", "self-test")):
         raise SystemExit("Workflow CLI validation failed")
     workflow_test = subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow.py"), "self-test"], capture_output=True, text=True)

@@ -6,9 +6,9 @@ Use CONTINUE, CHECKPOINT, HANDOFF, and ROTATE. Defaults are 25%, 35%, and 45% of
 
 Only durable tasks explicitly bound with `context bind` are eligible. The monitor deduplicates by action and task revision, creates an integrity-bound handoff, and exposes management state with:
 
-    python skills/cogentnexus/scripts/phase3.py context monitor --execute-safe
-    python skills/cogentnexus/scripts/phase3.py context rotations
-    python skills/cogentnexus/scripts/phase3.py context inspect --task-id ID
+    python skills/cogentnexus/scripts/runtime.py context monitor --execute-safe
+    python skills/cogentnexus/scripts/runtime.py context rotations
+    python skills/cogentnexus/scripts/runtime.py context inspect --task-id ID
 
 At ROTATE, the trusted CogentNexus rotation plugin validates the prepared handoff, derives the owner from trusted session context, creates or reuses one generation-fenced managed TaskFlow, and launches a clean temporary worker session. The worker must claim the lease, resume only the recorded next action, verify artifacts, commit state, release the lease, and return a compact result to the owner.
 

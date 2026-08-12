@@ -8,7 +8,7 @@ Initialize once, then call `workflow.py run`. The controller selects ready steps
 
 When a workflow belongs to an OpenClaw conversation, call `workflow.py bind-owner <task-id> --session-key <trusted-key>` after initialization. A terminal transition commits `completion.json` as a durable outbox. The CogentNexus plugin polls pending outboxes, mirrors the terminal result into a managed TaskFlow, schedules one idempotently tagged owner turn, and marks delivery only after scheduling succeeds.
 
-For always-on operation, call `workflow.py supervise` to observe resumable workflows or `workflow.py supervise --execute` to launch bounded detached controllers. The Phase 3 scheduled supervisor invokes this deterministic discovery path during safe ticks.
+For always-on operation, call `workflow.py supervise` to observe resumable workflows or `workflow.py supervise --execute` to launch bounded detached controllers. The runtime scheduled supervisor invokes this deterministic discovery path during safe ticks.
 
 State and ledger evidence live under `.cogent/workflows/<task-id>`. Manifest integrity is checked before transitions. A controller PID fences duplicate controllers, while step runner PIDs fence duplicate execution.
 

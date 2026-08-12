@@ -76,6 +76,6 @@ if (-not $SkipGatewayRestart) {
 }
 openclaw gateway status
 if ($LASTEXITCODE -ne 0) { throw "Gateway health check failed" }
-python (Join-Path $targetSkill "scripts\phase3.py") supervisor doctor
+python (Join-Path $targetSkill "scripts\runtime.py") supervisor doctor
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus supervisor check failed" }
 Write-Host "CogentNexus installation completed successfully."

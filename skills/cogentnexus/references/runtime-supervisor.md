@@ -4,11 +4,11 @@ Use for deterministic host health, bounded recovery, context monitoring, and alw
 
 Commands:
 
-    python skills/cogentnexus/scripts/phase3.py supervisor doctor
-    python skills/cogentnexus/scripts/phase3.py supervisor tick
-    python skills/cogentnexus/scripts/phase3.py supervisor tick --execute-safe
-    python skills/cogentnexus/scripts/phase3.py supervisor status
-    python skills/cogentnexus/scripts/phase3.py supervisor history
+    python skills/cogentnexus/scripts/runtime.py supervisor doctor
+    python skills/cogentnexus/scripts/runtime.py supervisor tick
+    python skills/cogentnexus/scripts/runtime.py supervisor tick --execute-safe
+    python skills/cogentnexus/scripts/runtime.py supervisor status
+    python skills/cogentnexus/scripts/runtime.py supervisor history
 
 A tick probes Gateway, provider, memory, and disk; confirms failures; enforces cooldown, budgets, and circuit breaking; observes bound session pressure; and discovers non-terminal workflows.
 

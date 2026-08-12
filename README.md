@@ -15,6 +15,8 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Safe internal recovery adaptation with retry budgets and circuit breaking
 - Machine-readable runtime, executable, and OpenClaw skill capability registry
 - Cross-platform deterministic supervisor with confirmed health probes, verified recovery, cooldowns, and circuit breaking
+- Verified Gateway auto-recovery after an unplanned stop, using connectivity evidence rather than the OpenClaw CLI exit code alone
+- Bounded startup readiness polling so normal Gateway warm-up completes with one `lifecycle start` command
 - Native scheduler templates for Windows Task Scheduler, systemd, launchd, cron, Docker Compose, and Kubernetes
 - Portable, maintenance-fenced lifecycle launchers for Windows, Linux, and macOS
 - Fixed or adaptive concurrency admission with one inference lane as the safe default
@@ -58,7 +60,7 @@ For stable installations, use a versioned archive from
 [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
 it against the published `SHA256SUMS.txt` before running the installer.
 
-See the [v0.2.0 release notes](docs/releases/v0.2.0.md) for the problems fixed,
+See the [v0.2.1 release notes](docs/releases/v0.2.1.md) for the problems fixed,
 behavior changes, verification evidence, and remaining context-limit caveat.
 
 ## Validate
@@ -68,7 +70,7 @@ Requires Python 3.10 or newer and PyYAML.
     python -m pip install -r requirements-dev.txt
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
     python skills/cogentnexus/scripts/cogent.py self-test
-    python skills/cogentnexus/scripts/phase3.py self-test
+    python skills/cogentnexus/scripts/runtime.py self-test
     python skills/cogentnexus/scripts/workflow.py self-test
 
 ## Quick start
@@ -79,13 +81,13 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/cogent.py verify run --task-id CNX-001 --exists artifact.py --hash artifact.py
     python skills/cogentnexus/scripts/cogent.py recover plan --task-id CNX-001
     python skills/cogentnexus/scripts/cogent.py capability find "GitHub repository"
-    python skills/cogentnexus/scripts/phase3.py supervisor tick
-    python skills/cogentnexus/scripts/phase3.py concurrency status
-    python skills/cogentnexus/scripts/phase3.py context status --used-tokens 18000 --maximum-tokens 32768
-    python skills/cogentnexus/scripts/phase3.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
-    python skills/cogentnexus/scripts/phase3.py context monitor --task-id TASK-1 --execute-safe
-    python skills/cogentnexus/scripts/phase3.py context rotations --task-id TASK-1
-    python skills/cogentnexus/scripts/phase3.py scheduler render --backend systemd
+    python skills/cogentnexus/scripts/runtime.py supervisor tick
+    python skills/cogentnexus/scripts/runtime.py concurrency status
+    python skills/cogentnexus/scripts/runtime.py context status --used-tokens 18000 --maximum-tokens 32768
+    python skills/cogentnexus/scripts/runtime.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
+    python skills/cogentnexus/scripts/runtime.py context monitor --task-id TASK-1 --execute-safe
+    python skills/cogentnexus/scripts/runtime.py context rotations --task-id TASK-1
+    python skills/cogentnexus/scripts/runtime.py scheduler render --backend systemd
     python skills/cogentnexus/scripts/workflow.py validate workflow-manifest.json
     python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json --operator-unbound --operator-reason "operator-managed workflow"
     python skills/cogentnexus/scripts/workflow.py --root . supervise

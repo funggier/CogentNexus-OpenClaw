@@ -69,5 +69,5 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
 fi
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then openclaw gateway restart; fi
 openclaw gateway status
-python "$TARGET_SKILL/scripts/phase3.py" supervisor doctor
+python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
 echo "CogentNexus installation completed successfully."

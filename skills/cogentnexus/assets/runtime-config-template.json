@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "supervisor": {
-    "intervalSeconds": 300,
+    "intervalSeconds": 60,
     "commandTimeoutSeconds": 30,
     "confirmDelaySeconds": 1,
     "verifyDelaySeconds": 3,

@@ -1,1 +1,1 @@
-*/5 * * * * {{PYTHON}} {{PHASE3}} --root {{ROOT}} supervisor tick --execute-safe </dev/null >/dev/null 2>&1
+* * * * * {{PYTHON}} {{RUNTIME}} --root {{ROOT}} supervisor tick --execute-safe </dev/null >/dev/null 2>&1

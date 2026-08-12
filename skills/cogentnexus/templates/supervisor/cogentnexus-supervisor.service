@@ -4,7 +4,7 @@ After=default.target
 
 [Service]
 Type=oneshot
-ExecStart={{PYTHON}} {{PHASE3}} --root {{ROOT}} supervisor tick --execute-safe
+ExecStart={{PYTHON}} {{RUNTIME}} --root {{ROOT}} supervisor tick --execute-safe
 TimeoutStartSec=90
 StandardInput=null
 StandardOutput=journal

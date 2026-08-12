@@ -3,6 +3,11 @@ name: "cogentnexus"
 description: "Enforce trusted owner-bound starts and audited operator exceptions."
 ---
 
+---
+name: "cogentnexus"
+description: "Enforce trusted owner-bound starts and audited operator exceptions."
+---
+
 # CogentNexus
 
 Use this single entry point. Keep private reasoning private; expose useful status, evidence, decisions, and results.
@@ -56,7 +61,7 @@ Controllers reject workflows without a valid ownership mode. Completion delivery
 
 ## Always-on resumption
 
-The native five-minute supervisor deterministically discovers non-terminal workflows. With `supervisor tick --execute-safe`, it launches bounded detached workflow controllers up to the configured ceiling. Controllers run outside the scheduler process, survive conversation/tool interruption, claim workflow ownership, and continue from verified state.
+The native one-minute supervisor deterministically discovers non-terminal workflows. With `supervisor tick --execute-safe`, it launches bounded detached workflow controllers up to the configured ceiling. Controllers run outside the scheduler process, survive conversation/tool interruption, claim workflow ownership, and continue from verified state.
 
 The periodic supervisor must not call an LLM or wait for inference. It only probes, discovers, fences, and launches. The detached workflow controller owns execution, validation, retry, checkpointing, and terminal state. Live controller or step PIDs prevent duplicate execution; dead ownership is reclaimable from durable evidence.
 
@@ -66,7 +71,7 @@ For a durable task explicitly bound to an OpenClaw session, context monitoring c
 
 The deterministic controller resumes only the recorded next step, verifies and commits evidence, and returns a compact result to the owner. When an explicitly authorized repair worker is used, it must claim the handoff lease before action and release it after committing evidence. Duplicate generations resolve to the existing flow. Unbound conversations, stale telemetry, invalid handoffs, and irreversible side effects never rotate automatically.
 
-Use `phase3.py context rotations` as the management view for bound session, generation, worker lease, status, decision, and result.
+Use `runtime.py context rotations` as the management view for bound session, generation, worker lease, status, decision, and result.
 
 ## Runtime invariants
 
@@ -88,7 +93,7 @@ Use `phase3.py context rotations` as the management view for bound session, gene
 - Planned shutdown must establish maintenance mode before stopping services.
 - Lifecycle start must be idempotent and clear maintenance mode only after health verification.
 
-Use `cogent.py` for Phase 1-2 task operations, `phase3.py` for health, continuity, and always-on workflow discovery, and `workflow.py` for verified autonomous component workflows.
+Use `cogent.py` for Phase 1-2 task operations, `runtime.py` for health, continuity, and always-on workflow discovery, and `workflow.py` for verified autonomous component workflows.
 
 ## Module routing
 
@@ -124,4 +129,6 @@ For simple tasks, apply the Kernel internally and answer concisely.
     python skills/cogentnexus/scripts/validate.py --workspace-singleton
     python skills/cogentnexus/scripts/workflow.py self-test
     python skills/cogentnexus/scripts/cogent.py self-test
-    python skills/cogentnexus/scripts/phase3.py self-test
+    python skills/cogentnexus/scripts/runtime.py self-test
+
+Require every validation command to pass before claiming runtime changes complete.
