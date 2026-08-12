@@ -329,6 +329,16 @@ def process_alive(pid):
             # A finished child can remain waitable as a Unix zombie; it owns no work.
             if stat.read_text(encoding="utf-8").split(") ",1)[1].split(" ",1)[0] == "Z": return False
         except (OSError, IndexError): pass
+    else:
+        try:
+            # macOS and other POSIX systems may not expose /proc. `kill(pid, 0)`
+            # still succeeds for zombies, so consult the portable ps state first.
+            observed = subprocess.run(
+                ["ps", "-o", "stat=", "-p", str(pid)],
+                capture_output=True, text=True, timeout=2, check=False,
+            )
+            if observed.returncode == 0 and observed.stdout.strip().startswith("Z"): return False
+        except (OSError, subprocess.SubprocessError): pass
     try: os.kill(pid, 0); return True
     except PermissionError: return True
     except (OSError, ProcessLookupError): return False
@@ -612,4 +622,3 @@ def main():
     if args.command=="self-test": self_test(); return
 
 if __name__=="__main__": main()
-
