@@ -538,16 +538,16 @@ def self_test():
         assert notice["deliveryStatus"]=="pending" and Workflow(root,"WF-TEST-SUPERVISE").owner_path.is_file()
         # Killing the controller must not cause a still-live command child to run twice.
         value["taskId"]="WF-TEST-KILLED-CONTROLLER"
-        value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","import time;from pathlib import Path;time.sleep(1);Path('killed.txt').write_text('survived')"]}
+        value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","import time;from pathlib import Path;Path('runner-started.txt').write_text('started');time.sleep(5);Path('killed.txt').write_text('survived')"]}
         value["steps"][0]["outputs"]=["killed.txt"]
         value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('killed.txt').read_text()=='survived'"]}
         manifest.write_text(json.dumps(value),encoding="utf-8")
         initialize(root,manifest,operator_unbound=True,operator_reason="self-test killed controller")
         controller=subprocess.Popen([py,str(Path(__file__).resolve()),"--root",str(root),"run",value["taskId"]],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        killed_flow=Workflow(root,value["taskId"]); deadline=time.monotonic()+5; runner_pid=None
+        killed_flow=Workflow(root,value["taskId"]); deadline=time.monotonic()+15; runner_pid=None
         while time.monotonic()<deadline:
             runner_pid=killed_flow.state()["steps"]["one"].get("runnerPid")
-            if runner_pid and runner_pid != controller.pid: break
+            if runner_pid and runner_pid != controller.pid and (root/"runner-started.txt").is_file() and process_alive(runner_pid): break
             time.sleep(.05)
         assert runner_pid and runner_pid != controller.pid and process_alive(runner_pid)
         controller.terminate(); controller.wait(timeout=5)
