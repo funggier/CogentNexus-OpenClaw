@@ -34,7 +34,7 @@
       },
       "autoRotate": {
         "type": "boolean",
-        "description": "Automatically start a clean TaskFlow worker for a verified ROTATE handoff."
+        "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default."
       },
       "workspaceDir": {
         "type": "string",

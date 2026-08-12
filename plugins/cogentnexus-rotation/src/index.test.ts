@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import entry, { autoResumeTag, completionMessage, deliverWorkflowCompletion, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
-import { classifyDurableRequest, compileDurableIntake } from "./admission.js";
+import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverWorkflowCompletion, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, rotationCandidates, rotationIdentity, scheduleInterruptedResume, workflowCompletionTag } from "./index.js";
+import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
 
@@ -32,13 +32,28 @@ describe("cogentnexus-rotation", () => {
   it("compiles a bounded owner-startable manifest without invoking a model", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-admission-"));
     const prompt = `PHASE 1\nDesign\nPHASE 2\nBuild\nPHASE 3\nVerify`;
-    const decision = classifyDurableRequest(`${prompt}\nDo this until complete with validators and at least 3 artifacts.`);
-    const intake = compileDurableIntake({workspaceDir:root,prompt,runId:"run/one",decision,model:"qwen3.5:9b-32k"});
+    const request = `${prompt}\nDo this until complete with validators and at least 3 artifacts.`;
+    const decision = classifyDurableRequest(request);
+    const intake = compileDurableIntake({workspaceDir:root,prompt:request,runId:"run/one",decision,model:"qwen3.5:9b-32k"});
     const manifest = JSON.parse(readFileSync(join(root, intake.manifestPath), "utf8"));
     expect(manifest.taskId).toBe("CNX-AUTO-run-one");
     expect(manifest.steps.map((step:any)=>step.id)).toEqual(["component-01","component-02","component-03","assemble"]);
     expect(manifest.steps[0].executor.includeFiles).toEqual([`.cogent/intake/${manifest.taskId}/request.txt`]);
+    expect(manifest.steps[0].executor.timeoutSeconds).toBe(1800);
+    expect(manifest.steps[0].executor.inactivityTimeoutSeconds).toBe(180);
+    expect(manifest.admission.requestHash).toBe(durableRequestFingerprint(request));
     expect(manifest.steps.at(-1).executor.type).toBe("concat");
+  });
+
+  it("deduplicates the same active durable request across owner sessions", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-dedup-"));
+    const hash = durableRequestFingerprint("same durable request");
+    const flow = join(root, ".cogent", "workflows", "WF-ACTIVE");
+    mkdirSync(flow, { recursive: true });
+    writeFileSync(join(flow, "manifest.json"), JSON.stringify({admission:{requestHash:hash}}));
+    writeFileSync(join(flow, "state.json"), JSON.stringify({status:"running",controllerPid:123}));
+    expect(activeWorkflowForRequest(root, hash)).toEqual({taskId:"WF-ACTIVE",status:"running",controllerPid:123});
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("declares the rotation tool", () => {

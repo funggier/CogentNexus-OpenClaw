@@ -121,7 +121,12 @@ class Workflow:
         self.ledger_path = self.base / "ledger.jsonl"; self.lock_path = self.base / ".lock"
         self.owner_path = self.base / "owner.json"; self.completion_path = self.base / "completion.json"
         self.controller_out = self.base / "controller.stdout.log"; self.controller_err = self.base / "controller.stderr.log"
-    def read(self, path): return json.loads(path.read_text(encoding="utf-8"))
+    def read(self, path):
+        for attempt in range(20):
+            try: return json.loads(path.read_text(encoding="utf-8"))
+            except PermissionError:
+                if attempt == 19: raise
+                time.sleep(.025)
     def state(self): return self.read(self.state_path)
     def manifest(self): return self.read(self.manifest_path)
     def event(self, kind, summary, data=None):
@@ -194,20 +199,30 @@ def run_argv(argv, cwd, timeout, on_started=None):
         proc.kill(); stdout, stderr = proc.communicate()
         return {"ok":False,"exitCode":None,"stdout":str(stdout or exc.stdout or "")[-12000:],"stderr":str(stderr or "timeout")[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
 
-def run_ollama(executor, cwd, timeout):
+def run_ollama(executor, cwd, timeout, on_progress=None):
     prompt = executor.get("prompt")
     if executor.get("promptFile"): prompt = confined_path(cwd, executor["promptFile"]).read_text(encoding="utf-8")
     included = []
     for value in executor.get("includeFiles", []):
         included.append(f"\n\n--- Included file: {value} ---\n{confined_path(cwd, value).read_text(encoding='utf-8')}")
     prompt = str(prompt or "") + "".join(included)
-    payload = json.dumps({"model":executor["model"],"prompt":prompt,"stream":False,"think":bool(executor.get("think",False)),"options":executor.get("options",{})}).encode()
+    inactivity = max(15, min(timeout, int(executor.get("inactivityTimeoutSeconds", 180))))
+    payload = json.dumps({"model":executor["model"],"prompt":prompt,"stream":True,"think":bool(executor.get("think",False)),"options":executor.get("options",{})}).encode()
     request = urllib.request.Request(executor.get("url","http://127.0.0.1:11434/api/generate"), data=payload, headers={"Content-Type":"application/json"})
     start = time.perf_counter()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response: data = json.load(response)
-        output = confined_path(cwd, executor["output"]); output.parent.mkdir(parents=True, exist_ok=True); output.write_text(data.get("response", ""), encoding="utf-8")
-        return {"ok":True,"exitCode":0,"stdout":"","stderr":"","seconds":round(time.perf_counter()-start,3),"evalCount":data.get("eval_count")}
+        chunks, eval_count, last_progress = [], None, start
+        with urllib.request.urlopen(request, timeout=inactivity) as response:
+            for raw in response:
+                if time.perf_counter() - start > timeout: raise TimeoutError(f"overall timeout after {timeout}s")
+                data = json.loads(raw.decode("utf-8")); chunk = data.get("response", "")
+                if chunk: chunks.append(chunk)
+                if data.get("eval_count") is not None: eval_count = data.get("eval_count")
+                current = time.perf_counter()
+                if on_progress and current - last_progress >= 5:
+                    on_progress(sum(len(value) for value in chunks)); last_progress = current
+        output = confined_path(cwd, executor["output"]); output.parent.mkdir(parents=True, exist_ok=True); output.write_text("".join(chunks), encoding="utf-8")
+        return {"ok":True,"exitCode":0,"stdout":"","stderr":"","seconds":round(time.perf_counter()-start,3),"evalCount":eval_count,"outputCharacters":sum(len(value) for value in chunks)}
     except Exception as exc:
         return {"ok":False,"exitCode":None,"stdout":"","stderr":str(exc)[-12000:],"seconds":round(time.perf_counter()-start,3)}
 
@@ -318,6 +333,33 @@ def process_alive(pid):
     except PermissionError: return True
     except (OSError, ProcessLookupError): return False
 
+def terminate_process(pid):
+    if not process_alive(pid): return False
+    if os.name == "nt":
+        import ctypes
+        handle = ctypes.windll.kernel32.OpenProcess(0x0001, False, pid)
+        if not handle: return False
+        try: return bool(ctypes.windll.kernel32.TerminateProcess(handle, 1))
+        finally: ctypes.windll.kernel32.CloseHandle(handle)
+    os.kill(pid, 15); return True
+
+def cancel_workflow(root, task_id, reason):
+    flow = Workflow(root, task_id)
+    with lock(flow.lock_path):
+        state = flow.state()
+        if state.get("status") in TERMINAL: return state
+        controller_pid = state.get("controllerPid"); stopped = terminate_process(controller_pid)
+        for current in state.get("steps", {}).values():
+            if current.get("status") == "running":
+                runner_pid = current.get("runnerPid")
+                if runner_pid: terminate_process(runner_pid)
+                current.update(status="cancelled", completedAt=now(), runnerPid=None, lastError=reason)
+        state.update(status="cancelled", controllerPid=None, controllerFinishedAt=now(), cancellationReason=reason)
+        flow.save(state)
+        flow.event("WORKFLOW_CANCELLED", "Workflow cancelled", {"reason":reason,"controllerPid":controller_pid,"controllerStopped":stopped})
+        queue_terminal_completion(flow, state)
+        return state
+
 def reconcile_interrupted(flow, manifest, state):
     changed = False
     for step in manifest["steps"]:
@@ -359,8 +401,14 @@ def tick(root, task_id):
             if running.get("status") != "running": raise RuntimeError("step execution ownership changed before child start")
             running["runnerPid"] = pid; flow.save(live)
             flow.event("STEP_PROCESS_STARTED", f"Child process started for {step['id']}", {"runnerPid":pid,"controllerPid":os.getpid()})
+    def record_progress(characters):
+        with lock(flow.lock_path):
+            live = flow.state(); running = live["steps"][step["id"]]
+            if running.get("status") != "running": raise RuntimeError("step execution ownership changed during inference")
+            running["lastProgressAt"] = now(); running["outputCharacters"] = characters; flow.save(live)
+            flow.event("STEP_PROGRESS", f"Inference progressed for {step['id']}", {"outputCharacters":characters})
     if executor["type"] == "command": result = run_argv(executor["argv"], flow.root, timeout, record_runner)
-    elif executor["type"] == "ollama": result = run_ollama(executor, flow.root, timeout)
+    elif executor["type"] == "ollama": result = run_ollama(executor, flow.root, timeout, record_progress)
     else: result = run_concat(executor, flow.root)
     validator_result = None
     if result["ok"] and step.get("validator"): validator_result = run_argv(step["validator"]["argv"], flow.root, int(step["validator"].get("timeoutSeconds",60))); result["ok"] = validator_result["ok"]
@@ -483,6 +531,7 @@ def self_test():
             try: os.waitpid(child_pid,0)
             except ChildProcessError: pass
         else:
+            deadline=time.monotonic()+10
             while time.monotonic()<deadline and process_alive(child_pid): time.sleep(.05)
         assert Workflow(root,"WF-TEST-SUPERVISE").state()["status"]=="completed" and not process_alive(child_pid)
         notice=Workflow(root,"WF-TEST-SUPERVISE").read(Workflow(root,"WF-TEST-SUPERVISE").completion_path)
@@ -510,6 +559,19 @@ def self_test():
         recovered=run_workflow(root,value["taskId"])
         final_killed=killed_flow.state()
         assert recovered["status"]=="completed" and final_killed["steps"]["one"]["attempts"]==1, {"recovered":recovered,"final":final_killed,"artifactExists":(root/"killed.txt").exists()}
+        # Cancellation is terminal, auditable, owner-visible, and never relaunched.
+        value["taskId"]="WF-TEST-CANCEL"
+        value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","from pathlib import Path;Path('cancelled.txt').write_text('unexpected')"]}
+        value["steps"][0]["outputs"]=["cancelled.txt"]
+        value["steps"][0].pop("validator",None)
+        manifest.write_text(json.dumps(value),encoding="utf-8")
+        initialize(root,manifest,owner_session_key="agent:main:test-owner")
+        cancelled=cancel_workflow(root,value["taskId"],"self-test cancellation")
+        assert cancelled["status"]=="cancelled" and cancelled["cancellationReason"]=="self-test cancellation"
+        assert Workflow(root,value["taskId"]).completion_path.is_file()
+        cancelled_supervision=supervise_workflows(root,execute=True,maximum=1)
+        assert not any(x.get("taskId")==value["taskId"] for x in cancelled_supervision["actions"])
+        assert not (root/"cancelled.txt").exists()
         # Admission assembly uses the portable concat executor.
         value={"schemaVersion":1,"taskId":"WF-TEST-CONCAT","goal":"assemble validated components","steps":[
             {"id":"left","executor":{"type":"command","argv":[py,"-c","from pathlib import Path;Path('left.txt').write_text('left')"]},"outputs":["left.txt"],"idempotent":True},
@@ -528,6 +590,7 @@ def parser():
     i=sub.add_parser("init"); i.add_argument("manifest",type=Path); i.add_argument("--owner-session-key"); i.add_argument("--operator-unbound",action="store_true"); i.add_argument("--operator-reason")
     for name in ("tick","run","status","inspect"):
         x=sub.add_parser(name); x.add_argument("task_id")
+    c=sub.add_parser("cancel"); c.add_argument("task_id"); c.add_argument("--reason",required=True)
     b=sub.add_parser("bind-owner"); b.add_argument("task_id"); b.add_argument("--session-key",required=True)
     s=sub.add_parser("supervise"); s.add_argument("--execute",action="store_true"); s.add_argument("--maximum",type=int,default=4)
     sub.add_parser("self-test"); return p
@@ -543,6 +606,7 @@ def main():
     if args.command=="run": emit(run_workflow(args.root,args.task_id)); return
     if args.command=="status": emit(Workflow(args.root,args.task_id).state()); return
     if args.command=="inspect": emit(inspect_workflow(args.root,args.task_id)); return
+    if args.command=="cancel": emit(cancel_workflow(args.root,args.task_id,args.reason)); return
     if args.command=="bind-owner": emit(bind_owner(args.root,args.task_id,args.session_key)); return
     if args.command=="supervise": emit(supervise_workflows(args.root,args.execute,args.maximum)); return
     if args.command=="self-test": self_test(); return

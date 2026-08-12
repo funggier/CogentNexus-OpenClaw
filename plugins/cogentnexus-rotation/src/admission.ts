@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -45,6 +46,10 @@ function safeId(value: string) {
   return value.replace(/[^A-Za-z0-9_-]/g, "-").replace(/-+/g, "-").slice(0, 72);
 }
 
+export function durableRequestFingerprint(prompt: string) {
+  return createHash("sha256").update(prompt.trim(), "utf8").digest("hex");
+}
+
 export function compileDurableIntake(input: {
   workspaceDir: string;
   prompt: string;
@@ -52,6 +57,7 @@ export function compileDurableIntake(input: {
   decision: AdmissionDecision;
   model: string;
 }) {
+  const requestHash = durableRequestFingerprint(input.prompt);
   const taskId = `CNX-AUTO-${safeId(input.runId)}`;
   const relativeBase = `.cogent/intake/${taskId}`;
   const base = resolve(input.workspaceDir, relativeBase);
@@ -78,7 +84,7 @@ export function compileDurableIntake(input: {
     steps.push({
       id: section.id,
       dependsOn: index === 0 ? [] : [sections[index - 1].id],
-      executor: { type: "ollama", model: input.model, promptFile: instruction, includeFiles: [`${relativeBase}/request.txt`], output, timeoutSeconds: 86400 },
+      executor: { type: "ollama", model: input.model, promptFile: instruction, includeFiles: [`${relativeBase}/request.txt`], output, timeoutSeconds: 1800, inactivityTimeoutSeconds: 180, options: { num_predict: 4096 } },
       outputs: [output],
       outputMinimumBytes: 80,
       maximumAttempts: 2,
@@ -96,8 +102,8 @@ export function compileDurableIntake(input: {
     maximumAttempts: 1,
     idempotent: true,
   });
-  const manifest = { schemaVersion: 1, taskId, goal: "Complete an automatically admitted durable request through bounded verified components", admission: { score: input.decision.score, reasons: input.decision.reasons }, steps };
+  const manifest = { schemaVersion: 1, taskId, goal: "Complete an automatically admitted durable request through bounded verified components", admission: { score: input.decision.score, reasons: input.decision.reasons, requestHash }, steps };
   const manifestPath = `${relativeBase}/manifest.json`;
   writeFileSync(resolve(input.workspaceDir, manifestPath), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-  return { taskId, manifestPath, componentCount: sections.length, assembledOutput: assembled };
+  return { taskId, manifestPath, componentCount: sections.length, assembledOutput: assembled, requestHash };
 }

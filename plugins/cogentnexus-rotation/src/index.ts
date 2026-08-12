@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from
 import { join, relative, resolve } from "node:path";
 import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
-import { classifyDurableRequest, compileDurableIntake } from "./admission.js";
+import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 
 type Handoff = {
   taskId: string;
@@ -194,6 +194,22 @@ export function durableAdmissionEligible(input: { sessionKey?: string; senderIsO
   return Boolean(input.sessionKey && input.senderIsOwner !== false && !input.sessionKey.includes(":subagent:"));
 }
 
+export function activeWorkflowForRequest(workspaceDir: string, requestHash: string) {
+  const base = resolve(workspaceDir, ".cogent", "workflows");
+  if (!existsSync(base)) return undefined;
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    try {
+      const manifest = JSON.parse(readFileSync(join(base, entry.name, "manifest.json"), "utf8"));
+      const state = JSON.parse(readFileSync(join(base, entry.name, "state.json"), "utf8"));
+      if (manifest?.admission?.requestHash === requestHash && !["completed", "blocked", "failed", "cancelled"].includes(state?.status)) {
+        return { taskId: entry.name, status: state.status, controllerPid: state.controllerPid };
+      }
+    } catch { /* malformed workflows remain operator-visible and are not deduplicated */ }
+  }
+  return undefined;
+}
+
 type RotationObservation = { taskId?: string; sessionKey?: string; status?: string; rotationRequired?: boolean };
 
 export function rotationCandidates(output: string, sessionKey: string): string[] {
@@ -354,7 +370,7 @@ const configSchema = Type.Object({
   timeoutSeconds: Type.Optional(Type.Integer({ minimum: 60, maximum: 86400 })),
   autoResume: Type.Optional(Type.Boolean({ description: "Schedule one durable continuation turn after a resumable interruption." })),
   autoResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000 })),
-  autoRotate: Type.Optional(Type.Boolean({ description: "Automatically start a clean TaskFlow worker for a verified ROTATE handoff." })),
+  autoRotate: Type.Optional(Type.Boolean({ description: "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default." })),
   workspaceDir: Type.Optional(Type.String({ description: "Workspace containing .cogent/workflows completion outboxes." })),
   autoWorkflowCompletion: Type.Optional(Type.Boolean({ description: "Automatically wake the bound owner when a workflow reaches a terminal state." })),
   completionPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000 })),
@@ -442,23 +458,26 @@ entry.register = (api) => {
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     if (decision.lane !== "durable") return { outcome:"pass" };
     const workspaceDir = ctx.workspaceDir ?? process.cwd();
-    const intake = compileDurableIntake({
+    const requestHash = durableRequestFingerprint(event.prompt);
+    const duplicate = activeWorkflowForRequest(workspaceDir, requestHash);
+    const intake = duplicate ? undefined : compileDurableIntake({
       workspaceDir,
       prompt:event.prompt,
       runId:ctx.runId ?? randomUUID(),
       decision,
       model:config.durableWorkerModel ?? "qwen3.5:9b-32k",
     });
-    const started = startBoundWorkflow({workspaceDir,manifestPath:intake.manifestPath,ownerSessionKey:ownerSessionKey,pythonCommand:config.pythonCommand});
+    const started = duplicate ?? startBoundWorkflow({workspaceDir,manifestPath:intake!.manifestPath,ownerSessionKey:ownerSessionKey,pythonCommand:config.pythonCommand});
+    const componentCount = intake?.componentCount ?? decision.sections.length;
     return {
       outcome:"block",
       reason:"durable request admitted before conversational inference",
       category:"cogentnexus_durable_admission",
-      metadata:{taskId:intake.taskId,score:decision.score,componentCount:intake.componentCount},
-      message:`CogentNexus admitted this as durable workflow ${started.taskId} before model inference. ${intake.componentCount} bounded components are running outside the WebChat turn; verified completion will return to this session automatically.`,
+      metadata:{taskId:started.taskId,score:decision.score,componentCount,deduplicated:Boolean(duplicate)},
+      message:`CogentNexus ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
   }, { priority: 2000, timeoutMs: 30_000 });
-  if (config.autoResume !== false || config.autoRotate !== false) api.on("agent_end", async (event, ctx) => {
+  if (config.autoResume !== false || config.autoRotate === true) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
     const sessionKey = ctx.sessionKey;
     await scheduleInterruptedResume({
@@ -470,7 +489,7 @@ entry.register = (api) => {
       workflow: api.session.workflow,
       scheduledRuns,
     });
-    if (event.success && config.autoRotate !== false && sessionKey) {
+    if (event.success && config.autoRotate === true && sessionKey) {
       try {
         const workspaceDir = ctx.workspaceDir ?? process.cwd();
         const taskIds = monitorRotations(workspaceDir, config, sessionKey);

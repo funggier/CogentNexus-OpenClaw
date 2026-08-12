@@ -62,9 +62,9 @@ The periodic supervisor must not call an LLM or wait for inference. It only prob
 
 ## Automatic session rotation
 
-For a durable task explicitly bound to an OpenClaw session, context monitoring checkpoints at 25%, prepares handoff at 35%, and requests rotation at 45% by default. A verified ROTATE handoff is bridged through the CogentNexus rotation plugin into one generation-fenced managed TaskFlow and a clean temporary worker session.
+For a durable task explicitly bound to an OpenClaw session, context monitoring checkpoints at 25%, prepares handoff at 35%, and requests rotation at 45% by default. A verified ROTATE handoff checkpoints deterministic state and continues through the existing workflow controller by default. A clean temporary Codex/TaskFlow worker is an explicit opt-in repair path only.
 
-The worker claims the handoff before action, resumes only the recorded next step, verifies and commits evidence, releases its lease, and returns a compact result to the owner. Duplicate generations resolve to the existing flow. Unbound conversations, stale telemetry, invalid handoffs, and irreversible side effects never rotate automatically.
+The deterministic controller resumes only the recorded next step, verifies and commits evidence, and returns a compact result to the owner. When an explicitly authorized repair worker is used, it must claim the handoff lease before action and release it after committing evidence. Duplicate generations resolve to the existing flow. Unbound conversations, stale telemetry, invalid handoffs, and irreversible side effects never rotate automatically.
 
 Use `phase3.py context rotations` as the management view for bound session, generation, worker lease, status, decision, and result.
 
@@ -78,6 +78,9 @@ Use `phase3.py context rotations` as the management view for bound session, gene
 - Classify failures before retry; stop at the retry ceiling or after repeated strategy.
 - Separate model-generated work from deterministic repair in evidence.
 - Default to one inference lane unless admission permits more.
+- Keep Codex outside normal durable execution; use it only for development, diagnosis, or explicitly authorized repair.
+- Bound local inference with overall and inactivity timeouts, durable progress heartbeats, and request-fingerprint deduplication.
+- Cancel or transfer owner-bound workflows when their owner session is deleted; never leave unlimited orphan inference.
 - Fence duplicate workers with locks and live-worker identity.
 - Commit durable handoff state before rotation or abandonment.
 - Never auto-bypass permissions, install dependencies, delete data, or perform external actions.

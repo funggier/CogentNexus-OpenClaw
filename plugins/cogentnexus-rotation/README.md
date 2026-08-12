@@ -19,7 +19,9 @@ Safety properties:
 - excludes internal continuation/subagent turns and supports the explicit `#cogent-direct` override;
 - makes admission retries idempotent by run-derived task identity and trusted owner binding.
 
-Automatic rotation is enabled by default and applies only to tasks explicitly bound with `phase3.py context bind`. Set `autoRotate: false` in plugin config for observation/manual-tool mode.
+Temporary Codex/TaskFlow rotation is disabled by default. Normal durable work runs through the deterministic CogentNexus controller and Ollama directly. Set `autoRotate: true` only when an explicit clean-session Codex repair worker is required; bound context monitoring otherwise remains checkpoint/observation-only.
+
+This keeps the normal execution path small and deterministic: `OpenClaw -> CogentNexus controller -> Ollama -> validator -> owner continuation`. It prevents temporary Codex workers from competing for CPU/RAM, inheriting inconsistent approval state, or becoming detached from a deleted owner session. Automatically admitted Ollama steps also use a 30-minute overall timeout, a 3-minute inactivity timeout, streamed progress checkpoints, and request-hash deduplication across sessions. Operators can terminate a durable workflow with `workflow.py cancel <task-id> --reason <reason>`; cancellation is recorded in the ledger, creates the owner completion notice, and is terminal to the supervisor.
 
 Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
 
