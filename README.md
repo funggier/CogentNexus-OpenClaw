@@ -22,6 +22,8 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Verified workflow DAGs with command/Ollama executors, deterministic validators, bounded retries, and artifact hashes
 - Always-on workflow discovery and detached controller resumption from the native periodic supervisor
 - Automatic context-pressure rotation for bound durable tasks through a clean TaskFlow worker session
+- Pre-inference admission of explicit durable requests into owner-bound, checkpointed component workflows
+- Idempotent workflow intake and deterministic component assembly before verified owner continuation
 - Minimal ledger records without chain-of-thought
 
 ## Layout
@@ -55,6 +57,9 @@ selection, manual installation, updating, and troubleshooting.
 For stable installations, use a versioned archive from
 [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
 it against the published `SHA256SUMS.txt` before running the installer.
+
+See the [v0.2.0 release notes](docs/releases/v0.2.0.md) for the problems fixed,
+behavior changes, verification evidence, and remaining context-limit caveat.
 
 ## Validate
 
