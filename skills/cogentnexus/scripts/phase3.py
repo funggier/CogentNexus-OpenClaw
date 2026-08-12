@@ -277,7 +277,7 @@ def recover_component(name, config):
     timeout = int(config["supervisor"]["commandTimeoutSeconds"])
     if name == "gateway":
         executable = openclaw_executable()
-        return run_command([executable, "gateway", "restart"], max(timeout, 60)) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
+        return run_command([executable, "gateway", "start"], max(timeout, 60)) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
     if name == "ollama" and config["supervisor"].get("allowOllamaStart"):
         if os.name == "nt":
             return start_ollama_windows()
@@ -342,6 +342,14 @@ def lifecycle_cmd(args):
         append_runtime_event(root, "ACTION", "Runtime stopped for intentional shutdown", {"providerRequested": bool(args.provider), "results": results})
         emit({"maintenance": marker, "results": results, "safeToPowerOff": bool(results["gateway"].get("ok"))})
         return 0 if results["gateway"].get("ok") else 2
+    if args.command_name == "restart":
+        marker = set_maintenance(root, args.reason, args.owner, "healthy-runtime")
+        executable = openclaw_executable()
+        result = run_command([executable, "gateway", "restart"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
+        append_runtime_event(root, "ACTION", "Recoverable Gateway restart requested", {"result": result})
+        emit({"restartRequested": bool(result.get("ok")), "maintenance": marker, "result": result,
+              "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."})
+        return 0 if result.get("ok") else 2
     if args.command_name == "start":
         results = {}
         initial = {"gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config)}
@@ -391,7 +399,7 @@ def supervisor_tick(args):
                         previous = clear_maintenance(root)
                         append_runtime_event(root, "RECOVERY", "Stale restart maintenance cleared after runtime health verification", {"previous":previous})
                         marker = None
-                if marker and marker.get("active"):
+                if marker and marker.get("active") and marker.get("recoveryPolicy") != "healthy-runtime":
                     snapshot = {"schemaVersion": 1, "timestamp": now(), "status": "maintenance", "maintenance": marker, "probes": {}, "recoveries": [], "contextMonitor": {"status": "paused", "reason": "intentional maintenance"}, "workflowMonitor": {"status": "paused", "reason": "intentional maintenance"}, "executeSafe": bool(args.execute_safe)}
                     atomic_json(base / "health.json", snapshot)
                     append_runtime_event(root, "OBSERVATION", "Supervisor tick skipped during intentional maintenance", {"reason": marker.get("reason")})
@@ -441,6 +449,10 @@ def supervisor_tick(args):
             state["updatedAt"] = now()
             state["components"] = state["components"]
             status = "healthy" if not unhealthy else "circuit-open" if circuit_open else "degraded"
+            if status == "healthy" and marker and marker.get("recoveryPolicy") == "healthy-runtime":
+                previous = clear_maintenance(root)
+                append_runtime_event(root, "RECOVERY", "Recoverable restart completed after supervised health verification", {"previous": previous, "recoveries": recoveries})
+                marker = None
             context_monitor = {"status": "disabled", "bindingCount": 0, "observations": []}
             if args.fixture is None and config["contextContinuity"].get("autoMonitor", True):
                 try:
@@ -450,7 +462,7 @@ def supervisor_tick(args):
             workflow_monitor = {"status": "disabled", "workflowCount": 0, "actions": []}
             if args.fixture is None and config.get("workflowAutomation", {}).get("enabled", True):
                 workflow_monitor = monitor_workflows(root, config, execute=bool(args.execute_safe))
-            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "probes": probes, "recoveries": recoveries, "contextMonitor": context_monitor, "workflowMonitor": workflow_monitor, "executeSafe": bool(args.execute_safe)}
+            snapshot = {"schemaVersion": 1, "timestamp": now(), "status": status, "maintenance": marker, "probes": probes, "recoveries": recoveries, "contextMonitor": context_monitor, "workflowMonitor": workflow_monitor, "executeSafe": bool(args.execute_safe)}
             atomic_json(base / "health.json", snapshot)
             atomic_json(base / "supervisor-state.json", state)
             append_runtime_event(root, "OBSERVATION", f"Supervisor tick: {status}", {"unhealthy": unhealthy, "recoveryCount": len(recoveries)})
@@ -913,9 +925,14 @@ def self_test(args):
         if prepared.returncode or paused.returncode or cancelled.returncode or json.loads(paused.stdout)["status"] != "maintenance":
             raise SystemExit("intentional maintenance fencing failed")
         auto_prepared = call(script, root, "lifecycle", "prepare", "--reason", "self-test restart", "--recovery-policy", "healthy-runtime")
+        auto_recovering = call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe")
         auto_resumed = call(script, root, "supervisor", "tick", "--fixture", "healthy")
-        if auto_prepared.returncode or auto_resumed.returncode or maintenance_status(root) is not None or json.loads(auto_resumed.stdout).get("status") == "maintenance":
+        recovering_snapshot = json.loads(auto_recovering.stdout)
+        if (auto_prepared.returncode or auto_recovering.returncode != 2 or recovering_snapshot.get("status") != "degraded"
+                or not recovering_snapshot.get("recoveries") or maintenance_status(root) is not None
+                or auto_resumed.returncode or json.loads(auto_resumed.stdout).get("status") == "maintenance"):
             raise SystemExit("restart maintenance auto-resumption failed")
+        (runtime_dir(root) / "supervisor-state.json").unlink(missing_ok=True)
         healthy = call(script, root, "supervisor", "tick", "--fixture", "healthy")
         failures = [call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe") for _ in range(3)]
         blocked = call(script, root, "supervisor", "tick", "--fixture", "gateway-fail", "--execute-safe")
@@ -951,6 +968,7 @@ def main():
     lp = lifecycle.add_parser("prepare"); lp.add_argument("--reason", default="planned shutdown"); lp.add_argument("--owner", default="operator"); lp.add_argument("--recovery-policy", choices=["manual","healthy-runtime"], default="manual"); lp.set_defaults(func=lifecycle_cmd)
     lc = lifecycle.add_parser("cancel"); lc.set_defaults(func=lifecycle_cmd)
     lst = lifecycle.add_parser("stop"); lst.add_argument("--provider", action="store_true"); lst.add_argument("--reason", default="planned shutdown"); lst.add_argument("--owner", default="operator"); lst.set_defaults(func=lifecycle_cmd)
+    lr = lifecycle.add_parser("restart"); lr.add_argument("--reason", default="planned gateway restart"); lr.add_argument("--owner", default="operator"); lr.set_defaults(func=lifecycle_cmd)
     lstart = lifecycle.add_parser("start"); lstart.add_argument("--provider", action="store_true"); lstart.set_defaults(func=lifecycle_cmd)
 
     supervisor = areas.add_parser("supervisor").add_subparsers(dest="command_name", required=True)
