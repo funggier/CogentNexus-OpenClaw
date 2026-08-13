@@ -59,21 +59,52 @@ describe("cogentnexus-rotation", () => {
     expect(manifest.steps.at(-1).executor.type).toBe("concat");
   });
 
-  it("compiles named travel artifacts with an external cross-file validator", () => {
-    const root=mkdtempSync(join(tmpdir(),"cnx-travel-intake-"));
+  it("compiles arbitrary named artifacts with an external format validator", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-artifact-intake-"));
     try {
       const prompt="สร้าง plan.md, budget.csv, README.md สำหรับเชียงใหม่ งบไม่เกิน 5,000 บาท และตรวจสอบความสอดคล้อง";
       const intake=compileDurableIntake({workspaceDir:root,prompt,runId:"thai-travel",decision:classifyDurableRequest(prompt),model:"fixture"});
       const manifest=JSON.parse(readFileSync(join(root,intake.manifestPath),"utf8"));
-      expect(manifest.steps.map((step:any)=>step.id)).toEqual(["plan","budget","readme","validate"]);
-      expect(manifest.steps.at(-1).validator.argv[1]).toMatch(/validate_travel\.py$/);
+      expect(manifest.steps.map((step:any)=>step.id)).toEqual(["artifact-01","artifact-02","artifact-03","validate-artifacts"]);
+      expect(manifest.steps.at(-1).validator.argv[1]).toMatch(/validate_artifacts\.py$/);
       expect(manifest.steps.slice(0,3).map((step:any)=>step.outputs[0])).toEqual(["plan.md","budget.csv","README.md"]);
       writeFileSync(join(root,"plan.md"),"# Plan\nA complete Chiang Mai itinerary with transport and meals.\n");
       writeFileSync(join(root,"budget.csv"),"item,category,amount\ntransport,travel,1000\nfood,meal,500\n");
       writeFileSync(join(root,"README.md"),"# Overview\nSee plan.md and budget.csv. Total: 1,500 THB; remaining: 3,500 THB.\n");
       const validation=spawnSync("python",manifest.steps.at(-1).validator.argv.slice(1),{cwd:root,encoding:"utf8"});
       expect(validation.status,validation.stderr).toBe(0);
-      expect(validation.stdout).toContain("validated total=1500");
+      expect(validation.stdout).toContain("validated artifacts=3");
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it.each([
+    ["software","ช่วยพัฒนาระบบ API และทดสอบ integration ให้ครบ"],
+    ["trading","สร้าง EA Trader สำหรับ MetaTrader พร้อม backtest และตรวจ risk limits"],
+    ["files","จัดการไฟล์หลายไฟล์และตรวจสอบความครบถ้วนทั้งหมด"],
+    ["analysis","วิเคราะห์ข้อมูลหลายขั้นให้ครบถ้วนและตรวจสอบผลลัพธ์"],
+    ["fiction","เขียนนิยายทั้งเล่มและตรวจ continuity ตัวละคร"],
+    ["design","ออกแบบ UI ทั้งระบบหลายหน้าจอพร้อม accessibility review"],
+    ["translation","แปลภาษาทั้งเล่มให้ครบถ้วนและตรวจคำศัพท์เฉพาะ"],
+  ] as const)("detects the %s work domain",(domain,prompt)=>{
+    const decision=classifyDurableRequest(prompt);
+    expect(decision.domain).toBe(domain);
+    expect(decision.lane).toBe("durable");
+  });
+
+  it("prioritizes translation when translated material also mentions analysis data",()=>{
+    const decision=classifyDurableRequest("แปลเอกสารวิเคราะห์ข้อมูลทั้งชุดให้ครบถ้วนเป็นภาษาอังกฤษ");
+    expect(decision.domain).toBe("translation");
+    expect(decision.lane).toBe("durable");
+  });
+
+  it("uses translation-specific durable components",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-translation-intake-"));
+    try {
+      const prompt="ช่วยแปลภาษาทั้งเล่มให้ครบถ้วนและตรวจคำศัพท์เฉพาะ";
+      const intake=compileDurableIntake({workspaceDir:root,prompt,runId:"translation",decision:classifyDurableRequest(prompt),model:"fixture"});
+      const manifest=JSON.parse(readFileSync(join(root,intake.manifestPath),"utf8"));
+      expect(manifest.domain).toBe("translation");
+      expect(manifest.steps.map((step:any)=>step.id)).toEqual(["translation-brief","translate","bilingual-qa","assemble"]);
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 

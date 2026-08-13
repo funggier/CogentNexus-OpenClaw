@@ -25,8 +25,26 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Always-on workflow discovery and detached controller resumption from the native periodic supervisor
 - Automatic context-pressure rotation for bound durable tasks through a clean TaskFlow worker session
 - Pre-inference admission of explicit durable requests into owner-bound, checkpointed component workflows
+- Domain-aware durable compilation for software systems, EA/trading systems, file operations, analysis, fiction, design, translation, and general work
+- Arbitrary named-artifact generation with deterministic existence, size, encoding, and format/syntax validation
 - Idempotent workflow intake and deterministic component assembly before verified owner continuation
 - Minimal ledger records without chain-of-thought
+
+## Optional background startup
+
+CogentNexus can run its recovery supervisor silently in the background. The
+choice is persisted and preserved across updates:
+
+```bash
+python skills/cogentnexus/scripts/startup.py status
+python skills/cogentnexus/scripts/startup.py enable
+python skills/cogentnexus/scripts/startup.py disable
+python skills/cogentnexus/scripts/startup.py ensure
+```
+
+On Windows, the enabled supervisor uses `pythonw.exe` and a hidden Scheduled
+Task to avoid console-window flashes. Disabling startup removes only the
+automatic trigger; durable state and manual lifecycle startup remain available.
 
 ## Layout
 

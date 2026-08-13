@@ -15,6 +15,8 @@ Safety properties:
 - exposes rotation state through `phase3.py context rotations` for one management surface.
 - classifies explicit multi-phase, numerically constrained, interruption-sensitive requests before the selected conversational model runs;
 - persists the original request, compiles bounded worker components plus deterministic assembly, and returns a workflow receipt immediately;
+- detects software, EA/trading, file-management, analysis, fiction, design, and translation work and applies domain-specific specification, production, and QA components;
+- compiles arbitrary safe relative artifact paths instead of depending on a travel-specific filename set, then validates artifact existence and supported formats externally;
 - keeps worker capability choice per workflow instead of globally enabling lean mode;
 - excludes internal continuation/subagent turns and supports the explicit `#cogent-direct` override;
 - makes admission retries idempotent by run-derived task identity and trusted owner binding.
