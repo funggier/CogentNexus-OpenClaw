@@ -55,6 +55,8 @@ jobs:
         working-directory: plugins/cogentnexus-rotation
       - run: npm test
         working-directory: plugins/cogentnexus-rotation
+      - run: npm run evaluation
+        working-directory: plugins/cogentnexus-rotation
       - run: npm audit --omit=dev
         working-directory: plugins/cogentnexus-rotation
       - run: npm run plugin:validate

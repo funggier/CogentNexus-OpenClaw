@@ -33,3 +33,9 @@ This preserves the roadmap's resilience-first ordering. Semantic embeddings rema
 - A completed research claim is planning evidence, not executable policy and not a verified lesson. Promotion still requires the independent Knowledge Store lifecycle and later validation or usage evidence.
 
 `cogent_research` manages `create`, `start`, `query`, `observe`, `claim`, terminal transitions, `get`, and `status`. Mutations require trusted OpenClaw session context. Set `externalResearchEnabled: false` to turn this optional layer off without affecting durable execution.
+
+## Phase 6 measured decision
+
+The deterministic Phase 6 fixture measures verified-lesson top-1 precision, recall at 3, provenance coverage, and p95 FTS5 latency. It also measures SQLite integrity, ticket volume, and p95 writes while independently exercising interruption recovery, bounded retries, and duplicate suppression.
+
+The v0.6.0 baseline passes the published FTS5 and SQLite gates. Semantic retrieval and PostgreSQL therefore remain uninstalled optional adapters. This is a measured decision rather than a permanent prohibition: cross the thresholds in `benchmarks/phase6-evaluation` before adding either dependency.

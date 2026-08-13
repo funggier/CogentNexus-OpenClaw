@@ -35,6 +35,10 @@ Version 0.5 adds an optional research-job state machine and a capability-adapter
 
 Research results remain `external_observations`; they never become verified lessons automatically. Set `externalResearchEnabled: false` to disable this optional capability without affecting Ticket execution or the local knowledge store. A concrete network provider must be supplied through the exported search/fetch adapter contract; enabling storage alone does not grant network access.
 
+### Phase 6 evaluation gate
+
+Version 0.6 adds an isolated deterministic benchmark for interruption recovery, bounded retries, duplicate suppression, FTS5 retrieval quality/provenance/latency, and SQLite integrity/scale evidence. `npm run evaluation` emits a machine-readable report and fails closed when a gate is missed. The measured fixture does not justify embeddings or PostgreSQL, so neither is added as a runtime dependency; the report preserves explicit thresholds for reconsidering those optional adapters later.
+
 Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
 
 ### WebChat admission notice

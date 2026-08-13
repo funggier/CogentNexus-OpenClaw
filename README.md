@@ -29,6 +29,8 @@ CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It kee
 - Arbitrary named-artifact generation with deterministic existence, size, encoding, and format/syntax validation
 - Idempotent workflow intake and deterministic component assembly before verified owner continuation
 - Minimal ledger records without chain-of-thought
+- Bounded external-research jobs with provenance, TTL snapshots, corroboration, and prompt-injection isolation
+- Deterministic Phase 6 evaluation for interruption, retry, duplication, retrieval quality, and SQLite scale decisions
 
 ## Optional background startup
 
@@ -78,8 +80,7 @@ For stable installations, use a versioned archive from
 [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
 it against the published `SHA256SUMS.txt` before running the installer.
 
-See the [v0.2.1 release notes](docs/releases/v0.2.1.md) for the problems fixed,
-behavior changes, verification evidence, and remaining context-limit caveat.
+See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the current evaluation gates and measured architecture decisions.
 
 ## Validate
 
@@ -90,6 +91,7 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/cogent.py self-test
     python skills/cogentnexus/scripts/runtime.py self-test
     python skills/cogentnexus/scripts/workflow.py self-test
+    cd plugins/cogentnexus-rotation && npm run evaluation
 
 ## Benchmarks
 
@@ -135,4 +137,4 @@ Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally 
 
 ## Status
 
-Phase 4 verified workflows and Phase 5 always-on resumption are implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Command child PIDs are fenced independently from controller PIDs, so controller death cannot trigger a duplicate launch while the child is still active. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.
+The durable database roadmap through Phase 6 is implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Command child PIDs are fenced independently from controller PIDs, so controller death cannot trigger a duplicate launch while the child is still active. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.

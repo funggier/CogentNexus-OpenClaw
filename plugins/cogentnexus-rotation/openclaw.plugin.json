@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus Rotation Controller",
   "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "configSchema": {
     "type": "object",
     "properties": {
