@@ -91,6 +91,13 @@ Requires Python 3.10 or newer and PyYAML.
     python skills/cogentnexus/scripts/runtime.py self-test
     python skills/cogentnexus/scripts/workflow.py self-test
 
+## Benchmarks
+
+[`benchmarks/single-ai-hybrid-e2e`](benchmarks/single-ai-hybrid-e2e) contains a
+reusable end-to-end task for comparing a single model with and without
+CogentNexus. It includes the model prompt, an independent root-gate validator,
+and a Thai-language testing guide with fairness and reporting rules.
+
 ## Quick start
 
     python skills/cogentnexus/scripts/cogent.py task init --task-id CNX-001 --goal "Produce a verified artifact"
