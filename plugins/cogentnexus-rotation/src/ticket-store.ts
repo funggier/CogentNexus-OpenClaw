@@ -26,7 +26,7 @@ export type RecoveryCandidate = {
   status: "waiting";
 };
 
-export type TicketFailureClass = "transient" | "timeout" | "validation" | "capability" | "authorization" | "permanent";
+export type TicketFailureClass = "transient" | "timeout" | "validation" | "capability" | "authorization" | "interrupted" | "permanent";
 
 export type TicketOutbox = {
   outboxId: number;
@@ -158,6 +158,24 @@ export class TicketStore {
       return changed.changes === 1;
     } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
     finally { db.close(); }
+  }
+
+  finalizeDirectRun(input:{runId:string;success:boolean;interrupted:boolean;message?:string;now?:Date}): "completed"|"waiting"|"failed"|"unchanged" {
+    const db=this.open(),nowIso=(input.now??new Date()).toISOString();
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const row=db.prepare("SELECT ticket_id FROM tickets WHERE run_id=? AND status='accepted' AND workflow_eligible=0 ORDER BY created_at DESC LIMIT 1").get(input.runId) as any;
+      if (!row) { db.exec("COMMIT"); return "unchanged"; }
+      if (input.success) {
+        db.prepare("UPDATE tickets SET status='completed',result_json=?,updated_at=? WHERE ticket_id=? AND status='accepted'").run(JSON.stringify({runId:input.runId,direct:true}),nowIso,row.ticket_id);
+        this.event(db,row.ticket_id,"completed",{runId:input.runId,direct:true},nowIso); this.enqueueTerminal(db,row.ticket_id,"completed",{runId:input.runId,direct:true},nowIso); db.exec("COMMIT"); return "completed";
+      }
+      const status=input.interrupted?"waiting":"failed",classification=input.interrupted?"interrupted":"permanent",message=(input.message??(input.interrupted?"direct run interrupted":"direct run failed")).slice(0,2000);
+      db.prepare("UPDATE tickets SET status=?,workflow_eligible=?,failure_class=?,failure_message=?,updated_at=? WHERE ticket_id=? AND status='accepted'").run(status,input.interrupted?1:0,classification,message,nowIso,row.ticket_id);
+      this.event(db,row.ticket_id,input.interrupted?"promoted_to_durable":"failed",{runId:input.runId,classification,message},nowIso);
+      if (!input.interrupted) this.enqueueTerminal(db,row.ticket_id,"failed",{classification,message},nowIso);
+      db.exec("COMMIT"); return status;
+    } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
   }
 
   get(ticketId: string): TicketRecord | undefined {

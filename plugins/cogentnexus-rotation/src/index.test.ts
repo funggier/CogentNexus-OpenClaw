@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverTicketOutbox, deliverWorkflowCompletion, dispatchTicketWorkflows, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, reconcileTicketWorkflows, rotationCandidates, rotationIdentity, scheduleInterruptedResume, ticketOutboxTag, ticketResourceAdmission, workflowCompletionTag } from "./index.js";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
@@ -25,6 +25,14 @@ describe("cogentnexus-rotation", () => {
     expect(classifyDurableRequest("ช่วยอธิบายคำว่า cache").lane).toBe("direct");
     expect(classifyDurableRequest("CogentNexus workflow X reached terminal status completed.").lane).toBe("direct");
     expect(classifyDurableRequest("#cogent-direct PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC").lane).toBe("direct");
+  });
+
+  it("admits the Thai multi-artifact Chiang Mai regression request", () => {
+    const prompt="ช่วยสร้างแผนเที่ยวเชียงใหม่ โดยทำไฟล์ plan.md, budget.csv และ README.md ให้ยอดรวมไม่เกินงบ 5,000 บาท และตรวจสอบความสอดคล้องของตัวเลขทุกไฟล์";
+    const decision=classifyDurableRequest(prompt);
+    expect(decision.lane).toBe("durable");
+    expect(decision.reasons).toContain("named-artifacts:3");
+    expect(decision.reasons).toContain("cross-artifact-budget-validation");
   });
 
   it("admits owner WebChat dispatches without depending on channel-specific trigger names", () => {
@@ -49,6 +57,24 @@ describe("cogentnexus-rotation", () => {
     expect(manifest.steps[0].executor.inactivityTimeoutSeconds).toBe(180);
     expect(manifest.admission.requestHash).toBe(durableRequestFingerprint(request));
     expect(manifest.steps.at(-1).executor.type).toBe("concat");
+  });
+
+  it("compiles named travel artifacts with an external cross-file validator", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-travel-intake-"));
+    try {
+      const prompt="สร้าง plan.md, budget.csv, README.md สำหรับเชียงใหม่ งบไม่เกิน 5,000 บาท และตรวจสอบความสอดคล้อง";
+      const intake=compileDurableIntake({workspaceDir:root,prompt,runId:"thai-travel",decision:classifyDurableRequest(prompt),model:"fixture"});
+      const manifest=JSON.parse(readFileSync(join(root,intake.manifestPath),"utf8"));
+      expect(manifest.steps.map((step:any)=>step.id)).toEqual(["plan","budget","readme","validate"]);
+      expect(manifest.steps.at(-1).validator.argv[1]).toMatch(/validate_travel\.py$/);
+      expect(manifest.steps.slice(0,3).map((step:any)=>step.outputs[0])).toEqual(["plan.md","budget.csv","README.md"]);
+      writeFileSync(join(root,"plan.md"),"# Plan\nA complete Chiang Mai itinerary with transport and meals.\n");
+      writeFileSync(join(root,"budget.csv"),"item,category,amount\ntransport,travel,1000\nfood,meal,500\n");
+      writeFileSync(join(root,"README.md"),"# Overview\nSee plan.md and budget.csv. Total: 1,500 THB; remaining: 3,500 THB.\n");
+      const validation=spawnSync("python",manifest.steps.at(-1).validator.argv.slice(1),{cwd:root,encoding:"utf8"});
+      expect(validation.status,validation.stderr).toBe(0);
+      expect(validation.stdout).toContain("validated total=1500");
+    } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
   it("deduplicates the same active durable request across owner sessions", () => {

@@ -42,6 +42,18 @@ describe("TicketStore", () => {
     rmSync(root, {recursive:true,force:true});
   });
 
+  it("closes successful direct Tickets and promotes interrupted direct work to durable recovery", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-direct-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    const done=store.accept({runId:"direct-ok",ownerSessionKey:"owner",prompt:"simple work"}); store.route(done.ticketId,false);
+    expect(store.finalizeDirectRun({runId:"direct-ok",success:true,interrupted:false})).toBe("completed");
+    const interrupted=store.accept({runId:"direct-stop",ownerSessionKey:"owner",prompt:"create several related files"}); store.route(interrupted.ticketId,false);
+    expect(store.finalizeDirectRun({runId:"direct-stop",success:false,interrupted:true,message:"operation aborted"})).toBe("waiting");
+    expect(store.ready().map(x=>x.ticketId)).toEqual([interrupted.ticketId]);
+    const db=new DatabaseSync(path,{readOnly:true});
+    expect(db.prepare("SELECT status,failure_class,workflow_eligible FROM tickets WHERE ticket_id=?").get(interrupted.ticketId)).toEqual({status:"waiting",failure_class:"interrupted",workflow_eligible:1});
+    expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(done.ticketId)).toEqual({status:"completed"}); db.close(); rmSync(root,{recursive:true,force:true});
+  });
+
   it("claims once and advances a generation after lease recovery", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-ticket-"));
     const store = new TicketStore(join(root, "tickets.sqlite3"));

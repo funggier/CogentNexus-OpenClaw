@@ -152,8 +152,8 @@ export function dispatchTicketWorkflows(input:{workspaceDir:string;store:TicketS
     launch:(lease)=>{
       const ticket = input.store.get(lease.ticketId);
       if (!ticket || !ticket.workflowEligible) throw new Error("Ticket is not eligible for workflow dispatch");
-      const decision = classifyDurableRequest(ticket.prompt,input.config.admissionMinimumScore ?? 5);
-      if (decision.lane !== "durable") throw new Error("Ticket no longer satisfies durable admission policy");
+      const classified = classifyDurableRequest(ticket.prompt,input.config.admissionMinimumScore ?? 5);
+      const decision = classified.lane === "durable" ? classified : {...classified,lane:"durable" as const,score:Math.max(classified.score,input.config.admissionMinimumScore ?? 5),reasons:[...classified.reasons,"direct-interruption-recovery"]};
       const requestHash = durableRequestFingerprint(ticket.prompt);
       const duplicate = activeWorkflowForRequest(input.workspaceDir,requestHash);
       const intake = duplicate ? undefined : (input.compile ?? compileDurableIntake)({workspaceDir:input.workspaceDir,prompt:ticket.prompt,runId:ticket.runId,decision,model:input.config.durableWorkerModel ?? "qwen3.5:9b-32k"});
@@ -631,7 +631,7 @@ entry.register = (api) => {
       message:`CogentNexus ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
   }, { priority: 2000, timeoutMs: 30_000 });
-  if (config.autoResume !== false || config.autoRotate === true) api.on("agent_end", async (event, ctx) => {
+  if (config.autoResume !== false || config.autoRotate === true || config.ticketFirst === true) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
     const sessionKey = ctx.sessionKey;
     await scheduleInterruptedResume({
@@ -643,6 +643,12 @@ entry.register = (api) => {
       workflow: api.session.workflow,
       scheduledRuns,
     });
+    if (config.ticketFirst === true && runId) {
+      try {
+        const workspaceDir=ctx.workspaceDir??process.cwd(),store=new TicketStore(config.ticketDatabasePath??defaultTicketDatabase(workspaceDir));
+        store.finalizeDirectRun({runId,success:event.success,interrupted:isResumableInterruption(event.success,event.error),message:event.error??""});
+      } catch(error) { api.logger.warn(`CogentNexus direct Ticket finalization failed: ${error instanceof Error?error.message:String(error)}`); }
+    }
     if (event.success && config.autoRotate === true && sessionKey) {
       try {
         const workspaceDir = ctx.workspaceDir ?? process.cwd();
