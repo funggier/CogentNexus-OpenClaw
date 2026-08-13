@@ -98,7 +98,9 @@ Requires Python 3.10 or newer and PyYAML.
 [`benchmarks/single-ai-hybrid-e2e`](benchmarks/single-ai-hybrid-e2e) contains a
 reusable end-to-end task for comparing a single model with and without
 CogentNexus. It includes the model prompt, an independent root-gate validator,
-and a Thai-language testing guide with fairness and reporting rules.
+and a Thai-language testing guide with fairness and reporting rules. The guide
+also explains why durable workflow completion is distinct from submission
+validity and the final root-gate result.
 
     python benchmarks/single-ai-hybrid-e2e/test_validator.py
 

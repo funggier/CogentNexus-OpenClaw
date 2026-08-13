@@ -3,6 +3,10 @@
 ชุดทดสอบนี้ใช้วัดว่าโมเดลหนึ่งตัวสามารถสร้าง รัน ตรวจ ซ่อม และยืนยัน workflow
 หลายขั้นให้เสร็จจริงได้หรือไม่ โดยไม่ถือคำประกาศของโมเดลว่าเป็นหลักฐานการผ่าน
 
+หลักสำคัญคือสถานะ `completed` ของ workflow ไม่เท่ากับผลทดสอบ `PASS` เพราะ
+controller อาจทำครบเฉพาะ manifest ที่ compiler สร้างไว้ แต่ manifest อาจตกหล่น
+artifact หรือ validator ภายในอาจตรวจเพียงว่าไฟล์ parse ได้
+
 ## 1. สิ่งที่ต้องบันทึกก่อนเริ่ม
 
 บันทึกข้อมูลต่อไปนี้กับผลทดสอบทุกครั้ง:
@@ -31,6 +35,10 @@ New-Item -ItemType Directory C:\Temp\cnx-benchmark\run-001
 กำหนดให้ path นี้เป็น `SUBMISSION_DIR` และอนุญาตให้โมเดลเขียนได้เฉพาะภายใน
 โฟลเดอร์ดังกล่าว
 
+ก่อนเริ่มควรบันทึก snapshot ของไฟล์ภายนอก `SUBMISSION_DIR` หรือเปิด filesystem
+audit ที่เปรียบเทียบก่อนและหลังได้ หากมีการสร้างหรือแก้ไฟล์นอกขอบเขต ให้ถือว่า
+เป็น scope violation และห้ามย้ายไฟล์เหล่านั้นกลับเข้า submission หลังจบงาน
+
 ## 3. ส่งโจทย์ให้โมเดล
 
 ส่งเนื้อหาของ `PROMPT.md` ให้ครบโดยไม่สรุปหรือตัด requirement จากนั้นแจ้งค่า
@@ -49,6 +57,7 @@ Observer ทำได้:
 - เก็บเวลา การใช้ทรัพยากร และ transcript
 - หยุดเมื่อถึง timeout ที่กำหนด
 - รัน validator หลังโมเดลหยุด
+- บันทึกสถานะ terminal ของ controller แยกจากผล independent validator
 
 Observer ไม่ควร:
 
@@ -68,6 +77,10 @@ run
 python validator.py C:\Temp\cnx-benchmark\run-001
 ```
 
+validator ต้องเป็นไฟล์ของ benchmark ที่เตรียมไว้ล่วงหน้า ห้ามใช้ validator ที่
+โมเดลหรือ compiler สร้างขึ้นเองแทน acceptance gate และต้องชี้ไปยัง
+`SUBMISSION_DIR` ที่กำหนดตั้งแต่ต้นโดยตรง ไม่ใช่โฟลเดอร์อื่นที่พบไฟล์ชื่อเหมือนกัน
+
 ความหมายของผล:
 
 - `ROOT GATE: PASS` และ exit code `0`: artifact ขั้นต่ำและหลักฐานที่ validator
@@ -78,6 +91,30 @@ python validator.py C:\Temp\cnx-benchmark\run-001
 validator เป็น acceptance gate ขั้นต่ำ ไม่ได้พิสูจน์ว่า transcript ทุกข้อความจริง
 จึงควรตรวจ `events.jsonl`, repair evidence และ transcript เพิ่มเมื่อใช้ผลเพื่อการ
 ประเมินที่สำคัญ
+
+validator ตรวจความหมายของ artifact ไม่ใช่แค่ JSON parse ได้ โดยตรวจ:
+
+- ค่า candidate และ integration ต้องตรงตามโจทย์
+- contract, deterministic evidence, review, checkpoint, repair และ event ต้องครบ
+- SHA-256 ต้องคำนวณใหม่จากไฟล์จริง ไม่เชื่อ hash ที่โมเดลเขียนมาเอง
+- EAST และ ISLANDS ต้องไม่เปลี่ยนระหว่างซ่อม WEST
+- evidence reference ต้องเป็น relative path ที่ปลอดภัยและมีไฟล์จริง
+- sequence ของ `events.jsonl` ต้องเพิ่มขึ้นและลำดับเหตุการณ์ต้องสมเหตุผล
+
+### กรณีศึกษาจากการทดสอบ Qwen 27B
+
+รอบ Qwen 27B แสดง false positive ที่ชุดทดสอบต้องจับให้ได้:
+
+- durable workflow จบเป็น `completed` และ internal validator ผ่าน
+- สร้าง artifact ตามที่ compiler เลือกไว้ 14 ไฟล์
+- แต่ `SUBMISSION_DIR` ที่กำหนดยังว่าง เพราะไฟล์ถูกเขียนที่ workspace root
+- ขาด deterministic evidence, reviewer verdict, leaf checkpoint และ `events.jsonl`
+- hash หลายค่าดูสมจริงแต่ไม่ตรงกับ SHA-256 ของไฟล์จริง
+- internal validator ตรวจเพียงไฟล์มีอยู่และ parse ได้ ไม่ได้ตรวจ semantic contract ครบ
+
+ผลลักษณะนี้ต้องเป็น `FAIL/INCOMPLETE` ไม่ควรลด requirement เพื่อให้ผ่าน ควรแก้
+artifact extraction, write-scope enforcement หรือ validation แล้วใช้ prompt เดิม
+ทดสอบซ้ำ
 
 ## 6. เกณฑ์รายงานผลที่แนะนำ
 
@@ -90,13 +127,25 @@ CogentNexus: yes/no
 Context / token limit:
 Timeout / turns:
 Platform:
+Workflow/controller status:
+Submission directory:
 Validator exit code:
 Root gate: PASS/FAIL
 Elapsed time:
+Out-of-scope writes:
 Missing or invalid artifacts:
 Human assistance:
 Notes:
 ```
+
+แยกสถานะทางเทคนิคสามชั้นในรายงาน:
+
+1. `WORKFLOW COMPLETE`: controller จบทุก step ใน compiled manifest
+2. `SUBMISSION VALID`: independent validator ตรวจ submission แล้ว exit code เป็น `0`
+3. `ROOT PASS`: submission valid, ไม่มีคนแก้ artifact และไม่มี out-of-scope write
+
+อาจเกิด `WORKFLOW COMPLETE` พร้อม `SUBMISSION INVALID` ได้ และต้องรายงานเป็น
+`FAIL/INCOMPLETE` ไม่ใช่ partial pass
 
 แยกผลลัพธ์เป็นสามระดับ:
 
