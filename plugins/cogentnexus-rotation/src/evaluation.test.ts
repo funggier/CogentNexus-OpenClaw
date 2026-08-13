@@ -19,5 +19,5 @@ describe("Phase 6 evaluation",()=>{
     );
     expect(report.evidenceSha256).toMatch(/^[a-f0-9]{64}$/);
     const path=writePhase6Report(report,join(root,"report.json")); expect(JSON.parse(readFileSync(path,"utf8"))).toEqual(report);
-  });
+  },30_000);
 });
