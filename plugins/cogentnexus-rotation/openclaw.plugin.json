@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus Rotation Controller",
   "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -91,7 +91,8 @@
       "ticketLeaseMs": {"type":"integer","minimum":5000,"maximum":3600000,"description":"Ticket worker lease and heartbeat extension."},
       "ticketMinimumFreeMemoryBytes": {"type":"integer","minimum":0,"description":"Minimum observed free memory before Ticket dispatch."},
       "ticketMinimumFreeDiskBytes": {"type":"integer","minimum":0,"description":"Minimum observed free disk before Ticket dispatch."},
-      "ticketMaximumRunning": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum linked running Ticket workflows."}
+      "ticketMaximumRunning": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum linked running Ticket workflows."},
+      "knowledgeEnabled": {"type":"boolean","description":"Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution."}
     },
     "additionalProperties": false
   },
@@ -102,7 +103,8 @@
     "tools": [
       "cogent_rotation",
       "cogent_workflow_start",
-      "cogent_ticket_status"
+      "cogent_ticket_status",
+      "cogent_knowledge"
     ]
   },
   "toolMetadata": {
@@ -113,6 +115,9 @@
       "optional": true
     },
     "cogent_ticket_status": {
+      "optional": true
+    },
+    "cogent_knowledge": {
       "optional": true
     }
   }

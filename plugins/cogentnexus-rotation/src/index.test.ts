@@ -120,7 +120,7 @@ describe("cogentnexus-rotation", () => {
   });
 
   it("declares the rotation tool", () => {
-    expect(getToolPluginMetadata(entry)?.tools.map((tool) => tool.name)).toEqual(["cogent_rotation", "cogent_workflow_start", "cogent_ticket_status"]);
+    expect(getToolPluginMetadata(entry)?.tools.map((tool) => tool.name)).toEqual(["cogent_rotation", "cogent_workflow_start", "cogent_ticket_status", "cogent_knowledge"]);
   });
 
   it("uses a deterministic generation-fenced identity", () => {

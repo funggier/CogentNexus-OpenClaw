@@ -25,6 +25,10 @@ Temporary Codex/TaskFlow rotation is disabled by default. Normal durable work ru
 
 This keeps the normal execution path small and deterministic: `OpenClaw -> CogentNexus controller -> Ollama -> validator -> owner continuation`. It prevents temporary Codex workers from competing for CPU/RAM, inheriting inconsistent approval state, or becoming detached from a deleted owner session. Automatically admitted Ollama steps also use a 30-minute overall timeout, a 3-minute inactivity timeout, streamed progress checkpoints, and request-hash deduplication across sessions. Operators can terminate a durable workflow with `workflow.py cancel <task-id> --reason <reason>`; cancellation is recorded in the ledger, creates the owner completion notice, and is terminal to the supervisor.
 
+### Durable experience and lessons
+
+Version 0.4 adds an additive Experience/Lesson store to the same SQLite database used by Ticket-first execution. Ticket claims, failures, lease recovery, and verified completion record evidence-backed experiences atomically with their state transitions. The optional `cogent_knowledge` tool can create lesson candidates, verify/contradict/retire them with provenance, retrieve only verified lessons through SQLite FTS5, and record whether applying a lesson succeeded. Candidates never enter normal retrieval before independent verification, retired lessons are terminal, and retrieved text is data rather than executable policy. Set `knowledgeEnabled: false` to disable this optional capability without affecting Ticket intake, recovery, validation, or assembly.
+
 Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
 
 ### WebChat admission notice

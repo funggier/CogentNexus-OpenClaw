@@ -9,6 +9,7 @@ import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
+import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 
 type Handoff = {
   taskId: string;
@@ -46,6 +47,7 @@ type RotationConfig = {
   ticketMinimumFreeMemoryBytes?: number;
   ticketMinimumFreeDiskBytes?: number;
   ticketMaximumRunning?: number;
+  knowledgeEnabled?: boolean;
 };
 
 export type TicketResourceSnapshot = {freeMemoryBytes:number;freeDiskBytes:number;running:number};
@@ -501,6 +503,7 @@ const configSchema = Type.Object({
   ticketMinimumFreeMemoryBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free memory before Ticket dispatch." })),
   ticketMinimumFreeDiskBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free disk before Ticket dispatch." })),
   ticketMaximumRunning: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum linked running Ticket workflows." })),
+  knowledgeEnabled: Type.Optional(Type.Boolean({ description: "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -574,7 +577,36 @@ const entry = defineToolPlugin({
         parameters:Type.Object({},{additionalProperties:false}),
         async execute() {
           const workspaceDir=toolContext.workspaceDir ?? process.cwd();
-          const details=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir)).snapshot();
+          const databasePath=config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
+          const details={...new TicketStore(databasePath).snapshot(),knowledge:config.knowledgeEnabled === false ? {enabled:false} : {enabled:true,...new KnowledgeStore(databasePath).snapshot()}};
+          return {content:[{type:"text",text:JSON.stringify(details)}],details};
+        },
+      }),
+    }), tool({
+      name:"cogent_knowledge",
+      label:"CogentNexus Knowledge",
+      description:"Record evidence-backed experience, manage verified lessons, retrieve FTS matches with provenance, and record application outcomes.",
+      parameters:Type.Object({
+        action:Type.Union([Type.Literal("experience"),Type.Literal("candidate"),Type.Literal("verify"),Type.Literal("contradict"),Type.Literal("retire"),Type.Literal("search"),Type.Literal("apply"),Type.Literal("status")]),
+        lessonId:Type.Optional(Type.String()), ticketId:Type.Optional(Type.String()), kind:Type.Optional(Type.String()), summary:Type.Optional(Type.String()), guidance:Type.Optional(Type.String()),
+        evidenceRef:Type.Optional(Type.String()), query:Type.Optional(Type.String()), outcome:Type.Optional(Type.String()), confidence:Type.Optional(Type.Number({minimum:0,maximum:1})), limit:Type.Optional(Type.Integer({minimum:1,maximum:50})),
+      },{additionalProperties:false}),
+      optional:true,
+      factory:({config,toolContext})=>({
+        name:"cogent_knowledge",label:"CogentNexus Knowledge",description:"Use the durable evidence-backed knowledge store.",
+        parameters:Type.Object({action:Type.String(),lessonId:Type.Optional(Type.String()),ticketId:Type.Optional(Type.String()),kind:Type.Optional(Type.String()),summary:Type.Optional(Type.String()),guidance:Type.Optional(Type.String()),evidenceRef:Type.Optional(Type.String()),query:Type.Optional(Type.String()),outcome:Type.Optional(Type.String()),confidence:Type.Optional(Type.Number()),limit:Type.Optional(Type.Integer())},{additionalProperties:false}),
+        async execute(_id:string,params:any) {
+          if(config.knowledgeEnabled === false) throw new Error("CogentNexus knowledge capability is disabled");
+          if(!["search","status"].includes(params.action) && !toolContext.sessionKey) throw new Error("knowledge mutations require a trusted OpenClaw session context");
+          const workspaceDir=toolContext.workspaceDir ?? process.cwd(),databasePath=config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir),store=new KnowledgeStore(databasePath);
+          let details:unknown;
+          if(params.action === "status") details=store.snapshot();
+          else if(params.action === "search") details=store.search(params.query ?? "",{limit:params.limit});
+          else if(params.action === "experience") details=store.recordExperience({ticketId:params.ticketId,kind:params.kind as ExperienceKind,summary:params.summary ?? "",evidenceRef:params.evidenceRef ?? ""});
+          else if(params.action === "candidate") details=store.createCandidate({summary:params.summary ?? "",guidance:params.guidance ?? "",evidenceRef:params.evidenceRef ?? "",confidence:params.confidence});
+          else if(["verify","contradict","retire"].includes(params.action)) details=store.transition({lessonId:params.lessonId ?? "",action:params.action,evidenceRef:params.evidenceRef ?? "",confidence:params.confidence});
+          else if(params.action === "apply") details=store.recordApplication({lessonId:params.lessonId ?? "",ticketId:params.ticketId,outcome:params.outcome as ApplicationOutcome,evidenceRef:params.evidenceRef ?? ""});
+          else throw new Error("unsupported knowledge action");
           return {content:[{type:"text",text:JSON.stringify(details)}],details};
         },
       }),
