@@ -29,6 +29,12 @@ This keeps the normal execution path small and deterministic: `OpenClaw -> Cogen
 
 Version 0.4 adds an additive Experience/Lesson store to the same SQLite database used by Ticket-first execution. Ticket claims, failures, lease recovery, and verified completion record evidence-backed experiences atomically with their state transitions. The optional `cogent_knowledge` tool can create lesson candidates, verify/contradict/retire them with provenance, retrieve only verified lessons through SQLite FTS5, and record whether applying a lesson succeeded. Candidates never enter normal retrieval before independent verification, retired lessons are terminal, and retrieved text is data rather than executable policy. Set `knowledgeEnabled: false` to disable this optional capability without affecting Ticket intake, recovery, validation, or assembly.
 
+### Bounded external research
+
+Version 0.5 adds an optional research-job state machine and a capability-adapter contract for search/fetch. Jobs open only when internal coverage or confidence is low, or when freshness is explicitly relevant. Query, source, byte, time, freshness, and corroboration budgets are persisted with each job. Only HTTPS public sources are accepted; likely secrets, private/local URLs, oversized content, and suspected prompt injection are rejected before storage. Source snapshots retain canonical URL, publisher/origin, timestamps, hashes, excerpts, and TTL. Claims preserve supporting, contradicting, and mentioning evidence, and copied pages from one publisher count as one origin.
+
+Research results remain `external_observations`; they never become verified lessons automatically. Set `externalResearchEnabled: false` to disable this optional capability without affecting Ticket execution or the local knowledge store. A concrete network provider must be supplied through the exported search/fetch adapter contract; enabling storage alone does not grant network access.
+
 Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
 
 ### WebChat admission notice

@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus Rotation Controller",
   "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -92,7 +92,8 @@
       "ticketMinimumFreeMemoryBytes": {"type":"integer","minimum":0,"description":"Minimum observed free memory before Ticket dispatch."},
       "ticketMinimumFreeDiskBytes": {"type":"integer","minimum":0,"description":"Minimum observed free disk before Ticket dispatch."},
       "ticketMaximumRunning": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum linked running Ticket workflows."},
-      "knowledgeEnabled": {"type":"boolean","description":"Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution."}
+      "knowledgeEnabled": {"type":"boolean","description":"Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution."},
+      "externalResearchEnabled": {"type":"boolean","description":"Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter."}
     },
     "additionalProperties": false
   },
@@ -104,7 +105,8 @@
       "cogent_rotation",
       "cogent_workflow_start",
       "cogent_ticket_status",
-      "cogent_knowledge"
+      "cogent_knowledge",
+      "cogent_research"
     ]
   },
   "toolMetadata": {
@@ -118,6 +120,9 @@
       "optional": true
     },
     "cogent_knowledge": {
+      "optional": true
+    },
+    "cogent_research": {
       "optional": true
     }
   }

@@ -10,6 +10,7 @@ import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
+import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
 
 type Handoff = {
   taskId: string;
@@ -48,6 +49,7 @@ type RotationConfig = {
   ticketMinimumFreeDiskBytes?: number;
   ticketMaximumRunning?: number;
   knowledgeEnabled?: boolean;
+  externalResearchEnabled?: boolean;
 };
 
 export type TicketResourceSnapshot = {freeMemoryBytes:number;freeDiskBytes:number;running:number};
@@ -504,6 +506,7 @@ const configSchema = Type.Object({
   ticketMinimumFreeDiskBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free disk before Ticket dispatch." })),
   ticketMaximumRunning: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum linked running Ticket workflows." })),
   knowledgeEnabled: Type.Optional(Type.Boolean({ description: "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution." })),
+  externalResearchEnabled: Type.Optional(Type.Boolean({ description: "Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -578,7 +581,7 @@ const entry = defineToolPlugin({
         async execute() {
           const workspaceDir=toolContext.workspaceDir ?? process.cwd();
           const databasePath=config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
-          const details={...new TicketStore(databasePath).snapshot(),knowledge:config.knowledgeEnabled === false ? {enabled:false} : {enabled:true,...new KnowledgeStore(databasePath).snapshot()}};
+          const details={...new TicketStore(databasePath).snapshot(),knowledge:config.knowledgeEnabled === false ? {enabled:false} : {enabled:true,...new KnowledgeStore(databasePath).snapshot()},research:config.externalResearchEnabled === false ? {enabled:false} : {enabled:true,...new ExternalResearchStore(databasePath).snapshot()}};
           return {content:[{type:"text",text:JSON.stringify(details)}],details};
         },
       }),
@@ -607,6 +610,40 @@ const entry = defineToolPlugin({
           else if(["verify","contradict","retire"].includes(params.action)) details=store.transition({lessonId:params.lessonId ?? "",action:params.action,evidenceRef:params.evidenceRef ?? "",confidence:params.confidence});
           else if(params.action === "apply") details=store.recordApplication({lessonId:params.lessonId ?? "",ticketId:params.ticketId,outcome:params.outcome as ApplicationOutcome,evidenceRef:params.evidenceRef ?? ""});
           else throw new Error("unsupported knowledge action");
+          return {content:[{type:"text",text:JSON.stringify(details)}],details};
+        },
+      }),
+    }), tool({
+      name:"cogent_research",
+      label:"CogentNexus External Research",
+      description:"Manage bounded external-research jobs and ingest untrusted source evidence as external observations. This tool does not promote lessons.",
+      parameters:Type.Object({
+        action:Type.Union([Type.Literal("create"),Type.Literal("start"),Type.Literal("query"),Type.Literal("observe"),Type.Literal("claim"),Type.Literal("finish"),Type.Literal("block"),Type.Literal("fail"),Type.Literal("cancel"),Type.Literal("get"),Type.Literal("status")]),
+        jobId:Type.Optional(Type.String()),ticketId:Type.Optional(Type.String()),question:Type.Optional(Type.String()),reason:Type.Optional(Type.String()),query:Type.Optional(Type.String()),queryId:Type.Optional(Type.String()),
+        internalCoverage:Type.Optional(Type.Number({minimum:0,maximum:1})),internalConfidence:Type.Optional(Type.Number({minimum:0,maximum:1})),freshnessSensitive:Type.Optional(Type.Boolean()),networkAllowed:Type.Optional(Type.Boolean()),
+        url:Type.Optional(Type.String()),publisher:Type.Optional(Type.String()),sourceType:Type.Optional(Type.String()),body:Type.Optional(Type.String()),contentType:Type.Optional(Type.String()),publishedAt:Type.Optional(Type.String()),
+        claim:Type.Optional(Type.String()),evidence:Type.Optional(Type.Array(Type.Object({observationId:Type.String(),relation:Type.String()}))),
+      },{additionalProperties:false}),
+      optional:true,
+      factory:({config,toolContext})=>({
+        name:"cogent_research",label:"CogentNexus External Research",description:"Use the bounded external-research evidence store.",
+        parameters:Type.Object({action:Type.String(),jobId:Type.Optional(Type.String()),ticketId:Type.Optional(Type.String()),question:Type.Optional(Type.String()),reason:Type.Optional(Type.String()),query:Type.Optional(Type.String()),queryId:Type.Optional(Type.String()),internalCoverage:Type.Optional(Type.Number()),internalConfidence:Type.Optional(Type.Number()),freshnessSensitive:Type.Optional(Type.Boolean()),networkAllowed:Type.Optional(Type.Boolean()),url:Type.Optional(Type.String()),publisher:Type.Optional(Type.String()),sourceType:Type.Optional(Type.String()),body:Type.Optional(Type.String()),contentType:Type.Optional(Type.String()),publishedAt:Type.Optional(Type.String()),claim:Type.Optional(Type.String()),evidence:Type.Optional(Type.Array(Type.Any()))},{additionalProperties:false}),
+        async execute(_id:string,params:any){
+          if(config.externalResearchEnabled === false) throw new Error("CogentNexus external research capability is disabled");
+          if(!["get","status"].includes(params.action) && !toolContext.sessionKey) throw new Error("research mutations require a trusted OpenClaw session context");
+          const workspaceDir=toolContext.workspaceDir ?? process.cwd(),databasePath=config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir),store=new ExternalResearchStore(databasePath); let details:unknown;
+          if(params.action==="status") details=store.snapshot();
+          else if(params.action==="get") details=store.get(params.jobId ?? "");
+          else if(params.action==="create") details=store.createJob({ticketId:params.ticketId,question:params.question ?? "",reason:params.reason ?? "",internalCoverage:params.internalCoverage ?? 0,internalConfidence:params.internalConfidence ?? 0,freshnessSensitive:params.freshnessSensitive,networkAllowed:params.networkAllowed});
+          else if(params.action==="start") details=store.start(params.jobId ?? "");
+          else if(params.action==="query") details=store.addQuery(params.jobId ?? "",params.query ?? "");
+          else if(params.action==="observe") details=store.addObservation({jobId:params.jobId ?? "",queryId:params.queryId,url:params.url ?? "",publisher:params.publisher,sourceType:params.sourceType as SourceType,body:params.body ?? "",contentType:params.contentType,publishedAt:params.publishedAt});
+          else if(params.action==="claim") details=store.addClaim({jobId:params.jobId ?? "",claim:params.claim ?? "",evidence:(params.evidence ?? []) as Array<{observationId:string;relation:ClaimRelation}>});
+          else if(params.action==="finish") details=store.finish(params.jobId ?? "");
+          else if(params.action==="block") details=store.block(params.jobId ?? "",params.reason ?? "");
+          else if(params.action==="fail") details=store.fail(params.jobId ?? "",params.reason ?? "");
+          else if(params.action==="cancel") details=store.cancel(params.jobId ?? "",params.reason ?? "");
+          else throw new Error("unsupported research action");
           return {content:[{type:"text",text:JSON.stringify(details)}],details};
         },
       }),
