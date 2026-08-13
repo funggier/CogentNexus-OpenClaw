@@ -43,13 +43,16 @@ def backup_windows(root):
     r=ps(f"Export-ScheduledTask -TaskName '{TASK}'|Set-Content -LiteralPath '{str(p).replace(chr(39),chr(39)*2)}' -Encoding UTF8")
     if r.returncode:raise RuntimeError(r.stderr.strip())
     return str(p)
+def write_windows_definition(path,template):
+    document=template.replace('encoding="UTF-8"','encoding="UTF-16"',1)
+    path.write_text(document,encoding="utf-16")
 def win_enable(root):
     before=win_status(); backup=backup_windows(root)
     template=(SKILL/"templates"/"supervisor"/"windows-task.xml").read_text(encoding="utf-8")
     values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(HERE.with_name("runtime.py")),"{{ROOT}}":str(root)}
     for k,v in values.items():template=template.replace(k,v)
     definition=root/"runtime"/"cogentnexus-supervisor.xml";definition.parent.mkdir(parents=True,exist_ok=True)
-    definition.write_text(template,encoding="utf-8")
+    write_windows_definition(definition,template)
     if before.get("installed"):
         run(["schtasks.exe","/End","/TN",TASK])
     r=run(["schtasks.exe","/Create","/TN",TASK,"/XML",str(definition),"/F"])

@@ -80,7 +80,7 @@ For stable installations, use a versioned archive from
 [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
 it against the published `SHA256SUMS.txt` before running the installer.
 
-See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the current evaluation gates and measured architecture decisions.
+See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the evaluation gates and measured architecture decisions, and the [v0.6.1 release notes](docs/releases/v0.6.1.md) for the Windows startup reconciliation fix.
 
 ## Validate
 

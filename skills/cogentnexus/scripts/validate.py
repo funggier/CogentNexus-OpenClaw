@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, ast, json, subprocess, sys
+import argparse, ast, importlib.util, json, subprocess, sys, tempfile
 from pathlib import Path
 import yaml
 
@@ -32,6 +32,21 @@ JSON_FILES = [
     "assets/workflow-manifest-template.json"
 ]
 
+def validate_windows_task_encoding():
+    spec = importlib.util.spec_from_file_location("cogentnexus_startup", ROOT / "scripts" / "startup.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    template = (ROOT / "templates" / "supervisor" / "windows-task.xml").read_text(encoding="utf-8")
+    with tempfile.TemporaryDirectory() as directory:
+        definition = Path(directory) / "task.xml"
+        module.write_windows_definition(definition, template)
+        payload = definition.read_bytes()
+        if not payload.startswith(b"\xff\xfe"):
+            raise SystemExit("Windows task XML must have a UTF-16LE BOM")
+        document = payload.decode("utf-16")
+        if 'encoding="UTF-16"' not in document:
+            raise SystemExit("Windows task XML declaration must match its UTF-16 encoding")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace-singleton", action="store_true")
@@ -53,6 +68,7 @@ def main():
         json.loads((ROOT / relative).read_text(encoding="utf-8"))
     for relative in PYTHON_FILES:
         ast.parse((ROOT / relative).read_text(encoding="utf-8"), filename=relative)
+    validate_windows_task_encoding()
     if [path for path in ROOT.rglob("SKILL.md") if path != skill]:
         raise SystemExit("nested SKILL.md files are forbidden")
     if args.workspace_singleton:
