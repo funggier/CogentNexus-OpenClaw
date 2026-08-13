@@ -68,6 +68,22 @@ describe("Ticket runtime", () => {
     rmSync(root,{recursive:true,force:true});
   });
 
+  it("supports a configured five-attempt Ticket ceiling", () => {
+    const root = mkdtempSync(join(tmpdir(),"cnx-retry-five-"));
+    const store = new TicketStore(join(root,"tickets.sqlite3"));
+    const ticket = store.accept({runId:"retry-five",ownerSessionKey:"owner",prompt:"work",maxAttempts:5});
+    store.route(ticket.ticketId,true);
+    for (let attempt=1; attempt<=5; attempt++) {
+      const lease = store.claim({ticketId:ticket.ticketId,workerId:`worker-${attempt}`,leaseMs:5000})!;
+      expect(store.failAttempt({...lease,classification:"capability",message:"bounded failure"}))
+        .toBe(attempt < 5 ? "waiting" : "failed");
+    }
+    const db = new DatabaseSync(join(root,"tickets.sqlite3"),{readOnly:true});
+    expect(db.prepare("SELECT status,attempt_count,max_attempts FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+      .toEqual({status:"failed",attempt_count:5,max_attempts:5});
+    db.close(); rmSync(root,{recursive:true,force:true});
+  });
+
   it.each(["authorization","permanent"] as const)("fails %s errors immediately without retry", (classification) => {
     const root = mkdtempSync(join(tmpdir(),`cnx-${classification}-`));
     const store = new TicketStore(join(root,"tickets.sqlite3"));

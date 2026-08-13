@@ -48,6 +48,7 @@ type RotationConfig = {
   ticketMinimumFreeMemoryBytes?: number;
   ticketMinimumFreeDiskBytes?: number;
   ticketMaximumRunning?: number;
+  ticketMaximumAttempts?: number;
   knowledgeEnabled?: boolean;
   externalResearchEnabled?: boolean;
 };
@@ -505,6 +506,7 @@ const configSchema = Type.Object({
   ticketMinimumFreeMemoryBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free memory before Ticket dispatch." })),
   ticketMinimumFreeDiskBytes: Type.Optional(Type.Integer({ minimum: 0, description: "Minimum observed free disk before Ticket dispatch." })),
   ticketMaximumRunning: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum linked running Ticket workflows." })),
+  ticketMaximumAttempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "Maximum Ticket claim attempts before a retryable failure becomes terminal." })),
   knowledgeEnabled: Type.Optional(Type.Boolean({ description: "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution." })),
   externalResearchEnabled: Type.Optional(Type.Boolean({ description: "Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter." })),
 }, { additionalProperties: false });
@@ -670,7 +672,12 @@ entry.register = (api) => {
       const workspaceDir = ctx.workspaceDir ?? process.cwd();
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       ticketStore = new TicketStore(databasePath);
-      acceptedTicket = ticketStore.accept({runId:ctx.runId ?? randomUUID(),ownerSessionKey,prompt:event.prompt});
+      acceptedTicket = ticketStore.accept({
+        runId:ctx.runId ?? randomUUID(),
+        ownerSessionKey,
+        prompt:event.prompt,
+        maxAttempts:config.ticketMaximumAttempts,
+      });
     }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");

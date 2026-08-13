@@ -53,8 +53,10 @@ describe("cogentnexus-rotation", () => {
     expect(manifest.taskId).toBe("CNX-AUTO-run-one");
     expect(manifest.steps.map((step:any)=>step.id)).toEqual(["component-01","component-02","component-03","assemble"]);
     expect(manifest.steps[0].executor.includeFiles).toEqual([`.cogent/intake/${manifest.taskId}/request.txt`]);
-    expect(manifest.steps[0].executor.timeoutSeconds).toBe(1800);
-    expect(manifest.steps[0].executor.inactivityTimeoutSeconds).toBe(180);
+    expect(manifest.steps[0].executor.timeoutSeconds).toBe(10800);
+    expect(manifest.steps[0].executor.inactivityTimeoutSeconds).toBe(3600);
+    expect(manifest.steps[0].maximumAttempts).toBe(3);
+    expect(manifest.steps[0].transientMaximumAttempts).toBe(5);
     expect(manifest.admission.requestHash).toBe(durableRequestFingerprint(request));
     expect(manifest.steps.at(-1).executor.type).toBe("concat");
   });

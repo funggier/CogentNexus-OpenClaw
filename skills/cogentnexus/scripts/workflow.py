@@ -99,6 +99,8 @@ def validate_manifest(value):
         if not isinstance(outputs, list) or any(not isinstance(x, str) for x in outputs): raise ValueError(f"invalid outputs: {step_id}")
         maximum = step.get("maximumAttempts", 2)
         if type(maximum) is not int or maximum < 1 or maximum > 20: raise ValueError(f"invalid maximumAttempts: {step_id}")
+        transient_maximum = step.get("transientMaximumAttempts", maximum)
+        if type(transient_maximum) is not int or transient_maximum < maximum or transient_maximum > 20: raise ValueError(f"invalid transientMaximumAttempts: {step_id}")
     if len(ids) != len(set(ids)): raise ValueError("duplicate step id")
     known = set(ids)
     for step in steps:
@@ -197,7 +199,7 @@ def run_argv(argv, cwd, timeout, on_started=None):
         return {"ok":proc.returncode==0,"exitCode":proc.returncode,"stdout":stdout[-12000:],"stderr":stderr[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
     except subprocess.TimeoutExpired as exc:
         proc.kill(); stdout, stderr = proc.communicate()
-        return {"ok":False,"exitCode":None,"stdout":str(stdout or exc.stdout or "")[-12000:],"stderr":str(stderr or "timeout")[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
+        return {"ok":False,"failureClass":"timeout","exitCode":None,"stdout":str(stdout or exc.stdout or "")[-12000:],"stderr":str(stderr or "timeout")[-12000:],"seconds":round(time.perf_counter()-start,3),"pid":proc.pid}
 
 def run_ollama(executor, cwd, timeout, on_progress=None):
     prompt = executor.get("prompt")
@@ -224,7 +226,9 @@ def run_ollama(executor, cwd, timeout, on_progress=None):
         output = confined_path(cwd, executor["output"]); output.parent.mkdir(parents=True, exist_ok=True); output.write_text("".join(chunks), encoding="utf-8")
         return {"ok":True,"exitCode":0,"stdout":"","stderr":"","seconds":round(time.perf_counter()-start,3),"evalCount":eval_count,"outputCharacters":sum(len(value) for value in chunks)}
     except Exception as exc:
-        return {"ok":False,"exitCode":None,"stdout":"","stderr":str(exc)[-12000:],"seconds":round(time.perf_counter()-start,3)}
+        message = str(exc)
+        failure_class = "timeout" if isinstance(exc, TimeoutError) or "timed out" in message.lower() or "timeout" in message.lower() else "transient"
+        return {"ok":False,"failureClass":failure_class,"exitCode":None,"stdout":"","stderr":message[-12000:],"seconds":round(time.perf_counter()-start,3)}
 
 def run_concat(executor, cwd):
     start = time.perf_counter()
@@ -432,9 +436,10 @@ def tick(root, task_id):
             current.update(status="completed",completedAt=now(),lastError=None); flow.event("STEP_COMPLETED",f"Verified {step['id']}",{"execution":result,"validator":validator_result,"artifacts":current["artifacts"]})
         else:
             current["lastError"] = (validator_result or result).get("stderr") or (validator_result or result).get("stdout") or "execution failed"
-            maximum = int(step.get("maximumAttempts",2))
+            failure_class = "validation" if validator_result is not None else result.get("failureClass", "execution")
+            maximum = int(step.get("transientMaximumAttempts", step.get("maximumAttempts",2))) if failure_class in {"timeout","transient"} else int(step.get("maximumAttempts",2))
             current["status"] = "pending" if current["attempts"] < maximum else "blocked"
-            flow.event("STEP_FAILED",f"Step {step['id']} failed",{"attempt":current["attempts"],"maximum":maximum,"execution":result,"validator":validator_result})
+            flow.event("STEP_FAILED",f"Step {step['id']} failed",{"attempt":current["attempts"],"maximum":maximum,"failureClass":failure_class,"execution":result,"validator":validator_result})
             if current["status"] == "blocked": state["status"]="blocked"
         flow.save(state)
         if state["status"] in TERMINAL: queue_terminal_completion(flow,state)
@@ -531,8 +536,12 @@ def self_test():
         value["taskId"]="WF-TEST-RETRY"; value["steps"][0]["validator"]={"argv":[py,"-c","raise SystemExit(1)"]}; value["steps"][0]["maximumAttempts"]=2
         manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,operator_unbound=True,operator_reason="self-test retry ceiling"); failed=run_workflow(root,"WF-TEST-RETRY")
         assert failed["status"]=="blocked" and failed["state"]["steps"]["one"]["attempts"]==2
+        # A timeout/transient failure may use a larger ceiling without extending validator retries.
+        value["taskId"]="WF-TEST-TRANSIENT-RETRY"; value["steps"][0].pop("validator",None); value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","import time;time.sleep(2)"],"timeoutSeconds":1}; value["steps"][0]["maximumAttempts"]=2; value["steps"][0]["transientMaximumAttempts"]=3
+        manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,operator_unbound=True,operator_reason="self-test transient retry ceiling"); failed=run_workflow(root,"WF-TEST-TRANSIENT-RETRY")
+        assert failed["status"]=="blocked" and failed["state"]["steps"]["one"]["attempts"]==3
         # Deterministic discovery launches a detached controller that survives the caller.
-        value["taskId"]="WF-TEST-SUPERVISE"; value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('one.txt').read_text()=='one'"]}; value["steps"][0]["maximumAttempts"]=2
+        value["taskId"]="WF-TEST-SUPERVISE"; value["steps"][0]["executor"]={"type":"command","argv":[py,"-c","from pathlib import Path;Path('one.txt').write_text('one')"]}; value["steps"][0]["validator"]={"argv":[py,"-c","from pathlib import Path;assert Path('one.txt').read_text()=='one'"]}; value["steps"][0]["maximumAttempts"]=2; value["steps"][0].pop("transientMaximumAttempts",None)
         (root/"one.txt").unlink(missing_ok=True); manifest.write_text(json.dumps(value),encoding="utf-8"); initialize(root,manifest,owner_session_key="agent:main:test-owner")
         observed=supervise_workflows(root); assert any(x.get("taskId")=="WF-TEST-SUPERVISE" for x in observed["actions"])
         launched=supervise_workflows(root,execute=True,maximum=1); child_pid=launched["actions"][0]["pid"]; deadline=time.monotonic()+10

@@ -33,7 +33,7 @@ The scanner is registered only when `ticketFirst` is enabled and defaults to a 1
 
 - Existing Phase 0 databases are upgraded in place through recorded schema migrations; accepted Tickets are preserved.
 - The dispatcher selects only `accepted` or `waiting` Tickets, claims each atomically, and enforces a caller-supplied bound capped at 32.
-- Every Ticket has a retry ceiling (default 3, maximum 20). Transient, timeout, validation, and capability failures may requeue below that ceiling. Authorization and permanent failures terminate immediately.
+- Every Ticket has a retry ceiling configured by `ticketMaximumAttempts` (default 3, maximum 20). Transient, timeout, validation, and capability failures may requeue below that ceiling. Authorization and permanent failures terminate immediately.
 - A terminal completion or exhausted retry writes exactly one owner-bound outbox row in the same transaction as terminal state.
 - Outbox delivery uses a deterministic OpenClaw schedule tag. Failed delivery remains pending with attempt/error evidence.
 - `cogent_ticket_status` exposes queue counts, expired running leases, and pending outbox count directly from SQLite without inference.
