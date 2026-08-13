@@ -42,7 +42,7 @@ if (Test-Path $targetSkill) { Remove-Item -Recurse -Force -LiteralPath $targetSk
 Move-Item -LiteralPath $stagedSkill -Destination $targetSkill
 Write-Host "Installed CogentNexus skill to $targetSkill"
 
-python (Join-Path $targetSkill "scripts\validate.py") --workspace-singleton
+python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
 if (-not $SkipPlugin) {

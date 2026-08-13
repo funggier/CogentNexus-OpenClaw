@@ -73,7 +73,7 @@ For conversational Durable work use the trusted workflow plugin for atomic owner
 
 ## Validation
 
-    python skills/cogentnexus/scripts/validate.py --workspace-singleton
+    python skills/cogentnexus/scripts/validate.py
     python skills/cogentnexus/scripts/workflow.py self-test
     python skills/cogentnexus/scripts/cogent.py self-test
     python skills/cogentnexus/scripts/runtime.py self-test

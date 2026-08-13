@@ -28,6 +28,8 @@ jobs:
       - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/runtime.py self-test
+      - run: python skills/cogentnexus/scripts/workflow.py self-test
+      - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
       - name: Test plugin path migration helper
         shell: bash
         run: |

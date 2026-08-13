@@ -21,6 +21,13 @@ The validator exits with code `0` only when the root gate can be independently
 reconstructed from the submitted artifacts. A model-authored claim that the
 workflow passed is not sufficient.
 
+Validate the validator itself with a generated known-good fixture and a
+deliberately tampered fixture:
+
+```powershell
+python test_validator.py
+```
+
 ## What it measures
 
 - completeness across a multi-file dependency graph;

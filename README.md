@@ -86,7 +86,7 @@ behavior changes, verification evidence, and remaining context-limit caveat.
 Requires Python 3.10 or newer and PyYAML.
 
     python -m pip install -r requirements-dev.txt
-    python skills/cogentnexus/scripts/validate.py --workspace-singleton
+    python skills/cogentnexus/scripts/validate.py
     python skills/cogentnexus/scripts/cogent.py self-test
     python skills/cogentnexus/scripts/runtime.py self-test
     python skills/cogentnexus/scripts/workflow.py self-test
@@ -97,6 +97,8 @@ Requires Python 3.10 or newer and PyYAML.
 reusable end-to-end task for comparing a single model with and without
 CogentNexus. It includes the model prompt, an independent root-gate validator,
 and a Thai-language testing guide with fairness and reporting rules.
+
+    python benchmarks/single-ai-hybrid-e2e/test_validator.py
 
 ## Quick start
 

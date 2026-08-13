@@ -50,7 +50,7 @@ rm -rf "$TARGET_SKILL"
 mv "$STAGED_SKILL" "$TARGET_SKILL"
 echo "Installed CogentNexus skill to $TARGET_SKILL"
 
-python "$TARGET_SKILL/scripts/validate.py" --workspace-singleton
+python "$TARGET_SKILL/scripts/validate.py"
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
   (
     cd "$REPO_ROOT/plugins/cogentnexus-rotation"

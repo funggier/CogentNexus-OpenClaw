@@ -71,7 +71,7 @@ On Linux or macOS, download `cogentnexus-v0.2.1.tar.gz`, verify it with
 2. Validate the installed skill:
 
    ```sh
-   python <workspace>/skills/cogentnexus/scripts/validate.py --workspace-singleton
+   python <workspace>/skills/cogentnexus/scripts/validate.py
    ```
 
 3. Build, validate, and link the plugin:

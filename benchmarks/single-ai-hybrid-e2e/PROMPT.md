@@ -69,3 +69,32 @@ directory. It must use only the Python standard library and must not fabricate a
 PASS when a deterministic check fails.
 
 Before stopping, run your own root gate and report its command and exit code.
+
+## Machine-readable artifact contract
+
+Use these field names so the independent validator can check meaning rather
+than merely checking that files exist:
+
+- `manifest.json`: `model` (non-empty string), `review_mode` equal to
+  `single-reviewer`, `units` equal to `["EAST","WEST","ISLANDS","INTEGRATION"]`,
+  `deterministic_gates` equal to `true`, and `max_repairs_per_unit` equal to `3`.
+- `config/review-policy.json`: `mode` equal to `single-reviewer` and
+  `deterministic_gates_required` equal to `true`.
+- every contract: `objective` (non-empty string), `output_path` (the exact path
+  required above), `allowed_write_scope` (a list containing that output path),
+  `acceptance_criteria` (a non-empty list), and
+  `deterministic_validation_rules` (a non-empty list).
+- deterministic evidence: `evidence/deterministic/<UNIT>.json` for EAST,
+  ISLANDS, WEST, and INTEGRATION, each with `unit_id`, `status: "PASS"`, and
+  `artifact_sha256`. Also preserve `WEST-initial-failure.json` with
+  `unit_id: "WEST"`, `status: "FAIL"`, and a non-empty `errors` list.
+- reviews: `evidence/reviews/<UNIT>.json` for each leaf, with `unit_id`,
+  `verdict: "PASS"`, and `deterministic_evidence` pointing to that leaf's PASS
+  evidence file.
+- repair evidence: `evidence/repairs/WEST.json` with `unit_id`, different
+  `before_hash` and `after_hash`, plus `sibling_hashes_before` and
+  `sibling_hashes_after` objects containing equal EAST and ISLANDS hashes.
+- leaf checkpoints: `unit_id`, `status: "ACCEPTED"`, and a non-empty `evidence`
+  list. The integration checkpoint uses `unit_id: "INTEGRATION"`,
+  `root_status: "SUCCESS"`, and a non-empty `evidence` list. Every evidence
+  path named by a review or checkpoint must exist inside `SUBMISSION_DIR`.
