@@ -84,7 +84,7 @@ For stable installations, use a versioned archive from
 [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
 it against the published `SHA256SUMS.txt` before running the installer.
 
-See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the evaluation gates, the [v0.6.1 release notes](docs/releases/v0.6.1.md) for the Windows startup reconciliation fix, and the [v0.6.2 release notes](docs/releases/v0.6.2.md) for long-running local-model retry and timeout policy.
+See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the evaluation gates, the [v0.6.1 release notes](docs/releases/v0.6.1.md) for the Windows startup reconciliation fix, the [v0.6.2 release notes](docs/releases/v0.6.2.md) for long-running local-model retry and timeout policy, and the [v0.6.4 release notes](docs/releases/v0.6.4.md) for mandatory workspace-policy installation.
 
 ## Validate
 
