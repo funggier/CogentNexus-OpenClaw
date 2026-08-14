@@ -2,6 +2,8 @@
 
 CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It keeps durable task state outside the model, records an append-only execution ledger, probes the runtime environment, and rejects completion when deterministic verification evidence is missing or stale.
 
+CogentNexus Core is part of the [CogentNexus Ecosystem](https://github.com/funggier/cogentnexus-ecosystem) for OpenClaw. The ecosystem repository publishes companion skills such as Staged Capability Loop and documents how the projects work together.
+
 ## Current capabilities
 
 - Atomic, revisioned task state with checkpoint, resume, commit, and rollback
@@ -62,6 +64,8 @@ The nested layout preserves the OpenClaw workspace contract and lets the runtime
 ## Installation
 
 Automated installers copy the skill, validate it, build and link the OpenClaw
+rotation plugin, and safely merge a managed CogentNexus admission policy into
+the workspace `AGENTS.md` so the skill is applied to every request by default.
 plugin, restart Gateway, and verify runtime health.
 
 Windows PowerShell:

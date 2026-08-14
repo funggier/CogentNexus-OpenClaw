@@ -3,6 +3,7 @@ param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
     [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
+    [switch]$SkipAgentsPolicy,
     [switch]$LinkPlugin
 )
 
@@ -44,6 +45,11 @@ Write-Host "Installed CogentNexus skill to $targetSkill"
 
 python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
+
+if (-not $SkipAgentsPolicy) {
+    python (Join-Path $repoRoot "scripts\manage_agents_policy.py") --workspace $Workspace --policy (Join-Path $repoRoot "templates\AGENTS.cogentnexus.md") --backup-root $backupRoot
+    if ($LASTEXITCODE -ne 0) { throw "AGENTS.md policy integration failed" }
+}
 
 if (-not $SkipPlugin) {
     Push-Location $pluginDir

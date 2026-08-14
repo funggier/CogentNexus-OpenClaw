@@ -7,14 +7,16 @@ WORKSPACE=${OPENCLAW_WORKSPACE:-"$HOME/.openclaw/workspace"}
 SKIP_PLUGIN=0
 SKIP_GATEWAY_RESTART=0
 LINK_PLUGIN=0
+SKIP_AGENTS_POLICY=0
 
-usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--link-plugin]"; }
+usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workspace) [ "$#" -ge 2 ] || { usage; exit 2; }; WORKSPACE=$2; shift 2 ;;
     --skip-plugin) SKIP_PLUGIN=1; shift ;;
     --skip-gateway-restart) SKIP_GATEWAY_RESTART=1; shift ;;
+    --skip-agents-policy) SKIP_AGENTS_POLICY=1; shift ;;
     --link-plugin) LINK_PLUGIN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage; exit 2 ;;
@@ -51,6 +53,9 @@ mv "$STAGED_SKILL" "$TARGET_SKILL"
 echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
+if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
+  python "$REPO_ROOT/scripts/manage_agents_policy.py" --workspace "$WORKSPACE" --policy "$REPO_ROOT/templates/AGENTS.cogentnexus.md" --backup-root "$BACKUP_ROOT"
+fi
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
   (
     cd "$REPO_ROOT/plugins/cogentnexus-rotation"

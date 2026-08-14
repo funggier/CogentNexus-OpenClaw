@@ -2,7 +2,8 @@
 
 CogentNexus requires Python 3.10+, PyYAML, Node.js 22+, npm, OpenClaw, and Git. The
 installer copies the skill into an OpenClaw workspace, validates it, builds and
-links the rotation plugin, restarts Gateway, and verifies runtime health.
+links the rotation plugin, installs an idempotent CogentNexus managed block in
+`AGENTS.md`, restarts Gateway, and verifies runtime health.
 
 Install the Python dependency once if needed:
 
@@ -36,11 +37,19 @@ The POSIX installer also accepts `OPENCLAW_WORKSPACE`.
 
 Use `-SkipPlugin` or `--skip-plugin` to install only the skill. Use
 `-SkipGatewayRestart` or `--skip-gateway-restart` to leave Gateway unchanged.
+Use `-SkipAgentsPolicy` or `--skip-agents-policy` only when another workspace
+policy already guarantees CogentNexus admission for every request.
 If a skill already exists, the installer creates a timestamped backup under
 `<workspace>/.cogent/install-backups`. By default the plugin is copied into
 OpenClaw, so the downloaded release directory may be removed after a successful
 installation. Developers can use `-LinkPlugin` or `--link-plugin` to link the
 plugin to a working tree instead.
+
+The installer preserves all user-authored `AGENTS.md` content and manages only
+the section between `<!-- cogentnexus:begin -->` and
+`<!-- cogentnexus:end -->`. Existing files are backed up under
+`<workspace>/.cogent/install-backups` before that section changes. Re-running
+the installer updates the same section without creating duplicates.
 
 When upgrading from an older linked installation, the installer removes only
 load paths that identify themselves as `cogentnexus-rotation`; unrelated plugin
