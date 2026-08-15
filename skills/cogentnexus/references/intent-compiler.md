@@ -1,13 +1,33 @@
 # Intent Compiler
 
-Use when the user expresses an outcome without an execution specification.
+Use this only when the request is not already an obvious DIRECT turn or when execution scope must be resolved.
 
-Capture the outcome, observable acceptance criteria, current state, constraints, authority, executor capability, and validators. Do not turn optional preferences into requirements.
+The first job is **lane selection**, not workflow construction.
 
-Choose Direct for one reversible observable action; Verified for dependent artifacts, generated code/data, or integration; Durable for long, detached, interruption-prone, or costly-to-duplicate work.
+## Lanes
 
-For Verified or Durable work, define the dependency manifest, assign the smallest complete component to each executor, create deterministic validators where practical, preserve passing checkpoints, integrate only verified units, and run end-to-end acceptance tests.
+- **DIRECT** — conversational/low-risk work answerable from current context. No execution contract or runtime probe by default.
+- **LOOKUP** — focused read-only retrieval with the minimum necessary source/tool surface.
+- **ACTION** — bounded reversible execution with proportionate verification.
+- **STAGED** — multi-step, consequential, interruption-prone, dependency-heavy, externally mutating, repeatedly failing, or independently reviewed work.
 
-On first validator failure, return exact bounded evidence once. On repeated symptoms, change strategy. Record deterministic repair separately from model output. Never admit an unverified component.
+Choose the lightest reliable lane. Escalate only when observed complexity/risk requires it.
 
-Do not require the user to decompose work or write model prompts. Ask only for missing authority, irreversible external action, consequential product choice, or an undiscoverable required input.
+## STAGED compilation
+
+For STAGED work, capture only what is required to execute safely and recoverably:
+
+- requested outcome and observable acceptance criteria;
+- current state and durable inputs;
+- constraints and authority;
+- dependencies and exact outputs;
+- executor capability;
+- deterministic validators and reviewer policy when needed;
+- external-side-effect boundaries;
+- recovery/cancellation semantics.
+
+Do not turn optional preferences into requirements. Do not require the user to decompose work or write model prompts.
+
+Ask only when information is genuinely undiscoverable or when missing authority/product choice materially changes the action. Otherwise make the smallest safe executable step and progress from committed state.
+
+On validator failure, preserve exact evidence. Repeated identical symptoms should trigger a strategy change rather than unbounded retry. Never promote an unverified component to PASS.

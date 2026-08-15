@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { spawn, spawnSync } from "node:child_process";
-import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverTicketOutbox, deliverWorkflowCompletion, dispatchTicketWorkflows, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, reconcileTicketWorkflows, rotationCandidates, rotationIdentity, scheduleInterruptedResume, ticketOutboxTag, ticketResourceAdmission, workflowCompletionTag } from "./index.js";
+import entry, { activeWorkflowForRequest, autoResumeTag, completionMessage, deliverTicketOutbox, deliverWorkflowCompletion, dispatchTicketWorkflows, durableAdmissionEligible, enforcementDecision, isResumableInterruption, pendingWorkflowCompletions, reconcileTicketWorkflows, rotationCandidates, rotationIdentity, scheduleInterruptedResume, schedulePostCompactionResume, ticketOutboxTag, ticketResourceAdmission, workflowCompletionTag } from "./index.js";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { assessSession, selectActiveDescendant } from "./context-guard.js";
 import { getToolPluginMetadata } from "openclaw/plugin-sdk/tool-plugin";
@@ -212,6 +212,30 @@ describe("cogentnexus-rotation", () => {
     });
   });
 
+  it("schedules a post-compaction continuation only while durable session work remains", async () => {
+    const root=mkdtempSync(join(tmpdir(),"cogent-post-compact-"));
+    try {
+      const store=new TicketStore(join(root,"tickets.sqlite3"));
+      const sessionKey="agent:main:owner";
+      const ticket=store.accept({runId:"compaction-run",ownerSessionKey:sessionKey,prompt:"long task"});
+      store.route(ticket.ticketId,false);
+      const scheduled:any[]=[],unscheduled:any[]=[];
+      const workflow={
+        async unscheduleSessionTurnsByTag(input:any){unscheduled.push(input);},
+        async scheduleSessionTurn(input:any){scheduled.push(input);},
+      };
+      await expect(schedulePostCompactionResume({sessionKey,workspaceDir:root,store,workflow,delayMs:2500})).resolves.toBe(true);
+      expect(unscheduled).toHaveLength(1);
+      expect(scheduled).toHaveLength(1);
+      expect(scheduled[0]).toMatchObject({sessionKey,delayMs:2500,deliveryMode:"announce",deleteAfterRun:true});
+      expect(String(scheduled[0].tag)).toMatch(/^cogent-post-compact-/);
+      expect(String(scheduled[0].message)).toContain("[CogentNexus Continuation: post-compaction]");
+      store.finalizeDirectRun({runId:"compaction-run",success:true,interrupted:false,expectsDelivery:false});
+      await expect(schedulePostCompactionResume({sessionKey,workspaceDir:root,store,workflow,delayMs:2500})).resolves.toBe(false);
+      expect(scheduled).toHaveLength(1);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
   it("discovers only pending terminal workflow outboxes", () => {
     const root = mkdtempSync(join(tmpdir(), "cogent-completion-"));
     try {
@@ -226,7 +250,7 @@ describe("cogentnexus-rotation", () => {
     } finally { rmSync(root, { recursive:true, force:true }); }
   });
 
-  it("finishes TaskFlow, schedules the owner once by tag, and commits delivery", async () => {
+  it("finishes TaskFlow and schedules the owner while delivery remains pending until receipt", async () => {
     const root = mkdtempSync(join(tmpdir(), "cogent-delivery-"));
     try {
       const path = join(root,"completion.json");
@@ -239,8 +263,11 @@ describe("cogentnexus-rotation", () => {
       await deliverWorkflowCompletion(api,path,notice);
       expect(finished).toHaveLength(1);
       expect(scheduled[0]).toMatchObject({sessionKey:"agent:main:owner",tag:"cogent-workflow-result-WF-2-9",deliveryMode:"announce"});
-      expect(JSON.parse(readFileSync(path,"utf8")).deliveryStatus).toBe("delivered");
-      expect(JSON.parse(readFileSync(path,"utf8")).deliveryAttempts).toBe(1);
+      expect(String(scheduled[0].message)).toContain("[CogentNexus Delivery: workflow:WF-2:9]");
+      const saved=JSON.parse(readFileSync(path,"utf8"));
+      expect(saved.deliveryStatus).toBe("pending");
+      expect(saved.deliveryAttempts).toBe(1);
+      expect(saved.scheduledAt).toEqual(expect.any(String));
     } finally { rmSync(root, { recursive:true, force:true }); }
   });
 

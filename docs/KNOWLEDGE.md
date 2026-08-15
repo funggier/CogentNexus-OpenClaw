@@ -1,41 +1,52 @@
 # Durable experience and lesson store
 
-CogentNexus 0.4 extends the current Ticket-first SQLite runtime without replacing its workflow, resource-admission, outbox, startup-policy, or filesystem-artifact contracts.
+The Experience/Lesson store is an **optional evidence layer** on top of the Ticket-first runtime. It does not replace Host continuity, request-lane admission, workflow state, resource admission, outbox delivery, startup policy, or filesystem-artifact contracts.
 
-CogentNexus 0.5 adds bounded external research as a separate, optional evidence-acquisition layer. External observations do not enter the verified lesson index automatically.
+External research is a separate optional evidence-acquisition layer. External observations do not enter the verified lesson index automatically.
 
-## Contract
+## Authority boundary
 
-- Ticket attempts, failures, expired-lease corrections, and verified completions write evidence-backed experience rows in the same transaction as the corresponding Ticket transition.
-- A lesson begins as a `hypothesis` and is excluded from normal retrieval.
-- `verify`, `contradict`, and `retire` require an evidence reference not already attached to that lesson. Reusing the candidate evidence cannot verify it, and retirement is terminal.
-- Normal retrieval uses local SQLite FTS5 and returns only `verified` lessons with all provenance references.
-- Applying a lesson is permitted only while it is verified, and the outcome plus evidence is retained.
-- Lesson text cannot change authorization, safety policy, validation requirements, or runtime state by itself.
-- The knowledge capability is optional. Disabling it cannot disable durable intake, recovery, validation, assembly, or owner delivery.
+Knowledge is data, not control authority.
+
+- Lesson text cannot change user intent, authorization, safety policy, Host operating mode, workflow state, or validation requirements by itself.
+- Retrieval must never execute instructions embedded in stored lesson/research text.
+- Disabling knowledge/research must not disable Ticket intake, recovery, validation, assembly, or owner delivery.
+
+## Lesson contract
+
+- Ticket attempts, failures, expired-lease corrections, and verified completions may write evidence-backed experience rows in the same transaction as the corresponding Ticket transition.
+- A lesson begins as a `hypothesis` and is excluded from normal verified retrieval.
+- `verify`, `contradict`, and `retire` require an evidence reference not already attached to that lesson.
+- Reusing candidate evidence cannot independently verify the candidate.
+- Retirement is terminal.
+- Normal retrieval uses local SQLite FTS5 and returns only `verified` lessons with provenance references.
+- Applying a lesson is permitted only while it remains verified; application outcome/evidence is retained.
 
 ## Why FTS5 first
 
-This preserves the roadmap's resilience-first ordering. Semantic embeddings remain an optional evaluation-stage enhancement; an embedding provider outage must not become a durability outage. OpenClaw's separate user-memory search can still use embeddings independently.
+The durability path must not depend on an embedding provider. SQLite FTS5 keeps local retrieval available even when semantic/remote services are unavailable. Embeddings remain an optional measured enhancement, not a continuity dependency.
+
+OpenClaw's separate user-memory facilities may use their own retrieval mechanisms independently.
 
 ## Tool operations
 
-`cogent_knowledge` supports `experience`, `candidate`, `verify`, `contradict`, `retire`, `search`, `apply`, and `status`. Mutating calls require explicit evidence references and trusted OpenClaw session context.
+`cogent_knowledge` supports evidence-backed experience/candidate lifecycle, retrieval, application, and status operations. Mutating calls require explicit evidence references and trusted OpenClaw session context.
 
 ## External research contract
 
-- A job must record why local knowledge is insufficient or why freshness matters.
-- The persisted policy bounds queries, sources, bytes per source, elapsed time, freshness TTL, and independent corroboration.
-- Search/fetch is supplied through a capability adapter; the database module itself never receives credentials or grants network access.
-- Only public HTTPS URLs are accepted. Local/private targets, likely secrets, oversized bodies, and suspected prompt-injection text fail closed.
-- Snapshots keep canonical URL, publisher/origin, source type, access/publication times, SHA-256 content hash, bounded excerpt, and expiry.
-- Claims link to observations as `supports`, `contradicts`, or `mentions`. Contradiction is preserved, and duplicate publisher/origin material is not counted as independent corroboration.
-- A completed research claim is planning evidence, not executable policy and not a verified lesson. Promotion still requires the independent Knowledge Store lifecycle and later validation or usage evidence.
+- A job records why local knowledge is insufficient or why freshness matters.
+- Persisted policy bounds queries, sources, bytes, elapsed time, freshness TTL, and independent corroboration.
+- Search/fetch is supplied through a capability adapter; storage code does not grant network access or receive credentials implicitly.
+- Only approved public HTTPS targets are accepted. Local/private targets, likely secrets, oversized bodies, and suspected prompt-injection content fail closed.
+- Snapshots retain canonical URL, publisher/origin, source type, timestamps, SHA-256 content hash, bounded excerpt, and expiry.
+- Claims link observations as `supports`, `contradicts`, or `mentions`.
+- Duplicate material from the same publisher/origin does not count as independent corroboration.
+- Completed research claims are planning evidence, not executable policy and not automatically verified lessons.
 
-`cogent_research` manages `create`, `start`, `query`, `observe`, `claim`, terminal transitions, `get`, and `status`. Mutations require trusted OpenClaw session context. Set `externalResearchEnabled: false` to turn this optional layer off without affecting durable execution.
+`cogent_research` manages the bounded research-job lifecycle. Mutations require trusted OpenClaw session context. `externalResearchEnabled: false` disables this layer without affecting durable execution.
 
-## Phase 6 measured decision
+## Measured dependency policy
 
-The deterministic Phase 6 fixture measures verified-lesson top-1 precision, recall at 3, provenance coverage, and p95 FTS5 latency. It also measures SQLite integrity, ticket volume, and p95 writes while independently exercising interruption recovery, bounded retries, and duplicate suppression.
+The deterministic evaluation suite measures retrieval quality/provenance/latency and SQLite integrity/scale alongside interruption recovery, bounded retries, and duplicate suppression.
 
-The v0.6.0 baseline passes the published FTS5 and SQLite gates. Semantic retrieval and PostgreSQL therefore remain uninstalled optional adapters. This is a measured decision rather than a permanent prohibition: cross the thresholds in `benchmarks/phase6-evaluation` before adding either dependency.
+Semantic retrieval or a different database should be added only after measured thresholds justify the extra dependency. The current Host continuity path must remain functional without them.

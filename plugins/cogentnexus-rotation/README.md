@@ -1,78 +1,187 @@
-# CogentNexus Rotation Controller
+# CogentNexus OpenClaw Bridge
 
-OpenClaw tool plugin that admits obvious durable requests before conversational inference, starts owner-bound workflows, and bridges verified `ROTATE` handoffs to managed TaskFlow workers.
+The package ID remains `cogentnexus-rotation` for compatibility, but in v0.8 the plugin is documented as the **CogentNexus OpenClaw Bridge**.
 
-Safety properties:
+It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. The bridge is not the durability authority by itself; durable authority lives in persisted Host, Ticket, workflow, lease, generation, response-readiness, delivery-receipt, and outbox state.
 
-- derives the owner session from trusted OpenClaw tool context;
-- validates the handoff through the deterministic Python runtime;
-- defaults to dry-run;
-- rejects non-`ROTATE`, tampered, claimed, or completed handoffs;
-- fences duplicate starts by task generation and deterministic run id;
-- launches the worker without a visible console window on Windows.
-- monitors bound durable tasks after successful owner turns and automatically rotates only verified `ROTATE` generations;
-- records the worker as a managed TaskFlow child and schedules one compact verified-result turn back to the owner;
-- exposes rotation state through `phase3.py context rotations` for one management surface.
-- classifies explicit multi-phase, numerically constrained, interruption-sensitive requests before the selected conversational model runs;
-- persists the original request, compiles bounded worker components plus deterministic assembly, and returns a workflow receipt immediately;
-- detects software, EA/trading, file-management, analysis, fiction, design, and translation work and applies domain-specific specification, production, and QA components;
-- compiles arbitrary safe relative artifact paths instead of depending on a travel-specific filename set, then validates artifact existence and supported formats externally;
-- keeps worker capability choice per workflow instead of globally enabling lean mode;
-- excludes internal continuation/subagent turns and supports the explicit `#cogent-direct` override;
-- makes admission retries idempotent by run-derived task identity and trusted owner binding.
+## Responsibilities
 
-Temporary Codex/TaskFlow rotation is disabled by default. Normal durable work runs through the deterministic CogentNexus controller and Ollama directly. Set `autoRotate: true` only when an explicit clean-session Codex repair worker is required; bound context monitoring otherwise remains checkpoint/observation-only.
+- commit eligible owner messages to the SQLite Ticket store before inference when `ticketFirst` is enabled;
+- bind requests/workflows to trusted owner session identity;
+- route obvious durable requests before conversational inference when pre-inference admission qualifies them;
+- dispatch and recover Ticket-backed durable workflows;
+- preserve request-hash/idempotency boundaries;
+- fence duplicate starts by lease/generation/run identity;
+- bridge verified context-rotation handoffs when explicitly enabled;
+- distinguish response readiness from completed user delivery;
+- recover interrupted or unconfirmed direct reply delivery;
+- keep terminal Ticket/workflow outboxes pending until delivery receipt;
+- schedule a delayed continuation after successful compaction when durable session work remains;
+- expose optional knowledge/research tools without making them execution authority.
 
-This keeps the normal execution path small and deterministic: `OpenClaw -> CogentNexus controller -> Ollama -> validator -> owner continuation`. It prevents temporary Codex workers from competing for CPU/RAM, inheriting inconsistent approval state, or becoming detached from a deleted owner session. Automatically admitted Ollama steps use a 180-minute overall timeout, a 60-minute inactivity timeout, three normal attempts, and up to five attempts only for timeout or transient transport failures. They also retain streamed progress checkpoints and request-hash deduplication across sessions. Operators can terminate a durable workflow with `workflow.py cancel <task-id> --reason <reason>`; cancellation is recorded in the ledger, creates the owner completion notice, and is terminal to the supervisor.
+## What the bridge must not do
 
-### Durable experience and lessons
+- force every message into a durable workflow;
+- make a greeting pay STAGED workflow overhead;
+- treat model prose as authoritative completion evidence;
+- treat `agent_end(success=true)` as proof that a visible reply reached the user completely;
+- treat scheduling a terminal continuation as proof of delivery;
+- silently repeat external side effects after interruption;
+- reconstruct discarded private reasoning after compaction;
+- resurrect cancelled Tickets/sessions;
+- make native OpenClaw unusable when CogentNexus is disabled.
 
-Version 0.4 adds an additive Experience/Lesson store to the same SQLite database used by Ticket-first execution. Ticket claims, failures, lease recovery, and verified completion record evidence-backed experiences atomically with their state transitions. The optional `cogent_knowledge` tool can create lesson candidates, verify/contradict/retire them with provenance, retrieve only verified lessons through SQLite FTS5, and record whether applying a lesson succeeded. Candidates never enter normal retrieval before independent verification, retired lessons are terminal, and retrieved text is data rather than executable policy. Set `knowledgeEnabled: false` to disable this optional capability without affecting Ticket intake, recovery, validation, or assembly.
+## Ticket-first continuity
 
-### Bounded external research
+With managed defaults:
 
-Version 0.5 adds an optional research-job state machine and a capability-adapter contract for search/fetch. Jobs open only when internal coverage or confidence is low, or when freshness is explicitly relevant. Query, source, byte, time, freshness, and corroboration budgets are persisted with each job. Only HTTPS public sources are accepted; likely secrets, private/local URLs, oversized content, and suspected prompt injection are rejected before storage. Source snapshots retain canonical URL, publisher/origin, timestamps, hashes, excerpts, and TTL. Claims preserve supporting, contradicting, and mentioning evidence, and copied pages from one publisher count as one origin.
-
-Research results remain `external_observations`; they never become verified lessons automatically. Set `externalResearchEnabled: false` to disable this optional capability without affecting Ticket execution or the local knowledge store. A concrete network provider must be supplied through the exported search/fetch adapter contract; enabling storage alone does not grant network access.
-
-### Phase 6 evaluation gate
-
-Version 0.6 adds an isolated deterministic benchmark for interruption recovery, bounded retries, duplicate suppression, FTS5 retrieval quality/provenance/latency, and SQLite integrity/scale evidence. `npm run evaluation` emits a machine-readable report and fails closed when a gate is missed. The measured fixture does not justify embeddings or PostgreSQL, so neither is added as a runtime dependency; the report preserves explicit thresholds for reconsidering those optional adapters later.
-
-Pre-inference durable admission is enabled by default. Configure `preInferenceAdmission: false` to disable it, `admissionMinimumScore` to tune the conservative deterministic threshold, or `durableWorkerModel` to select the Ollama worker model. These settings affect automatically admitted components only; they do not remove tools from the conversational agent or other workers.
-
-### WebChat admission notice
-
-On current OpenClaw releases, a successfully admitted request can be displayed
-as:
-
-> Your message could not be sent: CogentNexus admitted this as durable workflow
-> ... (blocked by cogentnexus-rotation)
-
-This wording does not by itself mean the workflow failed. Pre-inference
-admission intentionally returns a `block` hook decision so the conversational
-model does not also execute the same request. OpenClaw currently prefixes every
-such decision with `Your message could not be sent`, even when the replacement
-message is a successful durable-workflow receipt.
-
-Use the workflow identifier in the notice to inspect
-`.cogent/workflows/<id>/state.json`. A healthy admission has an owner-bound
-state such as `running`; verified completion is delivered to the bound owner
-session automatically. Treat the notice as a real failure only when the
-workflow directory is absent or its durable state is `failed` or `blocked` with
-corresponding evidence.
-
-This is a presentation limitation at the OpenClaw hook/UI boundary. A future
-OpenClaw `handled` or `accepted-without-inference` outcome would allow the same
-safety behavior to render as a normal receipt instead of a warning.
-
-Build and validate:
-
-```bash
-npm install
-npm run plugin:build
-npm run plugin:validate
-npm test
+```text
+owner message
+   -> Ticket commit
+   -> lane selection
+      DIRECT / LOOKUP / ACTION / STAGED
+   -> execution
+   -> RESPONSE_READY when visible output exists
+   -> delivery settles
+   -> DELIVERY_CONFIRMED
+   -> completed / delivered
 ```
 
-Install from the plugin directory with `openclaw plugins install --link .`. A gateway restart is required after installation.
+Ticket creation is intentionally lightweight. A DIRECT message may remain an ordinary conversational turn after its Ticket is committed.
+
+If a direct turn is interrupted before execution completes, or a response becomes ready but its final delivery fails/remains unconfirmed, the Ticket is promoted to durable recovery rather than silently completed.
+
+## Delivery Commit Gate
+
+Visible output has a separate completion boundary from model execution.
+
+The bridge uses OpenClaw reply-dispatch settlement when available: it observes the final dispatch, waits for the dispatcher to become idle, and checks final delivery failure/cancellation counts. `message_sent` is a fallback receipt path and uses a settle period so the first emitted chunk cannot immediately close a long reply.
+
+Direct Ticket fields include:
+
+- `response_ready_at`
+- `delivery_confirmed_at`
+- `delivery_last_error`
+
+A response-ready Ticket remains non-terminal until delivery is confirmed. If receipt confirmation never arrives within the configured deadline, deterministic recovery promotes the Ticket so work/delivery can continue.
+
+Terminal Ticket/workflow outboxes follow the same rule. `scheduled_at` and `delivery_run_id` track an in-flight delivery attempt. The marked continuation itself must settle successfully before `delivery_status` becomes `delivered`; otherwise the outbox becomes retryable again without recomputing already completed work.
+
+Delivery controls:
+
+- `directDeliverySettleMs`
+- `directDeliveryTimeoutMs`
+- `outboxDeliveryTimeoutMs`
+
+## Post-Compaction Continuation Guard
+
+Successful OpenClaw history compaction does not mean the logical task is finished.
+
+When `after_compaction` fires in a managed Ticket-first session, the bridge checks whether the session still owns non-terminal Tickets, pending Ticket outboxes, or pending workflow completion delivery. If so, it schedules one delayed idempotently tagged continuation:
+
+```text
+[CogentNexus Continuation: post-compaction]
+```
+
+The continuation resumes from committed durable state only. If the original turn continues normally, `agent_end` removes the delayed guard. If the guard eventually fires after work is already terminal, terminal/idempotency state prevents duplicate side effects.
+
+Control:
+
+- `postCompactionResumeDelayMs`
+
+## Managed defaults
+
+`cnx enable` configures conservative defaults suitable for local models and low-resource machines:
+
+- `ticketFirst = true`
+- `preInferenceAdmission = true`
+- `autoWorkflowCompletion = true`
+- `enforcedMode = true`
+- `autoResume = true`
+- `ticketDispatchLimit = 1`
+- `ticketMaximumRunning = 1`
+- bounded attempts and short deterministic recovery/dispatch/outbox polls
+- conversation hook access enabled for delivery/compaction continuity events
+
+These settings preserve one inference lane by default. Parallelism should increase only from measured need.
+
+## Pre-inference durable admission
+
+`preInferenceAdmission` is distinct from Ticket-first intake.
+
+- Ticket-first records eligible owner messages for continuity.
+- Pre-inference admission blocks duplicate conversational execution only when deterministic classification says the request already belongs in durable execution.
+
+Configuration:
+
+- `preInferenceAdmission`
+- `admissionMinimumScore`
+- `durableWorkerModel`
+
+The bridge excludes internal delivery/continuation/subagent turns from owner admission and retains idempotent workflow identity.
+
+## Durable workflow execution
+
+Normal durable work runs through the deterministic CogentNexus controller and configured worker provider. Executors produce candidates; validators/controller evidence determine PASS.
+
+Temporary clean-session TaskFlow/Codex rotation remains opt-in through `autoRotate`. It should not be enabled merely to make ordinary work more complex.
+
+## Cancellation
+
+Host-level commands can cancel a single Ticket or all non-terminal Tickets for an owner session. Cancellation is terminal and must fence later recovery.
+
+For workflow-level cancellation, the deterministic workflow controller records cancellation evidence and terminal completion delivery.
+
+## Experience / lesson store
+
+The optional SQLite Experience/Lesson store remains additive. Verified lessons may be retrieved as data; they are not executable policy and do not override user intent, authorization, controller state, or deterministic gates.
+
+Disable with:
+
+```text
+knowledgeEnabled = false
+```
+
+without disabling Ticket continuity.
+
+## External research
+
+External research storage is optional and bounded by query/source/size/time/freshness/corroboration budgets. Stored pages remain external observations and never become verified lessons automatically.
+
+Network access still requires an explicit provider/capability adapter.
+
+Disable with:
+
+```text
+externalResearchEnabled = false
+```
+
+without affecting local Ticket/workflow continuity.
+
+## PASSTHROUGH
+
+When `cnx disable` enters PASSTHROUGH:
+
+- CogentNexus startup ownership is disabled;
+- the managed workspace policy block is removed;
+- this plugin is disabled;
+- native OpenClaw is restarted/started;
+- durable CogentNexus state is preserved.
+
+Native OpenClaw must remain usable in this mode.
+
+## Build and validate
+
+```bash
+npm ci
+npm test
+npm run evaluation
+npm audit --omit=dev
+npm run plugin:validate
+```
+
+A Gateway restart is required after plugin installation/configuration changes.
+
+## Compatibility
+
+The technical peer dependency is intentionally broader than the current tested baseline. CogentNexus release/compatibility documentation defines the OpenClaw versions exercised end-to-end for a given release.

@@ -11,6 +11,7 @@ import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOu
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
+import { bindDeliveryRun, hasPendingDirectExecutionForSession, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
 
 type Handoff = {
   taskId: string;
@@ -31,6 +32,10 @@ type RotationConfig = {
   timeoutSeconds?: number;
   autoResume?: boolean;
   autoResumeDelayMs?: number;
+  directDeliverySettleMs?: number;
+  directDeliveryTimeoutMs?: number;
+  outboxDeliveryTimeoutMs?: number;
+  postCompactionResumeDelayMs?: number;
   autoRotate?: boolean;
   autoWorkflowCompletion?: boolean;
   completionPollMs?: number;
@@ -83,6 +88,8 @@ type WorkflowCompletion = {
   deliveryAttempts?: number;
   lastDeliveryAttemptAt?: string;
   lastDeliveryError?: string;
+  scheduledAt?: string;
+  deliveryRunId?: string;
 };
 
 function workflowRuntime(workspaceDir: string): string {
@@ -203,6 +210,7 @@ export function workflowCompletionTag(notice: WorkflowCompletion): string {
 
 export function completionMessage(notice: WorkflowCompletion): string {
   return [
+    workflowDeliveryMarker(notice.taskId, notice.stateRevision ?? 0),
     `CogentNexus workflow ${notice.taskId} reached terminal status ${notice.workflowStatus}.`,
     "Inspect the durable workflow state, ledger, validators, and artifact hashes now.",
     "If completed, consume the verified result and continue the recorded goal or report the compact outcome.",
@@ -211,7 +219,7 @@ export function completionMessage(notice: WorkflowCompletion): string {
   ].join("\n");
 }
 
-export function pendingWorkflowCompletions(workspaceDir: string): Array<{ path: string; notice: WorkflowCompletion }> {
+export function pendingWorkflowCompletions(workspaceDir: string, now = new Date(), retryAfterMs = 300_000): Array<{ path: string; notice: WorkflowCompletion }> {
   const base = resolve(workspaceDir, ".cogent", "workflows");
   if (!existsSync(base)) return [];
   const found: Array<{ path: string; notice: WorkflowCompletion }> = [];
@@ -221,47 +229,35 @@ export function pendingWorkflowCompletions(workspaceDir: string): Array<{ path: 
     if (!existsSync(path)) continue;
     try {
       const notice = JSON.parse(readFileSync(path, "utf8")) as WorkflowCompletion;
-      if (notice.schemaVersion === 1 && notice.taskId === entry.name && notice.deliveryStatus === "pending" &&
+      if (notice.schemaVersion === 1 && notice.taskId === entry.name && workflowDeliveryIsRetryable(notice, now, retryAfterMs) &&
           typeof notice.ownerSessionKey === "string" && notice.ownerSessionKey.length > 0) found.push({ path, notice });
     } catch { /* A partial or malformed outbox remains for operator inspection. */ }
   }
   return found;
 }
 
-function markCompletionDelivered(path: string, notice: WorkflowCompletion) {
-  const next = { ...notice, deliveryStatus: "delivered", deliveredAt: new Date().toISOString(), lastDeliveryError: undefined };
-  writeCompletion(path, next);
-}
-
-function writeCompletion(path: string, notice: WorkflowCompletion) {
-  const temporary = `${path}.${process.pid}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(notice, null, 2)}\n`, "utf8");
-  renameSync(temporary, path);
-}
-
 export async function deliverWorkflowCompletion(api: any, path: string, notice: WorkflowCompletion) {
-  notice = {...notice,deliveryAttempts:(notice.deliveryAttempts ?? 0)+1,lastDeliveryAttemptAt:new Date().toISOString(),lastDeliveryError:undefined};
-  writeCompletion(path, notice);
+  const scheduled = markWorkflowDeliveryScheduled(path, notice);
   try {
-  const tag = workflowCompletionTag(notice);
-  const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey: notice.ownerSessionKey });
-  const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/workflow" && flow.stateJson?.completionTag === tag);
-  if (!previous) {
-    const stateJson = { taskId:notice.taskId,workflowStatus:notice.workflowStatus,stateRevision:notice.stateRevision,completionTag:tag };
-    const flow = taskFlow.createManaged({controllerId:"cogentnexus/workflow",goal:`Continue after ${notice.taskId}`,currentStep:"terminal_result",stateJson});
-    const current = taskFlow.get(flow.flowId);
-    if (current?.syncMode === "managed") {
-      if (notice.workflowStatus === "completed") taskFlow.finish({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
-      else taskFlow.fail({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+    const tag = workflowCompletionTag(notice);
+    const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey: notice.ownerSessionKey });
+    const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/workflow" && flow.stateJson?.completionTag === tag);
+    if (!previous) {
+      const stateJson = { taskId:notice.taskId,workflowStatus:notice.workflowStatus,stateRevision:notice.stateRevision,completionTag:tag };
+      const flow = taskFlow.createManaged({controllerId:"cogentnexus/workflow",goal:`Continue after ${notice.taskId}`,currentStep:"terminal_result",stateJson});
+      const current = taskFlow.get(flow.flowId);
+      if (current?.syncMode === "managed") {
+        if (notice.workflowStatus === "completed") taskFlow.finish({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+        else taskFlow.fail({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
+      }
     }
-  }
-  await api.session.workflow.unscheduleSessionTurnsByTag({ sessionKey: notice.ownerSessionKey, tag });
-  await api.session.workflow.scheduleSessionTurn({sessionKey:notice.ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",
-    name:`CogentNexus workflow ${notice.taskId}`,tag,message:completionMessage(notice)});
-  markCompletionDelivered(path, notice);
+    await api.session.workflow.unscheduleSessionTurnsByTag({ sessionKey: notice.ownerSessionKey, tag });
+    await api.session.workflow.scheduleSessionTurn({sessionKey:notice.ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",
+      name:`CogentNexus workflow ${notice.taskId}`,tag,message:completionMessage(notice)});
+    return scheduled;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    writeCompletion(path, {...notice,deliveryStatus:"pending",lastDeliveryError:message.slice(0,2000)});
+    markWorkflowDeliveryScheduleFailed(path, scheduled, message);
     throw error;
   }
 }
@@ -272,16 +268,16 @@ export function ticketOutboxTag(item: TicketOutbox) {
 
 export async function deliverTicketOutbox(api: any, store: TicketStore, item: TicketOutbox) {
   const tag = ticketOutboxTag(item);
+  store.markOutboxScheduled(item.outboxId);
   try {
     await api.session.workflow.unscheduleSessionTurnsByTag({sessionKey:item.ownerSessionKey,tag});
     await api.session.workflow.scheduleSessionTurn({
       sessionKey:item.ownerSessionKey,delayMs:1000,deleteAfterRun:true,deliveryMode:"announce",
       name:`CogentNexus Ticket ${item.ticketId}`,tag,
-      message:[`CogentNexus Ticket ${item.ticketId} reached terminal status ${item.terminalStatus}.`,
+      message:[ticketDeliveryMarker(item.outboxId),`CogentNexus Ticket ${item.ticketId} reached terminal status ${item.terminalStatus}.`,
         "Inspect the committed Ticket, event history, result, and validators before reporting or continuing.",
         "Do not repeat external side effects and do not claim success from terminal state alone."].join("\n"),
     });
-    store.markOutboxDelivered(item.outboxId);
   } catch (error) {
     store.markOutboxFailed(item.outboxId,error instanceof Error ? error.message : String(error));
     throw error;
@@ -369,6 +365,35 @@ type ResumeWorkflow = {
     message: string;
   }): Promise<unknown>;
 };
+
+
+export async function schedulePostCompactionResume(input: {
+  sessionKey: string;
+  workspaceDir: string;
+  store: TicketStore;
+  delayMs?: number;
+  workflow: ResumeWorkflow;
+}): Promise<boolean> {
+  if (!hasPendingDirectExecutionForSession(input.store,input.sessionKey)) return false;
+  const tag=postCompactionResumeTag(input.sessionKey);
+  await input.workflow.unscheduleSessionTurnsByTag({sessionKey:input.sessionKey,tag});
+  await input.workflow.scheduleSessionTurn({
+    sessionKey:input.sessionKey,
+    delayMs:input.delayMs ?? 5000,
+    deleteAfterRun:true,
+    deliveryMode:"announce",
+    name:"CogentNexus post-compaction continuation",
+    tag,
+    message:[
+      "#cogent-direct",
+      "[CogentNexus Continuation: post-compaction]",
+      "Compaction completed while CogentNexus still has non-terminal work or unconfirmed delivery for this session.",
+      "Resume from the latest committed Ticket/workflow/handoff state; do not reconstruct discarded reasoning.",
+      "If the original run already continued or the work is now terminal, do not repeat the answer or any external side effect.",
+    ].join("\n"),
+  });
+  return true;
+}
 
 export async function scheduleInterruptedResume(input: {
   success: boolean;
@@ -488,17 +513,21 @@ const configSchema = Type.Object({
   timeoutSeconds: Type.Optional(Type.Integer({ minimum: 60, maximum: 86400 })),
   autoResume: Type.Optional(Type.Boolean({ description: "Schedule one durable continuation turn after a resumable interruption." })),
   autoResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000 })),
+  directDeliverySettleMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 60000, description: "Quiet period after fallback message_sent receipts before a direct Ticket is considered delivered." })),
+  directDeliveryTimeoutMs: Type.Optional(Type.Integer({ minimum: 10000, maximum: 3600000, description: "Maximum time a response-ready direct Ticket may remain without confirmed final delivery before durable recovery." })),
+  outboxDeliveryTimeoutMs: Type.Optional(Type.Integer({ minimum: 10000, maximum: 3600000, description: "Retry age for a scheduled terminal delivery that never receives a delivery receipt." })),
+  postCompactionResumeDelayMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 120000, description: "Delayed fallback continuation scheduled after successful compaction while durable work remains." })),
   autoRotate: Type.Optional(Type.Boolean({ description: "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default." })),
-  workspaceDir: Type.Optional(Type.String({ description: "Workspace containing .cogent/workflows completion outboxes." })),
+  workspaceDir: Type.Optional(Type.String({ description: "Workspace containing CogentNexus durable state and workflow completion outboxes." })),
   autoWorkflowCompletion: Type.Optional(Type.Boolean({ description: "Automatically wake the bound owner when a workflow reaches a terminal state." })),
   completionPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000 })),
-  enforcedMode: Type.Optional(Type.Boolean({ description: "Block conversational attempts to create unbound workflows or bind owner identity manually." })),
+  enforcedMode: Type.Optional(Type.Boolean({ description: "Enforce owner/session and managed workflow authority boundaries." })),
   preInferenceAdmission: Type.Optional(Type.Boolean({ description: "Route obvious durable owner requests before the selected conversational model receives the prompt." })),
   admissionMinimumScore: Type.Optional(Type.Integer({ minimum: 3, maximum: 20 })),
   durableWorkerModel: Type.Optional(Type.String({ description: "Ollama model used by automatically compiled bounded workflow components." })),
-  ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner command to SQLite before inference. Disabled by default during Phase 0." })),
+  ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default." })),
   ticketDatabasePath: Type.Optional(Type.String({ description: "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime." })),
-  ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease scan interval." })),
+  ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease recovery scan interval." })),
   ticketOutboxPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Terminal Ticket delivery interval." })),
   ticketDispatchPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Bounded Ticket dispatch interval." })),
   ticketDispatchLimit: Type.Optional(Type.Integer({ minimum: 1, maximum: 32, description: "Maximum Tickets claimed per dispatch tick." })),
@@ -513,8 +542,8 @@ const configSchema = Type.Object({
 
 const entry = defineToolPlugin({
   id: "cogentnexus-rotation",
-  name: "CogentNexus Rotation Controller",
-  description: "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
+  name: "CogentNexus OpenClaw Bridge",
+  description: "Ticket-first OpenClaw bridge for CogentNexus Host-managed continuity, durable execution, recovery, context handoff, and verified delivery.",
   configSchema,
   tools: (tool) => [tool({
     name: "cogent_rotation",
@@ -658,8 +687,59 @@ entry.register = (api) => {
   registerTools?.(api);
   const config = (api.pluginConfig ?? {}) as RotationConfig;
   const scheduledRuns = new Set<string>();
+  const deliveryTargets = new Map<string,DeliveryTarget>();
+  const runWorkspaces = new Map<string,string>();
+  const runSessions = new Map<string,string>();
+  const ticketedRuns = new Set<string>();
+  const dispatcherObservedRuns = new Set<string>();
+  const deliveryTimers = new Map<string,ReturnType<typeof setTimeout>>();
+  const earlyDeliveryReceipts = new Map<string,{success:boolean;error?:string}>();
+  const cleanupRunDelivery = (runId:string) => {
+    deliveryTargets.delete(runId);
+    runWorkspaces.delete(runId);
+    runSessions.delete(runId);
+    ticketedRuns.delete(runId);
+    dispatcherObservedRuns.delete(runId);
+    earlyDeliveryReceipts.delete(runId);
+  };
+  const settleRunDelivery = (runId:string,success:boolean,error?:string) => {
+    const timer=deliveryTimers.get(runId); if(timer){clearTimeout(timer);deliveryTimers.delete(runId);}
+    const workspaceDir=resolve(runWorkspaces.get(runId) ?? config.workspaceDir ?? process.cwd());
+    const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+    const target=deliveryTargets.get(runId);
+    const directResult=success ? store.confirmDirectDelivery({runId}) : store.failDirectDelivery({runId,message:error});
+    if(target) settleDeliveryTarget({workspaceDir,store,target,success,error});
+    if(!target && directResult === "unchanged" && ticketedRuns.has(runId)) {
+      earlyDeliveryReceipts.set(runId,{success,error});
+      return;
+    }
+    cleanupRunDelivery(runId);
+  };
   api.on("before_tool_call", (event, ctx) => enforcementDecision(event.toolName, event.params, ctx.sessionKey, config.enforcedMode !== false), { priority: 1000 });
   if (config.preInferenceAdmission !== false) api.on("before_agent_run", (event, ctx) => {
+    const currentRunId=ctx.runId;
+    const currentWorkspace=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
+    if(currentRunId){runWorkspaces.set(currentRunId,currentWorkspace);if(ctx.sessionKey)runSessions.set(currentRunId,ctx.sessionKey);}
+    const deliveryTarget=parseDeliveryMarker(event.prompt);
+    if(deliveryTarget){
+      if(currentRunId){
+        const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
+        if(bindDeliveryRun({workspaceDir:currentWorkspace,store,target:deliveryTarget,runId:currentRunId})) deliveryTargets.set(currentRunId,deliveryTarget);
+      }
+      return {outcome:"pass"};
+    }
+    if(event.prompt.includes("[CogentNexus Continuation: post-compaction]") && ctx.sessionKey){
+      const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
+      const promoted=store.promotePendingDirectForSession({sessionKey:ctx.sessionKey});
+      if(promoted) return {
+        outcome:"block",
+        reason:"post-compaction guard promoted the unfinished direct Ticket to durable recovery",
+        category:"cogentnexus_post_compaction_recovery",
+        metadata:{ticketId:promoted.ticketId,runId:promoted.runId},
+        message:`CogentNexus resumed committed Ticket ${promoted.ticketId} after history compaction. Durable recovery is continuing automatically; the original request does not need to be sent again.`,
+      };
+      return {outcome:"pass"};
+    }
     // Trigger names vary by channel/dispatch path (for example WebChat and
     // sessions_send do not consistently report "user"). Trust the resolved
     // owner bit and canonical session shape instead; classifier exclusions
@@ -672,12 +752,14 @@ entry.register = (api) => {
       const workspaceDir = ctx.workspaceDir ?? process.cwd();
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       ticketStore = new TicketStore(databasePath);
+      const ticketRunId=ctx.runId ?? randomUUID();
       acceptedTicket = ticketStore.accept({
-        runId:ctx.runId ?? randomUUID(),
+        runId:ticketRunId,
         ownerSessionKey,
         prompt:event.prompt,
         maxAttempts:config.ticketMaximumAttempts,
       });
+      ticketedRuns.add(ticketRunId);
     }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
@@ -707,10 +789,58 @@ entry.register = (api) => {
       message:`CogentNexus ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
   }, { priority: 2000, timeoutMs: 30_000 });
+  if (config.ticketFirst === true) api.on("reply_dispatch", (event, ctx) => {
+    const runId=event.runId;
+    if(!runId || !ctx.dispatcher.appendBeforeDeliver) return;
+    let started=false;
+    ctx.dispatcher.appendBeforeDeliver((payload,info)=>{
+      if(info.kind==="final" && !started){
+        started=true; dispatcherObservedRuns.add(runId);
+        queueMicrotask(()=>{void (async()=>{
+          try {
+            await ctx.dispatcher.waitForIdle();
+            const failed=ctx.dispatcher.getFailedCounts().final;
+            const cancelled=ctx.dispatcher.getCancelledCounts?.().final ?? 0;
+            settleRunDelivery(runId,failed===0 && cancelled===0,failed>0?`final delivery failed count=${failed}`:cancelled>0?`final delivery cancelled count=${cancelled}`:undefined);
+          } catch(error) { settleRunDelivery(runId,false,error instanceof Error?error.message:String(error)); }
+        })();});
+      }
+      return payload;
+    });
+  }, { priority: 500 });
+
+  if (config.ticketFirst === true) api.on("message_sent", (event, ctx) => {
+    const sessionKey=event.sessionKey ?? ctx.sessionKey;
+    let runId=event.runId;
+    if(!runId && sessionKey){
+      const candidates=[...runSessions.entries()].filter(([,key])=>key===sessionKey);
+      runId=candidates.at(-1)?.[0];
+    }
+    if(!runId || dispatcherObservedRuns.has(runId)) return;
+    const previous=deliveryTimers.get(runId); if(previous) clearTimeout(previous);
+    if(!event.success){settleRunDelivery(runId,false,event.error ?? "message_sent reported failure");return;}
+    const timer=setTimeout(()=>settleRunDelivery(runId!,true),config.directDeliverySettleMs ?? 15000);
+    timer.unref?.(); deliveryTimers.set(runId,timer);
+  }, { priority: 50 });
+
+  if (config.autoResume !== false && config.ticketFirst === true) api.on("after_compaction", async (_event, ctx) => {
+    if(!ctx.sessionKey) return;
+    const workspaceDir=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
+    const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+    try {
+      await schedulePostCompactionResume({sessionKey:ctx.sessionKey,workspaceDir,store,delayMs:config.postCompactionResumeDelayMs,workflow:api.session.workflow});
+    } catch(error) { api.logger.warn(`CogentNexus post-compaction continuation scheduling failed: ${error instanceof Error?error.message:String(error)}`); }
+  }, { priority: 100, timeoutMs: 10_000 });
+
   if (config.autoResume !== false || config.autoRotate === true || config.ticketFirst === true) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
     const sessionKey = ctx.sessionKey;
-    await scheduleInterruptedResume({
+    if(sessionKey) {
+      try { await api.session.workflow.unscheduleSessionTurnsByTag({sessionKey,tag:postCompactionResumeTag(sessionKey)}); }
+      catch(error) { api.logger.warn(`CogentNexus post-compaction guard cleanup failed: ${error instanceof Error?error.message:String(error)}`); }
+    }
+    const internalDelivery=Boolean(runId && deliveryTargets.has(runId));
+    if(!internalDelivery) await scheduleInterruptedResume({
       success: event.success,
       error: event.error,
       runId,
@@ -721,8 +851,22 @@ entry.register = (api) => {
     });
     if (config.ticketFirst === true && runId) {
       try {
-        const workspaceDir=ctx.workspaceDir??process.cwd(),store=new TicketStore(config.ticketDatabasePath??defaultTicketDatabase(workspaceDir));
-        store.finalizeDirectRun({runId,success:event.success,interrupted:isResumableInterruption(event.success,event.error),message:event.error??""});
+        const workspaceDir=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
+        const store=new TicketStore(config.ticketDatabasePath??defaultTicketDatabase(workspaceDir));
+        runWorkspaces.set(runId,workspaceDir); if(sessionKey)runSessions.set(runId,sessionKey);
+        const visible=hasVisibleAssistantOutput(event.messages);
+        const directState=store.finalizeDirectRun({runId,success:event.success,interrupted:isResumableInterruption(event.success,event.error),message:event.error??"",expectsDelivery:visible});
+        const earlyReceipt=earlyDeliveryReceipts.get(runId);
+        if(!event.success){
+          const timer=deliveryTimers.get(runId);if(timer)clearTimeout(timer);deliveryTimers.delete(runId);
+          earlyDeliveryReceipts.delete(runId);
+          if(internalDelivery)settleRunDelivery(runId,false,event.error??"delivery run interrupted");
+          else cleanupRunDelivery(runId);
+        } else if(internalDelivery && !visible) settleRunDelivery(runId,false,"delivery continuation produced no visible assistant output");
+        else if(directState === "awaiting_delivery" && earlyReceipt){
+          earlyDeliveryReceipts.delete(runId);
+          settleRunDelivery(runId,earlyReceipt.success,earlyReceipt.error);
+        } else if(!visible || directState === "unchanged") cleanupRunDelivery(runId);
       } catch(error) { api.logger.warn(`CogentNexus direct Ticket finalization failed: ${error instanceof Error?error.message:String(error)}`); }
     }
     if (event.success && config.autoRotate === true && sessionKey) {
@@ -747,7 +891,7 @@ entry.register = (api) => {
           if (active) return;
           active = true;
           try {
-            for (const item of pendingWorkflowCompletions(workspaceDir)) {
+            for (const item of pendingWorkflowCompletions(workspaceDir,new Date(),config.outboxDeliveryTimeoutMs ?? 300000)) {
               try { await deliverWorkflowCompletion(api, item.path, item.notice); }
               catch (error) { api.logger.warn(`CogentNexus workflow completion delivery failed for ${item.notice.taskId}: ${error instanceof Error ? error.message : String(error)}`); }
             }
@@ -772,12 +916,14 @@ entry.register = (api) => {
           if (active) return;
           active = true;
           try {
+            const undelivered=store.recoverUndeliveredDirect({olderThanMs:config.directDeliveryTimeoutMs ?? 120000});
+            for (const item of undelivered) api.logger.warn(`CogentNexus promoted unconfirmed direct delivery ${item.ticketId} (${item.runId}) to durable recovery`);
             const recovered = store.recoverExpired();
             for (const item of recovered) api.logger.warn(`CogentNexus recovered expired Ticket ${item.ticketId} from worker ${item.previousWorkerId ?? "unknown"} generation ${item.previousLeaseGeneration}`);
             for (const item of reconcileTicketWorkflows({workspaceDir,store,config})) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} workflow action ${item.action}`);
             const dispatched = dispatchTicketWorkflows({workspaceDir,store,config});
             if (!dispatched.admission.admitted) api.logger.info?.(`CogentNexus Ticket dispatch deferred: ${dispatched.admission.reasons.join(",")}`);
-            for (const item of store.pendingOutbox()) {
+            for (const item of store.pendingOutbox(100,new Date(),config.outboxDeliveryTimeoutMs ?? 300000)) {
               try { await deliverTicketOutbox(api,store,item); }
               catch (error) { api.logger.warn(`CogentNexus Ticket completion delivery failed for ${item.ticketId}: ${error instanceof Error ? error.message : String(error)}`); }
             }

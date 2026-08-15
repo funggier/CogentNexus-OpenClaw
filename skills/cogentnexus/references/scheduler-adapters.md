@@ -1,20 +1,35 @@
 # Scheduler Adapters
 
-Keep supervision logic portable and use the native scheduler only as a trigger.
+Native schedulers are **triggers only**. They must not own recovery policy and must not bypass Host operating mode.
 
-- Windows: Task Scheduler every minute, allowed on battery power, with bounded restart-on-failure. The supervisor's own confirmation, cooldown, budget, and circuit breaker prevent restart storms.
-- Ubuntu and Linux: systemd user oneshot service and timer.
+For v0.8 managed installations, automatic periodic execution should enter through the CogentNexus Host supervisor path. The Host first checks MANAGED / PASSTHROUGH / MAINTENANCE and desired runtime state; only then may it invoke lower-level runtime supervision.
+
+Supported adapters:
+
+- Windows: Task Scheduler using hidden `pythonw.exe` execution at user logon/periodic trigger.
+- Linux: systemd user service/timer.
 - macOS: launchd LaunchAgent.
 - Minimal Unix: cron fallback.
-- Docker Compose: healthcheck and restart policy.
-- Kubernetes: exec liveness/readiness probes.
-- OpenClaw cron: notifications or task resumption only; it cannot reliably resurrect a stopped Gateway.
+- Docker Compose / Kubernetes: container-native health/restart/probe adapters where applicable.
+- OpenClaw cron: useful for notifications/task scheduling but not authoritative for resurrecting a stopped Gateway because it lives inside the managed application boundary.
 
-Render templates with:
+Low-level template rendering remains available:
 
-    python skills/cogentnexus/scripts/runtime.py scheduler detect
-    python skills/cogentnexus/scripts/runtime.py scheduler render --backend systemd
+```text
+python skills/cogentnexus/scripts/runtime.py scheduler detect
+python skills/cogentnexus/scripts/runtime.py scheduler render --backend systemd
+```
 
-Back up native scheduler configuration before installation or replacement. Installation and removal change system configuration and require explicit authority. Use absolute paths, non-interactive execution, overlap prevention, bounded runtime, and rollback evidence.
+## Adapter invariants
 
-Background execution is invariant across adapters. Windows child commands use `CREATE_NO_WINDOW`; POSIX child commands start in a new session. systemd disconnects stdin and writes diagnostics to the journal, launchd declares a background process type, cron detaches standard streams, and container templates explicitly disable stdin and TTY allocation. Runtime evidence remains available in the CogentNexus ledger even where scheduler output is discarded.
+- use absolute paths and non-interactive execution;
+- prevent overlapping supervisor instances;
+- bound runtime/retry behavior;
+- persist operator intent before lifecycle action;
+- PASSTHROUGH performs no CogentNexus recovery;
+- MAINTENANCE performs no managed restart;
+- periodic scheduler processes perform no LLM inference;
+- controller/workflow children use leases/generations for ownership;
+- preserve rollback/configuration evidence for scheduler installation/removal.
+
+Windows child commands use `CREATE_NO_WINDOW`; POSIX detached children use session/background semantics appropriate to the adapter. Diagnostics may go to platform logs, but durable runtime/workflow evidence remains under `.cogent`.

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 TASK="CogentNexus Supervisor"
+LAUNCHD_LABEL="ai.cogentnexus.supervisor"
 HERE=Path(__file__).resolve()
 SKILL=HERE.parents[1]
 WORKSPACE=SKILL.parents[1]
@@ -31,6 +32,7 @@ def ps(script):
     exe=shutil.which("powershell.exe") or shutil.which("powershell")
     if not exe: raise RuntimeError("PowerShell not found")
     return run([exe,"-NoProfile","-NonInteractive","-Command",script])
+
 def win_status():
     r=ps(f"$t=Get-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue;if(!$t){{exit 3}};$i=Get-ScheduledTaskInfo -TaskName '{TASK}';[pscustomobject]@{{State=[string]$t.State;Enabled=$t.Settings.Enabled;Execute=$t.Actions.Execute;Arguments=$t.Actions.Arguments;Hidden=$t.Settings.Hidden;LastTaskResult=$i.LastTaskResult;NextRunTime=$i.NextRunTime}}|ConvertTo-Json -Compress")
     if r.returncode==3:return {"installed":False}
@@ -53,15 +55,13 @@ def win_enable(root):
     for k,v in values.items():template=template.replace(k,v)
     definition=root/"runtime"/"cogentnexus-supervisor.xml";definition.parent.mkdir(parents=True,exist_ok=True)
     write_windows_definition(definition,template)
-    if before.get("installed"):
-        run(["schtasks.exe","/End","/TN",TASK])
+    if before.get("installed"): run(["schtasks.exe","/End","/TN",TASK])
     r=run(["schtasks.exe","/Create","/TN",TASK,"/XML",str(definition),"/F"])
     if r.returncode:raise RuntimeError(r.stderr.strip() or r.stdout.strip())
     r=run(["schtasks.exe","/Run","/TN",TASK])
     if r.returncode:raise RuntimeError(r.stderr.strip() or r.stdout.strip())
     time.sleep(4)
-    state=win_status()
-    expected=str(python_background()).lower()
+    state=win_status(); expected=str(python_background()).lower()
     if not state.get("installed") or str(state.get("Execute","")).lower()!=expected or not state.get("Hidden"):
         raise RuntimeError("background task verification failed")
     return {"result":"updated" if before.get("installed") else "installed","backup":backup,"adapter":state,"mode":"hidden-background-logon"}
@@ -70,38 +70,86 @@ def win_disable(root):
     r=run(["schtasks.exe","/Delete","/TN",TASK,"/F"])
     if r.returncode and win_status().get("installed"):raise RuntimeError(r.stderr.strip() or r.stdout.strip())
     return {"result":"disabled","backup":backup,"adapter":win_status()}
+
 def systemd_paths():
     d=Path.home()/".config/systemd/user"
     return d/"cogentnexus-supervisor.service",d/"cogentnexus-supervisor.timer"
-def unix_status():
+def systemd_status():
     service,timer=systemd_paths()
     return {"installed":service.exists() and timer.exists(),"service":str(service),"timer":str(timer)}
-def unix_enable(root):
-    if sys.platform=="darwin":raise RuntimeError("launchd adapter is not yet packaged")
-    if not shutil.which("systemctl"):raise RuntimeError("no supported native startup manager")
+def systemd_enable(root):
+    if not shutil.which("systemctl"):raise RuntimeError("no supported systemd user manager")
     service,timer=systemd_paths();service.parent.mkdir(parents=True,exist_ok=True)
     service.write_text(f"[Unit]\nDescription=CogentNexus hidden background supervisor\n[Service]\nType=oneshot\nExecStart={sys.executable} {HERE.with_name('host.py')} --root {root} supervisor tick --execute-safe\nStandardInput=null\n",encoding="utf-8")
     timer.write_text("[Unit]\nDescription=CogentNexus every minute\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=1min\nPersistent=true\n[Install]\nWantedBy=timers.target\n",encoding="utf-8")
     for cmd in (["systemctl","--user","daemon-reload"],["systemctl","--user","enable","--now",timer.name]):
         r=run(cmd)
         if r.returncode:raise RuntimeError(r.stderr.strip())
-    return {"result":"enabled","adapter":unix_status(),"mode":"systemd-user"}
-def unix_disable(root):
+    return {"result":"enabled","adapter":systemd_status(),"mode":"systemd-user"}
+def systemd_disable(root):
     service,timer=systemd_paths()
     if shutil.which("systemctl"):run(["systemctl","--user","disable","--now",timer.name])
     service.unlink(missing_ok=True);timer.unlink(missing_ok=True)
-    return {"result":"disabled","adapter":unix_status()}
+    return {"result":"disabled","adapter":systemd_status()}
+
+def launchd_path(): return Path.home()/"Library/LaunchAgents"/f"{LAUNCHD_LABEL}.plist"
+def launchd_domain(): return f"gui/{os.getuid()}"
+def launchd_service(): return f"{launchd_domain()}/{LAUNCHD_LABEL}"
+def launchd_loaded():
+    if not shutil.which("launchctl"): return False
+    return run(["launchctl","print",launchd_service()],timeout=20).returncode==0
+def launchd_status():
+    p=launchd_path()
+    return {"installed":p.exists(),"loaded":launchd_loaded(),"plist":str(p),"label":LAUNCHD_LABEL}
+def backup_launchd(root):
+    p=launchd_path()
+    if not p.exists(): return None
+    d=root/"runtime"/"startup-backups";d.mkdir(parents=True,exist_ok=True)
+    q=d/(datetime.now().strftime("%Y%m%d-%H%M%S")+"-launchd.plist")
+    shutil.copy2(p,q); return str(q)
+def launchd_enable(root):
+    if not shutil.which("launchctl"):raise RuntimeError("launchctl not found")
+    before=launchd_status(); backup=backup_launchd(root)
+    template=(SKILL/"templates"/"supervisor"/"ai.cogentnexus.supervisor.plist").read_text(encoding="utf-8")
+    values={"{{PYTHON}}":str(sys.executable),"{{RUNTIME}}":str(HERE.with_name("host.py")),"{{ROOT}}":str(root)}
+    for k,v in values.items():template=template.replace(k,v)
+    p=launchd_path();p.parent.mkdir(parents=True,exist_ok=True);p.write_text(template,encoding="utf-8")
+    if before.get("loaded"): run(["launchctl","bootout",launchd_service()],timeout=30)
+    r=run(["launchctl","bootstrap",launchd_domain(),str(p)],timeout=30)
+    if r.returncode:raise RuntimeError(r.stderr.strip() or r.stdout.strip() or "launchctl bootstrap failed")
+    run(["launchctl","kickstart","-k",launchd_service()],timeout=30)
+    time.sleep(1)
+    state=launchd_status()
+    if not state.get("installed") or not state.get("loaded"):raise RuntimeError("launchd supervisor verification failed")
+    return {"result":"updated" if before.get("installed") else "installed","backup":backup,"adapter":state,"mode":"launchd-user"}
+def launchd_disable(root):
+    backup=backup_launchd(root)
+    if launchd_loaded(): run(["launchctl","bootout",launchd_service()],timeout=30)
+    launchd_path().unlink(missing_ok=True)
+    return {"result":"disabled","backup":backup,"adapter":launchd_status()}
+
 def status():
-    return win_status() if os.name=="nt" else unix_status()
+    if os.name=="nt": return win_status()
+    if sys.platform=="darwin": return launchd_status()
+    return systemd_status()
+def enable_adapter(root):
+    if os.name=="nt": return win_enable(root)
+    if sys.platform=="darwin": return launchd_enable(root)
+    return systemd_enable(root)
+def disable_adapter(root):
+    if os.name=="nt": return win_disable(root)
+    if sys.platform=="darwin": return launchd_disable(root)
+    return systemd_disable(root)
+
 def command(args):
     root=Path(args.root).resolve();p=load_policy(root).get("policy","unset")
     if args.action=="status":emit({"policy":p,"adapter":status(),"background":True});return
     if args.action=="enable":
-        result=win_enable(root) if os.name=="nt" else unix_enable(root);save_policy(root,"enabled");emit({"policy":"enabled",**result});return
+        result=enable_adapter(root);save_policy(root,"enabled");emit({"policy":"enabled",**result});return
     if args.action=="disable":
-        result=win_disable(root) if os.name=="nt" else unix_disable(root);save_policy(root,"disabled");emit({"policy":"disabled",**result});return
+        result=disable_adapter(root);save_policy(root,"disabled");emit({"policy":"disabled",**result});return
     if p=="enabled":
-        result=win_enable(root) if os.name=="nt" else unix_enable(root);emit({"policy":"enabled",**result});return
+        result=enable_adapter(root);emit({"policy":"enabled",**result});return
     emit({"policy":p,"result":"disabled" if p=="disabled" else "choice-required","adapter":status()})
 def main():
     p=argparse.ArgumentParser();p.add_argument("--root",default=str(DEFAULT_ROOT));p.add_argument("action",choices=["status","enable","disable","ensure"]);a=p.parse_args()

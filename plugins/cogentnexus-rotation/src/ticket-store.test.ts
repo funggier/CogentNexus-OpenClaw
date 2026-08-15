@@ -26,11 +26,13 @@ describe("TicketStore", () => {
     const second = store.accept({runId:"same-run",ownerSessionKey:"owner",prompt:"command"});
     expect(second.ticketId).toBe(first.ticketId);
     expect(second.duplicate).toBe(true);
-    rmSync(root, {recursive:true,force:true});
+    rmSync(root,{recursive:true,force:true});
   });
 
-  it("does not ticket internal continuation messages", () => {
+  it("does not ticket internal continuation and delivery messages", () => {
     expect(ticketIntakeEligible("The previous run was interrupted. Resume automatically")).toBe(false);
+    expect(ticketIntakeEligible("[CogentNexus Delivery: ticket:7]\nDeliver the committed result")).toBe(false);
+    expect(ticketIntakeEligible("[CogentNexus Continuation: post-compaction]\nResume committed work")).toBe(false);
     expect(ticketIntakeEligible("ช่วยสรุปเรื่องนี้")).toBe(true);
   });
 
@@ -39,19 +41,72 @@ describe("TicketStore", () => {
     const path = join(root, "not-a-database.sqlite3");
     writeFileSync(path, "this is not sqlite", "utf8");
     expect(() => new TicketStore(path).accept({runId:"run-2",ownerSessionKey:"owner",prompt:"must persist"})).toThrow();
-    rmSync(root, {recursive:true,force:true});
+    rmSync(root,{recursive:true,force:true});
   });
 
-  it("closes successful direct Tickets and promotes interrupted direct work to durable recovery", () => {
-    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-direct-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
-    const done=store.accept({runId:"direct-ok",ownerSessionKey:"owner",prompt:"simple work"}); store.route(done.ticketId,false);
-    expect(store.finalizeDirectRun({runId:"direct-ok",success:true,interrupted:false})).toBe("completed");
-    const interrupted=store.accept({runId:"direct-stop",ownerSessionKey:"owner",prompt:"create several related files"}); store.route(interrupted.ticketId,false);
+  it("keeps a successful direct Ticket response-ready until delivery is confirmed", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-direct-delivery-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    const ticket=store.accept({runId:"direct-ok",ownerSessionKey:"owner",prompt:"simple work"});
+    store.route(ticket.ticketId,false);
+    expect(store.finalizeDirectRun({runId:"direct-ok",success:true,interrupted:false,expectsDelivery:true,now:new Date("2026-08-15T00:00:00.000Z")})).toBe("awaiting_delivery");
+
+    let db=new DatabaseSync(path,{readOnly:true});
+    const ready=db.prepare("SELECT status,response_ready_at,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any;
+    expect(ready.status).toBe("accepted");
+    expect(ready.response_ready_at).toBe("2026-08-15T00:00:00.000Z");
+    expect(ready.delivery_confirmed_at).toBeNull();
+    expect((db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id").all(ticket.ticketId) as any[]).map(x=>x.event_type))
+      .toEqual(["accepted","routed","response_ready"]);
+    db.close();
+
+    expect(store.confirmDirectDelivery({runId:"direct-ok",now:new Date("2026-08-15T00:00:05.000Z")})).toBe("completed");
+    db=new DatabaseSync(path,{readOnly:true});
+    const delivered=db.prepare("SELECT status,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any;
+    expect(delivered).toEqual({status:"completed",delivery_confirmed_at:"2026-08-15T00:00:05.000Z"});
+    expect((db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id").all(ticket.ticketId) as any[]).map(x=>x.event_type))
+      .toEqual(["accepted","routed","response_ready","delivery_confirmed","completed"]);
+    db.close();
+    rmSync(root,{recursive:true,force:true});
+  });
+
+  it("promotes interrupted direct work to durable recovery", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-direct-interrupt-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    const interrupted=store.accept({runId:"direct-stop",ownerSessionKey:"owner",prompt:"create several related files"});
+    store.route(interrupted.ticketId,false);
     expect(store.finalizeDirectRun({runId:"direct-stop",success:false,interrupted:true,message:"operation aborted"})).toBe("waiting");
     expect(store.ready().map(x=>x.ticketId)).toEqual([interrupted.ticketId]);
     const db=new DatabaseSync(path,{readOnly:true});
-    expect(db.prepare("SELECT status,failure_class,workflow_eligible FROM tickets WHERE ticket_id=?").get(interrupted.ticketId)).toEqual({status:"waiting",failure_class:"interrupted",workflow_eligible:1});
-    expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(done.ticketId)).toEqual({status:"completed"}); db.close(); rmSync(root,{recursive:true,force:true});
+    expect(db.prepare("SELECT status,failure_class,workflow_eligible FROM tickets WHERE ticket_id=?").get(interrupted.ticketId))
+      .toEqual({status:"waiting",failure_class:"interrupted",workflow_eligible:1});
+    db.close();
+    rmSync(root,{recursive:true,force:true});
+  });
+
+  it("promotes a response-ready Ticket when final delivery fails", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-delivery-fail-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    const ticket=store.accept({runId:"partial-output",ownerSessionKey:"owner",prompt:"write a long answer"});
+    store.route(ticket.ticketId,false);
+    expect(store.finalizeDirectRun({runId:"partial-output",success:true,interrupted:false,expectsDelivery:true})).toBe("awaiting_delivery");
+    expect(store.failDirectDelivery({runId:"partial-output",message:"final reply interrupted after partial output"})).toBe("waiting");
+    const db=new DatabaseSync(path,{readOnly:true});
+    expect(db.prepare("SELECT status,workflow_eligible,failure_class,delivery_last_error FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+      .toEqual({status:"waiting",workflow_eligible:1,failure_class:"interrupted",delivery_last_error:"final reply interrupted after partial output"});
+    expect((db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id").all(ticket.ticketId) as any[]).map(x=>x.event_type))
+      .toEqual(["accepted","routed","response_ready","direct_delivery_failed"]);
+    db.close(); rmSync(root,{recursive:true,force:true});
+  });
+
+  it("recovers a response-ready Ticket only after the delivery receipt deadline", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-delivery-timeout-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    const ticket=store.accept({runId:"receipt-timeout",ownerSessionKey:"owner",prompt:"long answer"});
+    store.route(ticket.ticketId,false);
+    store.finalizeDirectRun({runId:"receipt-timeout",success:true,interrupted:false,expectsDelivery:true,now:new Date("2026-08-15T00:00:00.000Z")});
+    expect(store.recoverUndeliveredDirect({now:new Date("2026-08-15T00:00:20.000Z"),olderThanMs:30_000})).toEqual([]);
+    expect(store.recoverUndeliveredDirect({now:new Date("2026-08-15T00:00:31.000Z"),olderThanMs:30_000})).toEqual([{ticketId:ticket.ticketId,runId:"receipt-timeout"}]);
+    const db=new DatabaseSync(path,{readOnly:true});
+    expect(db.prepare("SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+      .toEqual({status:"waiting",workflow_eligible:1,failure_class:"interrupted"});
+    db.close(); rmSync(root,{recursive:true,force:true});
   });
 
   it("claims once and advances a generation after lease recovery", () => {
