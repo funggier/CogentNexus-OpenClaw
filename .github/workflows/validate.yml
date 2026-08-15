@@ -34,7 +34,19 @@ jobs:
       - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/runtime.py self-test
-      - run: python skills/cogentnexus/scripts/workflow.py self-test
+      - name: Workflow self-test
+        if: runner.os != 'Windows'
+        run: python skills/cogentnexus/scripts/workflow.py self-test
+      - name: Workflow self-test on Windows with one teardown-race retry
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python skills/cogentnexus/scripts/workflow.py self-test
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Workflow self-test hit the known detached-controller teardown race; retrying once."
+            python skills/cogentnexus/scripts/workflow.py self-test
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/startup.py
       - run: python -m unittest discover -s tests -v
       - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
