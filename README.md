@@ -2,7 +2,7 @@
 
 CogentNexus is a **durable host control layer for OpenClaw**.
 
-It keeps accepted user work outside the lifetime of any one LLM call, OpenClaw session, Gateway process, or machine uptime. In managed mode, messages can be committed to a lightweight durable Ticket before inference; deterministic supervision can then recover eligible work after interruption without forcing every request into a heavyweight workflow.
+It keeps accepted user work outside the lifetime of any one LLM call, OpenClaw session, Gateway process, delivery attempt, context compaction, or machine uptime. In managed mode, messages can be committed to a lightweight durable Ticket before inference; deterministic supervision can then recover eligible work after interruption without forcing every request into a heavyweight workflow.
 
 > **Continuity invariant:** once an eligible user message is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with evidence.
 
@@ -32,13 +32,18 @@ Request lane
       |
       v
 LLM / tools / validators / reviewers
+      |
+      v
+Delivery Commit Gate
+  RESPONSE_READY -> DELIVERY_CONFIRMED
 ```
 
-The architecture intentionally separates three concerns:
+The architecture intentionally separates four concerns:
 
 1. **Continuity** — Host/Ticket state keeps accepted work from disappearing.
 2. **Execution depth** — the lightest reliable lane is chosen before heavy workflow machinery is loaded.
 3. **Verification** — consequential durable work advances only from measured evidence and bounded controller state.
+4. **Delivery/context continuity** — visible replies are not completed until delivery settles, and successful history compaction does not silently abandon durable work.
 
 A greeting such as `สวัสดีครับ` may therefore have a durable Ticket and still receive a normal lightweight DIRECT reply.
 
@@ -62,6 +67,10 @@ See [docs/BASELINE.md](docs/BASELINE.md) for the canonical v0.8 architecture and
 - MANAGED / PASSTHROUGH / MAINTENANCE ownership semantics;
 - Gateway/provider lifecycle control with deliberate-stop fencing;
 - recovery of committed direct Tickets after confirmed Gateway interruption;
+- **Delivery Commit Gate** separating model success from complete user-visible delivery;
+- recovery of partial, failed, cancelled, or unconfirmed reply delivery;
+- receipt-aware terminal Ticket/workflow outboxes that stay pending until the marked delivery turn settles;
+- **Post-Compaction Continuation Guard** for successful compaction that leaves durable work pending;
 - Ticket and session cancellation with terminal fencing;
 - automatic continuation of eligible committed work after restart/reboot;
 - atomic revisioned task state, checkpoint/resume/commit/rollback;
@@ -95,8 +104,9 @@ Detailed guides:
 
 - [English installation guide](docs/INSTALL.md)
 - [คู่มือติดตั้ง Windows แบบจับมือทำ (ภาษาไทย)](docs/INSTALL.th.md)
+- [คู่มือทดสอบ interruption, partial reply, compaction และ reboot แบบจับมือทำ](docs/CONTINUITY_TESTS.th.md)
 
-A normal Windows installation validates the package, installs the skill/plugin and bounded workspace policy, initializes Host state, enables Ticket-first managed settings, creates `cnx.cmd`, enables the hidden Host supervisor, reconciles Gateway/provider state, and verifies health.
+A normal Windows installation validates the package, installs the skill/plugin and bounded workspace policy, initializes Host state, enables Ticket-first managed settings and the conversation hooks required for delivery/compaction receipts, creates `cnx.cmd`, enables the hidden Host supervisor, reconciles Gateway/provider state, and verifies health.
 
 ## Everyday control
 
@@ -121,6 +131,7 @@ From the OpenClaw workspace on Windows:
 
 ```sh
 python -m pip install -r requirements-dev.txt
+python scripts/check_baseline_consistency.py
 python skills/cogentnexus/scripts/validate.py --workspace-singleton
 python skills/cogentnexus/scripts/cogent.py self-test
 python skills/cogentnexus/scripts/runtime.py self-test
@@ -141,7 +152,7 @@ skills/cogentnexus/     policy, references, deterministic runtime
 plugins/                OpenClaw bridge / Ticket integration
 scripts/                installers and packaging helpers
 tests/                  baseline and Host/runtime tests
-docs/                   canonical architecture, install guides, release history
+docs/                   canonical architecture, install guides, recovery tests, release history
 ```
 
 Runtime state lives under the OpenClaw workspace `.cogent/` directory and is intentionally excluded from version control.
