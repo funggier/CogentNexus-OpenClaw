@@ -78,7 +78,8 @@ Responsibilities include:
 - owner/session binding;
 - durable admission for requests that already qualify for durable execution;
 - Ticket dispatch/recovery/outbox integration;
-- context handoff and completion delivery.
+- delivery receipt tracking for user-visible replies;
+- context handoff, post-compaction continuation, and completion delivery.
 
 The plugin is a managed component, not the durability authority. Durable authority lives in persisted Host/Ticket/workflow state.
 
@@ -117,7 +118,8 @@ Current design uses this conceptual priority order:
 4. request-lane admission;
 5. durable workflow controller when STAGED is selected;
 6. executor/tool/reviewer outputs within bounded authority;
-7. deterministic evidence before consequential completion claims.
+7. deterministic evidence before consequential completion claims;
+8. delivery evidence before a user-visible result is considered delivered.
 
 No AI prose is authoritative merely because it says an action succeeded.
 
@@ -208,11 +210,40 @@ receive message
    -> deliver
 ```
 
-Ticket-first intake should store only durable facts needed for continuity, such as message/session identity, timestamps, status, leases, attempts, workflow binding, and terminal delivery state.
+Ticket-first intake should store only durable facts needed for continuity, such as message/session identity, timestamps, status, leases, attempts, workflow binding, response readiness, delivery receipt state, and terminal delivery state.
 
 Do not store private chain-of-thought.
 
-## 7. Interruption and recovery
+## 7. Delivery Commit Gate
+
+**Execution success is not delivery success.** A model/agent run may finish successfully while the user sees only part of the reply because the Gateway, channel, session, or delivery pipeline is interrupted afterward.
+
+For a direct user-visible response, the durable lifecycle is conceptually:
+
+```text
+ACCEPTED
+   -> execution succeeds
+RESPONSE_READY
+   -> final reply dispatch settles successfully
+DELIVERY_CONFIRMED
+   -> COMPLETED
+```
+
+Rules:
+
+- `agent_end(success=true)` may establish `RESPONSE_READY`; it must not by itself prove that a visible reply reached the user completely.
+- The bridge prefers dispatcher settlement evidence for final replies: final dispatch is observed, delivery drains, and no final delivery failure/cancellation is reported.
+- Where only per-message delivery events are available, success is treated as a fallback receipt after a quiet/settle period rather than completing on the first emitted chunk.
+- A failed delivery receipt promotes unfinished direct work to durable recovery.
+- A `RESPONSE_READY` Ticket with no delivery confirmation before the receipt deadline is promoted to durable recovery rather than silently completed.
+- If no user-visible output is expected for a successful run, the delivery gate may be satisfied immediately and recorded explicitly.
+- Terminal Ticket/workflow outboxes remain `pending` when a continuation is merely scheduled. Scheduling is not delivery.
+- A terminal delivery is marked `delivered` only when the marked delivery continuation itself settles successfully.
+- If completed result content is already durable, recovery retries delivery instead of recomputing external side effects or completed work.
+
+This gate specifically protects the case where OpenClaw begins displaying a long answer and interruption occurs before all of it reaches the user.
+
+## 8. Interruption, compaction, and recovery
 
 Recovery must distinguish slow work from dead/stale work using observable evidence such as:
 
@@ -220,8 +251,9 @@ Recovery must distinguish slow work from dead/stale work using observable eviden
 - worker PID/lease state;
 - heartbeat and generation;
 - Ticket/workflow status;
-- response/outbox state;
-- deterministic checkpoints.
+- response/outbox delivery state;
+- deterministic checkpoints;
+- context handoff/compaction state.
 
 Important rules:
 
@@ -232,7 +264,22 @@ Important rules:
 - stale worker generations cannot regain authority;
 - periodic supervision performs no model inference.
 
-## 8. Session cancellation
+### 8.1 Post-Compaction Continuation Guard
+
+Successful history compaction is not a terminal state and does not prove that the interrupted logical task continued.
+
+After OpenClaw reports successful compaction for a managed session:
+
+1. inspect durable state for non-terminal Tickets, pending terminal deliveries, or pending workflow completion delivery;
+2. if nothing remains, schedule nothing;
+3. if durable work remains, schedule one idempotently tagged delayed continuation turn;
+4. the continuation resumes only from the latest committed Ticket/workflow/handoff state and must not reconstruct discarded private reasoning;
+5. if the original run continues normally and reaches its normal end, cancel the delayed compaction guard before it fires;
+6. if the guard does fire after work has already become terminal, it must observe terminal state and avoid repeating output or external side effects.
+
+This closes the case where compaction itself succeeds but the pending logical task otherwise becomes silent afterward.
+
+## 9. Session cancellation
 
 Cancelling or deleting a managed session must revoke unfinished work associated with the affected session scope.
 
@@ -240,7 +287,7 @@ Cancellation should be represented durably before cleanup so detached workers ca
 
 Terminal cancellation may be garbage-collected later, but recovery must always observe the cancellation/tombstone first.
 
-## 9. Reboot / power-loss model
+## 10. Reboot / power-loss model
 
 The design assumes that committed durable state on persistent storage survives ordinary process/machine interruption.
 
@@ -254,7 +301,7 @@ After reboot, the Host supervisor can:
 
 This architecture does not claim protection against storage corruption, disk loss, or messages that never reached the durable acceptance boundary.
 
-## 10. Startup policy vs operating mode
+## 11. Startup policy vs operating mode
 
 These are separate concepts:
 
@@ -263,7 +310,7 @@ These are separate concepts:
 
 Changing startup policy must not silently change operating mode. Changing operating mode may reconcile startup ownership as part of an explicit `enable`/`disable` operation.
 
-## 11. Resource policy
+## 12. Resource policy
 
 For local models and constrained hardware:
 
@@ -279,7 +326,7 @@ The intended equation is:
 small active context + durable external state = long-running capability
 ```
 
-## 12. Compatibility principle
+## 13. Compatibility principle
 
 OpenClaw must remain usable without CogentNexus.
 
@@ -287,13 +334,15 @@ CogentNexus must retain control state without depending on a live OpenClaw infer
 
 When combined, CogentNexus enhances continuity and verification without becoming a required dependency for native OpenClaw operation.
 
-## 13. Current naming
+## 14. Current naming
 
 Use these names consistently in current documentation:
 
 - **CogentNexus Host Controller** — external deterministic control/lifecycle/policy layer.
 - **CogentNexus OpenClaw Bridge** — plugin integration role; plugin ID remains `cogentnexus-rotation` for compatibility.
 - **Ticket-first continuity** — durable acceptance before inference.
+- **Delivery Commit Gate** — user-visible work becomes terminal only after delivery evidence.
+- **Post-Compaction Continuation Guard** — delayed idempotent fallback when successful compaction leaves durable work pending.
 - **Request lane** — DIRECT / LOOKUP / ACTION / STAGED.
 - **Durable workflow runtime** — heavy checkpointed/verified machinery used only when needed.
 - **MANAGED / PASSTHROUGH / MAINTENANCE** — host ownership modes.
