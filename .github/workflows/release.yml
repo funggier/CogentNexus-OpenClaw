@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - "release/v*"
 
 permissions:
   contents: write
@@ -44,11 +46,24 @@ jobs:
         working-directory: plugins/cogentnexus-rotation
       - run: npm run plugin:validate
         working-directory: plugins/cogentnexus-rotation
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="${GITHUB_REF_NAME#release/}"
+          fi
+          [[ "$tag" == v* ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - name: Verify release version
         shell: bash
         run: |
           set -euo pipefail
-          expected="${GITHUB_REF_NAME#v}"
+          expected="${{ steps.release.outputs.tag }}"
+          expected="${expected#v}"
           package_version=$(node -p "require('./plugins/cogentnexus-rotation/package.json').version")
           manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-rotation/openclaw.plugin.json')).version")
           test "$expected" = "$package_version"
@@ -57,7 +72,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          name="cogentnexus-${GITHUB_REF_NAME}"
+          tag="${{ steps.release.outputs.tag }}"
+          name="cogentnexus-$tag"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
           mkdir -p "$stage" "$out"
@@ -72,11 +88,25 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "$RUNNER_TEMP/release/cogentnexus-$GITHUB_REF_NAME.tar.gz" \
-            "$RUNNER_TEMP/release/cogentnexus-$GITHUB_REF_NAME.zip" \
-            "$RUNNER_TEMP/release/SHA256SUMS.txt" \
-            --verify-tag \
-            --generate-notes \
-            --title "CogentNexus $GITHUB_REF_NAME"
+          set -euo pipefail
+          tag="${{ steps.release.outputs.tag }}"
+          name="cogentnexus-$tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; refusing duplicate publication."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            gh release create "$tag" \
+              "$RUNNER_TEMP/release/$name.tar.gz" \
+              "$RUNNER_TEMP/release/$name.zip" \
+              "$RUNNER_TEMP/release/SHA256SUMS.txt" \
+              --verify-tag --generate-notes --title "CogentNexus $tag"
+          else
+            gh release create "$tag" \
+              "$RUNNER_TEMP/release/$name.tar.gz" \
+              "$RUNNER_TEMP/release/$name.zip" \
+              "$RUNNER_TEMP/release/SHA256SUMS.txt" \
+              --target "$GITHUB_SHA" --generate-notes --title "CogentNexus $tag"
+          fi
