@@ -57,6 +57,7 @@ Runs outside model inference and must remain useful even when OpenClaw or the pr
 Responsibilities:
 
 - persist desired runtime state;
+- persist the selected managed workspace policy;
 - support Ticket-first durable acceptance;
 - supervise health without model inference;
 - distinguish unplanned failure from intentional stop;
@@ -144,12 +145,12 @@ CogentNexus relinquishes OpenClaw interception/background ownership.
 
 - persist PASSTHROUGH mode;
 - disable CogentNexus background startup ownership;
-- remove the managed workspace policy block;
+- remove the active managed workspace policy block;
 - disable the CogentNexus OpenClaw plugin;
-- keep durable CogentNexus state;
+- keep durable CogentNexus state and the registered managed-policy snapshot;
 - restart/start OpenClaw natively so it remains usable.
 
-PASSTHROUGH is not an uninstall.
+PASSTHROUGH is not an uninstall. `cnx enable` is the explicit transition back into CogentNexus-managed operation.
 
 ### MAINTENANCE
 
@@ -162,9 +163,37 @@ Intentional stopped state.
 - stop managed runtime/provider according to policy;
 - prevent the supervisor from fighting the operator's deliberate stop.
 
-`cnx start` returns to MANAGED and reconciles runtime health.
+`cnx start` is the normal transition from MAINTENANCE back to MANAGED/running.
 
-## 5. Ticket-first semantics
+## 5. Managed policy ownership
+
+The selected managed workspace policy is Host state, not installer-only state.
+
+Canonical durable snapshot:
+
+```text
+.cogent/host/managed-policy.md
+```
+
+Fresh Core installation seeds the Core managed policy. A companion such as CogentNexus Ecosystem can register a combined policy with:
+
+```text
+cnx policy register <policy-file>
+```
+
+Host behavior:
+
+- `policy status` reports the durable snapshot hash/size;
+- `policy register` replaces the selected snapshot and applies it unless in PASSTHROUGH;
+- `policy apply` reapplies the selected snapshot;
+- `policy reset` restores the Core default;
+- `disable` removes only the active `AGENTS.md` block, not the selected snapshot;
+- `enable` reapplies the same registered snapshot automatically;
+- Core updates preserve an already registered companion policy.
+
+This prevents disable/enable or Core upgrades from silently replacing a user's selected Ecosystem policy with a different policy.
+
+## 6. Ticket-first semantics
 
 A Ticket is a lightweight durable record that the system accepted a user message. It is not itself a plan or reasoning trace.
 
@@ -183,7 +212,7 @@ Ticket-first intake should store only durable facts needed for continuity, such 
 
 Do not store private chain-of-thought.
 
-## 6. Interruption and recovery
+## 7. Interruption and recovery
 
 Recovery must distinguish slow work from dead/stale work using observable evidence such as:
 
@@ -203,7 +232,7 @@ Important rules:
 - stale worker generations cannot regain authority;
 - periodic supervision performs no model inference.
 
-## 7. Session cancellation
+## 8. Session cancellation
 
 Cancelling or deleting a managed session must revoke unfinished work associated with the affected session scope.
 
@@ -211,7 +240,7 @@ Cancellation should be represented durably before cleanup so detached workers ca
 
 Terminal cancellation may be garbage-collected later, but recovery must always observe the cancellation/tombstone first.
 
-## 8. Reboot / power-loss model
+## 9. Reboot / power-loss model
 
 The design assumes that committed durable state on persistent storage survives ordinary process/machine interruption.
 
@@ -225,7 +254,7 @@ After reboot, the Host supervisor can:
 
 This architecture does not claim protection against storage corruption, disk loss, or messages that never reached the durable acceptance boundary.
 
-## 9. Startup policy vs operating mode
+## 10. Startup policy vs operating mode
 
 These are separate concepts:
 
@@ -234,7 +263,7 @@ These are separate concepts:
 
 Changing startup policy must not silently change operating mode. Changing operating mode may reconcile startup ownership as part of an explicit `enable`/`disable` operation.
 
-## 10. Resource policy
+## 11. Resource policy
 
 For local models and constrained hardware:
 
@@ -250,7 +279,7 @@ The intended equation is:
 small active context + durable external state = long-running capability
 ```
 
-## 11. Compatibility principle
+## 12. Compatibility principle
 
 OpenClaw must remain usable without CogentNexus.
 
@@ -258,11 +287,11 @@ CogentNexus must retain control state without depending on a live OpenClaw infer
 
 When combined, CogentNexus enhances continuity and verification without becoming a required dependency for native OpenClaw operation.
 
-## 12. Current naming
+## 13. Current naming
 
 Use these names consistently in current documentation:
 
-- **CogentNexus Host Controller** — external deterministic control/lifecycle layer.
+- **CogentNexus Host Controller** — external deterministic control/lifecycle/policy layer.
 - **CogentNexus OpenClaw Bridge** — plugin integration role; plugin ID remains `cogentnexus-rotation` for compatibility.
 - **Ticket-first continuity** — durable acceptance before inference.
 - **Request lane** — DIRECT / LOOKUP / ACTION / STAGED.
