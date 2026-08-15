@@ -25,6 +25,11 @@ jobs:
           node-version: '24'
       - name: Apply patch
         run: python scripts/apply_v083_patch.py
+      - name: Remove temporary patch artifacts before baseline audit
+        shell: bash
+        run: |
+          rm scripts/apply_v083_patch.py
+          rm .github/workflows/patch-v083.yml
       - name: Baseline consistency
         run: python scripts/check_baseline_consistency.py
       - name: Core runtime self-test
@@ -46,11 +51,6 @@ jobs:
       - name: Plugin validation
         working-directory: plugins/cogentnexus-rotation
         run: npm run plugin:validate
-      - name: Remove temporary patch artifacts
-        shell: bash
-        run: |
-          rm scripts/apply_v083_patch.py
-          rm .github/workflows/patch-v083.yml
       - name: Commit clean patch
         shell: bash
         run: |
