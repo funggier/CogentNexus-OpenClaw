@@ -1,0 +1,53 @@
+name: Normalize v0.8 plugin source
+
+on:
+  push:
+    branches:
+      - "baseline/v0.8.0-clean"
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: baseline/v0.8.0-clean
+      - name: Normalize source metadata
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("plugins/cogentnexus-rotation/src/index.ts")
+          text = path.read_text(encoding="utf-8")
+          replacements = {
+              'workspaceDir: Type.Optional(Type.String({ description: "Workspace containing .cogent/workflows completion outboxes." }))':
+                  'workspaceDir: Type.Optional(Type.String({ description: "Workspace containing CogentNexus durable state and workflow completion outboxes." }))',
+              'enforcedMode: Type.Optional(Type.Boolean({ description: "Block conversational attempts to create unbound workflows or bind owner identity manually." }))':
+                  'enforcedMode: Type.Optional(Type.Boolean({ description: "Enforce owner/session and managed workflow authority boundaries." }))',
+              'ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner command to SQLite before inference. Disabled by default during Phase 0." }))':
+                  'ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default." }))',
+              'ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease scan interval." }))':
+                  'ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease recovery scan interval." }))',
+              'name: "CogentNexus Rotation Controller",\n  description: "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker."':
+                  'name: "CogentNexus OpenClaw Bridge",\n  description: "Ticket-first OpenClaw bridge for CogentNexus Host-managed continuity, durable execution, recovery, context handoff, and verified delivery."',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f"expected source text missing: {old}")
+              text = text.replace(old, new)
+          path.write_text(text, encoding="utf-8")
+      - name: Commit normalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- plugins/cogentnexus-rotation/src/index.ts; then
+            exit 0
+          fi
+          git add plugins/cogentnexus-rotation/src/index.ts
+          git commit -m "Normalize OpenClaw Bridge source metadata"
+          git push origin HEAD:baseline/v0.8.0-clean
