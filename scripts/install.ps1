@@ -14,6 +14,7 @@ $targetSkill = Join-Path $Workspace "skills\cogentnexus"
 $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
+$hostScript = Join-Path $targetSkill "scripts\host.py"
 
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -47,7 +48,7 @@ python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
 if (-not $SkipAgentsPolicy) {
-    python (Join-Path $repoRoot "scripts\manage_agents_policy.py") --workspace $Workspace --policy (Join-Path $repoRoot "templates\AGENTS.cogentnexus.md") --backup-root $backupRoot
+    python (Join-Path $repoRoot "scripts\manage_agents_policy.py") --workspace $Workspace --policy (Join-Path $targetSkill "templates\AGENTS.cogentnexus.md") --backup-root $backupRoot
     if ($LASTEXITCODE -ne 0) { throw "AGENTS.md policy integration failed" }
 }
 
@@ -76,12 +77,30 @@ if (-not $SkipPlugin) {
     finally { Pop-Location }
 }
 
+# Install a zero-dependency workspace launcher. It remains usable while OpenClaw is down.
+$launcher = Join-Path $Workspace "cnx.cmd"
+$hostEscaped = $hostScript.Replace('"','""')
+$rootEscaped = (Join-Path $Workspace ".cogent").Replace('"','""')
+$launcherText = "@echo off`r`npython `"$hostEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
+Write-Host "Installed Host Controller launcher to $launcher"
+
+python $hostScript --root (Join-Path $Workspace ".cogent") init
+if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
+
 if (-not $SkipGatewayRestart) {
-    openclaw gateway restart
-    if ($LASTEXITCODE -ne 0) { throw "Gateway restart failed" }
+    # Host enable configures Ticket-first mode, starts the native background supervisor,
+    # verifies Gateway/provider readiness, and resumes recoverable committed work.
+    python $hostScript --root (Join-Path $Workspace ".cogent") enable
+    if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
 }
+else {
+    Write-Host "Skipped Host enable because -SkipGatewayRestart was requested. Run .\cnx.cmd enable when ready."
+}
+
 openclaw gateway status
-if ($LASTEXITCODE -ne 0) { throw "Gateway health check failed" }
+if ($LASTEXITCODE -ne 0 -and -not $SkipGatewayRestart) { throw "Gateway health check failed" }
 python (Join-Path $targetSkill "scripts\runtime.py") supervisor doctor
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus supervisor check failed" }
 Write-Host "CogentNexus installation completed successfully."
+Write-Host "Control it with: $launcher status|start|stop|restart|disable|enable"
