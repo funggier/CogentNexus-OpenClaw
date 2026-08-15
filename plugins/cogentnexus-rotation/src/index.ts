@@ -11,7 +11,7 @@ import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOu
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
-import { bindDeliveryRun, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
+import { bindDeliveryRun, hasPendingDirectExecutionForSession, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
 
 type Handoff = {
   taskId: string;
@@ -374,7 +374,7 @@ export async function schedulePostCompactionResume(input: {
   delayMs?: number;
   workflow: ResumeWorkflow;
 }): Promise<boolean> {
-  if (!hasPendingSessionWork(input.workspaceDir,input.store,input.sessionKey)) return false;
+  if (!hasPendingDirectExecutionForSession(input.store,input.sessionKey)) return false;
   const tag=postCompactionResumeTag(input.sessionKey);
   await input.workflow.unscheduleSessionTurnsByTag({sessionKey:input.sessionKey,tag});
   await input.workflow.scheduleSessionTurn({
@@ -724,6 +724,18 @@ entry.register = (api) => {
         const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
         if(bindDeliveryRun({workspaceDir:currentWorkspace,store,target:deliveryTarget,runId:currentRunId})) deliveryTargets.set(currentRunId,deliveryTarget);
       }
+      return {outcome:"pass"};
+    }
+    if(event.prompt.includes("[CogentNexus Continuation: post-compaction]") && ctx.sessionKey){
+      const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
+      const promoted=store.promotePendingDirectForSession({sessionKey:ctx.sessionKey});
+      if(promoted) return {
+        outcome:"block",
+        reason:"post-compaction guard promoted the unfinished direct Ticket to durable recovery",
+        category:"cogentnexus_post_compaction_recovery",
+        metadata:{ticketId:promoted.ticketId,runId:promoted.runId},
+        message:`CogentNexus resumed committed Ticket ${promoted.ticketId} after history compaction. Durable recovery is continuing automatically; the original request does not need to be sent again.`,
+      };
       return {outcome:"pass"};
     }
     // Trigger names vary by channel/dispatch path (for example WebChat and

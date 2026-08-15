@@ -274,6 +274,28 @@ export class TicketStore {
     } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
   }
 
+  hasPendingDirectExecutionForSession(sessionKey:string): boolean {
+    const db=this.open();
+    try { return Boolean(db.prepare("SELECT 1 FROM tickets WHERE owner_session_key=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NULL LIMIT 1").get(sessionKey)); }
+    finally { db.close(); }
+  }
+
+  promotePendingDirectForSession(input:{sessionKey:string;reason?:string;now?:Date}): {ticketId:string;runId:string}|undefined {
+    const db=this.open(),nowIso=(input.now??new Date()).toISOString();
+    const reason=(input.reason??"post-compaction continuation guard fired before the original direct turn reached terminal state").slice(0,2000);
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const row=db.prepare("SELECT ticket_id,run_id FROM tickets WHERE owner_session_key=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NULL ORDER BY created_at DESC LIMIT 1").get(input.sessionKey) as any;
+      if(!row){db.exec("COMMIT");return undefined;}
+      const changed=db.prepare("UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NULL")
+        .run(reason,nowIso,row.ticket_id);
+      if(changed.changes!==1){db.exec("COMMIT");return undefined;}
+      this.event(db,row.ticket_id,"post_compaction_promoted",{runId:row.run_id,reason},nowIso);
+      db.exec("COMMIT");
+      return {ticketId:row.ticket_id,runId:row.run_id};
+    } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;} finally{db.close();}
+  }
+
   hasNonTerminalForSession(sessionKey:string): boolean {
     const db=this.open();
     try { return Boolean(db.prepare("SELECT 1 FROM tickets WHERE owner_session_key=? AND status NOT IN ('completed','failed','cancelled') LIMIT 1").get(sessionKey)); }

@@ -167,3 +167,7 @@ export function hasPendingWorkflowDeliveryForSession(workspaceDir: string, sessi
 export function hasPendingSessionWork(workspaceDir: string, store: TicketStore, sessionKey: string): boolean {
   return store.hasNonTerminalForSession(sessionKey) || store.hasPendingOutboxForSession(sessionKey) || hasPendingWorkflowDeliveryForSession(workspaceDir, sessionKey);
 }
+
+export function hasPendingDirectExecutionForSession(store: TicketStore, sessionKey: string): boolean {
+  return store.hasPendingDirectExecutionForSession(sessionKey);
+}
