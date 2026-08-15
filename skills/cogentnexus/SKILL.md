@@ -1,54 +1,67 @@
 ---
 name: "cogentnexus"
-description: "Trusted workflows with optional hidden background startup."
+description: "Durable Host-managed continuity, recovery, lifecycle control, and verified execution for OpenClaw."
 ---
 
 # CogentNexus
 
-Use this entry point for every request. Keep private reasoning private; expose useful status, evidence, decisions, and results.
+CogentNexus separates **continuity** from **execution depth**. The Host Controller keeps accepted work durable outside inference, while this skill governs the managed execution behavior used after admission.
+
+Do not make ordinary conversation heavy merely because CogentNexus is enabled. Keep private reasoning private and expose only useful status, evidence, decisions, and results.
+
+## Authority and execution order
+
+1. Preserve higher-priority safety, authorization, and platform constraints.
+2. Preserve the user's intent, requested outcome, and session identity.
+3. Rely on Host/Ticket state for continuity; do not recreate or duplicate accepted work blindly.
+4. Choose the lightest reliable execution lane before loading heavy workflow machinery.
+5. Use deterministic evidence and bounded recovery before claiming consequential work complete.
 
 ## Kernel
 
-1. Infer the outcome and observable success criteria.
-2. Identify facts, constraints, authority, unknowns, and risks.
-3. Query observed capabilities and runtime facts.
-4. Compile the smallest capability-fit execution contract.
-5. Choose Direct, Verified, or Durable.
-6. Execute, verify, checkpoint, and preserve completed work.
-7. Classify failures, recover within policy, and finish only with evidence.
+1. Infer the requested outcome and observable success criteria.
+2. Identify only the facts, constraints, authority, unknowns, and risks that materially affect the request.
+3. Choose the lightest reliable lane:
+   - **DIRECT** for greetings, conversation, explanation, advice, brainstorming, and other low-risk work that can be answered from current context.
+   - **LOOKUP** for focused read-only retrieval.
+   - **ACTION** for bounded reversible execution with proportionate verification.
+   - **STAGED / DURABLE** for multi-step, consequential, interruption-prone, dependency-heavy, externally mutating, repeatedly failing, or independently reviewed work.
+4. For DIRECT work, answer naturally without runtime probes, contracts, checkpoints, reviewers, or staged references unless the request actually needs them.
+5. For LOOKUP/ACTION, load only the capabilities and verification needed for the bounded task.
+6. For STAGED/DURABLE work, query observed capabilities and runtime facts, compile the smallest capability-fit execution contract, execute from durable state, verify evidence, checkpoint progress, and recover within policy.
+7. Finish only when the request reaches an appropriate terminal outcome; never silently lose accepted work.
 
-## Startup policy
+## Host-managed continuity
 
-Startup is explicitly user-controlled and persisted across upgrades:
+In MANAGED mode, eligible owner messages may be committed to the durable Ticket store before model inference. Ticket creation does **not** imply a staged workflow. A lightweight DIRECT Ticket can remain a direct conversation turn unless interruption or observed complexity requires escalation.
 
-    python skills/cogentnexus/scripts/startup.py status
-    python skills/cogentnexus/scripts/startup.py enable
-    python skills/cogentnexus/scripts/startup.py disable
-    python skills/cogentnexus/scripts/startup.py ensure
+If a committed direct turn is interrupted by confirmed Gateway failure, the Host Controller may promote it to durable recovery so the user does not need to repeat the message.
 
-- enabled: reconcile a native background supervisor and verify it.
-- disabled: remove only CogentNexus automatic triggers; preserve workflows, configuration, evidence, artifacts, and manual launch.
-- unset: inspect only; never silently enable.
+## Operating modes
 
-Windows background actions use `pythonw.exe` and hidden Task Scheduler settings so periodic checks do not flash a console window. Least-privilege installs use logon startup; true pre-login boot requires separately provisioned service credentials. Linux uses systemd, macOS uses launchd, and minimal Unix uses cron where available.
+- **MANAGED** — CogentNexus owns Ticket-first continuity, deterministic recovery supervision, and managed runtime lifecycle behavior.
+- **PASSTHROUGH** — CogentNexus interception and background ownership are disabled; OpenClaw behaves normally.
+- **MAINTENANCE** — deliberate stop state; durable state is preserved and automatic recovery must not fight operator intent.
 
-Manual startup remains available:
-
-    python skills/cogentnexus/scripts/runtime.py lifecycle start --provider
+`disable` means PASSTHROUGH. `stop` means MAINTENANCE. Keep those semantics distinct.
 
 ## Durable workflow controller
 
-For conversational Durable work use the trusted workflow plugin for atomic owner binding and detached execution. The native supervisor discovers resumable workflows, launches bounded controllers, and never performs inference inside the scheduler process.
+For durable conversational work, use the trusted workflow plugin for atomic owner binding and detached execution. The native supervisor discovers resumable workflows, launches bounded controllers, and never performs inference inside the scheduler process.
+
+Executor output is not completion evidence. Deterministic validators, stored artifacts, required reviewer policy, and controller state decide whether durable work may advance to PASS.
 
 ## Runtime invariants
 
-- Recover committed state before action.
+- Recover committed state before new action.
+- Never repeat external side effects blindly after interruption.
 - Verify manifests, artifacts, hashes, and terminal evidence.
 - Fence duplicate workers and bound retries.
-- Respect intentional maintenance.
-- Keep external side effects outside automatic retry unless idempotent.
-- Preserve the persisted startup choice during GitHub updates.
-- Reconcile and verify enabled background startup after updates.
+- Respect intentional maintenance and PASSTHROUGH ownership boundaries.
+- Keep OpenClaw usable when CogentNexus is disabled.
+- Keep CogentNexus durable control state independent of a live OpenClaw inference process.
+- Preserve persisted startup/operating-mode choices across updates.
+- A durably accepted user request must eventually become delivered/completed, cancelled, or explicitly failed with evidence.
 
 ## Module routing
 
@@ -73,9 +86,12 @@ For conversational Durable work use the trusted workflow plugin for atomic owner
 
 ## Validation
 
-    python skills/cogentnexus/scripts/validate.py
-    python skills/cogentnexus/scripts/workflow.py self-test
-    python skills/cogentnexus/scripts/cogent.py self-test
-    python skills/cogentnexus/scripts/runtime.py self-test
+```sh
+python skills/cogentnexus/scripts/validate.py --workspace-singleton
+python skills/cogentnexus/scripts/workflow.py self-test
+python skills/cogentnexus/scripts/cogent.py self-test
+python skills/cogentnexus/scripts/runtime.py self-test
+python -m unittest discover -s tests -v
+```
 
-All must pass before claiming runtime changes complete.
+All required gates must pass before claiming runtime changes complete.
