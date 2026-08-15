@@ -25,7 +25,7 @@ FORBIDDEN = {
     "CogentNexus Rotation Controller": "current display name is CogentNexus OpenClaw Bridge",
     "Choose Direct, Verified, or Durable": "current request lanes are DIRECT/LOOKUP/ACTION/STAGED",
 }
-TEMP_WORKFLOW_PREFIXES = ("patch-", "sync-", "normalize-")
+TEMP_WORKFLOW_PREFIXES = ("patch-", "sync-", "normalize-", "update-delivery-")
 
 
 def relative(path: Path) -> str:
@@ -74,6 +74,39 @@ def main() -> int:
     if "Host-managed continuity" not in source or "Host-managed continuity" not in manifest.get("description", ""):
         failures.append("source/generated plugin descriptions do not share Host-managed continuity terminology")
 
+    ticket_source = (ROOT / "plugins/cogentnexus-rotation/src/ticket-store.ts").read_text(encoding="utf-8")
+    delivery_source = (ROOT / "plugins/cogentnexus-rotation/src/delivery-continuity.ts").read_text(encoding="utf-8")
+    continuity_markers = {
+        "index.ts": (
+            'api.on("reply_dispatch"',
+            "waitForIdle",
+            'api.on("message_sent"',
+            'api.on("after_compaction"',
+            "schedulePostCompactionResume",
+            "recoverUndeliveredDirect",
+            "[CogentNexus Continuation: post-compaction]",
+        ),
+        "ticket-store.ts": (
+            "response_ready_at",
+            "delivery_confirmed_at",
+            "delivery_last_error",
+            "confirmDirectDelivery",
+            "failDirectDelivery",
+            "recoverUndeliveredDirect",
+        ),
+        "delivery-continuity.ts": (
+            "ticketDeliveryMarker",
+            "workflowDeliveryMarker",
+            "settleDeliveryTarget",
+            "hasPendingSessionWork",
+        ),
+    }
+    continuity_text = {"index.ts": source, "ticket-store.ts": ticket_source, "delivery-continuity.ts": delivery_source}
+    for label, markers in continuity_markers.items():
+        for marker in markers:
+            if marker not in continuity_text[label]:
+                failures.append(f"{label} missing delivery/compaction continuity marker: {marker}")
+
     root_policy = (ROOT / "templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")
     skill_policy = (ROOT / "skills/cogentnexus/templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")
     if root_policy != skill_policy:
@@ -91,6 +124,7 @@ def main() -> int:
         '"apply"',
         'CogentNexus is disabled (PASSTHROUGH)',
         "promote_interrupted_direct",
+        "hooks.allowConversationAccess",
     ):
         if required not in host:
             failures.append(f"Host Controller missing baseline contract marker: {required}")
@@ -124,6 +158,7 @@ def main() -> int:
         ROOT / f"docs/releases/v{expected}.md",
         ROOT / "skills/cogentnexus/scripts/host.py",
         ROOT / "skills/cogentnexus/scripts/startup.py",
+        ROOT / "plugins/cogentnexus-rotation/src/delivery-continuity.ts",
     )
     for path in required_current:
         if not path.is_file() or not path.read_text(encoding="utf-8").strip():
