@@ -1,0 +1,37 @@
+name: Apply deterministic compaction promotion
+
+on:
+  push:
+    branches: ["baseline/v0.8.0-clean"]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: baseline/v0.8.0-clean
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: python scripts/apply_compaction_promotion_patch.py
+      - name: Compile and test plugin
+        working-directory: plugins/cogentnexus-rotation
+        run: |
+          npm ci
+          npm run build
+          npm test
+      - name: Commit runtime patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/cogentnexus-rotation/src/index.ts plugins/cogentnexus-rotation/src/ticket-store.ts plugins/cogentnexus-rotation/src/delivery-continuity.ts
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Promote stalled post-compaction direct work deterministically"
+          git push origin HEAD:baseline/v0.8.0-clean
