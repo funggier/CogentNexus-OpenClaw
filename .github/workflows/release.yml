@@ -58,16 +58,26 @@ jobs:
           fi
           [[ "$tag" == v* ]]
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - name: Verify release version
+      - name: Verify release version and baseline artifacts
         shell: bash
         run: |
           set -euo pipefail
           expected="${{ steps.release.outputs.tag }}"
           expected="${expected#v}"
+          version_file=$(tr -d '\r\n' < VERSION)
           package_version=$(node -p "require('./plugins/cogentnexus-rotation/package.json').version")
           manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-rotation/openclaw.plugin.json')).version")
+          lock_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').packages[''].version")
+          test "$expected" = "$version_file"
           test "$expected" = "$package_version"
           test "$expected" = "$manifest_version"
+          test "$expected" = "$lock_version"
+          test "$expected" = "$lock_root_version"
+          test -s docs/BASELINE.md
+          test -s docs/INSTALL.md
+          test -s docs/INSTALL.th.md
+          test -s "docs/releases/v${expected}.md"
       - name: Build release archives
         shell: bash
         run: |
@@ -93,20 +103,18 @@ jobs:
           set -euo pipefail
           tag="${{ steps.release.outputs.tag }}"
           name="cogentnexus-$tag"
+          notes="docs/releases/$tag.md"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists; refusing duplicate publication."
             exit 1
           fi
+          common=(
+            "$RUNNER_TEMP/release/$name.tar.gz"
+            "$RUNNER_TEMP/release/$name.zip"
+            "$RUNNER_TEMP/release/SHA256SUMS.txt"
+          )
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            gh release create "$tag" \
-              "$RUNNER_TEMP/release/$name.tar.gz" \
-              "$RUNNER_TEMP/release/$name.zip" \
-              "$RUNNER_TEMP/release/SHA256SUMS.txt" \
-              --verify-tag --generate-notes --title "CogentNexus $tag"
+            gh release create "$tag" "${common[@]}" --verify-tag --notes-file "$notes" --title "CogentNexus $tag"
           else
-            gh release create "$tag" \
-              "$RUNNER_TEMP/release/$name.tar.gz" \
-              "$RUNNER_TEMP/release/$name.zip" \
-              "$RUNNER_TEMP/release/SHA256SUMS.txt" \
-              --target "$GITHUB_SHA" --generate-notes --title "CogentNexus $tag"
+            gh release create "$tag" "${common[@]}" --target "$GITHUB_SHA" --notes-file "$notes" --title "CogentNexus $tag"
           fi
