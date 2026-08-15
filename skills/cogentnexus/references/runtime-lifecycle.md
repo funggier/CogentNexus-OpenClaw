@@ -26,13 +26,23 @@ cnx enable
 
 Semantics:
 
-- `start` -> persist MANAGED/running intent, start/reconcile provider + Gateway, verify health, resume eligible committed work.
-- `stop` -> persist MAINTENANCE/stopped intent before stopping managed components.
-- `restart` -> keep MANAGED/running intent, write recoverable lifecycle state, restart, verify, then resume eligible work.
-- `disable` -> persist PASSTHROUGH, disable CogentNexus interception/startup ownership, remove managed policy, keep native OpenClaw usable.
-- `enable` -> persist MANAGED/running, restore policy/plugin/startup ownership, reconcile runtime.
+- `start` -> from CogentNexus-managed operation, persist MANAGED/running intent, start/reconcile provider + Gateway, verify health, resume eligible committed work.
+- `stop` -> from CogentNexus-managed operation, persist MAINTENANCE/stopped intent before stopping managed components.
+- `restart` -> from CogentNexus-managed operation, keep MANAGED/running intent, write recoverable lifecycle state, restart, verify, then resume eligible work.
+- `disable` -> persist PASSTHROUGH, disable CogentNexus interception/startup ownership, remove the active managed policy block, keep native OpenClaw usable.
+- `enable` -> the explicit transition from PASSTHROUGH to MANAGED/running; restore the registered policy/plugin/startup ownership and reconcile runtime.
 
-Gateway-only commands change Gateway lifecycle while preserving the current Host ownership semantics.
+While mode is PASSTHROUGH, `cnx start`, `cnx stop`, and `cnx restart` are rejected rather than silently re-enabling CogentNexus. Use `cnx enable` when you intentionally want MANAGED mode again. To operate only native OpenClaw while remaining in PASSTHROUGH, use:
+
+```text
+cnx gateway start
+cnx gateway stop
+cnx gateway restart
+```
+
+or the corresponding native `openclaw gateway ...` commands.
+
+Gateway-only commands preserve the current Host ownership mode.
 
 ## Low-level runtime commands
 
@@ -52,6 +62,7 @@ Normal users should prefer `cnx` because Host state and runtime lifecycle state 
 ## Recovery rules
 
 - Persist desired state **before** destructive lifecycle action.
+- PASSTHROUGH is authoritative: CogentNexus does not reclaim lifecycle ownership until explicit `cnx enable`.
 - MAINTENANCE is authoritative: periodic supervision returns without restarting managed services.
 - A recoverable restart marker may be cleared only after required health probes pass.
 - Provider/Gateway warm-up uses bounded readiness polling.
