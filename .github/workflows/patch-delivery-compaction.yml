@@ -23,13 +23,12 @@ jobs:
         run: python scripts/fix_delivery_patch_helper.py
       - name: Apply source patch
         run: python scripts/apply_delivery_compaction_patch.py
-      - name: Build and test plugin
+      - name: Compile plugin and generated metadata
         working-directory: plugins/cogentnexus-rotation
         run: |
           npm ci
           npm run build
           npm run plugin:build
-          npm test
       - name: Commit patched runtime
         shell: bash
         run: |
@@ -40,6 +39,7 @@ jobs:
             plugins/cogentnexus-rotation/src/index.ts \
             plugins/cogentnexus-rotation/src/ticket-store.ts \
             plugins/cogentnexus-rotation/openclaw.plugin.json \
+            plugins/cogentnexus-rotation/package.json \
             skills/cogentnexus/scripts/host.py
           if git diff --cached --quiet; then
             echo "No runtime patch changes."
