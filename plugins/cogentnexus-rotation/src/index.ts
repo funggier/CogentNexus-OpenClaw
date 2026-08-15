@@ -690,6 +690,7 @@ entry.register = (api) => {
   const deliveryTargets = new Map<string,DeliveryTarget>();
   const runWorkspaces = new Map<string,string>();
   const runSessions = new Map<string,string>();
+  const ticketedRuns = new Set<string>();
   const dispatcherObservedRuns = new Set<string>();
   const deliveryTimers = new Map<string,ReturnType<typeof setTimeout>>();
   const earlyDeliveryReceipts = new Map<string,{success:boolean;error?:string}>();
@@ -697,6 +698,7 @@ entry.register = (api) => {
     deliveryTargets.delete(runId);
     runWorkspaces.delete(runId);
     runSessions.delete(runId);
+    ticketedRuns.delete(runId);
     dispatcherObservedRuns.delete(runId);
     earlyDeliveryReceipts.delete(runId);
   };
@@ -707,7 +709,7 @@ entry.register = (api) => {
     const target=deliveryTargets.get(runId);
     const directResult=success ? store.confirmDirectDelivery({runId}) : store.failDirectDelivery({runId,message:error});
     if(target) settleDeliveryTarget({workspaceDir,store,target,success,error});
-    if(!target && directResult === "unchanged") {
+    if(!target && directResult === "unchanged" && ticketedRuns.has(runId)) {
       earlyDeliveryReceipts.set(runId,{success,error});
       return;
     }
@@ -750,12 +752,14 @@ entry.register = (api) => {
       const workspaceDir = ctx.workspaceDir ?? process.cwd();
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       ticketStore = new TicketStore(databasePath);
+      const ticketRunId=ctx.runId ?? randomUUID();
       acceptedTicket = ticketStore.accept({
-        runId:ctx.runId ?? randomUUID(),
+        runId:ticketRunId,
         ownerSessionKey,
         prompt:event.prompt,
         maxAttempts:config.ticketMaximumAttempts,
       });
+      ticketedRuns.add(ticketRunId);
     }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
@@ -862,7 +866,7 @@ entry.register = (api) => {
         else if(directState === "awaiting_delivery" && earlyReceipt){
           earlyDeliveryReceipts.delete(runId);
           settleRunDelivery(runId,earlyReceipt.success,earlyReceipt.error);
-        } else if(!visible) cleanupRunDelivery(runId);
+        } else if(!visible || directState === "unchanged") cleanupRunDelivery(runId);
       } catch(error) { api.logger.warn(`CogentNexus direct Ticket finalization failed: ${error instanceof Error?error.message:String(error)}`); }
     }
     if (event.success && config.autoRotate === true && sessionKey) {
