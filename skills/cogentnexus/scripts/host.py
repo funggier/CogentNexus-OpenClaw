@@ -142,6 +142,80 @@ def gateway_status(timeout: int = 30) -> dict[str, Any]:
         return {"healthy": False, "error": str(error)}
 
 
+def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int = 30) -> Any:
+    command = [openclaw_executable(), "gateway", "call", method, "--params", json.dumps(params or {}, separators=(",", ":")), "--json"]
+    result = run(command, timeout=timeout, check=True)
+    value = result.stdout.strip()
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"OpenClaw Gateway RPC {method} returned invalid JSON: {value[:500]}") from error
+
+
+def default_agent_id() -> str:
+    result = run([openclaw_executable(), "agents", "list", "--json"], timeout=30, check=True)
+    try:
+        agents = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("OpenClaw agents list returned invalid JSON") from error
+    if not isinstance(agents, list) or not agents:
+        raise RuntimeError("OpenClaw has no configured agents")
+    selected = next((item for item in agents if isinstance(item, dict) and item.get("isDefault") is True), None)
+    selected = selected or next((item for item in agents if isinstance(item, dict) and item.get("id")), None)
+    agent_id = selected.get("id") if isinstance(selected, dict) else None
+    if not isinstance(agent_id, str) or not agent_id.strip():
+        raise RuntimeError("OpenClaw default agent id could not be resolved")
+    return agent_id.strip()
+
+
+def configured_main_key() -> str:
+    result = run([openclaw_executable(), "config", "get", "session.mainKey"], timeout=20)
+    if result.returncode != 0:
+        return "main"
+    value = result.stdout.strip()
+    if not value:
+        return "main"
+    try:
+        decoded = json.loads(value)
+        if isinstance(decoded, str) and decoded.strip():
+            return decoded.strip()
+    except json.JSONDecodeError:
+        pass
+    return value.strip('"').strip() or "main"
+
+
+def reconcile_default_session() -> dict[str, Any]:
+    status = gateway_status()
+    if not status.get("healthy"):
+        return {"ok": False, "skipped": True, "reason": "gateway not healthy"}
+    agent_id = default_agent_id()
+    main_key = configured_main_key()
+    expected = f"agent:{agent_id}:{main_key}"
+    result = run([openclaw_executable(), "sessions", "--json"], timeout=30, check=True)
+    try:
+        snapshot = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("OpenClaw sessions list returned invalid JSON") from error
+    sessions = snapshot.get("sessions", []) if isinstance(snapshot, dict) else []
+    if any(isinstance(item, dict) and item.get("key") == expected for item in sessions):
+        return {"ok": True, "created": False, "sessionKey": expected, "reason": "already present"}
+    created = gateway_rpc("sessions.create", {"key": main_key, "agentId": agent_id}, timeout=30)
+    created_key = created.get("key") if isinstance(created, dict) else None
+    if not isinstance(created_key, str) or not created_key.strip():
+        raise RuntimeError(f"OpenClaw sessions.create returned no session key: {created!r}")
+    verify = run([openclaw_executable(), "sessions", "--json"], timeout=30, check=True)
+    try:
+        verified = json.loads(verify.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("OpenClaw sessions verification returned invalid JSON") from error
+    verified_sessions = verified.get("sessions", []) if isinstance(verified, dict) else []
+    if not any(isinstance(item, dict) and item.get("key") == created_key for item in verified_sessions):
+        raise RuntimeError(f"OpenClaw created session {created_key} but it was not persisted")
+    return {"ok": True, "created": True, "sessionKey": created_key, "expectedMainSessionKey": expected}
+
+
 def plugin_enabled(enabled: bool) -> None:
     run([openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=60, check=True)
 
@@ -153,6 +227,7 @@ def configure_managed_plugin() -> None:
         ("autoWorkflowCompletion", "true"),
         ("enforcedMode", "true"),
         ("autoResume", "true"),
+        ("workspaceDir", str(WORKSPACE)),
         ("ticketDispatchLimit", "1"),
         ("ticketMaximumRunning", "1"),
         ("ticketMaximumAttempts", "5"),
@@ -464,6 +539,7 @@ def enable(root: Path) -> dict[str, Any]:
     configure_managed_plugin()
     startup_result = startup(root, "enable", check=True)
     lifecycle = runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
+    session_bootstrap = reconcile_default_session()
     recovered = promote_interrupted_direct(root, started, "CogentNexus Host enabled after an interrupted OpenClaw runtime")
     runtime(root, "supervisor", "tick", "--execute-safe", timeout=180, check=False)
     return {
@@ -472,6 +548,7 @@ def enable(root: Path) -> dict[str, Any]:
         "policy": policy_info(root),
         "startup": parse_json_output(startup_result.stdout),
         "lifecycle": parse_json_output(lifecycle.stdout),
+        "sessionBootstrap": session_bootstrap,
         "recoveredTickets": recovered,
     }
 
@@ -508,9 +585,10 @@ def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:
         desiredProvider="running" if provider else prior.get("desiredProvider", "unchanged"),
     )
     result = runtime(root, "lifecycle", "start", *(["--provider"] if provider else []), timeout=240, check=True)
+    session_bootstrap = reconcile_default_session()
     recovered = promote_interrupted_direct(root, started, "Gateway resumed by CogentNexus Host after interruption")
     runtime(root, "supervisor", "tick", "--execute-safe", timeout=180, check=False)
-    return {"state": state, "lifecycle": parse_json_output(result.stdout), "recoveredTickets": recovered}
+    return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "recoveredTickets": recovered}
 
 
 def stop_managed(root: Path, provider: bool = True) -> dict[str, Any]:

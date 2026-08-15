@@ -341,9 +341,21 @@ def clear_maintenance(root):
 
 def stop_ollama(config):
     timeout = int(config["supervisor"]["commandTimeoutSeconds"])
+    initial = ollama_probe(config)
+    if not initial.get("enabled") or not initial.get("healthy"):
+        return {"ok": True, "skipped": True, "reason": "already stopped", "initial": initial}
     if os.name == "nt":
         executable = shutil.which("taskkill")
-        return run_command([executable, "/IM", "ollama.exe", "/T"], timeout) if executable else {"ok": False, "error": "taskkill unavailable"}
+        if not executable:
+            return {"ok": False, "error": "taskkill unavailable"}
+        # The desktop tray process can respawn the server, so terminate it first,
+        # then force the server process tree down. /F is required for child
+        # processes that Windows refuses to terminate gracefully.
+        attempts = []
+        for image in ("ollama app.exe", "ollama.exe"):
+            command = [executable, "/IM", image, "/T", "/F"]
+            attempts.append({"image": image, "command": command, "result": run_command(command, timeout)})
+        return {"ok": any(item["result"].get("ok") for item in attempts), "attempts": attempts}
     if shutil.which("systemctl"):
         return run_command(["systemctl", "--user", "stop", "ollama"], max(timeout, 60))
     return {"ok": False, "error": "no managed Ollama stop adapter"}
@@ -366,6 +378,27 @@ def wait_for_runtime_health(config, timeout_seconds=30, require_ollama=True):
             return verified, attempts, False
         time.sleep(min(2.0, remaining))
 
+def wait_for_runtime_stopped(config, timeout_seconds=30, require_ollama=True):
+    """Poll bounded shutdown verification for exactly the components requested."""
+    deadline = time.monotonic() + max(0.0, float(timeout_seconds))
+    attempts = 0
+    verified = None
+    while True:
+        attempts += 1
+        verified = {
+            "gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])),
+            "ollama": ollama_probe(config),
+        }
+        gateway_stopped = not verified["gateway"].get("healthy", False)
+        provider_stopped = (not verified["ollama"].get("enabled", True)) or (not verified["ollama"].get("healthy", False))
+        stopped = {"gateway": gateway_stopped, "ollama": provider_stopped}
+        if gateway_stopped and (not require_ollama or provider_stopped):
+            return verified, stopped, attempts, True
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return verified, stopped, attempts, False
+        time.sleep(min(1.0, remaining))
+
 def lifecycle_cmd(args):
     root = args.root.resolve()
     config = load_config(root)
@@ -385,9 +418,17 @@ def lifecycle_cmd(args):
         results = {"gateway": run_command([executable, "gateway", "stop"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}}
         if args.provider:
             results["ollama"] = stop_ollama(config)
-        append_runtime_event(root, "ACTION", "Runtime stopped for intentional shutdown", {"providerRequested": bool(args.provider), "results": results})
-        emit({"maintenance": marker, "results": results, "safeToPowerOff": bool(results["gateway"].get("ok"))})
-        return 0 if results["gateway"].get("ok") else 2
+        verified, verified_stopped, verification_attempts, stopped = wait_for_runtime_stopped(
+            config, timeout_seconds=30, require_ollama=bool(args.provider)
+        )
+        verification = {"attempts": verification_attempts, "timeoutSeconds": 30}
+        append_runtime_event(root, "ACTION", "Runtime stopped for intentional shutdown" if stopped else "Runtime shutdown incomplete", {
+            "providerRequested": bool(args.provider), "results": results, "verified": verified,
+            "verifiedStopped": verified_stopped, "verification": verification, "safeToPowerOff": stopped,
+        })
+        emit({"maintenance": marker, "results": results, "verified": verified, "verifiedStopped": verified_stopped,
+              "verification": verification, "safeToPowerOff": stopped})
+        return 0 if stopped else 2
     if args.command_name == "restart":
         marker = set_maintenance(root, args.reason, args.owner, "healthy-runtime")
         executable = openclaw_executable()
