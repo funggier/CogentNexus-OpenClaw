@@ -234,6 +234,8 @@ Rules:
 - `agent_end(success=true)` may establish `RESPONSE_READY`; it must not by itself prove that a visible reply reached the user completely.
 - The bridge prefers dispatcher settlement evidence for final replies: final dispatch is observed, delivery drains, and no final delivery failure/cancellation is reported.
 - Where only per-message delivery events are available, success is treated as a fallback receipt after a quiet/settle period rather than completing on the first emitted chunk.
+- Delivery receipt ordering must not matter: if a receipt arrives before `RESPONSE_READY`, it is buffered only for a run that actually owns a Ticket and applied as soon as response readiness is committed.
+- Internal/non-owner runs cannot accumulate early Ticket receipts; run-local receipt state is cleaned when the run ends without a matching Ticket.
 - A failed delivery receipt promotes unfinished direct work to durable recovery.
 - A `RESPONSE_READY` Ticket with no delivery confirmation before the receipt deadline is promoted to durable recovery rather than silently completed.
 - If no user-visible output is expected for a successful run, the delivery gate may be satisfied immediately and recorded explicitly.
@@ -268,14 +270,17 @@ Important rules:
 
 Successful history compaction is not a terminal state and does not prove that the interrupted logical task continued.
 
+The guard is deliberately scoped to unfinished DIRECT execution. Running durable workflows and pending terminal outboxes already have deterministic services; `RESPONSE_READY` Tickets belong to delivery recovery and must not be promoted into a new execution workflow.
+
 After OpenClaw reports successful compaction for a managed session:
 
-1. inspect durable state for non-terminal Tickets, pending terminal deliveries, or pending workflow completion delivery;
-2. if nothing remains, schedule nothing;
-3. if durable work remains, schedule one idempotently tagged delayed continuation turn;
-4. the continuation resumes only from the latest committed Ticket/workflow/handoff state and must not reconstruct discarded private reasoning;
-5. if the original run continues normally and reaches its normal end, cancel the delayed compaction guard before it fires;
-6. if the guard does fire after work has already become terminal, it must observe terminal state and avoid repeating output or external side effects.
+1. inspect durable state for a DIRECT Ticket still `accepted`, `workflow_eligible=0`, and without `response_ready_at`;
+2. if no such Ticket remains, schedule no compaction guard;
+3. if one remains, schedule one idempotently tagged delayed continuation turn;
+4. if the original run continues normally and reaches `agent_end`, cancel the delayed guard before it fires;
+5. if the delayed guard actually fires while the original Ticket is still eligible, deterministically promote that **same Ticket** to `waiting/workflow_eligible=1` with interruption evidence before model inference;
+6. let the durable dispatcher resume from the original committed request instead of asking a model to reconstruct discarded private reasoning;
+7. if the guard fires late and no eligible DIRECT Ticket remains, do not manufacture another workflow or repeat output/external side effects.
 
 This closes the case where compaction itself succeeds but the pending logical task otherwise becomes silent afterward.
 
@@ -342,7 +347,7 @@ Use these names consistently in current documentation:
 - **CogentNexus OpenClaw Bridge** — plugin integration role; plugin ID remains `cogentnexus-rotation` for compatibility.
 - **Ticket-first continuity** — durable acceptance before inference.
 - **Delivery Commit Gate** — user-visible work becomes terminal only after delivery evidence.
-- **Post-Compaction Continuation Guard** — delayed idempotent fallback when successful compaction leaves durable work pending.
+- **Post-Compaction Continuation Guard** — delayed idempotent fallback that promotes an unfinished DIRECT Ticket into durable recovery only if the original turn becomes silent after successful compaction.
 - **Request lane** — DIRECT / LOOKUP / ACTION / STAGED.
 - **Durable workflow runtime** — heavy checkpointed/verified machinery used only when needed.
 - **MANAGED / PASSTHROUGH / MAINTENANCE** — host ownership modes.
