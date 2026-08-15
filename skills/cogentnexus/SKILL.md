@@ -77,6 +77,7 @@ Load references lazily and only for the selected lane/unit:
 - Tool-heavy/failing work: [execution-success.md](references/execution-success.md)
 - Interruption/resource survival: [resource-survival.md](references/resource-survival.md)
 - Minimal durable memory: [minimal-memory.md](references/minimal-memory.md)
+- Evidence-backed reusable lessons: [lesson-learning.md](references/lesson-learning.md)
 - Resumption: [task-resumption.md](references/task-resumption.md)
 - Supervision: [runtime-supervisor.md](references/runtime-supervisor.md)
 - Lifecycle: [runtime-lifecycle.md](references/runtime-lifecycle.md)
