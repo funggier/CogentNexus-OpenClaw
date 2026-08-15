@@ -80,8 +80,22 @@ if (-not $SkipPlugin) {
             openclaw plugins install --link . --force
         }
         else {
-            $currentPaths = openclaw config get plugins.load.paths 2>$null
-            if ($LASTEXITCODE -eq 0) {
+            # plugins.load.paths is optional on a fresh OpenClaw install. Native
+            # stderr from `openclaw config get` must not terminate this script when
+            # the key is absent; only clean an existing linked path when the query
+            # itself succeeds.
+            $currentPaths = $null
+            $pathExit = 1
+            $savedErrorActionPreference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = "Continue"
+                $currentPaths = openclaw config get plugins.load.paths 2>$null
+                $pathExit = $LASTEXITCODE
+            }
+            finally {
+                $ErrorActionPreference = $savedErrorActionPreference
+            }
+            if ($pathExit -eq 0) {
                 $filteredPaths = $currentPaths | python (Join-Path $repoRoot "scripts\filter_plugin_paths.py") --plugin-id cogentnexus-rotation
                 if ($LASTEXITCODE -ne 0) { throw "failed to inspect existing plugin load paths" }
                 openclaw config set plugins.load.paths $filteredPaths --strict-json --replace

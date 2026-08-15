@@ -52,6 +52,18 @@ def python_exe() -> str:
     return sys.executable or "python"
 
 
+def openclaw_executable() -> str:
+    # npm installs OpenClaw through platform shims on Windows. PowerShell can
+    # resolve openclaw.ps1/openclaw.cmd automatically, but CreateProcess used by
+    # subprocess.run(shell=False) cannot reliably execute a bare shim name.
+    candidates = ("openclaw.cmd", "openclaw.exe", "openclaw") if os.name == "nt" else ("openclaw",)
+    for name in candidates:
+        found = shutil.which(name)
+        if found:
+            return found
+    raise FileNotFoundError("OpenClaw CLI not found on PATH")
+
+
 def host_state_path(root: Path) -> Path:
     return root / "host" / "controller.json"
 
@@ -119,7 +131,7 @@ def startup(root: Path, action: str, check: bool = True) -> subprocess.Completed
 
 def gateway_status(timeout: int = 30) -> dict[str, Any]:
     try:
-        result = run(["openclaw", "gateway", "status"], timeout=timeout)
+        result = run([openclaw_executable(), "gateway", "status"], timeout=timeout)
         return {
             "healthy": result.returncode == 0,
             "exitCode": result.returncode,
@@ -131,7 +143,7 @@ def gateway_status(timeout: int = 30) -> dict[str, Any]:
 
 
 def plugin_enabled(enabled: bool) -> None:
-    run(["openclaw", "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=60, check=True)
+    run([openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=60, check=True)
 
 
 def configure_managed_plugin() -> None:
@@ -149,8 +161,8 @@ def configure_managed_plugin() -> None:
         ("ticketOutboxPollMs", "5000"),
     ]
     for key, value in settings:
-        run(["openclaw", "config", "set", f"plugins.entries.{PLUGIN_ID}.config.{key}", value], timeout=60, check=True)
-    run(["openclaw", "config", "set", f"plugins.entries.{PLUGIN_ID}.hooks.allowConversationAccess", "true"], timeout=60, check=True)
+        run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.config.{key}", value], timeout=60, check=True)
+    run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.hooks.allowConversationAccess", "true"], timeout=60, check=True)
 
 
 def normalize_policy(text: str) -> str:
@@ -472,9 +484,9 @@ def disable(root: Path) -> dict[str, Any]:
     policy_changed = remove_policy(workspace)
     plugin_enabled(False)
     runtime(root, "lifecycle", "cancel", timeout=60, check=False)
-    restart = run(["openclaw", "gateway", "restart"], timeout=180)
+    restart = run([openclaw_executable(), "gateway", "restart"], timeout=180)
     if restart.returncode != 0:
-        restart = run(["openclaw", "gateway", "start"], timeout=180, check=True)
+        restart = run([openclaw_executable(), "gateway", "start"], timeout=180, check=True)
     return {
         "mode": state["mode"],
         "policyChanged": policy_changed,
@@ -623,7 +635,7 @@ def command(args: argparse.Namespace) -> Any:
         return restart_managed(root)
     if args.command == "gateway":
         if load_state(root).get("mode") == "passthrough":
-            result = run(["openclaw", "gateway", args.action], timeout=180, check=True)
+            result = run([openclaw_executable(), "gateway", args.action], timeout=180, check=True)
             return {"mode": "passthrough", "gateway": {"action": args.action, "stdout": result.stdout.strip()}}
         if args.action == "start":
             return start_managed(root, False)
