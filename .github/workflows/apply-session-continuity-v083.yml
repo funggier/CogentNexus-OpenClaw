@@ -30,12 +30,14 @@ jobs:
           cache: npm
           cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
       - run: python -m pip install -r requirements-dev.txt
+      - name: Make patch anchors unique
+        run: python scripts/fix_session_helper_anchor.py
       - name: Apply session continuity source patch
         run: python scripts/apply_session_continuity_v083.py
       - name: Add session continuity regression tests
         run: python scripts/add_session_continuity_tests_v083.py
       - name: Remove temporary patch artifacts
-        run: git rm -f scripts/apply_session_continuity_v083.py scripts/add_session_continuity_tests_v083.py .github/workflows/apply-session-continuity-v083.yml
+        run: git rm -f scripts/fix_session_helper_anchor.py scripts/apply_session_continuity_v083.py scripts/add_session_continuity_tests_v083.py .github/workflows/apply-session-continuity-v083.yml
       - name: Compile Host and workflow runtimes
         run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/workflow.py
       - name: Run Python regression suite
