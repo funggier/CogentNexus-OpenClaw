@@ -545,6 +545,28 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
         return {"result": "maintenance", "desiredGateway": state.get("desiredGateway"), "action": "none"}
     cutoff = now_iso()
     before = gateway_status()
+    lifecycle_status = runtime(root, "lifecycle", "status", timeout=60, check=False)
+    lifecycle_before = (
+        parse_json_output(lifecycle_status.stdout)
+        if lifecycle_status.stdout.strip()
+        else {"exitCode": lifecycle_status.returncode, "stderr": lifecycle_status.stderr.strip()}
+    )
+    provider_required = state.get("desiredProvider") == "running"
+    provider_healthy = bool(
+        isinstance(lifecycle_before, dict)
+        and isinstance(lifecycle_before.get("ollama"), dict)
+        and lifecycle_before["ollama"].get("healthy")
+    )
+    reconcile = None
+    if execute_safe and (not before.get("healthy") or (provider_required and not provider_healthy)):
+        reconcile_args = ["lifecycle", "start"] + (["--provider"] if provider_required else [])
+        reconcile_result = runtime(root, *reconcile_args, timeout=240, check=False)
+        reconcile = {
+            "exitCode": reconcile_result.returncode,
+            "output": parse_json_output(reconcile_result.stdout) if reconcile_result.stdout.strip() else None,
+            "stderr": reconcile_result.stderr.strip(),
+            "providerRequired": provider_required,
+        }
     args = ["supervisor", "tick"] + (["--execute-safe"] if execute_safe else [])
     result = runtime(root, *args, timeout=180, check=False)
     after = gateway_status()
@@ -554,6 +576,8 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     return {
         "result": "ok" if result.returncode == 0 else "runtime-error",
         "before": before,
+        "lifecycleBefore": lifecycle_before,
+        "reconcile": reconcile,
         "after": after,
         "runtime": parse_json_output(result.stdout) if result.stdout.strip() else {"stderr": result.stderr.strip()},
         "recoveredTickets": recovered,

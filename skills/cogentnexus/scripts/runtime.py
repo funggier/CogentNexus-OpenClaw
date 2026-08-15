@@ -277,27 +277,40 @@ def recovery_allowed(component_state, config):
     return len(attempts) < maximum and cooled, attempts
 
 def start_ollama_windows():
-    candidates = [
-        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama app.exe",
-        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe"
+    # Prefer the server command directly: it is deterministic, headless, and is
+    # the supported standalone/service entry point on Windows. Fall back to the
+    # desktop application only when the CLI binary cannot be resolved.
+    cli_candidates = [
+        shutil.which("ollama"),
+        str(Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe"),
     ]
-    for candidate in candidates:
+    for value in cli_candidates:
+        if not value:
+            continue
+        candidate = Path(value)
         if candidate.is_file():
             flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            subprocess.Popen([str(candidate)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
-            return {"ok": True, "command": [str(candidate)]}
+            command = [str(candidate), "serve"]
+            subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+            return {"ok": True, "command": command}
+    app = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama app.exe"
+    if app.is_file():
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        subprocess.Popen([str(app)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+        return {"ok": True, "command": [str(app)]}
     return {"ok": False, "error": "Ollama application not found"}
 
-def recover_component(name, config):
+def recover_component(name, config, explicit_authority=False):
     timeout = int(config["supervisor"]["commandTimeoutSeconds"])
     if name == "gateway":
         executable = openclaw_executable()
         return run_command([executable, "gateway", "start"], max(timeout, 60)) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
-    if name == "ollama" and config["supervisor"].get("allowOllamaStart"):
+    if name == "ollama" and (explicit_authority or config["supervisor"].get("allowOllamaStart")):
         if os.name == "nt":
             return start_ollama_windows()
         if shutil.which("systemctl"):
             return run_command(["systemctl", "--user", "start", "ollama"], max(timeout, 60))
+        return {"ok": False, "error": "no supported Ollama start adapter"}
     return {"ok": False, "error": "no authorized recovery adapter"}
 
 def maintenance_path(root):
@@ -335,8 +348,8 @@ def stop_ollama(config):
         return run_command(["systemctl", "--user", "stop", "ollama"], max(timeout, 60))
     return {"ok": False, "error": "no managed Ollama stop adapter"}
 
-def wait_for_runtime_health(config, timeout_seconds=30):
-    """Poll bounded runtime readiness so slow Gateway warm-up needs no second start."""
+def wait_for_runtime_health(config, timeout_seconds=30, require_ollama=True):
+    """Poll bounded readiness for exactly the components requested by the caller."""
     deadline = time.monotonic() + max(0.0, float(timeout_seconds))
     attempts = 0
     verified = None
@@ -346,7 +359,7 @@ def wait_for_runtime_health(config, timeout_seconds=30):
             "gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])),
             "ollama": ollama_probe(config),
         }
-        if verified["gateway"]["healthy"] and verified["ollama"]["healthy"]:
+        if verified["gateway"]["healthy"] and (not require_ollama or verified["ollama"]["healthy"]):
             return verified, attempts, True
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -387,7 +400,9 @@ def lifecycle_cmd(args):
         results = {}
         initial = {"gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config)}
         if args.provider and not initial["ollama"]["healthy"]:
-            results["ollama"] = recover_component("ollama", config)
+            # --provider is an explicit operator/Host request. It authorizes this
+            # bounded provider start without weakening autonomous supervisor fences.
+            results["ollama"] = recover_component("ollama", config, explicit_authority=True)
         else:
             results["ollama"] = {"ok": True, "skipped": True, "reason": "already healthy"}
         if initial["gateway"]["healthy"]:
@@ -398,7 +413,9 @@ def lifecycle_cmd(args):
         initial_delay = max(0.0, float(config["supervisor"]["verifyDelaySeconds"]))
         if initial_delay:
             time.sleep(initial_delay)
-        verified, verification_attempts, healthy = wait_for_runtime_health(config, timeout_seconds=30)
+        verified, verification_attempts, healthy = wait_for_runtime_health(
+            config, timeout_seconds=30, require_ollama=bool(args.provider)
+        )
         if healthy:
             clear_maintenance(root)
         verification = {"attempts": verification_attempts, "timeoutSeconds": 30, "initialDelaySeconds": initial_delay}
