@@ -8,8 +8,11 @@ SKIP_PLUGIN=0
 SKIP_GATEWAY_RESTART=0
 LINK_PLUGIN=0
 SKIP_AGENTS_POLICY=0
+VERSION=$(cat "$REPO_ROOT/VERSION" 2>/dev/null || printf 'unknown')
 
-usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
+usage() {
+  echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"
+}
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -23,14 +26,18 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+echo "Installing CogentNexus v$VERSION"
+
 for command_name in python openclaw; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "Required command not found: $command_name" >&2; exit 1; }
 done
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
-  command -v npm >/dev/null 2>&1 || { echo "Required command not found: npm" >&2; exit 1; }
+  for command_name in node npm; do
+    command -v "$command_name" >/dev/null 2>&1 || { echo "Required command not found: $command_name" >&2; exit 1; }
+  done
 fi
 python -c "import yaml" >/dev/null 2>&1 || {
-  echo "PyYAML is required. Run: python -m pip install -r requirements-dev.txt" >&2
+  echo "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'" >&2
   exit 1
 }
 
@@ -38,6 +45,9 @@ SOURCE_SKILL="$REPO_ROOT/skills/cogentnexus"
 TARGET_SKILL="$WORKSPACE/skills/cogentnexus"
 STAGED_SKILL="$WORKSPACE/.cogent/install-staging/cogentnexus"
 BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
+HOST_SCRIPT="$TARGET_SKILL/scripts/host.py"
+COGENT_ROOT="$WORKSPACE/.cogent"
+
 mkdir -p "$WORKSPACE/skills"
 if [ -d "$TARGET_SKILL" ]; then
   mkdir -p "$BACKUP_ROOT"
@@ -45,6 +55,7 @@ if [ -d "$TARGET_SKILL" ]; then
   cp -R "$TARGET_SKILL" "$BACKUP"
   echo "Backed up existing skill to $BACKUP"
 fi
+
 rm -rf "$STAGED_SKILL"
 mkdir -p "$(dirname "$STAGED_SKILL")"
 cp -R "$SOURCE_SKILL" "$STAGED_SKILL"
@@ -53,9 +64,14 @@ mv "$STAGED_SKILL" "$TARGET_SKILL"
 echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
+
 if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
-  python "$REPO_ROOT/scripts/manage_agents_policy.py" --workspace "$WORKSPACE" --policy "$REPO_ROOT/templates/AGENTS.cogentnexus.md" --backup-root "$BACKUP_ROOT"
+  python "$REPO_ROOT/scripts/manage_agents_policy.py" \
+    --workspace "$WORKSPACE" \
+    --policy "$TARGET_SKILL/templates/AGENTS.cogentnexus.md" \
+    --backup-root "$BACKUP_ROOT"
 fi
+
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
   (
     cd "$REPO_ROOT/plugins/cogentnexus-rotation"
@@ -72,7 +88,27 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
     fi
   )
 fi
-if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then openclaw gateway restart; fi
-openclaw gateway status
+
+# Zero-dependency launcher. It remains usable while OpenClaw is down.
+LAUNCHER="$WORKSPACE/cnx"
+cat > "$LAUNCHER" <<EOF
+#!/usr/bin/env sh
+exec python "$HOST_SCRIPT" --root "$COGENT_ROOT" "\$@"
+EOF
+chmod +x "$LAUNCHER"
+echo "Installed Host Controller launcher to $LAUNCHER"
+
+python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
+
+if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
+  python "$HOST_SCRIPT" --root "$COGENT_ROOT" enable
+else
+  echo "Skipped Host enable because --skip-gateway-restart was requested. Run '$LAUNCHER enable' when ready."
+fi
+
+openclaw gateway status || [ "$SKIP_GATEWAY_RESTART" -eq 1 ]
 python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
-echo "CogentNexus installation completed successfully."
+python "$HOST_SCRIPT" --root "$COGENT_ROOT" status
+
+echo "CogentNexus v$VERSION installation completed successfully."
+echo "Control it with: $LAUNCHER status|start|stop|restart|disable|enable"
