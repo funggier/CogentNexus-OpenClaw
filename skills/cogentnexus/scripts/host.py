@@ -150,6 +150,7 @@ def configure_managed_plugin() -> None:
     ]
     for key, value in settings:
         run(["openclaw", "config", "set", f"plugins.entries.{PLUGIN_ID}.config.{key}", value], timeout=60, check=True)
+    run(["openclaw", "config", "set", f"plugins.entries.{PLUGIN_ID}.hooks.allowConversationAccess", "true"], timeout=60, check=True)
 
 
 def normalize_policy(text: str) -> str:

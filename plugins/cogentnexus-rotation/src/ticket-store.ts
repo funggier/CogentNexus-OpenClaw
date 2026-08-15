@@ -35,6 +35,8 @@ export type TicketOutbox = {
   terminalStatus: "completed" | "failed" | "cancelled";
   payload: unknown;
   deliveryAttempts: number;
+  scheduledAt?: string | null;
+  deliveryRunId?: string | null;
 };
 
 export type TicketRecord = {
@@ -72,6 +74,9 @@ CREATE TABLE IF NOT EXISTS tickets (
   failure_class TEXT,
   failure_message TEXT,
   result_json TEXT,
+  response_ready_at TEXT,
+  delivery_confirmed_at TEXT,
+  delivery_last_error TEXT,
   workflow_eligible INTEGER NOT NULL DEFAULT 0,
   workflow_id TEXT,
   manifest_path TEXT,
@@ -96,6 +101,8 @@ CREATE TABLE IF NOT EXISTS ticket_outbox (
   delivery_status TEXT NOT NULL DEFAULT 'pending' CHECK (delivery_status IN ('pending','delivered')),
   delivery_attempts INTEGER NOT NULL DEFAULT 0,
   last_delivery_error TEXT,
+  scheduled_at TEXT,
+  delivery_run_id TEXT,
   created_at TEXT NOT NULL,
   delivered_at TEXT
 );
@@ -143,12 +150,18 @@ export class TicketStore {
       this.ensureColumn(db,"tickets","failure_class","TEXT");
       this.ensureColumn(db,"tickets","failure_message","TEXT");
       this.ensureColumn(db,"tickets","result_json","TEXT");
+      this.ensureColumn(db,"tickets","response_ready_at","TEXT");
+      this.ensureColumn(db,"tickets","delivery_confirmed_at","TEXT");
+      this.ensureColumn(db,"tickets","delivery_last_error","TEXT");
       this.ensureColumn(db,"tickets","workflow_eligible","INTEGER NOT NULL DEFAULT 0");
       this.ensureColumn(db,"tickets","workflow_id","TEXT");
       this.ensureColumn(db,"tickets","manifest_path","TEXT");
+      this.ensureColumn(db,"ticket_outbox","scheduled_at","TEXT");
+      this.ensureColumn(db,"ticket_outbox","delivery_run_id","TEXT");
       db.exec("CREATE INDEX IF NOT EXISTS idx_tickets_recovery ON tickets(status, lease_expires_at)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_tickets_direct_delivery ON tickets(status, workflow_eligible, response_ready_at, delivery_confirmed_at)");
       const applied = new Date().toISOString();
-      for (const version of [1,2,3,4,5]) db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version,applied);
+      for (const version of [1,2,3,4,5,6]) db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version,applied);
       return db;
     } catch (error) {
       db.close();
@@ -170,22 +183,107 @@ export class TicketStore {
     finally { db.close(); }
   }
 
-  finalizeDirectRun(input:{runId:string;success:boolean;interrupted:boolean;message?:string;now?:Date}): "completed"|"waiting"|"failed"|"unchanged" {
+  finalizeDirectRun(input:{runId:string;success:boolean;interrupted:boolean;message?:string;expectsDelivery?:boolean;now?:Date}): "completed"|"awaiting_delivery"|"waiting"|"failed"|"unchanged" {
     const db=this.open(),nowIso=(input.now??new Date()).toISOString();
     try {
       db.exec("BEGIN IMMEDIATE");
       const row=db.prepare("SELECT ticket_id FROM tickets WHERE run_id=? AND status='accepted' AND workflow_eligible=0 ORDER BY created_at DESC LIMIT 1").get(input.runId) as any;
       if (!row) { db.exec("COMMIT"); return "unchanged"; }
       if (input.success) {
-        db.prepare("UPDATE tickets SET status='completed',result_json=?,updated_at=? WHERE ticket_id=? AND status='accepted'").run(JSON.stringify({runId:input.runId,direct:true}),nowIso,row.ticket_id);
-        this.event(db,row.ticket_id,"completed",{runId:input.runId,direct:true},nowIso); this.enqueueTerminal(db,row.ticket_id,"completed",{runId:input.runId,direct:true},nowIso); db.exec("COMMIT"); return "completed";
+        const expectsDelivery=input.expectsDelivery !== false;
+        const payload={runId:input.runId,direct:true,expectsDelivery};
+        if (!expectsDelivery) {
+          db.prepare("UPDATE tickets SET status='completed',result_json=?,response_ready_at=?,delivery_confirmed_at=?,delivery_last_error=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'")
+            .run(JSON.stringify(payload),nowIso,nowIso,nowIso,nowIso,row.ticket_id);
+          this.event(db,row.ticket_id,"response_ready",payload,nowIso);
+          this.event(db,row.ticket_id,"delivery_confirmed",{runId:input.runId,required:false},nowIso);
+          this.event(db,row.ticket_id,"completed",payload,nowIso);
+          db.exec("COMMIT"); return "completed";
+        }
+        db.prepare("UPDATE tickets SET result_json=?,response_ready_at=?,delivery_last_error=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'")
+          .run(JSON.stringify(payload),nowIso,nowIso,row.ticket_id);
+        this.event(db,row.ticket_id,"response_ready",payload,nowIso);
+        db.exec("COMMIT"); return "awaiting_delivery";
       }
-      const status=input.interrupted?"waiting":"failed",classification=input.interrupted?"interrupted":"permanent",message=(input.message??(input.interrupted?"direct run interrupted":"direct run failed")).slice(0,2000);
-      db.prepare("UPDATE tickets SET status=?,workflow_eligible=?,failure_class=?,failure_message=?,updated_at=? WHERE ticket_id=? AND status='accepted'").run(status,input.interrupted?1:0,classification,message,nowIso,row.ticket_id);
+      const status=input.interrupted?"waiting":"failed";
+      const classification=input.interrupted?"interrupted":"permanent";
+      const message=(input.message??(input.interrupted?"direct run interrupted":"direct run failed")).slice(0,2000);
+      db.prepare("UPDATE tickets SET status=?,workflow_eligible=?,failure_class=?,failure_message=?,delivery_last_error=?,updated_at=? WHERE ticket_id=? AND status='accepted'")
+        .run(status,input.interrupted?1:0,classification,message,message,nowIso,row.ticket_id);
       this.event(db,row.ticket_id,input.interrupted?"promoted_to_durable":"failed",{runId:input.runId,classification,message},nowIso);
       if (!input.interrupted) this.enqueueTerminal(db,row.ticket_id,"failed",{classification,message},nowIso);
       db.exec("COMMIT"); return status;
     } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
+  }
+
+  confirmDirectDelivery(input:{runId:string;now?:Date}): "completed"|"unchanged" {
+    const db=this.open(),nowIso=(input.now??new Date()).toISOString();
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const row=db.prepare("SELECT ticket_id FROM tickets WHERE run_id=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL ORDER BY created_at DESC LIMIT 1").get(input.runId) as any;
+      if (!row) { db.exec("COMMIT"); return "unchanged"; }
+      db.prepare("UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'")
+        .run(nowIso,nowIso,row.ticket_id);
+      this.event(db,row.ticket_id,"delivery_confirmed",{runId:input.runId},nowIso);
+      this.event(db,row.ticket_id,"completed",{runId:input.runId,direct:true,deliveryConfirmed:true},nowIso);
+      db.exec("COMMIT"); return "completed";
+    } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
+  }
+
+  failDirectDelivery(input:{runId:string;message?:string;now?:Date}): "waiting"|"unchanged" {
+    const db=this.open(),nowIso=(input.now??new Date()).toISOString();
+    const message=(input.message??"direct reply delivery failed").slice(0,2000);
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const row=db.prepare("SELECT ticket_id FROM tickets WHERE run_id=? AND status='accepted' AND workflow_eligible=0 ORDER BY created_at DESC LIMIT 1").get(input.runId) as any;
+      if (!row) { db.exec("COMMIT"); return "unchanged"; }
+      db.prepare("UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,delivery_last_error=?,updated_at=? WHERE ticket_id=? AND status='accepted'")
+        .run(message,message,nowIso,row.ticket_id);
+      this.event(db,row.ticket_id,"direct_delivery_failed",{runId:input.runId,message},nowIso);
+      db.exec("COMMIT"); return "waiting";
+    } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
+  }
+
+  pendingDirectRunForSession(sessionKey:string): string|undefined {
+    const db=this.open();
+    try {
+      const row=db.prepare("SELECT run_id FROM tickets WHERE owner_session_key=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL ORDER BY response_ready_at DESC LIMIT 1").get(sessionKey) as any;
+      return row?.run_id;
+    } finally { db.close(); }
+  }
+
+  recoverUndeliveredDirect(input:{now?:Date;olderThanMs?:number;limit?:number}={}): Array<{ticketId:string;runId:string}> {
+    const db=this.open();
+    const now=input.now??new Date();
+    const cutoff=new Date(now.getTime()-Math.max(1000,input.olderThanMs??120000)).toISOString();
+    const nowIso=now.toISOString();
+    const limit=Math.max(1,Math.min(input.limit??100,1000));
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const rows=db.prepare("SELECT ticket_id,run_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL AND response_ready_at<=? ORDER BY response_ready_at,ticket_id LIMIT ?").all(cutoff,limit) as any[];
+      const recovered:Array<{ticketId:string;runId:string}>=[];
+      for (const row of rows) {
+        const message="direct response was ready but final delivery was not confirmed before the receipt deadline";
+        const changed=db.prepare("UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,delivery_last_error=?,updated_at=? WHERE ticket_id=? AND status='accepted' AND delivery_confirmed_at IS NULL")
+          .run(message,message,nowIso,row.ticket_id);
+        if (changed.changes!==1) continue;
+        this.event(db,row.ticket_id,"direct_delivery_timeout",{runId:row.run_id,cutoff},nowIso);
+        recovered.push({ticketId:row.ticket_id,runId:row.run_id});
+      }
+      db.exec("COMMIT"); return recovered;
+    } catch(error) { try { db.exec("ROLLBACK"); } catch {} throw error; } finally { db.close(); }
+  }
+
+  hasNonTerminalForSession(sessionKey:string): boolean {
+    const db=this.open();
+    try { return Boolean(db.prepare("SELECT 1 FROM tickets WHERE owner_session_key=? AND status NOT IN ('completed','failed','cancelled') LIMIT 1").get(sessionKey)); }
+    finally { db.close(); }
+  }
+
+  hasPendingOutboxForSession(sessionKey:string): boolean {
+    const db=this.open();
+    try { return Boolean(db.prepare("SELECT 1 FROM ticket_outbox WHERE owner_session_key=? AND delivery_status='pending' LIMIT 1").get(sessionKey)); }
+    finally { db.close(); }
   }
 
   get(ticketId: string): TicketRecord | undefined {
@@ -352,28 +450,45 @@ export class TicketStore {
     } finally { db.close(); }
   }
 
-  pendingOutbox(limit = 100): TicketOutbox[] {
+  pendingOutbox(limit = 100, now = new Date(), retryAfterMs = 300_000): TicketOutbox[] {
     const db = this.open();
+    const cutoff = new Date(now.getTime() - Math.max(1_000, retryAfterMs)).toISOString();
     try {
-      return (db.prepare(`SELECT outbox_id,ticket_id,owner_session_key,terminal_status,payload_json,delivery_attempts
-        FROM ticket_outbox WHERE delivery_status='pending' ORDER BY outbox_id LIMIT ?`).all(Math.max(1,Math.min(limit,1000))) as any[])
+      return (db.prepare(`SELECT outbox_id,ticket_id,owner_session_key,terminal_status,payload_json,delivery_attempts,scheduled_at,delivery_run_id
+        FROM ticket_outbox WHERE delivery_status='pending' AND (scheduled_at IS NULL OR scheduled_at<=?) ORDER BY outbox_id LIMIT ?`).all(cutoff,Math.max(1,Math.min(limit,1000))) as any[])
         .map((row) => ({outboxId:Number(row.outbox_id),ticketId:row.ticket_id,ownerSessionKey:row.owner_session_key,
-          terminalStatus:row.terminal_status,payload:JSON.parse(row.payload_json),deliveryAttempts:Number(row.delivery_attempts)}));
+          terminalStatus:row.terminal_status,payload:JSON.parse(row.payload_json),deliveryAttempts:Number(row.delivery_attempts),scheduledAt:row.scheduled_at,deliveryRunId:row.delivery_run_id}));
+    } finally { db.close(); }
+  }
+
+  markOutboxScheduled(outboxId:number, runId?:string, now=new Date()): boolean {
+    const db=this.open();
+    try {
+      return db.prepare(`UPDATE ticket_outbox SET delivery_attempts=delivery_attempts+1,scheduled_at=?,delivery_run_id=?,last_delivery_error=NULL
+        WHERE outbox_id=? AND delivery_status='pending'`).run(now.toISOString(),runId??null,outboxId).changes===1;
+    } finally { db.close(); }
+  }
+
+  bindOutboxRun(outboxId:number, runId:string): boolean {
+    const db=this.open();
+    try {
+      return db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending'")
+        .run(runId,outboxId).changes===1;
     } finally { db.close(); }
   }
 
   markOutboxDelivered(outboxId: number, now = new Date()): boolean {
     const db = this.open();
     try {
-      return db.prepare(`UPDATE ticket_outbox SET delivery_status='delivered',delivery_attempts=delivery_attempts+1,
-        delivered_at=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending'`).run(now.toISOString(),outboxId).changes === 1;
+      return db.prepare(`UPDATE ticket_outbox SET delivery_status='delivered',delivered_at=?,last_delivery_error=NULL,scheduled_at=NULL
+        WHERE outbox_id=? AND delivery_status='pending'`).run(now.toISOString(),outboxId).changes === 1;
     } finally { db.close(); }
   }
 
   markOutboxFailed(outboxId: number, message: string): boolean {
     const db = this.open();
     try {
-      return db.prepare(`UPDATE ticket_outbox SET delivery_attempts=delivery_attempts+1,last_delivery_error=?
+      return db.prepare(`UPDATE ticket_outbox SET last_delivery_error=?,scheduled_at=NULL,delivery_run_id=NULL
         WHERE outbox_id=? AND delivery_status='pending'`).run(message.slice(0,2000),outboxId).changes === 1;
     } finally { db.close(); }
   }
@@ -429,5 +544,5 @@ export class TicketStore {
 }
 
 export function ticketIntakeEligible(prompt: string) {
-  return !/\[(?:CogentNexus|Subagent) Context\]|cogent-workflow-result-|cogent-resume-|The previous run was interrupted\./iu.test(prompt);
+  return !/\[(?:CogentNexus|Subagent) Context\]|\[CogentNexus (?:Delivery|Continuation):|cogent-workflow-result-|cogent-resume-|The previous run was interrupted\./iu.test(prompt);
 }
