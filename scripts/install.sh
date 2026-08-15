@@ -10,9 +10,7 @@ LINK_PLUGIN=0
 SKIP_AGENTS_POLICY=0
 VERSION=$(cat "$REPO_ROOT/VERSION" 2>/dev/null || printf 'unknown')
 
-usage() {
-  echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"
-}
+usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -65,11 +63,12 @@ echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
 
+# Host owns the durable managed-policy selection. Fresh installs seed the Core
+# policy; existing registered companion policy survives Core updates.
+python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
+
 if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
-  python "$REPO_ROOT/scripts/manage_agents_policy.py" \
-    --workspace "$WORKSPACE" \
-    --policy "$TARGET_SKILL/templates/AGENTS.cogentnexus.md" \
-    --backup-root "$BACKUP_ROOT"
+  python "$HOST_SCRIPT" --root "$COGENT_ROOT" policy apply
 fi
 
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
@@ -89,7 +88,6 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
   )
 fi
 
-# Zero-dependency launcher. It remains usable while OpenClaw is down.
 LAUNCHER="$WORKSPACE/cnx"
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env sh
@@ -97,8 +95,6 @@ exec python "$HOST_SCRIPT" --root "$COGENT_ROOT" "\$@"
 EOF
 chmod +x "$LAUNCHER"
 echo "Installed Host Controller launcher to $LAUNCHER"
-
-python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$HOST_SCRIPT" --root "$COGENT_ROOT" enable
@@ -111,4 +107,4 @@ python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
 python "$HOST_SCRIPT" --root "$COGENT_ROOT" status
 
 echo "CogentNexus v$VERSION installation completed successfully."
-echo "Control it with: $LAUNCHER status|start|stop|restart|disable|enable"
+echo "Control it with: $LAUNCHER status|start|stop|restart|gateway|ticket|session|policy|disable|enable"
