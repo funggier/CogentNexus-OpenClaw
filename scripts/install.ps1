@@ -58,9 +58,14 @@ Write-Host "Installed CogentNexus skill to $targetSkill"
 python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
+# Initialize Host state before policy integration. Existing registered companion
+# policy is preserved across Core updates; fresh installs seed the Core policy.
+python $hostScript --root $cogentRoot init
+if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
+
 if (-not $SkipAgentsPolicy) {
-    python (Join-Path $repoRoot "scripts\manage_agents_policy.py") --workspace $Workspace --policy (Join-Path $targetSkill "templates\AGENTS.cogentnexus.md") --backup-root $backupRoot
-    if ($LASTEXITCODE -ne 0) { throw "AGENTS.md policy integration failed" }
+    python $hostScript --root $cogentRoot policy apply
+    if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
 }
 
 if (-not $SkipPlugin) {
@@ -97,12 +102,10 @@ $launcherText = "@echo off`r`npython `"$hostEscaped`" --root `"$rootEscaped`" %*
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed Host Controller launcher to $launcher"
 
-python $hostScript --root $cogentRoot init
-if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
-
 if (-not $SkipGatewayRestart) {
-    # Host enable restores managed policy/plugin settings, enables background supervision,
-    # starts/reconciles Gateway/provider, verifies health, and resumes recoverable work.
+    # Host enable applies the currently registered managed policy, configures the
+    # bridge, enables background supervision, reconciles Gateway/provider health,
+    # and resumes eligible committed work.
     python $hostScript --root $cogentRoot enable
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
 }
@@ -120,4 +123,4 @@ python $hostScript --root $cogentRoot status
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host status check failed" }
 
 Write-Host "CogentNexus v$version installation completed successfully."
-Write-Host "Control it with: $launcher status|start|stop|restart|gateway|ticket|session|disable|enable"
+Write-Host "Control it with: $launcher status|start|stop|restart|gateway|ticket|session|policy|disable|enable"
