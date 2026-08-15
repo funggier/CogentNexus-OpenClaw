@@ -147,7 +147,7 @@ CogentNexus ต้องไม่ถือว่า completed เพียงเ
 
 ระบบควรทำต่อจาก durable state โดยไม่ต้องให้คุณพิมพ์ request เดิมซ้ำ
 
-ถ้าผลลัพธ์ของงานพร้อมอยู่แล้ว ระบบควรเน้น **retry delivery** แทนการทำ external side effect ซ้ำ
+สำหรับ DIRECT ที่ยังไม่มี durable terminal result ระบบอาจต้องทำ computation ใหม่อย่างปลอดภัย แต่ต้องไม่ทำให้ผู้ใช้ต้องส่งคำขอเดิมซ้ำ ส่วน ACTION/STAGED ที่มี committed result หรือ side effect แล้วต้องใช้ durable evidence เพื่อหลีกเลี่ยงการทำ side effect ซ้ำ
 
 ---
 
@@ -177,16 +177,18 @@ schedule สำเร็จ
 
 ---
 
-# Test E — Successful history compaction ต้องไม่ทำให้งานเงียบ
+# Test E — Successful history compaction ต้องไม่ทำให้งาน DIRECT เงียบ
 
-นี่คือ test สำหรับกรณี **compacted history เสร็จแล้ว แต่ OpenClaw ไม่ทำงานที่ค้างต่อ**
+นี่คือ test สำหรับกรณี **compacted history เสร็จแล้ว แต่ OpenClaw ไม่ทำงาน DIRECT ที่ค้างต่อ**
 
 ## E1. ใช้งาน session ที่ context มีข้อมูลพอสมควร
 
-เลือกงานหลายขั้นที่กิน context เช่น:
+เลือกงานต่อเนื่องที่ใช้ context มาก แต่ยังเป็นงานที่สามารถทำเป็น DIRECT conversational execution ได้ เช่นการอธิบาย/วิเคราะห์ยาว ๆ โดยยังไม่ต้องสร้าง workflow แบบ STAGED
+
+ตัวอย่าง:
 
 ```text
-ช่วยวิเคราะห์โปรเจกต์นี้ต่อเนื่องหลายขั้น ตรวจแต่ละขั้น และทำงานจนจบโดยไม่ให้ผมต้องสั่งต่อทีละขั้น
+ช่วยวิเคราะห์สถาปัตยกรรมนี้ต่อเนื่องหลายส่วน เชื่อมเหตุผลแต่ละส่วน และทำต่อจนจบโดยไม่ให้ผมต้องสั่งต่อทีละช่วง
 ```
 
 เป้าหมายคือให้เกิด compaction ตามธรรมชาติของ OpenClaw
@@ -195,15 +197,23 @@ schedule สำเร็จ
 
 **อย่าส่งข้อความ “ทำต่อ” เองทันที**
 
-CogentNexus จะตรวจ durable state ของ session หลัง `after_compaction`
+CogentNexus จะตรวจ durable Ticket ของ session หลัง `after_compaction`
 
-ถ้ายังมี:
+Guard จะถูกสร้างเฉพาะเมื่อยังมี DIRECT Ticket ที่มีลักษณะ:
 
-- Ticket non-terminal
-- Ticket outbox pending
-- workflow completion delivery pending
+```text
+status = accepted
+workflow_eligible = 0
+response_ready_at = null
+```
 
-ระบบจะ schedule guard แบบ idempotent:
+หมายความว่า execution เดิมยังไม่ถึงจุดที่คำตอบพร้อมส่งจริง
+
+ถ้า Ticket อยู่ `RESPONSE_READY` แล้ว จะไม่ใช้ compaction guard เพราะกรณีนั้นเป็นหน้าที่ของ Delivery Commit Gate
+
+ถ้าเป็น workflow STAGED ที่กำลังทำ หรือ terminal outbox ที่กำลังรอส่ง ก็ไม่จำเป็นต้องสร้าง compaction guard ใหม่ เพราะมี deterministic service ของตัวเองอยู่แล้ว
+
+เมื่อเข้าเงื่อนไข ระบบจะ schedule guard แบบ idempotent:
 
 ```text
 [CogentNexus Continuation: post-compaction]
@@ -217,34 +227,50 @@ CogentNexus จะตรวจ durable state ของ session หลัง `aft
 
 CogentNexus ต้อง cancel delayed guard ก่อนมันยิง เพื่อไม่ให้เกิดงานซ้ำ
 
-### กรณี 2 — หลัง compaction OpenClaw เงียบ
+### กรณี 2 — หลัง compaction OpenClaw เงียบจริง
 
-Delayed guard จะทำงานและสั่งให้ resume จาก durable Ticket/workflow/handoff ล่าสุด
+เมื่อ delayed guard ยิง ระบบจะ **promote Ticket เดิมแบบ deterministic ก่อน inference**:
 
-ผู้ใช้ไม่ควรต้องพิมพ์:
+```text
+accepted / workflow_eligible=0
+        ->
+waiting / workflow_eligible=1
+```
+
+พร้อมบันทึก interruption evidence แล้วให้ durable dispatcher ทำงานต่อจาก **original committed request**
+
+ระบบไม่ควรฝากให้โมเดลเดาว่า compacted history เดิมหมายถึงอะไร และผู้ใช้ไม่ควรต้องพิมพ์:
 
 ```text
 ทำต่อครับ
 ```
 
-เพียงเพื่อปลุกงานที่ระบบยอมรับไปแล้ว
+เพื่อปลุกงานที่ระบบยอมรับไปแล้ว
 
 ---
 
-# Test F — Guard ต้องไม่ทำงานซ้ำหลังงานจบแล้ว
+# Test F — Guard ต้องไม่สร้างงานซ้ำหลัง state เปลี่ยนแล้ว
 
-หลัง workflow/Ticket เป็น terminal แล้ว หากมี delayed continuation มาถึงช้า ระบบต้องตรวจ terminal state ก่อน
+กรณีนี้ทดสอบ idempotency ของ delayed guard
 
 สิ่งที่ต้องการ:
 
 ```text
-งานจบแล้ว
- -> late guard เห็น terminal
- -> ไม่ทำ external side effect ซ้ำ
- -> ไม่ตอบผลลัพธ์ซ้ำโดยไม่จำเป็น
+original run เดินต่อเอง
+ -> agent_end ยกเลิก guard
 ```
 
-นี่เป็นเหตุผลที่ continuation ต้องอิง durable state ไม่ใช่สั่ง model ว่า “จำของเดิมแล้วทำต่อเอง”
+หรือ:
+
+```text
+guard มาถึงช้า
+ -> ไม่พบ DIRECT Ticket ที่ยัง eligible
+ -> ไม่ promote ซ้ำ
+ -> ไม่สร้าง workflow ใหม่ซ้ำ
+ -> ไม่ทำ external side effect ซ้ำ
+```
+
+Ticket ที่ `RESPONSE_READY` แล้วต้องอยู่ฝั่ง delivery recovery ไม่ถูก compaction guard promote ไปคำนวณใหม่เพียงเพราะ history ถูก compact
 
 ---
 
@@ -268,7 +294,7 @@ Delayed guard จะทำงานและสั่งให้ resume จา�
 
 Ticket ที่ยังไม่มี `delivery_confirmed_at` ต้องไม่ถูกนับ completed แบบเงียบ ๆ
 
-ถ้าพ้น delivery receipt deadline จะถูก promote ไป durable recovery
+ถ้าพ้น delivery receipt deadline จะถูกนำกลับเข้า durable recovery path
 
 ---
 
@@ -341,9 +367,10 @@ openclaw gateway status
 - session key
 - Ticket status
 - workflow ID ถ้ามี
+- `workflow_eligible`
 - failure class/message
-- response พร้อมหรือยัง
-- delivery ยืนยันแล้วหรือยัง
+- `response_ready_at` มีหรือไม่
+- `delivery_confirmed_at` มีหรือไม่
 - Gateway healthy หรือไม่
 - failure เกิดก่อน/ระหว่าง/หลัง compaction
 
@@ -357,17 +384,20 @@ openclaw gateway status
 [ ] Greeting DIRECT ตอบปกติ
 [ ] Visible reply ไม่ completed ที่ agent_end เพียงอย่างเดียว
 [ ] Full delivery receipt แล้วจึง completed
+[ ] Delivery receipt มาก่อน/หลัง RESPONSE_READY ก็ให้ผลเดียวกัน
 [ ] Partial reply interruption ไม่ถูกนับว่าจบ
-[ ] Missing receipt ถูก promote เข้า durable recovery
+[ ] Missing receipt ถูกนำกลับเข้า durable recovery
 [ ] Terminal outbox schedule ยังเป็น pending
 [ ] Delivery continuation สำเร็จแล้วจึง delivered
 [ ] Failed delivery กลับมา retry ได้
-[ ] Successful compaction + pending work มี continuation guard
+[ ] Successful compaction + unfinished DIRECT มี continuation guard
+[ ] RESPONSE_READY ไม่ถูก compaction guard promote
 [ ] Original run เดินต่อเองแล้ว guard ถูกยกเลิก
-[ ] Late guard ไม่ทำ terminal work/side effect ซ้ำ
+[ ] Guard ยิงแล้ว promote Ticket เดิมก่อน inference
+[ ] Late guard ไม่สร้าง duplicate workflow/side effect
 [ ] Gateway restart ระหว่าง delivery recover ได้
 [ ] Windows reboot recover durable state ได้
 [ ] PASSTHROUGH ไม่ถูก CogentNexus continuity guard แทรกแซง
 ```
 
-เมื่อ checklist นี้ผ่าน จึงถือว่าการติดตั้งผ่านทั้ง **execution continuity**, **delivery continuity**, และ **context/compaction continuity** บนเครื่องจริง
+เมื่อ checklist นี้ผ่าน จึงค่อยถือว่าการติดตั้งผ่านทั้ง **execution continuity**, **delivery continuity**, และ **context/compaction continuity** บนเครื่องจริง
