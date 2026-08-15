@@ -1,13 +1,42 @@
-# Startup policy
+# Startup Policy
 
-Machine startup is optional and independent from maintenance.
+Startup policy and Host operating mode are related but **not the same state**.
 
-- enabled: install and reconcile the native hidden background supervisor.
-- disabled: remove only CogentNexus-owned automatic triggers.
-- unset: report choice-required; never silently enable.
+- **Operating mode** answers who owns OpenClaw continuity/lifecycle now: MANAGED, PASSTHROUGH, or MAINTENANCE.
+- **Startup policy** answers whether the operating system should launch the CogentNexus deterministic supervisor automatically.
 
-Use `scripts/startup.py status|enable|disable|ensure`. Manual lifecycle start remains available in every policy state.
+## Startup states
 
-On Windows, least-privilege background operation uses Task Scheduler at user logon and `pythonw.exe`, preventing console flashes. True pre-login machine boot needs a separately provisioned service identity. Linux uses a systemd user timer. Other packaged adapters must preserve the same policy and evidence contract.
+- `enabled` — reconcile the native hidden background supervisor.
+- `disabled` — remove only CogentNexus-owned automatic triggers.
+- `unset` — inspect/report only; never silently enable from this low-level interface.
 
-Disabling startup preserves workflows, checkpoints, ledgers, artifacts, configuration, providers, and manual launchers. GitHub updates must preserve the stored policy and run `ensure` only to reconcile that policy.
+Low-level commands:
+
+```text
+python skills/cogentnexus/scripts/startup.py status
+python skills/cogentnexus/scripts/startup.py enable
+python skills/cogentnexus/scripts/startup.py disable
+python skills/cogentnexus/scripts/startup.py ensure
+```
+
+Normal managed installation and `cnx enable` may explicitly reconcile startup ownership as part of entering MANAGED mode. `cnx disable` explicitly disables CogentNexus startup ownership as part of entering PASSTHROUGH.
+
+Calling the low-level `startup.py` interface by itself must not rewrite Host operating mode.
+
+## Platform behavior
+
+- Windows: hidden Task Scheduler process using `pythonw.exe`; least-privilege default starts at user logon.
+- Linux: systemd user timer where available.
+- macOS: launchd adapter.
+- minimal Unix: cron fallback where supported.
+
+True pre-login Windows boot requires an appropriately provisioned service/task identity; user-logon startup cannot run before login.
+
+## Persistence rules
+
+Disabling automatic startup preserves durable Tickets, workflows, checkpoints, ledgers, artifacts, configuration, and manual launch capability.
+
+Updates must preserve the persisted choice and reconcile it rather than silently replacing operator intent.
+
+The periodic supervisor itself performs no model inference.
