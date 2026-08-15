@@ -26,6 +26,9 @@ jobs:
       - name: Refresh package lock
         working-directory: plugins/cogentnexus-rotation
         run: npm install --package-lock-only --ignore-scripts
+      - name: Install plugin dependencies
+        working-directory: plugins/cogentnexus-rotation
+        run: npm ci --ignore-scripts
       - run: python -m unittest discover -s tests -v
       - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/startup.py
       - run: npm test
