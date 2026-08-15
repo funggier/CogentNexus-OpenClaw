@@ -1,0 +1,47 @@
+name: Fix deterministic workflow self-test
+
+on:
+  push:
+    branches:
+      - fix/windows-stop-v083
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/windows-stop-v083
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Apply deterministic self-test patch
+        run: python scripts/apply_workflow_selftest_race_fix.py
+      - name: Remove temporary patch artifacts
+        shell: pwsh
+        run: |
+          Remove-Item scripts/apply_workflow_selftest_race_fix.py
+          Remove-Item .github/workflows/fix-workflow-selftest.yml
+      - name: Run workflow self-test repeatedly
+        shell: pwsh
+        run: |
+          python skills/cogentnexus/scripts/workflow.py self-test
+          python skills/cogentnexus/scripts/workflow.py self-test
+          python skills/cogentnexus/scripts/workflow.py self-test
+      - name: Run Python regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Baseline consistency
+        run: python scripts/check_baseline_consistency.py
+      - name: Commit clean deterministic self-test fix
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Make killed-controller self-test deterministic"
+          git push origin HEAD:fix/windows-stop-v083
