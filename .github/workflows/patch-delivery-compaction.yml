@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
+      - name: Fix patch helper escaping
+        run: python scripts/fix_delivery_patch_helper.py
       - name: Apply source patch
         run: python scripts/apply_delivery_compaction_patch.py
       - name: Build and test plugin
