@@ -1,8 +1,8 @@
 # CogentNexus installation guide
 
-CogentNexus v0.8 installs as a **durable Host-managed control layer for OpenClaw**. A normal managed installation configures Ticket-first intake, deterministic recovery supervision, lifecycle control, and the OpenClaw bridge required to resume accepted work after interruption.
+CogentNexus v0.8 installs as a **durable Host-managed control layer for OpenClaw**. A normal managed installation configures Ticket-first intake, deterministic recovery supervision, lifecycle control, delivery receipts, post-compaction continuation, and the OpenClaw bridge required to resume accepted work after interruption.
 
-For a detailed Windows walkthrough in Thai, see [INSTALL.th.md](INSTALL.th.md).
+For a detailed Windows walkthrough in Thai, see [INSTALL.th.md](INSTALL.th.md). After installation, use [CONTINUITY_TESTS.th.md](CONTINUITY_TESTS.th.md) to verify partial-reply, compaction, Gateway-restart, and reboot recovery end to end.
 
 ## Requirements
 
@@ -58,9 +58,10 @@ A normal Windows install:
 7. creates `<workspace>\cnx.cmd`;
 8. initializes durable Host state under `<workspace>\.cogent`;
 9. enters MANAGED mode and enables Ticket-first settings;
-10. enables the hidden deterministic Host supervisor;
-11. starts/reconciles Gateway/provider state;
-12. verifies Gateway and supervisor health.
+10. enables the OpenClaw conversation-hook access required for delivery receipts and successful-compaction guards;
+11. enables the hidden deterministic Host supervisor;
+12. starts/reconciles Gateway/provider state;
+13. verifies Gateway and supervisor health.
 
 The default workspace is `$HOME\.openclaw\workspace`.
 
@@ -90,7 +91,7 @@ Windows is the primary Host-managed install path in v0.8. POSIX packaging remain
 PowerShell:
 
 - `-Workspace PATH` — select a non-default OpenClaw workspace.
-- `-SkipPlugin` — do not install the OpenClaw bridge.
+- `-SkipPlugin` — do not install the OpenClaw bridge; this removes Ticket-first bridge, delivery-receipt, and post-compaction guarantees for new turns.
 - `-SkipGatewayRestart` — install files/config but leave runtime lifecycle untouched; run `cnx enable` later.
 - `-SkipAgentsPolicy` — do not install the managed workspace policy.
 - `-LinkPlugin` — development mode; link plugin working tree instead of copying it.
@@ -120,7 +121,35 @@ Then send a simple message such as `สวัสดีครับ` through your
 .\cnx.cmd ticket list
 ```
 
-The request should be durably accepted without forcing the conversational turn into a STAGED workflow.
+The request should be durably accepted without forcing the conversational turn into a STAGED workflow. A visible reply is considered complete only after delivery settles; `agent_end(success=true)` alone is not the delivery receipt.
+
+## Verify delivery and compaction continuity
+
+After the basic greeting works, follow [CONTINUITY_TESTS.th.md](CONTINUITY_TESTS.th.md).
+
+The two highest-value tests are:
+
+1. start a long reply, interrupt the Gateway after some text is visible, and verify that the response-ready Ticket is not silently completed without `delivery_confirmed_at`;
+2. allow/force a long managed task to cross a successful history compaction boundary and verify that unfinished durable work continues without requiring the user to type “continue”.
+
+The expected model is:
+
+```text
+execution succeeds
+ -> RESPONSE_READY
+ -> final delivery settles
+ -> DELIVERY_CONFIRMED
+ -> COMPLETED
+```
+
+and:
+
+```text
+successful compaction
+ -> inspect durable session work
+ -> no work: nothing scheduled
+ -> work remains: one delayed idempotent continuation guard
+```
 
 ## Lifecycle commands
 
@@ -160,7 +189,7 @@ Expected:
 mode = passthrough
 ```
 
-OpenClaw should remain normally usable.
+OpenClaw should remain normally usable. Because the bridge is disabled in PASSTHROUGH, CogentNexus delivery and post-compaction guards no longer intercept new turns.
 
 Return to managed operation:
 
@@ -185,7 +214,7 @@ Cancel one Ticket:
 Cancel all non-terminal Tickets for a session:
 
 ```powershell
-.\cnx.cmd session cancel "<session-key>" --reason "session cancelled"
+.\cnx.cmd session cancel "<session-key>" --reason "session cancelled by operator"
 ```
 
 Cancellation is terminal and recovery must not resurrect cancelled work.
@@ -194,7 +223,7 @@ Cancellation is terminal and recovery must not resurrect cancelled work.
 
 When Host desired state is MANAGED/running and automatic startup is enabled, the OS launches the deterministic supervisor after startup/logon. The Host then reads persisted state, reconciles Gateway/provider health, identifies stale leases, and resumes only eligible non-terminal work.
 
-If a response is already durably ready, recovery should retry delivery rather than recomputing the model response.
+If a response is already durably `RESPONSE_READY` but delivery was not confirmed, recovery should retry/progress delivery rather than treating the reply as completed or blindly recomputing external side effects.
 
 This architecture does not protect against physical storage loss/corruption or messages that never reached the durable acceptance boundary.
 
@@ -209,7 +238,7 @@ For a stable system:
 
 The installer backs up installed skill/policy files and preserves runtime data under the workspace `.cogent` directory.
 
-Do not delete `.cogent` if you want to preserve Tickets, workflows, checkpoints, and evidence.
+Do not delete `.cogent` if you want to preserve Tickets, workflows, checkpoints, response/delivery state, and evidence.
 
 ## Troubleshooting
 
@@ -229,7 +258,7 @@ Use:
 
 instead of killing the process without persisting MAINTENANCE intent.
 
-### A message appears stuck
+### A message appears stuck or only part of the answer was displayed
 
 Do not immediately resubmit it. Check:
 
@@ -238,7 +267,11 @@ Do not immediately resubmit it. Check:
 .\cnx.cmd ticket list
 ```
 
-A committed non-terminal Ticket may already be recovering.
+A committed non-terminal or response-ready Ticket may already be waiting for delivery receipt/recovery. Sending the same request again can create avoidable duplicate work.
+
+### Work stopped after successful history compaction
+
+Do not immediately type the full request again. The managed bridge should schedule the idempotent post-compaction continuation when durable session work remains. Check Ticket/workflow state first and use the continuity test guide to collect the relevant evidence.
 
 ### `openclaw` not found
 
