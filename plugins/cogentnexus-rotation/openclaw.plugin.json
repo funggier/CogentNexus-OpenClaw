@@ -1,91 +1,30 @@
 {
   "id": "cogentnexus-rotation",
   "name": "CogentNexus Rotation Controller",
-  "description": "Validate a durable CogentNexus ROTATE handoff and start one idempotently identified TaskFlow worker.",
-  "version": "0.6.4",
+  "description": "Ticket-first CogentNexus runtime bridge for durable OpenClaw execution, recovery, and verified delivery.",
+  "version": "0.7.0",
   "configSchema": {
     "type": "object",
     "properties": {
-      "cogentRoot": {
-        "type": "string"
-      },
-      "pythonCommand": {
-        "type": "string"
-      },
-      "agentId": {
-        "type": "string"
-      },
-      "model": {
-        "type": "string"
-      },
-      "timeoutSeconds": {
-        "type": "integer",
-        "minimum": 60,
-        "maximum": 86400
-      },
-      "autoResume": {
-        "type": "boolean",
-        "description": "Schedule one durable continuation turn after a resumable interruption."
-      },
-      "autoResumeDelayMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 60000
-      },
-      "autoRotate": {
-        "type": "boolean",
-        "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default."
-      },
-      "workspaceDir": {
-        "type": "string",
-        "description": "Workspace containing .cogent/workflows completion outboxes."
-      },
-      "autoWorkflowCompletion": {
-        "type": "boolean",
-        "description": "Automatically wake the bound owner when a workflow reaches a terminal state."
-      },
-      "completionPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000
-      },
-      "enforcedMode": {
-        "type": "boolean",
-        "description": "Block conversational attempts to create unbound workflows or bind owner identity manually."
-      },
-      "preInferenceAdmission": {
-        "type": "boolean",
-        "description": "Route obvious durable owner requests before the selected conversational model receives the prompt."
-      },
-      "admissionMinimumScore": {
-        "type": "integer",
-        "minimum": 3,
-        "maximum": 20
-      },
-      "durableWorkerModel": {
-        "type": "string",
-        "description": "Ollama model used by automatically compiled bounded workflow components."
-      },
-      "ticketFirst": {
-        "type": "boolean",
-        "description": "Commit every eligible owner command to SQLite before inference. Disabled by default during Phase 0."
-      },
-      "ticketDatabasePath": {
-        "type": "string",
-        "description": "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime."
-      },
-      "ticketRecoveryPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000,
-        "description": "Deterministic expired-lease scan interval."
-      },
-      "ticketOutboxPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000,
-        "description": "Terminal Ticket delivery interval."
-      },
+      "cogentRoot": {"type": "string"},
+      "pythonCommand": {"type": "string"},
+      "agentId": {"type": "string"},
+      "model": {"type": "string"},
+      "timeoutSeconds": {"type": "integer", "minimum": 60, "maximum": 86400},
+      "autoResume": {"type": "boolean", "description": "Schedule one durable continuation turn after a resumable interruption."},
+      "autoResumeDelayMs": {"type": "integer", "minimum": 1000, "maximum": 60000},
+      "autoRotate": {"type": "boolean", "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default."},
+      "workspaceDir": {"type": "string", "description": "Workspace containing .cogent/workflows completion outboxes."},
+      "autoWorkflowCompletion": {"type": "boolean", "description": "Automatically wake the bound owner when a workflow reaches a terminal state."},
+      "completionPollMs": {"type": "integer", "minimum": 1000, "maximum": 300000},
+      "enforcedMode": {"type": "boolean", "description": "Block conversational attempts to create unbound workflows or bind owner identity manually."},
+      "preInferenceAdmission": {"type": "boolean", "description": "Route obvious durable owner requests before the selected conversational model receives the prompt."},
+      "admissionMinimumScore": {"type": "integer", "minimum": 3, "maximum": 20},
+      "durableWorkerModel": {"type": "string", "description": "Ollama model used by automatically compiled bounded workflow components."},
+      "ticketFirst": {"type": "boolean", "description": "Commit every eligible owner command to SQLite before inference. Host-managed installs enable this by default."},
+      "ticketDatabasePath": {"type": "string", "description": "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime."},
+      "ticketRecoveryPollMs": {"type": "integer", "minimum": 1000, "maximum": 300000, "description": "Deterministic expired-lease scan interval."},
+      "ticketOutboxPollMs": {"type": "integer", "minimum": 1000, "maximum": 300000, "description": "Terminal Ticket delivery interval."},
       "ticketDispatchPollMs": {"type":"integer","minimum":1000,"maximum":300000,"description":"Bounded Ticket dispatch interval."},
       "ticketDispatchLimit": {"type":"integer","minimum":1,"maximum":32,"description":"Maximum Tickets claimed per dispatch tick."},
       "ticketLeaseMs": {"type":"integer","minimum":5000,"maximum":3600000,"description":"Ticket worker lease and heartbeat extension."},
@@ -98,33 +37,13 @@
     },
     "additionalProperties": false
   },
-  "activation": {
-    "onStartup": true
-  },
-  "contracts": {
-    "tools": [
-      "cogent_rotation",
-      "cogent_workflow_start",
-      "cogent_ticket_status",
-      "cogent_knowledge",
-      "cogent_research"
-    ]
-  },
+  "activation": {"onStartup": true},
+  "contracts": {"tools": ["cogent_rotation", "cogent_workflow_start", "cogent_ticket_status", "cogent_knowledge", "cogent_research"]},
   "toolMetadata": {
-    "cogent_rotation": {
-      "optional": true
-    },
-    "cogent_workflow_start": {
-      "optional": true
-    },
-    "cogent_ticket_status": {
-      "optional": true
-    },
-    "cogent_knowledge": {
-      "optional": true
-    },
-    "cogent_research": {
-      "optional": true
-    }
+    "cogent_rotation": {"optional": true},
+    "cogent_workflow_start": {"optional": true},
+    "cogent_ticket_status": {"optional": true},
+    "cogent_knowledge": {"optional": true},
+    "cogent_research": {"optional": true}
   }
 }
