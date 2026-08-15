@@ -194,7 +194,7 @@ export class TicketStore {
         const payload={runId:input.runId,direct:true,expectsDelivery};
         if (!expectsDelivery) {
           db.prepare("UPDATE tickets SET status='completed',result_json=?,response_ready_at=?,delivery_confirmed_at=?,delivery_last_error=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'")
-            .run(JSON.stringify(payload),nowIso,nowIso,nowIso,nowIso,row.ticket_id);
+            .run(JSON.stringify(payload),nowIso,nowIso,nowIso,row.ticket_id);
           this.event(db,row.ticket_id,"response_ready",payload,nowIso);
           this.event(db,row.ticket_id,"delivery_confirmed",{runId:input.runId,required:false},nowIso);
           this.event(db,row.ticket_id,"completed",payload,nowIso);
@@ -407,8 +407,8 @@ export class TicketStore {
         WHERE ticket_id=? AND status='running' AND worker_id=? AND lease_token=? AND lease_generation=? AND lease_expires_at>=?`)
         .run(JSON.stringify(input.result), nowIso, nowIso, input.ticketId, input.workerId, input.leaseToken, input.leaseGeneration, nowIso);
       if (changed.changes !== 1) throw new Error("stale or expired ticket lease");
-      this.event(db, input.ticketId, "completed", {workerId:input.workerId,leaseGeneration:input.leaseGeneration}, nowIso);
-      this.experience(db,input.ticketId,"validator_outcome","Ticket workflow reached verified completion",`ticket:${input.ticketId}/event:completed`,input.result,nowIso);
+      this.event(db, input.ticketId, "completed", {workerId:input.workerId,leaseGeneration:input.leaseGeneration,result:input.result}, nowIso);
+      this.experience(db,input.ticketId,"validator_outcome","Ticket completed with verified terminal result",`ticket:${input.ticketId}/event:completed`,input.result,nowIso);
       this.enqueueTerminal(db,input.ticketId,"completed",input.result,nowIso);
       db.exec("COMMIT");
     } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
@@ -418,35 +418,55 @@ export class TicketStore {
   failAttempt(input: TicketLease & { classification: TicketFailureClass; message: string; now?: Date }): "waiting" | "failed" {
     const db = this.open();
     const nowIso = (input.now ?? new Date()).toISOString();
-    const retryable = ["transient","timeout","validation","capability"].includes(input.classification);
     try {
       db.exec("BEGIN IMMEDIATE");
       const row = db.prepare(`SELECT attempt_count,max_attempts FROM tickets WHERE ticket_id=? AND status='running' AND worker_id=?
         AND lease_token=? AND lease_generation=? AND lease_expires_at>=?`).get(input.ticketId,input.workerId,input.leaseToken,input.leaseGeneration,nowIso) as any;
-      if (!row) throw new Error("stale ticket lease");
-      const nextStatus = retryable && Number(row.attempt_count) < Number(row.max_attempts) ? "waiting" : "failed";
-      const changed = db.prepare(`UPDATE tickets SET status=?,failure_class=?,failure_message=?,worker_id=NULL,lease_token=NULL,
-        lease_expires_at=NULL,heartbeat_at=NULL,updated_at=? WHERE ticket_id=? AND status='running' AND lease_token=? AND lease_generation=?`)
-        .run(nextStatus,input.classification,input.message.slice(0,2000),nowIso,input.ticketId,input.leaseToken,input.leaseGeneration);
-      if (changed.changes !== 1) throw new Error("stale ticket lease");
-      this.event(db,input.ticketId,nextStatus === "waiting" ? "retry_scheduled" : "failed",{
-        workerId:input.workerId,leaseGeneration:input.leaseGeneration,classification:input.classification,
-        attemptCount:Number(row.attempt_count),maxAttempts:Number(row.max_attempts),message:input.message.slice(0,2000),
-      },nowIso);
-      this.experience(db,input.ticketId,"failure",`Ticket attempt failed: ${input.classification}`,`ticket:${input.ticketId}/lease:${input.leaseGeneration}`,{message:input.message.slice(0,2000),nextStatus},nowIso);
-      if (nextStatus === "failed") this.enqueueTerminal(db,input.ticketId,"failed",{classification:input.classification,message:input.message.slice(0,2000)},nowIso);
+      if (!row) throw new Error("stale or expired ticket lease");
+      const retryable = !["authorization","permanent"].includes(input.classification) && Number(row.attempt_count) < Number(row.max_attempts);
+      const status = retryable ? "waiting" : "failed";
+      db.prepare(`UPDATE tickets SET status=?,worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class=?,failure_message=?,updated_at=?
+        WHERE ticket_id=? AND worker_id=? AND lease_token=? AND lease_generation=?`).run(status,input.classification,input.message,nowIso,input.ticketId,input.workerId,input.leaseToken,input.leaseGeneration);
+      this.event(db,input.ticketId,status,{classification:input.classification,message:input.message,attemptCount:Number(row.attempt_count),maxAttempts:Number(row.max_attempts)},nowIso);
+      this.experience(db,input.ticketId,"failure",`Ticket ${status} after ${input.classification}: ${input.message}`,`ticket:${input.ticketId}/event:${status}`,{classification:input.classification,retryable,attemptCount:Number(row.attempt_count),maxAttempts:Number(row.max_attempts)},nowIso);
+      if (!retryable) this.enqueueTerminal(db,input.ticketId,"failed",{classification:input.classification,message:input.message},nowIso);
       db.exec("COMMIT");
-      return nextStatus;
+      return status;
     } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
     finally { db.close(); }
   }
 
-  ready(limit = 1): Array<{ticketId:string;attemptCount:number;maxAttempts:number}> {
+  recoverExpired(input: { now?: Date; limit?: number } = {}): RecoveryCandidate[] {
+    const db = this.open();
+    const nowIso = (input.now ?? new Date()).toISOString();
+    const limit = Math.max(1, Math.min(input.limit ?? 100, 1000));
+    const recovered: RecoveryCandidate[] = [];
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const rows = db.prepare(`SELECT ticket_id,worker_id,lease_generation FROM tickets WHERE status='running'
+        AND lease_expires_at IS NOT NULL AND lease_expires_at < ? ORDER BY lease_expires_at,ticket_id LIMIT ?`).all(nowIso,limit) as any[];
+      for (const row of rows) {
+        const changed = db.prepare(`UPDATE tickets SET status='waiting',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,updated_at=?
+          WHERE ticket_id=? AND status='running' AND lease_generation=?`).run(nowIso,row.ticket_id,row.lease_generation);
+        if (changed.changes !== 1) continue;
+        this.event(db,row.ticket_id,"lease_expired",{previousWorkerId:row.worker_id,previousLeaseGeneration:Number(row.lease_generation)},nowIso);
+        this.experience(db,row.ticket_id,"correction","Expired Ticket lease was reclaimed",`ticket:${row.ticket_id}/event:lease_expired`,{previousWorkerId:row.worker_id,previousLeaseGeneration:Number(row.lease_generation)},nowIso);
+        recovered.push({ticketId:row.ticket_id,previousWorkerId:row.worker_id,previousLeaseGeneration:Number(row.lease_generation),status:"waiting"});
+      }
+      db.exec("COMMIT");
+      return recovered;
+    } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+    finally { db.close(); }
+  }
+
+  ready(limit = 100): Array<{ticketId:string;attemptCount:number;maxAttempts:number}> {
+    if (!Number.isFinite(limit) || limit <= 0) return [];
+    const boundedLimit = Math.min(Math.floor(limit), 1000);
     const db = this.open();
     try {
-      return (db.prepare(`SELECT ticket_id,attempt_count,max_attempts FROM tickets WHERE status IN ('accepted','waiting') AND workflow_eligible=1
-        ORDER BY created_at,ticket_id LIMIT ?`).all(Math.max(1,Math.min(limit,100))) as any[])
-        .map((row) => ({ticketId:row.ticket_id,attemptCount:Number(row.attempt_count),maxAttempts:Number(row.max_attempts)}));
+      return (db.prepare(`SELECT ticket_id,attempt_count,max_attempts FROM tickets
+        WHERE status IN ('accepted','waiting') AND workflow_eligible=1 AND attempt_count < max_attempts ORDER BY created_at,ticket_id LIMIT ?`)
+        .all(boundedLimit) as any[]).map((row) => ({ticketId:row.ticket_id,attemptCount:Number(row.attempt_count),maxAttempts:Number(row.max_attempts)}));
     } finally { db.close(); }
   }
 
@@ -496,50 +516,29 @@ export class TicketStore {
   snapshot(now = new Date()) {
     const db = this.open();
     try {
-      const counts = db.prepare("SELECT status,count(*) AS count FROM tickets GROUP BY status").all() as any[];
-      const expired = db.prepare("SELECT count(*) AS count FROM tickets WHERE status='running' AND lease_expires_at<?").get(now.toISOString()) as any;
-      const pending = db.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE delivery_status='pending'").get() as any;
-      return {capturedAt:now.toISOString(),tickets:Object.fromEntries(counts.map(x=>[x.status,Number(x.count)])),
-        expiredRunning:Number(expired.count),pendingOutbox:Number(pending.count)};
+      const counts = Object.fromEntries((db.prepare("SELECT status,count(*) AS count FROM tickets GROUP BY status").all() as any[]).map((row) => [row.status,Number(row.count)]));
+      const expired = db.prepare("SELECT count(*) AS count FROM tickets WHERE status='running' AND lease_expires_at < ?").get(now.toISOString()) as any;
+      const outbox = db.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE delivery_status='pending'").get() as any;
+      const linked = db.prepare("SELECT count(*) AS count FROM tickets WHERE status='running' AND workflow_id IS NOT NULL").get() as any;
+      return {databasePath:this.databasePath,tickets:counts,expiredRunning:Number(expired.count),pendingOutbox:Number(outbox.count),linkedRunning:Number(linked.count)};
     } finally { db.close(); }
   }
 
-  recoverExpired(input: { now?: Date; limit?: number } = {}): RecoveryCandidate[] {
-    const db = this.open();
-    const nowIso = (input.now ?? new Date()).toISOString();
-    const limit = Math.max(1, Math.min(input.limit ?? 100, 1000));
-    try {
-      db.exec("BEGIN IMMEDIATE");
-      const rows = db.prepare(`SELECT ticket_id,worker_id,lease_generation FROM tickets
-        WHERE status='running' AND lease_expires_at<? ORDER BY lease_expires_at,ticket_id LIMIT ?`).all(nowIso, limit) as any[];
-      const recovered: RecoveryCandidate[] = [];
-      for (const row of rows) {
-        const changed = db.prepare(`UPDATE tickets SET status='waiting',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,updated_at=?
-          WHERE ticket_id=? AND status='running' AND lease_generation=?`).run(nowIso,row.ticket_id,row.lease_generation);
-        if (changed.changes !== 1) continue;
-        this.event(db,row.ticket_id,"lease_expired",{previousWorkerId:row.worker_id,previousLeaseGeneration:row.lease_generation},nowIso);
-        this.experience(db,row.ticket_id,"correction","Expired worker lease reclaimed for deterministic recovery",`ticket:${row.ticket_id}/lease:${row.lease_generation}`,{previousWorkerId:row.worker_id},nowIso);
-        recovered.push({ticketId:row.ticket_id,previousWorkerId:row.worker_id,previousLeaseGeneration:row.lease_generation,status:"waiting"});
-      }
-      db.exec("COMMIT");
-      return recovered;
-    } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
-    finally { db.close(); }
-  }
-
-  private event(db: DatabaseSync, ticketId: string, type: string, payload: unknown, now: string) {
+  private event(db: DatabaseSync, ticketId: string, type: string, payload: unknown, nowIso: string) {
     db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
-      .run(ticketId,type,JSON.stringify(payload),now);
+      .run(ticketId, type, JSON.stringify(payload), nowIso);
   }
 
-  private experience(db: DatabaseSync, ticketId: string, kind: "attempt"|"failure"|"correction"|"validator_outcome", summary: string, evidenceRef: string, outcome: unknown, now: string) {
-    db.prepare("INSERT INTO experiences(experience_id,ticket_id,kind,summary,evidence_ref,outcome_json,created_at) VALUES (?,?,?,?,?,?,?)")
-      .run(`CNXE-${randomUUID()}`,ticketId,kind,summary,evidenceRef,JSON.stringify(outcome),now);
+  private experience(db: DatabaseSync, ticketId: string, kind: "attempt"|"failure"|"correction"|"validator_outcome", summary: string, evidenceRef: string, outcome: unknown, nowIso: string) {
+    db.prepare(`INSERT INTO experiences(experience_id,ticket_id,kind,summary,evidence_ref,outcome_json,created_at) VALUES (?,?,?,?,?,?,?)`)
+      .run(`EXP-${randomUUID()}`,ticketId,kind,summary,evidenceRef,JSON.stringify(outcome),nowIso);
   }
 
-  private enqueueTerminal(db: DatabaseSync, ticketId: string, status: "completed"|"failed"|"cancelled", payload: unknown, now: string) {
-    db.prepare(`INSERT OR IGNORE INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,created_at)
-      SELECT ticket_id,owner_session_key,?,?,? FROM tickets WHERE ticket_id=?`).run(status,JSON.stringify(payload),now,ticketId);
+  private enqueueTerminal(db: DatabaseSync, ticketId: string, status: "completed"|"failed"|"cancelled", payload: unknown, nowIso: string) {
+    const row = db.prepare("SELECT owner_session_key FROM tickets WHERE ticket_id=?").get(ticketId) as any;
+    if (!row?.owner_session_key) throw new Error(`Ticket ${ticketId} has no owner session`);
+    db.prepare(`INSERT OR IGNORE INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at)
+      VALUES (?,?,?,?, 'pending',0,?)`).run(ticketId,row.owner_session_key,status,JSON.stringify(payload),nowIso);
   }
 }
 
