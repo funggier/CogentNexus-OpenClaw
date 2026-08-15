@@ -1,0 +1,39 @@
+name: Sync baseline package lock
+
+on:
+  push:
+    branches:
+      - "baseline/v0.8.0-clean"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: baseline/v0.8.0-clean
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
+      - name: Regenerate lock metadata
+        working-directory: plugins/cogentnexus-rotation
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Commit synchronized lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- plugins/cogentnexus-rotation/package-lock.json; then
+            echo "Lockfile already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/cogentnexus-rotation/package-lock.json
+          git commit -m "Sync package lock for v0.8.0"
+          git push origin HEAD:baseline/v0.8.0-clean
