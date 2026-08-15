@@ -177,6 +177,14 @@ export function dispatchTicketWorkflows(input:{workspaceDir:string;store:TicketS
   return {admission,leases};
 }
 
+export function rebindSessionSuccessor(input:{workspaceDir:string;store:TicketStore;fromSessionKey:string;toSessionKey:string;pythonCommand?:string}) {
+  const fromSessionKey=input.fromSessionKey.trim(),toSessionKey=input.toSessionKey.trim();
+  if(!fromSessionKey || !toSessionKey || fromSessionKey===toSessionKey) return {ticketIds:[],workflowIds:[],outboxCount:0,workflowRebind:{workflows:[]}};
+  const ticketRebind=input.store.rebindSessionOwner({fromSessionKey,toSessionKey});
+  const workflowRebind=runWorkflowCli(input.pythonCommand ?? "python",workflowRuntime(input.workspaceDir),["--root",input.workspaceDir,"rebind-session-owner","--from-session-key",fromSessionKey,"--to-session-key",toSessionKey]);
+  return {...ticketRebind,workflowRebind};
+}
+
 export function reconcileTicketWorkflows(input:{workspaceDir:string;store:TicketStore;config:RotationConfig;now?:Date}) {
   const results:Array<{ticketId:string;action:string}> = [];
   for (const linked of input.store.linkedRunning()) {
@@ -789,6 +797,16 @@ entry.register = (api) => {
       message:`CogentNexus ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
   }, { priority: 2000, timeoutMs: 30_000 });
+  if (config.ticketFirst === true) api.on("session_end", (event, ctx) => {
+    if(event.reason!=="new" || !event.sessionKey || !event.nextSessionKey || event.sessionKey===event.nextSessionKey) return;
+    const workspaceDir=resolve(config.workspaceDir ?? process.cwd());
+    try {
+      const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+      const rebound=rebindSessionSuccessor({workspaceDir,store,fromSessionKey:event.sessionKey,toSessionKey:event.nextSessionKey,pythonCommand:config.pythonCommand});
+      api.logger.info?.(`CogentNexus rebound session continuity ${event.sessionKey} -> ${event.nextSessionKey}: ${rebound.ticketIds.length} tickets, ${rebound.outboxCount} pending outbox deliveries`);
+    } catch(error) { api.logger.error(`CogentNexus session successor rebind failed: ${error instanceof Error?error.message:String(error)}`); }
+  }, { priority: 500, timeoutMs: 10_000 });
+
   if (config.ticketFirst === true) api.on("reply_dispatch", (event, ctx) => {
     const runId=event.runId;
     if(!runId || !ctx.dispatcher.appendBeforeDeliver) return;

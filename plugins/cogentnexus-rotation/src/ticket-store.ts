@@ -308,6 +308,27 @@ export class TicketStore {
     finally { db.close(); }
   }
 
+  rebindSessionOwner(input:{fromSessionKey:string;toSessionKey:string;now?:Date}) {
+    const fromSessionKey=input.fromSessionKey.trim(),toSessionKey=input.toSessionKey.trim();
+    if(!fromSessionKey || !toSessionKey) throw new Error("valid session succession keys required");
+    if(fromSessionKey===toSessionKey) return {ticketIds:[],workflowIds:[],outboxCount:0};
+    const db=this.open(),nowIso=(input.now??new Date()).toISOString();
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const rows=db.prepare(`SELECT ticket_id,workflow_id FROM tickets WHERE owner_session_key=? AND status NOT IN ('completed','failed','cancelled') ORDER BY created_at,ticket_id`).all(fromSessionKey) as any[];
+      const ticketIds:string[]=[],workflowIds:string[]=[];
+      for(const row of rows){
+        const changed=db.prepare(`UPDATE tickets SET owner_session_key=?,updated_at=? WHERE ticket_id=? AND owner_session_key=? AND status NOT IN ('completed','failed','cancelled')`).run(toSessionKey,nowIso,row.ticket_id,fromSessionKey);
+        if(changed.changes!==1) continue;
+        ticketIds.push(row.ticket_id); if(typeof row.workflow_id==="string" && row.workflow_id) workflowIds.push(row.workflow_id);
+        this.event(db,row.ticket_id,"owner_session_rebound",{fromSessionKey,toSessionKey},nowIso);
+      }
+      const outbox=db.prepare(`UPDATE ticket_outbox SET owner_session_key=? WHERE owner_session_key=? AND delivery_status='pending'`).run(toSessionKey,fromSessionKey);
+      db.exec("COMMIT");
+      return {ticketIds,workflowIds:[...new Set(workflowIds)],outboxCount:Number(outbox.changes)};
+    } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;} finally{db.close();}
+  }
+
   get(ticketId: string): TicketRecord | undefined {
     const db = this.open();
     try {

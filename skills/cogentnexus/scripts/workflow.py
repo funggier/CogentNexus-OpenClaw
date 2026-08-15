@@ -167,6 +167,40 @@ def bind_owner(root, task_id, session_key):
         notice = queue_terminal_completion(flow, state)
     return {"binding":binding,"completion":notice}
 
+def rebind_owner(flow, from_session_key, to_session_key):
+    if not isinstance(from_session_key, str) or not from_session_key.strip(): raise ValueError("valid previous owner session key required")
+    if not isinstance(to_session_key, str) or not to_session_key.strip() or len(to_session_key) > 512: raise ValueError("valid successor owner session key required")
+    old_key, new_key = from_session_key.strip(), to_session_key.strip()
+    if old_key == new_key: return {"taskId":flow.task_id,"changed":False,"ownerSessionKey":new_key}
+    with lock(flow.lock_path):
+        if not flow.owner_path.is_file(): return {"taskId":flow.task_id,"changed":False,"reason":"unbound"}
+        owner = flow.read(flow.owner_path)
+        current = owner.get("ownerSessionKey")
+        if current == new_key: return {"taskId":flow.task_id,"changed":False,"ownerSessionKey":new_key,"idempotent":True}
+        if current != old_key: return {"taskId":flow.task_id,"changed":False,"reason":"different-owner","ownerSessionKey":current}
+        rebound = dict(owner); rebound["ownerSessionKey"] = new_key; rebound["reboundAt"] = now(); rebound["previousOwnerSessionKey"] = old_key
+        atomic_json(flow.owner_path,rebound)
+        if flow.completion_path.is_file():
+            completion = flow.read(flow.completion_path)
+            if completion.get("deliveryStatus") != "delivered" and completion.get("ownerSessionKey") == old_key:
+                completion["ownerSessionKey"] = new_key; completion["ownerReboundAt"] = now(); atomic_json(flow.completion_path,completion)
+        flow.event("WORKFLOW_OWNER_REBOUND","Workflow owner session advanced to its OpenClaw successor",{"fromSessionKey":old_key,"toSessionKey":new_key})
+        return {"taskId":flow.task_id,"changed":True,"ownerSessionKey":new_key}
+
+
+def rebind_session_owner(root, from_session_key, to_session_key):
+    base = Path(root).resolve() / ".cogent" / "workflows"
+    if not base.exists(): return {"fromSessionKey":from_session_key,"toSessionKey":to_session_key,"workflows":[]}
+    results=[]
+    for item in sorted(base.iterdir()):
+        if item.is_dir() and TASK_ID.fullmatch(item.name):
+            flow=Workflow(root,item.name)
+            if flow.owner_path.is_file():
+                result=rebind_owner(flow,from_session_key,to_session_key)
+                if result.get("changed") or result.get("idempotent"): results.append(result)
+    return {"fromSessionKey":from_session_key,"toSessionKey":to_session_key,"workflows":results}
+
+
 def initialize(root, manifest_file, owner_session_key=None, operator_unbound=False, operator_reason=None):
     if bool(owner_session_key) == bool(operator_unbound):
         raise ValueError("initialize requires exactly one of owner_session_key or operator_unbound")
@@ -612,6 +646,7 @@ def parser():
         x=sub.add_parser(name); x.add_argument("task_id")
     c=sub.add_parser("cancel"); c.add_argument("task_id"); c.add_argument("--reason",required=True)
     b=sub.add_parser("bind-owner"); b.add_argument("task_id"); b.add_argument("--session-key",required=True)
+    rb=sub.add_parser("rebind-session-owner"); rb.add_argument("--from-session-key",required=True); rb.add_argument("--to-session-key",required=True)
     s=sub.add_parser("supervise"); s.add_argument("--execute",action="store_true"); s.add_argument("--maximum",type=int,default=4)
     sub.add_parser("self-test"); return p
 
@@ -628,6 +663,7 @@ def main():
     if args.command=="inspect": emit(inspect_workflow(args.root,args.task_id)); return
     if args.command=="cancel": emit(cancel_workflow(args.root,args.task_id,args.reason)); return
     if args.command=="bind-owner": emit(bind_owner(args.root,args.task_id,args.session_key)); return
+    if args.command=="rebind-session-owner": emit(rebind_session_owner(args.root,args.from_session_key,args.to_session_key)); return
     if args.command=="supervise": emit(supervise_workflows(args.root,args.execute,args.maximum)); return
     if args.command=="self-test": self_test(); return
 
