@@ -1,0 +1,57 @@
+name: Patch passthrough lifecycle semantics
+
+on:
+  push:
+    branches:
+      - "baseline/v0.8.0-clean"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: baseline/v0.8.0-clean
+      - name: Patch Host command semantics
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('skills/cogentnexus/scripts/host.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''    if args.command == "start":
+        return start_managed(root, True)
+    if args.command == "stop":
+        return stop_managed(root, True)
+    if args.command == "restart":
+        return restart_managed(root)
+'''
+          new = '''    if args.command in {"start", "stop", "restart"}:
+        if load_state(root).get("mode") == "passthrough":
+            raise RuntimeError(
+                "CogentNexus is disabled (PASSTHROUGH). Use 'cnx enable' to enter MANAGED mode, "
+                "or use 'cnx gateway <start|stop|restart>' / native OpenClaw lifecycle commands "
+                "without changing CogentNexus mode."
+            )
+        if args.command == "start":
+            return start_managed(root, True)
+        if args.command == "stop":
+            return stop_managed(root, True)
+        return restart_managed(root)
+'''
+          if old not in text:
+              raise SystemExit('expected Host lifecycle command block not found')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- skills/cogentnexus/scripts/host.py; then exit 0; fi
+          git add skills/cogentnexus/scripts/host.py
+          git commit -m "Fence managed lifecycle commands in PASSTHROUGH"
+          git push origin HEAD:baseline/v0.8.0-clean
