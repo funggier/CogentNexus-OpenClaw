@@ -1,0 +1,61 @@
+name: Apply v0.8.3 Windows shutdown patch
+
+on:
+  push:
+    branches:
+      - fix/windows-stop-v083
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/windows-stop-v083
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Apply patch
+        run: python scripts/apply_v083_patch.py
+      - name: Baseline consistency
+        run: python scripts/check_baseline_consistency.py
+      - name: Core runtime self-test
+        run: python skills/cogentnexus/scripts/runtime.py self-test
+      - name: Python regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Install plugin dependencies
+        working-directory: plugins/cogentnexus-rotation
+        run: npm ci
+      - name: Plugin tests
+        working-directory: plugins/cogentnexus-rotation
+        run: npm test
+      - name: Plugin evaluation
+        working-directory: plugins/cogentnexus-rotation
+        run: npm run evaluation
+      - name: Production dependency audit
+        working-directory: plugins/cogentnexus-rotation
+        run: npm audit --omit=dev
+      - name: Plugin validation
+        working-directory: plugins/cogentnexus-rotation
+        run: npm run plugin:validate
+      - name: Remove temporary patch artifacts
+        shell: bash
+        run: |
+          rm scripts/apply_v083_patch.py
+          rm .github/workflows/patch-v083.yml
+      - name: Commit clean patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix verified Windows managed shutdown for v0.8.3"
+          git push origin HEAD:fix/windows-stop-v083
