@@ -22,26 +22,28 @@ jobs:
           from pathlib import Path
           path = Path('skills/cogentnexus/scripts/host.py')
           text = path.read_text(encoding='utf-8')
-          old = '''    if args.command == "start":
-        return start_managed(root, True)
-    if args.command == "stop":
-        return stop_managed(root, True)
-    if args.command == "restart":
-        return restart_managed(root)
-'''
-          new = '''    if args.command in {"start", "stop", "restart"}:
-        if load_state(root).get("mode") == "passthrough":
-            raise RuntimeError(
-                "CogentNexus is disabled (PASSTHROUGH). Use 'cnx enable' to enter MANAGED mode, "
-                "or use 'cnx gateway <start|stop|restart>' / native OpenClaw lifecycle commands "
-                "without changing CogentNexus mode."
-            )
-        if args.command == "start":
-            return start_managed(root, True)
-        if args.command == "stop":
-            return stop_managed(root, True)
-        return restart_managed(root)
-'''
+          old = (
+              '    if args.command == "start":\n'
+              '        return start_managed(root, True)\n'
+              '    if args.command == "stop":\n'
+              '        return stop_managed(root, True)\n'
+              '    if args.command == "restart":\n'
+              '        return restart_managed(root)\n'
+          )
+          new = (
+              '    if args.command in {"start", "stop", "restart"}:\n'
+              '        if load_state(root).get("mode") == "passthrough":\n'
+              '            raise RuntimeError(\n'
+              '                "CogentNexus is disabled (PASSTHROUGH). Use \'cnx enable\' to enter MANAGED mode, "\n'
+              '                "or use \'cnx gateway <start|stop|restart>\' / native OpenClaw lifecycle commands "\n'
+              '                "without changing CogentNexus mode."\n'
+              '            )\n'
+              '        if args.command == "start":\n'
+              '            return start_managed(root, True)\n'
+              '        if args.command == "stop":\n'
+              '            return stop_managed(root, True)\n'
+              '        return restart_managed(root)\n'
+          )
           if old not in text:
               raise SystemExit('expected Host lifecycle command block not found')
           path.write_text(text.replace(old, new), encoding='utf-8')
