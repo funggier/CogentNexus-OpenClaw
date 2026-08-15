@@ -1,11 +1,72 @@
 # CogentNexus
 
-CogentNexus is an evidence-backed cognitive runtime toolkit for OpenClaw. It keeps durable task state outside the model, records an append-only execution ledger, probes the runtime environment, and rejects completion when deterministic verification evidence is missing or stale.
+CogentNexus is a **durable host control layer for OpenClaw**. It sits outside the model and, in managed mode, outside the OpenClaw Gateway lifecycle so accepted user work can survive model failure, Gateway interruption, deliberate restart, and machine reboot.
 
-CogentNexus Core is part of the [CogentNexus Ecosystem](https://github.com/funggier/cogentnexus-ecosystem) for OpenClaw. The ecosystem repository publishes companion skills such as Staged Capability Loop and documents how the projects work together.
+Its central invariant is simple:
+
+> Once a user message is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with evidence.
+
+CogentNexus does **not** make every request heavy. Every eligible owner message can be committed to a lightweight durable Ticket before inference, while the request itself is still routed through the lightest reliable execution lane. Greetings and ordinary conversation remain direct; complex or interruption-prone work can escalate into verified durable workflows only when needed.
+
+CogentNexus also remains optional. `cnx disable` enters **PASSTHROUGH** mode, removes CogentNexus interception and lifecycle ownership, and returns OpenClaw to normal native operation without deleting durable state.
+
+CogentNexus Core is part of the [CogentNexus Ecosystem](https://github.com/funggier/cogentnexus-ecosystem), together with companion routing and review policies such as Staged Capability Loop.
+
+## Architecture
+
+```text
+User / Channel
+      |
+      v
+CogentNexus Host Controller
+      |-- durable Ticket intake
+      |-- desired/actual runtime state
+      |-- CPU-only supervision and recovery
+      |-- cancellation and session fencing
+      |
+      v
+OpenClaw Gateway
+      |
+      v
+Admission / execution lane
+  | DIRECT   -> lightweight conversation
+  | LOOKUP   -> focused read-only work
+  | ACTION   -> bounded reversible work
+  ` STAGED   -> durable verified workflow
+      |
+      v
+LLM / tools / reviewers
+```
+
+The Host Controller is intentionally independent of OpenClaw inference. It can preserve state, detect runtime failure, restart managed components, and resume committed work without using an inference lane itself.
+
+## Operating modes
+
+- **MANAGED** — CogentNexus owns Ticket-first continuity, recovery supervision, and managed OpenClaw lifecycle behavior.
+- **PASSTHROUGH** — CogentNexus interception and background ownership are disabled; OpenClaw behaves normally.
+- **MAINTENANCE** — intentional stop state; durable state is preserved and the supervisor must not restart components against operator intent.
+
+`disable` and `stop` therefore mean different things: disabling returns control to native OpenClaw; stopping records deliberate maintenance.
+
+## What CogentNexus guarantees
+
+CogentNexus separates three concerns that should not be conflated:
+
+1. **Continuity** — the Host Controller keeps accepted work from disappearing.
+2. **Execution depth** — lane policy chooses the lightest reliable way to handle the request.
+3. **Verification** — durable workflows use deterministic evidence, bounded review, and checkpointed recovery before claiming completion.
+
+This means Ticket-first intake does not imply staged execution. A message such as `สวัสดีครับ` may have a durable Ticket while still receiving a normal lightweight reply.
 
 ## Current capabilities
 
+- Durable SQLite Ticket intake before inference for managed owner messages
+- External Host Controller with persisted desired runtime state
+- MANAGED, PASSTHROUGH, and MAINTENANCE operating modes
+- Gateway lifecycle control with deliberate-stop fencing
+- Recovery of committed direct Tickets after confirmed Gateway interruption
+- Ticket and session cancellation with terminal fencing and durable outbox support
+- Automatic continuation after restart or reboot when managed state requests a running runtime
 - Atomic, revisioned task state with checkpoint, resume, commit, and rollback
 - System and workspace probes
 - Bounded command execution with ACTION, OBSERVATION, and FAILURE events
@@ -16,131 +77,108 @@ CogentNexus Core is part of the [CogentNexus Ecosystem](https://github.com/fungg
 - Failure classification and dry-run recovery planning
 - Safe internal recovery adaptation with retry budgets and circuit breaking
 - Machine-readable runtime, executable, and OpenClaw skill capability registry
-- Cross-platform deterministic supervisor with confirmed health probes, verified recovery, cooldowns, and circuit breaking
-- Verified Gateway auto-recovery after an unplanned stop, using connectivity evidence rather than the OpenClaw CLI exit code alone
-- Bounded startup readiness polling so normal Gateway warm-up completes with one `lifecycle start` command
+- Cross-platform deterministic supervisor with health probes, verified recovery, cooldowns, and circuit breaking
+- Bounded startup readiness polling
 - Native scheduler templates for Windows Task Scheduler, systemd, launchd, cron, Docker Compose, and Kubernetes
-- Portable, maintenance-fenced lifecycle launchers for Windows, Linux, and macOS
 - Fixed or adaptive concurrency admission with one inference lane as the safe default
-- Durable context handoff with live OpenClaw token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
+- Durable context handoff with live token observation, integrity binding, worker leases, generation fencing, and session rotation thresholds
 - Verified workflow DAGs with command/Ollama executors, deterministic validators, bounded retries, and artifact hashes
 - Always-on workflow discovery and detached controller resumption from the native periodic supervisor
 - Automatic context-pressure rotation for bound durable tasks through a clean TaskFlow worker session
-- Pre-inference admission of explicit durable requests into owner-bound, checkpointed component workflows
-- Domain-aware durable compilation for software systems, EA/trading systems, file operations, analysis, fiction, design, translation, and general work
-- Arbitrary named-artifact generation with deterministic existence, size, encoding, and format/syntax validation
-- Idempotent workflow intake and deterministic component assembly before verified owner continuation
+- Domain-aware durable compilation for software, trading/EA systems, file operations, analysis, fiction, design, translation, and general work
+- Arbitrary named-artifact generation with deterministic existence, size, encoding, and syntax validation
 - Minimal ledger records without chain-of-thought
-- Bounded external-research jobs with provenance, TTL snapshots, corroboration, and prompt-injection isolation
-- Deterministic Phase 6 evaluation for interruption, retry, duplication, retrieval quality, and SQLite scale decisions
-
-## Optional background startup
-
-CogentNexus can run its recovery supervisor silently in the background. The
-choice is persisted and preserved across updates:
-
-```bash
-python skills/cogentnexus/scripts/startup.py status
-python skills/cogentnexus/scripts/startup.py enable
-python skills/cogentnexus/scripts/startup.py disable
-python skills/cogentnexus/scripts/startup.py ensure
-```
-
-On Windows, the enabled supervisor uses `pythonw.exe` and a hidden Scheduled
-Task to avoid console-window flashes. Disabling startup removes only the
-automatic trigger; durable state and manual lifecycle startup remain available.
-
-## Layout
-
-    skills/
-    └── cogentnexus/
-        ├── SKILL.md
-        ├── assets/
-        ├── references/
-        └── scripts/
-
-The nested layout preserves the OpenClaw workspace contract and lets the runtime locate its workspace root deterministically.
+- Bounded external research with provenance, TTL snapshots, corroboration, and prompt-injection isolation
+- Deterministic evaluation for interruption, retry, duplication, retrieval quality, and SQLite scale decisions
 
 ## Installation
 
-Automated installers copy the skill, validate it, build and link the OpenClaw
-rotation plugin, and safely merge a managed CogentNexus admission policy into
-the workspace `AGENTS.md` so the skill is applied to every request by default.
-plugin, restart Gateway, and verify runtime health.
+For stable installations, download a versioned archive from [GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify it against `SHA256SUMS.txt`.
 
 Windows PowerShell:
 
-    .\scripts\install.ps1
+```powershell
+.\scripts\install.ps1
+```
 
 Linux or macOS:
 
-    chmod +x scripts/install.sh
-    ./scripts/install.sh
+```sh
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
 
-See [the installation guide](docs/INSTALL.md) for prerequisites, workspace
-selection, manual installation, updating, and troubleshooting.
+A normal Windows installation installs and validates the skill/plugin, writes the bounded managed policy into the OpenClaw workspace, initializes Host state, enables Ticket-first managed settings, creates `cnx.cmd`, enables the hidden Host supervisor, and verifies the runtime unless restart was explicitly skipped.
 
-For stable installations, use a versioned archive from
-[GitHub Releases](https://github.com/funggier/cogentnexus/releases) and verify
-it against the published `SHA256SUMS.txt` before running the installer.
+See [docs/INSTALL.md](docs/INSTALL.md) for prerequisites, upgrade behavior, passthrough mode, and troubleshooting.
 
-See the [v0.6.0 release notes](docs/releases/v0.6.0.md) for the evaluation gates, the [v0.6.1 release notes](docs/releases/v0.6.1.md) for the Windows startup reconciliation fix, the [v0.6.2 release notes](docs/releases/v0.6.2.md) for long-running local-model retry and timeout policy, and the [v0.6.4 release notes](docs/releases/v0.6.4.md) for mandatory workspace-policy installation.
+## Everyday control
+
+From the OpenClaw workspace on Windows:
+
+```powershell
+.\cnx.cmd status
+.\cnx.cmd start
+.\cnx.cmd stop
+.\cnx.cmd restart
+.\cnx.cmd gateway restart
+.\cnx.cmd ticket list
+.\cnx.cmd ticket cancel <ticket-id>
+.\cnx.cmd session cancel <session-key>
+.\cnx.cmd disable
+.\cnx.cmd enable
+```
+
+Key semantics:
+
+- `start` — request MANAGED runtime running and resume eligible committed work.
+- `stop` — enter MAINTENANCE; do not auto-recover until started again.
+- `restart` — preserve managed intent, restart runtime, then continue eligible committed work.
+- `disable` — enter PASSTHROUGH so OpenClaw works natively without CogentNexus interception.
+- `enable` — re-enter MANAGED mode and reconcile the managed runtime.
+
+## Background supervision
+
+CogentNexus supervision is deterministic and consumes no inference lane. On Windows it runs through a hidden Scheduled Task using `pythonw.exe`; equivalent scheduler integrations are available for other platforms.
+
+The supervisor reasons from persisted desired state, health evidence, leases, generations, and terminal Ticket/workflow state. It distinguishes an unplanned failure from an intentional stop so it does not fight operator intent.
+
+## Layout
+
+```text
+skills/
+└── cogentnexus/
+    ├── SKILL.md
+    ├── assets/
+    ├── references/
+    └── scripts/
+```
+
+Runtime data is stored under `.cogent/` and intentionally excluded from version control.
 
 ## Validate
 
-Requires Python 3.10 or newer and PyYAML.
+Requires Python 3.10+ and the development dependencies.
 
-    python -m pip install -r requirements-dev.txt
-    python skills/cogentnexus/scripts/validate.py
-    python skills/cogentnexus/scripts/cogent.py self-test
-    python skills/cogentnexus/scripts/runtime.py self-test
-    python skills/cogentnexus/scripts/workflow.py self-test
-    cd plugins/cogentnexus-rotation && npm run evaluation
+```sh
+python -m pip install -r requirements-dev.txt
+python skills/cogentnexus/scripts/validate.py --workspace-singleton
+python skills/cogentnexus/scripts/cogent.py self-test
+python skills/cogentnexus/scripts/runtime.py self-test
+python skills/cogentnexus/scripts/workflow.py self-test
+python -m unittest discover -s tests -v
+cd plugins/cogentnexus-rotation
+npm ci
+npm test
+npm run evaluation
+npm audit --omit=dev
+npm run plugin:validate
+```
 
-## Benchmarks
+## Release notes
 
-[`benchmarks/single-ai-hybrid-e2e`](benchmarks/single-ai-hybrid-e2e) contains a
-reusable end-to-end task for comparing a single model with and without
-CogentNexus. It includes the model prompt, an independent root-gate validator,
-and a Thai-language testing guide with fairness and reporting rules. The guide
-also explains why durable workflow completion is distinct from submission
-validity and the final root-gate result.
+See [v0.7.0](docs/releases/v0.7.0.md) for the Host Controller, Ticket-first continuity, passthrough mode, cancellation controls, installer integration, and release validation introduced with the managed-host architecture.
 
-    python benchmarks/single-ai-hybrid-e2e/test_validator.py
+## Design principle
 
-## Quick start
-
-    python skills/cogentnexus/scripts/cogent.py task init --task-id CNX-001 --goal "Produce a verified artifact"
-    python skills/cogentnexus/scripts/cogent.py probe all --task-id CNX-001
-    python skills/cogentnexus/scripts/cogent.py run --task-id CNX-001 --step compile --command "python -m py_compile artifact.py"
-    python skills/cogentnexus/scripts/cogent.py verify run --task-id CNX-001 --exists artifact.py --hash artifact.py
-    python skills/cogentnexus/scripts/cogent.py recover plan --task-id CNX-001
-    python skills/cogentnexus/scripts/cogent.py capability find "GitHub repository"
-    python skills/cogentnexus/scripts/runtime.py supervisor tick
-    python skills/cogentnexus/scripts/runtime.py concurrency status
-    python skills/cogentnexus/scripts/runtime.py context status --used-tokens 18000 --maximum-tokens 32768
-    python skills/cogentnexus/scripts/runtime.py context bind --task-id TASK-1 --session-key SESSION-KEY --next-action "resume smallest pending step"
-    python skills/cogentnexus/scripts/runtime.py context monitor --task-id TASK-1 --execute-safe
-    python skills/cogentnexus/scripts/runtime.py context rotations --task-id TASK-1
-    python skills/cogentnexus/scripts/runtime.py scheduler render --backend systemd
-    python skills/cogentnexus/scripts/workflow.py validate workflow-manifest.json
-    python skills/cogentnexus/scripts/workflow.py --root . init workflow-manifest.json --operator-unbound --operator-reason "operator-managed workflow"
-    python skills/cogentnexus/scripts/workflow.py --root . supervise
-    python skills/cogentnexus/scripts/workflow.py --root . supervise --execute
-
-## Start and stop safely
-
-Portable wrappers are available in `skills/cogentnexus/templates/lifecycle/`:
-
-- Windows: `start-cogentnexus.cmd` and `stop-cogentnexus.cmd`
-- Linux/macOS: `start-cogentnexus.sh` and `stop-cogentnexus.sh`
-
-Run a wrapper from the workspace whose runtime data should be stored under `.cogent`, or set `COGENTNEXUS_ROOT` to an absolute runtime-data directory. On Linux/macOS, make the shell wrappers executable once with `chmod +x`.
-
-The stop wrapper enables maintenance mode before stopping OpenClaw and the local provider, preventing the supervisor from immediately restarting them. The start wrapper verifies service health before clearing maintenance mode and is safe to invoke when services are already healthy.
-
-Runtime task data is stored under .cogent/tasks/<task-id>/ and is intentionally excluded from version control.
-
-## Status
-
-The durable database roadmap through Phase 6 is implemented. Periodic supervision remains deterministic and consumes no inference lane; it discovers resumable workflows and launches separately fenced controllers that continue from durable evidence. Command child PIDs are fenced independently from controller PIDs, so controller death cannot trigger a duplicate launch while the child is still active. Recovery remains evidence-gated and bounded; permission bypass, dependency installation, deletion, and unapproved external actions are never automatic. Concurrency defaults to one inference lane and scales only within an explicit adaptive ceiling.
+OpenClaw must remain usable without CogentNexus, and CogentNexus must be able to preserve control state without relying on a live OpenClaw inference process. When combined, CogentNexus enhances OpenClaw with durable continuity rather than becoming a dependency that can take OpenClaw down with it.
