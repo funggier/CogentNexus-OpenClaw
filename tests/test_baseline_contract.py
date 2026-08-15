@@ -34,6 +34,16 @@ class BaselineContractTests(unittest.TestCase):
         self.assertNotIn("Use this entry point for every request", skill)
         self.assertNotIn("Choose Direct, Verified, or Durable", skill)
 
+    def test_openclaw_bridge_source_and_manifest_agree(self):
+        source = (ROOT / "plugins/cogentnexus-rotation/src/index.ts").read_text(encoding="utf-8")
+        manifest = json.loads((ROOT / "plugins/cogentnexus-rotation/openclaw.plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["name"], "CogentNexus OpenClaw Bridge")
+        self.assertIn('name: "CogentNexus OpenClaw Bridge"', source)
+        self.assertIn("Host-managed continuity", manifest["description"])
+        self.assertIn("Host-managed continuity", source)
+        self.assertNotIn("Disabled by default during Phase 0", source)
+        self.assertNotEqual(manifest["name"], "CogentNexus Rotation Controller")
+
     def test_canonical_baseline_and_install_guides_exist(self):
         for relative in (
             "docs/BASELINE.md",
@@ -45,11 +55,32 @@ class BaselineContractTests(unittest.TestCase):
             self.assertTrue(path.is_file(), relative)
             self.assertTrue(path.read_text(encoding="utf-8").strip(), relative)
 
-    def test_passthrough_invariant_is_documented(self):
+    def test_passthrough_and_policy_invariants_are_documented(self):
         baseline = (ROOT / "docs/BASELINE.md").read_text(encoding="utf-8")
         self.assertIn("PASSTHROUGH", baseline)
         self.assertIn("OpenClaw must remain usable without CogentNexus", baseline)
         self.assertIn("must not silently disappear", baseline)
+        self.assertIn(".cogent/host/managed-policy.md", baseline)
+        self.assertIn("policy register", baseline)
+
+    def test_current_docs_do_not_call_core_a_mandatory_heavy_runtime(self):
+        current = [
+            ROOT / "README.md",
+            ROOT / "docs/BASELINE.md",
+            ROOT / "docs/INSTALL.md",
+            ROOT / "skills/cogentnexus/SKILL.md",
+            ROOT / "skills/cogentnexus/references/architecture.md",
+            ROOT / "skills/cogentnexus/references/intent-compiler.md",
+        ]
+        forbidden = (
+            "mandatory cognitive runtime",
+            "Use this entry point for every request",
+            "Load and apply the `cogentnexus` skill before reasoning",
+        )
+        for path in current:
+            text = path.read_text(encoding="utf-8")
+            for phrase in forbidden:
+                self.assertNotIn(phrase, text, f"{phrase!r} in {path}")
 
 
 if __name__ == "__main__":
