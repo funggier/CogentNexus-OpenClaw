@@ -2,7 +2,7 @@
 
 The package ID remains `cogentnexus-rotation` for compatibility, but in v0.8 the plugin is documented as the **CogentNexus OpenClaw Bridge**.
 
-It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. The bridge is not the durability authority by itself; durable authority lives in persisted Host, Ticket, workflow, lease, generation, and outbox state.
+It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. The bridge is not the durability authority by itself; durable authority lives in persisted Host, Ticket, workflow, lease, generation, response-readiness, delivery-receipt, and outbox state.
 
 ## Responsibilities
 
@@ -13,7 +13,10 @@ It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. T
 - preserve request-hash/idempotency boundaries;
 - fence duplicate starts by lease/generation/run identity;
 - bridge verified context-rotation handoffs when explicitly enabled;
-- deliver terminal Ticket/workflow outbox results to the bound owner;
+- distinguish response readiness from completed user delivery;
+- recover interrupted or unconfirmed direct reply delivery;
+- keep terminal Ticket/workflow outboxes pending until delivery receipt;
+- schedule a delayed continuation after successful compaction when durable session work remains;
 - expose optional knowledge/research tools without making them execution authority.
 
 ## What the bridge must not do
@@ -21,7 +24,10 @@ It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. T
 - force every message into a durable workflow;
 - make a greeting pay STAGED workflow overhead;
 - treat model prose as authoritative completion evidence;
+- treat `agent_end(success=true)` as proof that a visible reply reached the user completely;
+- treat scheduling a terminal continuation as proof of delivery;
 - silently repeat external side effects after interruption;
+- reconstruct discarded private reasoning after compaction;
 - resurrect cancelled Tickets/sessions;
 - make native OpenClaw unusable when CogentNexus is disabled.
 
@@ -35,13 +41,53 @@ owner message
    -> lane selection
       DIRECT / LOOKUP / ACTION / STAGED
    -> execution
-   -> terminal/outbox state
-   -> owner delivery
+   -> RESPONSE_READY when visible output exists
+   -> delivery settles
+   -> DELIVERY_CONFIRMED
+   -> completed / delivered
 ```
 
 Ticket creation is intentionally lightweight. A DIRECT message may remain an ordinary conversational turn after its Ticket is committed.
 
-If a direct turn is left accepted when Gateway failure is confirmed, the external Host Controller may promote that Ticket to durable recovery after runtime health returns.
+If a direct turn is interrupted before execution completes, or a response becomes ready but its final delivery fails/remains unconfirmed, the Ticket is promoted to durable recovery rather than silently completed.
+
+## Delivery Commit Gate
+
+Visible output has a separate completion boundary from model execution.
+
+The bridge uses OpenClaw reply-dispatch settlement when available: it observes the final dispatch, waits for the dispatcher to become idle, and checks final delivery failure/cancellation counts. `message_sent` is a fallback receipt path and uses a settle period so the first emitted chunk cannot immediately close a long reply.
+
+Direct Ticket fields include:
+
+- `response_ready_at`
+- `delivery_confirmed_at`
+- `delivery_last_error`
+
+A response-ready Ticket remains non-terminal until delivery is confirmed. If receipt confirmation never arrives within the configured deadline, deterministic recovery promotes the Ticket so work/delivery can continue.
+
+Terminal Ticket/workflow outboxes follow the same rule. `scheduled_at` and `delivery_run_id` track an in-flight delivery attempt. The marked continuation itself must settle successfully before `delivery_status` becomes `delivered`; otherwise the outbox becomes retryable again without recomputing already completed work.
+
+Delivery controls:
+
+- `directDeliverySettleMs`
+- `directDeliveryTimeoutMs`
+- `outboxDeliveryTimeoutMs`
+
+## Post-Compaction Continuation Guard
+
+Successful OpenClaw history compaction does not mean the logical task is finished.
+
+When `after_compaction` fires in a managed Ticket-first session, the bridge checks whether the session still owns non-terminal Tickets, pending Ticket outboxes, or pending workflow completion delivery. If so, it schedules one delayed idempotently tagged continuation:
+
+```text
+[CogentNexus Continuation: post-compaction]
+```
+
+The continuation resumes from committed durable state only. If the original turn continues normally, `agent_end` removes the delayed guard. If the guard eventually fires after work is already terminal, terminal/idempotency state prevents duplicate side effects.
+
+Control:
+
+- `postCompactionResumeDelayMs`
 
 ## Managed defaults
 
@@ -55,6 +101,7 @@ If a direct turn is left accepted when Gateway failure is confirmed, the externa
 - `ticketDispatchLimit = 1`
 - `ticketMaximumRunning = 1`
 - bounded attempts and short deterministic recovery/dispatch/outbox polls
+- conversation hook access enabled for delivery/compaction continuity events
 
 These settings preserve one inference lane by default. Parallelism should increase only from measured need.
 
@@ -71,7 +118,7 @@ Configuration:
 - `admissionMinimumScore`
 - `durableWorkerModel`
 
-The bridge excludes internal continuation/subagent turns from owner admission and retains idempotent workflow identity.
+The bridge excludes internal delivery/continuation/subagent turns from owner admission and retains idempotent workflow identity.
 
 ## Durable workflow execution
 
