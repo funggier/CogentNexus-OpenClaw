@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sqlite3
 import tempfile
 import unittest
@@ -34,6 +33,73 @@ class HostControllerTests(unittest.TestCase):
         self.assertIn(cnx_host.BEGIN, merged)
         restored = cnx_host.remove_policy_text(merged)
         self.assertEqual(restored, original)
+
+    def test_initialize_seeds_durable_core_policy_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            cnx_host.initialize(root)
+            snapshot = cnx_host.policy_snapshot_path(root)
+            self.assertTrue(snapshot.is_file())
+            text = snapshot.read_text(encoding="utf-8")
+            self.assertIn("CogentNexus - Managed Continuity", text)
+            info = cnx_host.policy_info(root)
+            self.assertEqual(info["source"], "registered")
+            self.assertGreater(info["bytes"], 0)
+            self.assertEqual(len(info["sha256"]), 64)
+
+    def test_registered_policy_persists_across_passthrough_and_reapply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            root = workspace / ".cogent"
+            workspace.mkdir(parents=True)
+            cnx_host.initialize(root)
+            cnx_host.save_state(
+                root,
+                {
+                    "schemaVersion": 1,
+                    "mode": "passthrough",
+                    "desiredGateway": "running",
+                    "desiredProvider": "unchanged",
+                    "generation": 2,
+                },
+            )
+            custom = Path(tmp) / "ecosystem-policy.md"
+            custom.write_text("## Ecosystem Managed Policy\n\nDIRECT first.\n", encoding="utf-8")
+            result = cnx_host.register_policy(root, custom)
+            self.assertFalse(result["applied"])
+            self.assertIn("Ecosystem Managed Policy", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
+            self.assertFalse((workspace / "AGENTS.md").exists())
+
+            cnx_host.save_state(
+                root,
+                {
+                    "schemaVersion": 1,
+                    "mode": "managed",
+                    "desiredGateway": "running",
+                    "desiredProvider": "running",
+                    "generation": 3,
+                },
+            )
+            applied = cnx_host.apply_registered_policy(root)
+            self.assertTrue(applied["applied"])
+            agents = (workspace / "AGENTS.md").read_text(encoding="utf-8")
+            self.assertIn("Ecosystem Managed Policy", agents)
+            self.assertEqual(agents.count(cnx_host.BEGIN), 1)
+            self.assertEqual(agents.count(cnx_host.END), 1)
+
+    def test_reset_policy_restores_core_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            root = workspace / ".cogent"
+            workspace.mkdir(parents=True)
+            cnx_host.initialize(root)
+            custom = Path(tmp) / "custom.md"
+            custom.write_text("## Custom\n", encoding="utf-8")
+            cnx_host.register_policy(root, custom)
+            self.assertIn("Custom", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
+            result = cnx_host.reset_policy(root)
+            self.assertTrue(result["applied"])
+            self.assertIn("CogentNexus - Managed Continuity", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
 
     def _ticket_db(self, root: Path) -> sqlite3.Connection:
         path = cnx_host.ticket_db(root)
