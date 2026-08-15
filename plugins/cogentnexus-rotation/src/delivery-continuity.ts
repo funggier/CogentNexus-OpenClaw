@@ -92,7 +92,7 @@ export function bindDeliveryRun(input: {
   runId: string;
   now?: Date;
 }): boolean {
-  if (input.target.kind === "ticket") return input.store.bindOutboxRun(input.target.outboxId, input.runId, input.now);
+  if (input.target.kind === "ticket") return input.store.bindOutboxRun(input.target.outboxId, input.runId);
   const path = completionPath(input.workspaceDir, input.target);
   const notice = readCompletion(path);
   if (!notice || notice.deliveryStatus !== "pending" || notice.taskId !== input.target.taskId || Number(notice.stateRevision ?? 0) !== input.target.stateRevision) return false;
