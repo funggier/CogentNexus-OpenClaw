@@ -608,11 +608,17 @@ def command(args: argparse.Namespace) -> Any:
         return enable(root)
     if args.command == "disable":
         return disable(root)
-    if args.command == "start":
-        return start_managed(root, True)
-    if args.command == "stop":
-        return stop_managed(root, True)
-    if args.command == "restart":
+    if args.command in {"start", "stop", "restart"}:
+        if load_state(root).get("mode") == "passthrough":
+            raise RuntimeError(
+                "CogentNexus is disabled (PASSTHROUGH). Use 'cnx enable' to enter MANAGED mode, "
+                "or use 'cnx gateway <start|stop|restart>' / native OpenClaw lifecycle commands "
+                "without changing CogentNexus mode."
+            )
+        if args.command == "start":
+            return start_managed(root, True)
+        if args.command == "stop":
+            return stop_managed(root, True)
         return restart_managed(root)
     if args.command == "gateway":
         if load_state(root).get("mode") == "passthrough":
