@@ -49,7 +49,7 @@ def write_windows_definition(path,template):
 def win_enable(root):
     before=win_status(); backup=backup_windows(root)
     template=(SKILL/"templates"/"supervisor"/"windows-task.xml").read_text(encoding="utf-8")
-    values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(HERE.with_name("runtime.py")),"{{ROOT}}":str(root)}
+    values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(HERE.with_name("host.py")),"{{ROOT}}":str(root)}
     for k,v in values.items():template=template.replace(k,v)
     definition=root/"runtime"/"cogentnexus-supervisor.xml";definition.parent.mkdir(parents=True,exist_ok=True)
     write_windows_definition(definition,template)
@@ -80,7 +80,7 @@ def unix_enable(root):
     if sys.platform=="darwin":raise RuntimeError("launchd adapter is not yet packaged")
     if not shutil.which("systemctl"):raise RuntimeError("no supported native startup manager")
     service,timer=systemd_paths();service.parent.mkdir(parents=True,exist_ok=True)
-    service.write_text(f"[Unit]\nDescription=CogentNexus hidden background supervisor\n[Service]\nType=oneshot\nExecStart={sys.executable} {HERE.with_name('runtime.py')} --root {root} supervisor tick --execute-safe\nStandardInput=null\n",encoding="utf-8")
+    service.write_text(f"[Unit]\nDescription=CogentNexus hidden background supervisor\n[Service]\nType=oneshot\nExecStart={sys.executable} {HERE.with_name('host.py')} --root {root} supervisor tick --execute-safe\nStandardInput=null\n",encoding="utf-8")
     timer.write_text("[Unit]\nDescription=CogentNexus every minute\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=1min\nPersistent=true\n[Install]\nWantedBy=timers.target\n",encoding="utf-8")
     for cmd in (["systemctl","--user","daemon-reload"],["systemctl","--user","enable","--now",timer.name]):
         r=run(cmd)
