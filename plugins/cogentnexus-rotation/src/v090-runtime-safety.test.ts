@@ -45,7 +45,7 @@ describe("v0.9 runtime safety proxy",()=>{
     });
     expect(result.ok).toBe(true);
     expect(result.result.tokensAfter).toBe(Number.MAX_SAFE_INTEGER);
-    expect(result.cnxVerification.verified).toBe(false);
+    expect(result.cnxVerification).toMatchObject({verified:false,occupancyVerified:false,source:"unavailable"});
   });
 
   it("uses the conservative maximum of compaction tokensAfter and a fresh session counter",async()=>{
@@ -55,10 +55,10 @@ describe("v0.9 runtime safety proxy",()=>{
       result:{ok:true,compacted:true,result:{tokensBefore:30000,tokensAfter:18000}},
     });
     expect(result.result.tokensAfter).toBe(24000);
-    expect(result.cnxVerification.verified).toBe(true);
+    expect(result.cnxVerification).toMatchObject({verified:true,occupancyVerified:true,observedAfter:24000});
   });
 
-  it("fails closed when hard-trim occupancy cannot be freshly verified",async()=>{
+  it("fails closed when hard trim has neither fresh occupancy nor a retained-line proof",async()=>{
     const result=await verifyCnxCompactionResult({
       originalGateway:gatewayWithSession({contextTokens:32768,totalTokensFresh:false,totalTokens:8000}),
       params:{key:"agent:main:dashboard:A",maxLines:60},
@@ -66,17 +66,37 @@ describe("v0.9 runtime safety proxy",()=>{
     });
     expect(result.ok).toBe(false);
     expect(result.compacted).toBe(false);
-    expect(result.error).toMatch(/could not verify fresh post-hard-trim/i);
+    expect(result.error).toMatch(/could not verify hard-trim occupancy or retained-line bound/i);
+    expect(result.cnxVerification).toMatchObject({verified:false,occupancyVerified:false,structuralVerified:false});
+  });
+
+  it("accepts structural maxLines proof when manual trim invalidated token metadata",async()=>{
+    const result=await verifyCnxCompactionResult({
+      originalGateway:gatewayWithSession({contextTokens:32768,totalTokensFresh:false,totalTokens:30000}),
+      params:{key:"agent:main:dashboard:A",maxLines:60},
+      result:{ok:true,compacted:true,kept:60,archived:"archive.jsonl"},
+    });
+    expect(result.ok).toBe(true);
+    expect(result.compacted).toBe(true);
+    expect(result.cnxVerification).toMatchObject({
+      verified:true,
+      occupancyVerified:false,
+      structuralVerified:true,
+      kept:60,
+      maxLines:60,
+      source:"max-lines-result",
+    });
   });
 
   it("rejects a hard trim that still occupies more than 88 percent of the active window",async()=>{
     const result=await verifyCnxCompactionResult({
       originalGateway:gatewayWithSession({contextTokens:32768,totalTokensFresh:true,totalTokens:30000}),
       params:{key:"agent:main:dashboard:A",maxLines:60},
-      result:{ok:true,compacted:true},
+      result:{ok:true,compacted:true,kept:60},
     });
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/remained above safe context target/i);
+    expect(result.cnxVerification).toMatchObject({verified:true,occupancyVerified:true,structuralVerified:true});
   });
 
   it("holds a Direct Recovery while context maintenance is active, then releases only safe terminal maintenance",()=>{
@@ -90,9 +110,9 @@ describe("v0.9 runtime safety proxy",()=>{
       expect(contextRecoveryHoldSnapshot(path,hidden)).toMatchObject({hold:false,revoked:false,state:"done",action:"semantic-compact"});
 
       db=new DatabaseSync(path);
-      db.prepare("UPDATE cnx_context_maintenance SET state='cancelled',last_action='physical-session-changed' WHERE ticket_id=(SELECT ticket_id FROM cnx_context_maintenance LIMIT 1)").run();
+      db.prepare("UPDATE cnx_context_maintenance SET state='cancelled',last_action='authority-revoked' WHERE ticket_id=(SELECT ticket_id FROM cnx_context_maintenance LIMIT 1)").run();
       db.close();
-      expect(contextRecoveryHoldSnapshot(path,hidden)).toMatchObject({hold:false,revoked:true,state:"cancelled",action:"physical-session-changed"});
+      expect(contextRecoveryHoldSnapshot(path,hidden)).toMatchObject({hold:false,revoked:true,state:"cancelled",action:"authority-revoked"});
 
       db=new DatabaseSync(path);
       db.prepare("UPDATE cnx_context_maintenance SET state='cancelled',last_action='retry-limit' WHERE ticket_id=(SELECT ticket_id FROM cnx_context_maintenance LIMIT 1)").run();
