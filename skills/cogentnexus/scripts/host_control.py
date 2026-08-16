@@ -143,7 +143,8 @@ def write_snapshot(root: Path, value: dict[str, Any]) -> None:
 
 def apply_watchdog_compat(root: Path) -> dict[str, Any]:
     path = snapshot_path(root)
-    if path.exists():
+    existing = path.exists()
+    if existing:
         try:
             snapshot = json.loads(path.read_text(encoding="utf-8"))
         except Exception as error:
@@ -157,14 +158,31 @@ def apply_watchdog_compat(root: Path) -> dict[str, Any]:
             "originalValue": original,
             "managedValue": MANAGED_WATCHDOG_ABORT_MS,
             "capturedAt": now_iso(),
+            "applied": False,
         }
         write_snapshot(root, snapshot)
 
     present, current = config_get(WATCHDOG_PATH)
+    if existing and snapshot.get("applied") is True and (not present or current != MANAGED_WATCHDOG_ABORT_MS):
+        # The value moved after CNX had applied it. Treat that as operator-owned
+        # configuration, never overwrite it on a supervisor tick, and mark the
+        # compatibility guarantee inactive so plugin abort handling fails safe.
+        snapshot["applied"] = False
+        snapshot["operatorOverrideDetectedAt"] = now_iso()
+        snapshot["operatorValue"] = current if present else None
+        write_snapshot(root, snapshot)
+        append_audit(root, "watchdog-compat-operator-override", {"currentPresent": present, "current": current})
+        raise RuntimeError(
+            "OpenClaw diagnostics.stuckSessionAbortMs changed while CogentNexus was managed; "
+            "operator value was preserved and managed start/recovery is blocked until policy is resolved"
+        )
+
     changed = not present or current != MANAGED_WATCHDOG_ABORT_MS
     if changed:
         config_set(WATCHDOG_PATH, MANAGED_WATCHDOG_ABORT_MS)
     snapshot["applied"] = True
+    snapshot.pop("operatorValue", None)
+    snapshot.pop("operatorOverrideDetectedAt", None)
     snapshot["lastAppliedAt"] = now_iso()
     write_snapshot(root, snapshot)
     append_audit(root, "watchdog-compat-applied", {"changed": changed, "managedValue": MANAGED_WATCHDOG_ABORT_MS})
