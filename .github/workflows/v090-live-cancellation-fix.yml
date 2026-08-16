@@ -19,210 +19,402 @@ jobs:
           ref: agent/v0.9.0-intent-boundary
           fetch-depth: 0
 
-      - name: Patch Host cancellation fences
+      - name: Patch Host cancellation and health semantics
         shell: python
         run: |
           from pathlib import Path
+          import re
 
           p = Path('skills/cogentnexus/scripts/host.py')
           s = p.read_text(encoding='utf-8')
 
-          if 'def reconcile_terminal_fences(' not in s:
-              marker = '\ndef cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:\n'
-              helper = '''
-          def reconcile_terminal_fences(root: Path) -> dict[str, int]:
-              """Suppress stale work that conflicts with terminal human intent."""
-              path = ticket_db(root)
-              if not path.exists():
-                  return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
-              db = sqlite3.connect(path, timeout=5)
+          old = '''def gateway_status(timeout: int = 30) -> dict[str, Any]:
               try:
-                  if not table_exists(db, "tickets"):
-                      return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
-                  db.execute("BEGIN IMMEDIATE")
-                  normalized = db.execute("UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL").rowcount
-                  cancelled_outbox = 0
-                  recovery_suppressed = 0
-                  if table_exists(db, "ticket_outbox"):
-                      cancelled_outbox = db.execute("DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')").rowcount
-                  if table_exists(db, "cnx_direct_recovery"):
-                      recovery_suppressed = db.execute(
-                          "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))",
-                          (now_iso(),),
-                      ).rowcount
-                  db.commit()
+                  result = run([openclaw_executable(), "gateway", "status"], timeout=timeout)
                   return {
-                      "cancelledOutboxSuppressed": int(cancelled_outbox),
-                      "terminalRecoverySuppressed": int(recovery_suppressed),
-                      "cancelledClassificationNormalized": int(normalized),
+                      "healthy": result.returncode == 0,
+                      "exitCode": result.returncode,
+                      "stdout": result.stdout.strip(),
+                      "stderr": result.stderr.strip(),
                   }
-              except Exception:
-                  db.rollback()
-                  raise
-              finally:
-                  db.close()
-          '''
-              helper = '\n'.join(line[10:] if line.startswith('          ') else line for line in helper.splitlines()) + '\n'
+              except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+                  return {"healthy": False, "error": str(error)}
+          '''.replace('          ', '')
+          new = '''def gateway_status(timeout: int = 30) -> dict[str, Any]:
+              try:
+                  result = run([openclaw_executable(), "gateway", "status"], timeout=timeout)
+                  stdout = result.stdout.strip()
+                  stderr = result.stderr.strip()
+                  evidence = f"{stdout}\n{stderr}"
+                  healthy = (
+                      result.returncode == 0
+                      and "Runtime: running" in evidence
+                      and "Connectivity probe: ok" in evidence
+                  )
+                  return {
+                      "healthy": healthy,
+                      "exitCode": result.returncode,
+                      "stdout": stdout,
+                      "stderr": stderr,
+                  }
+              except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+                  return {"healthy": False, "error": str(error)}
+          '''.replace('          ', '')
+          if old not in s:
+              raise SystemExit('gateway_status block not found')
+          s = s.replace(old, new, 1)
+
+          marker = '\ndef cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:\n'
+          helper = r'''
+
+def reconcile_terminal_fences(root: Path) -> dict[str, int]:
+    """Make terminal intent authoritative before any runtime can wake inference."""
+    path = ticket_db(root)
+    if not path.exists():
+        return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
+    db = sqlite3.connect(path, timeout=5)
+    try:
+        if not table_exists(db, "tickets"):
+            return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
+        db.execute("BEGIN IMMEDIATE")
+        normalized = db.execute(
+            "UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL"
+        ).rowcount
+        outbox = 0
+        if table_exists(db, "ticket_outbox"):
+            outbox = db.execute(
+                "DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')"
+            ).rowcount
+        recovery = 0
+        if table_exists(db, "cnx_direct_recovery"):
+            stamp = now_iso()
+            recovery = db.execute(
+                "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? "
+                "WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))",
+                (stamp,),
+            ).rowcount
+        db.commit()
+        return {
+            "cancelledOutboxSuppressed": int(outbox),
+            "terminalRecoverySuppressed": int(recovery),
+            "cancelledClassificationNormalized": int(normalized),
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+'''
+          if 'def reconcile_terminal_fences(' not in s:
               if marker not in s:
-                  raise SystemExit('cancel_ticket marker missing')
+                  raise SystemExit('cancel_ticket marker not found')
               s = s.replace(marker, helper + marker, 1)
 
-          old = '''            if table_exists(db, "ticket_outbox"):
+          s = s.replace(
+              "if row[\"status\"] in TERMINAL_TICKETS:\n            return {\"ticketId\": ticket_id, \"status\": row[\"status\"], \"changed\": False}",
+              "if row[\"status\"] in TERMINAL_TICKETS:\n            if row[\"status\"] == \"cancelled\":\n                reconcile_terminal_fences(root)\n            return {\"ticketId\": ticket_id, \"status\": row[\"status\"], \"changed\": False}",
+              1,
+          )
+          s = s.replace(
+              "status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class='interrupted',failure_message=?,updated_at=?",
+              "status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class=NULL,failure_message=?,updated_at=?",
+              1,
+          )
+          old_outbox = '''            if table_exists(db, "ticket_outbox"):
                 payload = json.dumps({"classification": "interrupted", "message": reason, "source": "host"})
                 db.execute(
                     "INSERT OR IGNORE INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES (?,?,'cancelled',?,'pending',?)",
                     (ticket_id, row["owner_session_key"], payload, stamp),
                 )
-          '''
-          new = '''            if table_exists(db, "ticket_outbox"):
+'''
+          new_outbox = '''            if table_exists(db, "ticket_outbox"):
                 db.execute("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'", (ticket_id,))
             if table_exists(db, "cnx_direct_recovery"):
                 db.execute(
                     "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=? WHERE ticket_id=?",
                     (reason[:2000], stamp, ticket_id),
                 )
-          '''
-          old = '\n'.join(line[10:] if line.startswith('          ') else line for line in old.splitlines()) + '\n'
-          new = '\n'.join(line[10:] if line.startswith('          ') else line for line in new.splitlines()) + '\n'
-          if old in s:
-              s = s.replace(old, new, 1)
-          elif 'DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status=' not in s:
-              raise SystemExit('cancel outbox block missing')
+'''
+          if old_outbox not in s:
+              raise SystemExit('host cancelled-outbox block not found')
+          s = s.replace(old_outbox, new_outbox, 1)
 
           s = s.replace(
-              "status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class='interrupted',failure_message=?,updated_at=?",
-              "status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class=NULL,failure_message=?,updated_at=?",
-          )
-
-          s = s.replace(
-              'def enable(root: Path) -> dict[str, Any]:\n    initialize(root)\n    workspace = root.parent\n',
-              'def enable(root: Path) -> dict[str, Any]:\n    initialize(root)\n    terminal_fences = reconcile_terminal_fences(root)\n    workspace = root.parent\n',
+              'def enable(root: Path) -> dict[str, Any]:\n    initialize(root)\n    workspace = root.parent',
+              'def enable(root: Path) -> dict[str, Any]:\n    initialize(root)\n    terminal_fences = reconcile_terminal_fences(root)\n    workspace = root.parent',
               1,
           )
           s = s.replace(
-              '        "sessionBootstrap": session_bootstrap,\n        "recoveredTickets": recovered,\n',
-              '        "sessionBootstrap": session_bootstrap,\n        "terminalFences": terminal_fences,\n        "recoveredTickets": recovered,\n',
+              '        "sessionBootstrap": session_bootstrap,\n        "recoveredTickets": recovered,',
+              '        "sessionBootstrap": session_bootstrap,\n        "terminalFences": terminal_fences,\n        "recoveredTickets": recovered,',
               1,
           )
           s = s.replace(
-              'def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:\n    initialize(root)\n    prior = load_state(root)\n',
-              'def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:\n    initialize(root)\n    terminal_fences = reconcile_terminal_fences(root)\n    prior = load_state(root)\n',
+              'def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:\n    initialize(root)\n    prior = load_state(root)',
+              'def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:\n    initialize(root)\n    terminal_fences = reconcile_terminal_fences(root)\n    prior = load_state(root)',
               1,
           )
           s = s.replace(
-              '    return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "recoveredTickets": recovered}\n',
-              '    return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "terminalFences": terminal_fences, "recoveredTickets": recovered}\n',
+              'return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "recoveredTickets": recovered}',
+              'return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "terminalFences": terminal_fences, "recoveredTickets": recovered}',
               1,
           )
           p.write_text(s, encoding='utf-8')
 
-      - name: Patch Host regression tests
+      - name: Patch v0.9 session-wide synthetic cancellation
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('plugins/cogentnexus-rotation/src/v090.ts')
+          s = p.read_text(encoding='utf-8')
+
+          start = s.index('export function cancelSessionTickets(')
+          end = s.index('\nfunction suppressWorkflowCompletion', start)
+          replacement = r'''export function cancelSessionByKey(path:string,input:{sessionKey:string;message?:string;now?:Date}){
+            const db=openDb(path),stamp=(input.now??new Date()).toISOString(),message=(input.message??"Cancelled by user").slice(0,2000),sessionKey=input.sessionKey;
+            try{
+              db.exec("BEGIN IMMEDIATE");
+              const rows=db.prepare("SELECT ticket_id,status,run_id,workflow_id FROM tickets WHERE owner_session_key=? AND status IN ('accepted','planned','running','waiting') ORDER BY created_at,ticket_id").all(sessionKey) as any[];
+              const pending=db.prepare("SELECT outbox_id,ticket_id FROM ticket_outbox WHERE owner_session_key=? AND delivery_status='pending' ORDER BY outbox_id").all(sessionKey) as any[];
+              const cancelled:string[]=[],workflowIds:string[]=[];
+              for(const row of rows){
+                const changed=db.prepare(`UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,
+                  failure_class=NULL,failure_message=?,response_ready_at=NULL,delivery_last_error=NULL,updated_at=?
+                  WHERE ticket_id=? AND status IN ('accepted','planned','running','waiting')`).run(message,stamp,row.ticket_id);
+                if(changed.changes!==1)continue;
+                cancelled.push(row.ticket_id);
+                if(typeof row.workflow_id==="string"&&row.workflow_id)workflowIds.push(row.workflow_id);
+                addEvent(db,row.ticket_id,"cancelled_by_user",{source:"openclaw-ui-stop",previousStatus:row.status,previousRunId:row.run_id,message},stamp);
+              }
+              for(const item of pending){
+                addEvent(db,item.ticket_id,"delivery_suppressed_by_user",{source:"openclaw-ui-stop",outboxId:Number(item.outbox_id),message},stamp);
+              }
+              db.prepare("DELETE FROM ticket_outbox WHERE owner_session_key=? AND delivery_status='pending'").run(sessionKey);
+              db.prepare(`UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=?
+                WHERE ticket_id IN (SELECT ticket_id FROM tickets WHERE owner_session_key=?) AND state<>'cancelled'`).run(message,stamp,sessionKey);
+              db.exec("COMMIT");
+              return{
+                ownerSessionKey:sessionKey,
+                cancelled,
+                workflowIds:[...new Set(workflowIds)],
+                outboxTags:pending.map((item)=>`cogent-ticket-result-${String(item.ticket_id).replace(/[^A-Za-z0-9_-]/g,"-").slice(0,96)}`),
+              };
+            }catch(e){try{db.exec("ROLLBACK");}catch{}throw e;}finally{db.close();}
+          }
+
+          export function cancelSessionTickets(path:string,input:{runId:string;message?:string;now?:Date}){
+            const db=openDb(path);
+            try{
+              const owner=db.prepare(`SELECT owner_session_key FROM tickets WHERE run_id=?
+                UNION ALL
+                SELECT t.owner_session_key FROM cnx_direct_recovery r JOIN tickets t ON t.ticket_id=r.ticket_id WHERE r.active_run_id=?
+                LIMIT 1`).get(input.runId,input.runId) as any;
+              if(!owner?.owner_session_key)return{ownerSessionKey:null,cancelled:[] as string[],workflowIds:[] as string[],outboxTags:[] as string[]};
+              return cancelSessionByKey(path,{sessionKey:owner.owner_session_key,message:input.message,now:input.now});
+            }finally{db.close();}
+          }
+'''
+          s = s[:start] + replacement + s[end:]
+
+          anchor = 'function cancelBoundWorkflows(workspace:string,workflowIds:string[],reason:string,cfg:Cfg){'
+          helper = r'''function suppressSessionWorkflowCompletions(workspace:string,sessionKey:string,reason:string){
+            const root=resolve(workspace,".cogent","workflows"),tags:string[]=[];
+            if(!existsSync(root))return tags;
+            for(const entry of readdirSync(root,{withFileTypes:true})){
+              if(!entry.isDirectory())continue;
+              const path=resolve(root,entry.name,"completion.json");
+              if(!existsSync(path))continue;
+              try{
+                const value=JSON.parse(readFileSync(path,"utf8"));
+                if(value?.ownerSessionKey!==sessionKey||value?.deliveryStatus!=="pending")continue;
+                const revision=Number(value.stateRevision??0);
+                tags.push(`cogent-workflow-result-${String(value.taskId??entry.name).replace(/[^A-Za-z0-9_-]/g,"-").slice(0,96)}-${Math.trunc(revision)}`);
+                value.deliveryStatus="delivered";value.deliveredAt=now();value.suppressedBy="user-cancellation";value.suppressionReason=reason;
+                delete value.scheduledAt;delete value.deliveryRunId;
+                const tmp=`${path}.${process.pid}.v090-session-cancel.tmp`;writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`);renameSync(tmp,path);
+              }catch{}
+            }
+            return tags;
+          }
+
+          '''
+          if 'function suppressSessionWorkflowCompletions(' not in s:
+              if anchor not in s:
+                  raise SystemExit('workflow cancellation anchor missing')
+              s = s.replace(anchor, helper + anchor, 1)
+
+          s = s.replace(
+              'const path=dbPath(cfg,workspace),db=openDb(path),stamp=now();let reopened=0,outboxReset=0,cancelledLegacy=0;',
+              'const path=dbPath(cfg,workspace),db=openDb(path),stamp=now();let reopened=0,outboxReset=0,cancelledLegacy=0,cancelledOutboxSuppressed=0,terminalRecoverySuppressed=0;',
+              1,
+          )
+          needle = 'try{db.exec("BEGIN IMMEDIATE");const rows=db.prepare('
+          inject = '''try{db.exec("BEGIN IMMEDIATE");
+            db.prepare("UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL").run();
+            cancelledOutboxSuppressed=Number(db.prepare("DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')").run().changes);
+            terminalRecoverySuppressed=Number(db.prepare("UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))").run(stamp).changes);
+            const rows=db.prepare('''
+          if needle not in s:
+              raise SystemExit('prepareV090RecoveryState begin marker missing')
+          s = s.replace(needle, inject, 1)
+          s = s.replace(
+              'return{databasePath:path,reopened,cancelledLegacy,outboxReset,workflowDeliveryReset:resetCompletions(workspace)};',
+              'return{databasePath:path,reopened,cancelledLegacy,cancelledOutboxSuppressed,terminalRecoverySuppressed,outboxReset,workflowDeliveryReset:resetCompletions(workspace)};',
+              1,
+          )
+
+          wrap_start = s.index('function wrap(){')
+          wrap_end = s.index('\nwrap();', wrap_start)
+          new_wrap = r'''function wrap(){
+            const entry=baseEntry as any;if(entry[WRAP])return;Object.defineProperty(entry,WRAP,{value:true});
+            const register=baseEntry.register?.bind(baseEntry);
+            baseEntry.register=(api:any)=>{
+              patchTicketStore();
+              const cfg=(api.pluginConfig??{}) as Cfg,reg=api.registerService?.bind(api),proxy=Object.create(api);
+              const compat=compatWorkflow(api,cfg),workflow={...api.session?.workflow,...compat};
+              proxy.session={...api.session,workflow};
+              api.on?.("agent_end",async(event:any,ctx:any)=>{
+                if(event.success||!isExplicitUserCancellation(event.error))return;
+                const workspace=resolve(ctx.workspaceDir??cfg.workspaceDir??process.cwd()),path=dbPath(cfg,workspace),reason=(event.error??"agent run aborted").slice(0,2000);
+                const cancelled=ctx.sessionKey
+                  ? cancelSessionByKey(path,{sessionKey:ctx.sessionKey,message:reason})
+                  : event.runId
+                    ? cancelSessionTickets(path,{runId:event.runId,message:reason})
+                    : {ownerSessionKey:null,cancelled:[] as string[],workflowIds:[] as string[],outboxTags:[] as string[]};
+                const completionTags=cancelled.ownerSessionKey?suppressSessionWorkflowCompletions(workspace,cancelled.ownerSessionKey,reason):[];
+                for(const tag of [...cancelled.outboxTags,...completionTags]){
+                  try{await workflow.unscheduleSessionTurnsByTag({sessionKey:cancelled.ownerSessionKey,tag});}
+                  catch(error){api.logger.warn?.(`CogentNexus cancellation unschedule failed for ${tag}: ${error instanceof Error?error.message:String(error)}`);}
+                }
+                const results=cancelBoundWorkflows(workspace,cancelled.workflowIds,reason,cfg);
+                for(const result of results)if(!result.ok)api.logger.warn?.(`CogentNexus workflow cancellation failed for ${result.workflowId}: ${result.error}`);
+              },{priority:1000,timeoutMs:60000});
+              proxy.registerService=(service:any)=>{
+                if(!reg)return;
+                if(service?.id!=="cogentnexus-ticket-recovery"||typeof service.start!=="function")return reg(service);
+                reg({...service,start:async(ctx:any)=>{
+                  const workspace=resolve(cfg.workspaceDir??ctx.config?.agents?.defaults?.workspace??process.cwd()),p=prepareV090RecoveryState(workspace,cfg);
+                  api.logger.info?.(`CogentNexus v0.9.0 recovery migration: reopened=${p.reopened} cancelledLegacy=${p.cancelledLegacy} cancelledOutboxSuppressed=${p.cancelledOutboxSuppressed} terminalRecoverySuppressed=${p.terminalRecoverySuppressed} outboxReset=${p.outboxReset} workflowDeliveryReset=${p.workflowDeliveryReset}`);
+                  return service.start(ctx);
+                }});
+              };
+              register?.(proxy);reg?.(recoveryService(api,cfg));
+            };
+          }'''
+          s = s[:wrap_start] + new_wrap + s[wrap_end:]
+          p.write_text(s, encoding='utf-8')
+
+      - name: Patch regression tests
         shell: python
         run: |
           from pathlib import Path
 
           p = Path('tests/test_host_controller.py')
           s = p.read_text(encoding='utf-8')
+          if 'import subprocess\n' not in s:
+              s = s.replace('import sqlite3\n', 'import sqlite3\nimport subprocess\n', 1)
           s = s.replace(
-              '        CREATE TABLE ticket_outbox(outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT UNIQUE,owner_session_key TEXT,terminal_status TEXT,payload_json TEXT,delivery_status TEXT,created_at TEXT);\n        """)\n',
-              '        CREATE TABLE ticket_outbox(outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT UNIQUE,owner_session_key TEXT,terminal_status TEXT,payload_json TEXT,delivery_status TEXT,created_at TEXT);\n        CREATE TABLE cnx_direct_recovery(ticket_id TEXT PRIMARY KEY,state TEXT,active_run_id TEXT,next_attempt_at TEXT,last_error TEXT,updated_at TEXT);\n        """)\n',
+              'CREATE TABLE ticket_outbox(outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT UNIQUE,owner_session_key TEXT,terminal_status TEXT,payload_json TEXT,delivery_status TEXT,created_at TEXT);',
+              'CREATE TABLE ticket_outbox(outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT UNIQUE,owner_session_key TEXT,terminal_status TEXT,payload_json TEXT,delivery_status TEXT,created_at TEXT);\n        CREATE TABLE cnx_direct_recovery(ticket_id TEXT PRIMARY KEY,state TEXT,active_run_id TEXT,next_attempt_at TEXT,last_error TEXT,updated_at TEXT);',
               1,
           )
-          start = s.index('    def test_ticket_cancel_is_terminal_and_enqueues_outbox(self):')
-          end = s.index('\n    def test_passthrough_supervisor_does_nothing', start)
-          replacement = '''    def test_ticket_cancel_is_terminal_silent_and_suppresses_recovery(self):
+          old = '''    def test_ticket_cancel_is_terminal_and_enqueues_outbox(self):
+              with tempfile.TemporaryDirectory() as tmp:
+                  root = Path(tmp) / ".cogent"
+                  db = self._ticket_db(root)
+                  db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,created_at,updated_at) VALUES ('T2','S2','waiting',1,'2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
+                  db.commit(); db.close()
+                  result = cnx_host.cancel_ticket(root, "T2", "operator cancelled")
+                  self.assertTrue(result["changed"])
+                  db = sqlite3.connect(cnx_host.ticket_db(root))
+                  row = db.execute("SELECT status FROM tickets WHERE ticket_id='T2'").fetchone()
+                  outbox = db.execute("SELECT terminal_status,delivery_status FROM ticket_outbox WHERE ticket_id='T2'").fetchone()
+                  db.close()
+                  self.assertEqual(row[0], "cancelled")
+                  self.assertEqual(outbox, ("cancelled", "pending"))
+          '''.replace('          ', '')
+          new = '''    def test_ticket_cancel_is_terminal_silent_and_suppresses_recovery(self):
               with tempfile.TemporaryDirectory() as tmp:
                   root = Path(tmp) / ".cogent"
                   db = self._ticket_db(root)
                   db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,created_at,updated_at) VALUES ('T2','S2','waiting',1,'2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
                   db.execute("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES ('T2','S2','failed','{}','pending','2026-01-01T00:00:00+00:00')")
-                  db.execute("INSERT INTO cnx_direct_recovery(ticket_id,state,active_run_id,next_attempt_at,last_error,updated_at) VALUES ('T2','pending','run-old','2026-01-02T00:00:00+00:00',NULL,'2026-01-01T00:00:00+00:00')")
+                  db.execute("INSERT INTO cnx_direct_recovery(ticket_id,state,active_run_id,next_attempt_at,last_error,updated_at) VALUES ('T2','pending','old-run','2026-01-02T00:00:00+00:00',NULL,'2026-01-01T00:00:00+00:00')")
                   db.commit(); db.close()
                   result = cnx_host.cancel_ticket(root, "T2", "operator cancelled")
                   self.assertTrue(result["changed"])
                   db = sqlite3.connect(cnx_host.ticket_db(root))
-                  self.assertEqual(db.execute("SELECT status,failure_class FROM tickets WHERE ticket_id='T2'").fetchone(), ("cancelled", None))
-                  self.assertEqual(db.execute("SELECT count(*) FROM ticket_outbox WHERE ticket_id='T2' AND delivery_status='pending'").fetchone()[0], 0)
-                  self.assertEqual(db.execute("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id='T2'").fetchone(), ("cancelled", None, None))
+                  row = db.execute("SELECT status,failure_class FROM tickets WHERE ticket_id='T2'").fetchone()
+                  outbox = db.execute("SELECT count(*) FROM ticket_outbox WHERE ticket_id='T2' AND delivery_status='pending'").fetchone()[0]
+                  recovery = db.execute("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id='T2'").fetchone()
                   db.close()
+                  self.assertEqual(row, ("cancelled", None))
+                  self.assertEqual(outbox, 0)
+                  self.assertEqual(recovery, ("cancelled", None, None))
 
-              def test_terminal_fence_cleans_stale_cancelled_delivery_and_terminal_recovery(self):
-                  with tempfile.TemporaryDirectory() as tmp:
-                      root = Path(tmp) / ".cogent"
-                      db = self._ticket_db(root)
-                      db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,failure_class,created_at,updated_at) VALUES ('TC','S','cancelled',0,'interrupted','2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
-                      db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,failure_class,created_at,updated_at) VALUES ('TF','S','failed',1,'capability','2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
-                      db.execute("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES ('TC','S','cancelled','{}','pending','2026-01-01T00:00:00+00:00')")
-                      db.execute("INSERT INTO cnx_direct_recovery(ticket_id,state,active_run_id,next_attempt_at,last_error,updated_at) VALUES ('TC','pending','r1','2026-01-02T00:00:00+00:00',NULL,'2026-01-01T00:00:00+00:00')")
-                      db.execute("INSERT INTO cnx_direct_recovery(ticket_id,state,active_run_id,next_attempt_at,last_error,updated_at) VALUES ('TF','pending','r2','2026-01-02T00:00:00+00:00',NULL,'2026-01-01T00:00:00+00:00')")
-                      db.commit(); db.close()
-                      result = cnx_host.reconcile_terminal_fences(root)
-                      self.assertEqual(result["cancelledOutboxSuppressed"], 1)
-                      self.assertEqual(result["terminalRecoverySuppressed"], 2)
-                      db = sqlite3.connect(cnx_host.ticket_db(root))
-                      self.assertEqual(db.execute("SELECT failure_class FROM tickets WHERE ticket_id='TC'").fetchone()[0], None)
-                      self.assertEqual(db.execute("SELECT count(*) FROM ticket_outbox WHERE ticket_id='TC'").fetchone()[0], 0)
-                      self.assertEqual(db.execute("SELECT count(*) FROM cnx_direct_recovery WHERE state='cancelled'").fetchone()[0], 2)
-                      db.close()
-          '''
-          replacement = '\n'.join(line[14:] if line.startswith('              ') else line for line in replacement.splitlines())
-          s = s[:start] + replacement + s[end:]
+              def test_gateway_status_requires_connectivity_not_only_zero_exit(self):
+                  original = cnx_host.run
+                  try:
+                      cnx_host.run = lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "Runtime: stopped\\n", "Connectivity probe: failed\\n")
+                      self.assertFalse(cnx_host.gateway_status()["healthy"])
+                      cnx_host.run = lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "Runtime: running\\nConnectivity probe: ok\\n", "")
+                      self.assertTrue(cnx_host.gateway_status()["healthy"])
+                  finally:
+                      cnx_host.run = original
+          '''.replace('          ', '')
+          if old not in s:
+              raise SystemExit('old host cancel test not found')
+          s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
-
-      - name: Patch plugin startup cleanup
-        shell: python
-        run: |
-          from pathlib import Path
-
-          p = Path('plugins/cogentnexus-rotation/src/v090.ts')
-          s = p.read_text(encoding='utf-8')
-          needle = '  try{db.exec("BEGIN IMMEDIATE");const rows=db.prepare("SELECT ticket_id,prompt,status,workflow_eligible,failure_class,failure_message FROM tickets WHERE status IN (\'waiting\',\'failed\') AND workflow_id IS NULL AND ((workflow_eligible=1 AND failure_class=\'interrupted\') OR (status=\'failed\' AND workflow_eligible=0 AND failure_class=\'permanent\' AND failure_message=\'Reply operation aborted by user\')) ORDER BY created_at").all() as any[];\n'
-          replacement = '  try{db.exec("BEGIN IMMEDIATE");\n    db.prepare("DELETE FROM ticket_outbox WHERE delivery_status=\'pending\' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status=\'cancelled\')").run();\n    db.prepare("UPDATE tickets SET failure_class=NULL WHERE status=\'cancelled\' AND failure_class IS NOT NULL").run();\n    db.prepare("UPDATE cnx_direct_recovery SET state=\'cancelled\',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,\'terminal ticket fence\'),updated_at=? WHERE state<>\'cancelled\' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN (\'completed\',\'failed\',\'cancelled\'))").run(stamp);\n    const rows=db.prepare("SELECT ticket_id,prompt,status,workflow_eligible,failure_class,failure_message FROM tickets WHERE status IN (\'waiting\',\'failed\') AND workflow_id IS NULL AND ((workflow_eligible=1 AND failure_class=\'interrupted\') OR (status=\'failed\' AND workflow_eligible=0 AND failure_class=\'permanent\' AND failure_message=\'Reply operation aborted by user\')) ORDER BY created_at").all() as any[];\n'
-          if needle not in s:
-              raise SystemExit('prepareV090RecoveryState marker missing')
-          s = s.replace(needle, replacement, 1)
-          p.write_text(s, encoding='utf-8')
-
-      - name: Add plugin regression test
-        shell: python
-        run: |
-          from pathlib import Path
 
           p = Path('plugins/cogentnexus-rotation/src/v090.test.ts')
           s = p.read_text(encoding='utf-8')
-          anchor = '  it("keeps Direct Recovery synthetic prompts outside human Ticket intake", () => {\n'
-          test = '''  it("cleans stale cancelled delivery and terminal recovery before startup", () => {
-              const root = mkdtempSync(join(tmpdir(), "cnx-v090-terminal-fence-"));
-              try {
-                const path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
-                const ticket=store.accept({runId:"cancelled-old",ownerSessionKey:"agent:main:dashboard:test",prompt:"งานเก่า"});
-                store.route(ticket.ticketId,false);
-                expect(markDirectRecovery(path,{runId:"cancelled-old",mode:"resume",message:"provider interrupted"})).toBe(true);
-                const db=new DatabaseSync(path);
-                db.prepare("UPDATE tickets SET status='cancelled',failure_class='interrupted' WHERE ticket_id=?").run(ticket.ticketId);
-                db.prepare("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) VALUES (?,?,'cancelled','{}','pending',1,?)").run(ticket.ticketId,"agent:main:dashboard:test",new Date().toISOString());
-                db.close();
-                prepareV090RecoveryState(root,{ticketDatabasePath:path});
-                const verify=new DatabaseSync(path,{readOnly:true});
-                expect(verify.prepare("SELECT status,failure_class FROM tickets WHERE ticket_id=?").get(ticket.ticketId)).toEqual({status:"cancelled",failure_class:null});
-                expect(verify.prepare("SELECT COUNT(*) AS count FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'").get(ticket.ticketId)).toEqual({count:0});
-                expect(verify.prepare("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId)).toEqual({state:"cancelled",active_run_id:null,next_attempt_at:null});
-                verify.close();
-              } finally { rmSync(root,{recursive:true,force:true}); }
-            });
+          s = s.replace('  cancelSessionTickets,\n', '  cancelSessionByKey,\n  cancelSessionTickets,\n', 1)
+          anchor = '  it("keeps a generic interruption recoverable instead of guessing user intent", () => {'
+          addition = r'''  it("UI Stop suppresses pending synthetic delivery even when no non-terminal Ticket remains", () => {
+            const root=mkdtempSync(join(tmpdir(),"cnx-v090-synthetic-stop-"));
+            try{
+              const path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+              const ticket=store.accept({runId:"old-human",ownerSessionKey:"agent:main:dashboard:owner",prompt:"old"});
+              store.route(ticket.ticketId,false);
+              const db=new DatabaseSync(path);
+              db.prepare("UPDATE tickets SET status='cancelled',failure_class='interrupted' WHERE ticket_id=?").run(ticket.ticketId);
+              db.prepare("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) VALUES (?,?,'cancelled','{}','pending',3,?)")
+                .run(ticket.ticketId,"agent:main:dashboard:owner",new Date().toISOString());
+              db.prepare("INSERT INTO cnx_direct_recovery(ticket_id,mode,state,attempt_count,active_run_id,next_attempt_at,last_error,created_at,updated_at) VALUES (?,'resume','pending',10,NULL,?,'connection refused',?,?)")
+                .run(ticket.ticketId,new Date().toISOString(),new Date().toISOString(),new Date().toISOString());
+              db.close();
+              const cancelled=cancelSessionByKey(path,{sessionKey:"agent:main:dashboard:owner",message:"agent run aborted"});
+              expect(cancelled.cancelled).toEqual([]);
+              expect(cancelled.outboxTags).toEqual([`cogent-ticket-result-${ticket.ticketId}`]);
+              const verify=new DatabaseSync(path,{readOnly:true});
+              expect(verify.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE delivery_status='pending'").get()).toEqual({count:0});
+              expect(verify.prepare("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId))
+                .toEqual({state:"cancelled",active_run_id:null,next_attempt_at:null});
+              verify.close();
+            }finally{rmSync(root,{recursive:true,force:true});}
+          });
 
           '''
-          test = '\n'.join(line[10:] if line.startswith('          ') else line for line in test.splitlines())
-          if anchor not in s:
-              raise SystemExit('v090 test anchor missing')
-          s = s.replace(anchor, test + anchor, 1)
+          if 'UI Stop suppresses pending synthetic delivery' not in s:
+              if anchor not in s:
+                  raise SystemExit('v090 test anchor missing')
+              s = s.replace(anchor, addition + anchor, 1)
           p.write_text(s, encoding='utf-8')
 
-      - name: Commit patch and remove one-shot workflow
+      - name: Run focused tests
         run: |
-          rm -f .github/workflows/v090-live-cancellation-fix.yml
+          python -m unittest tests.test_host_controller
+          npm ci
+          npm test -- --run plugins/cogentnexus-rotation/src/v090.test.ts
+
+      - name: Commit hardening and remove one-shot workflow
+        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add skills/cogentnexus/scripts/host.py tests/test_host_controller.py plugins/cogentnexus-rotation/src/v090.ts plugins/cogentnexus-rotation/src/v090.test.ts .github/workflows/v090-live-cancellation-fix.yml
-          git commit -m 'Fix silent cancellation terminal fences'
+          git add skills/cogentnexus/scripts/host.py tests/test_host_controller.py plugins/cogentnexus-rotation/src/v090.ts plugins/cogentnexus-rotation/src/v090.test.ts
+          git rm .github/workflows/v090-live-cancellation-fix.yml
+          git commit -m 'Harden cancellation delivery fences and health status'
           git push origin HEAD:agent/v0.9.0-intent-boundary
