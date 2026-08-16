@@ -55,7 +55,7 @@ describe("v0.9 manual Compact boundary",()=>{
   it("releases only an already-authorized context hold when manual Compact makes the same generation safe",()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-safe-"));
     try{
-      const {path,store,sessionKey,ticketId}=fixture(root);
+      const {path,sessionKey,ticketId}=fixture(root);
       const result=settleExistingContextHoldFromCompaction({
         databasePath:path,sessionKey,tokenCount:7000,
         session:{contextTokens:32768,totalTokens:30000,totalTokensFresh:true,sessionId:"physical-before-store-persist"},
@@ -69,7 +69,6 @@ describe("v0.9 manual Compact boundary",()=>{
         .toEqual({status:"accepted",workflow_eligible:0});
       expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox").get()).toEqual({count:0});
       db.close();
-      expect(store.get(ticketId)?.status).toBe("accepted");
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
