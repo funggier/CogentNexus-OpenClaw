@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus OpenClaw Bridge",
   "description": "Ticket-first OpenClaw bridge for CogentNexus Host-managed continuity, durable execution, recovery, context handoff, and verified delivery.",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -25,7 +25,7 @@
       },
       "autoResume": {
         "type": "boolean",
-        "description": "Schedule one durable continuation turn after a resumable interruption."
+        "description": "Enable bounded Direct recovery after a resumable interruption."
       },
       "autoResumeDelayMs": {
         "type": "integer",
@@ -54,7 +54,7 @@
         "type": "integer",
         "minimum": 1000,
         "maximum": 120000,
-        "description": "Delayed fallback continuation scheduled after successful compaction while durable work remains."
+        "description": "Delay before the Direct Recovery Guard checks unfinished Direct work after successful compaction."
       },
       "autoRotate": {
         "type": "boolean",

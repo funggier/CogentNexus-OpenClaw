@@ -70,7 +70,7 @@ See [docs/BASELINE.md](docs/BASELINE.md) for the canonical v0.8 architecture and
 - **Delivery Commit Gate** separating model success from complete user-visible delivery;
 - recovery of partial, failed, cancelled, or unconfirmed reply delivery;
 - receipt-aware terminal Ticket/workflow outboxes that stay pending until the marked delivery turn settles;
-- **Post-Compaction Continuation Guard** for successful compaction that leaves durable work pending;
+- **Direct Recovery Guard** for interrupted, compacted, or delivery-uncertain DIRECT work without automatic promotion to a heavyweight workflow;
 - Ticket and session cancellation with terminal fencing;
 - automatic continuation of eligible committed work after restart/reboot;
 - atomic revisioned task state, checkpoint/resume/commit/rollback;

@@ -58,9 +58,13 @@ def writer_lock(path,timeout=10):
         try:
             fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY)
             os.write(fd,json.dumps({"pid":os.getpid(),"createdAt":now()}).encode()); os.close(fd); break
-        except FileExistsError:
+        except (FileExistsError,PermissionError) as exc:
+            if isinstance(exc,PermissionError) and not path.exists(): raise
             try:
-                if time.time()-path.stat().st_mtime>30: path.unlink(); continue
+                if time.time()-path.stat().st_mtime>30:
+                    try: path.unlink()
+                    except PermissionError: pass
+                    else: continue
             except FileNotFoundError: continue
             if time.monotonic()>=deadline: raise SystemExit("task writer lock timeout")
             time.sleep(0.05)

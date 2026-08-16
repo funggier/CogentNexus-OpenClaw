@@ -236,8 +236,8 @@ Rules:
 - Where only per-message delivery events are available, success is treated as a fallback receipt after a quiet/settle period rather than completing on the first emitted chunk.
 - Delivery receipt ordering must not matter: if a receipt arrives before `RESPONSE_READY`, it is buffered only for a run that actually owns a Ticket and applied as soon as response readiness is committed.
 - Internal/non-owner runs cannot accumulate early Ticket receipts; run-local receipt state is cleaned when the run ends without a matching Ticket.
-- A failed delivery receipt promotes unfinished direct work to durable recovery.
-- A `RESPONSE_READY` Ticket with no delivery confirmation before the receipt deadline is promoted to durable recovery rather than silently completed.
+- A failed delivery receipt queues bounded DIRECT redelivery/recovery for unfinished direct work; interruption alone does not require STAGED execution.
+- A `RESPONSE_READY` DIRECT Ticket with no delivery confirmation before the receipt deadline enters bounded DIRECT redelivery/recovery rather than being silently completed or automatically promoted to STAGED execution.
 - If no user-visible output is expected for a successful run, the delivery gate may be satisfied immediately and recorded explicitly.
 - Terminal Ticket/workflow outboxes remain `pending` when a continuation is merely scheduled. Scheduling is not delivery.
 - A terminal delivery is marked `delivered` only when the marked delivery continuation itself settles successfully.
@@ -266,23 +266,25 @@ Important rules:
 - stale worker generations cannot regain authority;
 - periodic supervision performs no model inference.
 
-### 8.1 Post-Compaction Continuation Guard
+### 8.1 Direct Recovery Guard
 
-Successful history compaction is not a terminal state and does not prove that the interrupted logical task continued.
+A resumable interruption does not, by itself, make lightweight DIRECT work a durable workflow. The original committed Ticket remains the authority for the user's intent.
 
-The guard is deliberately scoped to unfinished DIRECT execution. Running durable workflows and pending terminal outboxes already have deterministic services; `RESPONSE_READY` Tickets belong to delivery recovery and must not be promoted into a new execution workflow.
+For managed DIRECT work, aborts, successful compaction with unfinished work, failed delivery, and unconfirmed delivery use the same bounded recovery rule:
 
-After OpenClaw reports successful compaction for a managed session:
+1. keep the same Ticket in `accepted` with `workflow_eligible=0` unless independent admission evidence requires STAGED execution;
+2. classify the interruption as recoverable and persist retry state in the additive `cnx_direct_recovery` table;
+3. wake the exact owner session through an OpenClaw runtime path available to external plugins rather than relying on bundled-only scheduler APIs;
+4. use deterministic bounded backoff and idempotency so repeated recovery scans cannot create uncontrolled duplicate turns;
+5. inspect the owner transcript/delivery evidence before declaring recovery successful;
+6. for dashboard sessions, a fresh persisted assistant response in the bound session is durable delivery evidence; channel-bound sessions request normal OpenClaw delivery;
+7. if completed response content is already durable, retry delivery only and do not repeat external side effects;
+8. explicit cancellation is terminal and fences recovery from resurrecting abandoned work;
+9. only escalate to STAGED/durable workflow execution when the request independently qualifies for it or bounded Direct recovery repeatedly proves insufficient.
 
-1. inspect durable state for a DIRECT Ticket still `accepted`, `workflow_eligible=0`, and without `response_ready_at`;
-2. if no such Ticket remains, schedule no compaction guard;
-3. if one remains, schedule one idempotently tagged delayed continuation turn;
-4. if the original run continues normally and reaches `agent_end`, cancel the delayed guard before it fires;
-5. if the delayed guard actually fires while the original Ticket is still eligible, deterministically promote that **same Ticket** to `waiting/workflow_eligible=1` with interruption evidence before model inference;
-6. let the durable dispatcher resume from the original committed request instead of asking a model to reconstruct discarded private reasoning;
-7. if the guard fires late and no eligible DIRECT Ticket remains, do not manufacture another workflow or repeat output/external side effects.
+Successful history compaction therefore schedules/checks Direct recovery for the same committed intent instead of automatically promoting a simple request into a heavyweight workflow. If the original run continues normally or the Ticket is already terminal, no duplicate recovery is created.
 
-This closes the case where compaction itself succeeds but the pending logical task otherwise becomes silent afterward.
+Legacy v0.8.3 Direct Tickets misclassified by the exact OpenClaw error `Reply operation aborted by user` are narrowly migrated back into this recoverable Direct path only when no workflow is linked and admission still classifies the original request as DIRECT.
 
 ## 9. Session cancellation
 
@@ -347,7 +349,7 @@ Use these names consistently in current documentation:
 - **CogentNexus OpenClaw Bridge** — plugin integration role; plugin ID remains `cogentnexus-rotation` for compatibility.
 - **Ticket-first continuity** — durable acceptance before inference.
 - **Delivery Commit Gate** — user-visible work becomes terminal only after delivery evidence.
-- **Post-Compaction Continuation Guard** — delayed idempotent fallback that promotes an unfinished DIRECT Ticket into durable recovery only if the original turn becomes silent after successful compaction.
+- **Direct Recovery Guard** — bounded provider-agnostic retry/redelivery for interrupted DIRECT work that preserves the same committed intent before any escalation to STAGED execution.
 - **Request lane** — DIRECT / LOOKUP / ACTION / STAGED.
 - **Durable workflow runtime** — heavy checkpointed/verified machinery used only when needed.
 - **MANAGED / PASSTHROUGH / MAINTENANCE** — host ownership modes.
