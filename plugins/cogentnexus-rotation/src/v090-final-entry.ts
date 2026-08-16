@@ -1,5 +1,5 @@
 import entry from "./v090-entry.js";
-import { installContextSafety } from "./v090-context-safety.js";
+import { installContextGuard } from "./v090-context-guard.js";
 
 const WRAPPED = Symbol.for("cogentnexus.v090.final-entry");
 
@@ -10,9 +10,9 @@ function wrapFinalEntry() {
   const register = entry.register?.bind(entry);
   entry.register = (api:any) => {
     register?.(api);
-    // Register last so all ownership/native-task startup fences are installed
-    // before context maintenance can process a durable, human-authorized row.
-    installContextSafety(api, api, (api.pluginConfig ?? {}) as any);
+    // Register last so owner/native startup fences exist before a durable,
+    // human-authorized context-maintenance row can invoke semantic compaction.
+    installContextGuard(api, api, (api.pluginConfig ?? {}) as any);
   };
 }
 
