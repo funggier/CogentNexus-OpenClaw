@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
 import { createCompactionBoundaryApi, settleExistingContextHoldFromCompaction } from "./v090-compaction-boundary.js";
+import { installContextGuard } from "./v090-context-guard.js";
 
 function fixture(root:string) {
   const path=join(root,"tickets.sqlite3"),store=new TicketStore(path),sessionKey="agent:main:dashboard:A";
@@ -69,6 +70,38 @@ describe("v0.9 manual Compact boundary",()=>{
       expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox").get()).toEqual({count:0});
       db.close();
       expect(store.get(ticketId)?.status).toBe("accepted");
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("admits a fresh human Ticket normally after manual Compact without changing session generation",async()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-next-turn-"));
+    try{
+      const {path,store,sessionKey}=fixture(root);
+      const settled=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,tokenCount:6500,
+        session:{contextTokens:32768,totalTokens:29000,totalTokensFresh:true,sessionId:"physical-before-persist"},
+      });
+      expect(settled).toMatchObject({settled:true,observedTokens:6500});
+      const next=store.accept({runId:"run-2",ownerSessionKey:sessionKey,prompt:"new human message after compact"});
+      store.route(next.ticketId,false);
+      let hook:any;
+      installContextGuard(
+        {
+          runtime:{gateway:{request:async(method:string)=>method==="sessions.describe"
+            ? {session:{contextTokens:32768,totalTokens:7000,totalTokensFresh:true,sessionId:"physical-after-persist"}}
+            : {}}},
+          logger:{info:()=>{},warn:()=>{}},
+        },
+        {on:(name:string,handler:any)=>{if(name==="before_agent_run")hook=handler;},registerService:()=>{}},
+        {workspaceDir:root,ticketDatabasePath:path},
+      );
+      const decision=await hook({prompt:"new human message after compact",messages:[],systemPrompt:""},{sessionKey,runId:"run-2",workspaceDir:root});
+      expect(decision).toEqual({outcome:"pass"});
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT generation,state FROM cnx_sessions WHERE session_key=?").get(sessionKey)).toEqual({generation:4,state:"active"});
+      expect(db.prepare("SELECT status,workflow_eligible FROM tickets WHERE ticket_id=?").get(next.ticketId)).toEqual({status:"accepted",workflow_eligible:0});
+      expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE ticket_id=?").get(next.ticketId)).toEqual({count:0});
+      db.close();
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
