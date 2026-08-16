@@ -21,6 +21,15 @@ type NativeTaskView = {
   status?: string;
 };
 
+type NativeFenceOwnerRow = {
+  owner_session_key: string | null;
+};
+
+type NativeFenceOwnerScope = {
+  sessionKey: string;
+  agentId: string;
+};
+
 const WRAPPED = Symbol.for("cogentnexus.v090.entry.host-reconciliation");
 const LIVE_POLICY_PATCH = Symbol.for("cogentnexus.v090.live-policy-patch");
 const CNX_PLUGIN_LABEL = "plugin:cogentnexus-rotation";
@@ -110,14 +119,27 @@ export function reconcileV090LiveState(databasePath: string, now = new Date()) {
   }
 }
 
+export function nativeFenceOwnerScopes(rows: ReadonlyArray<NativeFenceOwnerRow>): NativeFenceOwnerScope[] {
+  const scopes = new Map<string, string>();
+  for (const row of rows) {
+    const sessionKey = (row.owner_session_key ?? "").trim();
+    const match = /^agent:([^:]+):/u.exec(sessionKey);
+    if (!sessionKey || !match?.[1]) continue;
+    scopes.set(sessionKey, match[1]);
+  }
+  return [...scopes.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([sessionKey, agentId]) => ({ sessionKey, agentId }));
+}
+
 function readNativeFenceSnapshot(databasePath: string): {
-  agentIds: string[];
+  ownerScopes: NativeFenceOwnerScope[];
   ticketStatuses: Map<string, string>;
 } {
   new TicketStore(databasePath).snapshot();
   const db = new DatabaseSync(databasePath, { readOnly:true });
-  const agentIds = new Set<string>();
   const ticketStatuses = new Map<string, string>();
+  const ownerRows: NativeFenceOwnerRow[] = [];
   try {
     const rows = db.prepare("SELECT ticket_id,status,owner_session_key FROM tickets").all() as Array<{
       ticket_id:string;
@@ -126,14 +148,12 @@ function readNativeFenceSnapshot(databasePath: string): {
     }>;
     for (const row of rows) {
       ticketStatuses.set(row.ticket_id, row.status);
-      const match = /^agent:([^:]+):/u.exec(row.owner_session_key ?? "");
-      if (match?.[1]) agentIds.add(match[1]);
+      ownerRows.push({ owner_session_key:row.owner_session_key });
     }
   } finally {
     db.close();
   }
-  if (agentIds.size === 0) agentIds.add("main");
-  return { agentIds:[...agentIds].sort(), ticketStatuses };
+  return { ownerScopes:nativeFenceOwnerScopes(ownerRows), ticketStatuses };
 }
 
 function ticketIdFromNativeTask(task: NativeTaskView): string | undefined {
@@ -173,15 +193,17 @@ export async function reconcileOpenClawNativeTasks(
   const taskRuns = api.runtime?.tasks?.runs;
   if (!taskRuns?.bindSession) return { supported:false, scanned:0, fenced:0, failed:0 };
 
-  const { agentIds, ticketStatuses } = readNativeFenceSnapshot(databasePath);
+  const { ownerScopes, ticketStatuses } = readNativeFenceSnapshot(databasePath);
   const mainKey = String(ctx.config?.session?.mainKey ?? "main").trim() || "main";
+  const scopes = ownerScopes.length > 0
+    ? ownerScopes
+    : [{ sessionKey:`agent:main:${mainKey}`, agentId:"main" }];
   const seen = new Set<string>();
   let scanned = 0;
   let fenced = 0;
   let failed = 0;
 
-  for (const agentId of agentIds) {
-    const sessionKey = `agent:${agentId}:${mainKey}`;
+  for (const { sessionKey, agentId } of scopes) {
     let bound: any;
     try {
       bound = taskRuns.bindSession({ sessionKey, agentId });
