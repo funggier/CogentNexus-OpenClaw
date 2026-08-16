@@ -259,10 +259,23 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
         kind = str(target.get("kind") or "notice")
         if kind == "workflow":
             db.commit()
+            db.close()
             _write_completion(root.parent, target, stamp)
             db = sqlite3.connect(path, timeout=5)
             ensure_schema(db)
             db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT ticket_id,status,owner_session_key,owner_generation FROM cnx_assistant_delivery WHERE delivery_id=?",
+                (delivery_id,),
+            ).fetchone()
+            if not row or row[1] == "delivered":
+                db.commit()
+                return
+            authority = session_authority(db, str(row[2]))
+            if authority != ("active", int(row[3])):
+                db.rollback()
+                suppress_delivery(root, delivery_id, "session authority changed during workflow settlement")
+                return
         elif kind == "direct":
             direct_ticket = str(target.get("ticketId") or ticket_id or "")
             if not direct_ticket:
