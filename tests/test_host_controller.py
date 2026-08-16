@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -114,6 +115,7 @@ class HostControllerTests(unittest.TestCase):
         );
         CREATE TABLE ticket_events(event_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT,event_type TEXT,payload_json TEXT,created_at TEXT);
         CREATE TABLE ticket_outbox(outbox_id INTEGER PRIMARY KEY AUTOINCREMENT,ticket_id TEXT UNIQUE,owner_session_key TEXT,terminal_status TEXT,payload_json TEXT,delivery_status TEXT,created_at TEXT);
+        CREATE TABLE cnx_direct_recovery(ticket_id TEXT PRIMARY KEY,state TEXT,active_run_id TEXT,next_attempt_at TEXT,last_error TEXT,updated_at TEXT);
         """)
         return db
 
@@ -132,20 +134,37 @@ class HostControllerTests(unittest.TestCase):
             self.assertEqual(row, ("waiting", 1, "interrupted"))
             self.assertEqual(event[0], "host_recovered_direct")
 
-    def test_ticket_cancel_is_terminal_and_enqueues_outbox(self):
+    def test_ticket_cancel_is_terminal_silent_and_suppresses_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
             db = self._ticket_db(root)
             db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,created_at,updated_at) VALUES ('T2','S2','waiting',1,'2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
+            db.execute("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES ('T2','S2','failed','{}','pending','2026-01-01T00:00:00+00:00')")
+            db.execute("INSERT INTO cnx_direct_recovery(ticket_id,state,active_run_id,next_attempt_at,last_error,updated_at) VALUES ('T2','pending','old-run','2026-01-02T00:00:00+00:00',NULL,'2026-01-01T00:00:00+00:00')")
             db.commit(); db.close()
             result = cnx_host.cancel_ticket(root, "T2", "operator cancelled")
             self.assertTrue(result["changed"])
             db = sqlite3.connect(cnx_host.ticket_db(root))
-            row = db.execute("SELECT status FROM tickets WHERE ticket_id='T2'").fetchone()
-            outbox = db.execute("SELECT terminal_status,delivery_status FROM ticket_outbox WHERE ticket_id='T2'").fetchone()
+            row = db.execute("SELECT status,failure_class FROM tickets WHERE ticket_id='T2'").fetchone()
+            outbox = db.execute("SELECT count(*) FROM ticket_outbox WHERE ticket_id='T2' AND delivery_status='pending'").fetchone()[0]
+            recovery = db.execute("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id='T2'").fetchone()
             db.close()
-            self.assertEqual(row[0], "cancelled")
-            self.assertEqual(outbox, ("cancelled", "pending"))
+            self.assertEqual(row, ("cancelled", None))
+            self.assertEqual(outbox, 0)
+            self.assertEqual(recovery, ("cancelled", None, None))
+
+    def test_gateway_status_requires_connectivity_not_only_zero_exit(self):
+        original_run = cnx_host.run
+        original_executable = cnx_host.openclaw_executable
+        try:
+            cnx_host.openclaw_executable = lambda: "openclaw"
+            cnx_host.run = lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "Runtime: stopped\n", "Connectivity probe: failed\n")
+            self.assertFalse(cnx_host.gateway_status()["healthy"])
+            cnx_host.run = lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "Runtime: running\nConnectivity probe: ok\n", "")
+            self.assertTrue(cnx_host.gateway_status()["healthy"])
+        finally:
+            cnx_host.run = original_run
+            cnx_host.openclaw_executable = original_executable
 
     def test_passthrough_supervisor_does_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

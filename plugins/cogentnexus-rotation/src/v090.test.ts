@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore, ticketIntakeEligible } from "./ticket-store.js";
 import {
+  cancelSessionByKey,
   cancelSessionTickets,
   directRecoveryBackoffMs,
   isExplicitUserCancellation,
@@ -47,6 +48,29 @@ describe("CogentNexus v0.9.0 intent boundary", () => {
       expect(events).toHaveLength(2);
       db.close();
     } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("UI Stop suppresses pending synthetic delivery even when no non-terminal Ticket remains", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-v090-synthetic-stop-"));
+    try{
+      const path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+      const ticket=store.accept({runId:"old-human",ownerSessionKey:"agent:main:dashboard:owner",prompt:"old"});
+      store.route(ticket.ticketId,false);
+      expect(markDirectRecovery(path,{runId:"old-human",mode:"resume",message:"connection refused"})).toBe(true);
+      const db=new DatabaseSync(path);
+      db.prepare("UPDATE tickets SET status='cancelled',failure_class='interrupted' WHERE ticket_id=?").run(ticket.ticketId);
+      db.prepare("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) VALUES (?,?,'cancelled','{}','pending',3,?)")
+        .run(ticket.ticketId,"agent:main:dashboard:owner",new Date().toISOString());
+      db.close();
+      const cancelled=cancelSessionByKey(path,{sessionKey:"agent:main:dashboard:owner",message:"agent run aborted"});
+      expect(cancelled.cancelled).toEqual([]);
+      expect(cancelled.outboxTags).toEqual([`cogent-ticket-result-${ticket.ticketId}`]);
+      const verify=new DatabaseSync(path,{readOnly:true});
+      expect(verify.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE delivery_status='pending'").get()).toEqual({count:0});
+      expect(verify.prepare("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({state:"cancelled",active_run_id:null,next_attempt_at:null});
+      verify.close();
+    }finally{rmSync(root,{recursive:true,force:true});}
   });
 
   it("keeps a generic interruption recoverable instead of guessing user intent", () => {
