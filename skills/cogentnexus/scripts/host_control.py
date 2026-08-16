@@ -239,10 +239,38 @@ def main() -> int:
     argv = sys.argv[1:]
     root = root_from_argv(argv)
     command, action = command_from_argv(argv)
-    try:
-        if command == "disable":
+
+    if command == "disable":
+        # Passthrough must boot with the operator's native watchdog value, so
+        # restore before host.py restarts Gateway. If disable itself fails, put
+        # the CNX compatibility fence back immediately rather than leaving a
+        # half-disabled managed runtime exposed to the ambiguous 2026.7.1-2
+        # stuck-session abort path.
+        try:
             restore_watchdog_compat(root)
-        elif should_apply(root, command, action):
+        except Exception as error:
+            print(json.dumps({"result": "error", "error": f"CogentNexus watchdog compatibility restore failed: {error}"}, ensure_ascii=False, indent=2))
+            return 1
+        code = delegate(argv)
+        if code != 0:
+            rollback_error = None
+            try:
+                apply_watchdog_compat(root)
+            except Exception as error:
+                rollback_error = str(error)
+            append_audit(root, "watchdog-compat-disable-rollback", {"delegateExitCode": code, "rollbackError": rollback_error})
+            if rollback_error:
+                print(json.dumps({
+                    "result": "error",
+                    "error": "CogentNexus disable failed and watchdog compatibility rollback also failed",
+                    "delegateExitCode": code,
+                    "rollbackError": rollback_error,
+                }, ensure_ascii=False, indent=2))
+            return code
+        return 0
+
+    try:
+        if should_apply(root, command, action):
             apply_watchdog_compat(root)
     except Exception as error:
         print(json.dumps({"result": "error", "error": f"CogentNexus watchdog compatibility failed: {error}"}, ensure_ascii=False, indent=2))
