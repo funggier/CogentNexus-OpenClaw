@@ -1,7 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 import { classifyDurableRequest } from "./admission.js";
 import entry, { cancelSessionTickets, prepareV090RecoveryState } from "./v090.js";
+import {
+  recordSyntheticSpawn,
+  settleSyntheticRun,
+  staleSyntheticRuns,
+} from "./v090-synthetic-registry.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 type Config = {
@@ -35,6 +41,7 @@ const LIVE_POLICY_PATCH = Symbol.for("cogentnexus.v090.live-policy-patch");
 const CNX_PLUGIN_LABEL = "plugin:cogentnexus-rotation";
 const ACTIVE_NATIVE_TASK_STATUSES = new Set(["queued", "running"]);
 const TERMINAL_NATIVE_TICKET_STATUSES = new Set(["failed", "cancelled"]);
+const RUNTIME_INSTANCE = randomUUID();
 
 export function isOpenClawAbortMessage(message?: string | null): boolean {
   if (!message) return false;
@@ -164,15 +171,19 @@ function ticketIdFromNativeTask(task: NativeTaskView): string | undefined {
   return undefined;
 }
 
+function cnxOwnedNativeTask(task: NativeTaskView) {
+  return task.label === CNX_PLUGIN_LABEL
+    || (task.runId ?? "").startsWith("cnx-")
+    || (task.sourceId ?? "").startsWith("cnx-")
+    || (task.runId ?? "").startsWith("cogent-");
+}
+
 export function shouldFenceNativeCnxTask(
   task: NativeTaskView,
   ticketStatuses: ReadonlyMap<string, string>,
 ): boolean {
   if (!ACTIVE_NATIVE_TASK_STATUSES.has(task.status ?? "")) return false;
-  const cnxOwned = task.label === CNX_PLUGIN_LABEL
-    || (task.runId ?? "").startsWith("cnx-")
-    || (task.sourceId ?? "").startsWith("cnx-");
-  if (!cnxOwned) return false;
+  if (!cnxOwnedNativeTask(task)) return false;
 
   const ticketId = ticketIdFromNativeTask(task);
   if (ticketId && TERMINAL_NATIVE_TICKET_STATUSES.has(ticketStatuses.get(ticketId) ?? "")) return true;
@@ -185,13 +196,77 @@ export function shouldFenceNativeCnxTask(
   return false;
 }
 
+async function fenceStaleSyntheticRuns(
+  api: any,
+  ctx: any,
+  databasePath: string,
+): Promise<{ scanned:number; fenced:number; failed:number }> {
+  const rows = staleSyntheticRuns(databasePath, RUNTIME_INSTANCE);
+  if (rows.length === 0) return { scanned:0, fenced:0, failed:0 };
+  const taskRuns = api.runtime?.tasks?.runs;
+  let scanned = 0, fenced = 0, failed = 0;
+
+  for (const row of rows) {
+    scanned++;
+    const agentId = /^agent:([^:]+):/u.exec(row.childSessionKey)?.[1] ?? "main";
+    let rowFailed = false;
+    if (taskRuns?.bindSession) {
+      try {
+        const bound = taskRuns.bindSession({ sessionKey:row.childSessionKey, agentId });
+        for (const task of (bound.list?.() ?? []) as NativeTaskView[]) {
+          if (!task.id || !ACTIVE_NATIVE_TASK_STATUSES.has(task.status ?? "")) continue;
+          if (!cnxOwnedNativeTask(task) && task.runId !== row.runId && task.sourceId !== row.runId) continue;
+          const result = await bound.cancel({ taskId:task.id, cfg:ctx.config ?? {} });
+          if (!result?.cancelled && result?.reason !== "Task not found.") rowFailed = true;
+        }
+      } catch (error) {
+        rowFailed = true;
+        api.logger.warn?.(`CogentNexus stale synthetic fence could not cancel ${row.childSessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (!rowFailed) {
+      try { await api.runtime?.subagent?.deleteSession?.({ sessionKey:row.childSessionKey, deleteTranscript:true }); }
+      catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!/not found|unknown session|does not exist/iu.test(message)) {
+          rowFailed = true;
+          api.logger.warn?.(`CogentNexus stale synthetic fence could not delete ${row.childSessionKey}: ${message}`);
+        }
+      }
+    }
+    if (rowFailed) {
+      failed++;
+      continue;
+    }
+    settleSyntheticRun(databasePath, {
+      runId:row.runId,
+      state:"cancelled",
+      outcome:"stale-runtime-fenced-before-recovery",
+    });
+    fenced++;
+  }
+  return { scanned, fenced, failed };
+}
+
 export async function reconcileOpenClawNativeTasks(
   api: any,
   ctx: any,
   databasePath: string,
-): Promise<{ supported:boolean; scanned:number; fenced:number; failed:number }> {
+): Promise<{
+  supported:boolean;
+  scanned:number;
+  fenced:number;
+  failed:number;
+  syntheticScanned:number;
+  syntheticFenced:number;
+  syntheticFailed:number;
+}> {
+  const synthetic = await fenceStaleSyntheticRuns(api, ctx, databasePath);
   const taskRuns = api.runtime?.tasks?.runs;
-  if (!taskRuns?.bindSession) return { supported:false, scanned:0, fenced:0, failed:0 };
+  if (!taskRuns?.bindSession) return {
+    supported:false, scanned:0, fenced:0, failed:0,
+    syntheticScanned:synthetic.scanned, syntheticFenced:synthetic.fenced, syntheticFailed:synthetic.failed,
+  };
 
   const { ownerScopes, ticketStatuses } = readNativeFenceSnapshot(databasePath);
   const mainKey = String(ctx.config?.session?.mainKey ?? "main").trim() || "main";
@@ -231,7 +306,10 @@ export async function reconcileOpenClawNativeTasks(
       }
     }
   }
-  return { supported:true, scanned, fenced, failed };
+  return {
+    supported:true, scanned, fenced, failed,
+    syntheticScanned:synthetic.scanned, syntheticFenced:synthetic.fenced, syntheticFailed:synthetic.failed,
+  };
 }
 
 export function patchV090LivePolicy() {
@@ -285,6 +363,42 @@ function wrapEntry() {
     register?.(api);
     patchV090LivePolicy();
 
+    const databasePathForHooks = () => {
+      const workspaceDir = resolve(config.workspaceDir ?? process.cwd());
+      return resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+    };
+
+    api.on?.("subagent_spawned", (event: any, ctx: any) => {
+      const childSessionKey = event?.childSessionKey ?? ctx?.childSessionKey;
+      const runId = event?.runId ?? ctx?.runId;
+      if (typeof childSessionKey !== "string" || !childSessionKey.includes(":subagent:cnx-") || typeof runId !== "string" || !runId) return;
+      try {
+        recordSyntheticSpawn(databasePathForHooks(), { runId, childSessionKey, runtimeInstance:RUNTIME_INSTANCE });
+      } catch (error) {
+        api.logger.warn?.(`CogentNexus synthetic registry spawn failed for ${childSessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, { priority:2000, timeoutMs:5000 });
+
+    api.on?.("subagent_ended", (event: any, ctx: any) => {
+      const childSessionKey = event?.targetSessionKey ?? ctx?.childSessionKey;
+      const runId = event?.runId ?? ctx?.runId;
+      if (typeof childSessionKey !== "string" || !childSessionKey.includes(":subagent:cnx-")) return;
+      // A reset/restart interruption can still be recoverable in OpenClaw. Keep
+      // that row running so the next runtime instance fences it before durable
+      // CogentNexus recovery starts a replacement.
+      if (event?.outcome === "reset") return;
+      try {
+        settleSyntheticRun(databasePathForHooks(), {
+          runId:typeof runId === "string" ? runId : undefined,
+          childSessionKey,
+          state:event?.outcome === "killed" || event?.outcome === "deleted" ? "cancelled" : "done",
+          outcome:String(event?.outcome ?? event?.reason ?? "ended"),
+        });
+      } catch (error) {
+        api.logger.warn?.(`CogentNexus synthetic registry settlement failed for ${childSessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }, { priority:2000, timeoutMs:5000 });
+
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService?.({
@@ -301,8 +415,8 @@ function wrapEntry() {
               api.logger.info?.(`CogentNexus v0.9.0 live policy reconciliation: abortFailuresCancelled=${live.abortFailuresCancelled} abortOutboxSuppressed=${live.abortOutboxSuppressed} failedOutboxSuppressed=${live.failedOutboxSuppressed} terminalRecoverySuppressed=${live.terminalRecoverySuppressed}`);
             }
             const native = await reconcileOpenClawNativeTasks(api, ctx, databasePath);
-            if (native.fenced > 0 || native.failed > 0) {
-              api.logger.info?.(`CogentNexus v0.9.0 native task fence: supported=${native.supported} scanned=${native.scanned} fenced=${native.fenced} failed=${native.failed}`);
+            if (native.fenced > 0 || native.failed > 0 || native.syntheticFenced > 0 || native.syntheticFailed > 0) {
+              api.logger.info?.(`CogentNexus v0.9.0 native task fence: supported=${native.supported} scanned=${native.scanned} fenced=${native.fenced} failed=${native.failed} syntheticScanned=${native.syntheticScanned} syntheticFenced=${native.syntheticFenced} syntheticFailed=${native.syntheticFailed}`);
             }
             if (!hasLegacyDirectPromotion(databasePath, config.admissionMinimumScore ?? 5)) return;
             const result = prepareV090RecoveryState(workspaceDir, config);
