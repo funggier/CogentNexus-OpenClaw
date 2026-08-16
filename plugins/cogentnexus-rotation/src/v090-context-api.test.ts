@@ -56,9 +56,9 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
 
   it("delegates sessions.compact to the fixed Host adapter instead of privileged Gateway RPC",async()=>{
     const gatewayRequest=vi.fn();
-    const runCommandWithTimeout=vi.fn(async(argv:string[])=>({
+    const runCommandWithTimeout=vi.fn(async(argv:string[],options:any)=>({
       code:0,stdout:JSON.stringify({ok:true,tokensAfter:7000}),stderr:"",signal:null,killed:false,termination:"exit",
-      argv,
+      argv,options,
     }));
     const api={runtime:{
       gateway:{request:gatewayRequest},
