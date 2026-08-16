@@ -79,7 +79,7 @@ function generationFromHiddenSession(sessionKey:string) {
   return Number.isSafeInteger(value)&&value>=0?value:undefined;
 }
 
-type HoldSnapshot = {hold:boolean;revoked:boolean;state?:string;ownerSessionKey?:string};
+type HoldSnapshot = {hold:boolean;revoked:boolean;state?:string;action?:string;ownerSessionKey?:string};
 
 export function contextRecoveryHoldSnapshot(databasePath:string,hiddenSessionKey:string):HoldSnapshot {
   const ticketId=directRecoveryTicketId(hiddenSessionKey);
@@ -97,10 +97,19 @@ export function contextRecoveryHoldSnapshot(databasePath:string,hiddenSessionKey
       const owner=db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(ticket.owner_session_key) as any;
       if(!owner||owner.state!=="active"||Number(owner.generation)!==generation)return {hold:false,revoked:true,state:String(owner?.state??"missing"),ownerSessionKey:ticket.owner_session_key};
     }
-    const row=db.prepare("SELECT state,owner_generation FROM cnx_context_maintenance WHERE ticket_id=?").get(ticketId) as any;
+    const row=db.prepare("SELECT state,owner_generation,last_action FROM cnx_context_maintenance WHERE ticket_id=?").get(ticketId) as any;
     if(!row)return {hold:false,revoked:false,ownerSessionKey:ticket.owner_session_key};
-    if(Number(row.owner_generation)!==generation)return {hold:false,revoked:true,state:String(row.state),ownerSessionKey:ticket.owner_session_key};
-    return {hold:["pending","running","degraded"].includes(String(row.state)),revoked:false,state:String(row.state),ownerSessionKey:ticket.owner_session_key};
+    if(Number(row.owner_generation)!==generation)return {hold:false,revoked:true,state:String(row.state),action:String(row.last_action??""),ownerSessionKey:ticket.owner_session_key};
+    const state=String(row.state),action=String(row.last_action??"");
+    if(["pending","running","degraded"].includes(state))return {hold:true,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
+    if(state==="done")return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
+    // Retry exhaustion means session cleanup could not be completed safely, but
+    // the committed Ticket may still progress through its bounded hidden worker.
+    if(state==="cancelled"&&action==="retry-limit")return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
+    // Every other cancelled maintenance state represents a lifecycle/ownership
+    // revocation or a physical-session race and must not release stale work.
+    if(state==="cancelled")return {hold:false,revoked:true,state,action,ownerSessionKey:ticket.owner_session_key};
+    return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
   } finally {db.close();}
 }
 
@@ -113,7 +122,7 @@ async function waitForContextRelease(input:{databasePath:string;hiddenSessionKey
   let announced=false;
   while(true) {
     const snapshot=contextRecoveryHoldSnapshot(input.databasePath,input.hiddenSessionKey);
-    if(snapshot.revoked)throw new Error(`CogentNexus Direct Recovery authority revoked while waiting for context maintenance (${snapshot.state??"unknown"})`);
+    if(snapshot.revoked)throw new Error(`CogentNexus Direct Recovery authority revoked while waiting for context maintenance (${snapshot.state??"unknown"}/${snapshot.action??""})`);
     if(!snapshot.hold)return;
     if(!announced) {
       announced=true;
