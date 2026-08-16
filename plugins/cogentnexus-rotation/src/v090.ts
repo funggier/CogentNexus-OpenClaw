@@ -27,6 +27,8 @@ type Cfg = {
   ticketMinimumFreeDiskBytes?: number;
   ticketMaximumRunning?: number;
   ticketMaximumAttempts?: number;
+  directDeliveryTimeoutMs?: number;
+  outboxDeliveryTimeoutMs?: number;
   durableWorkerModel?: string;
   timeoutSeconds?: number;
   admissionMinimumScore?: number;
@@ -51,6 +53,7 @@ type Turn = {
   name: string;
   tag: string;
   message: string;
+  ownerGeneration?: number;
 };
 
 type AssistantDeliveryTarget =
@@ -204,6 +207,14 @@ function revokeSession(
       WHERE owner_session_key=? AND delivery_status='pending' ORDER BY outbox_id`).all(input.sessionKey) as any[];
     const cancelled: string[] = [];
     const workflowIds: string[] = [];
+    const cancellationEvent = input.deleting
+      ? "cancelled_by_session_delete"
+      : input.source === "openclaw-session-reset"
+        ? "cancelled_by_session_reset"
+        : "cancelled_by_user";
+    const deliveryEvent = input.source === "openclaw-ui-stop"
+      ? "delivery_suppressed_by_user"
+      : "delivery_suppressed_by_session_boundary";
     for (const row of rows) {
       const changed = db.prepare(`UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,
         failure_class=NULL,failure_message=?,response_ready_at=NULL,delivery_last_error=NULL,updated_at=?
@@ -211,7 +222,7 @@ function revokeSession(
       if (changed.changes !== 1) continue;
       cancelled.push(row.ticket_id);
       if (typeof row.workflow_id === "string" && row.workflow_id) workflowIds.push(row.workflow_id);
-      addEvent(db, row.ticket_id, input.deleting ? "cancelled_by_session_delete" : "cancelled_by_user", {
+      addEvent(db, row.ticket_id, cancellationEvent, {
         source: input.source,
         previousStatus: row.status,
         previousRunId: row.run_id,
@@ -219,7 +230,7 @@ function revokeSession(
         message: reason,
       }, stamp);
     }
-    for (const item of pending) addEvent(db, item.ticket_id, "delivery_suppressed_by_user", {
+    for (const item of pending) addEvent(db, item.ticket_id, deliveryEvent, {
       source: input.source,
       outboxId: Number(item.outbox_id),
       sessionGeneration: nextGeneration,
@@ -247,11 +258,21 @@ function revokeSession(
   } finally { db.close(); }
 }
 
-export function cancelSessionByKey(path: string, input: { sessionKey: string; message?: string; now?: Date }) {
+export function cancelSessionByKey(path: string, input: { sessionKey: string; message?: string; now?: Date; source?: string }) {
   return revokeSession(path, {
     sessionKey: input.sessionKey,
     message: input.message ?? "Cancelled by user",
-    source: "openclaw-ui-stop",
+    source: input.source ?? "openclaw-ui-stop",
+    deleting: false,
+    now: input.now,
+  });
+}
+
+export function resetSessionByKey(path: string, input: { sessionKey: string; message?: string; now?: Date }) {
+  return revokeSession(path, {
+    sessionKey: input.sessionKey,
+    message: input.message ?? "Owner session reset",
+    source: "openclaw-session-reset",
     deleting: false,
     now: input.now,
   });
@@ -799,7 +820,7 @@ function cnxOwnedTask(task: any) {
     || String(task?.runId ?? "").startsWith("cogent-");
 }
 
-async function cancelTasksInSession(api: any, sessionKey: string) {
+async function cancelTasksInSession(api: any, sessionKey: string, runtimeConfig: any = {}) {
   const taskRuns = api.runtime?.tasks?.runs;
   if (!taskRuns?.bindSession) return { scanned: 0, cancelled: 0, failed: 0 };
   const agentId = agentIdFromSession(sessionKey);
@@ -811,7 +832,7 @@ async function cancelTasksInSession(api: any, sessionKey: string) {
     if (!task?.id || !["queued", "running"].includes(String(task.status ?? "")) || !cnxOwnedTask(task)) continue;
     scanned++;
     try {
-      const result = await bound.cancel({ taskId: task.id, cfg: {} });
+      const result = await bound.cancel({ taskId: task.id, cfg: runtimeConfig });
       if (result?.cancelled) cancelled++;
       else failed++;
     } catch { failed++; }
@@ -819,14 +840,14 @@ async function cancelTasksInSession(api: any, sessionKey: string) {
   return { scanned, cancelled, failed };
 }
 
-async function cancelTrackedSynthetic(api: any, ownerSessionKey: string) {
+async function cancelTrackedSynthetic(api: any, ownerSessionKey: string, runtimeConfig: any = {}) {
   const runs = [...(activeSynthetic.get(ownerSessionKey)?.entries() ?? [])];
   activeSynthetic.delete(ownerSessionKey);
   for (const [, item] of runs) {
-    try { await cancelTasksInSession(api, item.childSessionKey); } catch {}
+    try { await cancelTasksInSession(api, item.childSessionKey, runtimeConfig); } catch {}
     try { await api.runtime?.subagent?.deleteSession?.({ sessionKey: item.childSessionKey, deleteTranscript: true }); } catch {}
   }
-  try { await cancelTasksInSession(api, ownerSessionKey); } catch {}
+  try { await cancelTasksInSession(api, ownerSessionKey, runtimeConfig); } catch {}
   return runs.length;
 }
 
@@ -903,16 +924,19 @@ export async function executeCompatibilityWake(api: any, cfg: Cfg, input: Turn) 
   const workspace = resolve(cfg.workspaceDir ?? process.cwd()), path = dbPath(cfg, workspace);
   const target = parseDeliveryMarker(input.message), store = new TicketStore(path);
   const authority = sessionAuthority(path, input.sessionKey);
-  if (authority.state !== "active") return { queued: false, suppressed: true, reason: "session not active" };
+  const ownerGeneration = input.ownerGeneration ?? authority.generation;
+  if (authority.state !== "active" || authority.generation !== ownerGeneration) {
+    return { queued: false, suppressed: true, reason: "session generation superseded" };
+  }
 
   if (/reached terminal status (?:failed|blocked|cancelled)\./iu.test(input.message)) {
     if (target) settleDeliveryTarget({ workspaceDir: workspace, store, target, success: true });
     return { queued: false, suppressed: true, reason: "terminal non-success is durable and silent" };
   }
 
-  const childSessionKey = hiddenSessionKey(input.sessionKey, `delivery-${input.tag}`, authority.generation, cfg);
-  const planned = `cnx-hidden-${createHash("sha256").update(`${input.sessionKey}\0${input.tag}\0${authority.generation}`).digest("hex").slice(0, 40)}`;
-  trackSynthetic(input.sessionKey, planned, childSessionKey, authority.generation);
+  const childSessionKey = hiddenSessionKey(input.sessionKey, `delivery-${input.tag}`, ownerGeneration, cfg);
+  const planned = `cnx-hidden-${createHash("sha256").update(`${input.sessionKey}\0${input.tag}\0${ownerGeneration}`).digest("hex").slice(0, 40)}`;
+  trackSynthetic(input.sessionKey, planned, childSessionKey, ownerGeneration);
   let runId = planned;
   try {
     const owner = await api.runtime.subagent.getSessionMessages({ sessionKey: input.sessionKey, limit: 24 });
@@ -926,12 +950,12 @@ export async function executeCompatibilityWake(api: any, cfg: Cfg, input: Turn) 
     });
     runId = run.runId;
     untrackSynthetic(input.sessionKey, planned);
-    trackSynthetic(input.sessionKey, runId, childSessionKey, authority.generation);
+    trackSynthetic(input.sessionKey, runId, childSessionKey, ownerGeneration);
     const waited = await api.runtime.subagent.waitForRun({
       runId,
       timeoutMs: Math.max(60_000, Math.min((cfg.timeoutSeconds ?? 3600) * 1000, 3_600_000)),
     });
-    if (!sessionIsCurrent(path, input.sessionKey, authority.generation)) return { waited, queued: false, suppressed: true };
+    if (!sessionIsCurrent(path, input.sessionKey, ownerGeneration)) return { waited, queued: false, suppressed: true };
     if (waited.status !== "ok") {
       const error = waited.status === "timeout" ? "Compatibility delivery worker timed out" : waited.error ?? "Compatibility delivery worker failed";
       if (target) settleDeliveryTarget({ workspaceDir: workspace, store, target, success: false, error });
@@ -947,11 +971,11 @@ export async function executeCompatibilityWake(api: any, cfg: Cfg, input: Turn) 
     const id = targetId(target, input);
     const queued = queueAssistantDelivery(path, {
       ownerSessionKey: input.sessionKey,
-      ownerGeneration: authority.generation,
+      ownerGeneration,
       kind: "compatibility_result",
       text,
       target: target ?? { kind: "notice" },
-      idempotencyKey: `cnx-delivery:${createHash("sha256").update(input.sessionKey).digest("hex").slice(0, 16)}:${id}:g${authority.generation}`,
+      idempotencyKey: `cnx-delivery:${createHash("sha256").update(input.sessionKey).digest("hex").slice(0, 16)}:${id}:g${ownerGeneration}`,
     });
     if (queued) kickHostDelivery(workspace, cfg);
     return { waited, queued };
@@ -989,14 +1013,15 @@ function compatWorkflow(api: any, cfg: Cfg) {
     if (authority.state !== "active") return { scheduled: false, compatibilityMode: "session-suppressed" };
     if (input.tag.startsWith("cogent-resume-") || input.tag.startsWith("cogent-post-compact-")) {
       markSession(path, input.sessionKey, input.tag.startsWith("cogent-post-compact-") ? "Post-compaction continuation" : "Interrupted Direct continuation");
-      return { scheduled: true, compatibilityMode: "direct-recovery" };
+      return { scheduled: true, compatibilityMode: "direct-recovery", ownerGeneration: authority.generation };
     }
+    const scheduledInput: Turn = { ...input, ownerGeneration: authority.generation };
     const id = key(input.sessionKey, input.tag), timer = setTimeout(() => {
       timers.delete(id);
-      void executeCompatibilityWake(api, cfg, input).catch(() => {});
+      void executeCompatibilityWake(api, cfg, scheduledInput).catch(() => {});
     }, Math.max(0, input.delayMs ?? 0));
     timer.unref?.(); timers.set(id, timer);
-    return { scheduled: true, compatibilityMode: "hidden-worker-host-delivery" };
+    return { scheduled: true, compatibilityMode: "hidden-worker-host-delivery", ownerGeneration: authority.generation };
   };
   return { unscheduleSessionTurnsByTag: unschedule, scheduleSessionTurn: schedule, cancelSessionTimers };
 }
@@ -1130,13 +1155,13 @@ function safeTicketRecoveryService(api: any, cfg: Cfg) {
         active = true;
         try {
           const store = new TicketStore(path);
-          store.recoverUndeliveredDirect({ olderThanMs: 120_000 });
+          store.recoverUndeliveredDirect({ olderThanMs: cfg.directDeliveryTimeoutMs ?? 120_000 });
           const recovered = store.recoverExpired();
           for (const item of recovered) api.logger.warn(`CogentNexus recovered expired Ticket ${item.ticketId} from worker ${item.previousWorkerId ?? "unknown"} generation ${item.previousLeaseGeneration}`);
           for (const item of reconcileTicketWorkflows({ workspaceDir: workspace, store, config: cfg as any })) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} workflow action ${item.action}`);
           const dispatched = safeDispatchTicketWorkflows({ workspaceDir: workspace, store, config: cfg });
           for (const item of dispatched.deferred) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} deferred: ${item.reason}`);
-          for (const item of store.pendingOutbox(100, new Date(), 300_000)) {
+          for (const item of store.pendingOutbox(100, new Date(), cfg.outboxDeliveryTimeoutMs ?? 300_000)) {
             try { await deliverTicketOutbox(api, store, item); }
             catch (error) { api.logger.warn(`CogentNexus Ticket completion delivery failed for ${item.ticketId}: ${error instanceof Error ? error.message : String(error)}`); }
           }
@@ -1167,7 +1192,7 @@ function wrap() {
     if (originalOn) proxy.on = (name: string, handler: any, options?: any) => {
       if (name !== "session_end") return originalOn(name, handler, options);
       return originalOn(name, (event: any, ctx: any) => {
-        // A UI "new session" is a new ownership domain. Do not silently transfer old mutable state.
+        // A newly-created UI session is a separate ownership domain. Never inherit mutable state implicitly.
         if (event?.reason === "new") return;
         return handler(event, ctx);
       }, options);
@@ -1209,8 +1234,27 @@ function wrap() {
       }
       const results = cancelBoundWorkflows(workspace, cancelled.workflowIds, reason, cfg);
       for (const result of results) if (!result.ok) api.logger.warn?.(`CogentNexus workflow cancellation failed for ${result.workflowId}: ${result.error}`);
-      await cancelTrackedSynthetic(api, sessionKey);
+      await cancelTrackedSynthetic(api, sessionKey, ctx.config ?? {});
     }, { priority: 1000, timeoutMs: 60_000 });
+
+    api.on?.("session_end", async (event: any, ctx: any) => {
+      const sessionKey = event?.sessionKey ?? ctx.sessionKey;
+      if (!sessionKey) return;
+      const sameKeyNew = event?.reason === "new" && (!event?.nextSessionKey || event.nextSessionKey === sessionKey);
+      if (event?.reason !== "reset" && !sameKeyNew) return;
+      const workspace = resolve(ctx.workspaceDir ?? cfg.workspaceDir ?? process.cwd()), path = dbPath(cfg, workspace);
+      const reason = sameKeyNew ? "OpenClaw owner session started a new generation on the same key" : "OpenClaw owner session reset";
+      const reset = resetSessionByKey(path, { sessionKey, message: reason });
+      compat.cancelSessionTimers(sessionKey);
+      const completionTags = suppressSessionWorkflowCompletions(workspace, sessionKey, reason);
+      for (const tag of [...reset.outboxTags, ...completionTags]) {
+        try { await workflow.unscheduleSessionTurnsByTag({ sessionKey, tag }); } catch {}
+      }
+      const results = cancelBoundWorkflows(workspace, reset.workflowIds, reason, cfg);
+      for (const result of results) if (!result.ok) api.logger.warn?.(`CogentNexus session reset workflow cancellation failed for ${result.workflowId}: ${result.error}`);
+      await cancelTrackedSynthetic(api, sessionKey, ctx.config ?? {});
+      api.logger.info?.(`CogentNexus session reset barrier completed for ${sessionKey}: generation=${reset.generation} tickets=${reset.cancelled.length} assistantSuppressed=${reset.assistantSuppressed}`);
+    }, { priority: 1900, timeoutMs: 60_000 });
 
     api.on?.("session_end", async (event: any, ctx: any) => {
       if (event?.reason !== "deleted") return;
@@ -1226,7 +1270,7 @@ function wrap() {
       }
       const results = cancelBoundWorkflows(workspace, deletion.workflowIds, reason, cfg);
       for (const result of results) if (!result.ok) api.logger.warn?.(`CogentNexus session deletion workflow cancellation failed for ${result.workflowId}: ${result.error}`);
-      await cancelTrackedSynthetic(api, sessionKey);
+      await cancelTrackedSynthetic(api, sessionKey, ctx.config ?? {});
       finalizeSessionDeletion(path, sessionKey, reason);
       api.logger.info?.(`CogentNexus session deletion barrier completed for ${sessionKey}: generation=${deletion.generation} tickets=${deletion.cancelled.length} assistantSuppressed=${deletion.assistantSuppressed}`);
     }, { priority: 2000, timeoutMs: 60_000 });
