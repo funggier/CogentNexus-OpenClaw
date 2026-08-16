@@ -56,7 +56,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
 
   it("delegates hard trim to Host and accepts it only after a fresh safe token measurement",async()=>{
     const gatewayRequest=vi.fn();
-    const runCommandWithTimeout=vi.fn(async()=>({
+    const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({
       code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:120}),stderr:"",signal:null,killed:false,termination:"exit",
     }));
     const getSessionEntry=vi.fn(()=>({contextTokens:32768,totalTokens:7000,totalTokensFresh:true}));
@@ -70,7 +70,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     const result=await proxy.runtime.gateway.request("sessions.compact",{key:"agent:main:dashboard:A",maxLines:120},{timeoutMs:90000});
     expect(result.ok).toBe(true);
     expect(result.cnxVerification).toMatchObject({source:"fresh-session-counter",tokens:7000,kept:120});
-    const [argv,options]=runCommandWithTimeout.mock.calls[0];
+    const [argv,options]=runCommandWithTimeout.mock.calls[0]!;
     expect(argv[0]).toBe("python");
     expect(argv.some((value:string)=>value.replace(/\\/gu,"/").endsWith("/host_context.py"))).toBe(true);
     expect(argv).toContain("compact");
@@ -82,7 +82,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
   });
 
   it("rejects a hard trim that still has an unsafe fresh token count",async()=>{
-    const runCommandWithTimeout=vi.fn(async()=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:60}),stderr:""}));
+    const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:60}),stderr:""}));
     const api={runtime:{
       gateway:{request:vi.fn()},
       agent:{session:{getSessionEntry:()=>({contextTokens:32768,totalTokens:29000,totalTokensFresh:true})}},
@@ -95,7 +95,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
   });
 
   it("verifies a stale post-trim token counter from bounded transcript evidence",async()=>{
-    const runCommandWithTimeout=vi.fn(async()=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:60}),stderr:""}));
+    const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:60}),stderr:""}));
     const getSessionMessages=vi.fn(async()=>({messages:[{role:"user",content:"hello"},{role:"assistant",content:"world"}]}));
     const api={runtime:{
       gateway:{request:vi.fn()},
@@ -111,7 +111,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
   });
 
   it("fails closed when post-trim transcript evidence saturates its verification bound",async()=>{
-    const runCommandWithTimeout=vi.fn(async()=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:1000}),stderr:""}));
+    const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:1000}),stderr:""}));
     const messages=Array.from({length:2020},(_,i)=>({role:"user",content:`m${i}`}));
     const api={runtime:{
       gateway:{request:vi.fn()},
