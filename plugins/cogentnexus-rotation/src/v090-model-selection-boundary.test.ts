@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
 import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
@@ -61,7 +62,10 @@ describe("v0.9 user model-selection boundary",()=>{
       await proxy.runtime.gateway.request("sessions.patch",{key:"agent:main:dashboard:A",model:"ollama/qwen3.8:27b"});
       await proxy.runtime.gateway.request("sessions.patch",{key:"agent:main:dashboard:A",model:"ollama/gpt-oss:20b"});
       expect(sha(databasePath)).toBe(before);
-      expect(store.snapshot().counts.total).toBe(0);
+      const db=new DatabaseSync(databasePath,{readOnly:true});
+      expect(db.prepare("SELECT count(*) AS count FROM tickets").get()).toEqual({count:0});
+      expect(db.prepare("SELECT count(*) AS count FROM ticket_events").get()).toEqual({count:0});
+      db.close();
       expect(capture.calls.map((call)=>call.method)).toEqual(["sessions.patch","sessions.patch"]);
     }finally{rmSync(root,{recursive:true,force:true});}
   });
