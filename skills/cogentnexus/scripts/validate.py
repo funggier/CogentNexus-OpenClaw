@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, ast, importlib.util, json, subprocess, sys, tempfile
+import argparse, ast, importlib.util, json, subprocess, sys, tempfile, time
 from pathlib import Path
 import yaml
 
@@ -47,6 +47,34 @@ def validate_windows_task_encoding():
         if 'encoding="UTF-16"' not in document:
             raise SystemExit("Windows task XML declaration must match its UTF-16 encoding")
 
+def run_workflow_self_test():
+    attempts = 2 if sys.platform == "win32" else 1
+    last = None
+    for attempt in range(1, attempts + 1):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "workflow.py"), "self-test"],
+            capture_output=True,
+            text=True,
+        )
+        last = result
+        if result.returncode == 0 and "PASS" in result.stdout:
+            return
+        combined = f"{result.stdout}\n{result.stderr}"
+        # Windows hosted runners occasionally expose a controller/runner
+        # observation race: the self-test parent loses its temporary-directory
+        # cleanup while an orphan child still owns the cwd. Retry exactly once
+        # only for that known signature; every other workflow failure remains
+        # immediately fatal.
+        retryable = (
+            sys.platform == "win32"
+            and "assert runner_pid" in combined
+            and ("WinError 32" in combined or "PermissionError" in combined)
+        )
+        if not retryable or attempt >= attempts:
+            break
+        time.sleep(1.0)
+    raise SystemExit((last.stderr or last.stdout or "Workflow self-test failed") if last else "Workflow self-test failed")
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace-singleton", action="store_true")
@@ -87,9 +115,7 @@ def main():
         raise SystemExit("Workflow CLI validation failed")
     if startup.returncode or not all(word in startup.stdout for word in ("status", "enable", "disable", "ensure")):
         raise SystemExit("Startup CLI validation failed")
-    workflow_test = subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow.py"), "self-test"], capture_output=True, text=True)
-    if workflow_test.returncode or "PASS" not in workflow_test.stdout:
-        raise SystemExit(workflow_test.stderr or workflow_test.stdout or "Workflow self-test failed")
+    run_workflow_self_test()
     templates = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_templates.py")], capture_output=True, text=True)
     if templates.returncode:
         raise SystemExit(templates.stderr or templates.stdout)
