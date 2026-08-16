@@ -8,9 +8,11 @@ import {
   boundedOwnerContext,
   cancelSessionByKey,
   deleteSessionByKey,
+  executeCompatibilityWake,
   finalizeSessionDeletion,
   patchTicketStore,
   queueAssistantDelivery,
+  resetSessionByKey,
   sessionAuthority,
 } from "./v090.js";
 
@@ -38,6 +40,33 @@ describe("v0.9 session ownership isolation", () => {
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(a1.ticketId)).toEqual({status:"cancelled"});
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(a2.ticketId)).toEqual({status:"cancelled"});
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(b1.ticketId)).toEqual({status:"accepted"});
+      db.close();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("Reset creates a new generation on the same session key without touching another session", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v090-session-reset-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const store = new TicketStore(path);
+      const a = store.accept({runId:"a",ownerSessionKey:"agent:main:dashboard:A",prompt:"A work"});
+      const b = store.accept({runId:"b",ownerSessionKey:"agent:main:dashboard:B",prompt:"B work"});
+      store.route(a.ticketId,true); store.route(b.ticketId,true);
+      const before = sessionAuthority(path,"agent:main:dashboard:A");
+      const other = sessionAuthority(path,"agent:main:dashboard:B");
+
+      const reset = resetSessionByKey(path,{sessionKey:"agent:main:dashboard:A",message:"session reset"});
+      expect(reset.cancelled).toEqual([a.ticketId]);
+      expect(sessionAuthority(path,"agent:main:dashboard:A")).toEqual({state:"active",generation:before.generation+1});
+      expect(sessionAuthority(path,"agent:main:dashboard:B")).toEqual(other);
+
+      const next = store.accept({runId:"a-next",ownerSessionKey:"agent:main:dashboard:A",prompt:"new generation"});
+      expect(next.ownerSessionKey).toBe("agent:main:dashboard:A");
+      const db = new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(a.ticketId)).toEqual({status:"cancelled"});
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(b.ticketId)).toEqual({status:"accepted"});
+      expect(db.prepare("SELECT count(*) AS count FROM ticket_events WHERE ticket_id=? AND event_type='cancelled_by_session_reset'").get(a.ticketId))
+        .toEqual({count:1});
       db.close();
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
@@ -102,6 +131,36 @@ describe("v0.9 session ownership isolation", () => {
       expect(db.prepare("SELECT count(*) AS count FROM cnx_assistant_delivery WHERE status='pending'").get())
         .toEqual({count:0});
       db.close();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("does not execute a scheduled synthetic turn captured before Reset", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v090-stale-timer-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const store = new TicketStore(path);
+      store.accept({runId:"a",ownerSessionKey:"agent:main:dashboard:A",prompt:"work"});
+      const oldGeneration = sessionAuthority(path,"agent:main:dashboard:A").generation;
+      resetSessionByKey(path,{sessionKey:"agent:main:dashboard:A",message:"reset"});
+      let runs = 0;
+      const api = { runtime:{ subagent:{
+        getSessionMessages:async()=>({messages:[]}),
+        run:async()=>{ runs++; return {runId:"must-not-run"}; },
+        waitForRun:async()=>({status:"ok"}),
+        deleteSession:async()=>{},
+      }}, tasks:{} }, logger:{warn:()=>{}} };
+      const result = await executeCompatibilityWake(api,{workspaceDir:root,ticketDatabasePath:path},{
+        sessionKey:"agent:main:dashboard:A",
+        ownerGeneration:oldGeneration,
+        delayMs:0,
+        deleteAfterRun:true,
+        deliveryMode:"announce",
+        name:"stale",
+        tag:"stale-before-reset",
+        message:"old scheduled internal work",
+      } as any);
+      expect(runs).toBe(0);
+      expect(result).toMatchObject({queued:false,suppressed:true,reason:"session generation superseded"});
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
