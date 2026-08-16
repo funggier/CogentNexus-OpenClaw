@@ -57,27 +57,44 @@ function cancelWorkflow(workspaceDir: string, workflowId: string, reason: string
   };
 }
 
+function agentIdFromSessionKey(sessionKey: string): string | undefined {
+  return /^agent:([^:]+):/u.exec(sessionKey)?.[1];
+}
+
+/**
+ * Reconcile CNX owner tombstones against OpenClaw's supported plugin session
+ * accessor. Do not use runtime.gateway.request(): OpenClaw 2026.7.1-2 reserves
+ * trusted Gateway RPC for bundled/official plugins, while
+ * api.runtime.agent.session.getSessionEntry is the public third-party seam.
+ */
 export async function reconcileMissingOwnerSessions(
   api: any,
   databasePath: string,
   workspaceDir: string,
   config: OwnerReconcileConfig = {},
 ): Promise<{supported:boolean;checked:number;deleted:number;workflowFailures:number;failed:number}> {
-  const request = api.runtime?.gateway?.request;
-  if (typeof request !== "function") return {supported:false,checked:0,deleted:0,workflowFailures:0,failed:0};
+  const getSessionEntry = api.runtime?.agent?.session?.getSessionEntry;
+  if (typeof getSessionEntry !== "function") return {supported:false,checked:0,deleted:0,workflowFailures:0,failed:0};
   let checked = 0, deleted = 0, workflowFailures = 0, failed = 0;
 
   for (const sessionKey of activeOwnerSessionKeys(databasePath)) {
     checked++;
-    let response: any;
-    try {
-      response = await request("sessions.describe", { key:sessionKey }, { timeoutMs:5000 });
-    } catch (error) {
+    const agentId = agentIdFromSessionKey(sessionKey);
+    if (!agentId) {
       failed++;
-      api.logger.warn?.(`CogentNexus owner reconciliation could not describe ${sessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      api.logger.warn?.(`CogentNexus owner reconciliation could not resolve agent id from ${sessionKey}`);
       continue;
     }
-    if (!response || response.session !== null) continue;
+
+    let entry: any;
+    try {
+      entry = getSessionEntry({ agentId, sessionKey, readConsistency:"latest" });
+    } catch (error) {
+      failed++;
+      api.logger.warn?.(`CogentNexus owner reconciliation could not read ${sessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    if (entry !== undefined && entry !== null) continue;
 
     const reason = "OpenClaw owner session no longer exists";
     try {
