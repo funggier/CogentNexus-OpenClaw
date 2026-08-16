@@ -7,6 +7,7 @@ import {
   classifyAbortAuthority,
   createAbortAuthorityApi,
   hasStructuredHumanAbort,
+  isAuthoritativeAbortLifecycle,
   stopMarkerAdvanced,
 } from "./v090-abort-authority.js";
 
@@ -17,6 +18,13 @@ describe("v0.9 abort authority",()=>{
     const messages=[{role:"assistant",openclawAbort:{aborted:true,origin:"rpc",runId:"run-a"}}];
     expect(hasStructuredHumanAbort(messages,"run-a")).toBe(true);
     expect(hasStructuredHumanAbort(messages,"run-b")).toBe(false);
+  });
+
+  it("recognizes only explicit rpc/stop-command lifecycle cancellations",()=>{
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"rpc"}})).toBe(true);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"stop-command"}})).toBe(true);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"stuck_recovery"}})).toBe(false);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true}})).toBe(false);
   });
 
   it("treats an ambiguous abort as recoverable even when managed mode is active",()=>{
@@ -31,18 +39,9 @@ describe("v0.9 abort authority",()=>{
   });
 
   it("requires a durable Stop cutoff to advance during the run",()=>{
-    expect(stopMarkerAdvanced(
-      {messageSid:"old",timestamp:1000},
-      {messageSid:"old",timestamp:1000},
-    )).toBe(false);
-    expect(stopMarkerAdvanced(
-      {messageSid:"old",timestamp:1000},
-      {messageSid:"new",timestamp:2000},
-    )).toBe(true);
-    expect(stopMarkerAdvanced(
-      {},
-      {messageSid:"first",timestamp:2000},
-    )).toBe(true);
+    expect(stopMarkerAdvanced({messageSid:"old",timestamp:1000},{messageSid:"old",timestamp:1000})).toBe(false);
+    expect(stopMarkerAdvanced({messageSid:"old",timestamp:1000},{messageSid:"new",timestamp:2000})).toBe(true);
+    expect(stopMarkerAdvanced({}, {messageSid:"first",timestamp:2000})).toBe(true);
     expect(stopMarkerAdvanced(undefined,{messageSid:"new",timestamp:2000})).toBe(false);
   });
 
@@ -53,7 +52,7 @@ describe("v0.9 abort authority",()=>{
         {success:false,error:"agent run aborted",runId:"run-a",messages:[]},
         {runId:"run-a",workspaceDir:root},
         {workspaceDir:root,cogentRoot:join(root,".cogent")},
-        true,
+        "durable",
       )).toBe("durable-human-stop");
     }finally{rmSync(root,{recursive:true,force:true});}
   });
@@ -70,7 +69,7 @@ describe("v0.9 abort authority",()=>{
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
-  it("snapshots the pre-run cutoff and only forwards a later advanced cutoff as user Stop",async()=>{
+  it("snapshots the pre-run cutoff and forwards a later advanced cutoff as user Stop",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx-abort-proxy-"));
     try{
       const handlers=new Map<string,any[]>();
@@ -89,6 +88,30 @@ describe("v0.9 abort authority",()=>{
       entry={...entry,abortCutoffMessageSid:"new",abortCutoffTimestamp:2000};
       await handlers.get("agent_end")?.[0]({success:false,error:"Reply operation aborted by user",runId:"run-a",messages:[]},ctx);
       expect(seen[0].error).toBe("Reply operation aborted by user");
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("preserves UI Stop authority before the first assistant token via lifecycle stopReason=rpc",async()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-abort-lifecycle-"));
+    try{
+      const handlers=new Map<string,any[]>();
+      let subscription:any;
+      const entry={sessionId:"physical-a"};
+      const api={
+        runtime:{agent:{session:{getSessionEntry:vi.fn(()=>entry)}}},
+        agent:{events:{registerAgentEventSubscription:vi.fn((value:any)=>{subscription=value;})}},
+        on:vi.fn((name:string,handler:any)=>{const list=handlers.get(name)??[];list.push(handler);handlers.set(name,list);}),
+        logger:{info:vi.fn()},
+      };
+      const proxy=createAbortAuthorityApi(api,{workspaceDir:root,cogentRoot:join(root,".cogent")});
+      const seen:any[]=[];
+      proxy.on("before_agent_run",()=>undefined);
+      proxy.on("agent_end",(event:any)=>seen.push(event));
+      const ctx={runId:"run-ui-stop",sessionKey:"agent:main:dashboard:A",workspaceDir:root};
+      await handlers.get("before_agent_run")?.[0]({runId:"run-ui-stop"},ctx);
+      await subscription.handle({runId:"run-ui-stop",sessionKey:ctx.sessionKey,stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"rpc"}},{});
+      await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-ui-stop",messages:[]},ctx);
+      expect(seen[0].error).toBe("agent run aborted");
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
