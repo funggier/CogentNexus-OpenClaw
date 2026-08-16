@@ -236,8 +236,8 @@ Rules:
 - Where only per-message delivery events are available, success is treated as a fallback receipt after a quiet/settle period rather than completing on the first emitted chunk.
 - Delivery receipt ordering must not matter: if a receipt arrives before `RESPONSE_READY`, it is buffered only for a run that actually owns a Ticket and applied as soon as response readiness is committed.
 - Internal/non-owner runs cannot accumulate early Ticket receipts; run-local receipt state is cleaned when the run ends without a matching Ticket.
-- A failed delivery receipt promotes unfinished direct work to durable recovery.
-- A `RESPONSE_READY` Ticket with no delivery confirmation before the receipt deadline is promoted to durable recovery rather than silently completed.
+- A failed delivery receipt queues bounded DIRECT redelivery/recovery for unfinished direct work; interruption alone does not require STAGED execution.
+- A `RESPONSE_READY` DIRECT Ticket with no delivery confirmation before the receipt deadline enters bounded DIRECT redelivery/recovery rather than being silently completed or automatically promoted to STAGED execution.
 - If no user-visible output is expected for a successful run, the delivery gate may be satisfied immediately and recorded explicitly.
 - Terminal Ticket/workflow outboxes remain `pending` when a continuation is merely scheduled. Scheduling is not delivery.
 - A terminal delivery is marked `delivered` only when the marked delivery continuation itself settles successfully.
