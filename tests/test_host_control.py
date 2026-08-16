@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,11 +20,15 @@ class HostControlTests(unittest.TestCase):
         self.original_get = cnx.config_get
         self.original_set = cnx.config_set
         self.original_unset = cnx.config_unset
+        self.original_delegate = cnx.delegate
+        self.original_argv = list(sys.argv)
 
     def tearDown(self):
         cnx.config_get = self.original_get
         cnx.config_set = self.original_set
         cnx.config_unset = self.original_unset
+        cnx.delegate = self.original_delegate
+        sys.argv = self.original_argv
 
     def test_apply_snapshots_absent_value_and_restore_unsets_it(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,6 +86,31 @@ class HostControlTests(unittest.TestCase):
             self.assertFalse(result["restored"])
             self.assertEqual(state["value"], 1800000)
             self.assertFalse(cnx.snapshot_path(root).exists())
+
+    def test_failed_disable_reapplies_managed_watchdog_fence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            state = {"present": True, "value": 600000}
+            cnx.config_get = lambda _path: (state["present"], state["value"])
+            cnx.config_set = lambda _path, value: state.update(present=True, value=value)
+            cnx.config_unset = lambda _path: state.update(present=False, value=None)
+
+            cnx.apply_watchdog_compat(root)
+            self.assertEqual(state["value"], cnx.MANAGED_WATCHDOG_ABORT_MS)
+
+            cnx.delegate = lambda _argv: 7
+            sys.argv = [str(SCRIPT), "--root", str(root), "disable"]
+            code = cnx.main()
+
+            self.assertEqual(code, 7)
+            self.assertEqual(state["value"], cnx.MANAGED_WATCHDOG_ABORT_MS)
+            snapshot = json.loads(cnx.snapshot_path(root).read_text(encoding="utf-8"))
+            self.assertTrue(snapshot["applied"])
+            self.assertEqual(snapshot["originalValue"], 600000)
+            events = [json.loads(line) for line in cnx.audit_path(root).read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(events[-1]["action"], "watchdog-compat-disable-rollback")
+            self.assertEqual(events[-1]["delegateExitCode"], 7)
+            self.assertIsNone(events[-1]["rollbackError"])
 
     def test_passthrough_supervisor_does_not_apply_managed_compatibility(self):
         with tempfile.TemporaryDirectory() as tmp:
