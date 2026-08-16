@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "plugin:build": "npm run build && openclaw plugins build --entry ./dist/v084-entry.js",
-    "plugin:validate": "npm run plugin:build && openclaw plugins validate --entry ./dist/v084-entry.js",
+    "plugin:build": "npm run build && openclaw plugins build --entry ./dist/v085-entry.js",
+    "plugin:validate": "npm run plugin:build && openclaw plugins validate --entry ./dist/v085-entry.js",
     "test": "vitest run --config ./vitest.config.ts",
     "evaluation": "npm run build && node ./scripts/evaluate.mjs"
   },
@@ -28,7 +28,7 @@
   },
   "openclaw": {
     "extensions": [
-      "./dist/v084-entry.js"
+      "./dist/v085-entry.js"
     ]
   }
 }

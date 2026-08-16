@@ -379,15 +379,27 @@ def promote_interrupted_direct(root: Path, cutoff_iso: str, reason: str) -> list
         if not table_exists(db, "tickets") or not table_exists(db, "ticket_events"):
             return []
         db.execute("BEGIN IMMEDIATE")
+        # v0.8.5: Direct Recovery owns its Ticket until it releases or settles it.
+        # Apply the same NOT EXISTS fence at candidate selection and mutation time so a
+        # Host lifecycle reconciliation cannot race an active plugin recovery claim.
+        direct_guard = ""
+        if table_exists(db, "cnx_direct_recovery"):
+            direct_guard = (
+                " AND NOT EXISTS (SELECT 1 FROM cnx_direct_recovery r "
+                "WHERE r.ticket_id=tickets.ticket_id "
+                "AND r.state IN ('pending','running','awaiting_delivery'))"
+            )
         rows = db.execute(
-            "SELECT ticket_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND created_at<? ORDER BY created_at,ticket_id",
+            "SELECT ticket_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 "
+            f"AND created_at<?{direct_guard} ORDER BY created_at,ticket_id",
             (cutoff_iso,),
         ).fetchall()
         updated = []
         stamp = now_iso()
         for (ticket_id,) in rows:
             changed = db.execute(
-                "UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0",
+                "UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? "
+                f"WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0{direct_guard}",
                 (reason[:2000], stamp, ticket_id),
             )
             if changed.rowcount != 1:
