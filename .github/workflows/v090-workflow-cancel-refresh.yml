@@ -1,0 +1,119 @@
+name: v090-workflow-cancel-refresh
+
+on:
+  push:
+    branches:
+      - agent/v0.9.0-intent-boundary
+    paths:
+      - .github/workflows/v090-workflow-cancel-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: agent/v0.9.0-intent-boundary
+      - name: Propagate user cancellation to bound workflows
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('plugins/cogentnexus-rotation/src/v090.ts')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace(
+              'import { createHash, randomUUID } from "node:crypto";\n',
+              'import { spawnSync } from "node:child_process";\nimport { createHash, randomUUID } from "node:crypto";\n',
+              1,
+          )
+          s = s.replace(
+              'type Cfg={workspaceDir?:string;ticketDatabasePath?:string;ticketRecoveryPollMs?:number;timeoutSeconds?:number;admissionMinimumScore?:number};',
+              'type Cfg={workspaceDir?:string;ticketDatabasePath?:string;ticketRecoveryPollMs?:number;timeoutSeconds?:number;admissionMinimumScore?:number;pythonCommand?:string};',
+              1,
+          )
+          s = s.replace(
+              'const rows=db.prepare("SELECT ticket_id,status,run_id FROM tickets WHERE owner_session_key=? AND status IN (\'accepted\',\'planned\',\'running\',\'waiting\') ORDER BY created_at,ticket_id").all(owner.owner_session_key) as any[];\n    const cancelled:string[]=[];',
+              'const rows=db.prepare("SELECT ticket_id,status,run_id,workflow_id FROM tickets WHERE owner_session_key=? AND status IN (\'accepted\',\'planned\',\'running\',\'waiting\') ORDER BY created_at,ticket_id").all(owner.owner_session_key) as any[];\n    const cancelled:string[]=[],workflowIds:string[]=[];',
+              1,
+          )
+          s = s.replace(
+              'cancelled.push(row.ticket_id);\n      db.prepare("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status=\'pending\'").run(row.ticket_id);',
+              'cancelled.push(row.ticket_id);\n      if(typeof row.workflow_id==="string"&&row.workflow_id)workflowIds.push(row.workflow_id);\n      db.prepare("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status=\'pending\'").run(row.ticket_id);',
+              1,
+          )
+          s = s.replace(
+              'return{ownerSessionKey:owner.owner_session_key as string,cancelled};',
+              'return{ownerSessionKey:owner.owner_session_key as string,cancelled,workflowIds:[...new Set(workflowIds)]};',
+              1,
+          )
+          s = s.replace(
+              'return{ownerSessionKey:null,cancelled:[] as string[]};',
+              'return{ownerSessionKey:null,cancelled:[] as string[],workflowIds:[] as string[]};',
+              1,
+          )
+
+          marker = 'export function markDirectRecovery(path:string,input:{runId:string;mode:"resume"|"redeliver";message?:string;now?:Date}){'
+          helper = r'''function suppressWorkflowCompletion(workspace:string,workflowId:string,reason:string){
+            const path=resolve(workspace,".cogent","workflows",workflowId,"completion.json");
+            if(!existsSync(path))return;
+            try{
+              const value=JSON.parse(readFileSync(path,"utf8"));
+              value.deliveryStatus="delivered";value.deliveredAt=now();value.suppressedBy="user-cancellation";value.suppressionReason=reason;
+              delete value.scheduledAt;delete value.deliveryRunId;
+              const tmp=`${path}.${process.pid}.v090-cancel.tmp`;writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`);renameSync(tmp,path);
+            }catch{}
+          }
+          function cancelBoundWorkflows(workspace:string,workflowIds:string[],reason:string,cfg:Cfg){
+            const runtime=resolve(workspace,"skills","cogentnexus","scripts","workflow.py"),results:Array<{workflowId:string;ok:boolean;error?:string}>=[];
+            for(const workflowId of workflowIds){
+              if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(workflowId)){results.push({workflowId,ok:false,error:"invalid workflow id"});continue;}
+              const run=spawnSync(cfg.pythonCommand??"python",[runtime,"--root",workspace,"cancel",workflowId,"--reason",reason],{encoding:"utf8",windowsHide:true,timeout:30000});
+              const ok=!run.error&&run.status===0;results.push({workflowId,ok,error:ok?undefined:(run.error?.message??run.stderr??run.stdout??"workflow cancellation failed").trim().slice(0,2000)});
+              if(ok)suppressWorkflowCompletion(workspace,workflowId,reason);
+            }
+            return results;
+          }
+
+          '''
+          if marker not in s:
+              raise SystemExit('markDirectRecovery marker missing')
+          s = s.replace(marker, helper + marker, 1)
+
+          old = 'function wrap(){const entry=baseEntry as any;if(entry[WRAP])return;Object.defineProperty(entry,WRAP,{value:true});const register=baseEntry.register?.bind(baseEntry);baseEntry.register=(api:any)=>{patchTicketStore();const cfg=(api.pluginConfig??{}) as Cfg,reg=api.registerService?.bind(api),proxy=Object.create(api);'
+          new = '''function wrap(){const entry=baseEntry as any;if(entry[WRAP])return;Object.defineProperty(entry,WRAP,{value:true});const register=baseEntry.register?.bind(baseEntry);baseEntry.register=(api:any)=>{patchTicketStore();const cfg=(api.pluginConfig??{}) as Cfg,reg=api.registerService?.bind(api),proxy=Object.create(api);
+          api.on?.("agent_end",(event:any,ctx:any)=>{
+            if(event.success||!event.runId||!isExplicitUserCancellation(event.error))return;
+            const workspace=resolve(ctx.workspaceDir??cfg.workspaceDir??process.cwd()),path=dbPath(cfg,workspace),reason=(event.error??"agent run aborted").slice(0,2000);
+            const cancelled=cancelSessionTickets(path,{runId:event.runId,message:reason});
+            const results=cancelBoundWorkflows(workspace,cancelled.workflowIds,reason,cfg);
+            for(const result of results)if(!result.ok)api.logger.warn?.(`CogentNexus workflow cancellation failed for ${result.workflowId}: ${result.error}`);
+          },{priority:1000,timeoutMs:60000});'''
+          if old not in s:
+              raise SystemExit('wrap marker missing')
+          s = s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          t = Path('plugins/cogentnexus-rotation/src/v090.test.ts')
+          x = t.read_text(encoding='utf-8')
+          old = '''      store.route(a.ticketId,false); store.route(b.ticketId,true);
+              const cancelled=cancelSessionTickets(path,{runId:"a",message:"explicit user stop"});
+              expect(cancelled.cancelled.sort()).toEqual([a.ticketId,b.ticketId].sort());'''
+          new = '''      store.route(a.ticketId,false); store.route(b.ticketId,true);
+              const db=new DatabaseSync(path);db.prepare("UPDATE tickets SET status='running',workflow_id='WF-CANCELLED' WHERE ticket_id=?").run(a.ticketId);db.close();
+              const cancelled=cancelSessionTickets(path,{runId:"a",message:"explicit user stop"});
+              expect(cancelled.cancelled.sort()).toEqual([a.ticketId,b.ticketId].sort());
+              expect(cancelled.workflowIds).toEqual(["WF-CANCELLED"]);'''
+          if old not in x:
+              raise SystemExit('direct cancellation test marker missing')
+          t.write_text(x.replace(old,new,1),encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugins/cogentnexus-rotation/src/v090.ts plugins/cogentnexus-rotation/src/v090.test.ts
+          git commit -m 'Propagate user cancellation to bound workflows'
+          git push origin HEAD:agent/v0.9.0-intent-boundary
