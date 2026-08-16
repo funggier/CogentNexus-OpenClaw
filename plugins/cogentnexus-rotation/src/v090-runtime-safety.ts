@@ -35,36 +35,60 @@ export async function verifyCnxCompactionResult(input:{
   const isHardTrim=params?.maxLines!==undefined;
 
   if(!isHardTrim) {
+    // Model-backed semantic compaction normally reports tokensAfter. If neither
+    // the RPC nor a fresh session counter can measure it, force the caller into
+    // its bounded fallback path instead of accepting an unmeasured summary.
     const safeAfter=observedAfter??Number.MAX_SAFE_INTEGER;
     return {
       ...result,
       result:{...(result.result??{}),tokensAfter:safeAfter},
-      cnxVerification:{verified:observedAfter!==undefined,observedAfter,contextWindow:window,source:freshAfter!==undefined?"fresh-session-counter":rawAfter!==undefined?"compaction-result":"unavailable"},
+      cnxVerification:{
+        verified:observedAfter!==undefined,
+        occupancyVerified:observedAfter!==undefined,
+        observedAfter,
+        contextWindow:window,
+        source:freshAfter!==undefined?"fresh-session-counter":rawAfter!==undefined?"compaction-result":"unavailable",
+      },
     };
   }
 
-  if(freshAfter===undefined||window===undefined) {
+  const maxLines=Math.max(1,Math.floor(Number(params.maxLines)||0));
+  const kept=positive(result?.kept??result?.result?.kept);
+  const structuralVerified=kept!==undefined&&kept<=maxLines;
+  if(freshAfter!==undefined&&window!==undefined) {
+    const limit=Math.floor(window*0.88);
+    if(freshAfter>limit) {
+      return {
+        ...result,
+        ok:false,
+        compacted:false,
+        error:`CogentNexus hard-trim verification remained above safe context target (${freshAfter}/${window})`,
+        cnxVerification:{verified:true,occupancyVerified:true,structuralVerified,observedAfter:freshAfter,contextWindow:window,limit,kept,maxLines,source:"fresh-session-counter"},
+      };
+    }
     return {
       ...result,
-      ok:false,
-      compacted:false,
-      error:"CogentNexus could not verify fresh post-hard-trim context occupancy",
-      cnxVerification:{verified:false,observedAfter:freshAfter,contextWindow:window,source:"unavailable"},
+      cnxVerification:{verified:true,occupancyVerified:true,structuralVerified,observedAfter:freshAfter,contextWindow:window,limit,kept,maxLines,source:"fresh-session-counter"},
     };
   }
-  const limit=Math.floor(window*0.88);
-  if(freshAfter>limit) {
+
+  // OpenClaw manual maxLines trimming may deliberately invalidate total-token
+  // metadata. In that case accept only a deterministic structural proof from
+  // the trim result itself. The next owner turn is still re-admitted through
+  // CNX context pressure, so structural acceptance cannot bypass inference
+  // safety even when one retained message is unusually large.
+  if(structuralVerified) {
     return {
       ...result,
-      ok:false,
-      compacted:false,
-      error:`CogentNexus hard-trim verification remained above safe context target (${freshAfter}/${window})`,
-      cnxVerification:{verified:true,observedAfter:freshAfter,contextWindow:window,limit,source:"fresh-session-counter"},
+      cnxVerification:{verified:true,occupancyVerified:false,structuralVerified:true,observedAfter:undefined,contextWindow:window,kept,maxLines,source:"max-lines-result"},
     };
   }
   return {
     ...result,
-    cnxVerification:{verified:true,observedAfter:freshAfter,contextWindow:window,limit,source:"fresh-session-counter"},
+    ok:false,
+    compacted:false,
+    error:"CogentNexus could not verify hard-trim occupancy or retained-line bound",
+    cnxVerification:{verified:false,occupancyVerified:false,structuralVerified:false,observedAfter:freshAfter,contextWindow:window,kept,maxLines,source:"unavailable"},
   };
 }
 
@@ -107,7 +131,7 @@ export function contextRecoveryHoldSnapshot(databasePath:string,hiddenSessionKey
     // the committed Ticket may still progress through its bounded hidden worker.
     if(state==="cancelled"&&action==="retry-limit")return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
     // Every other cancelled maintenance state represents a lifecycle/ownership
-    // revocation or a physical-session race and must not release stale work.
+    // revocation and must not release stale work.
     if(state==="cancelled")return {hold:false,revoked:true,state,action,ownerSessionKey:ticket.owner_session_key};
     return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
   } finally {db.close();}
