@@ -1,0 +1,58 @@
+name: v090-direct-abort-refresh
+
+on:
+  push:
+    branches:
+      - agent/v0.9.0-intent-boundary
+    paths:
+      - .github/workflows/v090-direct-abort-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: agent/v0.9.0-intent-boundary
+      - name: Add OpenClaw direct-abort compatibility
+        shell: python
+        run: |
+          from pathlib import Path
+
+          source = Path('plugins/cogentnexus-rotation/src/v090.ts')
+          text = source.read_text(encoding='utf-8')
+          old = '''export function isExplicitUserCancellation(message?:string){
+            if(!message)return false;
+            return /(?:reply operation )?aborted by user|user (?:cancelled|canceled)|(?:cancelled|canceled) by user|explicit user (?:stop|abort|cancel)/iu.test(message);
+          }'''
+          new = '''export function isExplicitUserCancellation(message?:string){
+            if(!message)return false;
+            const value=message.trim();
+            if(value==="agent run aborted")return true;
+            return /(?:reply operation )?aborted by user|user (?:cancelled|canceled)|(?:cancelled|canceled) by user|explicit user (?:stop|abort|cancel)/iu.test(value);
+          }'''
+          if old not in text:
+              raise SystemExit('expected v090 cancellation classifier not found')
+          source.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          test = Path('plugins/cogentnexus-rotation/src/v090.test.ts')
+          text = test.read_text(encoding='utf-8')
+          old = '''    expect(isExplicitUserCancellation("Reply operation aborted by user")).toBe(true);
+              expect(isExplicitUserCancellation("explicit user stop")).toBe(true);'''
+          new = '''    expect(isExplicitUserCancellation("Reply operation aborted by user")).toBe(true);
+              expect(isExplicitUserCancellation("agent run aborted")).toBe(true);
+              expect(isExplicitUserCancellation("agent run aborted for restart")).toBe(false);
+              expect(isExplicitUserCancellation("explicit user stop")).toBe(true);'''
+          if old not in text:
+              raise SystemExit('expected v090 classifier test block not found')
+          test.write_text(text.replace(old, new, 1), encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugins/cogentnexus-rotation/src/v090.ts plugins/cogentnexus-rotation/src/v090.test.ts
+          git commit -m 'Recognize OpenClaw direct abort as user cancellation'
+          git push origin HEAD:agent/v0.9.0-intent-boundary
