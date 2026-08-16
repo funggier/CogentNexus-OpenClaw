@@ -2,7 +2,16 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 export const RECOVERABLE_ABORT_MESSAGE = "CogentNexus recoverable interruption: OpenClaw abort provenance was not human-authoritative";
-const MANAGED_WATCHDOG_ABORT_MS = 24 * 60 * 60 * 1000;
+
+type StopMarker = {
+  messageSid?: string;
+  timestamp?: number;
+};
+
+type RunStopBaseline = {
+  sessionKey: string;
+  marker: StopMarker;
+};
 
 function record(value:unknown):value is Record<string,unknown> {
   return Boolean(value&&typeof value==="object"&&!Array.isArray(value));
@@ -50,41 +59,111 @@ export function hostMaintenanceActive(cfg:any,ctx:any) {
   return value?.active===true;
 }
 
-export function managedWatchdogProtectionActive(cfg:any,ctx:any) {
-  const {root}=roots(cfg,ctx),path=resolve(root,"host","openclaw-watchdog-compat.json");
-  if(!existsSync(path))return false;
-  const value=readJson(path);
-  return value?.applied===true
-    && Number(value?.managedValue)>=MANAGED_WATCHDOG_ABORT_MS;
+function runIdOf(event:any,ctx:any):string|undefined {
+  const value=event?.runId??ctx?.runId;
+  return typeof value==="string"&&value.trim()?value.trim():undefined;
 }
 
-export type AbortAuthority = "not-abort"|"structured-human"|"managed-human-compat"|"recoverable-maintenance"|"recoverable-ambiguous";
+function sessionKeyOf(event:any,ctx:any):string|undefined {
+  const value=event?.sessionKey??ctx?.sessionKey;
+  return typeof value==="string"&&value.trim()?value.trim():undefined;
+}
 
-export function classifyAbortAuthority(event:any,ctx:any,cfg:any):AbortAuthority {
+function agentIdFromSessionKey(sessionKey:string) {
+  return /^agent:([^:]+):/u.exec(sessionKey)?.[1];
+}
+
+function stopMarkerFromEntry(entry:any):StopMarker {
+  return {
+    ...(typeof entry?.abortCutoffMessageSid==="string"&&entry.abortCutoffMessageSid
+      ? {messageSid:entry.abortCutoffMessageSid}
+      : {}),
+    ...(typeof entry?.abortCutoffTimestamp==="number"&&Number.isFinite(entry.abortCutoffTimestamp)
+      ? {timestamp:entry.abortCutoffTimestamp}
+      : {}),
+  };
+}
+
+function readStopMarker(api:any,sessionKey:string):StopMarker|undefined {
+  const getEntry=api.runtime?.agent?.session?.getSessionEntry;
+  if(typeof getEntry!=="function")return undefined;
+  const agentId=agentIdFromSessionKey(sessionKey);
+  try {
+    const entry=getEntry({sessionKey,...(agentId?{agentId}:{})});
+    return stopMarkerFromEntry(entry);
+  } catch {
+    return undefined;
+  }
+}
+
+export function stopMarkerAdvanced(before:StopMarker|undefined,after:StopMarker|undefined):boolean {
+  if(!before||!after)return false;
+  if(typeof after.timestamp==="number") {
+    const previous=typeof before.timestamp==="number"?before.timestamp:Number.NEGATIVE_INFINITY;
+    if(after.timestamp>previous)return true;
+  }
+  if(after.messageSid&&after.messageSid!==before.messageSid)return true;
+  return false;
+}
+
+export type AbortAuthority = "not-abort"|"structured-human"|"durable-human-stop"|"recoverable-maintenance"|"recoverable-ambiguous";
+
+export function classifyAbortAuthority(event:any,ctx:any,cfg:any,durableHumanStop=false):AbortAuthority {
   if(event?.success||!isAbortLikeMessage(event?.error))return "not-abort";
   const runId=event?.runId??ctx?.runId;
   if(hasStructuredHumanAbort(event?.messages,runId))return "structured-human";
+  if(durableHumanStop)return "durable-human-stop";
   if(hostMaintenanceActive(cfg,ctx))return "recoverable-maintenance";
-  // OpenClaw 2026.7.1-2 loses the diagnostic stuck_recovery reason before
-  // agent_end. CNX neutralizes that known ambiguous source to a 24h horizon in
-  // managed mode. Only while that protection is durably recorded may the
-  // remaining legacy abort text act as the UI-Stop compatibility fallback.
-  if(managedWatchdogProtectionActive(cfg,ctx))return "managed-human-compat";
+  // OpenClaw 2026.7.1-2 can lose non-human abort provenance (notably
+  // diagnostic stuck_recovery) and emit the same legacy strings as UI Stop.
+  // Error text is therefore evidence of interruption only, never cancellation
+  // authority. Human Stop requires either structured RPC evidence or a durable
+  // abortCutoff marker that advanced after this exact run began.
   return "recoverable-ambiguous";
 }
 
+/**
+ * Wrap agent lifecycle hooks so legacy v0.9 finalizers only see a user-abort
+ * string when OpenClaw durable session state proves that /stop advanced during
+ * the exact run. Existing cutoff markers from older Stops never authorize a
+ * later cancellation.
+ */
 export function createAbortAuthorityApi(api:any,cfg:any={}) {
   const proxy=Object.create(api),originalOn=api.on?.bind(api);
   if(typeof originalOn!=="function")return proxy;
+  const baselines=new Map<string,RunStopBaseline>();
+
   proxy.on=(name:string,handler:any,options?:any)=>{
+    if(name==="before_agent_run") {
+      return originalOn(name,(event:any,ctx:any)=>{
+        const runId=runIdOf(event,ctx),sessionKey=sessionKeyOf(event,ctx);
+        if(runId&&sessionKey&&!baselines.has(runId)) {
+          baselines.set(runId,{sessionKey,marker:readStopMarker(api,sessionKey)??{}});
+        }
+        return handler(event,ctx);
+      },options);
+    }
     if(name!=="agent_end")return originalOn(name,handler,options);
     return originalOn(name,(event:any,ctx:any)=>{
-      const authority=classifyAbortAuthority(event,ctx,cfg);
-      if(authority==="recoverable-maintenance"||authority==="recoverable-ambiguous") {
-        api.logger?.info?.(`CogentNexus abort authority: ${authority}; preserving run as recoverable interruption`);
-        return handler({...event,error:RECOVERABLE_ABORT_MESSAGE},ctx);
+      const runId=runIdOf(event,ctx);
+      const baseline=runId?baselines.get(runId):undefined;
+      const sessionKey=sessionKeyOf(event,ctx)??baseline?.sessionKey;
+      const current=sessionKey?readStopMarker(api,sessionKey):undefined;
+      const durableHumanStop=Boolean(baseline&&stopMarkerAdvanced(baseline.marker,current));
+      const authority=classifyAbortAuthority(event,ctx,cfg,durableHumanStop);
+      const forwarded=(authority==="recoverable-maintenance"||authority==="recoverable-ambiguous")
+        ? {...event,error:RECOVERABLE_ABORT_MESSAGE}
+        : event;
+      if(forwarded!==event)api.logger?.info?.(`CogentNexus abort authority: ${authority}; preserving run as recoverable interruption`);
+      try {
+        const result=handler(forwarded,ctx);
+        if(result&&typeof result.then==="function")return result.finally(()=>{if(runId)baselines.delete(runId);});
+        if(runId)baselines.delete(runId);
+        return result;
+      } catch(error) {
+        if(runId)baselines.delete(runId);
+        throw error;
       }
-      return handler(event,ctx);
     },options);
   };
   return proxy;
