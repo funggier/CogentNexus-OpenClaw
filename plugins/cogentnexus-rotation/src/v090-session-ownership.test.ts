@@ -143,12 +143,18 @@ describe("v0.9 session ownership isolation", () => {
       const oldGeneration = sessionAuthority(path,"agent:main:dashboard:A").generation;
       resetSessionByKey(path,{sessionKey:"agent:main:dashboard:A",message:"reset"});
       let runs = 0;
-      const api = { runtime:{ subagent:{
-        getSessionMessages:async()=>({messages:[]}),
-        run:async()=>{ runs++; return {runId:"must-not-run"}; },
-        waitForRun:async()=>({status:"ok"}),
-        deleteSession:async()=>{},
-      }}, tasks:{} }, logger:{warn:()=>{}} };
+      const api = {
+        runtime:{
+          subagent:{
+            getSessionMessages:async()=>({messages:[]}),
+            run:async()=>{ runs++; return {runId:"must-not-run"}; },
+            waitForRun:async()=>({status:"ok"}),
+            deleteSession:async()=>{},
+          },
+          tasks:{},
+        },
+        logger:{warn:()=>{}},
+      };
       const result = await executeCompatibilityWake(api,{workspaceDir:root,ticketDatabasePath:path},{
         sessionKey:"agent:main:dashboard:A",
         ownerGeneration:oldGeneration,
