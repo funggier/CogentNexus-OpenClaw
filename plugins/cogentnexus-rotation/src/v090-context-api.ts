@@ -49,15 +49,38 @@ async function runHostCompact(api:any,cfg:any,params:any,options:any) {
   return parseJsonOutput(String(result?.stdout??""));
 }
 
+async function readSupportedHistory(api:any,params:any) {
+  const getMessages=api.runtime?.subagent?.getSessionMessages;
+  if(typeof getMessages!=="function")throw new Error("OpenClaw supported session-message accessor is unavailable");
+  const sessionKey=String(params?.sessionKey??params?.key??"").trim();
+  if(!sessionKey)throw new Error("chat.history requires an exact session key");
+  const limit=Math.max(1,Math.min(Number(params?.limit??50)||50,200));
+  const result=await getMessages({sessionKey,limit});
+  let messages=Array.isArray(result?.messages)?result.messages:[];
+  const maxChars=Math.max(1000,Math.min(Number(params?.maxChars??50000)||50000,200000));
+  // Keep the newest bounded history without mutating the source messages.
+  let used=0;
+  const kept:any[]=[];
+  for(let index=messages.length-1;index>=0;index--){
+    const item=messages[index];
+    let size=0;try{size=JSON.stringify(item).length;}catch{size=String(item??"").length;}
+    if(kept.length>0&&used+size>maxChars)break;
+    kept.push(item);used+=size;
+    if(used>=maxChars)break;
+  }
+  messages=kept.reverse();
+  return {messages};
+}
+
 /**
  * Context maintenance facade for CogentNexus v0.9.
  *
  * OpenClaw 2026.7.1-2 intentionally denies runtime.gateway.request to normal
- * third-party plugins. Read-only session telemetry therefore uses the public
- * runtime.agent.session accessor. The one privileged mutation we need,
- * sessions.compact, is delegated to the bounded external Host adapter through
- * OpenClaw's argv-based command runtime. No arbitrary Gateway method can cross
- * this adapter.
+ * third-party plugins. Read-only session telemetry/history therefore use the
+ * public runtime.agent.session and runtime.subagent accessors. The one
+ * privileged mutation we need, sessions.compact, is delegated to the bounded
+ * external Host adapter through OpenClaw's argv-based command runtime. No
+ * arbitrary Gateway method can cross this adapter.
  */
 export function createContextMaintenanceApi(api:any,cfg:any={}) {
   const proxy=Object.create(api);
@@ -75,6 +98,7 @@ export function createContextMaintenanceApi(api:any,cfg:any={}) {
       const entry=getEntry({sessionKey,...(agentId?{agentId}:{})});
       return {session:projectSessionEntry(entry)};
     }
+    if(method==="chat.history")return readSupportedHistory(api,params);
     if(method==="sessions.compact")return runHostCompact(api,cfg,params,options);
     if(typeof originalRequest!=="function")throw new Error(`Gateway method unavailable: ${method}`);
     return originalRequest(method,params,options);
