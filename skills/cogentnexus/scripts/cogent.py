@@ -58,9 +58,16 @@ def writer_lock(path,timeout=10):
         try:
             fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY)
             os.write(fd,json.dumps({"pid":os.getpid(),"createdAt":now()}).encode()); os.close(fd); break
-        except FileExistsError:
+        except (FileExistsError,PermissionError) as exc:
+            # Windows may report a sharing violation as PermissionError while another
+            # process is creating/deleting the lock. Treat it as contention only when
+            # the lock path actually exists; preserve genuine permission failures.
+            if isinstance(exc,PermissionError) and not path.exists(): raise
             try:
-                if time.time()-path.stat().st_mtime>30: path.unlink(); continue
+                if time.time()-path.stat().st_mtime>30:
+                    try: path.unlink()
+                    except PermissionError: pass
+                    else: continue
             except FileNotFoundError: continue
             if time.monotonic()>=deadline: raise SystemExit("task writer lock timeout")
             time.sleep(0.05)
@@ -270,61 +277,56 @@ def verify_run(args):
         checks.append({"type":"artifact","target":item["target"],"pass":item["digest"] is not None,"kind":item["kind"],
           "digest":item["digest"],"fileCount":item["fileCount"],"totalBytes":item["totalBytes"]})
     for command in args.command:
-        started=time.monotonic()
+        argv=shlex.split(command,posix=os.name!="nt"); started=time.monotonic()
         try:
-            proc=subprocess.run(shlex.split(command,posix=os.name!="nt"),cwd=WORKSPACE,capture_output=True,text=True,timeout=args.timeout)
-            checks.append({"type":"command","target":command,"pass":proc.returncode==0,"exitCode":proc.returncode,
+            proc=subprocess.run(argv,cwd=WORKSPACE,capture_output=True,text=True,timeout=args.timeout)
+            checks.append({"type":"command","command":sanitize_argv(argv),"pass":proc.returncode==0,"exitCode":proc.returncode,
               "durationMs":round((time.monotonic()-started)*1000),"stdout":proc.stdout[-OUTPUT_LIMIT:],"stderr":proc.stderr[-OUTPUT_LIMIT:]})
-        except Exception as exc: checks.append({"type":"command","target":command,"pass":False,"error":str(exc)})
-    status="PASS" if checks and all(item["pass"] for item in checks) else "FAIL"
-    contract=hashlib.sha256(json.dumps({"exists":args.exists,"hash":args.hash,"command":args.command},sort_keys=True).encode()).hexdigest()
-    report={"schemaVersion":2,"verificationId":hashlib.sha256(f"{args.task_id}:{now()}:{contract}".encode()).hexdigest()[:16],
-      "taskId":args.task_id,"timestamp":now(),"verifiedStateRevision":state["revision"],"contractHash":contract,"status":status,"checks":checks}
-    paths=task_paths(args); atomic_json(paths["verification"],report)
-    append_event(args,"VERIFICATION",f"Verification {status}",{"status":status,"checkCount":len(checks),
-      "verificationId":report["verificationId"],"verifiedStateRevision":state["revision"],"report":str(paths["verification"])})
+        except subprocess.TimeoutExpired as exc:
+            checks.append({"type":"command","command":sanitize_argv(argv),"pass":False,"class":"timeout",
+              "stdout":str(exc.stdout or "")[-OUTPUT_LIMIT:],"stderr":str(exc.stderr or "")[-OUTPUT_LIMIT:]})
+    status="PASS" if checks and all(item.get("pass") for item in checks) else "FAIL"
+    verification_id=hashlib.sha256(json.dumps({"taskId":args.task_id,"stateRevision":state["revision"],"checks":checks},sort_keys=True).encode()).hexdigest()[:16]
+    report={"schemaVersion":2,"verificationId":verification_id,"taskId":args.task_id,"verifiedStateRevision":state["revision"],
+      "status":status,"checkedAt":now(),"checks":checks}
+    paths=task_paths(args)
+    with writer_lock(paths["lock"]): atomic_json(paths["verification"],report)
+    append_event(args,"VERIFICATION",f"Verification {status}",{"verificationId":verification_id,"verifiedStateRevision":state["revision"],"checks":len(checks)})
     emit(report); return 0 if status=="PASS" else 1
 
 def verify_show(args):
-    report=read_json(task_paths(args)["verification"])
-    emit(report if args.command_name=="inspect" else {"taskId":args.task_id,"status":report["status"],
-      "verificationId":report.get("verificationId"),"verifiedStateRevision":report.get("verifiedStateRevision"),"timestamp":report["timestamp"]})
+    paths=task_paths(args); report=read_json(paths["verification"]); state=read_json(paths["state"])
+    report=dict(report); report["currentStateRevision"]=state["revision"]; report["stale"]=report.get("verifiedStateRevision")!=state["revision"]; emit(report)
 
-def capability_path(args): return args.root.resolve()/"capabilities.json"
-def load_registry(args,refresh=False):
-    path=capability_path(args)
-    if refresh or not path.exists(): atomic_json(path,build_registry(WORKSPACE))
-    return read_json(path)
-def capability_cmd(args):
-    registry=load_registry(args,args.command_name=="sync")
-    if args.command_name=="sync": emit(registry); return
-    if args.command_name=="list": emit(registry["capabilities"]); return
-    if args.command_name=="find": emit(find_capabilities(registry,args.query)); return
-    item=get_capability(registry,args.name)
-    if args.command_name=="inspect":
-        if item is None: raise SystemExit("capability not found")
-        emit(item); return
-    checked=check_capability(item); emit(checked)
-    return 0 if checked.get("available") else 1
+def capability_path(args): return args.root.resolve()/"capabilities"/"registry.json"
 def capability_availability(args):
-    registry=load_registry(args)
-    return {item["name"]:bool(check_capability(item).get("available")) for item in registry["capabilities"]}
+    path=capability_path(args); return check_capability(path) if path.exists() else {"ok":False,"missingRequired":[]}
+def capability_cmd(args):
+    path=capability_path(args)
+    if args.command_name=="sync": emit(build_registry(WORKSPACE,path)); return
+    if not path.exists(): build_registry(WORKSPACE,path)
+    if args.command_name=="list": emit(json.loads(path.read_text(encoding="utf-8"))); return
+    if args.command_name=="find": emit(find_capabilities(path,args.query)); return
+    if args.command_name=="inspect": emit(get_capability(path,args.name)); return
+    if args.command_name=="check": emit(check_capability(path,args.name)); return
+
 def recover_cmd(args):
-    state=load_state(args); paths=task_paths(args); classification=classify_recovery(ledger_records(paths["ledger"]))
+    state=load_state(args); records=ledger_records(task_paths(args)["ledger"]); classification=classify_recovery(records)
     if args.command_name=="classify": emit(classification); return
-    if args.command_name=="inspect": emit(recovery_state(state)); return
-    plan=make_plan(state,classification,capability_availability(args))
-    if args.command_name=="plan" or not args.execute_safe: emit({"dryRun":True,"plan":plan}); return
+    if args.command_name=="plan": emit(make_plan(state,classification,capability_availability(args))); return
+    if args.command_name=="inspect": emit({"taskId":args.task_id,"recovery":state.get("recovery",recovery_state({})),"classification":classification}); return
+    execute=args.execute_safe; plan=make_plan(state,classification,capability_availability(args))
+    if not execute: emit({"dryRun":True,"taskId":args.task_id,"plan":plan}); return
+    paths=task_paths(args)
     with writer_lock(paths["lock"]):
-        recover_pending_locked(paths); current=read_json(paths["state"])
-        plan=make_plan(current,classify_recovery(ledger_records(paths["ledger"])),capability_availability(args))
-        try: new=apply_to_state(current,plan)
-        except ValueError as exc: raise SystemExit(f"recovery rejected: {exc}")
-        new["schemaVersion"]=3; new["revision"]=int(current["revision"])+1; new["updatedAt"]=now()
-        event=next_event(paths,args,"RECOVERY",f"Applied recovery strategy: {plan['strategy']}",
-          {"planId":plan["planId"],"failureClass":plan["failureClass"],"strategy":plan["strategy"],"settings":plan["safeSettings"]})
+        recover_pending_locked(paths); current=read_json(paths["state"]); decision=apply_to_state(current,plan,now())
+        if not decision["allowed"]:
+            event=next_event(paths,args,"FAILURE",f"Recovery blocked: {decision['reason']}",{"plan":plan}); append_raw(paths["ledger"],event)
+            raise SystemExit(decision["reason"])
+        new=decision["state"]; event=next_event(paths,args,"RECOVERY",f"Recovery attempt {new['recovery']['attempts']}: {plan['strategy']}",{"plan":plan})
         new["ledgerSequence"]=event["sequence"]; transactional_state(paths,event,new)
-    emit({"dryRun":False,"plan":plan,"state":new})
+    emit({"taskId":args.task_id,"applied":True,"plan":plan,"stateRevision":new["revision"],"recovery":new["recovery"]})
+
 def policy_next(args):
     state=load_state(args); records=ledger_records(task_paths(args)["ledger"])
     if any(x.get("type")=="FAILURE" for x in records):
