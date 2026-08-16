@@ -586,5 +586,5 @@ export class TicketStore {
 }
 
 export function ticketIntakeEligible(prompt: string) {
-  return !/\[(?:CogentNexus|Subagent) Context\]|\[CogentNexus (?:Delivery|Continuation):|cogent-workflow-result-|cogent-resume-|The previous run was interrupted\./iu.test(prompt);
+  return !/#cogent-direct\b|\[(?:CogentNexus|Subagent) Context\]|\[CogentNexus (?:Delivery|Continuation):|cogent-workflow-result-|cogent-resume-|The previous run was interrupted\./iu.test(prompt);
 }
