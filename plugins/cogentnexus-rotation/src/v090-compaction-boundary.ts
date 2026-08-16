@@ -57,6 +57,14 @@ export function settleExistingContextHoldFromCompaction(input:{
     if(!authority||authority.state!=="active"||Number(authority.generation)!==Number(row.owner_generation)){
       db.exec("COMMIT");return {found:true,settled:false,reason:"authority-superseded"};
     }
+    // Once the maintenance worker has atomically claimed this row it alone
+    // owns settlement. A user/manual Compact may finish concurrently, but the
+    // passive observer must not mark the row done underneath the claimed
+    // worker and thereby release Direct Recovery before that worker returns.
+    if(row.state==="running"){
+      db.exec("COMMIT");
+      return {found:true,settled:false,reason:"maintenance-running"};
+    }
     const session=input.session??{};
     const contextWindow=Number(session.contextTokens)>0?Number(session.contextTokens):undefined;
     const eventTokens=Number(input.tokenCount)>0?Number(input.tokenCount):undefined;
@@ -65,7 +73,7 @@ export function settleExistingContextHoldFromCompaction(input:{
     if(observed===undefined||contextWindow===undefined) {
       db.prepare(`UPDATE cnx_context_maintenance SET session_id=COALESCE(?,session_id),last_tokens_after=COALESCE(?,last_tokens_after),
         last_action='native-compact-observed-unmeasured',updated_at=? WHERE session_key=? AND owner_generation=?
-        AND state IN ('pending','running','degraded')`)
+        AND state IN ('pending','degraded')`)
         .run(session.sessionId??null,observed??null,stamp,input.sessionKey,row.owner_generation);
       db.exec("COMMIT");
       return {found:true,settled:false,reason:"unmeasured",observedTokens:observed,contextWindow};
@@ -74,7 +82,7 @@ export function settleExistingContextHoldFromCompaction(input:{
     if(pressure.level!=="normal"){
       db.prepare(`UPDATE cnx_context_maintenance SET session_id=COALESCE(?,session_id),context_window=?,projected_tokens=?,
         last_tokens_after=?,last_action='native-compact-observed-pressure-remains',updated_at=?
-        WHERE session_key=? AND owner_generation=? AND state IN ('pending','running','degraded')`)
+        WHERE session_key=? AND owner_generation=? AND state IN ('pending','degraded')`)
         .run(session.sessionId??null,contextWindow,observed,observed,stamp,input.sessionKey,row.owner_generation);
       db.exec("COMMIT");
       return {found:true,settled:false,reason:"pressure-remains",observedTokens:observed,contextWindow};
@@ -82,7 +90,7 @@ export function settleExistingContextHoldFromCompaction(input:{
     const changed=db.prepare(`UPDATE cnx_context_maintenance SET state='done',session_id=COALESCE(?,session_id),
       context_window=?,projected_tokens=?,last_tokens_after=?,last_action='native-compact-satisfied',
       last_error=NULL,next_attempt_at=NULL,updated_at=?,completed_at=?
-      WHERE session_key=? AND owner_generation=? AND state IN ('pending','running','degraded')`)
+      WHERE session_key=? AND owner_generation=? AND state IN ('pending','degraded')`)
       .run(session.sessionId??null,contextWindow,observed,observed,stamp,stamp,input.sessionKey,row.owner_generation);
     if(changed.changes===1) {
       db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
