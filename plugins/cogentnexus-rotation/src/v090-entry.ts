@@ -44,6 +44,19 @@ export function suppressFailedOutboxForTicket(databasePath: string, ticketId: st
   }
 }
 
+export function suppressFailedOutboxForRun(databasePath: string, runId: string, reason: string, now = new Date()): number {
+  new TicketStore(databasePath).snapshot();
+  const db = new DatabaseSync(databasePath, { readOnly:true });
+  let ticketId: string | undefined;
+  try {
+    const row = db.prepare("SELECT ticket_id FROM tickets WHERE run_id=? AND status='failed' ORDER BY created_at DESC LIMIT 1").get(runId) as {ticket_id?:string} | undefined;
+    ticketId = row?.ticket_id;
+  } finally {
+    db.close();
+  }
+  return ticketId ? suppressFailedOutboxForTicket(databasePath, ticketId, reason, now) : 0;
+}
+
 export function reconcileV090LiveState(databasePath: string, now = new Date()) {
   new TicketStore(databasePath).snapshot();
   const db = new DatabaseSync(databasePath);
@@ -97,10 +110,7 @@ export function patchV090LivePolicy() {
       return "unchanged";
     }
     const result = finalize.call(this, input);
-    if (result === "failed") {
-      const ticket = this.getByRunId(input.runId);
-      if (ticket) suppressFailedOutboxForTicket(this.databasePath, ticket.ticketId, input.message ?? "direct run failed", input.now);
-    }
+    if (result === "failed") suppressFailedOutboxForRun(this.databasePath, input.runId, input.message ?? "direct run failed", input.now);
     return result;
   };
 
