@@ -3,6 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 import { classifyDurableRequest } from "./admission.js";
 import entry, { cancelSessionTickets, prepareV090RecoveryState } from "./v090.js";
+import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
 import {
   recordSyntheticSpawn,
   settleSyntheticRun,
@@ -15,6 +16,7 @@ type Config = {
   ticketDatabasePath?: string;
   ticketRecoveryPollMs?: number;
   admissionMinimumScore?: number;
+  pythonCommand?: string;
 };
 
 type NativeTaskView = {
@@ -34,6 +36,12 @@ type NativeFenceOwnerRow = {
 type NativeFenceOwnerScope = {
   sessionKey: string;
   agentId: string;
+};
+
+type PreRuntimeFenceResult = {
+  owners: Awaited<ReturnType<typeof reconcileMissingOwnerSessions>>;
+  live: ReturnType<typeof reconcileV090LiveState>;
+  native: Awaited<ReturnType<typeof reconcileOpenClawNativeTasks>>;
 };
 
 const WRAPPED = Symbol.for("cogentnexus.v090.entry.host-reconciliation");
@@ -360,7 +368,48 @@ function wrapEntry() {
   const register = entry.register?.bind(entry);
   entry.register = (api: any) => {
     const config = (api.pluginConfig ?? {}) as Config;
-    register?.(api);
+    let preStartPromise: Promise<PreRuntimeFenceResult> | undefined;
+
+    const resolvePaths = (ctx: any) => {
+      const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
+      const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+      return { workspaceDir, databasePath };
+    };
+
+    const runPreRuntimeFence = async (ctx: any): Promise<PreRuntimeFenceResult> => {
+      const { workspaceDir, databasePath } = resolvePaths(ctx);
+      const owners = await reconcileMissingOwnerSessions(api, databasePath, workspaceDir, config);
+      const live = reconcileV090LiveState(databasePath);
+      const native = await reconcileOpenClawNativeTasks(api, ctx, databasePath);
+      const failures = owners.failed + owners.workflowFailures + native.failed + native.syntheticFailed;
+      api.logger.info?.(`CogentNexus v0.9.0 pre-runtime fence: ownersChecked=${owners.checked} ownersDeleted=${owners.deleted} ownerFailures=${owners.failed} workflowFailures=${owners.workflowFailures} nativeScanned=${native.scanned} nativeFenced=${native.fenced} nativeFailed=${native.failed} syntheticScanned=${native.syntheticScanned} syntheticFenced=${native.syntheticFenced} syntheticFailed=${native.syntheticFailed}`);
+      if (failures > 0) throw new Error(`CogentNexus pre-runtime fence incomplete (${failures} failures); inference-capable CNX services will remain stopped`);
+      return { owners, live, native };
+    };
+
+    const ensurePreRuntimeFence = (ctx: any) => {
+      preStartPromise ??= runPreRuntimeFence(ctx).catch((error) => {
+        preStartPromise = undefined;
+        throw error;
+      });
+      return preStartPromise;
+    };
+
+    const registrationProxy = Object.create(api);
+    if (api.registerService) {
+      registrationProxy.registerService = (service: any) => {
+        if (!service || typeof service.start !== "function") return api.registerService(service);
+        api.registerService({
+          ...service,
+          start: async (ctx: any) => {
+            await ensurePreRuntimeFence(ctx);
+            return service.start(ctx);
+          },
+        });
+      };
+    }
+
+    register?.(registrationProxy);
     patchV090LivePolicy();
 
     const databasePathForHooks = () => {
@@ -383,9 +432,6 @@ function wrapEntry() {
       const childSessionKey = event?.targetSessionKey ?? ctx?.childSessionKey;
       const runId = event?.runId ?? ctx?.runId;
       if (typeof childSessionKey !== "string" || !childSessionKey.includes(":subagent:cnx-")) return;
-      // A reset/restart interruption can still be recoverable in OpenClaw. Keep
-      // that row running so the next runtime instance fences it before durable
-      // CogentNexus recovery starts a replacement.
       if (event?.outcome === "reset") return;
       try {
         settleSyntheticRun(databasePathForHooks(), {
@@ -401,15 +447,24 @@ function wrapEntry() {
 
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
+    let lastOwnerReconcileAt = 0;
     api.registerService?.({
       id: "cogentnexus-v090-host-reconciliation",
       start: async (ctx: any) => {
-        const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
-        const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+        await ensurePreRuntimeFence(ctx);
+        const { workspaceDir, databasePath } = resolvePaths(ctx);
         const tick = async () => {
           if (active) return;
           active = true;
           try {
+            const current = Date.now();
+            if (current - lastOwnerReconcileAt >= 30_000) {
+              const owners = await reconcileMissingOwnerSessions(api, databasePath, workspaceDir, config);
+              lastOwnerReconcileAt = current;
+              if (owners.deleted > 0 || owners.failed > 0 || owners.workflowFailures > 0) {
+                api.logger.info?.(`CogentNexus owner reconciliation: checked=${owners.checked} deleted=${owners.deleted} failed=${owners.failed} workflowFailures=${owners.workflowFailures}`);
+              }
+            }
             const live = reconcileV090LiveState(databasePath);
             if (live.abortFailuresCancelled || live.abortOutboxSuppressed || live.failedOutboxSuppressed || live.terminalRecoverySuppressed) {
               api.logger.info?.(`CogentNexus v0.9.0 live policy reconciliation: abortFailuresCancelled=${live.abortFailuresCancelled} abortOutboxSuppressed=${live.abortOutboxSuppressed} failedOutboxSuppressed=${live.failedOutboxSuppressed} terminalRecoverySuppressed=${live.terminalRecoverySuppressed}`);
