@@ -53,10 +53,12 @@ describe("CogentNexus v0.8.5 hidden Direct recovery", () => {
       const path = join(root, "tickets.sqlite3");
       const { store, ticket } = directTicket(path, "timeout-run");
       store.finalizeDirectRun({ runId: "timeout-run", success: false, interrupted: true, message: "timed out" });
-      const recovery = new DatabaseSync(path, { readOnly: true })
+      const recoveryDb = new DatabaseSync(path, { readOnly: true });
+      const recovery = recoveryDb
         .prepare(`SELECT r.ticket_id,t.owner_session_key,t.prompt,r.mode,r.attempt_count
           FROM cnx_direct_recovery r JOIN tickets t ON t.ticket_id=r.ticket_id WHERE r.ticket_id=?`)
         .get(ticket.ticketId) as any;
+      recoveryDb.close();
       let launchedSession = "";
       const api = { runtime: { subagent: {
         getSessionMessages: async ({ sessionKey }: any) => ({
@@ -205,8 +207,9 @@ describe("CogentNexus v0.8.5 hidden Direct recovery", () => {
       expect(result.queued).toBe(true);
       expect(launchedKey).toContain(":subagent:");
       expect(launchedKey).not.toBe("agent:main:dashboard:test");
-      expect(store.pendingOutbox()).toHaveLength(1);
       const db = new DatabaseSync(path, { readOnly: true });
+      expect(db.prepare("SELECT delivery_status FROM ticket_outbox WHERE outbox_id=?").get(outbox.outboxId))
+        .toEqual({ delivery_status: "pending" });
       const queued = db.prepare("SELECT owner_session_key,text,target_json,status FROM cnx_assistant_delivery WHERE kind='compatibility_result'").get() as any;
       expect(queued.owner_session_key).toBe("agent:main:dashboard:test");
       expect(queued.text).toContain("งานเสร็จแล้ว");

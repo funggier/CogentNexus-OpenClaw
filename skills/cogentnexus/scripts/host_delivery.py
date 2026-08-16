@@ -306,6 +306,9 @@ def flush_deliveries(
         except Exception as error:
             mark_failed(root, delivery_id, str(error))
             failed.append({"deliveryId": delivery_id, "error": str(error)})
+            # Preserve transcript ordering. A later result must not overtake an
+            # earlier recovery/status delivery for the same durable queue.
+            break
     return {"delivered": delivered, "failed": failed, "pending": len(pending_deliveries(root, 200))}
 
 
