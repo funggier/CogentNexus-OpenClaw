@@ -11,8 +11,21 @@ type Config = {
   admissionMinimumScore?: number;
 };
 
+type NativeTaskView = {
+  id?: string;
+  runtime?: string;
+  sourceId?: string;
+  runId?: string;
+  label?: string;
+  title?: string;
+  status?: string;
+};
+
 const WRAPPED = Symbol.for("cogentnexus.v090.entry.host-reconciliation");
 const LIVE_POLICY_PATCH = Symbol.for("cogentnexus.v090.live-policy-patch");
+const CNX_PLUGIN_LABEL = "plugin:cogentnexus-rotation";
+const ACTIVE_NATIVE_TASK_STATUSES = new Set(["queued", "running"]);
+const TERMINAL_NATIVE_TICKET_STATUSES = new Set(["failed", "cancelled"]);
 
 export function isOpenClawAbortMessage(message?: string | null): boolean {
   if (!message) return false;
@@ -97,6 +110,108 @@ export function reconcileV090LiveState(databasePath: string, now = new Date()) {
   }
 }
 
+function readNativeFenceSnapshot(databasePath: string): {
+  agentIds: string[];
+  ticketStatuses: Map<string, string>;
+} {
+  new TicketStore(databasePath).snapshot();
+  const db = new DatabaseSync(databasePath, { readOnly:true });
+  const agentIds = new Set<string>();
+  const ticketStatuses = new Map<string, string>();
+  try {
+    const rows = db.prepare("SELECT ticket_id,status,owner_session_key FROM tickets").all() as Array<{
+      ticket_id:string;
+      status:string;
+      owner_session_key:string | null;
+    }>;
+    for (const row of rows) {
+      ticketStatuses.set(row.ticket_id, row.status);
+      const match = /^agent:([^:]+):/u.exec(row.owner_session_key ?? "");
+      if (match?.[1]) agentIds.add(match[1]);
+    }
+  } finally {
+    db.close();
+  }
+  if (agentIds.size === 0) agentIds.add("main");
+  return { agentIds:[...agentIds].sort(), ticketStatuses };
+}
+
+function ticketIdFromNativeTask(task: NativeTaskView): string | undefined {
+  for (const value of [task.title, task.runId, task.sourceId]) {
+    const match = /\b(CNXT-[A-Za-z0-9-]+)\b/u.exec(value ?? "");
+    if (match?.[1]) return match[1];
+  }
+  return undefined;
+}
+
+export function shouldFenceNativeCnxTask(
+  task: NativeTaskView,
+  ticketStatuses: ReadonlyMap<string, string>,
+): boolean {
+  if (!ACTIVE_NATIVE_TASK_STATUSES.has(task.status ?? "")) return false;
+  const cnxOwned = task.label === CNX_PLUGIN_LABEL
+    || (task.runId ?? "").startsWith("cnx-")
+    || (task.sourceId ?? "").startsWith("cnx-");
+  if (!cnxOwned) return false;
+
+  const ticketId = ticketIdFromNativeTask(task);
+  if (ticketId && TERMINAL_NATIVE_TICKET_STATUSES.has(ticketStatuses.get(ticketId) ?? "")) return true;
+
+  const title = task.title ?? "";
+  if (/^\[CogentNexus Delivery: ticket:\d+\]/u.test(title)
+      && /reached terminal status (?:failed|cancelled)\./u.test(title)) return true;
+  if (/^\[CogentNexus Delivery: workflow:/u.test(title)
+      && /reached terminal status (?:failed|blocked|cancelled)\./u.test(title)) return true;
+  return false;
+}
+
+export async function reconcileOpenClawNativeTasks(
+  api: any,
+  ctx: any,
+  databasePath: string,
+): Promise<{ supported:boolean; scanned:number; fenced:number; failed:number }> {
+  const taskRuns = api.runtime?.tasks?.runs;
+  if (!taskRuns?.bindSession) return { supported:false, scanned:0, fenced:0, failed:0 };
+
+  const { agentIds, ticketStatuses } = readNativeFenceSnapshot(databasePath);
+  const mainKey = String(ctx.config?.session?.mainKey ?? "main").trim() || "main";
+  const seen = new Set<string>();
+  let scanned = 0;
+  let fenced = 0;
+  let failed = 0;
+
+  for (const agentId of agentIds) {
+    const sessionKey = `agent:${agentId}:${mainKey}`;
+    let bound: any;
+    try {
+      bound = taskRuns.bindSession({ sessionKey, agentId });
+    } catch (error) {
+      api.logger.warn?.(`CogentNexus native task fence could not bind ${sessionKey}: ${error instanceof Error ? error.message : String(error)}`);
+      failed++;
+      continue;
+    }
+    const tasks = (bound.list?.() ?? []) as NativeTaskView[];
+    for (const task of tasks) {
+      if (!task.id || seen.has(task.id)) continue;
+      seen.add(task.id);
+      scanned++;
+      if (!shouldFenceNativeCnxTask(task, ticketStatuses)) continue;
+      try {
+        const result = await bound.cancel({ taskId:task.id, cfg:ctx.config ?? {} });
+        if (result?.cancelled) fenced++;
+        else {
+          failed++;
+          api.logger.warn?.(`CogentNexus native task fence did not cancel ${task.id}: ${result?.reason ?? "unknown reason"}`);
+        }
+      } catch (error) {
+        failed++;
+        api.logger.warn?.(`CogentNexus native task fence failed for ${task.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+  return { supported:true, scanned, fenced, failed };
+}
+
 export function patchV090LivePolicy() {
   const prototype = TicketStore.prototype as any;
   if (prototype[LIVE_POLICY_PATCH]) return;
@@ -148,17 +263,6 @@ function wrapEntry() {
     register?.(api);
     patchV090LivePolicy();
 
-    const configuredWorkspace = resolve(config.workspaceDir ?? process.cwd());
-    const configuredDatabase = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(configuredWorkspace));
-    try {
-      const live = reconcileV090LiveState(configuredDatabase);
-      if (live.abortFailuresCancelled || live.abortOutboxSuppressed || live.failedOutboxSuppressed || live.terminalRecoverySuppressed) {
-        api.logger.info?.(`CogentNexus v0.9.0 live policy reconciliation: abortFailuresCancelled=${live.abortFailuresCancelled} abortOutboxSuppressed=${live.abortOutboxSuppressed} failedOutboxSuppressed=${live.failedOutboxSuppressed} terminalRecoverySuppressed=${live.terminalRecoverySuppressed}`);
-      }
-    } catch (error) {
-      api.logger.warn?.(`CogentNexus v0.9.0 live policy registration reconciliation failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService?.({
@@ -166,13 +270,17 @@ function wrapEntry() {
       start: async (ctx: any) => {
         const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
         const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
-        const tick = () => {
+        const tick = async () => {
           if (active) return;
           active = true;
           try {
             const live = reconcileV090LiveState(databasePath);
             if (live.abortFailuresCancelled || live.abortOutboxSuppressed || live.failedOutboxSuppressed || live.terminalRecoverySuppressed) {
               api.logger.info?.(`CogentNexus v0.9.0 live policy reconciliation: abortFailuresCancelled=${live.abortFailuresCancelled} abortOutboxSuppressed=${live.abortOutboxSuppressed} failedOutboxSuppressed=${live.failedOutboxSuppressed} terminalRecoverySuppressed=${live.terminalRecoverySuppressed}`);
+            }
+            const native = await reconcileOpenClawNativeTasks(api, ctx, databasePath);
+            if (native.fenced > 0 || native.failed > 0) {
+              api.logger.info?.(`CogentNexus v0.9.0 native task fence: supported=${native.supported} scanned=${native.scanned} fenced=${native.fenced} failed=${native.failed}`);
             }
             if (!hasLegacyDirectPromotion(databasePath, config.admissionMinimumScore ?? 5)) return;
             const result = prepareV090RecoveryState(workspaceDir, config);
@@ -185,8 +293,8 @@ function wrapEntry() {
             active = false;
           }
         };
-        tick();
-        interval = setInterval(tick, Math.max(1000, Math.min(config.ticketRecoveryPollMs ?? 5000, 30_000)));
+        await tick();
+        interval = setInterval(() => { void tick(); }, Math.max(1000, Math.min(config.ticketRecoveryPollMs ?? 5000, 30_000)));
         interval.unref?.();
       },
       stop: async () => {
