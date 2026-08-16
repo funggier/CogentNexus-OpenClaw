@@ -97,6 +97,8 @@ describe("CogentNexus v0.9.0 intent boundary", () => {
 
   it("uses a narrow user-cancellation classifier and bounded recovery backoff", () => {
     expect(isExplicitUserCancellation("Reply operation aborted by user")).toBe(true);
+    expect(isExplicitUserCancellation("agent run aborted")).toBe(true);
+    expect(isExplicitUserCancellation("agent run aborted for restart")).toBe(false);
     expect(isExplicitUserCancellation("explicit user stop")).toBe(true);
     expect(isExplicitUserCancellation("provider interrupted")).toBe(false);
     expect(isExplicitUserCancellation("connection refused by provider endpoint")).toBe(false);

@@ -35,7 +35,9 @@ function queueRecovery(db:DatabaseSync,id:string,mode:"resume"|"redeliver",messa
 
 export function isExplicitUserCancellation(message?:string){
   if(!message)return false;
-  return /(?:reply operation )?aborted by user|user (?:cancelled|canceled)|(?:cancelled|canceled) by user|explicit user (?:stop|abort|cancel)/iu.test(message);
+  const value=message.trim();
+  if(value==="agent run aborted")return true;
+  return /(?:reply operation )?aborted by user|user (?:cancelled|canceled)|(?:cancelled|canceled) by user|explicit user (?:stop|abort|cancel)/iu.test(value);
 }
 
 export function cancelSessionTickets(path:string,input:{runId:string;message?:string;now?:Date}){
