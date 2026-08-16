@@ -1,0 +1,109 @@
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { describe, expect, it } from "vitest";
+import { TicketStore } from "./ticket-store.js";
+import { createCompactionBoundaryApi, settleExistingContextHoldFromCompaction } from "./v090-compaction-boundary.js";
+
+function fixture(root:string) {
+  const path=join(root,"tickets.sqlite3"),store=new TicketStore(path),sessionKey="agent:main:dashboard:A";
+  const ticket=store.accept({runId:"run-1",ownerSessionKey:sessionKey,prompt:"continue a long direct task"});
+  store.route(ticket.ticketId,false);
+  const db=new DatabaseSync(path),stamp=new Date().toISOString();
+  db.exec(`CREATE TABLE IF NOT EXISTS cnx_sessions(
+    session_key TEXT PRIMARY KEY,state TEXT NOT NULL,generation INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+    deleted_at TEXT,delete_reason TEXT);
+    CREATE TABLE IF NOT EXISTS cnx_context_maintenance(
+      session_key TEXT PRIMARY KEY,owner_generation INTEGER NOT NULL,ticket_id TEXT NOT NULL,state TEXT NOT NULL,
+      hard_required INTEGER NOT NULL DEFAULT 0,attempt_count INTEGER NOT NULL DEFAULT 0,next_attempt_at TEXT,last_error TEXT,
+      session_id TEXT,context_window INTEGER,projected_tokens INTEGER,last_tokens_before INTEGER,last_tokens_after INTEGER,
+      last_action TEXT,capsule_path TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,completed_at TEXT);`);
+  db.prepare("INSERT OR REPLACE INTO cnx_sessions(session_key,state,generation,created_at,updated_at) VALUES (?,'active',4,?,?)")
+    .run(sessionKey,stamp,stamp);
+  db.prepare(`INSERT INTO cnx_context_maintenance(session_key,owner_generation,ticket_id,state,hard_required,attempt_count,next_attempt_at,
+    session_id,context_window,projected_tokens,created_at,updated_at) VALUES (?,?,?,'pending',1,0,?, 'physical-old',32768,30000,?,?)`)
+    .run(sessionKey,4,ticket.ticketId,stamp,stamp,stamp);
+  db.close();
+  return {path,store,sessionKey,ticketId:ticket.ticketId};
+}
+
+describe("v0.9 manual Compact boundary",()=>{
+  it("suppresses the legacy after_compaction synthetic continuation registration but preserves other hooks",()=>{
+    const names:string[]=[];
+    const api={on:(name:string)=>{names.push(name);},logger:{info:()=>{}}};
+    const proxy=createCompactionBoundaryApi(api);
+    proxy.on("after_compaction",()=>{});
+    proxy.on("agent_end",()=>{});
+    expect(names).toEqual(["agent_end"]);
+  });
+
+  it("does not create SQLite state when a user compacts a session with no existing CNX context store",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-empty-"));
+    try{
+      const path=join(root,"missing.sqlite3");
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey:"agent:main:dashboard:A",tokenCount:5000,
+        session:{contextTokens:32768,totalTokens:5000,totalTokensFresh:true,sessionId:"physical-new"},
+      });
+      expect(result).toMatchObject({found:false,settled:false,reason:"no-existing-context-store"});
+      expect(existsSync(path)).toBe(false);
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("releases only an already-authorized context hold when manual Compact makes the same generation safe",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-safe-"));
+    try{
+      const {path,store,sessionKey,ticketId}=fixture(root);
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,tokenCount:7000,
+        session:{contextTokens:32768,totalTokens:7200,totalTokensFresh:true,sessionId:"physical-after-manual-compact"},
+        now:new Date("2026-08-16T13:00:00Z"),
+      });
+      expect(result).toMatchObject({found:true,settled:true,reason:"safe-context"});
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT state,last_action,session_id,last_tokens_after FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
+        .toEqual({state:"done",last_action:"native-compact-satisfied",session_id:"physical-after-manual-compact",last_tokens_after:7200});
+      expect(db.prepare("SELECT status,workflow_eligible FROM tickets WHERE ticket_id=?").get(ticketId))
+        .toEqual({status:"accepted",workflow_eligible:0});
+      expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox").get()).toEqual({count:0});
+      db.close();
+      expect(store.get(ticketId)?.status).toBe("accepted");
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("keeps the hold when manual Compact leaves context above the safe admission boundary",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-high-"));
+    try{
+      const {path,sessionKey}=fixture(root);
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,tokenCount:29500,
+        session:{contextTokens:32768,totalTokens:30000,totalTokensFresh:true,sessionId:"physical-after-compact"},
+      });
+      expect(result).toMatchObject({found:true,settled:false,reason:"pressure-remains"});
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT state,last_action FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
+        .toEqual({state:"pending",last_action:"native-compact-observed-pressure-remains"});
+      db.close();
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("never releases an old hold after Reset advanced the CNX generation",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-reset-"));
+    try{
+      const {path,sessionKey}=fixture(root);
+      const db=new DatabaseSync(path);
+      db.prepare("UPDATE cnx_sessions SET generation=5 WHERE session_key=?").run(sessionKey);
+      db.close();
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,tokenCount:4000,
+        session:{contextTokens:32768,totalTokens:4000,totalTokensFresh:true,sessionId:"replacement-session"},
+      });
+      expect(result).toMatchObject({found:true,settled:false,reason:"authority-superseded"});
+      const verify=new DatabaseSync(path,{readOnly:true});
+      expect(verify.prepare("SELECT state,last_action FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
+        .toEqual({state:"pending",last_action:null});
+      verify.close();
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+});
