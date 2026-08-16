@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { shouldFenceNativeCnxTask } from "./v090-entry.js";
+import { nativeFenceOwnerScopes, shouldFenceNativeCnxTask } from "./v090-entry.js";
 
 describe("v0.9 native OpenClaw task fence", () => {
   const failed = new Map([["CNXT-failed-1", "failed"]]);
   const cancelled = new Map([["CNXT-cancelled-1", "cancelled"]]);
   const completed = new Map([["CNXT-completed-1", "completed"]]);
   const waiting = new Map([["CNXT-waiting-1", "waiting"]]);
+
+  it("preserves exact dashboard owner session scopes", () => {
+    expect(nativeFenceOwnerScopes([
+      { owner_session_key:"agent:main:dashboard:677bd15a-3459-4c29-9426-569b97b03dcc" },
+      { owner_session_key:"agent:main:dashboard:6d9e3752-9839-46e5-9d00-c4b0b9e448fd" },
+      { owner_session_key:"agent:main:dashboard:677bd15a-3459-4c29-9426-569b97b03dcc" },
+      { owner_session_key:null },
+    ])).toEqual([
+      { sessionKey:"agent:main:dashboard:677bd15a-3459-4c29-9426-569b97b03dcc", agentId:"main" },
+      { sessionKey:"agent:main:dashboard:6d9e3752-9839-46e5-9d00-c4b0b9e448fd", agentId:"main" },
+    ].sort((a, b) => a.sessionKey.localeCompare(b.sessionKey)));
+  });
 
   it("fences a running CNX failed-ticket delivery", () => {
     expect(shouldFenceNativeCnxTask({
