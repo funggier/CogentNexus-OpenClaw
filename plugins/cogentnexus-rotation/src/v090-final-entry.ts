@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import entry, { reconcileOpenClawNativeTasks, reconcileV090LiveState } from "./v090-entry.js";
+import { createCompactionBoundaryApi, installPassiveCompactionObserver } from "./v090-compaction-boundary.js";
 import { createContextMaintenanceApi } from "./v090-context-api.js";
 import { installContextGuard } from "./v090-context-guard.js";
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
@@ -33,7 +34,8 @@ function wrapFinalEntry() {
   const register = entry.register?.bind(entry);
   entry.register = (api:any) => {
     const cfg = (api.pluginConfig ?? {}) as any;
-    const proxy = createCnxRuntimeSafetyProxy(api, cfg);
+    const runtimeProxy = createCnxRuntimeSafetyProxy(api, cfg);
+    const proxy = createCompactionBoundaryApi(runtimeProxy);
     const rawRegister=api.registerService?.bind(api);
     let startupRecovery:Promise<void>|undefined;
 
@@ -59,26 +61,32 @@ function wrapFinalEntry() {
 
     register?.(proxy);
 
+    // Observe every successful OpenClaw compaction passively. The observer may
+    // settle an already-authorized CNX context hold, but never creates a Ticket,
+    // recovery row, scheduled turn, or inference solely because the user chose
+    // Compact History.
+    installPassiveCompactionObserver(api,cfg);
+
     // Context maintenance intentionally sees CNX generation as the ownership
     // boundary. OpenClaw may rotate physical sessionId during a user/manual
     // Compact; that is a transcript revision, not Reset/Delete/Stop.
-    const contextApi=createContextMaintenanceApi(proxy);
+    const contextApi=createContextMaintenanceApi(runtimeProxy);
     const contextRegistration = Object.create(contextApi);
-    if (proxy.registerService) {
+    if (runtimeProxy.registerService) {
       contextRegistration.registerService = (service:any) => {
         if (service?.id !== "cogentnexus-context-maintenance-v090" || typeof service.start !== "function") {
-          return proxy.registerService(service);
+          return runtimeProxy.registerService(service);
         }
-        return proxy.registerService({
+        return runtimeProxy.registerService({
           ...service,
           start:async(ctx:any)=>{
             const workspaceDir=resolve(cfg.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
             const databasePath=resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
-            const owners=await reconcileMissingOwnerSessions(proxy,databasePath,workspaceDir,cfg);
+            const owners=await reconcileMissingOwnerSessions(runtimeProxy,databasePath,workspaceDir,cfg);
             const live=reconcileV090LiveState(databasePath);
-            const native=await reconcileOpenClawNativeTasks(proxy,ctx,databasePath);
+            const native=await reconcileOpenClawNativeTasks(runtimeProxy,ctx,databasePath);
             const failures=owners.failed+owners.workflowFailures+native.failed+native.syntheticFailed;
-            proxy.logger.info?.(`CogentNexus context pre-start fence: ownersChecked=${owners.checked} ownersDeleted=${owners.deleted} ownerFailures=${owners.failed} workflowFailures=${owners.workflowFailures} nativeFailed=${native.failed} syntheticFailed=${native.syntheticFailed} liveAbortCancelled=${live.abortFailuresCancelled}`);
+            runtimeProxy.logger.info?.(`CogentNexus context pre-start fence: ownersChecked=${owners.checked} ownersDeleted=${owners.deleted} ownerFailures=${owners.failed} workflowFailures=${owners.workflowFailures} nativeFailed=${native.failed} syntheticFailed=${native.syntheticFailed} liveAbortCancelled=${live.abortFailuresCancelled}`);
             if(failures>0)throw new Error(`CogentNexus context pre-start fence incomplete (${failures} failures)`);
             return service.start(ctx);
           },
