@@ -1,7 +1,14 @@
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { externalizeOversizedSyntheticPayload, type SyntheticPayloadConfig } from "./v090-synthetic-payload.js";
+import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
-type RuntimeSafetyConfig = SyntheticPayloadConfig & { workspaceDir?:string };
+type RuntimeSafetyConfig = SyntheticPayloadConfig & {
+  workspaceDir?:string;
+  ticketDatabasePath?:string;
+  contextRecoveryHoldPollMs?:number;
+  contextRecoveryHoldMaxMs?:number;
+};
 
 function positive(value:unknown):number|undefined {
   const number=Number(value);
@@ -28,9 +35,6 @@ export async function verifyCnxCompactionResult(input:{
   const isHardTrim=params?.maxLines!==undefined;
 
   if(!isHardTrim) {
-    // Semantic compaction normally reports tokensAfter. If neither the RPC nor
-    // a fresh session counter can verify it, force the caller down its bounded
-    // fallback path instead of treating an unmeasured compaction as safe.
     const safeAfter=observedAfter??Number.MAX_SAFE_INTEGER;
     return {
       ...result,
@@ -39,8 +43,6 @@ export async function verifyCnxCompactionResult(input:{
     };
   }
 
-  // Hard trim is destructive to the active transcript (OpenClaw archives the
-  // predecessor), so fail closed unless the post-trim session counter is fresh.
   if(freshAfter===undefined||window===undefined) {
     return {
       ...result,
@@ -66,10 +68,67 @@ export async function verifyCnxCompactionResult(input:{
   };
 }
 
+function directRecoveryTicketId(sessionKey:string) {
+  const match=/(CNXT-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/iu.exec(sessionKey);
+  return match?.[1];
+}
+
+function generationFromHiddenSession(sessionKey:string) {
+  const match=/-g(\d+)-[0-9a-f]{8}$/iu.exec(sessionKey);
+  const value=match?Number(match[1]):NaN;
+  return Number.isSafeInteger(value)&&value>=0?value:undefined;
+}
+
+type HoldSnapshot = {hold:boolean;revoked:boolean;state?:string;ownerSessionKey?:string};
+
+export function contextRecoveryHoldSnapshot(databasePath:string,hiddenSessionKey:string):HoldSnapshot {
+  const ticketId=directRecoveryTicketId(hiddenSessionKey);
+  const generation=generationFromHiddenSession(hiddenSessionKey);
+  if(!ticketId||generation===undefined)return {hold:false,revoked:false};
+  new TicketStore(databasePath).snapshot();
+  const db=new DatabaseSync(databasePath,{readOnly:true});
+  try {
+    const contextTable=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_context_maintenance'").get();
+    if(!contextTable)return {hold:false,revoked:false};
+    const ticket=db.prepare("SELECT status,owner_session_key FROM tickets WHERE ticket_id=?").get(ticketId) as any;
+    if(!ticket||ticket.status!=="accepted")return {hold:false,revoked:true,state:String(ticket?.status??"missing")};
+    const sessionTable=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_sessions'").get();
+    if(sessionTable) {
+      const owner=db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(ticket.owner_session_key) as any;
+      if(!owner||owner.state!=="active"||Number(owner.generation)!==generation)return {hold:false,revoked:true,state:String(owner?.state??"missing"),ownerSessionKey:ticket.owner_session_key};
+    }
+    const row=db.prepare("SELECT state,owner_generation FROM cnx_context_maintenance WHERE ticket_id=?").get(ticketId) as any;
+    if(!row)return {hold:false,revoked:false,ownerSessionKey:ticket.owner_session_key};
+    if(Number(row.owner_generation)!==generation)return {hold:false,revoked:true,state:String(row.state),ownerSessionKey:ticket.owner_session_key};
+    return {hold:["pending","running","degraded"].includes(String(row.state)),revoked:false,state:String(row.state),ownerSessionKey:ticket.owner_session_key};
+  } finally {db.close();}
+}
+
+async function waitForContextRelease(input:{databasePath:string;hiddenSessionKey:string;config:RuntimeSafetyConfig;logger:any}) {
+  const ticketId=directRecoveryTicketId(input.hiddenSessionKey);
+  if(!ticketId)return;
+  const pollMs=Math.max(250,Math.min(Math.floor(input.config.contextRecoveryHoldPollMs??750),5000));
+  const maxMs=Math.max(30_000,Math.min(Math.floor(input.config.contextRecoveryHoldMaxMs??1_800_000),3_600_000));
+  const deadline=Date.now()+maxMs;
+  let announced=false;
+  while(true) {
+    const snapshot=contextRecoveryHoldSnapshot(input.databasePath,input.hiddenSessionKey);
+    if(snapshot.revoked)throw new Error(`CogentNexus Direct Recovery authority revoked while waiting for context maintenance (${snapshot.state??"unknown"})`);
+    if(!snapshot.hold)return;
+    if(!announced) {
+      announced=true;
+      input.logger.info?.(`CogentNexus holding hidden Direct Recovery ${ticketId} until context maintenance leaves state=${snapshot.state}`);
+    }
+    if(Date.now()>=deadline)throw new Error(`CogentNexus context recovery hold timed out for ${ticketId}`);
+    await new Promise((resolvePromise)=>setTimeout(resolvePromise,pollMs));
+  }
+}
+
 export function createCnxRuntimeSafetyProxy(api:any,config:RuntimeSafetyConfig={}) {
   const proxy=Object.create(api);
   const runtime=Object.create(api.runtime??{});
   const workspaceDir=resolve(config.workspaceDir??process.cwd());
+  const databasePath=resolve(config.ticketDatabasePath??defaultTicketDatabase(workspaceDir));
 
   const originalGateway=api.runtime?.gateway;
   if(originalGateway?.request) {
@@ -89,6 +148,9 @@ export function createCnxRuntimeSafetyProxy(api:any,config:RuntimeSafetyConfig={
       const sessionKey=String(input?.sessionKey??"");
       const message=typeof input?.message==="string"?input.message:"";
       if(!sessionKey.includes(":subagent:cnx-")||!/\[CogentNexus Internal/iu.test(message))return originalSubagent.run(input);
+      if(/\[CogentNexus Internal Direct Recovery\]/iu.test(message)) {
+        await waitForContextRelease({databasePath,hiddenSessionKey:sessionKey,config,logger:api.logger});
+      }
       const bounded=externalizeOversizedSyntheticPayload({workspaceDir,sessionKey,message,config});
       if(bounded.externalized)api.logger.info?.(`CogentNexus externalized oversized hidden payload for ${sessionKey}: chunks=${bounded.chunkCount} sha256=${bounded.sha256?.slice(0,16)}`);
       return originalSubagent.run({...input,message:bounded.message});
