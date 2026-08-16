@@ -84,7 +84,7 @@ function wrapFinalEntry() {
     // Context maintenance intentionally sees CNX generation as the ownership
     // boundary. OpenClaw may rotate physical sessionId during a user/manual
     // Compact; that is a transcript revision, not Reset/Delete/Stop.
-    const contextApi=createContextMaintenanceApi(runtimeProxy);
+    const contextApi=createContextMaintenanceApi(runtimeProxy,cfg);
     const contextRegistration = Object.create(contextApi);
     if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
