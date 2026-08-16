@@ -19,27 +19,11 @@ jobs:
           ref: agent/v0.9.0-intent-boundary
           fetch-depth: 0
       - name: Apply patch
-        run: python .github/scripts/v090_live_patch.py
-      - name: Run focused Python tests with diagnostics
-        id: pytests
-        shell: bash
         run: |
-          set +e
-          python -m unittest discover -s tests -v > python-tests.log 2>&1
-          code=$?
-          cat python-tests.log
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          exit 0
-      - uses: actions/upload-artifact@v4
-        with:
-          name: v090-python-test-diagnostics
-          path: |
-            python-tests.log
-            skills/cogentnexus/scripts/host.py
-            tests/test_host_controller.py
-      - name: Stop on Python test failure
-        if: steps.pytests.outputs.code != '0'
-        run: exit 1
+          python .github/scripts/v090_live_patch.py
+          python .github/scripts/v090_test_fix.py
+      - name: Run focused Python tests
+        run: python -m unittest discover -s tests -v
       - name: Install plugin dependencies
         run: npm ci
         working-directory: plugins/cogentnexus-rotation
@@ -51,6 +35,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add skills/cogentnexus/scripts/host.py tests/test_host_controller.py plugins/cogentnexus-rotation/src/v090.ts plugins/cogentnexus-rotation/src/v090.test.ts
-          git rm .github/workflows/v090-live-cancellation-fix.yml .github/scripts/v090_live_patch.py
+          git rm .github/workflows/v090-live-cancellation-fix.yml .github/scripts/v090_live_patch.py .github/scripts/v090_test_fix.py
           git commit -m 'Harden cancellation delivery fences and health status'
           git push origin HEAD:agent/v0.9.0-intent-boundary
