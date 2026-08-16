@@ -10,9 +10,20 @@ export function createContextMaintenanceApi(api:any) {
       // OpenClaw may rotate the physical transcript/sessionId during manual or
       // model-backed compaction. That is not a CogentNexus ownership boundary.
       // Reset/Delete/Stop are represented by the CNX session generation and
-      // remain authoritative. Hide only the physical id from the maintenance
-      // guard so a user-initiated Compact cannot be mistaken for Reset.
-      const {sessionId:_physicalRevision,...session}=result.session;
+      // remain authoritative.
+      //
+      // maxLines/manual trimming may also intentionally invalidate token
+      // metadata while leaving the old numeric totalTokens value in the row.
+      // Never feed that stale number back into context admission/maintenance.
+      const {
+        sessionId:_physicalRevision,
+        totalTokens:_reportedTotalTokens,
+        totalTokensFresh,
+        ...rest
+      }=result.session;
+      const session=totalTokensFresh===true
+        ? {...rest,totalTokens:_reportedTotalTokens,totalTokensFresh:true}
+        : {...rest,totalTokensFresh:false};
       return {...result,session};
     };
     runtime.gateway=gateway;
