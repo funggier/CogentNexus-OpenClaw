@@ -38,11 +38,11 @@ export function predecessorRecovery(path:string,input:{ticketId:string;ownerSess
   } finally {db.close();}
 }
 
-export function directRecoveryIdentity(path:string,ticketId:string,ownerGeneration:number) {
+export function directRecoveryIdentity(path:string,ticketId:string,ownerGeneration:number,expectedRunId?:string) {
   const db=openDb(path);
   try {
     const row=db.prepare(`SELECT t.ticket_id,t.owner_session_key,t.status,t.created_at,t.workflow_eligible,t.workflow_id,
-      s.state AS session_state,s.generation,r.state AS recovery_state,
+      s.state AS session_state,s.generation,r.state AS recovery_state,r.active_run_id,
       (SELECT MIN(e.event_id) FROM ticket_events e WHERE e.ticket_id=t.ticket_id AND e.event_type='accepted') AS accepted_sequence
       FROM tickets t
       JOIN cnx_sessions s ON s.session_key=t.owner_session_key
@@ -51,10 +51,25 @@ export function directRecoveryIdentity(path:string,ticketId:string,ownerGenerati
     if(!row)return {authorized:false,reason:"ticket-missing"};
     if(row.status!=="accepted"||Number(row.workflow_eligible)!==0||row.workflow_id)return {authorized:false,reason:`ticket-${row.status}`};
     if(row.session_state!=="active"||Number(row.generation)!==ownerGeneration)return {authorized:false,reason:"session-authority-superseded"};
-    if(row.recovery_state&&!['pending','running','awaiting_delivery'].includes(String(row.recovery_state)))return {authorized:false,reason:`recovery-${row.recovery_state}`};
+    if(expectedRunId) {
+      if(row.recovery_state!=="running"||row.active_run_id!==expectedRunId)return {authorized:false,reason:"recovery-claim-superseded"};
+    } else if(!['pending','running','awaiting_delivery'].includes(String(row.recovery_state??""))) {
+      return {authorized:false,reason:`recovery-${row.recovery_state??"missing"}`};
+    }
     const acceptedSequence=Number(row.accepted_sequence);
     if(!Number.isSafeInteger(acceptedSequence)||acceptedSequence<=0)return {authorized:false,reason:"acceptance-sequence-missing"};
-    return {authorized:true,ticketId:row.ticket_id,ownerSessionKey:row.owner_session_key,ownerGeneration,createdAt:row.created_at,acceptedSequence,recoveryState:row.recovery_state};
+    return {authorized:true,ticketId:row.ticket_id,ownerSessionKey:row.owner_session_key,ownerGeneration,createdAt:row.created_at,
+      acceptedSequence,recoveryState:row.recovery_state,activeRunId:row.active_run_id};
+  } finally {db.close();}
+}
+
+export function touchDirectRecoveryClaim(path:string,input:{ticketId:string;ownerSessionKey:string;ownerGeneration:number;runId:string}) {
+  const db=openDb(path),now=stamp();
+  try {
+    return Number(db.prepare(`UPDATE cnx_direct_recovery SET updated_at=?
+      WHERE ticket_id=? AND state='running' AND active_run_id=? AND owner_generation=?
+        AND EXISTS(SELECT 1 FROM cnx_sessions WHERE session_key=? AND state='active' AND generation=?)`)
+      .run(now,input.ticketId,input.runId,input.ownerGeneration,input.ownerSessionKey,input.ownerGeneration).changes)===1;
   } finally {db.close();}
 }
 
@@ -65,8 +80,7 @@ export function queueBehindOlderRecovery(path:string,input:{sessionKey:string;ru
     const current=db.prepare(`SELECT t.ticket_id,t.status,t.workflow_eligible,t.workflow_id,s.state AS session_state,s.generation,
       (SELECT MIN(e.event_id) FROM ticket_events e WHERE e.ticket_id=t.ticket_id AND e.event_type='accepted') AS accepted_sequence
       FROM tickets t JOIN cnx_sessions s ON s.session_key=t.owner_session_key
-      WHERE t.owner_session_key=? AND t.run_id=? ORDER BY t.created_at DESC LIMIT 1`)
-      .get(input.sessionKey,input.runId) as any;
+      WHERE t.owner_session_key=? AND t.run_id=? ORDER BY t.created_at DESC LIMIT 1`).get(input.sessionKey,input.runId) as any;
     const sequence=Number(current?.accepted_sequence);
     if(!current||current.status!=="accepted"||Number(current.workflow_eligible)!==0||current.workflow_id||current.session_state!=="active"
       ||!Number.isSafeInteger(sequence)||sequence<=0){db.exec("COMMIT");return undefined;}
@@ -79,8 +93,7 @@ export function queueBehindOlderRecovery(path:string,input:{sessionKey:string;ru
         AND recovery.owner_generation=? AND recovery.state IN ('pending','running','awaiting_delivery')
       GROUP BY older.ticket_id,recovery.state,recovery.next_attempt_at
       HAVING MIN(accepted.event_id)<?
-      ORDER BY accepted_sequence LIMIT 1`)
-      .get(input.sessionKey,current.ticket_id,current.generation,sequence) as any;
+      ORDER BY accepted_sequence LIMIT 1`).get(input.sessionKey,current.ticket_id,current.generation,sequence) as any;
     if(!predecessor){db.exec("COMMIT");return undefined;}
     const reason=(input.reason??`Queued behind older Direct Recovery ${predecessor.ticket_id}`).slice(0,2000);
     db.prepare(`INSERT INTO cnx_direct_recovery(
