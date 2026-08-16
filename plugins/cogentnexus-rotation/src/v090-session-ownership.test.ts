@@ -61,7 +61,7 @@ describe("v0.9 session ownership isolation", () => {
       expect(sessionAuthority(path,"agent:main:dashboard:B")).toEqual(other);
 
       const next = store.accept({runId:"a-next",ownerSessionKey:"agent:main:dashboard:A",prompt:"new generation"});
-      expect(next.ownerSessionKey).toBe("agent:main:dashboard:A");
+      expect(store.get(next.ticketId)?.ownerSessionKey).toBe("agent:main:dashboard:A");
       const db = new DatabaseSync(path,{readOnly:true});
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(a.ticketId)).toEqual({status:"cancelled"});
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(b.ticketId)).toEqual({status:"accepted"});
