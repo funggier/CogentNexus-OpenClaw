@@ -88,6 +88,25 @@ describe("v0.9 manual Compact boundary",()=>{
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
+  it("never settles a context row already claimed by the maintenance worker",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-running-"));
+    try{
+      const {path,sessionKey}=fixture(root);
+      let db=new DatabaseSync(path);
+      db.prepare("UPDATE cnx_context_maintenance SET state='running',attempt_count=1 WHERE session_key=?").run(sessionKey);
+      db.close();
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,tokenCount:4000,
+        session:{contextTokens:32768,totalTokens:4000,totalTokensFresh:true,sessionId:"physical-after-user-compact"},
+      });
+      expect(result).toMatchObject({found:true,settled:false,reason:"maintenance-running"});
+      db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT state,last_action,session_id FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
+        .toEqual({state:"running",last_action:null,session_id:"physical-old"});
+      db.close();
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
   it("never releases an old hold after Reset advanced the CNX generation",()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-reset-"));
     try{
