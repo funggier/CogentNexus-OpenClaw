@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import entry, { reconcileOpenClawNativeTasks, reconcileV090LiveState } from "./v090-entry.js";
+import { createAbortAuthorityApi } from "./v090-abort-authority.js";
 import { createCompactionBoundaryApi, installPassiveCompactionObserver } from "./v090-compaction-boundary.js";
 import { createContextMaintenanceApi } from "./v090-context-api.js";
 import { installContextGuard } from "./v090-context-guard.js";
@@ -37,7 +38,10 @@ function wrapFinalEntry() {
   entry.register = (api:any) => {
     const cfg = (api.pluginConfig ?? {}) as any;
     const runtimeProxy = createCnxRuntimeSafetyProxy(api, cfg);
-    const proxy = createCompactionBoundaryApi(runtimeProxy);
+    // Guard ambiguous OpenClaw abort strings before either the base Ticket
+    // finalizer or the v0.9 session-cancellation hook sees agent_end.
+    const abortProxy = createAbortAuthorityApi(runtimeProxy, cfg);
+    const proxy = createCompactionBoundaryApi(abortProxy);
     const rawRegister=api.registerService?.bind(api);
     let startupRecovery:Promise<void>|undefined;
 
@@ -84,7 +88,7 @@ function wrapFinalEntry() {
     // Context maintenance intentionally sees CNX generation as the ownership
     // boundary. OpenClaw may rotate physical sessionId during a user/manual
     // Compact; that is a transcript revision, not Reset/Delete/Stop.
-    const contextApi=createContextMaintenanceApi(runtimeProxy,cfg);
+    const contextApi=createContextMaintenanceApi(abortProxy,cfg);
     const contextRegistration = Object.create(contextApi);
     if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
