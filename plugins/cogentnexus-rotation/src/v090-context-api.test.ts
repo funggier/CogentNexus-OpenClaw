@@ -91,7 +91,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     }};
     const proxy=createContextMaintenanceApi(api,{workspaceDir:"C:/workspace",pythonCommand:"python"});
     await expect(proxy.runtime.gateway.request("sessions.compact",{key:"agent:main:dashboard:A",maxLines:60},{timeoutMs:90000}))
-      .rejects.toThrow(/still reports .* safe=/u);
+      .rejects.toThrow(/still reports .*\(safe=/u);
   });
 
   it("verifies a stale post-trim token counter from bounded transcript evidence",async()=>{
