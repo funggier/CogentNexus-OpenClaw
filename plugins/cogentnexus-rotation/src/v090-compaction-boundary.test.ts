@@ -57,18 +57,30 @@ describe("v0.9 manual Compact boundary",()=>{
       const {path,store,sessionKey,ticketId}=fixture(root);
       const result=settleExistingContextHoldFromCompaction({
         databasePath:path,sessionKey,tokenCount:7000,
-        session:{contextTokens:32768,totalTokens:7200,totalTokensFresh:true,sessionId:"physical-after-manual-compact"},
+        session:{contextTokens:32768,totalTokens:30000,totalTokensFresh:true,sessionId:"physical-before-store-persist"},
         now:new Date("2026-08-16T13:00:00Z"),
       });
-      expect(result).toMatchObject({found:true,settled:true,reason:"safe-context"});
+      expect(result).toMatchObject({found:true,settled:true,reason:"safe-context",observedTokens:7000});
       const db=new DatabaseSync(path,{readOnly:true});
       expect(db.prepare("SELECT state,last_action,session_id,last_tokens_after FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
-        .toEqual({state:"done",last_action:"native-compact-satisfied",session_id:"physical-after-manual-compact",last_tokens_after:7200});
+        .toEqual({state:"done",last_action:"native-compact-satisfied",session_id:"physical-before-store-persist",last_tokens_after:7000});
       expect(db.prepare("SELECT status,workflow_eligible FROM tickets WHERE ticket_id=?").get(ticketId))
         .toEqual({status:"accepted",workflow_eligible:0});
       expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox").get()).toEqual({count:0});
       db.close();
       expect(store.get(ticketId)?.status).toBe("accepted");
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("uses a fresh session counter only when the after_compaction event did not provide tokenCount",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-session-fallback-"));
+    try{
+      const {path,sessionKey}=fixture(root);
+      const result=settleExistingContextHoldFromCompaction({
+        databasePath:path,sessionKey,
+        session:{contextTokens:32768,totalTokens:6500,totalTokensFresh:true,sessionId:"physical-after-persist"},
+      });
+      expect(result).toMatchObject({found:true,settled:true,reason:"safe-context",observedTokens:6500});
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
@@ -80,7 +92,7 @@ describe("v0.9 manual Compact boundary",()=>{
         databasePath:path,sessionKey,tokenCount:29500,
         session:{contextTokens:32768,totalTokens:30000,totalTokensFresh:true,sessionId:"physical-after-compact"},
       });
-      expect(result).toMatchObject({found:true,settled:false,reason:"pressure-remains"});
+      expect(result).toMatchObject({found:true,settled:false,reason:"pressure-remains",observedTokens:29500});
       const db=new DatabaseSync(path,{readOnly:true});
       expect(db.prepare("SELECT state,last_action FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
         .toEqual({state:"pending",last_action:"native-compact-observed-pressure-remains"});
