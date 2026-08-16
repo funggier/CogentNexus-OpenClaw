@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   RECOVERABLE_ABORT_MESSAGE,
@@ -9,7 +9,7 @@ import {
   hasStructuredHumanAbort,
 } from "./v090-abort-authority.js";
 
-function writeJson(path:string,value:unknown){mkdirSync(join(path,".."),{recursive:true});writeFileSync(path,JSON.stringify(value));}
+function writeJson(path:string,value:unknown){mkdirSync(dirname(path),{recursive:true});writeFileSync(path,JSON.stringify(value));}
 
 describe("v0.9 abort authority",()=>{
   it("recognizes structured OpenClaw rpc/stop-command abort evidence",()=>{
