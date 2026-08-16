@@ -14,6 +14,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     const api={runtime:{
       gateway:{request:gatewayRequest},
       agent:{session:{getSessionEntry}},
+      subagent:{getSessionMessages:vi.fn()},
       system:{runCommandWithTimeout:vi.fn()},
     }};
     const proxy=createContextMaintenanceApi(api);
@@ -28,12 +29,29 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     const api={runtime:{
       gateway:{request:vi.fn()},
       agent:{session:{getSessionEntry:()=>({sessionId:"physical-revision",contextTokens:32768,totalTokens:30000,totalTokensFresh:false})}},
+      subagent:{getSessionMessages:vi.fn()},
       system:{runCommandWithTimeout:vi.fn()},
     }};
     const proxy=createContextMaintenanceApi(api);
     const result=await proxy.runtime.gateway.request("sessions.describe",{key:"agent:main:dashboard:A"});
     expect(result.session).toEqual({contextTokens:32768,totalTokensFresh:false});
     expect(result.session.totalTokens).toBeUndefined();
+  });
+
+  it("reads bounded owner history through the supported subagent accessor",async()=>{
+    const gatewayRequest=vi.fn();
+    const getSessionMessages=vi.fn(async()=>({messages:[{role:"user",content:"a"},{role:"assistant",content:"b"}]}));
+    const api={runtime:{
+      gateway:{request:gatewayRequest},
+      agent:{session:{getSessionEntry:vi.fn()}},
+      subagent:{getSessionMessages},
+      system:{runCommandWithTimeout:vi.fn()},
+    }};
+    const proxy=createContextMaintenanceApi(api);
+    const result=await proxy.runtime.gateway.request("chat.history",{sessionKey:"agent:main:dashboard:A",limit:50,maxChars:50000});
+    expect(result.messages).toHaveLength(2);
+    expect(getSessionMessages).toHaveBeenCalledWith({sessionKey:"agent:main:dashboard:A",limit:50});
+    expect(gatewayRequest).not.toHaveBeenCalled();
   });
 
   it("delegates sessions.compact to the fixed Host adapter instead of privileged Gateway RPC",async()=>{
@@ -45,6 +63,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     const api={runtime:{
       gateway:{request:gatewayRequest},
       agent:{session:{getSessionEntry:vi.fn()}},
+      subagent:{getSessionMessages:vi.fn()},
       system:{runCommandWithTimeout},
     }};
     const proxy=createContextMaintenanceApi(api,{workspaceDir:"C:/workspace",cogentRoot:"C:/workspace/.cogent",pythonCommand:"python"});
@@ -67,10 +86,11 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     const api={runtime:{
       gateway:{request},
       agent:{session:{getSessionEntry:vi.fn()}},
+      subagent:{getSessionMessages:vi.fn()},
       system:{runCommandWithTimeout:vi.fn()},
     }};
     const proxy=createContextMaintenanceApi(api);
-    await expect(proxy.runtime.gateway.request("chat.history",{})).resolves.toBe(expected);
+    await expect(proxy.runtime.gateway.request("health",{})).resolves.toBe(expected);
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
