@@ -113,8 +113,10 @@ describe("CogentNexus v0.9.0 intent boundary", () => {
       const a=store.accept({runId:"a",ownerSessionKey:"agent:main:dashboard:test",prompt:"a"});
       const b=store.accept({runId:"b",ownerSessionKey:"agent:main:dashboard:test",prompt:"b"});
       store.route(a.ticketId,false); store.route(b.ticketId,true);
+      const db=new DatabaseSync(path);db.prepare("UPDATE tickets SET status='running',workflow_id='WF-CANCELLED' WHERE ticket_id=?").run(a.ticketId);db.close();
       const cancelled=cancelSessionTickets(path,{runId:"a",message:"explicit user stop"});
       expect(cancelled.cancelled.sort()).toEqual([a.ticketId,b.ticketId].sort());
+      expect(cancelled.workflowIds).toEqual(["WF-CANCELLED"]);
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 });

@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -7,7 +8,7 @@ import { hasVisibleAssistantOutput, parseDeliveryMarker, settleDeliveryTarget } 
 import baseEntry from "./index.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
-type Cfg={workspaceDir?:string;ticketDatabasePath?:string;ticketRecoveryPollMs?:number;timeoutSeconds?:number;admissionMinimumScore?:number};
+type Cfg={workspaceDir?:string;ticketDatabasePath?:string;ticketRecoveryPollMs?:number;timeoutSeconds?:number;admissionMinimumScore?:number;pythonCommand?:string};
 type Recovery={ticket_id:string;owner_session_key:string;prompt:string;mode:string;attempt_count:number};
 type Turn={sessionKey:string;delayMs:number;deleteAfterRun:boolean;deliveryMode:"announce";name:string;tag:string;message:string};
 const PATCH=Symbol.for("cogentnexus.v090.ticket-patch"), WRAP=Symbol.for("cogentnexus.v090.entry-wrap");
@@ -45,23 +46,45 @@ export function cancelSessionTickets(path:string,input:{runId:string;message?:st
   try{
     db.exec("BEGIN IMMEDIATE");
     const owner=db.prepare("SELECT owner_session_key FROM tickets WHERE run_id=? ORDER BY created_at DESC LIMIT 1").get(input.runId) as any;
-    if(!owner?.owner_session_key){db.exec("COMMIT");return{ownerSessionKey:null,cancelled:[] as string[]};}
-    const rows=db.prepare("SELECT ticket_id,status,run_id FROM tickets WHERE owner_session_key=? AND status IN ('accepted','planned','running','waiting') ORDER BY created_at,ticket_id").all(owner.owner_session_key) as any[];
-    const cancelled:string[]=[];
+    if(!owner?.owner_session_key){db.exec("COMMIT");return{ownerSessionKey:null,cancelled:[] as string[],workflowIds:[] as string[]};}
+    const rows=db.prepare("SELECT ticket_id,status,run_id,workflow_id FROM tickets WHERE owner_session_key=? AND status IN ('accepted','planned','running','waiting') ORDER BY created_at,ticket_id").all(owner.owner_session_key) as any[];
+    const cancelled:string[]=[],workflowIds:string[]=[];
     for(const row of rows){
       const changed=db.prepare(`UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,
         failure_class=NULL,failure_message=?,response_ready_at=NULL,delivery_last_error=NULL,updated_at=?
         WHERE ticket_id=? AND status IN ('accepted','planned','running','waiting')`).run(message,stamp,row.ticket_id);
       if(changed.changes!==1)continue;
       cancelled.push(row.ticket_id);
+      if(typeof row.workflow_id==="string"&&row.workflow_id)workflowIds.push(row.workflow_id);
       db.prepare("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'").run(row.ticket_id);
       db.prepare("UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=? WHERE ticket_id=?")
         .run(message,stamp,row.ticket_id);
       addEvent(db,row.ticket_id,"cancelled_by_user",{source:"openclaw-ui-stop",runId:input.runId,previousStatus:row.status,previousRunId:row.run_id,message},stamp);
     }
     db.exec("COMMIT");
-    return{ownerSessionKey:owner.owner_session_key as string,cancelled};
+    return{ownerSessionKey:owner.owner_session_key as string,cancelled,workflowIds:[...new Set(workflowIds)]};
   }catch(e){try{db.exec("ROLLBACK");}catch{}throw e;}finally{db.close();}
+}
+
+function suppressWorkflowCompletion(workspace:string,workflowId:string,reason:string){
+  const path=resolve(workspace,".cogent","workflows",workflowId,"completion.json");
+  if(!existsSync(path))return;
+  try{
+    const value=JSON.parse(readFileSync(path,"utf8"));
+    value.deliveryStatus="delivered";value.deliveredAt=now();value.suppressedBy="user-cancellation";value.suppressionReason=reason;
+    delete value.scheduledAt;delete value.deliveryRunId;
+    const tmp=`${path}.${process.pid}.v090-cancel.tmp`;writeFileSync(tmp,`${JSON.stringify(value,null,2)}\n`);renameSync(tmp,path);
+  }catch{}
+}
+function cancelBoundWorkflows(workspace:string,workflowIds:string[],reason:string,cfg:Cfg){
+  const runtime=resolve(workspace,"skills","cogentnexus","scripts","workflow.py"),results:Array<{workflowId:string;ok:boolean;error?:string}>=[];
+  for(const workflowId of workflowIds){
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u.test(workflowId)){results.push({workflowId,ok:false,error:"invalid workflow id"});continue;}
+    const run=spawnSync(cfg.pythonCommand??"python",[runtime,"--root",workspace,"cancel",workflowId,"--reason",reason],{encoding:"utf8",windowsHide:true,timeout:30000});
+    const ok=!run.error&&run.status===0;results.push({workflowId,ok,error:ok?undefined:(run.error?.message??run.stderr??run.stdout??"workflow cancellation failed").trim().slice(0,2000)});
+    if(ok)suppressWorkflowCompletion(workspace,workflowId,reason);
+  }
+  return results;
 }
 
 export function markDirectRecovery(path:string,input:{runId:string;mode:"resume"|"redeliver";message?:string;now?:Date}){
@@ -139,6 +162,13 @@ function recoveryService(api:any,cfg:Cfg){let timer:ReturnType<typeof setInterva
 export async function executeCompatibilityWake(api:any,cfg:Cfg,input:Turn){const workspace=resolve(cfg.workspaceDir??process.cwd()),path=dbPath(cfg,workspace),target=parseDeliveryMarker(input.message),store=new TicketStore(path);try{const before=await api.runtime.subagent.getSessionMessages({sessionKey:input.sessionKey,limit:8});const deliver=!isDashboardSession(input.sessionKey);const run=await api.runtime.subagent.run({sessionKey:input.sessionKey,message:input.message,deliver,idempotencyKey:`cnx-scheduled-${createHash("sha256").update(`${input.sessionKey}\0${input.tag}`).digest("hex").slice(0,40)}-${randomUUID().slice(0,8)}`});const o=await monitor(api,input.sessionKey,run.runId,fingerprint(before.messages??[]),Math.max(60000,Math.min((cfg.timeoutSeconds??3600)*1000,3600000)));if(target&&o.waited.status==="ok"&&o.fresh)settleDeliveryTarget({workspaceDir:workspace,store,target,success:true});else if(target&&o.waited.status!=="timeout")settleDeliveryTarget({workspaceDir:workspace,store,target,success:false,error:o.waited.error??"Compatibility wake produced no new visible assistant output"});return o;}catch(e){if(target)settleDeliveryTarget({workspaceDir:workspace,store,target,success:false,error:e instanceof Error?e.message:String(e)});api.logger.warn(`CogentNexus compatibility wake failed for ${input.tag}: ${e instanceof Error?e.message:String(e)}`);throw e;}}
 function compatWorkflow(api:any,cfg:Cfg){const timers=new Map<string,ReturnType<typeof setTimeout>>();const key=(s:string,t:string)=>`${s}\0${t}`;const unschedule=async(i:{sessionKey:string;tag:string})=>{const k=key(i.sessionKey,i.tag),x=timers.get(k);if(x){clearTimeout(x);timers.delete(k);}return{removed:x?1:0,failed:0};};const schedule=async(i:Turn)=>{await unschedule(i);const path=dbPath(cfg,resolve(cfg.workspaceDir??process.cwd()));if(i.tag.startsWith("cogent-resume-")||i.tag.startsWith("cogent-post-compact-")){markSession(path,i.sessionKey,i.tag.startsWith("cogent-post-compact-")?"Post-compaction continuation":"Interrupted Direct continuation");return{scheduled:true,compatibilityMode:"direct-recovery"};}const k=key(i.sessionKey,i.tag),t=setTimeout(()=>{timers.delete(k);void executeCompatibilityWake(api,cfg,i).catch(()=>{});},Math.max(0,i.delayMs??0));t.unref?.();timers.set(k,t);return{scheduled:true,compatibilityMode:"runtime-subagent"};};return{unscheduleSessionTurnsByTag:unschedule,scheduleSessionTurn:schedule};}
 
-function wrap(){const entry=baseEntry as any;if(entry[WRAP])return;Object.defineProperty(entry,WRAP,{value:true});const register=baseEntry.register?.bind(baseEntry);baseEntry.register=(api:any)=>{patchTicketStore();const cfg=(api.pluginConfig??{}) as Cfg,reg=api.registerService?.bind(api),proxy=Object.create(api);proxy.session={...api.session,workflow:{...api.session?.workflow,...compatWorkflow(api,cfg)}};proxy.registerService=(service:any)=>{if(!reg)return;if(service?.id!=="cogentnexus-ticket-recovery"||typeof service.start!=="function")return reg(service);reg({...service,start:async(ctx:any)=>{const workspace=resolve(cfg.workspaceDir??ctx.config?.agents?.defaults?.workspace??process.cwd()),p=prepareV090RecoveryState(workspace,cfg);api.logger.info?.(`CogentNexus v0.9.0 recovery migration: reopened=${p.reopened} cancelledLegacy=${p.cancelledLegacy} outboxReset=${p.outboxReset} workflowDeliveryReset=${p.workflowDeliveryReset}`);return service.start(ctx);}});};register?.(proxy);reg?.(recoveryService(api,cfg));};}
+function wrap(){const entry=baseEntry as any;if(entry[WRAP])return;Object.defineProperty(entry,WRAP,{value:true});const register=baseEntry.register?.bind(baseEntry);baseEntry.register=(api:any)=>{patchTicketStore();const cfg=(api.pluginConfig??{}) as Cfg,reg=api.registerService?.bind(api),proxy=Object.create(api);
+api.on?.("agent_end",(event:any,ctx:any)=>{
+  if(event.success||!event.runId||!isExplicitUserCancellation(event.error))return;
+  const workspace=resolve(ctx.workspaceDir??cfg.workspaceDir??process.cwd()),path=dbPath(cfg,workspace),reason=(event.error??"agent run aborted").slice(0,2000);
+  const cancelled=cancelSessionTickets(path,{runId:event.runId,message:reason});
+  const results=cancelBoundWorkflows(workspace,cancelled.workflowIds,reason,cfg);
+  for(const result of results)if(!result.ok)api.logger.warn?.(`CogentNexus workflow cancellation failed for ${result.workflowId}: ${result.error}`);
+},{priority:1000,timeoutMs:60000});proxy.session={...api.session,workflow:{...api.session?.workflow,...compatWorkflow(api,cfg)}};proxy.registerService=(service:any)=>{if(!reg)return;if(service?.id!=="cogentnexus-ticket-recovery"||typeof service.start!=="function")return reg(service);reg({...service,start:async(ctx:any)=>{const workspace=resolve(cfg.workspaceDir??ctx.config?.agents?.defaults?.workspace??process.cwd()),p=prepareV090RecoveryState(workspace,cfg);api.logger.info?.(`CogentNexus v0.9.0 recovery migration: reopened=${p.reopened} cancelledLegacy=${p.cancelledLegacy} outboxReset=${p.outboxReset} workflowDeliveryReset=${p.workflowDeliveryReset}`);return service.start(ctx);}});};register?.(proxy);reg?.(recoveryService(api,cfg));};}
 wrap();
 export default baseEntry;
