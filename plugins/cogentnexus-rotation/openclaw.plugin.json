@@ -27,6 +27,7 @@
       "contextHardTrimMaxLines": { "type": "integer", "minimum": 20, "maximum": 1000, "description": "First deterministic last-lines fallback when a hard-pressure session cannot be made safe by semantic compaction. OpenClaw archives the prior transcript." },
       "contextRecoveryHoldPollMs": { "type": "integer", "minimum": 250, "maximum": 5000, "description": "Polling interval while a committed Direct Recovery waits for its same-generation context-maintenance hold to settle." },
       "contextRecoveryHoldMaxMs": { "type": "integer", "minimum": 30000, "maximum": 3600000, "description": "Maximum bounded wait for context maintenance before the hidden recovery attempt fails and returns to durable retry policy." },
+      "recoveryOrderPollMs": { "type": "integer", "minimum": 100, "maximum": 5000, "description": "Polling interval while a claimed hidden Direct Recovery waits behind an older accepted Direct Recovery in the same session generation." },
       "syntheticPromptInlineChars": { "type": "integer", "minimum": 4000, "maximum": 48000, "description": "Maximum internal hidden-worker payload kept inline before exact content is externalized to a durable SHA-256 chunk bundle." },
       "syntheticPromptChunkChars": { "type": "integer", "minimum": 2000, "maximum": 24000, "description": "Maximum characters per deterministic chunk for an externalized internal hidden-worker payload." },
       "autoRotate": { "type": "boolean", "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default." },
