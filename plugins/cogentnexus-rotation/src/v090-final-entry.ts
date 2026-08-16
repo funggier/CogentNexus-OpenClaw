@@ -72,12 +72,14 @@ function wrapFinalEntry() {
     // Compact; that is a transcript revision, not Reset/Delete/Stop.
     const contextApi=createContextMaintenanceApi(runtimeProxy);
     const contextRegistration = Object.create(contextApi);
-    if (runtimeProxy.registerService) {
+    if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
         if (service?.id !== "cogentnexus-context-maintenance-v090" || typeof service.start !== "function") {
-          return runtimeProxy.registerService(service);
+          return proxy.registerService(service);
         }
-        return runtimeProxy.registerService({
+        // Register through the outer service proxy so context maintenance gets
+        // the same crash-start reconciliation as every other CNX service.
+        return proxy.registerService({
           ...service,
           start:async(ctx:any)=>{
             const workspaceDir=resolve(cfg.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
