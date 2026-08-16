@@ -1,4 +1,4 @@
-name: Prepare v0.8.4
+name: Finalize v0.8.4 baseline
 
 on:
   push:
@@ -20,22 +20,17 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - name: Apply v0.8.4 release preparation
+      - name: Align v0.8.4 canonical delivery wording
         run: python scripts/prepare_v084.py
       - name: Verify release metadata consistency
         run: python scripts/check_baseline_consistency.py
-      - name: Commit prepared v0.8.4 metadata
+      - name: Commit canonical baseline update
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add VERSION README.md docs/BASELINE.md docs/releases/v0.8.4.md \
-            plugins/cogentnexus-rotation/package.json \
-            plugins/cogentnexus-rotation/package-lock.json \
-            plugins/cogentnexus-rotation/openclaw.plugin.json \
-            plugins/cogentnexus-rotation/src/v084.ts \
-            plugins/cogentnexus-rotation/src/v084.test.ts
+          git add docs/BASELINE.md
           git diff --cached --check
-          git commit -m "Prepare CogentNexus v0.8.4 release"
+          git commit -m "Align v0.8.4 Direct delivery baseline"
           git push origin HEAD:agent/direct-recovery-v084
