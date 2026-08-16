@@ -17,10 +17,10 @@ function gatewayWithSession(session:any) {
 
 function holdFixture(root:string) {
   const path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
-  const ticketId="CNXT-11111111-2222-4333-8444-555555555555";
   const owner="agent:main:dashboard:A";
-  const receipt=store.accept({ticketId,runId:"run-hold",ownerSessionKey:owner,prompt:"long context task"} as any);
-  store.route(receipt.ticketId,false);
+  const receipt=store.accept({runId:"run-hold",ownerSessionKey:owner,prompt:"long context task"});
+  const ticketId=receipt.ticketId;
+  store.route(ticketId,false);
   const db=new DatabaseSync(path),stamp=new Date().toISOString();
   db.exec(`CREATE TABLE IF NOT EXISTS cnx_sessions(
     session_key TEXT PRIMARY KEY,state TEXT NOT NULL,generation INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
