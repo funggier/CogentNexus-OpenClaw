@@ -71,7 +71,7 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
       .resolves.toEqual({ok:true,tokensAfter:7000});
     const [argv,options]=runCommandWithTimeout.mock.calls[0];
     expect(argv[0]).toBe("python");
-    expect(argv).toContain("host_context.py");
+    expect(argv.some((value:string)=>value.replace(/\\/gu,"/").endsWith("/host_context.py"))).toBe(true);
     expect(argv).toContain("compact");
     expect(argv).toContain("agent:main:dashboard:A");
     expect(argv).toContain("120");
