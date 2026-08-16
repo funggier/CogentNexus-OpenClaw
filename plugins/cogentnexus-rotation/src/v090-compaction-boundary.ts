@@ -69,7 +69,12 @@ export function settleExistingContextHoldFromCompaction(input:{
     const contextWindow=Number(session.contextTokens)>0?Number(session.contextTokens):undefined;
     const eventTokens=Number(input.tokenCount)>0?Number(input.tokenCount):undefined;
     const freshTokens=session.totalTokensFresh===true&&Number(session.totalTokens)>0?Number(session.totalTokens):undefined;
-    const observed=eventTokens&&freshTokens?Math.max(eventTokens,freshTokens):(freshTokens??eventTokens);
+    // after_compaction is emitted from the compacted message set before the
+    // Gateway necessarily persists the new token counter into the session row.
+    // Therefore its tokenCount is the post-compaction measurement; the current
+    // session-row counter is only a fallback and may still describe the old
+    // transcript revision at this exact hook boundary.
+    const observed=eventTokens??freshTokens;
     if(observed===undefined||contextWindow===undefined) {
       db.prepare(`UPDATE cnx_context_maintenance SET session_id=COALESCE(?,session_id),last_tokens_after=COALESCE(?,last_tokens_after),
         last_action='native-compact-observed-unmeasured',updated_at=? WHERE session_key=? AND owner_generation=?
