@@ -154,9 +154,6 @@ export function patchTicketStore(){
   TicketStore.prototype.recoverUndeliveredDirect=function(input:Parameters<TicketStore["recoverUndeliveredDirect"]>[0]={}){
     const db=openDb(this.databasePath),n=input.now??new Date(),cutoff=new Date(n.getTime()-Math.max(1000,input.olderThanMs??120000)).toISOString(),stamp=n.toISOString();
     try{db.exec("BEGIN IMMEDIATE");
-    db.prepare("UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL").run();
-    cancelledOutboxSuppressed=Number(db.prepare("DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')").run().changes);
-    terminalRecoverySuppressed=Number(db.prepare("UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))").run(stamp).changes);
     const rows=db.prepare("SELECT ticket_id,run_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL AND response_ready_at<=? ORDER BY response_ready_at LIMIT ?").all(cutoff,Math.max(1,Math.min(input.limit??100,1000))) as any[];
       for(const r of rows){const m="Direct response delivery was not confirmed before deadline";db.prepare("UPDATE tickets SET failure_class='interrupted',failure_message=?,delivery_last_error=?,response_ready_at=NULL,updated_at=? WHERE ticket_id=?").run(m,m,stamp,r.ticket_id);queueRecovery(db,r.ticket_id,"redeliver",m,stamp);addEvent(db,r.ticket_id,"direct_redelivery_timeout",{runId:r.run_id,cutoff},stamp);}db.exec("COMMIT");return [];
     }catch(e){try{db.exec("ROLLBACK");}catch{}throw e;}finally{db.close();}
@@ -169,7 +166,11 @@ function fingerprint(messages:unknown[]){for(let i=messages.length-1;i>=0;i--){c
 function resetCompletions(workspace:string){const root=resolve(workspace,".cogent","workflows");if(!existsSync(root))return 0;let count=0;for(const e of readdirSync(root,{withFileTypes:true})){if(!e.isDirectory())continue;const path=join(root,e.name,"completion.json");if(!existsSync(path))continue;try{const n=JSON.parse(readFileSync(path,"utf8"));if(n?.deliveryStatus!=="pending"||(!n.scheduledAt&&!n.deliveryRunId))continue;delete n.scheduledAt;delete n.deliveryRunId;const tmp=`${path}.${process.pid}.v090.tmp`;writeFileSync(tmp,`${JSON.stringify(n,null,2)}\n`);renameSync(tmp,path);count++;}catch{}}return count;}
 export function prepareV090RecoveryState(workspace:string,cfg:Cfg={}){
   const path=dbPath(cfg,workspace),db=openDb(path),stamp=now();let reopened=0,outboxReset=0,cancelledLegacy=0,cancelledOutboxSuppressed=0,terminalRecoverySuppressed=0;
-  try{db.exec("BEGIN IMMEDIATE");const rows=db.prepare("SELECT ticket_id,prompt,status,workflow_eligible,failure_class,failure_message FROM tickets WHERE status IN ('waiting','failed') AND workflow_id IS NULL AND ((workflow_eligible=1 AND failure_class='interrupted') OR (status='failed' AND workflow_eligible=0 AND failure_class='permanent' AND failure_message='Reply operation aborted by user')) ORDER BY created_at").all() as any[];
+  try{db.exec("BEGIN IMMEDIATE");
+    db.prepare("UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL").run();
+    cancelledOutboxSuppressed=Number(db.prepare("DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')").run().changes);
+    terminalRecoverySuppressed=Number(db.prepare("UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))").run(stamp).changes);
+    const rows=db.prepare("SELECT ticket_id,prompt,status,workflow_eligible,failure_class,failure_message FROM tickets WHERE status IN ('waiting','failed') AND workflow_id IS NULL AND ((workflow_eligible=1 AND failure_class='interrupted') OR (status='failed' AND workflow_eligible=0 AND failure_class='permanent' AND failure_message='Reply operation aborted by user')) ORDER BY created_at").all() as any[];
     for(const r of rows){
       const legacyAbort=r.failure_class==="permanent"&&r.failure_message==="Reply operation aborted by user";
       if(legacyAbort){
