@@ -5,6 +5,7 @@ import { createCompactionBoundaryApi, installPassiveCompactionObserver } from ".
 import { createContextMaintenanceApi } from "./v090-context-api.js";
 import { installContextGuard } from "./v090-context-guard.js";
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
+import { installRecoveryOrderAdmission } from "./v090-recovery-order.js";
 import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
 import { prepareV090RecoveryState } from "./v090.js";
 import { defaultTicketDatabase } from "./ticket-store.js";
@@ -61,6 +62,11 @@ function wrapFinalEntry() {
 
     register?.(proxy);
 
+    // Ticket-first admission runs at priority 2000. This ordering fence runs at
+    // 1600, so every new human request is durably committed first, then blocked
+    // from overtaking an older Direct Recovery in the same CNX generation.
+    installRecoveryOrderAdmission(proxy,cfg);
+
     // Observe every successful OpenClaw compaction passively. The observer may
     // settle an already-authorized CNX context hold, but never creates a Ticket,
     // recovery row, scheduled turn, or inference solely because the user chose
@@ -77,8 +83,6 @@ function wrapFinalEntry() {
         if (service?.id !== "cogentnexus-context-maintenance-v090" || typeof service.start !== "function") {
           return proxy.registerService(service);
         }
-        // Register through the outer service proxy so context maintenance gets
-        // the same crash-start reconciliation as every other CNX service.
         return proxy.registerService({
           ...service,
           start:async(ctx:any)=>{
