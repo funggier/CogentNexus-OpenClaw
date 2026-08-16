@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { directRecoveryIdentity, predecessorRecovery } from "./v090-recovery-order.js";
 import { externalizeOversizedSyntheticPayload, type SyntheticPayloadConfig } from "./v090-synthetic-payload.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
@@ -8,6 +9,7 @@ type RuntimeSafetyConfig = SyntheticPayloadConfig & {
   ticketDatabasePath?:string;
   contextRecoveryHoldPollMs?:number;
   contextRecoveryHoldMaxMs?:number;
+  recoveryOrderPollMs?:number;
 };
 
 function positive(value:unknown):number|undefined {
@@ -35,9 +37,6 @@ export async function verifyCnxCompactionResult(input:{
   const isHardTrim=params?.maxLines!==undefined;
 
   if(!isHardTrim) {
-    // Model-backed semantic compaction normally reports tokensAfter. If neither
-    // the RPC nor a fresh session counter can measure it, force the caller into
-    // its bounded fallback path instead of accepting an unmeasured summary.
     const safeAfter=observedAfter??Number.MAX_SAFE_INTEGER;
     return {
       ...result,
@@ -72,11 +71,6 @@ export async function verifyCnxCompactionResult(input:{
     };
   }
 
-  // OpenClaw manual maxLines trimming may deliberately invalidate total-token
-  // metadata. In that case accept only a deterministic structural proof from
-  // the trim result itself. The next owner turn is still re-admitted through
-  // CNX context pressure, so structural acceptance cannot bypass inference
-  // safety even when one retained message is unusually large.
   if(structuralVerified) {
     return {
       ...result,
@@ -127,11 +121,7 @@ export function contextRecoveryHoldSnapshot(databasePath:string,hiddenSessionKey
     const state=String(row.state),action=String(row.last_action??"");
     if(["pending","running","degraded"].includes(state))return {hold:true,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
     if(state==="done")return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
-    // Retry exhaustion means session cleanup could not be completed safely, but
-    // the committed Ticket may still progress through its bounded hidden worker.
     if(state==="cancelled"&&action==="retry-limit")return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
-    // Every other cancelled maintenance state represents a lifecycle/ownership
-    // revocation and must not release stale work.
     if(state==="cancelled")return {hold:false,revoked:true,state,action,ownerSessionKey:ticket.owner_session_key};
     return {hold:false,revoked:false,state,action,ownerSessionKey:ticket.owner_session_key};
   } finally {db.close();}
@@ -153,6 +143,25 @@ async function waitForContextRelease(input:{databasePath:string;hiddenSessionKey
       input.logger.info?.(`CogentNexus holding hidden Direct Recovery ${ticketId} until context maintenance leaves state=${snapshot.state}`);
     }
     if(Date.now()>=deadline)throw new Error(`CogentNexus context recovery hold timed out for ${ticketId}`);
+    await new Promise((resolvePromise)=>setTimeout(resolvePromise,pollMs));
+  }
+}
+
+async function waitForRecoveryOrder(input:{databasePath:string;hiddenSessionKey:string;config:RuntimeSafetyConfig;logger:any}) {
+  const ticketId=directRecoveryTicketId(input.hiddenSessionKey);
+  const generation=generationFromHiddenSession(input.hiddenSessionKey);
+  if(!ticketId||generation===undefined)return;
+  const pollMs=Math.max(100,Math.min(Math.floor(input.config.recoveryOrderPollMs??500),5000));
+  let announcedPredecessor:string|undefined;
+  while(true) {
+    const identity=directRecoveryIdentity(input.databasePath,ticketId,generation) as any;
+    if(!identity.authorized)throw new Error(`CogentNexus Direct Recovery authority revoked while waiting for ordered lane (${identity.reason??"unknown"})`);
+    const predecessor=predecessorRecovery(input.databasePath,{ticketId,ownerSessionKey:identity.ownerSessionKey,ownerGeneration:generation}) as any;
+    if(!predecessor)return;
+    if(announcedPredecessor!==String(predecessor.ticket_id)) {
+      announcedPredecessor=String(predecessor.ticket_id);
+      input.logger.info?.(`CogentNexus holding Direct Recovery ${ticketId} behind ${announcedPredecessor} (${String(predecessor.state)}) in ${identity.ownerSessionKey}`);
+    }
     await new Promise((resolvePromise)=>setTimeout(resolvePromise,pollMs));
   }
 }
@@ -182,6 +191,7 @@ export function createCnxRuntimeSafetyProxy(api:any,config:RuntimeSafetyConfig={
       const message=typeof input?.message==="string"?input.message:"";
       if(!sessionKey.includes(":subagent:cnx-")||!/\[CogentNexus Internal/iu.test(message))return originalSubagent.run(input);
       if(/\[CogentNexus Internal Direct Recovery\]/iu.test(message)) {
+        await waitForRecoveryOrder({databasePath,hiddenSessionKey:sessionKey,config,logger:api.logger});
         await waitForContextRelease({databasePath,hiddenSessionKey:sessionKey,config,logger:api.logger});
       }
       const bounded=externalizeOversizedSyntheticPayload({workspaceDir,sessionKey,message,config});
