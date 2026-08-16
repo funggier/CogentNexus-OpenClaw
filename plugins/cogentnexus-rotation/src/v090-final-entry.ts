@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import entry, { reconcileOpenClawNativeTasks, reconcileV090LiveState } from "./v090-entry.js";
+import { createContextMaintenanceApi } from "./v090-context-api.js";
 import { installContextGuard } from "./v090-context-guard.js";
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
 import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
@@ -58,7 +59,11 @@ function wrapFinalEntry() {
 
     register?.(proxy);
 
-    const contextRegistration = Object.create(proxy);
+    // Context maintenance intentionally sees CNX generation as the ownership
+    // boundary. OpenClaw may rotate physical sessionId during a user/manual
+    // Compact; that is a transcript revision, not Reset/Delete/Stop.
+    const contextApi=createContextMaintenanceApi(proxy);
+    const contextRegistration = Object.create(contextApi);
     if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
         if (service?.id !== "cogentnexus-context-maintenance-v090" || typeof service.start !== "function") {
@@ -80,7 +85,7 @@ function wrapFinalEntry() {
         });
       };
     }
-    installContextGuard(proxy, contextRegistration, cfg);
+    installContextGuard(contextApi, contextRegistration, cfg);
   };
 }
 
