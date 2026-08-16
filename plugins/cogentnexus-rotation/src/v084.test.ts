@@ -52,6 +52,31 @@ describe("CogentNexus v0.8.4 recovery compatibility", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("reopens the exact v0.8.3 user-aborted Direct misclassification", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v084-legacy-abort-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const store = new TicketStore(path);
+      const ticket = store.accept({ runId: "legacy-abort", ownerSessionKey: "agent:main:dashboard:test", prompt: "สวัสดี" });
+      store.route(ticket.ticketId, false);
+      const db = new DatabaseSync(path);
+      db.prepare("UPDATE tickets SET status='failed',workflow_eligible=0,failure_class='permanent',failure_message='Reply operation aborted by user' WHERE ticket_id=?").run(ticket.ticketId);
+      db.prepare("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) VALUES (?,?,'failed','{}','pending',3,?)")
+        .run(ticket.ticketId, "agent:main:dashboard:test", new Date().toISOString());
+      db.close();
+      const prepared = prepareV084RecoveryState(root, { ticketDatabasePath: path });
+      expect(prepared.reopened).toBe(1);
+      const verify = new DatabaseSync(path, { readOnly: true });
+      expect(verify.prepare("SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({ status: "accepted", workflow_eligible: 0, failure_class: "interrupted" });
+      expect(verify.prepare("SELECT COUNT(*) AS count FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'").get(ticket.ticketId))
+        .toEqual({ count: 0 });
+      expect(verify.prepare("SELECT mode,state,attempt_count FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({ mode: "resume", state: "pending", attempt_count: 0 });
+      verify.close();
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it("settles a pending Ticket marker through runtime.subagent", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v084-wake-"));
     try {
