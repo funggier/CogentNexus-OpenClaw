@@ -16,7 +16,7 @@ $targetSkill = Join-Path $Workspace "skills\cogentnexus"
 $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
-$hostScript = Join-Path $targetSkill "scripts\host.py"
+$hostScript = Join-Path $targetSkill "scripts\host_v091.py"
 $hostControlScript = Join-Path $targetSkill "scripts\host_control_v091.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
 
@@ -59,11 +59,22 @@ Write-Host "Installed CogentNexus skill to $targetSkill"
 python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
-# Initialize Host state before policy integration. Existing registered companion
-# policy is preserved across Core updates; fresh installs seed the Core policy.
+# v0.9.1 fresh initialization is PASSTHROUGH. MANAGED is committed only after
+# the transactional Host enable sequence verifies every activation stage.
 python $hostScript --root $cogentRoot init
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
 
+if ($SkipGatewayRestart) {
+    $controllerPath = Join-Path $cogentRoot "host\controller.json"
+    $mode = if (Test-Path $controllerPath) { (Get-Content -LiteralPath $controllerPath -Raw | ConvertFrom-Json).mode } else { $null }
+    if ($mode -ne "passthrough") {
+        throw "-SkipGatewayRestart safe staging requires CogentNexus PASSTHROUGH mode. Run '.\cnx.cmd disable' before staging an upgrade."
+    }
+}
+
+# Policy application is harmless/no-op in PASSTHROUGH and remains available for
+# an already-managed normal upgrade. Transactional enable reapplies the exact
+# registered policy before committing MANAGED.
 if (-not $SkipAgentsPolicy) {
     python $hostScript --root $cogentRoot policy apply
     if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
@@ -103,6 +114,12 @@ if (-not $SkipPlugin) {
             openclaw plugins install . --force
         }
         if ($LASTEXITCODE -ne 0) { throw "plugin installation failed" }
+
+        # Installation may restart the managed Gateway as part of OpenClaw's
+        # native plugin lifecycle. Keep CNX inactive until transactional enable
+        # stages valid config and commits MANAGED.
+        openclaw plugins disable cogentnexus-rotation
+        if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus plugin disabled after installation" }
     }
     finally { Pop-Location }
 }
@@ -119,15 +136,16 @@ Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewli
 Write-Host "Installed Host Controller launcher to $launcher"
 
 if (-not $SkipGatewayRestart) {
-    # Host enable applies the currently registered managed policy, configures the
-    # bridge, enables background supervision, reconciles Gateway/provider health,
-    # and resumes eligible committed work. Use the control wrapper so watchdog
-    # compatibility is in force before the Gateway can be started/recovered.
+    # Host enable configures the disabled bridge, validates it, applies managed
+    # policy, enables startup supervision, starts/verifies Gateway+provider, and
+    # commits MANAGED only after those stages succeed.
     python $hostControlScript --root $cogentRoot enable
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
 }
 else {
-    Write-Host "Skipped Host enable because -SkipGatewayRestart was requested. Run .\cnx.cmd enable from the workspace when ready."
+    Write-Host "Skipped Host enable because -SkipGatewayRestart was requested."
+    Write-Host "Note: OpenClaw plugin installation itself may have restarted Gateway as part of its native plugin lifecycle."
+    Write-Host "CogentNexus remains PASSTHROUGH with its plugin disabled. Run .\cnx.cmd enable from the workspace when ready."
 }
 
 openclaw gateway status
