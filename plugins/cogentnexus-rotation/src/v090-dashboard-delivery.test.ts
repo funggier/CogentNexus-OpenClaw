@@ -9,7 +9,7 @@ import { installDashboardDirectSettlement } from "./v090-final-entry.js";
 describe("v0.9 Dashboard Direct delivery authority", () => {
   installDashboardDirectSettlement();
 
-  it("completes an exact Dashboard Direct Ticket at successful visible agent_end", () => {
+  it("completes an exact Dashboard Direct Ticket and signals run-map cleanup", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-dashboard-direct-"));
     try {
       const path = join(root, "tickets.sqlite3");
@@ -21,12 +21,14 @@ describe("v0.9 Dashboard Direct delivery authority", () => {
       });
       store.route(ticket.ticketId, false);
 
+      // "unchanged" is intentionally returned to the base agent_end handler as
+      // its no-receipt-pending cleanup signal. Durable state is completed below.
       expect(store.finalizeDirectRun({
         runId:"dashboard-run",
         success:true,
         interrupted:false,
         expectsDelivery:true,
-      })).toBe("completed");
+      })).toBe("unchanged");
 
       const db = new DatabaseSync(path, { readOnly:true });
       expect(db.prepare("SELECT status,response_ready_at,delivery_confirmed_at FROM tickets WHERE ticket_id=?")
