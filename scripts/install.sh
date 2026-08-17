@@ -26,6 +26,11 @@ done
 
 echo "Installing CogentNexus v$VERSION"
 
+if { [ "$SKIP_PLUGIN" -eq 1 ] || [ "$SKIP_AGENTS_POLICY" -eq 1 ]; } && [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
+  echo "--skip-plugin and --skip-agents-policy are staging-only options in v0.9.1. Use them with --skip-gateway-restart; transactional MANAGED enable requires the bridge and managed policy." >&2
+  exit 2
+fi
+
 for command_name in python openclaw; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "Required command not found: $command_name" >&2; exit 1; }
 done
@@ -85,8 +90,6 @@ PY
   fi
 fi
 
-# Transactional enable reapplies the registered policy before committing
-# MANAGED; in PASSTHROUGH this command is intentionally a no-op.
 if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
   python "$HOST_SCRIPT" --root "$COGENT_ROOT" policy apply
 fi
@@ -105,9 +108,6 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
       fi
       openclaw plugins install . --force
     fi
-
-    # Plugin code installation can restart the managed Gateway natively. Leave
-    # CNX disabled until the transactional Host enable stages valid config.
     openclaw plugins disable cogentnexus-rotation
   )
 fi
