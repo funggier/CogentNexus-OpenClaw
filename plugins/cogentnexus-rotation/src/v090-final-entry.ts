@@ -9,10 +9,11 @@ import { installNativeRestartRecoveryBoundary, reconcileNativeRestartRecoveryTic
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
 import { installRecoveryOrderAdmission } from "./v090-recovery-order.js";
 import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
-import { prepareV090RecoveryState } from "./v090.js";
-import { defaultTicketDatabase } from "./ticket-store.js";
+import { isDashboardSession, prepareV090RecoveryState } from "./v090.js";
+import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 const WRAPPED = Symbol.for("cogentnexus.v090.final-entry");
+const DASHBOARD_DIRECT_SETTLEMENT = Symbol.for("cogentnexus.v090.dashboard-direct-settlement");
 
 function recoverCrashStaleContextRows(databasePath:string) {
   const db=new DatabaseSync(databasePath),stamp=new Date().toISOString();
@@ -28,6 +29,36 @@ function recoverCrashStaleContextRows(databasePath:string) {
           AND s.state='active' AND s.generation=cnx_context_maintenance.owner_generation)`)
       .run(stamp,stamp).changes);
   } finally {db.close();}
+}
+
+/**
+ * Dashboard/webchat replies are delivered by the in-process agent stream rather
+ * than an external channel dispatch. OpenClaw 2026.7.1 documents that outbound
+ * message_sent does not carry runId and dashboard runs may not provide a usable
+ * channel receipt. For an exact Dashboard Ticket, successful agent_end with
+ * visible output is therefore the delivery authority: complete it immediately
+ * instead of waiting for a channel receipt that can never correlate reliably.
+ * External channel sessions keep the normal message_sent confirmation path.
+ */
+export function installDashboardDirectSettlement() {
+  const prototype = TicketStore.prototype as any;
+  if (prototype[DASHBOARD_DIRECT_SETTLEMENT]) return;
+  Object.defineProperty(prototype, DASHBOARD_DIRECT_SETTLEMENT, { value:true });
+  const finalize = TicketStore.prototype.finalizeDirectRun;
+  TicketStore.prototype.finalizeDirectRun = function(input: Parameters<TicketStore["finalizeDirectRun"]>[0]) {
+    if (input.success && input.expectsDelivery !== false) {
+      const db = new DatabaseSync(this.databasePath, { readOnly:true });
+      try {
+        const row = db.prepare(`SELECT owner_session_key FROM tickets
+          WHERE run_id=? AND status='accepted' AND workflow_eligible=0
+          ORDER BY created_at DESC LIMIT 1`).get(input.runId) as {owner_session_key?:string} | undefined;
+        if (row?.owner_session_key && isDashboardSession(row.owner_session_key)) {
+          return finalize.call(this, { ...input, expectsDelivery:false });
+        }
+      } finally { db.close(); }
+    }
+    return finalize.call(this, input);
+  };
 }
 
 function wrapFinalEntry() {
@@ -73,6 +104,10 @@ function wrapFinalEntry() {
     }
 
     register?.(proxy);
+
+    // Base/v0.9 wrappers are installed during register(). Layer the Dashboard
+    // delivery authority last so it sees the final Direct settlement behavior.
+    installDashboardDirectSettlement();
 
     // Ticket-first admission runs at priority 2000. This ordering fence runs at
     // 1600, so every new human request is durably committed first, then blocked
