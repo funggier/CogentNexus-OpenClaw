@@ -119,8 +119,8 @@ def durable_work_hint(root: Path) -> bool:
     """Read-only fallback hint for committed work that should wake recovery.
 
     The scheduled supervisor must not assume that healthy TCP endpoints imply
-    healthy workers. If a Ticket/outbox/recovery row remains actionable, enter
-    the proven heavy reconciliation path even while Gateway and Ollama respond.
+    healthy workers. If a Ticket/outbox/recovery/delivery row remains actionable,
+    enter the proven heavy reconciliation path even while Gateway and Ollama respond.
     """
     path = legacy.ticket_db(root)
     if not path.exists():
@@ -138,8 +138,12 @@ def durable_work_hint(root: Path) -> bool:
             "SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
         ).fetchone():
             return True
+        if _db_table_exists(db, "cnx_assistant_delivery") and db.execute(
+            "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
+        ).fetchone():
+            return True
         if _db_table_exists(db, "cnx_direct_recovery") and db.execute(
-            "SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded') LIMIT 1"
+            "SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded','awaiting_delivery') LIMIT 1"
         ).fetchone():
             return True
         if _db_table_exists(db, "cnx_context_maintenance") and db.execute(
@@ -158,9 +162,9 @@ def durable_work_hint(root: Path) -> bool:
 def configure_managed_plugin() -> None:
     """Stage all managed settings while the plugin is disabled.
 
-    Polling defaults are deliberately relaxed from 5s to 60s. Event hooks still
-    handle normal request/delivery boundaries immediately; periodic work is a
-    recovery safety net, not the primary execution mechanism.
+    Compatibility interval fields are kept conservative for older internal
+    layers, while v0.9.1 replaces the production workers with event/deadline
+    driven services. They are no longer the primary execution mechanism.
     """
     settings = [
         ("ticketFirst", "true"),
