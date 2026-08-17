@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ACTIVE_RECONCILE_MS, DEEP_RECONCILE_MS, IDLE_RECONCILE_MS, managedIdleConfig } from "./v091-final-entry.js";
+import {
+  ACTIVE_RECONCILE_MS,
+  DEEP_RECONCILE_MS,
+  IDLE_RECONCILE_MS,
+  managedIdleConfig,
+  shouldRunDeepReconcile,
+} from "./v091-final-entry.js";
 
-describe("v0.9 release idle quiescence", () => {
+describe("v0.9.1 managed idle quiescence", () => {
   it("raises managed polling floors away from the 5 second hot loop", () => {
     const config = managedIdleConfig({
       ticketFirst: true,
@@ -29,5 +35,12 @@ describe("v0.9 release idle quiescence", () => {
     expect(IDLE_RECONCILE_MS).toBeGreaterThanOrEqual(120_000);
     expect(DEEP_RECONCILE_MS).toBeGreaterThanOrEqual(10 * 60_000);
     expect(IDLE_RECONCILE_MS).toBeGreaterThan(ACTIVE_RECONCILE_MS);
+  });
+
+  it("never wakes a deep scan from elapsed time alone while truly idle", () => {
+    expect(shouldRunDeepReconcile(false, false, DEEP_RECONCILE_MS * 100)).toBe(false);
+    expect(shouldRunDeepReconcile(false, true, DEEP_RECONCILE_MS - 1)).toBe(false);
+    expect(shouldRunDeepReconcile(false, true, DEEP_RECONCILE_MS)).toBe(true);
+    expect(shouldRunDeepReconcile(true, false, 0)).toBe(true);
   });
 });
