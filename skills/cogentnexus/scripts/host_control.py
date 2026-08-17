@@ -35,6 +35,15 @@ def creation_flags() -> int:
     return subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
 
+def captured_text(value: str | bytes | None) -> str:
+    """Normalize subprocess output without assuming a console/captured stream exists."""
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return str(value)
+
+
 def run(cmd: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
@@ -109,7 +118,7 @@ def config_get(path: str) -> tuple[bool, Any]:
     result = run([openclaw_executable(), "config", "get", path, "--json"], timeout=30)
     if result.returncode != 0:
         return False, None
-    raw = result.stdout.strip()
+    raw = captured_text(result.stdout).strip()
     if not raw:
         return True, None
     try:
@@ -124,13 +133,15 @@ def config_set(path: str, value: Any) -> None:
         timeout=60,
     )
     if result.returncode != 0:
-        raise RuntimeError((result.stderr or result.stdout or f"failed to set {path}").strip())
+        detail = captured_text(result.stderr) or captured_text(result.stdout) or f"failed to set {path}"
+        raise RuntimeError(detail.strip())
 
 
 def config_unset(path: str) -> None:
     result = run([openclaw_executable(), "config", "unset", path], timeout=60)
     if result.returncode != 0:
-        raise RuntimeError((result.stderr or result.stdout or f"failed to unset {path}").strip())
+        detail = captured_text(result.stderr) or captured_text(result.stdout) or f"failed to unset {path}"
+        raise RuntimeError(detail.strip())
 
 
 def write_snapshot(root: Path, value: dict[str, Any]) -> None:
@@ -226,12 +237,27 @@ def should_apply(root: Path, command: str | None, action: str | None) -> bool:
     return False
 
 
+def _forward(stream: Any, value: str | bytes | None) -> None:
+    text = captured_text(value)
+    if not text or stream is None:
+        return
+    stream.write(text)
+    try:
+        stream.flush()
+    except Exception:
+        pass
+
+
 def delegate(argv: list[str]) -> int:
+    """Run Host hidden on Windows but explicitly relay output for interactive callers."""
     result = subprocess.run(
         [sys.executable, str(HOST), *argv],
+        capture_output=True,
         text=True,
         creationflags=creation_flags(),
     )
+    _forward(sys.stdout, result.stdout)
+    _forward(sys.stderr, result.stderr)
     return int(result.returncode)
 
 
