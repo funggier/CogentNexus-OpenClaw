@@ -46,6 +46,7 @@ type PreRuntimeFenceResult = {
 
 const WRAPPED = Symbol.for("cogentnexus.v090.entry.host-reconciliation");
 const LIVE_POLICY_PATCH = Symbol.for("cogentnexus.v090.live-policy-patch");
+export const PRE_RUNTIME_FENCE = Symbol.for("cogentnexus.v090.pre-runtime-fence");
 const CNX_PLUGIN_LABEL = "plugin:cogentnexus-rotation";
 const ACTIVE_NATIVE_TASK_STATUSES = new Set(["queued", "running"]);
 const TERMINAL_NATIVE_TICKET_STATUSES = new Set(["failed", "cancelled"]);
@@ -401,6 +402,7 @@ function wrapEntry() {
         if (!service || typeof service.start !== "function") return api.registerService(service);
         api.registerService({
           ...service,
+          [PRE_RUNTIME_FENCE]:ensurePreRuntimeFence,
           start: async (ctx: any) => {
             await ensurePreRuntimeFence(ctx);
             return service.start(ctx);
