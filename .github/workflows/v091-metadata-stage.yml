@@ -1,0 +1,80 @@
+name: v091 metadata stage
+
+on:
+  push:
+    branches:
+      - automation/v0.9.1-metadata-stage
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    if: github.event.head_commit.message == 'Stage v0.9.1 metadata automation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Apply v0.9.1 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '0.9.1\n' > VERSION
+          cd plugins/cogentnexus-rotation
+          npm version 0.9.1 --no-git-tag-version --allow-same-version
+          cd ../..
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'plugins/cogentnexus-rotation/openclaw.plugin.json';
+          const value = JSON.parse(fs.readFileSync(path, 'utf8'));
+          value.version = '0.9.1';
+          fs.writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
+          NODE
+          cat > docs/releases/v0.9.1.md <<'EOF'
+          # CogentNexus v0.9.1
+
+          v0.9.1 is a live-hardening maintenance release focused on transactional Host lifecycle, idle quiescence, and recovery continuity. It intentionally does not add model RAM residency, prefetch, or provider cache orchestration to the CogentNexus core.
+
+          ## Highlights
+
+          - Transactional managed activation: CogentNexus commits MANAGED only after plugin configuration, managed policy, startup adapter, runtime health, Gateway health, and session bootstrap succeed. Any activation failure returns to native PASSTHROUGH instead of leaving a partially managed runtime.
+          - Transactional disable/native restoration: CogentNexus surfaces are removed and native Gateway health is verified before PASSTHROUGH is committed.
+          - Terminal intent fencing runs before managed services wake, preventing cancelled, failed, or completed Tickets from resurrecting stale outbox or recovery work.
+          - Production Host, Ticket, workflow completion, Direct Recovery, and context-maintenance workers are event/deadline driven instead of relying on frequent idle polling.
+          - Durable Ticket mutations wake workers after commit. Workflow filesystem changes wake completion and recovery paths immediately.
+          - Lease renewal, admission retries, delivery deadlines, and retry backoff use active-only one-shot wakes. A truly idle runtime carries no active work timer.
+          - Direct Recovery preserves exact session-generation authority, stale-claim recovery, durable answer delivery, and retry deadlines without permanent polling.
+          - Pending assistant delivery is durable actionable work for both the plugin and external supervisor, so a completed answer can be transported again without regeneration after a transport failure or restart.
+          - The external supervisor uses lightweight Gateway/Ollama and read-only SQLite probes while healthy and idle, entering the heavier recovery path only for endpoint failure or committed work that still needs action.
+          - A confirmed unresponsive Gateway is probed twice before a recoverable restart. A transient single probe failure does not restart the Gateway.
+          - Slow local inference is not classified as a hang from Ticket age alone; v0.9.1 does not introduce an arbitrary model-response timeout.
+          - Model RAM residency remains native Ollama/OpenClaw behavior and is not managed by CogentNexus.
+
+          ## Validation checkpoint
+
+          The code-freeze candidate at `598f0e0d4f1e74f22ffa177c735e69e95e5865dd` passed the full validation matrix on Ubuntu, macOS, and Windows with Python 3.11 and 3.14. The matrix includes Python validation/self-tests, workflow tests, installer syntax checks, unit tests, npm tests, evaluation, production dependency audit, and OpenClaw plugin validation.
+
+          ## Release gate
+
+          Tagging and public release remain intentionally held until Windows live acceptance verifies the exact release candidate end to end, including native chat before/after disable, managed idle quiescence, Direct and durable workload flow, confirmed Gateway hard-hang restart/recovery from durable Ticket state, durable assistant-delivery continuity, and exact watchdog restoration.
+          EOF
+          rm .github/workflows/v091-metadata-stage.yml
+      - name: Commit staged metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION \
+            plugins/cogentnexus-rotation/package.json \
+            plugins/cogentnexus-rotation/package-lock.json \
+            plugins/cogentnexus-rotation/openclaw.plugin.json \
+            docs/releases/v0.9.1.md \
+            .github/workflows/v091-metadata-stage.yml
+          git diff --cached --check
+          git commit -m "Release metadata for CogentNexus v0.9.1"
+          git push origin HEAD:${GITHUB_REF_NAME}
