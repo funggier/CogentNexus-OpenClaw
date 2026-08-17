@@ -40,8 +40,7 @@ function tableExists(db: DatabaseSync, name: string) {
 
 /**
  * Read-only idle gate. No durable mutation is performed merely because a timer
- * fired. Heavy recovery reconciliation runs only when actionable work is visible
- * or during the infrequent deep safety sweep.
+ * fired. Heavy recovery reconciliation runs only when actionable work is visible.
  */
 export function idleWorkHint(databasePath: string): boolean {
   if (!existsSync(databasePath)) return false;
@@ -59,11 +58,16 @@ export function idleWorkHint(databasePath: string): boolean {
     return false;
   } catch {
     // A locked/older schema is not proof of quiescence. Let the bounded safety
-    // sweep inspect it rather than silently suppressing recovery.
+    // path inspect it rather than silently suppressing recovery.
     return true;
   } finally {
     db.close();
   }
+}
+
+export function shouldRunDeepReconcile(forceDeep: boolean, hinted: boolean, elapsedMs: number): boolean {
+  if (forceDeep) return true;
+  return hinted && elapsedMs >= DEEP_RECONCILE_MS;
 }
 
 export function isAdaptiveHostReconciliation(service: any): boolean {
@@ -87,9 +91,12 @@ function createAdaptiveHostReconciliation(api: any, config: any) {
         active = true;
         try {
           const now = Date.now();
-          const deep = forceDeep || now - lastDeepReconcileAt >= DEEP_RECONCILE_MS;
           const hinted = idleWorkHint(databasePath);
-          if (!deep && !hinted) return false;
+          // True idle must remain idle indefinitely. A deep scan is allowed at
+          // service startup, or while actionable durable work is already visible;
+          // elapsed wall-clock time alone never wakes heavy reconciliation.
+          const deep = shouldRunDeepReconcile(forceDeep, hinted, now - lastDeepReconcileAt);
+          if (!forceDeep && !hinted) return false;
 
           let activity = hinted;
           if (deep) {
@@ -109,7 +116,9 @@ function createAdaptiveHostReconciliation(api: any, config: any) {
             api.logger.info?.(`CogentNexus live policy reconciliation: abortFailuresCancelled=${live.abortFailuresCancelled} abortOutboxSuppressed=${live.abortOutboxSuppressed} failedOutboxSuppressed=${live.failedOutboxSuppressed} terminalRecoverySuppressed=${live.terminalRecoverySuppressed}`);
           }
 
-          if (deep || hinted) {
+          // `hinted` is required on every non-startup pass, so native task scans
+          // never run merely because an idle timer fired.
+          if (forceDeep || hinted) {
             const native = await reconcileOpenClawNativeTasks(api, ctx, databasePath);
             const nativeActivity = native.fenced > 0 || native.failed > 0 || native.syntheticFenced > 0 || native.syntheticFailed > 0;
             activity ||= nativeActivity;
