@@ -21,6 +21,13 @@ def main() -> int:
     root = legacy.root_from_argv(argv)
     command, action = legacy.command_from_argv(argv)
 
+    # Before first initialization there is no authority to assume MANAGED. Route
+    # non-enable commands directly to host_v091, which seeds PASSTHROUGH. This
+    # prevents a portable `cnx gateway start` or `cnx status` from applying the
+    # managed watchdog merely because controller.json does not exist yet.
+    if command != "enable" and not (root / "host" / "controller.json").exists():
+        return legacy.delegate(argv)
+
     # The scheduled supervisor must remain file/socket-only while healthy.
     # Calling legacy.main() here would run apply_watchdog_compat(), which invokes
     # `openclaw config get` and spins up Node once per schedule even when idle.
