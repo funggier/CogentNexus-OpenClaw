@@ -43,6 +43,15 @@ class HostV091Tests(unittest.TestCase):
             "generation": 40,
         })
 
+    def seed_managed(self, root: Path):
+        return cnx.legacy.save_state(root, {
+            "schemaVersion": 1,
+            "mode": "managed",
+            "desiredGateway": "running",
+            "desiredProvider": "running",
+            "generation": 2,
+        })
+
     def stub_enable_dependencies(self):
         self.patch(cnx.legacy, "plugin_enabled", lambda _enabled: None)
         self.patch(cnx, "configure_managed_plugin", lambda: None)
@@ -128,13 +137,7 @@ class HostV091Tests(unittest.TestCase):
     def test_idle_supervisor_never_enters_heavy_path_when_responsive(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
-            cnx.legacy.save_state(root, {
-                "schemaVersion": 1,
-                "mode": "managed",
-                "desiredGateway": "running",
-                "desiredProvider": "running",
-                "generation": 2,
-            })
+            self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: True)
             self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda *_args, **_kwargs: self.fail("heavy supervisor must remain asleep"))
@@ -144,22 +147,35 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(result["action"], "none")
             self.assertEqual(result["probe"], "lightweight-http+sqlite-ro")
 
-    def test_failed_fast_probe_delegates_to_recovery_path(self):
+    def test_confirmed_gateway_hang_restarts_before_heavy_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
-            cnx.legacy.save_state(root, {
-                "schemaVersion": 1,
-                "mode": "managed",
-                "desiredGateway": "running",
-                "desiredProvider": "running",
-                "generation": 2,
-            })
+            self.seed_managed(root)
+            calls = []
             self.patch(cnx, "gateway_fast_probe", lambda: False)
             self.patch(cnx, "ollama_fast_probe", lambda: True)
-            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result":"recovery","execute":execute})
+            self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: calls.append("restart") or {"attempted": True, "exitCode": 0})
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: calls.append("heavy") or {"result":"recovery","execute":execute})
 
             result = cnx.supervisor_tick(root, True)
-            self.assertEqual(result, {"result":"recovery","execute":True})
+            self.assertEqual(calls, ["restart", "heavy"])
+            self.assertEqual(result["result"], "recovery")
+            self.assertEqual(result["hardHangRecovery"], {"attempted": True, "exitCode": 0})
+
+    def test_transient_gateway_probe_failure_does_not_restart(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            self.seed_managed(root)
+            outcomes = iter([False, True])
+            self.patch(cnx, "gateway_fast_probe", lambda: next(outcomes))
+            self.patch(cnx, "ollama_fast_probe", lambda: True)
+            self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: self.fail("transient probe must not restart Gateway"))
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda *_args, **_kwargs: self.fail("recovered fast probe must remain on idle path"))
+
+            result = cnx.supervisor_tick(root, True)
+            self.assertEqual(result["result"], "idle")
 
 
 if __name__ == "__main__":
