@@ -50,6 +50,32 @@ class HostControlV091IdleTests(unittest.TestCase):
             self.assertIn("supervisor", calls[0][1])
             self.assertIn("tick", calls[0][1])
 
+    def test_fresh_non_enable_command_delegates_without_managed_watchdog_assumption(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            original_argv = list(cnx.legacy.sys.argv)
+            original_delegate = cnx.legacy.delegate
+            original_apply = cnx.legacy.apply_watchdog_compat
+            original_main = cnx.legacy.main
+            calls = []
+            try:
+                cnx.legacy.sys.argv = ["host_control_v091.py", "--root", str(root), "status"]
+                cnx.legacy.delegate = lambda argv: calls.append(("delegate", list(argv))) or 0
+                cnx.legacy.apply_watchdog_compat = lambda _root: self.fail("fresh native status must not apply managed watchdog")
+                cnx.legacy.main = lambda: self.fail("fresh native status must initialize through host_v091")
+
+                self.assertFalse((root / "host" / "controller.json").exists())
+                self.assertEqual(cnx.main(), 0)
+            finally:
+                cnx.legacy.sys.argv = original_argv
+                cnx.legacy.delegate = original_delegate
+                cnx.legacy.apply_watchdog_compat = original_apply
+                cnx.legacy.main = original_main
+
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][0], "delegate")
+            self.assertIn("status", calls[0][1])
+
 
 if __name__ == "__main__":
     unittest.main()
