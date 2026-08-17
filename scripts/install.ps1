@@ -17,7 +17,7 @@ $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
 $hostScript = Join-Path $targetSkill "scripts\host.py"
-$hostControlScript = Join-Path $targetSkill "scripts\host_control.py"
+$hostControlScript = Join-Path $targetSkill "scripts\host_control_v091.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
 
 function Require-Command([string]$Name) {
@@ -108,8 +108,9 @@ if (-not $SkipPlugin) {
 }
 
 # Zero-dependency workspace launcher. It remains usable while OpenClaw is down.
-# Route operator commands through host_control.py so managed compatibility
-# policy is applied/restored before Host lifecycle actions can start Gateway.
+# Route operator commands through the transactional control wrapper so managed
+# compatibility policy is applied/restored before Host lifecycle actions can
+# start Gateway, and failed enable rolls back to native passthrough.
 $launcher = Join-Path $Workspace "cnx.cmd"
 $hostControlEscaped = $hostControlScript.Replace('"','""')
 $rootEscaped = $cogentRoot.Replace('"','""')
