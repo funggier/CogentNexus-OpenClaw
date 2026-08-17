@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""CogentNexus v0.9.0 live-hardening compatibility layer.
+"""CogentNexus v0.9.1 live-hardening compatibility layer.
 
-Keeps the proven Host implementation intact while adding two invariants found
-by live Windows acceptance:
+Keeps the proven Host implementation intact while adding the invariants found
+by live Windows acceptance and end-to-end wiring review:
 
-1. enable is transactional: failure returns to native passthrough state; and
-2. an idle healthy runtime is quiescent: the external supervisor uses a small
-   socket-level health probe and only enters the heavy reconciliation path when
-   Gateway/provider responsiveness is actually lost.
+1. enable is transactional: failure returns to native passthrough state;
+2. fresh initialization starts in passthrough until enable commits managed;
+3. startup adapters route through the v0.9.1 control wrapper; and
+4. an idle healthy runtime is quiescent: the external supervisor uses a small
+   socket-level health probe and only enters heavy reconciliation when Gateway
+   or provider responsiveness is actually lost.
 """
 from __future__ import annotations
 
@@ -19,10 +21,33 @@ from typing import Any
 
 import host as legacy
 
+HERE = Path(__file__).resolve()
 LEGACY_SUPERVISOR_TICK = legacy.supervisor_tick
 IDLE_GATEWAY_PORT = 18789
 IDLE_OLLAMA_PORT = 11434
 IDLE_PROBE_TIMEOUT_SECONDS = 0.75
+
+
+def safe_default_state() -> dict[str, Any]:
+    """Fresh installs are native until transactional enable commits MANAGED."""
+    return {
+        "schemaVersion": 1,
+        "mode": "passthrough",
+        "desiredGateway": "running",
+        "desiredProvider": "unchanged",
+        "generation": 1,
+        "updatedAt": legacy.now_iso(),
+    }
+
+
+def startup_path_v091() -> Path:
+    return HERE.with_name("startup_v091.py")
+
+
+# All calls routed through this compatibility layer inherit safe initialization
+# and scheduler wiring without rewriting the proven legacy implementation.
+legacy.default_state = safe_default_state
+legacy.startup_path = startup_path_v091
 
 
 def _snapshot_file(path: Path) -> tuple[bool, bytes]:
@@ -134,13 +159,27 @@ def _restore_native_gateway() -> dict[str, Any]:
     }
 
 
+def _force_passthrough_without_generation_bump(root: Path, prior: dict[str, Any]) -> dict[str, Any]:
+    """Fail-safe durable rollback while preserving the pre-attempt generation."""
+    if prior.get("mode") == "passthrough":
+        return legacy.load_state(root)
+    restored = dict(prior)
+    restored.update({
+        "mode": "passthrough",
+        "desiredGateway": "running",
+        "desiredProvider": "unchanged",
+    })
+    return legacy.save_state(root, restored)
+
+
 def enable(root: Path) -> dict[str, Any]:
     """Enter MANAGED only after every activation stage is verified.
 
     Durable Host state is intentionally the final commit. Until then the system
     remains PASSTHROUGH from the Host's point of view. A failed attempt disables
     CNX surfaces again, restores the exact pre-enable AGENTS.md bytes, removes
-    startup supervision, and returns Gateway to native operation.
+    startup supervision, restores native Gateway operation, and never advances
+    the Host generation merely because activation failed.
     """
     legacy.initialize(root)
     prior = legacy.load_state(root)
@@ -150,27 +189,31 @@ def enable(root: Path) -> dict[str, Any]:
     started = legacy.now_iso()
 
     policy_changed = False
-    plugin_activated = False
-    startup_activated = False
-    runtime_touched = False
+    configuration_attempted = False
+    plugin_enable_attempted = False
+    startup_attempted = False
+    runtime_start_attempted = False
     rollback: list[dict[str, Any]] = []
 
     try:
         # Configuration while disabled avoids OpenClaw hot-reload races observed
         # in the failed live v0.9 enable attempt.
         legacy.plugin_enabled(False)
+        configuration_attempted = True
         configure_managed_plugin()
         validate_managed_config()
 
         policy_changed = legacy.apply_policy(workspace, root)
+        plugin_enable_attempted = True
         legacy.plugin_enabled(True)
-        plugin_activated = True
 
+        # Mark the attempt before invoking startup. The adapter may have been
+        # created successfully even if its final verification then raises.
+        startup_attempted = True
         startup_result = legacy.startup(root, "enable", check=True)
-        startup_activated = True
 
+        runtime_start_attempted = True
         lifecycle = legacy.runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
-        runtime_touched = True
 
         gateway = legacy.gateway_status()
         if not gateway.get("healthy"):
@@ -184,32 +227,46 @@ def enable(root: Path) -> dict[str, Any]:
         # this transition. Failure before here leaves generation/state untouched.
         state = legacy.transition(root, mode="managed", desiredGateway="running", desiredProvider="running")
     except Exception as error:
-        if startup_activated:
+        if startup_attempted:
             try:
                 result = legacy.startup(root, "disable", check=False)
-                rollback.append({"stage":"startup-disable","exitCode":result.returncode})
+                rollback.append({"stage": "startup-disable", "exitCode": result.returncode})
             except Exception as rollback_error:
-                rollback.append({"stage":"startup-disable","error":str(rollback_error)})
+                rollback.append({"stage": "startup-disable", "error": str(rollback_error)})
         try:
             legacy.plugin_enabled(False)
-            rollback.append({"stage":"plugin-disable","ok":True})
+            rollback.append({"stage": "plugin-disable", "ok": True})
         except Exception as rollback_error:
-            rollback.append({"stage":"plugin-disable","error":str(rollback_error)})
+            rollback.append({"stage": "plugin-disable", "error": str(rollback_error)})
         try:
             legacy.runtime(root, "lifecycle", "cancel", timeout=60, check=False)
-            rollback.append({"stage":"lifecycle-cancel","ok":True})
+            rollback.append({"stage": "lifecycle-cancel", "ok": True})
         except Exception as rollback_error:
-            rollback.append({"stage":"lifecycle-cancel","error":str(rollback_error)})
+            rollback.append({"stage": "lifecycle-cancel", "error": str(rollback_error)})
         try:
             _restore_file(agents_path, agents_snapshot)
-            rollback.append({"stage":"policy-restore","ok":True})
+            rollback.append({"stage": "policy-restore", "ok": True})
         except Exception as rollback_error:
-            rollback.append({"stage":"policy-restore","error":str(rollback_error)})
-        if plugin_activated or startup_activated or runtime_touched:
+            rollback.append({"stage": "policy-restore", "error": str(rollback_error)})
+
+        # Any OpenClaw configuration/plugin/startup/runtime attempt may have
+        # triggered a native reload. End failure in an explicitly healthy native
+        # Gateway rather than assuming which activation step had side effects.
+        if configuration_attempted or plugin_enable_attempted or startup_attempted or runtime_start_attempted:
             try:
-                rollback.append({"stage":"native-gateway-restore", **_restore_native_gateway()})
+                rollback.append({"stage": "native-gateway-restore", **_restore_native_gateway()})
             except Exception as rollback_error:
-                rollback.append({"stage":"native-gateway-restore","error":str(rollback_error)})
+                rollback.append({"stage": "native-gateway-restore", "error": str(rollback_error)})
+
+        try:
+            rolled_state = _force_passthrough_without_generation_bump(root, prior)
+            rollback.append({
+                "stage": "host-state-rollback",
+                "mode": rolled_state.get("mode"),
+                "generation": rolled_state.get("generation"),
+            })
+        except Exception as rollback_error:
+            rollback.append({"stage": "host-state-rollback", "error": str(rollback_error)})
 
         current = legacy.load_state(root)
         raise RuntimeError(
@@ -250,21 +307,21 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     legacy.initialize(root)
     state = legacy.load_state(root)
     if state.get("mode") != "managed":
-        return {"result":"passthrough","mode":state.get("mode"),"action":"none"}
+        return {"result": "passthrough", "mode": state.get("mode"), "action": "none"}
     if state.get("desiredGateway") != "running":
-        return {"result":"maintenance","desiredGateway":state.get("desiredGateway"),"action":"none"}
+        return {"result": "maintenance", "desiredGateway": state.get("desiredGateway"), "action": "none"}
 
     gateway_ok = gateway_fast_probe()
     provider_required = state.get("desiredProvider") == "running"
     provider_ok = (not provider_required) or ollama_fast_probe()
     if gateway_ok and provider_ok:
         return {
-            "result":"idle",
-            "action":"none",
-            "probe":"lightweight-http",
-            "gatewayHealthy":True,
-            "providerRequired":provider_required,
-            "providerHealthy":provider_ok,
+            "result": "idle",
+            "action": "none",
+            "probe": "lightweight-http",
+            "gatewayHealthy": True,
+            "providerRequired": provider_required,
+            "providerHealthy": provider_ok,
         }
 
     # Only an unhealthy lightweight probe pays the cost of OpenClaw CLI,
@@ -272,7 +329,7 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     return LEGACY_SUPERVISOR_TICK(root, execute_safe)
 
 
-# Keep the proven parser/command surface and replace only the two hardened paths.
+# Keep the proven parser/command surface and replace only hardened paths.
 legacy.enable = enable
 legacy.supervisor_tick = supervisor_tick
 
