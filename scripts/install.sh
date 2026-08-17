@@ -43,7 +43,7 @@ SOURCE_SKILL="$REPO_ROOT/skills/cogentnexus"
 TARGET_SKILL="$WORKSPACE/skills/cogentnexus"
 STAGED_SKILL="$WORKSPACE/.cogent/install-staging/cogentnexus"
 BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
-HOST_SCRIPT="$TARGET_SKILL/scripts/host.py"
+HOST_SCRIPT="$TARGET_SKILL/scripts/host_v091.py"
 HOST_CONTROL_SCRIPT="$TARGET_SKILL/scripts/host_control_v091.py"
 COGENT_ROOT="$WORKSPACE/.cogent"
 
@@ -64,10 +64,29 @@ echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
 
-# Host owns the durable managed-policy selection. Fresh installs seed the Core
-# policy; existing registered companion policy survives Core updates.
+# v0.9.1 fresh initialization is PASSTHROUGH. MANAGED is committed only after
+# the transactional Host enable sequence verifies every activation stage.
 python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
 
+if [ "$SKIP_GATEWAY_RESTART" -eq 1 ]; then
+  mode=$(python - "$COGENT_ROOT/host/controller.json" <<'PY'
+import json,sys
+from pathlib import Path
+path=Path(sys.argv[1])
+try:
+    print(json.loads(path.read_text(encoding='utf-8')).get('mode',''))
+except Exception:
+    print('')
+PY
+)
+  if [ "$mode" != "passthrough" ]; then
+    echo "--skip-gateway-restart safe staging requires CogentNexus PASSTHROUGH mode. Run 'cnx disable' before staging an upgrade." >&2
+    exit 1
+  fi
+fi
+
+# Transactional enable reapplies the registered policy before committing
+# MANAGED; in PASSTHROUGH this command is intentionally a no-op.
 if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
   python "$HOST_SCRIPT" --root "$COGENT_ROOT" policy apply
 fi
@@ -86,6 +105,10 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
       fi
       openclaw plugins install . --force
     fi
+
+    # Plugin code installation can restart the managed Gateway natively. Leave
+    # CNX disabled until the transactional Host enable stages valid config.
+    openclaw plugins disable cogentnexus-rotation
   )
 fi
 
@@ -100,7 +123,9 @@ echo "Installed Host Controller launcher to $LAUNCHER"
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$HOST_CONTROL_SCRIPT" --root "$COGENT_ROOT" enable
 else
-  echo "Skipped Host enable because --skip-gateway-restart was requested. Run '$LAUNCHER enable' when ready."
+  echo "Skipped Host enable because --skip-gateway-restart was requested."
+  echo "Note: OpenClaw plugin installation itself may have restarted Gateway as part of its native plugin lifecycle."
+  echo "CogentNexus remains PASSTHROUGH with its plugin disabled. Run '$LAUNCHER enable' when ready."
 fi
 
 openclaw gateway status || [ "$SKIP_GATEWAY_RESTART" -eq 1 ]
