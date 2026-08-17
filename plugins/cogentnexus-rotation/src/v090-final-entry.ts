@@ -53,7 +53,12 @@ export function installDashboardDirectSettlement() {
           WHERE run_id=? AND status='accepted' AND workflow_eligible=0
           ORDER BY created_at DESC LIMIT 1`).get(input.runId) as {owner_session_key?:string} | undefined;
         if (row?.owner_session_key && isDashboardSession(row.owner_session_key)) {
-          return finalize.call(this, { ...input, expectsDelivery:false });
+          const settled = finalize.call(this, { ...input, expectsDelivery:false });
+          // The base agent_end handler uses "unchanged" as its no-receipt-pending
+          // cleanup signal. The Ticket is durably completed above; returning this
+          // signal releases run/session delivery maps immediately so a later
+          // unrelated message_sent cannot correlate to a stale Dashboard run.
+          return settled === "completed" ? "unchanged" : settled;
         }
       } finally { db.close(); }
     }
