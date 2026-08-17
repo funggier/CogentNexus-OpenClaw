@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
-import { resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { dirname, resolve } from "node:path";
 
-const manifest = JSON.parse(readFileSync(new URL("../openclaw.plugin.json", import.meta.url), "utf8"));
-const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const pluginRoot = resolve(scriptDir, "..");
+const manifest = JSON.parse(readFileSync(resolve(pluginRoot, "openclaw.plugin.json"), "utf8"));
+const pkg = JSON.parse(readFileSync(resolve(pluginRoot, "package.json"), "utf8"));
 const properties = manifest?.configSchema?.properties ?? {};
 
 const requiredKeys = [
@@ -62,8 +64,7 @@ if (!Array.isArray(extensions) || !extensions.includes("./dist/v091-release-entr
   throw new Error(`package.json does not retain v0.9.1 mixed-plugin entry: ${JSON.stringify(extensions)}`);
 }
 
-const entryUrl = pathToFileURL(resolve(new URL("..", import.meta.url).pathname, "dist/v091-release-entry.js"));
-const module = await import(entryUrl.href);
+const module = await import(pathToFileURL(resolve(pluginRoot, "dist/v091-release-entry.js")).href);
 const entry = module?.default;
 if (!entry || entry.id !== "cogentnexus-rotation" || typeof entry.register !== "function") {
   throw new Error(`v0.9.1 mixed-plugin runtime entry has invalid export shape: ${JSON.stringify(Object.keys(entry ?? {}))}`);
