@@ -1,13 +1,14 @@
 import { existsSync, mkdirSync, watch, type FSWatcher } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import entry, {
+import entry from "./v090-final-entry.js";
+import {
   deliverTicketOutbox,
   deliverWorkflowCompletion,
   dispatchTicketWorkflows,
   pendingWorkflowCompletions,
   reconcileTicketWorkflows,
-} from "./v090-final-entry.js";
+} from "./index.js";
 import {
   hasLegacyDirectPromotion,
   reconcileOpenClawNativeTasks,
@@ -146,8 +147,6 @@ function createEventDrivenWorkflowCompletion(api: any, config: any) {
       }
       const scheduleSafety = () => {
         safety = setTimeout(() => {
-          // Filesystem events are primary. The long fallback only checks the
-          // completion outbox and exists for watcher loss/network filesystems.
           pulse();
           scheduleSafety();
         }, SAFETY_SWEEP_MS);
@@ -196,8 +195,6 @@ function createEventDrivenTicketRecovery(api: any, config: any) {
       removePulse = () => pulseListeners.delete(pulse);
       const scheduleSafety = () => {
         safety = setTimeout(() => {
-          // Lease expiry is inherently time-based, but no heavy scan occurs on
-          // a quiet database. Event pulses handle normal work immediately.
           if (idleWorkHint(databasePath)) pulse();
           scheduleSafety();
         }, SAFETY_SWEEP_MS);
@@ -217,67 +214,53 @@ function createEventDrivenTicketRecovery(api: any, config: any) {
 }
 
 function createAdaptiveHostReconciliation(api: any, config: any) {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let active = false;
   let stopped = false;
+  let active = false;
+  let rerun = false;
   let lastDeepReconcileAt = 0;
+  let removePulse: (() => void) | undefined;
 
   const service: any = {
     id: HOST_RECONCILIATION_ID,
     start: async (ctx: any) => {
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
-
-      const tick = async (forceDeep = false): Promise<boolean> => {
-        if (active || stopped) return false;
+      const tick = async (forceDeep = false) => {
+        if (stopped) return;
+        if (active) { rerun = true; return; }
         active = true;
         try {
-          const now = Date.now();
-          const hinted = idleWorkHint(databasePath);
-          const deep = shouldRunDeepReconcile(forceDeep, hinted, now - lastDeepReconcileAt);
-          if (!forceDeep && !hinted) return false;
-
-          let activity = hinted;
-          if (deep) {
-            const owners = await reconcileMissingOwnerSessions(api, databasePath, workspaceDir, config);
-            lastDeepReconcileAt = now;
-            const ownerActivity = owners.deleted > 0 || owners.failed > 0 || owners.workflowFailures > 0;
-            activity ||= ownerActivity;
-          }
-          const live = reconcileV090LiveState(databasePath);
-          activity ||= Boolean(live.abortFailuresCancelled || live.abortOutboxSuppressed || live.failedOutboxSuppressed || live.terminalRecoverySuppressed);
-          if (forceDeep || hinted) {
-            const native = await reconcileOpenClawNativeTasks(api, ctx, databasePath);
-            activity ||= native.fenced > 0 || native.failed > 0 || native.syntheticFenced > 0 || native.syntheticFailed > 0;
-          }
-          if (hasLegacyDirectPromotion(databasePath, config.admissionMinimumScore ?? 5)) {
-            const result = prepareV090RecoveryState(workspaceDir, config);
-            activity ||= result.reopened > 0 || result.cancelledLegacy > 0;
-          }
-          return activity;
+          do {
+            rerun = false;
+            const now = Date.now();
+            const hinted = idleWorkHint(databasePath);
+            const deep = shouldRunDeepReconcile(forceDeep, hinted, now - lastDeepReconcileAt);
+            forceDeep = false;
+            if (!deep && !hinted) continue;
+            if (deep) {
+              await reconcileMissingOwnerSessions(api, databasePath, workspaceDir, config);
+              lastDeepReconcileAt = now;
+            }
+            reconcileV090LiveState(databasePath);
+            await reconcileOpenClawNativeTasks(api, ctx, databasePath);
+            if (hasLegacyDirectPromotion(databasePath, config.admissionMinimumScore ?? 5)) {
+              prepareV090RecoveryState(workspaceDir, config);
+            }
+          } while (rerun && !stopped);
         } catch (error) {
           api.logger.warn(`CogentNexus adaptive Host reconciliation failed: ${error instanceof Error ? error.message : String(error)}`);
-          return true;
-        } finally { active = false; }
+        } finally {
+          active = false;
+        }
       };
-
       const pulse = () => { void tick(false); };
       pulseListeners.add(pulse);
-      const schedule = (delay: number) => {
-        if (stopped) return;
-        timer = setTimeout(() => {
-          void tick(false).then((activity) => schedule(activity ? ACTIVE_RECONCILE_MS : IDLE_RECONCILE_MS));
-        }, delay);
-        timer.unref?.();
-      };
-      const startupActivity = await tick(true);
-      schedule(startupActivity ? ACTIVE_RECONCILE_MS : IDLE_RECONCILE_MS);
-      (service as any)._removePulse = () => pulseListeners.delete(pulse);
+      removePulse = () => pulseListeners.delete(pulse);
+      await tick(true);
     },
     stop: async () => {
       stopped = true;
-      (service as any)._removePulse?.();
-      if (timer) clearTimeout(timer); timer = undefined;
+      removePulse?.(); removePulse = undefined;
     },
   };
   Object.defineProperty(service, ADAPTIVE_HOST_RECONCILIATION, { value: true });
@@ -307,8 +290,6 @@ function wrapReleaseEntry() {
     }
 
     const result = register?.(proxy);
-    // Normal OpenClaw lifecycle events are the primary wakeup mechanism. The
-    // worker pulse is coalesced, so several hooks from one turn cost one pass.
     for (const eventName of ["before_prompt_build", "agent_end", "message_sent", "session_end", "after_compaction", "reply_dispatch"]) {
       api.on?.(eventName, () => { pulseManagedWorkers(); }, { priority: -1000 });
     }
