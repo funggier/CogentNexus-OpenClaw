@@ -17,6 +17,10 @@ import {
 } from "./v090-entry.js";
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
 import { prepareV090RecoveryState } from "./v090.js";
+import {
+  createEventDrivenDirectRecoveryService,
+  DIRECT_RECOVERY_ID,
+} from "./v091-direct-recovery.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 const WRAPPED = Symbol.for("cogentnexus.v091.release-entry");
@@ -42,20 +46,31 @@ export function pulseManagedWorkers() {
   }
 }
 
+function subscribeManagedPulse(listener:()=>void) {
+  pulseListeners.add(listener);
+  return () => pulseListeners.delete(listener);
+}
+
 async function awaitStartupFences(fences:StartupFences,ctx:any) {
   for (const fence of fences) await fence?.(ctx);
 }
 
 /**
- * Durable state changes are the primary event source. A durable Ticket routed to
- * the workflow lane must wake dispatch after COMMIT even if before_agent_run
- * blocks conversational inference and no later agent_end hook is emitted.
+ * Durable state changes are the primary event source. Accept wakes the active
+ * deadline/lease machinery for every new Ticket; route wakes durable dispatch
+ * after COMMIT even if before_agent_run blocks conversational inference.
  */
 export function installTicketMutationPulses() {
   const prototype = TicketStore.prototype as any;
   if (prototype[TICKET_MUTATION_PULSE_PATCH]) return;
   Object.defineProperty(prototype, TICKET_MUTATION_PULSE_PATCH, { value:true });
+  const accept = TicketStore.prototype.accept;
   const route = TicketStore.prototype.route;
+  TicketStore.prototype.accept = function(input:Parameters<TicketStore["accept"]>[0]) {
+    const accepted = accept.call(this,input);
+    queueMicrotask(pulseManagedWorkers);
+    return accepted;
+  };
   TicketStore.prototype.route = function(ticketId:string,workflowEligible:boolean,now?:Date) {
     const changed = route.call(this,ticketId,workflowEligible,now);
     if (changed && workflowEligible) queueMicrotask(pulseManagedWorkers);
@@ -92,8 +107,10 @@ export function idleWorkHint(databasePath: string): boolean {
     if (db.prepare("SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1").get()) return true;
     if (tableExists(db, "ticket_outbox")
         && db.prepare("SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1").get()) return true;
+    if (tableExists(db, "cnx_assistant_delivery")
+        && db.prepare("SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1").get()) return true;
     if (tableExists(db, "cnx_direct_recovery")
-        && db.prepare("SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded') LIMIT 1").get()) return true;
+        && db.prepare("SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded','awaiting_delivery') LIMIT 1").get()) return true;
     if (tableExists(db, "cnx_context_maintenance")
         && db.prepare("SELECT 1 FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1").get()) return true;
     return false;
@@ -128,6 +145,11 @@ export function isAdaptiveHostReconciliation(service: any): boolean {
 
 export function isEventDrivenService(service: any): boolean {
   return Boolean(service?.[EVENT_DRIVEN_SERVICE]);
+}
+
+function markEventDriven(service:any) {
+  Object.defineProperty(service, EVENT_DRIVEN_SERVICE, { value:true });
+  return service;
 }
 
 function createCoalescedRunner(work: () => Promise<void>, logger: any) {
@@ -201,8 +223,7 @@ function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence
       if (safety) clearTimeout(safety); safety = undefined;
     },
   };
-  Object.defineProperty(service, EVENT_DRIVEN_SERVICE, { value: true });
-  return service;
+  return markEventDriven(service);
 }
 
 function createEventDrivenTicketRecovery(api: any, config: any, startupFences:StartupFences) {
@@ -275,8 +296,7 @@ function createEventDrivenTicketRecovery(api: any, config: any, startupFences:St
       if (safety) clearTimeout(safety); safety = undefined;
     },
   };
-  Object.defineProperty(service, EVENT_DRIVEN_SERVICE, { value: true });
-  return service;
+  return markEventDriven(service);
 }
 
 function createAdaptiveHostReconciliation(api: any, config: any, startupFences:StartupFences) {
@@ -331,8 +351,7 @@ function createAdaptiveHostReconciliation(api: any, config: any, startupFences:S
     },
   };
   Object.defineProperty(service, ADAPTIVE_HOST_RECONCILIATION, { value: true });
-  Object.defineProperty(service, EVENT_DRIVEN_SERVICE, { value: true });
-  return service;
+  return markEventDriven(service);
 }
 
 function wrapReleaseEntry() {
@@ -356,6 +375,13 @@ function wrapReleaseEntry() {
         if (service?.id === HOST_RECONCILIATION_ID) return rawRegister(createAdaptiveHostReconciliation(api, config, startupFences));
         if (service?.id === WORKFLOW_COMPLETION_ID) return rawRegister(createEventDrivenWorkflowCompletion(api, config, startupFences));
         if (service?.id === TICKET_RECOVERY_ID) return rawRegister(createEventDrivenTicketRecovery(api, config, startupFences));
+        if (service?.id === DIRECT_RECOVERY_ID) {
+          const direct = createEventDrivenDirectRecoveryService(api,config,{
+            beforeStart:(ctx:any)=>awaitStartupFences(startupFences,ctx),
+            subscribePulse:subscribeManagedPulse,
+          });
+          return rawRegister(markEventDriven(direct));
+        }
         return rawRegister(service);
       };
     }
