@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
 import { PRE_RUNTIME_FENCE } from "./v090-entry.js";
 import { STARTUP_RECOVERY_FENCE } from "./v090-final-entry.js";
-import { installTicketMutationPulses } from "./v091-final-entry.js";
+import { ACTIVE_WORK_WAKE_MS, installTicketMutationPulses, nextActiveTicketWakeMs } from "./v091-final-entry.js";
 
 const originalQueueMicrotask = globalThis.queueMicrotask;
 afterEach(() => { globalThis.queueMicrotask = originalQueueMicrotask; });
@@ -29,6 +29,13 @@ describe("v0.9.1 event-driven boundaries", () => {
     } finally {
       rmSync(root, { recursive:true, force:true });
     }
+  });
+
+  it("uses no active timer at true idle but preserves lease and deadline wakes while work exists", () => {
+    expect(nextActiveTicketWakeMs({ linkedRunning:0, durableWorkPending:false, leaseMs:60_000 })).toBeUndefined();
+    expect(nextActiveTicketWakeMs({ linkedRunning:0, durableWorkPending:true, leaseMs:60_000 })).toBe(ACTIVE_WORK_WAKE_MS);
+    expect(nextActiveTicketWakeMs({ linkedRunning:1, durableWorkPending:true, leaseMs:60_000 })).toBe(20_000);
+    expect(nextActiveTicketWakeMs({ linkedRunning:1, durableWorkPending:true, leaseMs:15_000 })).toBe(5_000);
   });
 
   it("keeps both pre-runtime and crash-start fences explicit across service replacement", () => {
