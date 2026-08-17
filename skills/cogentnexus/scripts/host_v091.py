@@ -234,6 +234,11 @@ def enable(root: Path) -> dict[str, Any]:
     agents_snapshot = _snapshot_file(agents_path)
     started = legacy.now_iso()
 
+    # Terminal intent must be authoritative before any inference-capable CNX
+    # surface can wake. This cleanup is durable/idempotent and intentionally is
+    # not rolled back if a later activation stage fails.
+    terminal_fences = legacy.reconcile_terminal_fences(root)
+
     policy_changed = False
     configuration_attempted = False
     plugin_enable_attempted = False
@@ -332,7 +337,7 @@ def enable(root: Path) -> dict[str, Any]:
         "startup": legacy.parse_json_output(startup_result.stdout),
         "lifecycle": legacy.parse_json_output(lifecycle.stdout),
         "sessionBootstrap": session_bootstrap,
-        "terminalFences": [],
+        "terminalFences": terminal_fences,
         "recoveredTickets": recovered,
         "postCommitRecoveryError": recovery_error,
         "transactional": True,
