@@ -30,8 +30,6 @@ type Hooks = {
   subscribePulse:(listener:()=>void)=>()=>void;
 };
 
-const nowIso=()=>new Date().toISOString();
-
 function openDb(path:string,readOnly=false) {
   if(!readOnly)new TicketStore(path).snapshot();
   return new DatabaseSync(path,readOnly?{readOnly:true}:undefined);
@@ -51,7 +49,8 @@ export function resetStaleDirectRecovery(path:string,cfg:Config,now=new Date()):
     return Number(db.prepare(`UPDATE cnx_direct_recovery SET state='pending',active_run_id=NULL,next_attempt_at=?,
       last_error=COALESCE(last_error,'stale Direct recovery reset'),updated_at=? WHERE state='running' AND updated_at<=?
       AND ticket_id IN (SELECT t.ticket_id FROM tickets t JOIN cnx_sessions s ON s.session_key=t.owner_session_key
-        WHERE s.state='active' AND s.generation=cnx_direct_recovery.owner_generation)`).run(stamp,stamp,cutoff).changes);
+        WHERE t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
+          AND s.state='active' AND s.generation=cnx_direct_recovery.owner_generation)`).run(stamp,stamp,cutoff).changes);
   } finally {db.close();}
 }
 
@@ -81,9 +80,13 @@ export function nextDirectRecoveryWakeMs(path:string,cfg:Config,now=new Date()):
   const db=openDb(path,true),nowMs=now.getTime();
   try {
     const delays:number[]=[];
-    if(tableExists(db,"cnx_direct_recovery")) {
-      const pending=db.prepare(`SELECT next_attempt_at FROM cnx_direct_recovery WHERE state='pending'
-        ORDER BY CASE WHEN next_attempt_at IS NULL THEN 0 ELSE 1 END,next_attempt_at LIMIT 1`).get() as {next_attempt_at?:string|null}|undefined;
+    const hasRecoveryTables=tableExists(db,"cnx_direct_recovery")&&tableExists(db,"tickets")&&tableExists(db,"cnx_sessions");
+    if(hasRecoveryTables) {
+      const pending=db.prepare(`SELECT r.next_attempt_at FROM cnx_direct_recovery r
+        JOIN tickets t ON t.ticket_id=r.ticket_id JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+        WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
+          AND s.state='active' AND s.generation=r.owner_generation
+        ORDER BY CASE WHEN r.next_attempt_at IS NULL THEN 0 ELSE 1 END,r.next_attempt_at LIMIT 1`).get() as {next_attempt_at?:string|null}|undefined;
       if(pending) {
         if(!pending.next_attempt_at)delays.push(0);
         else {
@@ -91,7 +94,11 @@ export function nextDirectRecoveryWakeMs(path:string,cfg:Config,now=new Date()):
           delays.push(Number.isFinite(at)?Math.max(0,at-nowMs):0);
         }
       }
-      const running=db.prepare("SELECT updated_at FROM cnx_direct_recovery WHERE state='running' ORDER BY updated_at LIMIT 1").get() as {updated_at?:string}|undefined;
+      const running=db.prepare(`SELECT r.updated_at FROM cnx_direct_recovery r
+        JOIN tickets t ON t.ticket_id=r.ticket_id JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+        WHERE r.state='running' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
+          AND s.state='active' AND s.generation=r.owner_generation
+        ORDER BY r.updated_at LIMIT 1`).get() as {updated_at?:string}|undefined;
       if(running?.updated_at)delays.push(staleDelayMs(running.updated_at,cfg,nowMs));
     }
     if(tableExists(db,"cnx_assistant_delivery")) {
