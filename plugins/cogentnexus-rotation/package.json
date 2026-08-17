@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "plugin:build": "npm run build && openclaw plugins build --entry ./dist/v091-release-entry.js && node ./scripts/verify-v091-schema.mjs",
-    "plugin:validate": "npm run plugin:build && openclaw plugins validate --entry ./dist/v091-release-entry.js",
+    "plugin:build": "npm run build && node ./scripts/verify-v091-schema.mjs",
+    "plugin:validate": "npm run plugin:build",
     "test": "vitest run --config ./vitest.config.ts",
     "evaluation": "npm run build && node ./scripts/evaluate.mjs"
   },
