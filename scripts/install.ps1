@@ -29,6 +29,10 @@ function Require-Command([string]$Name) {
 Write-Host "Installing CogentNexus v$version"
 Write-Host "Workspace: $Workspace"
 
+if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
+    throw "-SkipPlugin and -SkipAgentsPolicy are staging-only options in v0.9.1. Use them with -SkipGatewayRestart; transactional MANAGED enable requires the bridge and managed policy."
+}
+
 Require-Command python
 Require-Command openclaw
 if (-not $SkipPlugin) {
@@ -72,9 +76,8 @@ if ($SkipGatewayRestart) {
     }
 }
 
-# Policy application is harmless/no-op in PASSTHROUGH and remains available for
-# an already-managed normal upgrade. Transactional enable reapplies the exact
-# registered policy before committing MANAGED.
+# Transactional enable reapplies the registered policy before committing
+# MANAGED; in PASSTHROUGH this command is intentionally a no-op.
 if (-not $SkipAgentsPolicy) {
     python $hostScript --root $cogentRoot policy apply
     if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
@@ -92,10 +95,6 @@ if (-not $SkipPlugin) {
             openclaw plugins install --link . --force
         }
         else {
-            # plugins.load.paths is optional on a fresh OpenClaw install. Native
-            # stderr from `openclaw config get` must not terminate this script when
-            # the key is absent; only clean an existing linked path when the query
-            # itself succeeds.
             $currentPaths = $null
             $pathExit = 1
             $savedErrorActionPreference = $ErrorActionPreference
@@ -115,19 +114,15 @@ if (-not $SkipPlugin) {
         }
         if ($LASTEXITCODE -ne 0) { throw "plugin installation failed" }
 
-        # Installation may restart the managed Gateway as part of OpenClaw's
-        # native plugin lifecycle. Keep CNX inactive until transactional enable
-        # stages valid config and commits MANAGED.
+        # Installation may restart Gateway through OpenClaw's native plugin
+        # lifecycle. Keep CNX inactive until transactional enable stages valid
+        # config and commits MANAGED.
         openclaw plugins disable cogentnexus-rotation
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus plugin disabled after installation" }
     }
     finally { Pop-Location }
 }
 
-# Zero-dependency workspace launcher. It remains usable while OpenClaw is down.
-# Route operator commands through the transactional control wrapper so managed
-# compatibility policy is applied/restored before Host lifecycle actions can
-# start Gateway, and failed enable rolls back to native passthrough.
 $launcher = Join-Path $Workspace "cnx.cmd"
 $hostControlEscaped = $hostControlScript.Replace('"','""')
 $rootEscaped = $cogentRoot.Replace('"','""')
@@ -136,9 +131,6 @@ Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewli
 Write-Host "Installed Host Controller launcher to $launcher"
 
 if (-not $SkipGatewayRestart) {
-    # Host enable configures the disabled bridge, validates it, applies managed
-    # policy, enables startup supervision, starts/verifies Gateway+provider, and
-    # commits MANAGED only after those stages succeed.
     python $hostControlScript --root $cogentRoot enable
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
 }
