@@ -30,6 +30,7 @@ export const IDLE_RECONCILE_MS = 120_000;
 export const ACTIVE_RECONCILE_MS = 15_000;
 export const DEEP_RECONCILE_MS = 10 * 60_000;
 export const SAFETY_SWEEP_MS = 10 * 60_000;
+export const ACTIVE_WORK_WAKE_MS = 30_000;
 
 type StartupFence = ((ctx:any)=>Promise<unknown>)|undefined;
 type StartupFences = StartupFence[];
@@ -103,6 +104,19 @@ export function idleWorkHint(databasePath: string): boolean {
   }
 }
 
+/**
+ * Time remains part of lease/deadline semantics, but only while durable work is
+ * actually pending. Linked workflows wake before one third of their lease; all
+ * other pending work gets a bounded retry/deadline wake. True idle returns no
+ * timer at all.
+ */
+export function nextActiveTicketWakeMs(input:{linkedRunning:number;durableWorkPending:boolean;leaseMs?:number}):number|undefined {
+  if (!input.durableWorkPending) return undefined;
+  if (input.linkedRunning <= 0) return ACTIVE_WORK_WAKE_MS;
+  const leaseMs = Math.max(5_000, Number(input.leaseMs ?? 60_000));
+  return Math.min(ACTIVE_WORK_WAKE_MS, Math.max(1_000, Math.floor(leaseMs / 3)));
+}
+
 export function shouldRunDeepReconcile(forceDeep: boolean, hinted: boolean, elapsedMs: number): boolean {
   if (forceDeep) return true;
   return hinted && elapsedMs >= DEEP_RECONCILE_MS;
@@ -164,7 +178,7 @@ function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence
       removePulse = () => pulseListeners.delete(pulse);
       try {
         watcher = watch(workflowsDir, { recursive: true, persistent: false }, (_event, filename) => {
-          if (!filename || String(filename).endsWith("completion.json")) pulse();
+          if (!filename || String(filename).endsWith("completion.json")) pulseManagedWorkers();
         });
         watcher.on("error", (error) => api.logger.warn(`CogentNexus workflow filesystem watcher degraded: ${error.message}`));
       } catch (error) {
@@ -193,8 +207,10 @@ function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence
 
 function createEventDrivenTicketRecovery(api: any, config: any, startupFences:StartupFences) {
   let safety: ReturnType<typeof setTimeout> | undefined;
+  let activeWake: ReturnType<typeof setTimeout> | undefined;
   let removePulse: (() => void) | undefined;
   let runner: ReturnType<typeof createCoalescedRunner> | undefined;
+  let stopped = false;
   const service: any = {
     id: TICKET_RECOVERY_ID,
     start: async (ctx: any) => {
@@ -202,21 +218,43 @@ function createEventDrivenTicketRecovery(api: any, config: any, startupFences:St
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       const store = new TicketStore(databasePath);
+      let pulse = () => runner?.run();
+      const armActiveWake = () => {
+        if (activeWake) clearTimeout(activeWake);
+        activeWake = undefined;
+        if (stopped) return;
+        const snapshot = store.snapshot();
+        const delay = nextActiveTicketWakeMs({
+          linkedRunning: snapshot.linkedRunning,
+          durableWorkPending: idleWorkHint(databasePath),
+          leaseMs: config.ticketLeaseMs ?? 60_000,
+        });
+        if (delay === undefined) return;
+        activeWake = setTimeout(() => {
+          activeWake = undefined;
+          pulse();
+        }, delay);
+        activeWake.unref?.();
+      };
       const work = async () => {
-        const undelivered = store.recoverUndeliveredDirect({ olderThanMs: config.directDeliveryTimeoutMs ?? 120000 });
-        for (const item of undelivered) api.logger.warn(`CogentNexus promoted unconfirmed direct delivery ${item.ticketId} (${item.runId}) to durable recovery`);
-        const recovered = store.recoverExpired();
-        for (const item of recovered) api.logger.warn(`CogentNexus recovered expired Ticket ${item.ticketId} from worker ${item.previousWorkerId ?? "unknown"} generation ${item.previousLeaseGeneration}`);
-        for (const item of reconcileTicketWorkflows({ workspaceDir, store, config })) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} workflow action ${item.action}`);
-        const dispatched = dispatchTicketWorkflows({ workspaceDir, store, config });
-        if (!dispatched.admission.admitted) api.logger.info?.(`CogentNexus Ticket dispatch deferred: ${dispatched.admission.reasons.join(",")}`);
-        for (const item of store.pendingOutbox(100, new Date(), config.outboxDeliveryTimeoutMs ?? 300000)) {
-          try { await deliverTicketOutbox(api, store, item); }
-          catch (error) { api.logger.warn(`CogentNexus Ticket completion delivery failed for ${item.ticketId}: ${error instanceof Error ? error.message : String(error)}`); }
+        try {
+          const undelivered = store.recoverUndeliveredDirect({ olderThanMs: config.directDeliveryTimeoutMs ?? 120000 });
+          for (const item of undelivered) api.logger.warn(`CogentNexus promoted unconfirmed direct delivery ${item.ticketId} (${item.runId}) to durable recovery`);
+          const recovered = store.recoverExpired();
+          for (const item of recovered) api.logger.warn(`CogentNexus recovered expired Ticket ${item.ticketId} from worker ${item.previousWorkerId ?? "unknown"} generation ${item.previousLeaseGeneration}`);
+          for (const item of reconcileTicketWorkflows({ workspaceDir, store, config })) api.logger.info?.(`CogentNexus Ticket ${item.ticketId} workflow action ${item.action}`);
+          const dispatched = dispatchTicketWorkflows({ workspaceDir, store, config });
+          if (!dispatched.admission.admitted) api.logger.info?.(`CogentNexus Ticket dispatch deferred: ${dispatched.admission.reasons.join(",")}`);
+          for (const item of store.pendingOutbox(100, new Date(), config.outboxDeliveryTimeoutMs ?? 300000)) {
+            try { await deliverTicketOutbox(api, store, item); }
+            catch (error) { api.logger.warn(`CogentNexus Ticket completion delivery failed for ${item.ticketId}: ${error instanceof Error ? error.message : String(error)}`); }
+          }
+        } finally {
+          armActiveWake();
         }
       };
       runner = createCoalescedRunner(work, api.logger);
-      const pulse = () => runner?.run();
+      pulse = () => runner?.run();
       pulseListeners.add(pulse);
       removePulse = () => pulseListeners.delete(pulse);
       const scheduleSafety = () => {
@@ -230,8 +268,10 @@ function createEventDrivenTicketRecovery(api: any, config: any, startupFences:St
       scheduleSafety();
     },
     stop: async () => {
+      stopped = true;
       removePulse?.(); removePulse = undefined;
       runner?.stop(); runner = undefined;
+      if (activeWake) clearTimeout(activeWake); activeWake = undefined;
       if (safety) clearTimeout(safety); safety = undefined;
     },
   };
