@@ -119,7 +119,7 @@ class HostV091Tests(unittest.TestCase):
             result = cnx.supervisor_tick(root, True)
             self.assertEqual(result["result"], "idle")
             self.assertEqual(result["action"], "none")
-            self.assertEqual(result["probe"], "lightweight-http")
+            self.assertEqual(result["probe"], "lightweight-http+sqlite-ro")
 
     def test_failed_fast_probe_delegates_to_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
