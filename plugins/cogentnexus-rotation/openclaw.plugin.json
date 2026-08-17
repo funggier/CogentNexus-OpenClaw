@@ -2,7 +2,7 @@
   "id": "cogentnexus-rotation",
   "name": "CogentNexus OpenClaw Bridge",
   "description": "Ticket-first OpenClaw bridge for CogentNexus Host-managed continuity, durable execution, recovery, context handoff, and verified delivery.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "configSchema": {
     "type": "object",
     "properties": {
