@@ -84,6 +84,30 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             result = cnx.supervisor_tick(root, True)
             self.assertEqual(result, {"result": "recovery", "execute": True})
 
+    def test_gateway_failure_enters_proven_recovery_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            self.seed_managed(root)
+            self.patch(cnx, "gateway_fast_probe", lambda: False)
+            self.patch(cnx, "ollama_fast_probe", lambda: True)
+            self.patch(cnx, "durable_work_hint", lambda _root: False)
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result": "gateway-recovery", "execute": execute})
+
+            result = cnx.supervisor_tick(root, True)
+            self.assertEqual(result, {"result": "gateway-recovery", "execute": True})
+
+    def test_required_provider_failure_enters_proven_recovery_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            self.seed_managed(root)
+            self.patch(cnx, "gateway_fast_probe", lambda: True)
+            self.patch(cnx, "ollama_fast_probe", lambda: False)
+            self.patch(cnx, "durable_work_hint", lambda _root: False)
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result": "provider-recovery", "execute": execute})
+
+            result = cnx.supervisor_tick(root, True)
+            self.assertEqual(result, {"result": "provider-recovery", "execute": True})
+
     def test_healthy_endpoints_without_work_stay_on_lightweight_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
