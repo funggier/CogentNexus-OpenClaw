@@ -11,6 +11,7 @@ import {
 } from "./index.js";
 import {
   hasLegacyDirectPromotion,
+  PRE_RUNTIME_FENCE,
   reconcileOpenClawNativeTasks,
   reconcileV090LiveState,
 } from "./v090-entry.js";
@@ -21,6 +22,7 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 const WRAPPED = Symbol.for("cogentnexus.v091.release-entry");
 const ADAPTIVE_HOST_RECONCILIATION = Symbol.for("cogentnexus.v091.adaptive-host-reconciliation");
 const EVENT_DRIVEN_SERVICE = Symbol.for("cogentnexus.v091.event-driven-service");
+const TICKET_MUTATION_PULSE_PATCH = Symbol.for("cogentnexus.v091.ticket-mutation-pulse");
 export const HOST_RECONCILIATION_ID = "cogentnexus-v090-host-reconciliation";
 export const WORKFLOW_COMPLETION_ID = "cogentnexus-workflow-completion";
 export const TICKET_RECOVERY_ID = "cogentnexus-ticket-recovery";
@@ -29,13 +31,35 @@ export const ACTIVE_RECONCILE_MS = 15_000;
 export const DEEP_RECONCILE_MS = 10 * 60_000;
 export const SAFETY_SWEEP_MS = 10 * 60_000;
 
-type StartupFence = ((ctx:any)=>Promise<void>)|undefined;
+type StartupFence = ((ctx:any)=>Promise<unknown>)|undefined;
+type StartupFences = StartupFence[];
 const pulseListeners = new Set<() => void>();
 
 export function pulseManagedWorkers() {
   for (const listener of [...pulseListeners]) {
     try { listener(); } catch { /* each worker owns its own logging */ }
   }
+}
+
+async function awaitStartupFences(fences:StartupFences,ctx:any) {
+  for (const fence of fences) await fence?.(ctx);
+}
+
+/**
+ * Durable state changes are the primary event source. A durable Ticket routed to
+ * the workflow lane must wake dispatch after COMMIT even if before_agent_run
+ * blocks conversational inference and no later agent_end hook is emitted.
+ */
+export function installTicketMutationPulses() {
+  const prototype = TicketStore.prototype as any;
+  if (prototype[TICKET_MUTATION_PULSE_PATCH]) return;
+  Object.defineProperty(prototype, TICKET_MUTATION_PULSE_PATCH, { value:true });
+  const route = TicketStore.prototype.route;
+  TicketStore.prototype.route = function(ticketId:string,workflowEligible:boolean,now?:Date) {
+    const changed = route.call(this,ticketId,workflowEligible,now);
+    if (changed && workflowEligible) queueMicrotask(pulseManagedWorkers);
+    return changed;
+  };
 }
 
 export function managedIdleConfig(config: any) {
@@ -116,7 +140,7 @@ function createCoalescedRunner(work: () => Promise<void>, logger: any) {
   return { run, stop: () => { stopped = true; rerun = false; } };
 }
 
-function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence:StartupFence) {
+function createEventDrivenWorkflowCompletion(api: any, config: any, startupFences:StartupFences) {
   let watcher: FSWatcher | undefined;
   let safety: ReturnType<typeof setTimeout> | undefined;
   let removePulse: (() => void) | undefined;
@@ -124,7 +148,7 @@ function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence
   const service: any = {
     id: WORKFLOW_COMPLETION_ID,
     start: async (ctx: any) => {
-      await startupFence?.(ctx);
+      await awaitStartupFences(startupFences,ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const workflowsDir = resolve(workspaceDir, ".cogent", "workflows");
       mkdirSync(workflowsDir, { recursive: true });
@@ -167,14 +191,14 @@ function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence
   return service;
 }
 
-function createEventDrivenTicketRecovery(api: any, config: any, startupFence:StartupFence) {
+function createEventDrivenTicketRecovery(api: any, config: any, startupFences:StartupFences) {
   let safety: ReturnType<typeof setTimeout> | undefined;
   let removePulse: (() => void) | undefined;
   let runner: ReturnType<typeof createCoalescedRunner> | undefined;
   const service: any = {
     id: TICKET_RECOVERY_ID,
     start: async (ctx: any) => {
-      await startupFence?.(ctx);
+      await awaitStartupFences(startupFences,ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       const store = new TicketStore(databasePath);
@@ -215,7 +239,7 @@ function createEventDrivenTicketRecovery(api: any, config: any, startupFence:Sta
   return service;
 }
 
-function createAdaptiveHostReconciliation(api: any, config: any, startupFence:StartupFence) {
+function createAdaptiveHostReconciliation(api: any, config: any, startupFences:StartupFences) {
   let stopped = false;
   let active = false;
   let rerun = false;
@@ -225,7 +249,7 @@ function createAdaptiveHostReconciliation(api: any, config: any, startupFence:St
   const service: any = {
     id: HOST_RECONCILIATION_ID,
     start: async (ctx: any) => {
-      await startupFence?.(ctx);
+      await awaitStartupFences(startupFences,ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
       const tick = async (forceDeep = false) => {
@@ -285,16 +309,20 @@ function wrapReleaseEntry() {
     const rawRegister = api.registerService?.bind(api);
     if (rawRegister) {
       proxy.registerService = (service: any) => {
-        const startupFence = service?.[STARTUP_RECOVERY_FENCE] as StartupFence;
-        if (service?.id === HOST_RECONCILIATION_ID) return rawRegister(createAdaptiveHostReconciliation(api, config, startupFence));
-        if (service?.id === WORKFLOW_COMPLETION_ID) return rawRegister(createEventDrivenWorkflowCompletion(api, config, startupFence));
-        if (service?.id === TICKET_RECOVERY_ID) return rawRegister(createEventDrivenTicketRecovery(api, config, startupFence));
+        const startupFences:StartupFences = [
+          service?.[PRE_RUNTIME_FENCE] as StartupFence,
+          service?.[STARTUP_RECOVERY_FENCE] as StartupFence,
+        ];
+        if (service?.id === HOST_RECONCILIATION_ID) return rawRegister(createAdaptiveHostReconciliation(api, config, startupFences));
+        if (service?.id === WORKFLOW_COMPLETION_ID) return rawRegister(createEventDrivenWorkflowCompletion(api, config, startupFences));
+        if (service?.id === TICKET_RECOVERY_ID) return rawRegister(createEventDrivenTicketRecovery(api, config, startupFences));
         return rawRegister(service);
       };
     }
 
     const result = register?.(proxy);
-    for (const eventName of ["before_prompt_build", "agent_end", "message_sent", "session_end", "after_compaction", "reply_dispatch"]) {
+    installTicketMutationPulses();
+    for (const eventName of ["agent_end", "message_sent", "session_end", "after_compaction", "reply_dispatch", "subagent_ended"]) {
       api.on?.(eventName, () => { pulseManagedWorkers(); }, { priority: -1000 });
     }
     return result;
