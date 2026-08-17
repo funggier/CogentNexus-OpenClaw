@@ -5,9 +5,11 @@ Keeps the proven Host implementation intact while adding the invariants found
 by live Windows acceptance and end-to-end wiring review:
 
 1. enable is transactional: failure returns to native passthrough state;
-2. fresh initialization starts in passthrough until enable commits managed;
-3. startup adapters route through the v0.9.1 control wrapper; and
-4. an idle healthy runtime is quiescent: the external supervisor uses a small
+2. disable commits passthrough only after CNX surfaces are removed and native
+   Gateway health is verified;
+3. fresh initialization starts in passthrough until enable commits managed;
+4. startup adapters route through the v0.9.1 control wrapper; and
+5. an idle healthy runtime is quiescent: the external supervisor uses a small
    socket-level health probe and only enters heavy reconciliation when Gateway
    or provider responsiveness is actually lost.
 """
@@ -152,10 +154,16 @@ def _restore_native_gateway() -> dict[str, Any]:
     restart = legacy.run([legacy.openclaw_executable(), "gateway", "restart"], timeout=180)
     if restart.returncode != 0:
         restart = legacy.run([legacy.openclaw_executable(), "gateway", "start"], timeout=180)
+    if restart.returncode != 0:
+        raise RuntimeError((restart.stderr or restart.stdout or "native Gateway restore command failed").strip())
+    status = legacy.gateway_status()
+    if not status.get("healthy"):
+        raise RuntimeError(f"native Gateway failed health verification after restore: {status}")
     return {
         "exitCode": restart.returncode,
         "stdout": (restart.stdout or "").strip(),
         "stderr": (restart.stderr or "").strip(),
+        "healthy": True,
     }
 
 
@@ -173,14 +181,7 @@ def _force_passthrough_without_generation_bump(root: Path, prior: dict[str, Any]
 
 
 def enable(root: Path) -> dict[str, Any]:
-    """Enter MANAGED only after every activation stage is verified.
-
-    Durable Host state is intentionally the final commit. Until then the system
-    remains PASSTHROUGH from the Host's point of view. A failed attempt disables
-    CNX surfaces again, restores the exact pre-enable AGENTS.md bytes, removes
-    startup supervision, restores native Gateway operation, and never advances
-    the Host generation merely because activation failed.
-    """
+    """Enter MANAGED only after every activation stage is verified."""
     legacy.initialize(root)
     prior = legacy.load_state(root)
     workspace = root.parent
@@ -302,6 +303,83 @@ def enable(root: Path) -> dict[str, Any]:
     }
 
 
+def disable(root: Path) -> dict[str, Any]:
+    """Remove CNX surfaces first; commit PASSTHROUGH only after native health."""
+    legacy.initialize(root)
+    prior = legacy.load_state(root)
+    workspace = root.parent
+    agents_path = workspace / "AGENTS.md"
+    agents_snapshot = _snapshot_file(agents_path)
+    prior_managed_surface = prior.get("mode") != "passthrough"
+    startup_attempted = False
+    policy_attempted = False
+    plugin_disable_attempted = False
+    rollback: list[dict[str, Any]] = []
+
+    try:
+        startup_attempted = True
+        startup_result = legacy.startup(root, "disable", check=True)
+
+        policy_attempted = True
+        policy_changed = legacy.remove_policy(workspace)
+
+        plugin_disable_attempted = True
+        legacy.plugin_enabled(False)
+        legacy.runtime(root, "lifecycle", "cancel", timeout=60, check=False)
+        gateway = _restore_native_gateway()
+
+        if prior.get("mode") == "passthrough":
+            state = legacy.load_state(root)
+        else:
+            state = legacy.transition(root, mode="passthrough", desiredGateway="running", desiredProvider="unchanged")
+    except Exception as error:
+        # Durable Host state has not changed yet. Restore only surfaces that were
+        # previously expected to be managed; an idempotent disable from native
+        # passthrough must never re-enable CNX on failure.
+        if policy_attempted:
+            try:
+                _restore_file(agents_path, agents_snapshot)
+                rollback.append({"stage": "policy-restore", "ok": True})
+            except Exception as rollback_error:
+                rollback.append({"stage": "policy-restore", "error": str(rollback_error)})
+        if prior_managed_surface and plugin_disable_attempted:
+            try:
+                legacy.plugin_enabled(True)
+                rollback.append({"stage": "plugin-enable", "ok": True})
+            except Exception as rollback_error:
+                rollback.append({"stage": "plugin-enable", "error": str(rollback_error)})
+        if prior_managed_surface and startup_attempted:
+            try:
+                result = legacy.startup(root, "enable", check=False)
+                rollback.append({"stage": "startup-enable", "exitCode": result.returncode})
+            except Exception as rollback_error:
+                rollback.append({"stage": "startup-enable", "error": str(rollback_error)})
+        if prior_managed_surface and prior.get("desiredGateway") == "running":
+            try:
+                args = ["lifecycle", "start"]
+                if prior.get("desiredProvider") == "running":
+                    args.append("--provider")
+                result = legacy.runtime(root, *args, timeout=240, check=False)
+                rollback.append({"stage": "managed-runtime-restore", "exitCode": result.returncode})
+            except Exception as rollback_error:
+                rollback.append({"stage": "managed-runtime-restore", "error": str(rollback_error)})
+        current = legacy.load_state(root)
+        raise RuntimeError(
+            "CogentNexus transactional disable failed; pre-disable Host state was preserved. "
+            f"cause={error}; priorMode={prior.get('mode')}; currentMode={current.get('mode')}; rollback={rollback}"
+        ) from error
+
+    return {
+        "mode": state["mode"],
+        "policyChanged": policy_changed,
+        "policy": legacy.policy_info(root),
+        "startup": legacy.parse_json_output(startup_result.stdout),
+        "gateway": gateway,
+        "transactional": True,
+        "note": "OpenClaw is running in passthrough mode; CogentNexus no longer intercepts new turns. The registered managed policy is preserved for the next enable.",
+    }
+
+
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     """Quiescent fast path for the external scheduled supervisor."""
     legacy.initialize(root)
@@ -331,6 +409,7 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
 
 # Keep the proven parser/command surface and replace only hardened paths.
 legacy.enable = enable
+legacy.disable = disable
 legacy.supervisor_tick = supervisor_tick
 
 
