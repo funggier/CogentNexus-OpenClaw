@@ -142,6 +142,30 @@ class HostSessionDeliveryTests(unittest.TestCase):
         self.assertEqual(db.execute("SELECT count(*) FROM cnx_assistant_delivery WHERE status='pending'").fetchone()[0], 0)
         db.close()
 
+    def test_terminal_ticket_delivery_is_suppressed_before_injection(self):
+        delivery_id = self.queue_direct()
+        db = sqlite3.connect(self.db_path)
+        db.execute("UPDATE tickets SET status='cancelled' WHERE ticket_id='CNXT-direct'")
+        db.execute("UPDATE cnx_direct_recovery SET state='cancelled' WHERE ticket_id='CNXT-direct'")
+        db.commit()
+        db.close()
+
+        calls = []
+        result = host_delivery.flush_deliveries(
+            self.root,
+            injector=lambda *args: calls.append(args) or {"ok": True},
+        )
+
+        self.assertEqual(calls, [])
+        self.assertEqual(result["suppressed"], [delivery_id])
+        self.assertEqual(result["pending"], 0)
+        db = sqlite3.connect(self.db_path)
+        event = db.execute(
+            "SELECT payload_json FROM ticket_events WHERE ticket_id='CNXT-direct' AND event_type='assistant_delivery_suppressed' ORDER BY event_id DESC LIMIT 1"
+        ).fetchone()
+        db.close()
+        self.assertIn("Ticket became terminal", json.loads(event[0])["reason"])
+
     def test_failure_in_one_session_does_not_block_another_session(self):
         self.queue("A", 3, "a-1", "A first")
         self.queue("A", 3, "a-2", "A second")
