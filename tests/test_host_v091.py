@@ -72,6 +72,29 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(after["desiredProvider"], "running")
             self.assertEqual(after["generation"], before["generation"] + 1)
 
+    def test_enable_reconciles_terminal_fences_before_plugin_activation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            root = workspace / ".cogent"
+            workspace.mkdir(parents=True)
+            self.seed_passthrough(root)
+            self.stub_enable_dependencies()
+            calls = []
+            fences = {
+                "cancelledOutboxSuppressed": 2,
+                "terminalRecoverySuppressed": 3,
+                "cancelledClassificationNormalized": 1,
+            }
+            self.patch(cnx.legacy, "reconcile_terminal_fences", lambda _root: calls.append("terminal-fence") or fences)
+            self.patch(cnx.legacy, "plugin_enabled", lambda enabled: calls.append(f"plugin:{enabled}"))
+
+            result = cnx.enable(root)
+
+            self.assertEqual(calls[0], "terminal-fence")
+            self.assertEqual(calls[1], "plugin:False")
+            self.assertIn("plugin:True", calls)
+            self.assertEqual(result["terminalFences"], fences)
+
     def test_enable_failure_preserves_passthrough_generation_and_policy(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
