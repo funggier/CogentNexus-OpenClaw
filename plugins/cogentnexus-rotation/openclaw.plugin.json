@@ -6,264 +6,63 @@
   "configSchema": {
     "type": "object",
     "properties": {
-      "cogentRoot": {
-        "type": "string"
-      },
-      "pythonCommand": {
-        "type": "string"
-      },
-      "agentId": {
-        "type": "string"
-      },
-      "model": {
-        "type": "string"
-      },
-      "timeoutSeconds": {
-        "type": "integer",
-        "minimum": 60,
-        "maximum": 86400
-      },
-      "autoResume": {
-        "type": "boolean",
-        "description": "Enable bounded Direct recovery after a resumable interruption."
-      },
-      "autoResumeDelayMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 60000
-      },
-      "directDeliverySettleMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 60000,
-        "description": "Quiet period after fallback message_sent receipts before a direct Ticket is considered delivered."
-      },
-      "directDeliveryTimeoutMs": {
-        "type": "integer",
-        "minimum": 10000,
-        "maximum": 3600000,
-        "description": "Maximum time a response-ready direct Ticket may remain without confirmed final delivery before durable recovery."
-      },
-      "outboxDeliveryTimeoutMs": {
-        "type": "integer",
-        "minimum": 10000,
-        "maximum": 3600000,
-        "description": "Retry age for a scheduled terminal delivery that never receives a delivery receipt."
-      },
-      "postCompactionResumeDelayMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 120000,
-        "description": "Legacy compatibility delay. v0.9 context safety owns Direct recovery after compaction and does not wake solely because the user chose Compact History."
-      },
-      "contextSafetyEnabled": {
-        "type": "boolean",
-        "description": "Enable pre-inference context pressure admission and durable background compaction for ticketed owner sessions."
-      },
-      "contextSoftRatio": {
-        "type": "number",
-        "minimum": 0.35,
-        "maximum": 0.95,
-        "description": "Optional projected context ratio that defers owner inference to bounded recovery before overflow. Defaults adapt to the model window."
-      },
-      "contextHardRatio": {
-        "type": "number",
-        "minimum": 0.5,
-        "maximum": 0.97,
-        "description": "Projected context ratio that authorizes deterministic hard transcript trimming if semantic compaction cannot reclaim enough headroom."
-      },
-      "contextMinimumHeadroomTokens": {
-        "type": "integer",
-        "minimum": 2048,
-        "maximum": 131072,
-        "description": "Minimum headroom kept before owner inference; automatically capped relative to the active model window."
-      },
-      "contextMaintenancePollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 30000,
-        "description": "Poll interval for human-authorized context maintenance rows."
-      },
-      "contextMaintenanceMaxAttempts": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 10,
-        "description": "Maximum automatic context-maintenance attempts for one session generation before maintenance stops until a new human request authorizes another attempt."
-      },
-      "contextCompactionTimeoutMs": {
-        "type": "integer",
-        "minimum": 30000,
-        "maximum": 1800000,
-        "description": "Gateway RPC timeout for semantic context compaction."
-      },
-      "contextHardTrimMaxLines": {
-        "type": "integer",
-        "minimum": 20,
-        "maximum": 1000,
-        "description": "First deterministic last-lines fallback when a hard-pressure session cannot be made safe by semantic compaction. OpenClaw archives the prior transcript."
-      },
-      "contextRecoveryHoldPollMs": {
-        "type": "integer",
-        "minimum": 250,
-        "maximum": 5000,
-        "description": "Polling interval while a committed Direct Recovery waits for its same-generation context-maintenance hold to settle."
-      },
-      "contextRecoveryHoldMaxMs": {
-        "type": "integer",
-        "minimum": 30000,
-        "maximum": 3600000,
-        "description": "Maximum bounded wait for context maintenance before the hidden recovery attempt fails and returns to durable retry policy."
-      },
-      "recoveryOrderPollMs": {
-        "type": "integer",
-        "minimum": 100,
-        "maximum": 5000,
-        "description": "Polling interval while a claimed hidden Direct Recovery waits behind an older accepted Direct Recovery in the same session generation."
-      },
-      "syntheticPromptInlineChars": {
-        "type": "integer",
-        "minimum": 4000,
-        "maximum": 48000,
-        "description": "Maximum internal hidden-worker payload kept inline before exact content is externalized to a durable SHA-256 chunk bundle."
-      },
-      "syntheticPromptChunkChars": {
-        "type": "integer",
-        "minimum": 2000,
-        "maximum": 24000,
-        "description": "Maximum characters per deterministic chunk for an externalized internal hidden-worker payload."
-      },
-      "autoRotate": {
-        "type": "boolean",
-        "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default."
-      },
-      "workspaceDir": {
-        "type": "string",
-        "description": "Workspace containing CogentNexus durable state and workflow completion outboxes."
-      },
-      "autoWorkflowCompletion": {
-        "type": "boolean",
-        "description": "Automatically wake the bound owner when a workflow reaches a terminal state."
-      },
-      "completionPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000
-      },
-      "enforcedMode": {
-        "type": "boolean",
-        "description": "Enforce owner/session and managed workflow authority boundaries."
-      },
-      "preInferenceAdmission": {
-        "type": "boolean",
-        "description": "Route obvious durable owner requests before the selected conversational model receives the prompt."
-      },
-      "admissionMinimumScore": {
-        "type": "integer",
-        "minimum": 3,
-        "maximum": 20
-      },
-      "durableWorkerModel": {
-        "type": "string",
-        "description": "Ollama model used by automatically compiled bounded workflow components."
-      },
-      "ticketFirst": {
-        "type": "boolean",
-        "description": "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default."
-      },
-      "ticketDatabasePath": {
-        "type": "string",
-        "description": "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime."
-      },
-      "ticketRecoveryPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000,
-        "description": "Deterministic expired-lease recovery scan interval."
-      },
-      "ticketOutboxPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000,
-        "description": "Terminal Ticket delivery interval."
-      },
-      "ticketDispatchPollMs": {
-        "type": "integer",
-        "minimum": 1000,
-        "maximum": 300000,
-        "description": "Bounded Ticket dispatch interval."
-      },
-      "ticketDispatchLimit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 32,
-        "description": "Maximum Tickets claimed per dispatch tick."
-      },
-      "ticketLeaseMs": {
-        "type": "integer",
-        "minimum": 5000,
-        "maximum": 3600000,
-        "description": "Ticket worker lease and heartbeat extension."
-      },
-      "ticketMinimumFreeMemoryBytes": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Minimum observed free memory before Ticket dispatch."
-      },
-      "ticketMinimumFreeDiskBytes": {
-        "type": "integer",
-        "minimum": 0,
-        "description": "Minimum observed free disk before Ticket dispatch."
-      },
-      "ticketMaximumRunning": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 32,
-        "description": "Maximum linked running Ticket workflows."
-      },
-      "ticketMaximumAttempts": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 20,
-        "description": "Maximum Ticket claim attempts before a retryable failure becomes terminal."
-      },
-      "knowledgeEnabled": {
-        "type": "boolean",
-        "description": "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution."
-      },
-      "externalResearchEnabled": {
-        "type": "boolean",
-        "description": "Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter."
-      }
+      "cogentRoot": { "type": "string" },
+      "pythonCommand": { "type": "string" },
+      "agentId": { "type": "string" },
+      "model": { "type": "string" },
+      "timeoutSeconds": { "type": "integer", "minimum": 60, "maximum": 86400 },
+      "autoResume": { "type": "boolean", "description": "Enable bounded Direct recovery after a resumable interruption." },
+      "autoResumeDelayMs": { "type": "integer", "minimum": 1000, "maximum": 60000 },
+      "directDeliverySettleMs": { "type": "integer", "minimum": 1000, "maximum": 60000, "description": "Quiet period after fallback message_sent receipts before a direct Ticket is considered delivered." },
+      "directDeliveryTimeoutMs": { "type": "integer", "minimum": 10000, "maximum": 3600000, "description": "Maximum time a response-ready direct Ticket may remain without confirmed final delivery before durable recovery." },
+      "outboxDeliveryTimeoutMs": { "type": "integer", "minimum": 10000, "maximum": 3600000, "description": "Retry age for a scheduled terminal delivery that never receives a delivery receipt." },
+      "postCompactionResumeDelayMs": { "type": "integer", "minimum": 1000, "maximum": 120000, "description": "Legacy compatibility delay. v0.9 context safety owns Direct recovery after compaction and does not wake solely because the user chose Compact History." },
+      "contextSafetyEnabled": { "type": "boolean", "description": "Enable pre-inference context pressure admission and durable background compaction for ticketed owner sessions." },
+      "contextSoftRatio": { "type": "number", "minimum": 0.35, "maximum": 0.95, "description": "Optional projected context ratio that defers owner inference to bounded recovery before overflow. Defaults adapt to the model window." },
+      "contextHardRatio": { "type": "number", "minimum": 0.50, "maximum": 0.97, "description": "Projected context ratio that authorizes deterministic hard transcript trimming if semantic compaction cannot reclaim enough headroom." },
+      "contextMinimumHeadroomTokens": { "type": "integer", "minimum": 2048, "maximum": 131072, "description": "Minimum headroom kept before owner inference; automatically capped relative to the active model window." },
+      "contextMaintenancePollMs": { "type": "integer", "minimum": 1000, "maximum": 30000, "description": "Poll interval for human-authorized context maintenance rows." },
+      "contextMaintenanceMaxAttempts": { "type": "integer", "minimum": 1, "maximum": 10, "description": "Maximum automatic context-maintenance attempts for one session generation before maintenance stops until a new human request authorizes another attempt." },
+      "contextCompactionTimeoutMs": { "type": "integer", "minimum": 30000, "maximum": 1800000, "description": "Gateway RPC timeout for semantic context compaction." },
+      "contextHardTrimMaxLines": { "type": "integer", "minimum": 20, "maximum": 1000, "description": "First deterministic last-lines fallback when a hard-pressure session cannot be made safe by semantic compaction. OpenClaw archives the prior transcript." },
+      "contextRecoveryHoldPollMs": { "type": "integer", "minimum": 250, "maximum": 5000, "description": "Polling interval while a committed Direct Recovery waits for its same-generation context-maintenance hold to settle." },
+      "contextRecoveryHoldMaxMs": { "type": "integer", "minimum": 30000, "maximum": 3600000, "description": "Maximum bounded wait for context maintenance before the hidden recovery attempt fails and returns to durable retry policy." },
+      "recoveryOrderPollMs": { "type": "integer", "minimum": 100, "maximum": 5000, "description": "Polling interval while a claimed hidden Direct Recovery waits behind an older accepted Direct Recovery in the same session generation." },
+      "syntheticPromptInlineChars": { "type": "integer", "minimum": 4000, "maximum": 48000, "description": "Maximum internal hidden-worker payload kept inline before exact content is externalized to a durable SHA-256 chunk bundle." },
+      "syntheticPromptChunkChars": { "type": "integer", "minimum": 2000, "maximum": 24000, "description": "Maximum characters per deterministic chunk for an externalized internal hidden-worker payload." },
+      "autoRotate": { "type": "boolean", "description": "Opt in to a clean TaskFlow/Codex worker for ROTATE handoffs. Disabled by default." },
+      "workspaceDir": { "type": "string", "description": "Workspace containing CogentNexus durable state and workflow completion outboxes." },
+      "autoWorkflowCompletion": { "type": "boolean", "description": "Automatically wake the bound owner when a workflow reaches a terminal state." },
+      "completionPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000 },
+      "enforcedMode": { "type": "boolean", "description": "Enforce owner/session and managed workflow authority boundaries." },
+      "preInferenceAdmission": { "type": "boolean", "description": "Route obvious durable owner requests before the selected conversational model receives the prompt." },
+      "admissionMinimumScore": { "type": "integer", "minimum": 3, "maximum": 20 },
+      "durableWorkerModel": { "type": "string", "description": "Ollama model used by automatically compiled bounded workflow components." },
+      "ticketFirst": { "type": "boolean", "description": "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default." },
+      "ticketDatabasePath": { "type": "string", "description": "Optional SQLite ticket database path. Defaults under workspace .cogent/runtime." },
+      "ticketRecoveryPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Deterministic expired-lease recovery scan interval." },
+      "ticketOutboxPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Terminal Ticket delivery interval." },
+      "ticketDispatchPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Bounded Ticket dispatch interval." },
+      "ticketDispatchLimit": { "type": "integer", "minimum": 1, "maximum": 32, "description": "Maximum Tickets claimed per dispatch tick." },
+      "ticketLeaseMs": { "type": "integer", "minimum": 5000, "maximum": 3600000, "description": "Ticket worker lease and heartbeat extension." },
+      "ticketMinimumFreeMemoryBytes": { "type": "integer", "minimum": 0, "description": "Minimum observed free memory before Ticket dispatch." },
+      "ticketMinimumFreeDiskBytes": { "type": "integer", "minimum": 0, "description": "Minimum observed free disk before Ticket dispatch." },
+      "ticketMaximumRunning": { "type": "integer", "minimum": 1, "maximum": 32, "description": "Maximum linked running Ticket workflows." },
+      "ticketMaximumAttempts": { "type": "integer", "minimum": 1, "maximum": 20, "description": "Maximum Ticket claim attempts before a retryable failure becomes terminal." },
+      "knowledgeEnabled": { "type": "boolean", "description": "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution." },
+      "externalResearchEnabled": { "type": "boolean", "description": "Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter." }
     },
     "additionalProperties": false
   },
-  "activation": {
-    "onStartup": true
-  },
+  "activation": { "onStartup": true },
   "contracts": {
-    "tools": [
-      "cogent_rotation",
-      "cogent_workflow_start",
-      "cogent_ticket_status",
-      "cogent_knowledge",
-      "cogent_research"
-    ]
+    "tools": ["cogent_rotation", "cogent_workflow_start", "cogent_ticket_status", "cogent_knowledge", "cogent_research"]
   },
   "toolMetadata": {
-    "cogent_rotation": {
-      "optional": true
-    },
-    "cogent_workflow_start": {
-      "optional": true
-    },
-    "cogent_ticket_status": {
-      "optional": true
-    },
-    "cogent_knowledge": {
-      "optional": true
-    },
-    "cogent_research": {
-      "optional": true
-    }
+    "cogent_rotation": { "optional": true },
+    "cogent_workflow_start": { "optional": true },
+    "cogent_ticket_status": { "optional": true },
+    "cogent_knowledge": { "optional": true },
+    "cogent_research": { "optional": true }
   }
 }
