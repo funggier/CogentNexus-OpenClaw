@@ -14,6 +14,7 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 const WRAPPED = Symbol.for("cogentnexus.v090.final-entry");
 const DASHBOARD_DIRECT_SETTLEMENT = Symbol.for("cogentnexus.v090.dashboard-direct-settlement");
+export const STARTUP_RECOVERY_FENCE = Symbol.for("cogentnexus.v090.startup-recovery-fence");
 
 function recoverCrashStaleContextRows(databasePath:string) {
   const db=new DatabaseSync(databasePath),stamp=new Date().toISOString();
@@ -31,15 +32,6 @@ function recoverCrashStaleContextRows(databasePath:string) {
   } finally {db.close();}
 }
 
-/**
- * Dashboard/webchat replies are delivered by the in-process agent stream rather
- * than an external channel dispatch. OpenClaw 2026.7.1 documents that outbound
- * message_sent does not carry runId and dashboard runs may not provide a usable
- * channel receipt. For an exact Dashboard Ticket, successful agent_end with
- * visible output is therefore the delivery authority: complete it immediately
- * instead of waiting for a channel receipt that can never correlate reliably.
- * External channel sessions keep the normal message_sent confirmation path.
- */
 export function installDashboardDirectSettlement() {
   const prototype = TicketStore.prototype as any;
   if (prototype[DASHBOARD_DIRECT_SETTLEMENT]) return;
@@ -75,6 +67,18 @@ function wrapFinalEntry() {
     const rawRegister=api.registerService?.bind(api);
     let startupRecovery:Promise<void>|undefined;
 
+    const ensureStartupRecovery=async(ctx:any)=>{
+      startupRecovery??=(async()=>{
+        const workspaceDir=resolve(cfg.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
+        const databasePath=resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+        const nativeRestart=reconcileNativeRestartRecoveryTickets(databasePath);
+        const prepared=prepareV090RecoveryState(workspaceDir,cfg);
+        const contextRecovered=recoverCrashStaleContextRows(databasePath);
+        proxy.logger.info?.(`CogentNexus crash-start recovery: nativeRestartCancelled=${nativeRestart.cancelled} nativeRestartOutboxSuppressed=${nativeRestart.outboxSuppressed} nativeRestartRecoverySuppressed=${nativeRestart.recoverySuppressed} directReopened=${prepared.reopened} cancelledLegacy=${prepared.cancelledLegacy} outboxReset=${prepared.outboxReset} workflowDeliveryReset=${prepared.workflowDeliveryReset} contextRowsRecovered=${contextRecovered}`);
+      })().catch((error)=>{startupRecovery=undefined;throw error;});
+      await startupRecovery;
+    };
+
     installNativeRestartRecoveryBoundary(api);
 
     if(rawRegister) {
@@ -82,16 +86,9 @@ function wrapFinalEntry() {
         if(!service||typeof service.start!=="function")return rawRegister(service);
         return rawRegister({
           ...service,
+          [STARTUP_RECOVERY_FENCE]:ensureStartupRecovery,
           start:async(ctx:any)=>{
-            startupRecovery??=(async()=>{
-              const workspaceDir=resolve(cfg.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
-              const databasePath=resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
-              const nativeRestart=reconcileNativeRestartRecoveryTickets(databasePath);
-              const prepared=prepareV090RecoveryState(workspaceDir,cfg);
-              const contextRecovered=recoverCrashStaleContextRows(databasePath);
-              proxy.logger.info?.(`CogentNexus crash-start recovery: nativeRestartCancelled=${nativeRestart.cancelled} nativeRestartOutboxSuppressed=${nativeRestart.outboxSuppressed} nativeRestartRecoverySuppressed=${nativeRestart.recoverySuppressed} directReopened=${prepared.reopened} cancelledLegacy=${prepared.cancelledLegacy} outboxReset=${prepared.outboxReset} workflowDeliveryReset=${prepared.workflowDeliveryReset} contextRowsRecovered=${contextRecovered}`);
-            })().catch((error)=>{startupRecovery=undefined;throw error;});
-            await startupRecovery;
+            await ensureStartupRecovery(ctx);
             return service.start(ctx);
           },
         });
