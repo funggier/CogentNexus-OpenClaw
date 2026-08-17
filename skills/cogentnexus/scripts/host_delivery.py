@@ -35,6 +35,15 @@ def creation_flags() -> int:
     return subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
 
+def captured_text(value: str | bytes | None) -> str:
+    """Return subprocess output as text even when Windows supplies no stream."""
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return str(value)
+
+
 def run(cmd: list[str], timeout: int = 60, check: bool = False) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         cmd,
@@ -44,7 +53,8 @@ def run(cmd: list[str], timeout: int = 60, check: bool = False) -> subprocess.Co
         creationflags=creation_flags(),
     )
     if check and result.returncode != 0:
-        raise RuntimeError((result.stderr or result.stdout or f"command failed: {cmd}").strip())
+        detail = captured_text(result.stderr) or captured_text(result.stdout) or f"command failed: {cmd}"
+        raise RuntimeError(detail.strip())
     return result
 
 
@@ -55,6 +65,36 @@ def openclaw_executable() -> str:
         if found:
             return found
     raise FileNotFoundError("OpenClaw CLI not found on PATH")
+
+
+def _parse_json_stream(method: str, result: subprocess.CompletedProcess[str]) -> Any:
+    """Parse the Gateway JSON response without assuming which captured stream owns it.
+
+    OpenClaw normally writes ``--json`` output to stdout. Windows command shims
+    can, however, leave one captured stream unavailable. Prefer stdout, then
+    accept stderr only when it is itself valid JSON. Empty successful output is
+    not proof of delivery and therefore fails closed with stage diagnostics.
+    """
+    stdout = captured_text(result.stdout).strip()
+    stderr = captured_text(result.stderr).strip()
+    candidates = [("stdout", stdout), ("stderr", stderr)]
+    parse_errors: list[str] = []
+    for name, value in candidates:
+        if not value:
+            continue
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as error:
+            parse_errors.append(f"{name}: {error.msg} at {error.pos}")
+    if not stdout and not stderr:
+        raise RuntimeError(
+            f"OpenClaw Gateway RPC {method} returned no JSON output "
+            f"(exit={result.returncode}, stdout={'none' if result.stdout is None else 'empty'}, "
+            f"stderr={'none' if result.stderr is None else 'empty'})"
+        )
+    preview = stdout or stderr
+    detail = "; ".join(parse_errors) or "no parseable JSON stream"
+    raise RuntimeError(f"OpenClaw Gateway RPC {method} returned invalid JSON ({detail}): {preview[:500]}")
 
 
 def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int = 30) -> Any:
@@ -68,13 +108,7 @@ def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int 
         "--json",
     ]
     result = run(command, timeout=timeout, check=True)
-    value = result.stdout.strip()
-    if not value:
-        return None
-    try:
-        return json.loads(value)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"OpenClaw Gateway RPC {method} returned invalid JSON: {value[:500]}") from error
+    return _parse_json_stream(method, result)
 
 
 def ticket_db(root: Path) -> Path:
@@ -332,6 +366,14 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
 
 
 def mark_failed(root: Path, delivery_id: int, error: str) -> None:
+    """Record transport failure and keep a durable Direct answer from regenerating.
+
+    While a direct_result row is still pending, the expensive/side-effect-aware
+    recovery path must not infer a brand-new answer merely because transport is
+    unhealthy. Refresh response_ready_at on each active delivery attempt so the
+    120s undelivered-response detector continues retrying this exact durable text
+    instead of launching another hidden LLM run.
+    """
     path = ticket_db(root)
     if not path.exists():
         return
@@ -339,13 +381,37 @@ def mark_failed(root: Path, delivery_id: int, error: str) -> None:
     try:
         ensure_schema(db)
         stamp = now_iso()
+        message = error[:2000]
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute(
+            "SELECT ticket_id,kind FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'",
+            (delivery_id,),
+        ).fetchone()
         db.execute(
             """UPDATE cnx_assistant_delivery
                SET attempt_count=attempt_count+1,last_error=?,updated_at=?
                WHERE delivery_id=? AND status='pending'""",
-            (error[:2000], stamp, delivery_id),
+            (message, stamp, delivery_id),
         )
+        if row and row[0] and str(row[1]) == "direct_result" and table_exists(db, "tickets"):
+            db.execute(
+                """UPDATE tickets
+                   SET response_ready_at=?,delivery_last_error=?,updated_at=?
+                   WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0
+                         AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL""",
+                (stamp, message, stamp, str(row[0])),
+            )
+            _event(
+                db,
+                str(row[0]),
+                "assistant_delivery_retry",
+                {"deliveryId": delivery_id, "error": message, "recoveryDeferred": True},
+                stamp,
+            )
         db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
