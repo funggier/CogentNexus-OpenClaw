@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, watch, type FSWatcher } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import entry from "./v090-final-entry.js";
+import entry, { STARTUP_RECOVERY_FENCE } from "./v090-final-entry.js";
 import {
   deliverTicketOutbox,
   deliverWorkflowCompletion,
@@ -29,6 +29,7 @@ export const ACTIVE_RECONCILE_MS = 15_000;
 export const DEEP_RECONCILE_MS = 10 * 60_000;
 export const SAFETY_SWEEP_MS = 10 * 60_000;
 
+type StartupFence = ((ctx:any)=>Promise<void>)|undefined;
 const pulseListeners = new Set<() => void>();
 
 export function pulseManagedWorkers() {
@@ -57,7 +58,6 @@ function tableExists(db: DatabaseSync, name: string) {
   return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
 }
 
-/** Read-only durable-work gate. No write occurs merely because a safety pulse fired. */
 export function idleWorkHint(databasePath: string): boolean {
   if (!existsSync(databasePath)) return false;
   const db = new DatabaseSync(databasePath, { readOnly: true });
@@ -116,7 +116,7 @@ function createCoalescedRunner(work: () => Promise<void>, logger: any) {
   return { run, stop: () => { stopped = true; rerun = false; } };
 }
 
-function createEventDrivenWorkflowCompletion(api: any, config: any) {
+function createEventDrivenWorkflowCompletion(api: any, config: any, startupFence:StartupFence) {
   let watcher: FSWatcher | undefined;
   let safety: ReturnType<typeof setTimeout> | undefined;
   let removePulse: (() => void) | undefined;
@@ -124,6 +124,7 @@ function createEventDrivenWorkflowCompletion(api: any, config: any) {
   const service: any = {
     id: WORKFLOW_COMPLETION_ID,
     start: async (ctx: any) => {
+      await startupFence?.(ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const workflowsDir = resolve(workspaceDir, ".cogent", "workflows");
       mkdirSync(workflowsDir, { recursive: true });
@@ -166,13 +167,14 @@ function createEventDrivenWorkflowCompletion(api: any, config: any) {
   return service;
 }
 
-function createEventDrivenTicketRecovery(api: any, config: any) {
+function createEventDrivenTicketRecovery(api: any, config: any, startupFence:StartupFence) {
   let safety: ReturnType<typeof setTimeout> | undefined;
   let removePulse: (() => void) | undefined;
   let runner: ReturnType<typeof createCoalescedRunner> | undefined;
   const service: any = {
     id: TICKET_RECOVERY_ID,
     start: async (ctx: any) => {
+      await startupFence?.(ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       const store = new TicketStore(databasePath);
@@ -213,7 +215,7 @@ function createEventDrivenTicketRecovery(api: any, config: any) {
   return service;
 }
 
-function createAdaptiveHostReconciliation(api: any, config: any) {
+function createAdaptiveHostReconciliation(api: any, config: any, startupFence:StartupFence) {
   let stopped = false;
   let active = false;
   let rerun = false;
@@ -223,6 +225,7 @@ function createAdaptiveHostReconciliation(api: any, config: any) {
   const service: any = {
     id: HOST_RECONCILIATION_ID,
     start: async (ctx: any) => {
+      await startupFence?.(ctx);
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
       const tick = async (forceDeep = false) => {
@@ -282,9 +285,10 @@ function wrapReleaseEntry() {
     const rawRegister = api.registerService?.bind(api);
     if (rawRegister) {
       proxy.registerService = (service: any) => {
-        if (service?.id === HOST_RECONCILIATION_ID) return rawRegister(createAdaptiveHostReconciliation(api, config));
-        if (service?.id === WORKFLOW_COMPLETION_ID) return rawRegister(createEventDrivenWorkflowCompletion(api, config));
-        if (service?.id === TICKET_RECOVERY_ID) return rawRegister(createEventDrivenTicketRecovery(api, config));
+        const startupFence = service?.[STARTUP_RECOVERY_FENCE] as StartupFence;
+        if (service?.id === HOST_RECONCILIATION_ID) return rawRegister(createAdaptiveHostReconciliation(api, config, startupFence));
+        if (service?.id === WORKFLOW_COMPLETION_ID) return rawRegister(createEventDrivenWorkflowCompletion(api, config, startupFence));
+        if (service?.id === TICKET_RECOVERY_ID) return rawRegister(createEventDrivenTicketRecovery(api, config, startupFence));
         return rawRegister(service);
       };
     }
