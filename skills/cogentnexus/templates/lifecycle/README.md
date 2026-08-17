@@ -1,6 +1,6 @@
 # Lifecycle launchers
 
-The v0.8 preferred operator surface is the Host Controller launcher installed in the OpenClaw workspace:
+The v0.9.1 preferred operator surface is the transactional Host Controller launcher installed in the OpenClaw workspace:
 
 ```text
 cnx status
@@ -11,12 +11,12 @@ cnx disable
 cnx enable
 ```
 
-The wrappers in this directory remain as portable low-level/compatibility launchers for runtime lifecycle operations:
+The `cnx.cmd` compatibility template routes through `host_control_v091.py`, matching the installed launcher. The other wrappers in this directory remain portable **low-level** runtime lifecycle helpers:
 
 - Windows: `start-cogentnexus.cmd`, `stop-cogentnexus.cmd`
 - Linux/macOS: `start-cogentnexus.sh`, `stop-cogentnexus.sh`
 
-Use `cnx` for normal operation because Host operating mode, desired state, Ticket recovery, startup ownership, and runtime lifecycle must remain aligned.
+Use `cnx` for normal operation because Host operating mode, desired state, Ticket recovery, watchdog compatibility, startup ownership, and runtime lifecycle must remain aligned.
 
 `cnx stop` means intentional MAINTENANCE. `cnx disable` means PASSTHROUGH and must leave native OpenClaw usable; the low-level stop wrapper is **not** a substitute for PASSTHROUGH.
 
