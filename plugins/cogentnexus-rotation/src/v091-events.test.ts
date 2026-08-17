@@ -11,7 +11,7 @@ const originalQueueMicrotask = globalThis.queueMicrotask;
 afterEach(() => { globalThis.queueMicrotask = originalQueueMicrotask; });
 
 describe("v0.9.1 event-driven boundaries", () => {
-  it("wakes managed workers only after a Ticket is durably routed to workflow execution", () => {
+  it("wakes deadline workers after Ticket COMMIT and adds a durable-dispatch wake only for workflow routing", () => {
     installTicketMutationPulses();
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-route-pulse-"));
     try {
@@ -21,11 +21,12 @@ describe("v0.9.1 event-driven boundaries", () => {
       const direct = store.accept({ runId:"run-direct", ownerSessionKey:"agent:main:dashboard:test", prompt:"hello" });
       const durable = store.accept({ runId:"run-durable", ownerSessionKey:"agent:main:dashboard:test", prompt:"do durable work" });
 
+      expect(callbacks).toHaveLength(2);
       expect(store.route(direct.ticketId, false)).toBe(true);
-      expect(callbacks).toHaveLength(0);
+      expect(callbacks).toHaveLength(2);
 
       expect(store.route(durable.ticketId, true)).toBe(true);
-      expect(callbacks).toHaveLength(1);
+      expect(callbacks).toHaveLength(3);
     } finally {
       rmSync(root, { recursive:true, force:true });
     }
