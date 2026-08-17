@@ -25,6 +25,7 @@ HERE = Path(__file__).resolve()
 SKILL = HERE.parents[1]
 WORKSPACE = SKILL.parents[1]
 DEFAULT_ROOT = WORKSPACE / ".cogent"
+TERMINAL_TICKET_STATUSES = {"completed", "failed", "cancelled"}
 
 
 def now_iso() -> str:
@@ -440,12 +441,21 @@ def pending_deliveries(root: Path, limit: int = 200) -> list[dict[str, Any]]:
 
 
 def delivery_is_authoritative(root: Path, item: dict[str, Any]) -> bool:
+    """Require both exact-session authority and a non-terminal Ticket before injection."""
     path = ticket_db(root)
     db = sqlite3.connect(path, timeout=5)
     try:
         ensure_schema(db)
         authority = session_authority(db, str(item["owner_session_key"]))
-        return authority == ("active", int(item["owner_generation"]))
+        if authority != ("active", int(item["owner_generation"])):
+            return False
+        ticket_id = item.get("ticket_id")
+        if not ticket_id:
+            return True
+        if not table_exists(db, "tickets"):
+            return False
+        row = db.execute("SELECT status FROM tickets WHERE ticket_id=?", (str(ticket_id),)).fetchone()
+        return bool(row and str(row[0]) not in TERMINAL_TICKET_STATUSES)
     finally:
         db.close()
 
@@ -467,7 +477,7 @@ def flush_deliveries(
         for item in grouped[session_key]:
             delivery_id = int(item["delivery_id"])
             if not delivery_is_authoritative(root, item):
-                suppress_delivery(root, delivery_id, "session deleted or generation superseded")
+                suppress_delivery(root, delivery_id, "session authority changed or Ticket became terminal before injection")
                 suppressed.append(delivery_id)
                 continue
             try:
