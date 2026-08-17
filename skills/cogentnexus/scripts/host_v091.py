@@ -19,6 +19,7 @@ import json
 import os
 import socket
 import sqlite3
+import time
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,7 @@ LEGACY_SUPERVISOR_TICK = legacy.supervisor_tick
 IDLE_GATEWAY_PORT = 18789
 IDLE_OLLAMA_PORT = 11434
 IDLE_PROBE_TIMEOUT_SECONDS = 0.75
+HARD_HANG_CONFIRM_DELAY_SECONDS = 1.0
 
 
 def safe_default_state() -> dict[str, Any]:
@@ -213,6 +215,25 @@ def _restore_native_gateway() -> dict[str, Any]:
         "stdout": (restart.stdout or "").strip(),
         "stderr": (restart.stderr or "").strip(),
         "healthy": True,
+    }
+
+
+def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
+    """Restart a confirmed hard-hung Gateway under recoverable maintenance authority."""
+    result = legacy.runtime(
+        root,
+        "lifecycle",
+        "restart",
+        "--reason",
+        "CogentNexus external supervisor confirmed an unresponsive Gateway",
+        timeout=240,
+        check=False,
+    )
+    return {
+        "attempted": True,
+        "exitCode": result.returncode,
+        "output": legacy.parse_json_output(result.stdout) if (result.stdout or "").strip() else None,
+        "stderr": (result.stderr or "").strip(),
     }
 
 
@@ -423,7 +444,7 @@ def disable(root: Path) -> dict[str, Any]:
 
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
-    """Quiescent fast path for the external scheduled supervisor."""
+    """Quiescent fast path plus confirmed hard-hang recovery."""
     legacy.initialize(root)
     state = legacy.load_state(root)
     if state.get("mode") != "managed":
@@ -432,6 +453,13 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
         return {"result": "maintenance", "desiredGateway": state.get("desiredGateway"), "action": "none"}
 
     gateway_ok = gateway_fast_probe()
+    hard_hang_restart = None
+    if not gateway_ok:
+        time.sleep(HARD_HANG_CONFIRM_DELAY_SECONDS)
+        gateway_ok = gateway_fast_probe()
+        if not gateway_ok and execute_safe:
+            hard_hang_restart = _restart_unresponsive_gateway(root)
+
     provider_required = state.get("desiredProvider") == "running"
     provider_ok = (not provider_required) or ollama_fast_probe()
     work_pending = durable_work_hint(root)
@@ -446,9 +474,14 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
             "durableWorkPending": False,
         }
 
-    # Only endpoint failure or visible committed work pays the cost of OpenClaw
-    # CLI, lifecycle status, durable reconciliation, and recovery promotion.
-    return LEGACY_SUPERVISOR_TICK(root, execute_safe)
+    # Hard hangs are restarted first under recoverable maintenance authority.
+    # The proven heavy path then verifies health, clears restart maintenance,
+    # recovers provider/workflow state, and promotes interrupted Direct Tickets.
+    result = LEGACY_SUPERVISOR_TICK(root, execute_safe)
+    if hard_hang_restart is not None and isinstance(result, dict):
+        result = dict(result)
+        result["hardHangRecovery"] = hard_hang_restart
+    return result
 
 
 # Keep the proven parser/command surface and replace only hardened paths.
