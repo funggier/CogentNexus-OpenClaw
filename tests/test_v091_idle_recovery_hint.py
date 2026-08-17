@@ -68,6 +68,30 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             db.close()
             self.assertTrue(cnx.durable_work_hint(root))
 
+    def test_pending_assistant_delivery_is_actionable_even_with_terminal_ticket(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            self.seed_managed(root)
+            _path, db = self.create_ticket_db(root)
+            db.execute("INSERT INTO tickets(status) VALUES ('completed')")
+            db.execute("CREATE TABLE cnx_assistant_delivery(status TEXT NOT NULL)")
+            db.execute("INSERT INTO cnx_assistant_delivery(status) VALUES ('pending')")
+            db.commit()
+            db.close()
+            self.assertTrue(cnx.durable_work_hint(root))
+
+    def test_awaiting_direct_delivery_is_actionable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            self.seed_managed(root)
+            _path, db = self.create_ticket_db(root)
+            db.execute("INSERT INTO tickets(status) VALUES ('completed')")
+            db.execute("CREATE TABLE cnx_direct_recovery(state TEXT NOT NULL)")
+            db.execute("INSERT INTO cnx_direct_recovery(state) VALUES ('awaiting_delivery')")
+            db.commit()
+            db.close()
+            self.assertTrue(cnx.durable_work_hint(root))
+
     def test_healthy_endpoints_with_pending_work_enter_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
