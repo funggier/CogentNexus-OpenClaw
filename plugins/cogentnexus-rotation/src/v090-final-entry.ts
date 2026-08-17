@@ -4,7 +4,7 @@ import entry, { reconcileOpenClawNativeTasks, reconcileV090LiveState } from "./v
 import { createAbortAuthorityApi } from "./v090-abort-authority.js";
 import { createCompactionBoundaryApi, installPassiveCompactionObserver } from "./v090-compaction-boundary.js";
 import { createContextMaintenanceApi } from "./v090-context-api.js";
-import { installContextGuard } from "./v090-context-guard.js";
+import { installContextGuard } from "./v091-context-guard.js";
 import { installNativeRestartRecoveryBoundary, reconcileNativeRestartRecoveryTickets } from "./v090-native-restart-boundary.js";
 import { reconcileMissingOwnerSessions } from "./v090-owner-reconcile.js";
 import { installRecoveryOrderAdmission } from "./v090-recovery-order.js";
@@ -54,10 +54,6 @@ export function installDashboardDirectSettlement() {
           ORDER BY created_at DESC LIMIT 1`).get(input.runId) as {owner_session_key?:string} | undefined;
         if (row?.owner_session_key && isDashboardSession(row.owner_session_key)) {
           const settled = finalize.call(this, { ...input, expectsDelivery:false });
-          // The base agent_end handler uses "unchanged" as its no-receipt-pending
-          // cleanup signal. The Ticket is durably completed above; returning this
-          // signal releases run/session delivery maps immediately so a later
-          // unrelated message_sent cannot correlate to a stale Dashboard run.
           return settled === "completed" ? "unchanged" : settled;
         }
       } finally { db.close(); }
@@ -74,17 +70,11 @@ function wrapFinalEntry() {
   entry.register = (api:any) => {
     const cfg = (api.pluginConfig ?? {}) as any;
     const runtimeProxy = createCnxRuntimeSafetyProxy(api, cfg);
-    // Guard ambiguous OpenClaw abort strings before either the base Ticket
-    // finalizer or the v0.9 session-cancellation hook sees agent_end.
     const abortProxy = createAbortAuthorityApi(runtimeProxy, cfg);
     const proxy = createCompactionBoundaryApi(abortProxy);
     const rawRegister=api.registerService?.bind(api);
     let startupRecovery:Promise<void>|undefined;
 
-    // OpenClaw 2026.7.1-2 tags native restart recovery as internal_system in
-    // core, but before_agent_run does not expose that provenance to plugins.
-    // Install a narrow priority-10000 compatibility fence before the legacy
-    // Ticket-first priority-2000 hook is registered.
     installNativeRestartRecoveryBoundary(api);
 
     if(rawRegister) {
@@ -109,30 +99,15 @@ function wrapFinalEntry() {
     }
 
     register?.(proxy);
-
-    // Base/v0.9 wrappers are installed during register(). Layer the Dashboard
-    // delivery authority last so it sees the final Direct settlement behavior.
     installDashboardDirectSettlement();
-
-    // Ticket-first admission runs at priority 2000. This ordering fence runs at
-    // 1600, so every new human request is durably committed first, then blocked
-    // from overtaking an older Direct Recovery in the same CNX generation.
     installRecoveryOrderAdmission(proxy,cfg);
-
-    // Observe every successful OpenClaw compaction passively. The observer may
-    // settle an already-authorized CNX context hold, but never creates a Ticket,
-    // recovery row, scheduled turn, or inference solely because the user chose
-    // Compact History.
     installPassiveCompactionObserver(api,cfg);
 
-    // Context maintenance intentionally sees CNX generation as the ownership
-    // boundary. OpenClaw may rotate physical sessionId during a user/manual
-    // Compact; that is a transcript revision, not Reset/Delete/Stop.
     const contextApi=createContextMaintenanceApi(abortProxy,cfg);
     const contextRegistration = Object.create(contextApi);
     if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
-        if (service?.id !== "cogentnexus-context-maintenance-v090" || typeof service.start !== "function") {
+        if (!/^cogentnexus-context-maintenance-v09[01]$/.test(String(service?.id ?? "")) || typeof service.start !== "function") {
           return proxy.registerService(service);
         }
         return proxy.registerService({
