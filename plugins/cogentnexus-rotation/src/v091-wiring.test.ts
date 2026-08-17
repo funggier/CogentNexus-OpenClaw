@@ -1,17 +1,21 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vitest";
 import entry, {
   HOST_RECONCILIATION_ID,
+  TICKET_RECOVERY_ID,
+  WORKFLOW_COMPLETION_ID,
   idleWorkHint,
   isAdaptiveHostReconciliation,
+  isEventDrivenService,
 } from "./v091-final-entry.js";
 
 describe("v0.9.1 production wiring", () => {
-  it("replaces the legacy Host reconciliation service at real register time", () => {
+  it("replaces production polling services with event-driven workers at real register time", () => {
     const services: any[] = [];
+    const events: string[] = [];
     const base: any = {
       pluginConfig: {
         ticketFirst: true,
@@ -29,7 +33,7 @@ describe("v0.9.1 production wiring", () => {
       registerCommand: vi.fn(),
       registerCli: vi.fn(),
       registerGatewayMethod: vi.fn(),
-      on: vi.fn(),
+      on: vi.fn((name: string) => { events.push(name); }),
       config: {},
     };
     const api = new Proxy(base, {
@@ -43,9 +47,29 @@ describe("v0.9.1 production wiring", () => {
 
     entry.register?.(api);
 
-    const hostServices = services.filter((service) => service?.id === HOST_RECONCILIATION_ID);
-    expect(hostServices).toHaveLength(1);
-    expect(isAdaptiveHostReconciliation(hostServices[0])).toBe(true);
+    const host = services.filter((service) => service?.id === HOST_RECONCILIATION_ID);
+    const workflow = services.filter((service) => service?.id === WORKFLOW_COMPLETION_ID);
+    const tickets = services.filter((service) => service?.id === TICKET_RECOVERY_ID);
+    const context = services.filter((service) => service?.id === "cogentnexus-context-maintenance-v091");
+
+    expect(host).toHaveLength(1);
+    expect(workflow).toHaveLength(1);
+    expect(tickets).toHaveLength(1);
+    expect(context).toHaveLength(1);
+    expect(isAdaptiveHostReconciliation(host[0])).toBe(true);
+    expect(isEventDrivenService(host[0])).toBe(true);
+    expect(isEventDrivenService(workflow[0])).toBe(true);
+    expect(isEventDrivenService(tickets[0])).toBe(true);
+    expect(events).toContain("agent_end");
+    expect(events).toContain("message_sent");
+    expect(events).toContain("after_compaction");
+  });
+
+  it("keeps v0.9.1 context maintenance free of periodic setInterval polling", () => {
+    const source = readFileSync(new URL("./v091-context-guard.ts", import.meta.url), "utf8");
+    expect(source).not.toContain("setInterval(");
+    expect(source).toContain("queueMicrotask(()=>pulse?.())");
+    expect(source).toContain("nextDueDelay");
   });
 
   it("treats pending delivery as actionable work even when every Ticket is terminal", () => {
