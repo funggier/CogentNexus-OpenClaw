@@ -12,7 +12,8 @@ import { prepareV090RecoveryState } from "./v090.js";
 import { defaultTicketDatabase } from "./ticket-store.js";
 
 const WRAPPED = Symbol.for("cogentnexus.v091.release-entry");
-const HOST_RECONCILIATION_ID = "cogentnexus-v090-host-reconciliation";
+const ADAPTIVE_HOST_RECONCILIATION = Symbol.for("cogentnexus.v091.adaptive-host-reconciliation");
+export const HOST_RECONCILIATION_ID = "cogentnexus-v090-host-reconciliation";
 export const IDLE_RECONCILE_MS = 120_000;
 export const ACTIVE_RECONCILE_MS = 15_000;
 export const DEEP_RECONCILE_MS = 10 * 60_000;
@@ -65,13 +66,17 @@ export function idleWorkHint(databasePath: string): boolean {
   }
 }
 
+export function isAdaptiveHostReconciliation(service: any): boolean {
+  return Boolean(service?.[ADAPTIVE_HOST_RECONCILIATION]);
+}
+
 function createAdaptiveHostReconciliation(api: any, config: any) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let active = false;
   let stopped = false;
   let lastDeepReconcileAt = 0;
 
-  return {
+  const service = {
     id: HOST_RECONCILIATION_ID,
     start: async (ctx: any) => {
       const workspaceDir = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
@@ -147,6 +152,8 @@ function createAdaptiveHostReconciliation(api: any, config: any) {
       timer = undefined;
     },
   };
+  Object.defineProperty(service, ADAPTIVE_HOST_RECONCILIATION, { value: true });
+  return service;
 }
 
 function wrapReleaseEntry() {
