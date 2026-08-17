@@ -9,15 +9,16 @@ by live Windows acceptance and end-to-end wiring review:
    Gateway health is verified;
 3. fresh initialization starts in passthrough until enable commits managed;
 4. startup adapters route through the v0.9.1 control wrapper; and
-5. an idle healthy runtime is quiescent: the external supervisor uses a small
-   socket-level health probe and only enters heavy reconciliation when Gateway
-   or provider responsiveness is actually lost.
+5. an idle healthy runtime is quiescent: the external supervisor uses small
+   socket/read-only durable probes and enters heavy reconciliation only when
+   health is lost or actionable committed work exists.
 """
 from __future__ import annotations
 
 import json
 import os
 import socket
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -110,6 +111,50 @@ def ollama_fast_probe() -> bool:
     return _http_probe(IDLE_OLLAMA_PORT, "/api/tags")
 
 
+def _db_table_exists(db: sqlite3.Connection, name: str) -> bool:
+    return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
+
+
+def durable_work_hint(root: Path) -> bool:
+    """Read-only fallback hint for committed work that should wake recovery.
+
+    The scheduled supervisor must not assume that healthy TCP endpoints imply
+    healthy workers. If a Ticket/outbox/recovery row remains actionable, enter
+    the proven heavy reconciliation path even while Gateway and Ollama respond.
+    """
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return False
+    try:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.25)
+    except sqlite3.Error:
+        return True
+    try:
+        if not _db_table_exists(db, "tickets"):
+            return False
+        if db.execute("SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1").fetchone():
+            return True
+        if _db_table_exists(db, "ticket_outbox") and db.execute(
+            "SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
+        ).fetchone():
+            return True
+        if _db_table_exists(db, "cnx_direct_recovery") and db.execute(
+            "SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded') LIMIT 1"
+        ).fetchone():
+            return True
+        if _db_table_exists(db, "cnx_context_maintenance") and db.execute(
+            "SELECT 1 FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
+        ).fetchone():
+            return True
+        return False
+    except sqlite3.Error:
+        # Lock/schema uncertainty is not proof of quiescence. Fail toward the
+        # bounded recovery path rather than sleeping over committed work.
+        return True
+    finally:
+        db.close()
+
+
 def configure_managed_plugin() -> None:
     """Stage all managed settings while the plugin is disabled.
 
@@ -197,8 +242,6 @@ def enable(root: Path) -> dict[str, Any]:
     rollback: list[dict[str, Any]] = []
 
     try:
-        # Configuration while disabled avoids OpenClaw hot-reload races observed
-        # in the failed live v0.9 enable attempt.
         legacy.plugin_enabled(False)
         configuration_attempted = True
         configure_managed_plugin()
@@ -224,8 +267,6 @@ def enable(root: Path) -> dict[str, Any]:
         if session_bootstrap.get("ok") is False and not session_bootstrap.get("skipped"):
             raise RuntimeError(f"default session bootstrap failed: {session_bootstrap}")
 
-        # Atomic durable commit: there are no required activation steps after
-        # this transition. Failure before here leaves generation/state untouched.
         state = legacy.transition(root, mode="managed", desiredGateway="running", desiredProvider="running")
     except Exception as error:
         if startup_attempted:
@@ -250,9 +291,6 @@ def enable(root: Path) -> dict[str, Any]:
         except Exception as rollback_error:
             rollback.append({"stage": "policy-restore", "error": str(rollback_error)})
 
-        # Any OpenClaw configuration/plugin/startup/runtime attempt may have
-        # triggered a native reload. End failure in an explicitly healthy native
-        # Gateway rather than assuming which activation step had side effects.
         if configuration_attempted or plugin_enable_attempted or startup_attempted or runtime_start_attempted:
             try:
                 rollback.append({"stage": "native-gateway-restore", **_restore_native_gateway()})
@@ -275,8 +313,6 @@ def enable(root: Path) -> dict[str, Any]:
             f"cause={error}; priorMode={prior.get('mode')}; currentMode={current.get('mode')}; rollback={rollback}"
         ) from error
 
-    # Recovery settlement is post-commit and best-effort. It must never turn a
-    # healthy completed enable into a half-enabled rollback state.
     recovery_error = None
     recovered: list[str] = []
     try:
@@ -333,9 +369,6 @@ def disable(root: Path) -> dict[str, Any]:
         else:
             state = legacy.transition(root, mode="passthrough", desiredGateway="running", desiredProvider="unchanged")
     except Exception as error:
-        # Durable Host state has not changed yet. Restore only surfaces that were
-        # previously expected to be managed; an idempotent disable from native
-        # passthrough must never re-enable CNX on failure.
         if policy_attempted:
             try:
                 _restore_file(agents_path, agents_snapshot)
@@ -392,18 +425,20 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     gateway_ok = gateway_fast_probe()
     provider_required = state.get("desiredProvider") == "running"
     provider_ok = (not provider_required) or ollama_fast_probe()
-    if gateway_ok and provider_ok:
+    work_pending = durable_work_hint(root)
+    if gateway_ok and provider_ok and not work_pending:
         return {
             "result": "idle",
             "action": "none",
-            "probe": "lightweight-http",
+            "probe": "lightweight-http+sqlite-ro",
             "gatewayHealthy": True,
             "providerRequired": provider_required,
             "providerHealthy": provider_ok,
+            "durableWorkPending": False,
         }
 
-    # Only an unhealthy lightweight probe pays the cost of OpenClaw CLI,
-    # lifecycle status, durable reconciliation, and recovery promotion.
+    # Only endpoint failure or visible committed work pays the cost of OpenClaw
+    # CLI, lifecycle status, durable reconciliation, and recovery promotion.
     return LEGACY_SUPERVISOR_TICK(root, execute_safe)
 
 
