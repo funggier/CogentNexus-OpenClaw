@@ -5,8 +5,10 @@ Periodic supervisor ticks deliberately bypass the legacy watchdog re-apply path:
 the watchdog fence is installed on enable/start/restart and does not need an
 OpenClaw CLI process every minute merely to confirm an unchanged value.
 
-The delegated Host entry is the single-authority activation overlay, which
-commits MANAGED before forcing the post-commit plugin reload.
+The delegated Host entry layers Direct model-call stall recovery on top of the
+single-authority activation overlay. MANAGED remains the sole inference/recovery
+authority, while steady-state supervision can quiesce and classify an expired
+provider call even when Gateway/Ollama health endpoints still respond.
 """
 from __future__ import annotations
 
@@ -16,7 +18,7 @@ from pathlib import Path
 import host_control as legacy
 
 HERE = Path(__file__).resolve()
-legacy.HOST = HERE.with_name("host_authority_v091.py")
+legacy.HOST = HERE.with_name("host_stall_v091.py")
 
 
 def main() -> int:
