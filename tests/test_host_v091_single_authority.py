@@ -5,6 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST = ROOT / "skills" / "cogentnexus" / "scripts" / "host_authority_v091.py"
+STALL = ROOT / "skills" / "cogentnexus" / "scripts" / "host_stall_v091.py"
 CONTROL = ROOT / "skills" / "cogentnexus" / "scripts" / "host_control_v091.py"
 ENTRY = ROOT / "plugins" / "cogentnexus-rotation" / "src" / "v091-release-entry.ts"
 
@@ -12,11 +13,15 @@ ENTRY = ROOT / "plugins" / "cogentnexus-rotation" / "src" / "v091-release-entry.
 class HostSingleAuthorityTests(unittest.TestCase):
     def test_overlay_and_control_compile(self):
         py_compile.compile(str(HOST), doraise=True)
+        py_compile.compile(str(STALL), doraise=True)
         py_compile.compile(str(CONTROL), doraise=True)
 
-    def test_control_routes_through_authority_overlay(self):
-        source = CONTROL.read_text(encoding="utf-8")
-        self.assertIn('HERE.with_name("host_authority_v091.py")', source)
+    def test_control_routes_through_stall_overlay_that_imports_authority_overlay(self):
+        control = CONTROL.read_text(encoding="utf-8")
+        stall = STALL.read_text(encoding="utf-8")
+        self.assertIn('HERE.with_name("host_stall_v091.py")', control)
+        self.assertIn("import host_authority_v091 as authority", stall)
+        self.assertIn("legacy = authority.legacy", stall)
 
     def test_enable_linearization_order_is_fail_closed(self):
         source = HOST.read_text(encoding="utf-8")
@@ -43,6 +48,9 @@ class HostSingleAuthorityTests(unittest.TestCase):
         self.assertIn("before the MANAGED commit: plugin discovery/reload is inert", source)
         self.assertIn("after the MANAGED commit: startup adapter + enabled plugin config already", source)
         self.assertIn("authorityHadCommitted", source)
+        stall = STALL.read_text(encoding="utf-8")
+        self.assertIn("a claimed `recovering` lease is durable", stall)
+        self.assertIn("recoveryPolicy=healthy-runtime", stall)
 
 
 if __name__ == "__main__":
