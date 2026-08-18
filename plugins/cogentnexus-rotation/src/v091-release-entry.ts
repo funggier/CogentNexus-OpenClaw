@@ -1,5 +1,6 @@
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import legacyEntry from "./v091-final-entry.js";
+import { installV091DashboardVerifiedDelivery } from "./v091-dashboard-verified-delivery.js";
 
 /**
  * v0.9.1 public mixed-plugin boundary.
@@ -10,7 +11,8 @@ import legacyEntry from "./v091-final-entry.js";
  * openclaw.plugin.json, which OpenClaw reads before runtime code is loaded.
  *
  * All Ticket/recovery/delivery behavior remains in the already-tested v0.9.1
- * compatibility chain; this entry changes only the public plugin boundary.
+ * compatibility chain; this entry changes only the public plugin boundary and
+ * installs the v0.9.1 Dashboard verified-delivery fence after legacy patches.
  */
 const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
   id: "cogentnexus-rotation",
@@ -22,7 +24,13 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
-    return register(api);
+    const registered = register(api);
+    if (registered && typeof (registered as Promise<void>).then === "function") {
+      return Promise.resolve(registered).then(() => {
+        installV091DashboardVerifiedDelivery(api, (api.pluginConfig ?? {}) as Record<string, unknown>);
+      });
+    }
+    installV091DashboardVerifiedDelivery(api, (api.pluginConfig ?? {}) as Record<string, unknown>);
   },
 });
 
