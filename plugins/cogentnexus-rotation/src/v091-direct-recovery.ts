@@ -32,7 +32,7 @@ type Hooks = {
 
 function openDb(path:string,readOnly=false) {
   if(!readOnly)new TicketStore(path).snapshot();
-  return new DatabaseSync(path,readOnly?{readOnly:true}:undefined);
+  return readOnly ? new DatabaseSync(path,{readOnly:true}) : new DatabaseSync(path);
 }
 
 function tableExists(db:DatabaseSync,name:string) {
