@@ -266,7 +266,7 @@ function kickHostDelivery(workspace: string, cfg: DashboardVerifiedDeliveryConfi
 /** Supersede the v0.9 Dashboard no-receipt bypass only at the v0.9.1 release boundary. */
 export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVerifiedDeliveryConfig = {}) {
   const prototype = TicketStore.prototype as any;
-  if (!prototype[PATCH]) return;
+  if (prototype[PATCH]) return;
   Object.defineProperty(prototype, PATCH, { value: true });
 
   const finalize = TicketStore.prototype.finalizeDirectRun;
