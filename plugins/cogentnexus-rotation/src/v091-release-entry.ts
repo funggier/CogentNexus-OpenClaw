@@ -1,6 +1,9 @@
 import { definePluginEntry, type OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 import legacyEntry from "./v091-final-entry.js";
-import { installV091DashboardVerifiedDelivery } from "./v091-dashboard-verified-delivery.js";
+import {
+  installV091DashboardVerifiedDelivery,
+  type DashboardVerifiedDeliveryConfig,
+} from "./v091-dashboard-verified-delivery.js";
 
 /**
  * v0.9.1 public mixed-plugin boundary.
@@ -24,13 +27,15 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
+    const installVerifiedDelivery = () => installV091DashboardVerifiedDelivery(
+      api,
+      (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig,
+    );
     const registered = register(api);
     if (registered && typeof (registered as Promise<void>).then === "function") {
-      return Promise.resolve(registered).then(() => {
-        installV091DashboardVerifiedDelivery(api, (api.pluginConfig ?? {}) as Record<string, unknown>);
-      });
+      return Promise.resolve(registered).then(installVerifiedDelivery);
     }
-    installV091DashboardVerifiedDelivery(api, (api.pluginConfig ?? {}) as Record<string, unknown>);
+    installVerifiedDelivery();
   },
 });
 
