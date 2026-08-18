@@ -248,6 +248,24 @@ function protectPendingDurableResults(path: string, now = new Date()) {
   } finally { db.close(); }
 }
 
+function unverifiableDashboardRuns(path: string, input: { now: Date; olderThanMs?: number; limit?: number }) {
+  const cutoff = new Date(input.now.getTime() - Math.max(1000, input.olderThanMs ?? 120000)).toISOString();
+  const limit = Math.max(1, Math.min(input.limit ?? 100, 1000));
+  const db = openDb(path, true);
+  try {
+    const rows = db.prepare(`SELECT run_id,owner_session_key FROM tickets
+      WHERE status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL
+        AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL AND response_ready_at<=?
+        AND NOT EXISTS (SELECT 1 FROM cnx_assistant_delivery d
+          WHERE d.ticket_id=tickets.ticket_id AND d.kind='direct_result')
+      ORDER BY response_ready_at,ticket_id LIMIT ?`).all(cutoff, limit) as
+      Array<{ run_id?: string; owner_session_key?: string }>;
+    return rows
+      .filter((row) => typeof row.run_id === "string" && typeof row.owner_session_key === "string" && isDashboardSession(row.owner_session_key))
+      .map((row) => String(row.run_id));
+  } finally { db.close(); }
+}
+
 function kickHostDelivery(workspace: string, cfg: DashboardVerifiedDeliveryConfig) {
   const script = resolve(workspace, "skills", "cogentnexus", "scripts", "host_delivery.py");
   if (!existsSync(script)) return false;
@@ -302,9 +320,16 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
   };
 
   TicketStore.prototype.recoverUndeliveredDirect = function(input: Parameters<TicketStore["recoverUndeliveredDirect"]>[0] = {}) {
-    // Never regenerate while an exact durable answer is still available for transport retry.
-    protectPendingDurableResults(this.databasePath, input.now ?? new Date());
-    return recover.call(this, input);
+    const now = input.now ?? new Date();
+    // Exact durable answers retry transport only. A response that reached response_ready without
+    // a durable payload is unverifiable: regenerating it could duplicate content already visible
+    // to the user, so fail closed after the same receipt deadline instead of promoting recovery.
+    protectPendingDurableResults(this.databasePath, now);
+    const message = "direct response delivery became unverifiable before the final payload was durably captured; refusing regeneration to avoid duplicate output";
+    for (const runId of unverifiableDashboardRuns(this.databasePath, { now, olderThanMs: input.olderThanMs, limit: input.limit })) {
+      finalize.call(this, { runId, success: false, interrupted: false, message, now });
+    }
+    return recover.call(this, { ...input, now });
   };
 
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
