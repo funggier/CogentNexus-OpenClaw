@@ -7,6 +7,7 @@ import {
   installV091DashboardVerifiedDelivery,
   type DashboardVerifiedDeliveryConfig,
 } from "./v091-dashboard-verified-delivery.js";
+import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -96,15 +97,20 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
-    const installVerifiedDelivery = () => installV091DashboardVerifiedDelivery(
-      api,
-      (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig,
-    );
+    const installManagedRuntimeGuards = () => {
+      // The model-call lease is observation-only. It records a bounded provider
+      // call deadline; only the external Host may act on an expired lease.
+      installV091DirectModelCallLease(api);
+      installV091DashboardVerifiedDelivery(
+        api,
+        (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig,
+      );
+    };
     const registered = register(api);
     if (registered && typeof (registered as Promise<void>).then === "function") {
-      return Promise.resolve(registered).then(installVerifiedDelivery);
+      return Promise.resolve(registered).then(installManagedRuntimeGuards);
     }
-    installVerifiedDelivery();
+    installManagedRuntimeGuards();
   },
 });
 
