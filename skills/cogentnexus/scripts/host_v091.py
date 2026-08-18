@@ -27,10 +27,15 @@ import host as legacy
 
 HERE = Path(__file__).resolve()
 LEGACY_SUPERVISOR_TICK = legacy.supervisor_tick
+LEGACY_PROMOTE_INTERRUPTED_DIRECT = legacy.promote_interrupted_direct
 IDLE_GATEWAY_PORT = 18789
 IDLE_OLLAMA_PORT = 11434
 IDLE_PROBE_TIMEOUT_SECONDS = 0.75
 HARD_HANG_CONFIRM_DELAY_SECONDS = 1.0
+UNVERIFIABLE_DIRECT_MESSAGE = (
+    "direct response delivery became unverifiable before the final payload was durably captured; "
+    "refusing regeneration to avoid duplicate output"
+)
 
 
 def safe_default_state() -> dict[str, Any]:
@@ -250,6 +255,188 @@ def _force_passthrough_without_generation_bump(root: Path, prior: dict[str, Any]
     return legacy.save_state(root, restored)
 
 
+def _enqueue_failed_ticket_outbox(
+    db: sqlite3.Connection,
+    ticket_id: str,
+    owner_session_key: str,
+    message: str,
+    stamp: str,
+) -> None:
+    if not _db_table_exists(db, "ticket_outbox"):
+        return
+    payload = json.dumps(
+        {"classification": "permanent", "message": message, "source": "host-v091-pre-recovery-fence"},
+        ensure_ascii=False,
+    )
+    db.execute(
+        "INSERT OR IGNORE INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) "
+        "VALUES (?,?, 'failed', ?, 'pending', 0, ?)",
+        (ticket_id, owner_session_key, payload, stamp),
+    )
+
+
+def reconcile_direct_delivery_before_recovery(root: Path, cutoff_iso: str) -> dict[str, Any]:
+    """Fence response-ready Direct Tickets before any Host recovery can wake inference.
+
+    A response that may already have reached the user must never be regenerated
+    merely because a lifecycle transition occurred. Exact durable Direct results
+    remain transport-owned; response-ready Tickets without such a payload fail
+    closed as unverifiable. Previously mis-promoted waiting rows are repaired too
+    when they do not yet have a workflow owner.
+    """
+    path = legacy.ticket_db(root)
+    result: dict[str, Any] = {
+        "unverifiableFailed": [],
+        "durableDeliveryHeld": [],
+        "confirmedHeld": [],
+        "workflowOwnedSkipped": [],
+    }
+    if not path.exists():
+        return result
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        if not _db_table_exists(db, "tickets") or not _db_table_exists(db, "ticket_events"):
+            return result
+        columns = {row[1] for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+        required = {"response_ready_at", "delivery_confirmed_at", "workflow_eligible", "workflow_id", "run_id", "owner_session_key"}
+        if not required.issubset(columns):
+            raise RuntimeError("Ticket schema lacks v0.9.1 direct-delivery columns; refusing recovery promotion")
+
+        db.execute("BEGIN IMMEDIATE")
+        rows = db.execute(
+            "SELECT ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,response_ready_at,delivery_confirmed_at "
+            "FROM tickets WHERE status IN ('accepted','waiting') AND created_at<? AND response_ready_at IS NOT NULL "
+            "AND delivery_confirmed_at IS NULL ORDER BY created_at,ticket_id",
+            (cutoff_iso,),
+        ).fetchall()
+        stamp = legacy.now_iso()
+        has_delivery = _db_table_exists(db, "cnx_assistant_delivery")
+        has_recovery = _db_table_exists(db, "cnx_direct_recovery")
+
+        for row in rows:
+            ticket_id = str(row["ticket_id"])
+            if row["workflow_id"]:
+                result["workflowOwnedSkipped"].append(ticket_id)
+                continue
+            durable = None
+            if has_delivery:
+                durable = db.execute(
+                    "SELECT status FROM cnx_assistant_delivery WHERE ticket_id=? AND kind='direct_result' ORDER BY delivery_id DESC LIMIT 1",
+                    (ticket_id,),
+                ).fetchone()
+            if durable is not None:
+                # Exact text exists. It belongs to the transport retry path, never
+                # to inference recovery. Undo an older Host promotion if necessary.
+                if row["status"] == "waiting" or int(row["workflow_eligible"] or 0) != 0:
+                    db.execute(
+                        "UPDATE tickets SET status='accepted',workflow_eligible=0,failure_class=NULL,failure_message=NULL,updated_at=? "
+                        "WHERE ticket_id=? AND workflow_id IS NULL AND delivery_confirmed_at IS NULL",
+                        (stamp, ticket_id),
+                    )
+                    db.execute(
+                        "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                        (
+                            ticket_id,
+                            "host_restored_durable_delivery",
+                            json.dumps({"runId": row["run_id"], "source": "host-v091-pre-recovery-fence"}),
+                            stamp,
+                        ),
+                    )
+                result["durableDeliveryHeld"].append(ticket_id)
+                continue
+
+            message = UNVERIFIABLE_DIRECT_MESSAGE
+            changed = db.execute(
+                "UPDATE tickets SET status='failed',workflow_eligible=0,worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,"
+                "failure_class='permanent',failure_message=?,delivery_last_error=?,updated_at=? "
+                "WHERE ticket_id=? AND status IN ('accepted','waiting') AND response_ready_at IS NOT NULL "
+                "AND delivery_confirmed_at IS NULL AND workflow_id IS NULL",
+                (message, message, stamp, ticket_id),
+            )
+            if changed.rowcount != 1:
+                continue
+            db.execute(
+                "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                (
+                    ticket_id,
+                    "failed",
+                    json.dumps(
+                        {
+                            "runId": row["run_id"],
+                            "classification": "permanent",
+                            "message": message,
+                            "source": "host-v091-pre-recovery-fence",
+                        },
+                        ensure_ascii=False,
+                    ),
+                    stamp,
+                ),
+            )
+            _enqueue_failed_ticket_outbox(db, ticket_id, str(row["owner_session_key"]), message, stamp)
+            if has_recovery:
+                db.execute(
+                    "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=? "
+                    "WHERE ticket_id=? AND state<>'cancelled'",
+                    (message, stamp, ticket_id),
+                )
+            result["unverifiableFailed"].append(ticket_id)
+
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) -> list[str]:
+    """Promote only Direct work that never reached response_ready."""
+    reconcile_direct_delivery_before_recovery(root, cutoff_iso)
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return []
+    db = sqlite3.connect(path, timeout=5)
+    try:
+        db.execute("PRAGMA foreign_keys=ON")
+        if not _db_table_exists(db, "tickets") or not _db_table_exists(db, "ticket_events"):
+            return []
+        db.execute("BEGIN IMMEDIATE")
+        rows = db.execute(
+            "SELECT ticket_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL "
+            "AND response_ready_at IS NULL AND created_at<? ORDER BY created_at,ticket_id",
+            (cutoff_iso,),
+        ).fetchall()
+        updated: list[str] = []
+        stamp = legacy.now_iso()
+        for (ticket_id,) in rows:
+            changed = db.execute(
+                "UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? "
+                "WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL AND response_ready_at IS NULL",
+                (reason[:2000], stamp, ticket_id),
+            )
+            if changed.rowcount != 1:
+                continue
+            db.execute(
+                "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                (
+                    ticket_id,
+                    "host_recovered_direct",
+                    json.dumps({"reason": reason, "cutoff": cutoff_iso, "source": "host-v091"}),
+                    stamp,
+                ),
+            )
+            updated.append(str(ticket_id))
+        db.commit()
+        return updated
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 def enable(root: Path) -> dict[str, Any]:
     """Enter MANAGED only after every activation stage is verified."""
     legacy.initialize(root)
@@ -259,10 +446,10 @@ def enable(root: Path) -> dict[str, Any]:
     agents_snapshot = _snapshot_file(agents_path)
     started = legacy.now_iso()
 
-    # Terminal intent must be authoritative before any inference-capable CNX
-    # surface can wake. This cleanup is durable/idempotent and intentionally is
-    # not rolled back if a later activation stage fails.
+    # Terminal intent and response-ready delivery ambiguity must be authoritative
+    # before any inference-capable CNX surface can wake.
     terminal_fences = legacy.reconcile_terminal_fences(root)
+    direct_delivery_fences = reconcile_direct_delivery_before_recovery(root, started)
 
     policy_changed = False
     configuration_attempted = False
@@ -346,7 +533,7 @@ def enable(root: Path) -> dict[str, Any]:
     recovery_error = None
     recovered: list[str] = []
     try:
-        recovered = legacy.promote_interrupted_direct(
+        recovered = promote_interrupted_direct_v091(
             root,
             started,
             "CogentNexus Host enabled after an interrupted OpenClaw runtime",
@@ -363,6 +550,7 @@ def enable(root: Path) -> dict[str, Any]:
         "lifecycle": legacy.parse_json_output(lifecycle.stdout),
         "sessionBootstrap": session_bootstrap,
         "terminalFences": terminal_fences,
+        "directDeliveryFences": direct_delivery_fences,
         "recoveredTickets": recovered,
         "postCommitRecoveryError": recovery_error,
         "transactional": True,
@@ -484,7 +672,10 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     return result
 
 
-# Keep the proven parser/command surface and replace only hardened paths.
+# Keep the proven parser/command surface and replace only hardened paths. All
+# legacy lifecycle paths resolve this module attribute dynamically, so this
+# assignment fences start/restart/supervisor promotion as well as enable.
+legacy.promote_interrupted_direct = promote_interrupted_direct_v091
 legacy.enable = enable
 legacy.disable = disable
 legacy.supervisor_tick = supervisor_tick
