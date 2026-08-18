@@ -31,17 +31,48 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       // Reproduce the shipped compatibility layering: v0.9 installs its historical
       // Dashboard auto-settlement first; v0.9.1 must supersede it at the release boundary.
       installDashboardDirectSettlement();
-      installV091DashboardVerifiedDelivery({ on: () => undefined, logger: {} }, { workspaceDir: root, ticketDatabasePath: path });
+      let replyDispatch: ((event: any, ctx: any) => void) | undefined;
+      installV091DashboardVerifiedDelivery({
+        on: (name: string, handler: (event: any, ctx: any) => void) => {
+          if (name === "reply_dispatch") replyDispatch = handler;
+        },
+        logger: {},
+      }, { workspaceDir: root, ticketDatabasePath: path });
 
-      const staged = stageDashboardDirectResult(path, {
+      // OpenClaw message/reply hooks expose stable turn correlation on ctx.runId when
+      // available. The event itself may not carry runId, so exercise the registered hook
+      // exactly that way instead of calling the staging helper directly.
+      expect(replyDispatch).toBeTypeOf("function");
+      let beforeDeliver: ((payload: any, info: any) => any) | undefined;
+      const dispatcher = {
+        appendBeforeDeliver(handler: (payload: any, info: any) => any) {
+          beforeDeliver = handler;
+        },
+        getQueuedCounts() { return { final: 1 }; },
+        waitForIdle() { return new Promise<void>(() => undefined); },
+        getFailedCounts() { return { final: 0 }; },
+        getCancelledCounts() { return { final: 0 }; },
+      };
+      replyDispatch?.({}, { runId: "dashboard-v091-run", dispatcher });
+      expect(beforeDeliver).toBeTypeOf("function");
+      const nativePayload = beforeDeliver?.({ text: "CNX-LIVE-42" }, { kind: "final" });
+      expect(nativePayload?.text).toContain("CNX-LIVE-42");
+
+      let db = new DatabaseSync(path, { readOnly: true });
+      const durable = db.prepare(`SELECT kind,text,target_json,idempotency_key,status FROM cnx_assistant_delivery
+        WHERE ticket_id=?`).get(ticket.ticketId) as any;
+      expect(durable).toMatchObject({ kind: "direct_result", text: "CNX-LIVE-42", status: "pending" });
+      expect(nativePayload?.text).toContain(deliveryMarker(String(durable.idempotency_key)));
+      expect(JSON.parse(String(durable.target_json))).toEqual({
+        kind: "direct",
+        ticketId: ticket.ticketId,
         runId: "dashboard-v091-run",
-        text: "CNX-LIVE-42",
-        now: new Date("2026-01-01T00:00:00Z"),
       });
-      expect(staged.staged).toBe(true);
-      if (!staged.staged) throw new Error("expected durable Dashboard staging");
-      expect(staged.nativeText).toContain("CNX-LIVE-42");
-      expect(staged.nativeText).toContain(deliveryMarker(staged.idempotencyKey));
+      expect(db.prepare("SELECT count(*) AS n FROM cnx_assistant_delivery WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({ n: 1 });
+      expect(db.prepare("SELECT status,response_ready_at,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+        .toMatchObject({ status: "accepted", delivery_confirmed_at: null });
+      db.close();
 
       // Idempotent re-observation of the same final does not duplicate the durable row.
       expect(stageDashboardDirectResult(path, {
@@ -54,21 +85,6 @@ describe("v0.9.1 Dashboard verified delivery", () => {
         text: "DIFFERENT RESULT",
         now: new Date("2026-01-01T00:00:02Z"),
       })).toThrow(/durable Dashboard result changed/u);
-
-      let db = new DatabaseSync(path, { readOnly: true });
-      const durable = db.prepare(`SELECT kind,text,target_json,idempotency_key,status FROM cnx_assistant_delivery
-        WHERE ticket_id=?`).get(ticket.ticketId) as any;
-      expect(durable).toMatchObject({ kind: "direct_result", text: "CNX-LIVE-42", status: "pending" });
-      expect(JSON.parse(String(durable.target_json))).toEqual({
-        kind: "direct",
-        ticketId: ticket.ticketId,
-        runId: "dashboard-v091-run",
-      });
-      expect(db.prepare("SELECT count(*) AS n FROM cnx_assistant_delivery WHERE ticket_id=?").get(ticket.ticketId))
-        .toEqual({ n: 1 });
-      expect(db.prepare("SELECT status,response_ready_at,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
-        .toMatchObject({ status: "accepted", delivery_confirmed_at: null });
-      db.close();
 
       // Even when the base agent_end event claims no visible output, the v0.9.1
       // durable row owns settlement. The legacy Dashboard required:false path is bypassed.
