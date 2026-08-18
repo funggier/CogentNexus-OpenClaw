@@ -39,6 +39,12 @@ function tableExists(db:DatabaseSync,name:string) {
   return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
 }
 
+function modelCallRecoveryFence(db:DatabaseSync,alias="r") {
+  if(!tableExists(db,"cnx_direct_model_call"))return "";
+  return ` AND NOT EXISTS (SELECT 1 FROM cnx_direct_model_call m
+    WHERE m.ticket_id=${alias}.ticket_id AND m.state IN ('active','recovering'))`;
+}
+
 export function resetStaleDirectRecovery(path:string,cfg:Config,now=new Date()):number {
   if(!existsSync(path))return 0;
   const db=openDb(path),stamp=now.toISOString();
@@ -59,12 +65,13 @@ export function dueDirectRecovery(path:string,now=new Date()):Recovery|undefined
   const db=openDb(path,true);
   try {
     if(!tableExists(db,"cnx_direct_recovery")||!tableExists(db,"tickets")||!tableExists(db,"cnx_sessions"))return undefined;
+    const modelFence=modelCallRecoveryFence(db,"r");
     return db.prepare(`SELECT r.ticket_id,t.owner_session_key,t.prompt,r.mode,r.attempt_count,r.owner_generation
       FROM cnx_direct_recovery r JOIN tickets t ON t.ticket_id=r.ticket_id
       JOIN cnx_sessions s ON s.session_key=t.owner_session_key
       WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
         AND s.state='active' AND s.generation=r.owner_generation
-        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)
+        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)${modelFence}
       ORDER BY COALESCE(r.next_attempt_at,r.created_at) LIMIT 1`).get(now.toISOString()) as Recovery|undefined;
   } finally {db.close();}
 }
@@ -82,10 +89,11 @@ export function nextDirectRecoveryWakeMs(path:string,cfg:Config,now=new Date()):
     const delays:number[]=[];
     const hasRecoveryTables=tableExists(db,"cnx_direct_recovery")&&tableExists(db,"tickets")&&tableExists(db,"cnx_sessions");
     if(hasRecoveryTables) {
+      const modelFence=modelCallRecoveryFence(db,"r");
       const pending=db.prepare(`SELECT r.next_attempt_at FROM cnx_direct_recovery r
         JOIN tickets t ON t.ticket_id=r.ticket_id JOIN cnx_sessions s ON s.session_key=t.owner_session_key
         WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
-          AND s.state='active' AND s.generation=r.owner_generation
+          AND s.state='active' AND s.generation=r.owner_generation${modelFence}
         ORDER BY CASE WHEN r.next_attempt_at IS NULL THEN 0 ELSE 1 END,r.next_attempt_at LIMIT 1`).get() as {next_attempt_at?:string|null}|undefined;
       if(pending) {
         if(!pending.next_attempt_at)delays.push(0);
