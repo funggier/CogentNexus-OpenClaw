@@ -72,7 +72,7 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
         AND workflow_id IS NULL AND response_ready_at IS NULL
       ORDER BY created_at DESC LIMIT 1`).get(input.runId) as any;
     if (!ticket) { db.exec("COMMIT"); return false; }
-    db.prepare(`INSERT INTO cnx_direct_model_call(
+    const changed = db.prepare(`INSERT INTO cnx_direct_model_call(
         ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,
         ended_at,outcome,duration_ms,recovery_started_at,recovery_attempt_count,updated_at
       ) VALUES (?,?,?,'active',?,?,?,?,NULL,NULL,NULL,NULL,0,?)
@@ -89,8 +89,13 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
         duration_ms=NULL,
         recovery_started_at=NULL,
         recovery_attempt_count=0,
-        updated_at=excluded.updated_at`)
+        updated_at=excluded.updated_at
+      WHERE cnx_direct_model_call.state<>'recovering'`)
       .run(ticket.ticket_id, input.runId, input.callId, input.provider ?? null, input.model ?? null, stamp, deadline, stamp);
+    if (changed.changes !== 1) {
+      db.exec("COMMIT");
+      return false;
+    }
     event(db, ticket.ticket_id, "direct_model_call_started", {
       runId: input.runId,
       callId: input.callId,
