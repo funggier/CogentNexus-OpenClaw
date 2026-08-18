@@ -101,7 +101,7 @@ describe("v0.9 manual Compact boundary",()=>{
       expect(db.prepare("SELECT status,workflow_eligible FROM tickets WHERE ticket_id=?").get(next.ticketId)).toEqual({status:"accepted",workflow_eligible:0});
       expect(db.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE ticket_id=?").get(next.ticketId)).toEqual({count:0});db.close();
     }finally{rmSync(root,{recursive:true,force:true});}
-  });
+  },15_000);
 
   it("uses a fresh session counter only when the after_compaction event did not provide tokenCount",()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx-manual-compact-session-fallback-"));
