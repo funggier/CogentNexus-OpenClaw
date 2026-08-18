@@ -14,6 +14,7 @@ import host_stall_v091 as stall  # noqa: E402
 
 
 TICKET = "CNXT-11111111-1111-1111-1111-111111111111"
+OWNER = "agent:main:dashboard:test"
 
 
 def make_db(root: Path, *, response_ready_at=None):
@@ -64,13 +65,36 @@ def make_db(root: Path, *, response_ready_at=None):
           recovery_attempt_count INTEGER NOT NULL DEFAULT 0,
           updated_at TEXT NOT NULL
         );
+        CREATE TABLE cnx_sessions (
+          session_key TEXT PRIMARY KEY,
+          state TEXT NOT NULL,
+          generation INTEGER NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        CREATE TABLE cnx_direct_recovery (
+          ticket_id TEXT PRIMARY KEY,
+          mode TEXT NOT NULL,
+          state TEXT NOT NULL,
+          attempt_count INTEGER NOT NULL DEFAULT 0,
+          active_run_id TEXT,
+          next_attempt_at TEXT,
+          last_error TEXT,
+          owner_generation INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
         """
     )
     db.execute(
         "INSERT INTO tickets(ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,response_ready_at,delivery_confirmed_at,"
         "created_at,updated_at) VALUES (?,?,?,'accepted',0,NULL,?,NULL,?,?)",
-        (TICKET, "run-live", "agent:main:dashboard:test", response_ready_at,
+        (TICKET, "run-live", OWNER, response_ready_at,
          "2026-08-18T13:00:00+00:00", "2026-08-18T13:00:00+00:00"),
+    )
+    db.execute(
+        "INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at) VALUES (?,'active',7,?,?)",
+        (OWNER, "2026-08-18T13:00:00+00:00", "2026-08-18T13:00:00+00:00"),
     )
     db.execute(
         "INSERT INTO cnx_direct_model_call(ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,updated_at) "
@@ -95,17 +119,23 @@ class HostDirectModelStallTests(unittest.TestCase):
             self.assertEqual(db.execute("SELECT state,recovery_attempt_count FROM cnx_direct_model_call WHERE ticket_id=?", (TICKET,)).fetchone(), ("recovering", 1))
             db.close()
 
-    def test_quiesced_classification_authorizes_only_pre_response_recovery(self):
+    def test_quiesced_classification_authorizes_direct_recovery_without_workflow_promotion(self):
         with tempfile.TemporaryDirectory(prefix="cnx-host-stall-classify-") as tmp:
             root = Path(tmp) / ".cogent"
             path = make_db(root)
             claim = stall.claim_expired_direct_model_call(root, "2026-08-18T13:16:00+00:00")
             result = stall.classify_quiesced_direct_model_call(root, claim)
             self.assertEqual(result["action"], "pre-response-recovery-authorized")
+            self.assertEqual(result["recoveryState"], "pending")
+            self.assertEqual(result["ownerGeneration"], 7)
             db = sqlite3.connect(path)
             self.assertEqual(
-                db.execute("SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?", (TICKET,)).fetchone(),
-                ("waiting", 1, "interrupted"),
+                db.execute("SELECT status,workflow_eligible,failure_class,workflow_id FROM tickets WHERE ticket_id=?", (TICKET,)).fetchone(),
+                ("accepted", 0, "interrupted", None),
+            )
+            self.assertEqual(
+                db.execute("SELECT mode,state,attempt_count,active_run_id,owner_generation FROM cnx_direct_recovery WHERE ticket_id=?", (TICKET,)).fetchone(),
+                ("resume", "pending", 0, None, 7),
             )
             self.assertEqual(db.execute("SELECT state,outcome FROM cnx_direct_model_call WHERE ticket_id=?", (TICKET,)).fetchone(),
                              ("interrupted", "host-timeout-authorized"))
@@ -122,6 +152,29 @@ class HostDirectModelStallTests(unittest.TestCase):
             self.assertIsNone(claim)
             db = sqlite3.connect(path)
             self.assertEqual(db.execute("SELECT status,workflow_eligible FROM tickets WHERE ticket_id=?", (TICKET,)).fetchone(), ("accepted", 0))
+            self.assertEqual(db.execute("SELECT count(*) FROM cnx_direct_recovery").fetchone()[0], 0)
+            db.close()
+
+    def test_missing_direct_recovery_schema_fails_without_ticket_promotion(self):
+        with tempfile.TemporaryDirectory(prefix="cnx-host-stall-schema-") as tmp:
+            root = Path(tmp) / ".cogent"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.execute("DROP TABLE cnx_direct_recovery")
+            db.commit()
+            db.close()
+            claim = stall.claim_expired_direct_model_call(root, "2026-08-18T13:16:00+00:00")
+            with self.assertRaisesRegex(RuntimeError, "Direct recovery schema missing"):
+                stall.classify_quiesced_direct_model_call(root, claim)
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute("SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?", (TICKET,)).fetchone(),
+                ("accepted", 0, None),
+            )
+            self.assertEqual(
+                db.execute("SELECT state FROM cnx_direct_model_call WHERE ticket_id=?", (TICKET,)).fetchone()[0],
+                "recovering",
+            )
             db.close()
 
     def test_source_orders_quiescence_before_ticket_classification_and_restart(self):
