@@ -8,9 +8,6 @@ import {
   type DashboardVerifiedDeliveryConfig,
 } from "./v091-dashboard-verified-delivery.js";
 
-const POLICY_BEGIN = "<!-- cogentnexus:begin -->";
-const POLICY_END = "<!-- cogentnexus:end -->";
-
 type HostControllerState = {
   schemaVersion?: number;
   mode?: string;
@@ -19,7 +16,7 @@ type HostControllerState = {
 
 type HostAuthority = {
   authorized: boolean;
-  reason: "managed" | "host-activation-staged" | "passthrough" | "maintenance" | "missing" | "invalid";
+  reason: "managed" | "passthrough" | "maintenance" | "missing" | "invalid";
   mode?: string;
   generation?: number;
   controllerPath: string;
@@ -34,30 +31,15 @@ function pluginWorkspace(api: OpenClawPluginApi) {
   return resolve(configured ?? runtimeWorkspace ?? join(homedir(), ".openclaw", "workspace"));
 }
 
-function managedPolicyStaged(workspace: string) {
-  const path = resolve(workspace, "AGENTS.md");
-  if (!existsSync(path)) return false;
-  try {
-    const text = readFileSync(path, "utf8");
-    return text.includes(POLICY_BEGIN) && text.includes(POLICY_END);
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Host authority is the single activation boundary for every inference-capable
- * CogentNexus plugin surface.
+ * Host controller.mode=managed is the only activation authority for every
+ * inference-capable CogentNexus plugin surface.
  *
- * Normal steady-state activation requires controller.mode=managed. During the
- * transactional enable sequence Host intentionally applies the managed policy
- * after completing its durable pre-recovery classification and immediately
- * before enabling the plugin. That policy marker is therefore the bounded
- * activation-stage proof while controller.mode is still passthrough.
- *
- * A native OpenClaw plugin install/hot-reload in clean PASSTHROUGH has neither
- * managed mode nor the staged policy marker, so registration is inert and no
- * legacy startup recovery can mutate Tickets or wake inference.
+ * No policy marker, plugin config bit, installer phase, or Gateway hot-reload
+ * can substitute for that durable Host commit. This deliberately makes a
+ * power loss during transactional enable fail closed: until Host commits
+ * MANAGED, a restarted Gateway can discover the plugin but cannot register any
+ * CogentNexus hook, service, recovery worker, or Ticket mutation surface.
  */
 export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   const workspace = pluginWorkspace(api);
@@ -82,9 +64,6 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   }
   if (mode === "managed") return { authorized: true, reason: "managed", mode, generation, controllerPath };
   if (mode === "maintenance") return { authorized: false, reason: "maintenance", mode, generation, controllerPath };
-  if (managedPolicyStaged(workspace)) {
-    return { authorized: true, reason: "host-activation-staged", mode, generation, controllerPath };
-  }
   return { authorized: false, reason: "passthrough", mode, generation, controllerPath };
 }
 
@@ -96,10 +75,9 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
  * defineToolPlugin metadata generator. Configuration remains authoritative in
  * openclaw.plugin.json, which OpenClaw reads before runtime code is loaded.
  *
- * Host authority is checked before the compatibility chain is registered. This
- * makes a native plugin install/hot-reload harmless while CogentNexus is in
- * PASSTHROUGH: no hooks, services, startup recovery, Ticket mutation, or
- * inference-capable recovery worker becomes active.
+ * Host authority is checked before the compatibility chain is registered. A
+ * native plugin install/hot-reload in PASSTHROUGH or MAINTENANCE is therefore
+ * inert even when the plugin is temporarily enabled by OpenClaw itself.
  */
 const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
   id: "cogentnexus-rotation",
@@ -113,9 +91,6 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
         `CogentNexus v0.9.1 runtime registration suppressed: Host authority=${authority.reason} mode=${authority.mode ?? "unknown"}`,
       );
       return;
-    }
-    if (authority.reason === "host-activation-staged") {
-      api.logger.info?.("CogentNexus v0.9.1 runtime registration authorized by Host transactional activation stage");
     }
     const register = (legacyEntry as { register?: (runtimeApi: OpenClawPluginApi) => void | Promise<void> }).register;
     if (typeof register !== "function") {
