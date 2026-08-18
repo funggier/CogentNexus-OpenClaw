@@ -12,12 +12,15 @@ Power-loss semantics:
 """
 from __future__ import annotations
 
+import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
 import host_v091 as v091
 
 legacy = v091.legacy
+BASE_DIRECT_DELIVERY_FENCE = v091.reconcile_direct_delivery_before_recovery
 
 
 def _rollback_to_passthrough(root: Path, prior: dict[str, Any]) -> dict[str, Any]:
@@ -29,6 +32,70 @@ def _rollback_to_passthrough(root: Path, prior: dict[str, Any]) -> dict[str, Any
         "desiredProvider": "unchanged",
     })
     return legacy.save_state(root, restored)
+
+
+def reconcile_direct_delivery_authority(root: Path, cutoff_iso: str) -> dict[str, Any]:
+    """Apply the v0.9.1 delivery fence and revoke any inference retry it supersedes.
+
+    A durable Direct result is exact transport-owned text. If an older recovery
+    row is still pending/running from a prior generation or compatibility path,
+    leaving it inference-eligible would let the Direct Recovery worker regenerate
+    a response that already exists durably. The Host therefore moves such rows
+    to `awaiting_delivery` at the same authoritative fence that restores the
+    Ticket to accepted/workflow_eligible=0.
+    """
+    result = BASE_DIRECT_DELIVERY_FENCE(root, cutoff_iso)
+    held = [str(ticket_id) for ticket_id in result.get("durableDeliveryHeld", []) if ticket_id]
+    if not held:
+        return result
+
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return result
+    db = sqlite3.connect(path, timeout=5)
+    try:
+        if not v091._db_table_exists(db, "cnx_direct_recovery"):
+            return result
+        stamp = legacy.now_iso()
+        db.execute("BEGIN IMMEDIATE")
+        has_events = v091._db_table_exists(db, "ticket_events")
+        for ticket_id in held:
+            changed = db.execute(
+                "UPDATE cnx_direct_recovery "
+                "SET state='awaiting_delivery',active_run_id=NULL,next_attempt_at=NULL,"
+                "last_error='durable direct result owns delivery; inference recovery suppressed',updated_at=? "
+                "WHERE ticket_id=? AND state NOT IN ('cancelled','done','awaiting_delivery')",
+                (stamp, ticket_id),
+            )
+            if changed.rowcount and has_events:
+                db.execute(
+                    "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                    (
+                        ticket_id,
+                        "host_direct_recovery_suppressed_by_durable_delivery",
+                        json.dumps(
+                            {
+                                "source": "host-v091-single-authority-fence",
+                                "recoveryState": "awaiting_delivery",
+                                "reason": "durable direct result owns delivery; inference recovery suppressed",
+                            },
+                            ensure_ascii=False,
+                        ),
+                        stamp,
+                    ),
+                )
+        db.commit()
+        return result
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+# Every v0.9.1 Host path imported after this overlay, including the Direct
+# model-call stall overlay, uses the same transport-before-inference fence.
+v091.reconcile_direct_delivery_before_recovery = reconcile_direct_delivery_authority
 
 
 def enable(root: Path) -> dict[str, Any]:
