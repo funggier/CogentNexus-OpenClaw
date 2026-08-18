@@ -4,7 +4,8 @@
 The plugin records only sanitized model_call_started/model_call_ended telemetry.
 An expired provider-call lease is not itself permission for plugin recovery.
 The external Host claims the lease, quiesces Gateway + provider, classifies the
-Ticket while inference is impossible, and only then restarts the managed runtime.
+Ticket while inference is impossible, durably authorizes exactly one Direct
+recovery, and only then restarts the managed runtime.
 
 Power-loss semantics:
 - a claimed `recovering` lease is durable and can be reclaimed after a bounded
@@ -12,7 +13,10 @@ Power-loss semantics:
 - maintenance uses recoveryPolicy=healthy-runtime, so a crash after quiescing
   cannot strand the machine in manual maintenance;
 - if the original model call wins the race and reaches response_ready before
-  quiescence, the v0.9.1 delivery fence wins and no regeneration is authorized.
+  quiescence, the v0.9.1 delivery fence wins and no regeneration is authorized;
+- after quiescent classification, the Host-authored `cnx_direct_recovery`
+  pending row is the recovery authority. The plugin only consumes that durable
+  authorization after runtime startup.
 """
 from __future__ import annotations
 
@@ -112,6 +116,49 @@ def _release_model_call_claim(root: Path, claim: dict[str, Any], error: str) -> 
         db.close()
 
 
+def _queue_host_authorized_direct_recovery(
+    db: sqlite3.Connection,
+    *,
+    ticket_id: str,
+    owner_session_key: str,
+    reason: str,
+    stamp: str,
+) -> int:
+    """Persist the Direct recovery authority chosen by the quiesced Host.
+
+    The Direct recovery worker deliberately consumes only accepted,
+    workflow_eligible=0 Tickets. Keeping that shape prevents the generic Ticket
+    dispatcher from compiling the interrupted conversational prompt into a
+    durable workflow and makes the Host-authored recovery row the single source
+    of inference-recovery authority.
+    """
+    if not v091._db_table_exists(db, "cnx_sessions") or not v091._db_table_exists(db, "cnx_direct_recovery"):
+        raise RuntimeError("Direct recovery schema missing during quiesced Host classification")
+    owner = db.execute(
+        "SELECT state,generation FROM cnx_sessions WHERE session_key=?",
+        (owner_session_key,),
+    ).fetchone()
+    if owner is None:
+        raise RuntimeError(f"Direct recovery owner session is missing: {owner_session_key}")
+    if str(owner["state"]) != "active":
+        raise RuntimeError(
+            f"Direct recovery owner session is not active: {owner_session_key} state={owner['state']}"
+        )
+    owner_generation = int(owner["generation"] or 0)
+    db.execute(
+        """INSERT INTO cnx_direct_recovery(
+             ticket_id,mode,state,attempt_count,active_run_id,next_attempt_at,last_error,
+             owner_generation,created_at,updated_at
+           ) VALUES (?,'resume','pending',0,NULL,?,?,?,?,?)
+           ON CONFLICT(ticket_id) DO UPDATE SET
+             mode='resume',state='pending',active_run_id=NULL,next_attempt_at=excluded.next_attempt_at,
+             last_error=excluded.last_error,owner_generation=excluded.owner_generation,
+             updated_at=excluded.updated_at""",
+        (ticket_id, stamp, reason[:2000], owner_generation, stamp, stamp),
+    )
+    return owner_generation
+
+
 def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> dict[str, Any]:
     """Classify one claimed Direct call only after Gateway/provider are stopped."""
     cutoff = legacy.now_iso()
@@ -176,8 +223,13 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
             f"{STALL_REASON}: callId={claim['call_id']} provider={claim.get('provider') or 'unknown'} "
             f"model={claim.get('model') or 'unknown'} deadline={claim.get('deadline_at')}"
         )[:2000]
+
+        # Keep the Ticket in the Direct lane. `waiting + workflow_eligible=1`
+        # belongs to the generic durable-workflow dispatcher and would compile
+        # a different execution path. The Host instead writes the pending
+        # cnx_direct_recovery row while inference is quiesced.
         changed = db.execute(
-            "UPDATE tickets SET status='waiting',workflow_eligible=1,worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,"
+            "UPDATE tickets SET status='accepted',workflow_eligible=0,worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,"
             "failure_class='interrupted',failure_message=?,delivery_last_error=?,updated_at=? "
             "WHERE ticket_id=? AND status IN ('accepted','waiting') AND workflow_id IS NULL AND response_ready_at IS NULL",
             (reason, reason, cutoff, ticket_id),
@@ -185,6 +237,14 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
         if changed.rowcount != 1:
             db.rollback()
             raise RuntimeError(f"Direct model-call Ticket changed during quiesced Host classification: {ticket_id}")
+
+        owner_generation = _queue_host_authorized_direct_recovery(
+            db,
+            ticket_id=ticket_id,
+            owner_session_key=str(row["owner_session_key"]),
+            reason=reason,
+            stamp=cutoff,
+        )
         db.execute(
             "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
             (
@@ -198,6 +258,8 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
                     "startedAt": claim.get("started_at"),
                     "deadlineAt": claim.get("deadline_at"),
                     "reason": reason,
+                    "recoveryMode": "resume",
+                    "ownerGeneration": owner_generation,
                     "source": "host-v091-direct-model-stall",
                 }, ensure_ascii=False),
                 cutoff,
@@ -209,7 +271,13 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
             (cutoff, cutoff, ticket_id, claim["call_id"]),
         )
         db.commit()
-        return {"ticketId": ticket_id, "action": "pre-response-recovery-authorized", "deliveryFences": delivery_fences}
+        return {
+            "ticketId": ticket_id,
+            "action": "pre-response-recovery-authorized",
+            "recoveryState": "pending",
+            "ownerGeneration": owner_generation,
+            "deliveryFences": delivery_fences,
+        }
     except Exception:
         db.rollback()
         raise
