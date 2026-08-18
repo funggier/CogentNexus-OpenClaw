@@ -153,9 +153,13 @@ export function closeDirectModelCallForRun(databasePath: string, runId: string, 
 
 /**
  * Once the external Host changes a provider-call lease to `recovering`, the
- * Host owns classification for that run. Any agent_end emitted while Gateway
- * is being quiesced must therefore be observation-only: legacy direct
+ * Host owns classification for that run. A failing agent_end emitted while
+ * Gateway is being quiesced must therefore be observation-only: legacy direct
  * finalization cannot fail, promote, or queue recovery ahead of the Host.
+ *
+ * A successful original run is allowed to finalize. Its response_ready/durable
+ * delivery evidence must win the race so the Host can fail closed or redeliver
+ * without ever regenerating that response.
  */
 export function hostRecoveryOwnsRun(databasePath: string, runId: string): boolean {
   if (!runId || !existsSync(databasePath)) return false;
@@ -183,7 +187,7 @@ function installHostRecoveryFinalizeFence() {
     this: TicketStore,
     input: Parameters<TicketStore["finalizeDirectRun"]>[0],
   ): ReturnType<TicketStore["finalizeDirectRun"]> {
-    if (hostRecoveryOwnsRun(this.databasePath, input.runId)) return "unchanged";
+    if (!input.success && hostRecoveryOwnsRun(this.databasePath, input.runId)) return "unchanged";
     return finalize.call(this, input);
   };
 }
