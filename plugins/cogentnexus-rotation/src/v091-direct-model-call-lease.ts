@@ -1,8 +1,11 @@
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 export const DIRECT_MODEL_CALL_TIMEOUT_MS = 15 * 60_000;
+
+const HOST_RECOVERY_FINALIZE_FENCE = Symbol.for("cogentnexus.v091.host-recovery-finalize-fence");
 
 type ModelCallStart = {
   runId: string;
@@ -148,6 +151,43 @@ export function closeDirectModelCallForRun(databasePath: string, runId: string, 
   } finally { db.close(); }
 }
 
+/**
+ * Once the external Host changes a provider-call lease to `recovering`, the
+ * Host owns classification for that run. Any agent_end emitted while Gateway
+ * is being quiesced must therefore be observation-only: legacy direct
+ * finalization cannot fail, promote, or queue recovery ahead of the Host.
+ */
+export function hostRecoveryOwnsRun(databasePath: string, runId: string): boolean {
+  if (!runId || !existsSync(databasePath)) return false;
+  const db = new DatabaseSync(databasePath, { readOnly: true });
+  try {
+    db.exec("PRAGMA busy_timeout=5000;");
+    const table = db.prepare(
+      "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_direct_model_call'",
+    ).get();
+    if (!table) return false;
+    return Boolean(db.prepare(
+      "SELECT 1 FROM cnx_direct_model_call WHERE run_id=? AND state='recovering' LIMIT 1",
+    ).get(runId));
+  } finally {
+    db.close();
+  }
+}
+
+function installHostRecoveryFinalizeFence() {
+  const prototype = TicketStore.prototype as any;
+  if (prototype[HOST_RECOVERY_FINALIZE_FENCE]) return;
+  Object.defineProperty(prototype, HOST_RECOVERY_FINALIZE_FENCE, { value: true });
+  const finalize = TicketStore.prototype.finalizeDirectRun;
+  TicketStore.prototype.finalizeDirectRun = function(
+    this: TicketStore,
+    input: Parameters<TicketStore["finalizeDirectRun"]>[0],
+  ): ReturnType<TicketStore["finalizeDirectRun"]> {
+    if (hostRecoveryOwnsRun(this.databasePath, input.runId)) return "unchanged";
+    return finalize.call(this, input);
+  };
+}
+
 function configFor(api: any, event?: any) {
   const fromEvent = event?.context?.pluginConfig;
   return fromEvent && typeof fromEvent === "object" ? fromEvent : (api.pluginConfig ?? {});
@@ -180,6 +220,7 @@ export function installV091DirectModelCallLease(api: any) {
   // Ensure the additive table exists before the first model call can begin.
   try { open(databaseFor(api)).close(); }
   catch (error) { throw new Error(`CogentNexus Direct model-call lease schema failed: ${error instanceof Error ? error.message : String(error)}`); }
+  installHostRecoveryFinalizeFence();
 
   api.on("model_call_started", (event: any, ctx: any) => {
     const runId = String(event?.runId ?? ctx?.runId ?? "").trim();
