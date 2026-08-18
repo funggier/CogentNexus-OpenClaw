@@ -1,4 +1,5 @@
 from pathlib import Path
+import py_compile
 import unittest
 
 
@@ -9,6 +10,10 @@ ENTRY = ROOT / "plugins" / "cogentnexus-rotation" / "src" / "v091-release-entry.
 
 
 class HostSingleAuthorityTests(unittest.TestCase):
+    def test_overlay_and_control_compile(self):
+        py_compile.compile(str(HOST), doraise=True)
+        py_compile.compile(str(CONTROL), doraise=True)
+
     def test_control_routes_through_authority_overlay(self):
         source = CONTROL.read_text(encoding="utf-8")
         self.assertIn('HERE.with_name("host_authority_v091.py")', source)
