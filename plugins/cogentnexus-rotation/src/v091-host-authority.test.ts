@@ -90,17 +90,20 @@ describe("v0.9.1 Host single-recovery-authority boundary", () => {
     } finally { rmSync(workspace, { recursive: true, force: true }); }
   });
 
-  it("accepts only the transactional Host activation window while PASSTHROUGH", () => {
-    const workspace = mkdtempSync(join(tmpdir(), "cnx-v091-host-activating-"));
+  it("does not treat a stale managed policy marker as authority after a power loss in PASSTHROUGH", () => {
+    const workspace = mkdtempSync(join(tmpdir(), "cnx-v091-host-powerloss-"));
     try {
       writeController(workspace, "passthrough");
-      writeFileSync(join(workspace, "AGENTS.md"), "before\n<!-- cogentnexus:begin -->\nmanaged policy\n<!-- cogentnexus:end -->\nafter\n");
+      writeFileSync(join(workspace, "AGENTS.md"), "before\n<!-- cogentnexus:begin -->\nstale activation stage\n<!-- cogentnexus:end -->\nafter\n");
       const api = fakeApi(workspace);
       expect(hostPluginAuthority(api)).toMatchObject({
-        authorized: true,
-        reason: "host-activation-staged",
+        authorized: false,
+        reason: "passthrough",
         mode: "passthrough",
       });
+      (entry as any).register(api);
+      expect(api.registerService).not.toHaveBeenCalled();
+      expect(api.on).not.toHaveBeenCalled();
     } finally { rmSync(workspace, { recursive: true, force: true }); }
   });
 });
