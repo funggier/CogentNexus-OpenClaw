@@ -6,6 +6,7 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 export const DIRECT_MODEL_CALL_TIMEOUT_MS = 15 * 60_000;
 
 const HOST_RECOVERY_FINALIZE_FENCE = Symbol.for("cogentnexus.v091.host-recovery-finalize-fence");
+const HOST_RECOVERY_RESUME_FENCE = Symbol.for("cogentnexus.v091.host-recovery-resume-fence");
 
 type ModelCallStart = {
   runId: string;
@@ -56,6 +57,10 @@ function open(databasePath: string) {
 function event(db: DatabaseSync, ticketId: string, eventType: string, payload: unknown, stamp: string) {
   db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
     .run(ticketId, eventType, JSON.stringify(payload), stamp);
+}
+
+function autoResumeTagForRun(runId: string) {
+  return `cogent-resume-${runId.replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 96)}`;
 }
 
 export function recordDirectModelCallStarted(databasePath: string, input: ModelCallStart): boolean {
@@ -183,6 +188,24 @@ export function hostRecoveryOwnsRun(databasePath: string, runId: string): boolea
   }
 }
 
+export function hostRecoveryOwnsResumeTag(databasePath: string, tag: string): boolean {
+  if (!tag.startsWith("cogent-resume-") || !existsSync(databasePath)) return false;
+  const db = new DatabaseSync(databasePath, { readOnly: true });
+  try {
+    db.exec("PRAGMA busy_timeout=5000;");
+    const table = db.prepare(
+      "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_direct_model_call'",
+    ).get();
+    if (!table) return false;
+    const rows = db.prepare(
+      "SELECT run_id FROM cnx_direct_model_call WHERE state='recovering'",
+    ).all() as Array<{ run_id?: string }>;
+    return rows.some((row) => typeof row.run_id === "string" && autoResumeTagForRun(row.run_id) === tag);
+  } finally {
+    db.close();
+  }
+}
+
 function installHostRecoveryFinalizeFence() {
   const prototype = TicketStore.prototype as any;
   if (prototype[HOST_RECOVERY_FINALIZE_FENCE]) return;
@@ -218,6 +241,36 @@ function databaseFor(api: any, event?: any, ctx?: any) {
   );
 }
 
+function installHostRecoveryResumeFence(api: any) {
+  const workflow = api?.session?.workflow as any;
+  if (!workflow || typeof workflow.scheduleSessionTurn !== "function" || workflow[HOST_RECOVERY_RESUME_FENCE]) return;
+  Object.defineProperty(workflow, HOST_RECOVERY_RESUME_FENCE, { value: true });
+  const schedule = workflow.scheduleSessionTurn;
+  workflow.scheduleSessionTurn = function(input: any) {
+    const tag = typeof input?.tag === "string" ? input.tag : "";
+    if (tag.startsWith("cogent-resume-")) {
+      try {
+        if (hostRecoveryOwnsResumeTag(databaseFor(api), tag)) {
+          api.logger?.info?.(`CogentNexus suppressed legacy auto-resume ${tag}: Host Direct model-call recovery owns classification`);
+          return Promise.resolve({
+            scheduled: false,
+            suppressed: true,
+            reason: "host-direct-model-recovery-claim",
+          });
+        }
+      } catch (error) {
+        api.logger?.warn?.(`CogentNexus failed closed while checking Host Direct recovery before ${tag}: ${error instanceof Error ? error.message : String(error)}`);
+        return Promise.resolve({
+          scheduled: false,
+          suppressed: true,
+          reason: "host-direct-model-recovery-authority-uncertain",
+        });
+      }
+    }
+    return schedule.call(this, input);
+  };
+}
+
 /**
  * Persist a bounded lease around the actual provider model call, not around the
  * whole Ticket age. OpenClaw exposes model_call_started/model_call_ended as
@@ -230,6 +283,7 @@ export function installV091DirectModelCallLease(api: any) {
   try { open(databaseFor(api)).close(); }
   catch (error) { throw new Error(`CogentNexus Direct model-call lease schema failed: ${error instanceof Error ? error.message : String(error)}`); }
   installHostRecoveryFinalizeFence();
+  installHostRecoveryResumeFence(api);
 
   api.on("model_call_started", (event: any, ctx: any) => {
     const runId = String(event?.runId ?? ctx?.runId ?? "").trim();
