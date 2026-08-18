@@ -308,7 +308,8 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
   };
 
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
-    const runId = typeof event?.runId === "string" ? event.runId : undefined;
+    const runId = typeof event?.runId === "string" ? event.runId
+      : typeof ctx?.runId === "string" ? ctx.runId : undefined;
     if (!runId || typeof ctx?.dispatcher?.appendBeforeDeliver !== "function") return;
     let owned = false;
     let waiterStarted = false;
