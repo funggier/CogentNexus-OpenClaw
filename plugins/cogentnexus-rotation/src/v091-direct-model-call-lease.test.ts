@@ -83,6 +83,43 @@ describe("v0.9.1 Direct model-call durable lease", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("does not let a later model_call_started revoke a Host recovery claim", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-next-race-"));
+    const path = join(root, "tickets.sqlite3");
+    try {
+      const store = new TicketStore(path);
+      const ticket = store.accept({ runId: "run-next-race", ownerSessionKey: "agent:main:dashboard:test", prompt: "work" });
+      store.route(ticket.ticketId, false);
+      recordDirectModelCallStarted(path, {
+        runId: "run-next-race",
+        callId: "call-first",
+        now: new Date("2026-08-18T13:00:00.000Z"),
+      });
+      const db = new DatabaseSync(path);
+      db.prepare(`UPDATE cnx_direct_model_call SET state='recovering',recovery_started_at=?,recovery_attempt_count=1 WHERE ticket_id=?`)
+        .run("2026-08-18T13:15:01.000Z", ticket.ticketId);
+      db.close();
+
+      expect(recordDirectModelCallStarted(path, {
+        runId: "run-next-race",
+        callId: "call-second",
+        now: new Date("2026-08-18T13:15:02.000Z"),
+      })).toBe(false);
+
+      const verify = new DatabaseSync(path, { readOnly: true });
+      expect(verify.prepare(`SELECT call_id,state,recovery_started_at,recovery_attempt_count FROM cnx_direct_model_call WHERE ticket_id=?`)
+        .get(ticket.ticketId)).toEqual({
+          call_id: "call-first",
+          state: "recovering",
+          recovery_started_at: "2026-08-18T13:15:01.000Z",
+          recovery_attempt_count: 1,
+        });
+      expect((verify.prepare(`SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id`).all(ticket.ticketId) as any[])
+        .map((row) => row.event_type)).toEqual(["accepted", "routed", "direct_model_call_started"]);
+      verify.close();
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it("ignores durable/workflow and already response-ready Tickets", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-filter-"));
     const path = join(root, "tickets.sqlite3");
