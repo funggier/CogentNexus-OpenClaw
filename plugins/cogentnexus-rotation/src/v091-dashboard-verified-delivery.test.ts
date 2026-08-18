@@ -125,6 +125,46 @@ describe("v0.9.1 Dashboard verified delivery", () => {
         ORDER BY event_id DESC LIMIT 1`).get(ticket.ticketId) as { payload_json: string };
       expect(JSON.parse(event.payload_json)).toMatchObject({ source: "native-dashboard-marker" });
       db.close();
+
+      // If response_ready exists but the final payload was never durably captured, recovery
+      // must fail closed rather than regenerate a reply that may already be visible.
+      const unverifiable = store.accept({
+        runId: "dashboard-v091-unverifiable",
+        ownerSessionKey: sessionKey,
+        prompt: "legacy RC response",
+      });
+      store.route(unverifiable.ticketId, false);
+      expect(store.finalizeDirectRun({
+        runId: "dashboard-v091-unverifiable",
+        success: true,
+        interrupted: false,
+        expectsDelivery: true,
+        now: new Date("2026-01-01T02:00:00Z"),
+      })).toBe("awaiting_delivery");
+
+      db = new DatabaseSync(path, { readOnly: true });
+      expect(db.prepare("SELECT result_json,status FROM tickets WHERE ticket_id=?").get(unverifiable.ticketId))
+        .toMatchObject({ status: "accepted" });
+      expect(db.prepare("SELECT count(*) AS n FROM cnx_assistant_delivery WHERE ticket_id=?").get(unverifiable.ticketId))
+        .toEqual({ n: 0 });
+      db.close();
+
+      expect(store.recoverUndeliveredDirect({
+        now: new Date("2026-01-01T03:00:00Z"),
+        olderThanMs: 1000,
+      })).toEqual([]);
+
+      db = new DatabaseSync(path, { readOnly: true });
+      expect(db.prepare("SELECT status,workflow_eligible,failure_class,failure_message FROM tickets WHERE ticket_id=?").get(unverifiable.ticketId))
+        .toMatchObject({
+          status: "failed",
+          workflow_eligible: 0,
+          failure_class: "permanent",
+          failure_message: "direct response delivery became unverifiable before the final payload was durably captured; refusing regeneration to avoid duplicate output",
+        });
+      expect(db.prepare("SELECT count(*) AS n FROM ticket_outbox WHERE ticket_id=?").get(unverifiable.ticketId))
+        .toEqual({ n: 1 });
+      db.close();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
