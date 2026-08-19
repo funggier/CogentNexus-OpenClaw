@@ -6,6 +6,11 @@ queue user-facing assistant text here, and this bridge injects that text into
 the exact owner session through OpenClaw's official ``chat.inject`` Gateway
 method. Session generation/state checks make late delivery after Stop/Delete
 non-authoritative.
+
+Delivery attempts are durably leased before any Gateway RPC. This prevents
+multiple detached wakeups from issuing concurrent history/injection calls for
+the same delivery. Windows CLI timeouts terminate the full process tree so a
+command-shim timeout cannot strand descendant Node processes.
 """
 from __future__ import annotations
 
@@ -14,10 +19,11 @@ import hashlib
 import json
 import os
 import shutil
+import signal
 import sqlite3
 import subprocess
-from collections import defaultdict
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -26,6 +32,12 @@ SKILL = HERE.parents[1]
 WORKSPACE = SKILL.parents[1]
 DEFAULT_ROOT = WORKSPACE / ".cogent"
 TERMINAL_TICKET_STATUSES = {"completed", "failed", "cancelled"}
+DELIVERY_LEASE_SECONDS = 60
+DELIVERY_RETRY_AFTER_SECONDS = 30
+HISTORY_LIMIT = 24
+HISTORY_MAX_CHARS = 120_000
+HISTORY_TIMEOUT_SECONDS = 10
+INJECT_TIMEOUT_SECONDS = 15
 
 
 def now_iso() -> str:
@@ -45,14 +57,63 @@ def captured_text(value: str | bytes | None) -> str:
     return str(value)
 
 
+def _terminate_process_tree(process: subprocess.Popen[str]) -> None:
+    """Terminate a timed-out CLI including descendants created by Windows shims."""
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                creationflags=creation_flags(),
+            )
+            return
+        except Exception:
+            try:
+                process.kill()
+            except Exception:
+                pass
+            return
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except Exception:
+        try:
+            process.kill()
+        except Exception:
+            pass
+
+
 def run(cmd: list[str], timeout: int = 60, check: bool = False) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
+    process = subprocess.Popen(
         cmd,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout,
         creationflags=creation_flags(),
+        start_new_session=(os.name != "nt"),
     )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired as error:
+        _terminate_process_tree(process)
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                process.kill()
+            except Exception:
+                pass
+            stdout, stderr = process.communicate()
+        raise subprocess.TimeoutExpired(
+            cmd,
+            timeout,
+            output=stdout if stdout else error.output,
+            stderr=stderr if stderr else error.stderr,
+        ) from error
+    result = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     if check and result.returncode != 0:
         detail = captured_text(result.stderr) or captured_text(result.stdout) or f"command failed: {cmd}"
         raise RuntimeError(detail.strip())
@@ -158,7 +219,9 @@ def ensure_schema(db: sqlite3.Connection) -> None:
           last_error TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
-          delivered_at TEXT
+          delivered_at TEXT,
+          claim_token TEXT,
+          claim_expires_at TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_pending
           ON cnx_assistant_delivery(status,owner_session_key,delivery_id);
@@ -166,6 +229,14 @@ def ensure_schema(db: sqlite3.Connection) -> None:
     )
     if not column_exists(db, "cnx_assistant_delivery", "owner_generation"):
         db.execute("ALTER TABLE cnx_assistant_delivery ADD COLUMN owner_generation INTEGER NOT NULL DEFAULT 0")
+    if not column_exists(db, "cnx_assistant_delivery", "claim_token"):
+        db.execute("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_token TEXT")
+    if not column_exists(db, "cnx_assistant_delivery", "claim_expires_at"):
+        db.execute("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_expires_at TEXT")
+    db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_claim "
+        "ON cnx_assistant_delivery(status,claim_expires_at,owner_session_key,delivery_id)"
+    )
 
 
 def delivery_marker(idempotency_key: str) -> str:
@@ -176,20 +247,22 @@ def delivery_marker(idempotency_key: str) -> str:
 def history_contains(session_key: str, marker: str) -> bool:
     history = gateway_rpc(
         "chat.history",
-        {"sessionKey": session_key, "limit": 100, "maxChars": 500000},
-        timeout=30,
+        {"sessionKey": session_key, "limit": HISTORY_LIMIT, "maxChars": HISTORY_MAX_CHARS},
+        timeout=HISTORY_TIMEOUT_SECONDS,
     )
     return marker in json.dumps(history, ensure_ascii=False, separators=(",", ":"))
 
 
 def inject_assistant(session_key: str, text: str, idempotency_key: str) -> dict[str, Any]:
     marker = delivery_marker(idempotency_key)
+    # Observation failure is never permission to repeat the side effect. If
+    # history cannot be read, this function raises before chat.inject.
     if history_contains(session_key, marker):
         return {"ok": True, "deduplicated": True}
     payload = gateway_rpc(
         "chat.inject",
         {"sessionKey": session_key, "message": f"{text.rstrip()}\n\n{marker}"},
-        timeout=30,
+        timeout=INJECT_TIMEOUT_SECONDS,
     )
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise RuntimeError(f"chat.inject did not confirm assistant delivery: {payload!r}")
@@ -272,17 +345,26 @@ def _write_completion(workspace: Path, target: dict[str, Any], stamp: str) -> No
     os.replace(temporary, path)
 
 
-def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp: str) -> None:
+def settle_delivery(
+    root: Path,
+    delivery_id: int,
+    target: dict[str, Any],
+    stamp: str,
+    claim_token: str | None = None,
+) -> None:
     path = ticket_db(root)
     db = sqlite3.connect(path, timeout=5)
     try:
         ensure_schema(db)
         db.execute("BEGIN IMMEDIATE")
         row = db.execute(
-            "SELECT ticket_id,status,owner_session_key,owner_generation FROM cnx_assistant_delivery WHERE delivery_id=?",
+            "SELECT ticket_id,status,owner_session_key,owner_generation,claim_token FROM cnx_assistant_delivery WHERE delivery_id=?",
             (delivery_id,),
         ).fetchone()
         if not row or row[1] == "delivered":
+            db.commit()
+            return
+        if claim_token is not None and row[4] != claim_token:
             db.commit()
             return
         authority = session_authority(db, str(row[2]))
@@ -300,10 +382,13 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
             ensure_schema(db)
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                "SELECT ticket_id,status,owner_session_key,owner_generation FROM cnx_assistant_delivery WHERE delivery_id=?",
+                "SELECT ticket_id,status,owner_session_key,owner_generation,claim_token FROM cnx_assistant_delivery WHERE delivery_id=?",
                 (delivery_id,),
             ).fetchone()
             if not row or row[1] == "delivered":
+                db.commit()
+                return
+            if claim_token is not None and row[4] != claim_token:
                 db.commit()
                 return
             authority = session_authority(db, str(row[2]))
@@ -349,11 +434,17 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
             )
         elif kind != "notice":
             raise RuntimeError(f"unsupported assistant delivery target: {kind}")
+        params: list[Any] = [stamp, stamp, delivery_id]
+        claim_clause = ""
+        if claim_token is not None:
+            claim_clause = " AND claim_token=?"
+            params.append(claim_token)
         db.execute(
-            """UPDATE cnx_assistant_delivery
-               SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?
-               WHERE delivery_id=? AND status='pending'""",
-            (stamp, stamp, delivery_id),
+            f"""UPDATE cnx_assistant_delivery
+               SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?,
+                   claim_token=NULL,claim_expires_at=NULL
+               WHERE delivery_id=? AND status='pending'{claim_clause}""",
+            params,
         )
         db.commit()
     except Exception:
@@ -366,13 +457,13 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
         db.close()
 
 
-def mark_failed(root: Path, delivery_id: int, error: str) -> None:
-    """Record transport failure and keep a durable Direct answer from regenerating.
+def mark_failed(root: Path, delivery_id: int, error: str, claim_token: str | None = None) -> None:
+    """Record transport failure and release the durable attempt lease.
 
     While a direct_result row is still pending, the expensive/side-effect-aware
     recovery path must not infer a brand-new answer merely because transport is
     unhealthy. Refresh response_ready_at on each active delivery attempt so the
-    120s undelivered-response detector continues retrying this exact durable text
+    undelivered-response detector continues retrying this exact durable text
     instead of launching another hidden LLM run.
     """
     path = ticket_db(root)
@@ -385,16 +476,25 @@ def mark_failed(root: Path, delivery_id: int, error: str) -> None:
         message = error[:2000]
         db.execute("BEGIN IMMEDIATE")
         row = db.execute(
-            "SELECT ticket_id,kind FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'",
+            "SELECT ticket_id,kind,claim_token FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'",
             (delivery_id,),
         ).fetchone()
-        db.execute(
-            """UPDATE cnx_assistant_delivery
-               SET attempt_count=attempt_count+1,last_error=?,updated_at=?
-               WHERE delivery_id=? AND status='pending'""",
-            (message, stamp, delivery_id),
+        if not row or (claim_token is not None and row[2] != claim_token):
+            db.commit()
+            return
+        params: list[Any] = [message, stamp, delivery_id]
+        claim_clause = ""
+        if claim_token is not None:
+            claim_clause = " AND claim_token=?"
+            params.append(claim_token)
+        changed = db.execute(
+            f"""UPDATE cnx_assistant_delivery
+               SET attempt_count=attempt_count+1,last_error=?,updated_at=?,
+                   claim_token=NULL,claim_expires_at=NULL
+               WHERE delivery_id=? AND status='pending'{claim_clause}""",
+            params,
         )
-        if row and row[0] and str(row[1]) == "direct_result" and table_exists(db, "tickets"):
+        if changed.rowcount == 1 and row[0] and str(row[1]) == "direct_result" and table_exists(db, "tickets"):
             db.execute(
                 """UPDATE tickets
                    SET response_ready_at=?,delivery_last_error=?,updated_at=?
@@ -429,13 +529,76 @@ def pending_deliveries(root: Path, limit: int = 200) -> list[dict[str, Any]]:
             dict(row)
             for row in db.execute(
                 """SELECT delivery_id,ticket_id,owner_session_key,owner_generation,kind,text,target_json,
-                          idempotency_key,attempt_count,last_error
+                          idempotency_key,attempt_count,last_error,claim_token,claim_expires_at
                    FROM cnx_assistant_delivery
                    WHERE status='pending'
                    ORDER BY owner_session_key,delivery_id LIMIT ?""",
                 (max(1, min(limit, 1000)),),
             ).fetchall()
         ]
+    finally:
+        db.close()
+
+
+def claim_next_delivery(root: Path, excluded_sessions: set[str] | None = None) -> dict[str, Any] | None:
+    """Atomically lease one due head-of-line delivery across all Host processes."""
+    path = ticket_db(root)
+    if not path.exists():
+        return None
+    excluded = sorted(excluded_sessions or set())
+    now_dt = datetime.now(timezone.utc)
+    stamp = now_dt.isoformat()
+    cutoff = (now_dt - timedelta(seconds=DELIVERY_RETRY_AFTER_SECONDS)).isoformat()
+    lease_until = (now_dt + timedelta(seconds=DELIVERY_LEASE_SECONDS)).isoformat()
+    token = f"{os.getpid()}:{uuid.uuid4().hex}"
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        ensure_schema(db)
+        db.execute("BEGIN IMMEDIATE")
+        exclusion_sql = ""
+        params: list[Any] = [stamp, cutoff]
+        if excluded:
+            placeholders = ",".join("?" for _ in excluded)
+            exclusion_sql = f" AND d.owner_session_key NOT IN ({placeholders})"
+            params.extend(excluded)
+        row = db.execute(
+            f"""SELECT d.delivery_id,d.ticket_id,d.owner_session_key,d.owner_generation,d.kind,d.text,
+                       d.target_json,d.idempotency_key,d.attempt_count,d.last_error
+                FROM cnx_assistant_delivery d
+                WHERE d.status='pending'
+                  AND (d.claim_token IS NULL OR d.claim_expires_at IS NULL OR d.claim_expires_at<=?)
+                  AND (d.attempt_count=0 OR d.updated_at<=?)
+                  AND NOT EXISTS (
+                    SELECT 1 FROM cnx_assistant_delivery p
+                    WHERE p.owner_session_key=d.owner_session_key
+                      AND p.status='pending' AND p.delivery_id<d.delivery_id
+                  )
+                  {exclusion_sql}
+                ORDER BY d.owner_session_key,d.delivery_id LIMIT 1""",
+            params,
+        ).fetchone()
+        if row is None:
+            db.commit()
+            return None
+        changed = db.execute(
+            """UPDATE cnx_assistant_delivery
+               SET claim_token=?,claim_expires_at=?,updated_at=?
+               WHERE delivery_id=? AND status='pending'
+                 AND (claim_token IS NULL OR claim_expires_at IS NULL OR claim_expires_at<=?)""",
+            (token, lease_until, stamp, int(row["delivery_id"]), stamp),
+        )
+        if changed.rowcount != 1:
+            db.rollback()
+            return None
+        claimed = dict(row)
+        claimed["claim_token"] = token
+        claimed["claim_expires_at"] = lease_until
+        db.commit()
+        return claimed
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -465,31 +628,35 @@ def flush_deliveries(
     limit: int = 200,
     injector: Callable[[str, str, str], dict[str, Any]] = inject_assistant,
 ) -> dict[str, Any]:
-    """Flush independently per session while preserving order inside each session."""
+    """Flush due deliveries with one durable lease per owner-session head item."""
     delivered: list[int] = []
     suppressed: list[int] = []
     failed: list[dict[str, Any]] = []
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for item in pending_deliveries(root, limit):
-        grouped[str(item["owner_session_key"])].append(item)
+    blocked_sessions: set[str] = set()
+    processed = 0
 
-    for session_key in sorted(grouped):
-        for item in grouped[session_key]:
-            delivery_id = int(item["delivery_id"])
-            if not delivery_is_authoritative(root, item):
-                suppress_delivery(root, delivery_id, "session authority changed or Ticket became terminal before injection")
-                suppressed.append(delivery_id)
-                continue
-            try:
-                target = json.loads(item.get("target_json") or '{"kind":"notice"}')
-                injector(session_key, item["text"], item["idempotency_key"])
-                settle_delivery(root, delivery_id, target, now_iso())
-                delivered.append(delivery_id)
-            except Exception as error:
-                mark_failed(root, delivery_id, str(error))
-                failed.append({"deliveryId": delivery_id, "sessionKey": session_key, "error": str(error)})
-                # Preserve ordering only for this session; another session must not be blocked.
-                break
+    while processed < max(1, min(limit, 1000)):
+        item = claim_next_delivery(root, blocked_sessions)
+        if item is None:
+            break
+        processed += 1
+        delivery_id = int(item["delivery_id"])
+        session_key = str(item["owner_session_key"])
+        claim_token = str(item["claim_token"])
+        if not delivery_is_authoritative(root, item):
+            suppress_delivery(root, delivery_id, "session authority changed or Ticket became terminal before injection")
+            suppressed.append(delivery_id)
+            continue
+        try:
+            target = json.loads(item.get("target_json") or '{"kind":"notice"}')
+            injector(session_key, item["text"], item["idempotency_key"])
+            settle_delivery(root, delivery_id, target, now_iso(), claim_token)
+            delivered.append(delivery_id)
+        except Exception as error:
+            mark_failed(root, delivery_id, str(error), claim_token)
+            failed.append({"deliveryId": delivery_id, "sessionKey": session_key, "error": str(error)})
+            # Preserve ordering only for this session; another session may continue.
+            blocked_sessions.add(session_key)
     return {
         "delivered": delivered,
         "suppressed": suppressed,
