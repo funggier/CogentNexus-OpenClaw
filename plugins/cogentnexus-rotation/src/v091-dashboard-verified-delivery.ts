@@ -238,16 +238,6 @@ function recordPendingDeliveryFailure(path: string, runId: string, message: stri
   } finally { db.close(); }
 }
 
-function protectPendingDurableResults(path: string, now = new Date()) {
-  const db = openDb(path), stamp = now.toISOString();
-  try {
-    return Number(db.prepare(`UPDATE tickets SET response_ready_at=?,updated_at=?
-      WHERE status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL AND response_ready_at IS NOT NULL
-        AND EXISTS (SELECT 1 FROM cnx_assistant_delivery d WHERE d.ticket_id=tickets.ticket_id
-          AND d.kind='direct_result' AND d.status='pending')`).run(stamp, stamp).changes);
-  } finally { db.close(); }
-}
-
 function unverifiableDashboardRuns(path: string, input: { now: Date; olderThanMs?: number; limit?: number }) {
   const cutoff = new Date(input.now.getTime() - Math.max(1000, input.olderThanMs ?? 120000)).toISOString();
   const limit = Math.max(1, Math.min(input.limit ?? 100, 1000));
@@ -321,10 +311,12 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
 
   TicketStore.prototype.recoverUndeliveredDirect = function(input: Parameters<TicketStore["recoverUndeliveredDirect"]>[0] = {}) {
     const now = input.now ?? new Date();
-    // Exact durable answers retry transport only. A response that reached response_ready without
-    // a durable payload is unverifiable: regenerating it could duplicate content already visible
-    // to the user, so fail closed after the same receipt deadline instead of promoting recovery.
-    protectPendingDurableResults(this.databasePath, now);
+    // v0.9.2 owns the durable-result boundary. Once a direct_result row exists,
+    // response_ready_at is the immutable first-ready timestamp and must never be
+    // refreshed to postpone a legacy timeout. The inner v0.9.2 recovery wrapper
+    // filters those durable rows before legacy promotion can regenerate inference.
+    // A response that reached response_ready without a durable payload is still
+    // unverifiable: fail it closed after the receipt deadline instead of regenerating.
     const message = "direct response delivery became unverifiable before the final payload was durably captured; refusing regeneration to avoid duplicate output";
     for (const runId of unverifiableDashboardRuns(this.databasePath, { now, olderThanMs: input.olderThanMs, limit: input.limit })) {
       finalize.call(this, { runId, success: false, interrupted: false, message, now });
