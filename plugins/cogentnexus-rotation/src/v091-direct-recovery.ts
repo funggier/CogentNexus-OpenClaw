@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { launchRecovery } from "./v090.js";
+import { launchV093DirectRecovery } from "./v093-direct-recovery.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 export const DIRECT_RECOVERY_ID = "cogentnexus-direct-recovery-v090";
@@ -233,7 +233,7 @@ export function createEventDrivenDirectRecoveryService(api:any,cfg:Config,hooks:
             if(assistantDeliveryDue(path))launchDelivery();
             const recovery=dueDirectRecovery(path);
             if(recovery) {
-              void launchRecovery(api,path,workspace,recovery,cfg as any)
+              void launchV093DirectRecovery(api,path,workspace,recovery,cfg)
                 .catch((error)=>api.logger.warn?.(`CogentNexus Direct recovery launch failed: ${error instanceof Error?error.message:String(error)}`))
                 .finally(()=>queueMicrotask(pulse));
             }
