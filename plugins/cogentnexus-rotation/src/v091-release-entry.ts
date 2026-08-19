@@ -8,6 +8,7 @@ import {
   type DashboardVerifiedDeliveryConfig,
 } from "./v091-dashboard-verified-delivery.js";
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
+import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -98,6 +99,9 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
     const installManagedRuntimeGuards = () => {
+      // Once direct_result is durable, transport owns all remaining retries;
+      // legacy delivery timeout recovery must not regenerate inference.
+      installV092DurableDeliveryBoundary();
       // The model-call lease is observation-only. It records a bounded provider
       // call deadline; only the external Host may act on an expired lease.
       installV091DirectModelCallLease(api);
