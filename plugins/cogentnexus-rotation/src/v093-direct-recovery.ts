@@ -31,6 +31,12 @@ type OriginalModel = {
   model?: string;
 };
 
+type RecoveryRuntime = {
+  harness?: string;
+  provider?: string;
+  model?: string;
+};
+
 const CLAIM_POLL_MS = 500;
 
 function now() {
@@ -257,12 +263,37 @@ function kickHostDelivery(workspace: string, cfg: V093DirectRecoveryConfig) {
   }
 }
 
+function recordRuntimeStarted(
+  path: string,
+  recovery: V093DirectRecovery,
+  runId: string,
+  original: OriginalModel,
+  runtime: RecoveryRuntime,
+) {
+  const db = openDb(path), stamp = now();
+  try {
+    addEvent(db, recovery.ticket_id, "direct_recovery_runtime_started", {
+      runId,
+      ownerGeneration: recovery.owner_generation,
+      requestedProvider: original.provider ?? null,
+      requestedModel: original.model ?? null,
+      runtimeHarness: runtime.harness ?? null,
+      runtimeProvider: runtime.provider ?? null,
+      runtimeModel: runtime.model ?? null,
+      source: "v093-direct-recovery",
+    }, stamp);
+  } finally {
+    db.close();
+  }
+}
+
 function markResponseReady(
   path: string,
   recovery: V093DirectRecovery,
   runId: string,
   text: string,
-  provenance: OriginalModel,
+  original: OriginalModel,
+  runtime: RecoveryRuntime,
 ) {
   const db = openDb(path), stamp = now();
   try {
@@ -297,15 +328,19 @@ function markResponseReady(
     }
 
     const firstReady = !row.response_ready_at;
+    const actualProvider = runtime.provider ?? original.provider ?? null;
+    const actualModel = runtime.model ?? original.model ?? null;
     db.prepare(`UPDATE tickets SET result_json=?,response_ready_at=COALESCE(response_ready_at,?),
       delivery_last_error=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`)
       .run(JSON.stringify({
         directRecovery: true,
         runId,
         deliveryPending: true,
-        originalProvider: provenance.provider ?? null,
-        originalModel: provenance.model ?? null,
-        recoveryModel: provenance.model ?? null,
+        originalProvider: original.provider ?? null,
+        originalModel: original.model ?? null,
+        recoveryProvider: actualProvider,
+        recoveryModel: actualModel,
+        recoveryHarness: runtime.harness ?? null,
       }), stamp, stamp, recovery.ticket_id);
     db.prepare(`UPDATE cnx_direct_recovery SET state='awaiting_delivery',active_run_id=NULL,next_attempt_at=NULL,
       last_error=NULL,updated_at=? WHERE ticket_id=? AND state='running' AND active_run_id=?`)
@@ -314,9 +349,11 @@ function markResponseReady(
       runId,
       deliveryMode: "host-chat-inject",
       ownerGeneration: recovery.owner_generation,
-      originalProvider: provenance.provider ?? null,
-      originalModel: provenance.model ?? null,
-      recoveryModel: provenance.model ?? null,
+      originalProvider: original.provider ?? null,
+      originalModel: original.model ?? null,
+      recoveryProvider: actualProvider,
+      recoveryModel: actualModel,
+      recoveryHarness: runtime.harness ?? null,
       responseReadyFirstCommit: firstReady,
       source: "v093-direct-recovery",
     }, stamp);
@@ -361,7 +398,7 @@ function recordRuntimeAbort(path: string, recovery: V093DirectRecovery, runId: s
 
 /**
  * Direct recovery executor with four hard boundaries:
- * 1) preserve the original model when it was durably observed,
+ * 1) preserve the original provider/model when they were durably observed,
  * 2) terminate the hidden worker when Ticket/recovery/session authority is revoked,
  * 3) commit response_ready_at once only,
  * 4) prefer the v0.9.2 durable delivery transport.
@@ -383,7 +420,8 @@ export async function launchV093DirectRecovery(
     recovery.owner_generation,
     cfg,
   );
-  const provenance = originalModel(path, recovery.ticket_id);
+  const original = originalModel(path, recovery.ticket_id);
+  let runtime: RecoveryRuntime = {};
   let runId = planned;
   let stopFence = false;
 
@@ -401,13 +439,16 @@ export async function launchV093DirectRecovery(
       deliver: false,
       lightContext: true,
       idempotencyKey: planned,
-      ...(provenance.model ? { model: provenance.model } : {}),
+      ...(original.provider ? { provider: original.provider } : {}),
+      ...(original.model ? { model: original.model } : {}),
     });
     runId = launched.runId;
+    runtime = launched.runtime ?? {};
     if (!bindRun(path, recovery, planned, runId)) {
       try { await api.runtime.subagent.deleteSession({ sessionKey: childSessionKey, deleteTranscript: true }); } catch {}
       return;
     }
+    recordRuntimeStarted(path, recovery, runId, original, runtime);
 
     const timeoutMs = Math.max(60_000, Math.min((cfg.timeoutSeconds ?? 3600) * 1000, 3_600_000));
     const completionPromise = api.runtime.subagent.waitForRun({ runId, timeoutMs })
@@ -450,7 +491,7 @@ export async function launchV093DirectRecovery(
       retry(path, recovery, runId, "Direct recovery produced no visible assistant output");
       return;
     }
-    if (markResponseReady(path, recovery, runId, text, provenance)) kickHostDelivery(workspace, cfg);
+    if (markResponseReady(path, recovery, runId, text, original, runtime)) kickHostDelivery(workspace, cfg);
   } catch (error) {
     const identity = claimIdentity(path, recovery, runId);
     if (identity.authorized) retry(path, recovery, runId, error instanceof Error ? error.message : String(error));
