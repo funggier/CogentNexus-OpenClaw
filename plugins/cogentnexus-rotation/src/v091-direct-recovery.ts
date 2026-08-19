@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -94,7 +94,6 @@ function staleDelayMs(updatedAt:string,cfg:Config,nowMs:number) {
 function nextAssistantDeliveryWakeMs(db:DatabaseSync,now=new Date()):number|undefined {
   if(!tableExists(db,"cnx_assistant_delivery"))return undefined;
   const nowMs=now.getTime();
-  const retryCutoffMs=nowMs-ASSISTANT_DELIVERY_RETRY_MS;
   if(!deliveryLeaseSupported(db)) {
     const row=db.prepare("SELECT attempt_count,updated_at FROM cnx_assistant_delivery WHERE status='pending' ORDER BY updated_at LIMIT 1")
       .get() as {attempt_count?:number;updated_at?:string}|undefined;
@@ -115,7 +114,7 @@ function nextAssistantDeliveryWakeMs(db:DatabaseSync,now=new Date()):number|unde
       dueMs=Number.isFinite(expiry)?expiry:nowMs;
     } else if(Number(row.attempt_count??0)>0&&row.updated_at) {
       const updated=Date.parse(row.updated_at);
-      dueMs=Number.isFinite(updated)?Math.max(updated+ASSISTANT_DELIVERY_RETRY_MS,retryCutoffMs+ASSISTANT_DELIVERY_RETRY_MS):nowMs;
+      dueMs=Number.isFinite(updated)?updated+ASSISTANT_DELIVERY_RETRY_MS:nowMs;
     }
     const delay=Math.max(25,dueMs-nowMs);
     best=best===undefined?delay:Math.min(best,delay);
@@ -175,23 +174,23 @@ export function assistantDeliveryDue(path:string,now=new Date()):boolean {
   } finally {db.close();}
 }
 
-function kickHostDelivery(workspace:string,cfg:Config) {
-  const script=resolve(workspace,"skills","cogentnexus","scripts","host_delivery.py");
-  if(!existsSync(script))return false;
+function kickHostDelivery(workspace:string,cfg:Config):ChildProcess|undefined {
+  const preferred=resolve(workspace,"skills","cogentnexus","scripts","host_delivery_v092.py");
+  const fallback=resolve(workspace,"skills","cogentnexus","scripts","host_delivery.py");
+  const script=existsSync(preferred)?preferred:fallback;
+  if(!existsSync(script))return undefined;
   const root=resolve(cfg.cogentRoot??join(workspace,".cogent"));
   try {
-    const child=spawn(cfg.pythonCommand??"python",[script,"--root",root,"flush"],{
+    return spawn(cfg.pythonCommand??"python",[script,"--root",root,"flush"],{
       detached:true,stdio:"ignore",windowsHide:true,
     });
-    child.unref();
-    return true;
-  } catch {return false;}
+  } catch {return undefined;}
 }
 
 export function createEventDrivenDirectRecoveryService(api:any,cfg:Config,hooks:Hooks) {
   let wake:ReturnType<typeof setTimeout>|undefined;
   let removePulse:(()=>void)|undefined;
-  let active=false,rerun=false,stopped=false;
+  let active=false,rerun=false,stopped=false,deliveryChildActive=false;
   const service:any={
     id:DIRECT_RECOVERY_ID,
     start:async(ctx:any)=>{
@@ -205,6 +204,23 @@ export function createEventDrivenDirectRecoveryService(api:any,cfg:Config,hooks:
         if(delay===undefined)return;
         wake=setTimeout(()=>{wake=undefined;pulse();},delay);wake.unref?.();
       };
+      const launchDelivery=()=>{
+        if(stopped||deliveryChildActive)return false;
+        const child=kickHostDelivery(workspace,cfg);
+        if(!child)return false;
+        deliveryChildActive=true;
+        let settled=false;
+        const done=()=>{
+          if(settled)return;
+          settled=true;
+          deliveryChildActive=false;
+          if(!stopped)queueMicrotask(pulse);
+        };
+        child.once("exit",done);
+        child.once("error",done);
+        child.unref();
+        return true;
+      };
       const run=async()=>{
         if(stopped)return;
         if(active){rerun=true;return;}
@@ -214,7 +230,7 @@ export function createEventDrivenDirectRecoveryService(api:any,cfg:Config,hooks:
             rerun=false;
             const reset=resetStaleDirectRecovery(path,cfg);
             if(reset>0)api.logger.warn?.(`CogentNexus reset ${reset} stale Direct recovery claim(s)`);
-            if(assistantDeliveryDue(path))kickHostDelivery(workspace,cfg);
+            if(assistantDeliveryDue(path))launchDelivery();
             const recovery=dueDirectRecovery(path);
             if(recovery) {
               void launchRecovery(api,path,workspace,recovery,cfg as any)
