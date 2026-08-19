@@ -7,6 +7,7 @@ import { TicketStore } from "./ticket-store.js";
 import { launchV093DirectRecovery } from "./v093-direct-recovery.js";
 
 type Seed = { path: string; ticketId: string; recovery: any };
+type Capture = { provider?: string; model?: string; deletes: string[] };
 
 function seed(root: string): Seed {
   const path = join(root, "tickets.sqlite3");
@@ -97,7 +98,7 @@ function seed(root: string): Seed {
   };
 }
 
-function successfulApi(captured: { model?: string; deletes: string[] }) {
+function successfulApi(captured: Capture) {
   let childKey = "";
   return {
     runtime: {
@@ -109,13 +110,16 @@ function successfulApi(captured: { model?: string; deletes: string[] }) {
         },
         run: async (input: any) => {
           childKey = input.sessionKey;
+          captured.provider = input.provider;
           captured.model = input.model;
-          return { runId: "recovery-run-1" };
+          return {
+            runId: "recovery-run-1",
+            runtime: { harness: "openclaw", provider: "ollama", model: "qwen3.5:9b" },
+          };
         },
         waitForRun: async () => ({ status: "ok" }),
         deleteSession: async ({ sessionKey }: any) => {
           captured.deletes.push(sessionKey);
-          return { deleted: true };
         },
       },
     },
@@ -123,26 +127,38 @@ function successfulApi(captured: { model?: string; deletes: string[] }) {
 }
 
 describe("v0.9.3 Direct Recovery execution boundary", () => {
-  it("preserves the original model and keeps response_ready_at at its first commit", async () => {
+  it("preserves original provider/model, records actual runtime, and keeps response_ready_at at its first commit", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v093-model-"));
     try {
       const seeded = seed(root);
-      const captured: { model?: string; deletes: string[] } = { deletes: [] };
-      const api = successfulApi(captured);
-
-      await launchV093DirectRecovery(api, seeded.path, root, seeded.recovery, { timeoutSeconds: 60 });
+      const captured: Capture = { deletes: [] };
+      await launchV093DirectRecovery(successfulApi(captured), seeded.path, root, seeded.recovery, { timeoutSeconds: 60 });
+      expect(captured.provider).toBe("ollama");
       expect(captured.model).toBe("qwen3.5:9b");
 
       let db = new DatabaseSync(seeded.path);
       const first = db.prepare("SELECT response_ready_at,result_json FROM tickets WHERE ticket_id=?")
         .get(seeded.ticketId) as any;
       expect(first.response_ready_at).toBeTruthy();
-      expect(JSON.parse(first.result_json).originalModel).toBe("qwen3.5:9b");
-      expect(JSON.parse(first.result_json).recoveryModel).toBe("qwen3.5:9b");
+      const result = JSON.parse(first.result_json);
+      expect(result.originalProvider).toBe("ollama");
+      expect(result.originalModel).toBe("qwen3.5:9b");
+      expect(result.recoveryProvider).toBe("ollama");
+      expect(result.recoveryModel).toBe("qwen3.5:9b");
+      expect(result.recoveryHarness).toBe("openclaw");
       expect(db.prepare("SELECT COUNT(*) AS n FROM cnx_assistant_delivery WHERE ticket_id=? AND kind='direct_result'")
         .get(seeded.ticketId)).toMatchObject({ n: 1 });
       expect(db.prepare("SELECT state FROM cnx_direct_recovery WHERE ticket_id=?").get(seeded.ticketId))
         .toMatchObject({ state: "awaiting_delivery" });
+
+      const runtimeStarted = db.prepare("SELECT payload_json FROM ticket_events WHERE ticket_id=? AND event_type='direct_recovery_runtime_started' ORDER BY event_id DESC LIMIT 1")
+        .get(seeded.ticketId) as any;
+      const runtimePayload = JSON.parse(runtimeStarted.payload_json);
+      expect(runtimePayload.requestedProvider).toBe("ollama");
+      expect(runtimePayload.requestedModel).toBe("qwen3.5:9b");
+      expect(runtimePayload.runtimeProvider).toBe("ollama");
+      expect(runtimePayload.runtimeModel).toBe("qwen3.5:9b");
+      expect(runtimePayload.runtimeHarness).toBe("openclaw");
 
       // Re-arm only as a regression fixture. Production v0.9.2 prevents this path,
       // while v0.9.3 itself must still never move the first-ready timestamp.
@@ -150,7 +166,7 @@ describe("v0.9.3 Direct Recovery execution boundary", () => {
         .run(seeded.ticketId);
       db.close();
 
-      const captured2: { model?: string; deletes: string[] } = { deletes: [] };
+      const captured2: Capture = { deletes: [] };
       await launchV093DirectRecovery(successfulApi(captured2), seeded.path, root, seeded.recovery, { timeoutSeconds: 60 });
 
       db = new DatabaseSync(seeded.path, { readOnly: true });
@@ -181,12 +197,16 @@ describe("v0.9.3 Direct Recovery execution boundary", () => {
             run: async (input: any) => {
               childKey = input.sessionKey;
               launched = true;
-              return { runId: "recovery-run-terminal" };
+              expect(input.provider).toBe("ollama");
+              expect(input.model).toBe("qwen3.5:9b");
+              return {
+                runId: "recovery-run-terminal",
+                runtime: { harness: "openclaw", provider: "ollama", model: "qwen3.5:9b" },
+              };
             },
             waitForRun: async () => await new Promise(() => {}),
             deleteSession: async ({ sessionKey }: any) => {
               deletes.push(sessionKey);
-              return { deleted: true };
             },
           },
         },
