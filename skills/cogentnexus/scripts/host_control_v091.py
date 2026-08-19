@@ -57,11 +57,19 @@ def _managed_plugin_config_enabled(root: Path) -> bool | None:
     return entry.get("enabled") is True
 
 
+def _run_checked(cmd: list[str], timeout: int) -> Any:
+    """Use the legacy Host subprocess wrapper without assuming a check= keyword."""
+    result = legacy.run(cmd, timeout=timeout)
+    if result.returncode != 0:
+        detail = legacy.captured_text(result.stderr) or legacy.captured_text(result.stdout) or f"command failed: {cmd}"
+        raise RuntimeError(detail.strip())
+    return result
+
+
 def _inspect_plugin_runtime() -> dict[str, Any]:
-    result = legacy.run(
+    result = _run_checked(
         [legacy.openclaw_executable(), "plugins", "inspect", PLUGIN_ID, "--runtime", "--json"],
         timeout=60,
-        check=True,
     )
     raw = legacy.captured_text(result.stdout).strip()
     if not raw:
@@ -83,15 +91,12 @@ def _repair_managed_plugin_activation(root: Path, execute_safe: bool) -> dict[st
         return {"detected": True, "repaired": False, "reason": "execute-safe-required"}
 
     exe = legacy.openclaw_executable()
-    legacy.run([exe, "plugins", "enable", PLUGIN_ID], timeout=60, check=True)
-    legacy.run([exe, "config", "validate"], timeout=60, check=True)
+    _run_checked([exe, "plugins", "enable", PLUGIN_ID], timeout=60)
+    _run_checked([exe, "config", "validate"], timeout=60)
 
     restart = legacy.run([exe, "gateway", "restart"], timeout=180)
     if restart.returncode != 0:
-        restart = legacy.run([exe, "gateway", "start"], timeout=180, check=True)
-    if restart.returncode != 0:
-        detail = legacy.captured_text(restart.stderr) or legacy.captured_text(restart.stdout) or "Gateway restart failed"
-        raise RuntimeError(detail.strip())
+        restart = _run_checked([exe, "gateway", "start"], timeout=180)
 
     if _managed_plugin_config_enabled(root) is not True:
         raise RuntimeError("OpenClaw plugin config remained disabled after MANAGED activation repair")
