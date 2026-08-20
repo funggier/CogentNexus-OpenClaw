@@ -1,12 +1,16 @@
-# Output Verification
+# Output Verification and Delivery
 
-Before final delivery:
+Do not equate model text with completed work.
 
-- Confirm observable success criteria.
-- Verify commands, file changes, external state, and side effects when possible.
-- Distinguish completed work from intended or unverified work.
-- State material limitations and remaining work.
-- Keep the report proportional to the task.
-- Do not expose private chain-of-thought, discarded alternatives, or unnecessary process narration.
+## Direct response boundary
 
-Useful report fields for complex work: Completed, Changed, Verified, Result, Remaining. Omit empty sections.
+1. verify runtime/provider provenance required by the recovery contract;
+2. commit `response_ready` once;
+3. persist one durable `direct_result`;
+4. deliver/transport that result;
+5. confirm delivery receipt/history marker;
+6. only then complete the Ticket.
+
+If delivery is uncertain after a durable result exists, retransport the durable result. Do not regenerate inference solely to obtain another copy of the same answer.
+
+External side effects require their own idempotency/receipt/reconciliation contract; CNX delivery exactly-once-ish semantics do not automatically make every external system exactly-once.

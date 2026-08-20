@@ -1,51 +1,34 @@
-# Historical: Phase 0 Ticket-first intake
+# Ticket-first Admission — Current Baseline
 
-> **Historical implementation note.** This file records the prototype sequence that led to the current Ticket runtime. It is not the source of truth for v0.8 behavior. See [BASELINE.md](BASELINE.md), [INSTALL.md](INSTALL.md), and the current plugin/Host code for active semantics.
+Ticket-first means an eligible owner message in MANAGED mode can be durably admitted **before inference**. It does not mean every message becomes a workflow.
 
-## What Phase 0 established
+## DIRECT example
 
-The prototype proved the core continuity boundary:
-
-- an eligible owner message can be committed to SQLite before inference;
-- the complete command, trusted owner/session identity, request hash, and accepted event can be stored atomically;
-- retries can be idempotent by request identity;
-- running work can use leases, heartbeats, and monotonically increasing fencing generations;
-- stale workers can be prevented from completing after reassignment;
-- terminal state and owner-bound outbox delivery can be committed durably;
-- deterministic recovery scanning can run without LLM inference;
-- bounded dispatch can connect Tickets to verified workflows;
-- workflow identity/fingerprints can suppress duplicate relaunch after interruption.
-
-The database path established by this work remains:
+For a greeting or ordinary question:
 
 ```text
-.cogent/runtime/cogentnexus.sqlite3
+user message
+  -> durable Ticket
+  -> DIRECT inference
+  -> response_ready/direct_result
+  -> delivery confirmed
+  -> completed
 ```
 
-## Evolution after the prototype
+`workflow_eligible=0` is valid and expected for lightweight Direct work.
 
-The original document described `ticketFirst` as opt-in and disabled by default. That statement is historical.
+## Why admission comes first
 
-In the v0.8 clean baseline:
+If Gateway/provider/runtime fails after durable admission, the Host can decide whether the request is genuinely pre-response and eligible for Direct Recovery without requiring the user to repeat the intent.
 
-- normal Host-managed installation enables Ticket-first continuity;
-- Ticket creation is lightweight and does not imply STAGED execution;
-- DIRECT messages may proceed as ordinary conversation after durable acceptance;
-- committed direct turns interrupted by confirmed Gateway failure can be promoted to durable recovery;
-- MANAGED / PASSTHROUGH / MAINTENANCE govern Host ownership;
-- cancellation is terminal and must fence later recovery;
-- one inference lane is the conservative managed default;
-- the external Host Controller, not this phase document, owns desired runtime state and lifecycle reconciliation.
+## Duplicate rule
 
-## Continuing invariants
+The exact recovery/native restart continuation of an already-owned Direct Ticket is not admitted as a second user Ticket. The v0.9.9 ownership fence runs before legacy Ticket-first intake for that exact compatibility envelope.
 
-The prototype invariants that remain active are:
+Ordinary messages, different sessions, generation drift, terminal recovery state, missing Host authority, or unreadable durable state must not be falsely claimed by the fence.
 
-1. durable state is committed before it is relied upon;
-2. duplicate execution is fenced by stable identity/leases/generations;
-3. recovery does not run model inference inside the periodic supervisor;
-4. stale workers cannot regain authority after reassignment;
-5. terminal delivery state is durable;
-6. external side effects are never repeated blindly after interruption.
+## Terminal rule
 
-For current architecture and terminology, use [BASELINE.md](BASELINE.md).
+A Ticket is not complete merely because an LLM returned text. The durable result and delivery confirmation boundary determines completion.
+
+See `docs/BASELINE.md` and `docs/CURRENT_STATE.md` for the full v0.9.1 invariants.

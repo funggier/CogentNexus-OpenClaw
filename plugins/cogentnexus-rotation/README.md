@@ -1,187 +1,57 @@
-# CogentNexus OpenClaw Bridge
+# CogentNexus OpenClaw Bridge — v0.9.1
 
-The package ID remains `cogentnexus-rotation` for compatibility, but in v0.8 the plugin is documented as the **CogentNexus OpenClaw Bridge**.
+This plugin is the OpenClaw-side bridge for CogentNexus Ticket-first admission, Direct Recovery, delivery continuity, session/generation fencing, and compatibility ownership rules.
 
-It connects OpenClaw to the external CogentNexus Host/Ticket/workflow runtime. The bridge is not the durability authority by itself; durable authority lives in persisted Host, Ticket, workflow, lease, generation, response-readiness, delivery-receipt, and outbox state.
+## Current accepted recovery wiring
 
-## Responsibilities
+The release entry installs the current recovery boundary before legacy Ticket-first intake where ordering matters.
 
-- commit eligible owner messages to the SQLite Ticket store before inference when `ticketFirst` is enabled;
-- bind requests/workflows to trusted owner session identity;
-- route obvious durable requests before conversational inference when pre-inference admission qualifies them;
-- dispatch and recover Ticket-backed durable workflows;
-- preserve request-hash/idempotency boundaries;
-- fence duplicate starts by lease/generation/run identity;
-- bridge verified context-rotation handoffs when explicitly enabled;
-- distinguish response readiness from completed user delivery;
-- recover interrupted or unconfirmed direct reply delivery;
-- keep terminal Ticket/workflow outboxes pending until delivery receipt;
-- schedule a delayed continuation after successful compaction when durable session work remains;
-- expose optional knowledge/research tools without making them execution authority.
+### v094 Direct Recovery
 
-## What the bridge must not do
+- pins recovery to the original provider/model;
+- records runtime provenance;
+- preserves first `response_ready_at`;
+- aborts/refuses output when durable authority becomes terminal;
+- applies a read-only SQLite busy timeout;
+- treats transient SQLite BUSY/WAL contention as an inconclusive authority read rather than revocation;
+- emits file-only runtime error diagnostics that must not alter recovery semantics.
 
-- force every message into a durable workflow;
-- make a greeting pay STAGED workflow overhead;
-- treat model prose as authoritative completion evidence;
-- treat `agent_end(success=true)` as proof that a visible reply reached the user completely;
-- treat scheduling a terminal continuation as proof of delivery;
-- silently repeat external side effects after interruption;
-- reconstruct discarded private reasoning after compaction;
-- resurrect cancelled Tickets/sessions;
-- make native OpenClaw unusable when CogentNexus is disabled.
+### v095/v096/v097/v098
 
-## Ticket-first continuity
+- Direct lane ownership fencing;
+- recursive self-intake prevention;
+- post-restart liveness;
+- startup/recovery-session residue hygiene.
 
-With managed defaults:
+### v099 Native Restart Ownership
 
-```text
-owner message
-   -> Ticket commit
-   -> lane selection
-      DIRECT / LOOKUP / ACTION / STAGED
-   -> execution
-   -> RESPONSE_READY when visible output exists
-   -> delivery settles
-   -> DELIVERY_CONFIRMED
-   -> completed / delivered
-```
+OpenClaw 2026.7.1-2 may enqueue its own restart continuation after Gateway recovery. The v099 `before_agent_run` fence consumes only the exact native restart shape when durable state proves:
 
-Ticket creation is intentionally lightweight. A DIRECT message may remain an ordinary conversational turn after its Ticket is committed.
+- same owner session;
+- same generation;
+- Host-authorized original timeout;
+- pending/running CNX Direct Recovery;
+- queued original prompt exactly matches the durable Ticket prompt.
 
-If a direct turn is interrupted before execution completes, or a response becomes ready but its final delivery fails/remains unconfirmed, the Ticket is promoted to durable recovery rather than silently completed.
+Unreadable/missing DB fails open to native behavior. Ordinary prompts are never globally suppressed.
 
-## Delivery Commit Gate
+## Acceptance
 
-Visible output has a separate completion boundary from model execution.
+Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
-The bridge uses OpenClaw reply-dispatch settlement when available: it observes the final dispatch, waits for the dispatcher to become idle, and checks final delivery failure/cancellation counts. `message_sent` is a fallback receipt path and uses a settle period so the first emitted chunk cannot immediately close a long reply.
+The accepted Test A v16 completed with a single recovery attempt, no duplicate Ticket, no recursive intake, no escaped database-lock retry, original model provenance, one durable result, and confirmed delivery.
 
-Direct Ticket fields include:
+## Development validation
 
-- `response_ready_at`
-- `delivery_confirmed_at`
-- `delivery_last_error`
-
-A response-ready Ticket remains non-terminal until delivery is confirmed. If receipt confirmation never arrives within the configured deadline, deterministic recovery promotes the Ticket so work/delivery can continue.
-
-Terminal Ticket/workflow outboxes follow the same rule. `scheduled_at` and `delivery_run_id` track an in-flight delivery attempt. The marked continuation itself must settle successfully before `delivery_status` becomes `delivered`; otherwise the outbox becomes retryable again without recomputing already completed work.
-
-Delivery controls:
-
-- `directDeliverySettleMs`
-- `directDeliveryTimeoutMs`
-- `outboxDeliveryTimeoutMs`
-
-## Post-Compaction Continuation Guard
-
-Successful OpenClaw history compaction does not mean the logical task is finished.
-
-When `after_compaction` fires in a managed Ticket-first session, the bridge checks whether the session still owns non-terminal Tickets, pending Ticket outboxes, or pending workflow completion delivery. If so, it schedules one delayed idempotently tagged continuation:
-
-```text
-[CogentNexus Continuation: post-compaction]
-```
-
-The continuation resumes from committed durable state only. If the original turn continues normally, `agent_end` removes the delayed guard. If the guard eventually fires after work is already terminal, terminal/idempotency state prevents duplicate side effects.
-
-Control:
-
-- `postCompactionResumeDelayMs`
-
-## Managed defaults
-
-`cnx enable` configures conservative defaults suitable for local models and low-resource machines:
-
-- `ticketFirst = true`
-- `preInferenceAdmission = true`
-- `autoWorkflowCompletion = true`
-- `enforcedMode = true`
-- `autoResume = true`
-- `ticketDispatchLimit = 1`
-- `ticketMaximumRunning = 1`
-- bounded attempts and short deterministic recovery/dispatch/outbox polls
-- conversation hook access enabled for delivery/compaction continuity events
-
-These settings preserve one inference lane by default. Parallelism should increase only from measured need.
-
-## Pre-inference durable admission
-
-`preInferenceAdmission` is distinct from Ticket-first intake.
-
-- Ticket-first records eligible owner messages for continuity.
-- Pre-inference admission blocks duplicate conversational execution only when deterministic classification says the request already belongs in durable execution.
-
-Configuration:
-
-- `preInferenceAdmission`
-- `admissionMinimumScore`
-- `durableWorkerModel`
-
-The bridge excludes internal delivery/continuation/subagent turns from owner admission and retains idempotent workflow identity.
-
-## Durable workflow execution
-
-Normal durable work runs through the deterministic CogentNexus controller and configured worker provider. Executors produce candidates; validators/controller evidence determine PASS.
-
-Temporary clean-session TaskFlow/Codex rotation remains opt-in through `autoRotate`. It should not be enabled merely to make ordinary work more complex.
-
-## Cancellation
-
-Host-level commands can cancel a single Ticket or all non-terminal Tickets for an owner session. Cancellation is terminal and must fence later recovery.
-
-For workflow-level cancellation, the deterministic workflow controller records cancellation evidence and terminal completion delivery.
-
-## Experience / lesson store
-
-The optional SQLite Experience/Lesson store remains additive. Verified lessons may be retrieved as data; they are not executable policy and do not override user intent, authorization, controller state, or deterministic gates.
-
-Disable with:
-
-```text
-knowledgeEnabled = false
-```
-
-without disabling Ticket continuity.
-
-## External research
-
-External research storage is optional and bounded by query/source/size/time/freshness/corroboration budgets. Stored pages remain external observations and never become verified lessons automatically.
-
-Network access still requires an explicit provider/capability adapter.
-
-Disable with:
-
-```text
-externalResearchEnabled = false
-```
-
-without affecting local Ticket/workflow continuity.
-
-## PASSTHROUGH
-
-When `cnx disable` enters PASSTHROUGH:
-
-- CogentNexus startup ownership is disabled;
-- the managed workspace policy block is removed;
-- this plugin is disabled;
-- native OpenClaw is restarted/started;
-- durable CogentNexus state is preserved.
-
-Native OpenClaw must remain usable in this mode.
-
-## Build and validate
-
-```bash
+```sh
 npm ci
+npx vitest run src/v094-direct-recovery.test.ts --config ./vitest.config.ts
+npx vitest run src/v099-native-restart-ownership.test.ts --config ./vitest.config.ts
 npm test
 npm run evaluation
-npm audit --omit=dev
 npm run plugin:validate
 ```
 
-A Gateway restart is required after plugin installation/configuration changes.
+The repository ignores `dist/`; release validation regenerates distribution output and checks it through the build/package pipeline rather than treating generated files as source-of-truth.
 
-## Compatibility
-
-The technical peer dependency is intentionally broader than the current tested baseline. CogentNexus release/compatibility documentation defines the OpenClaw versions exercised end-to-end for a given release.
+See the root `README.md` and `docs/CURRENT_STATE.md` for supported operational scope.

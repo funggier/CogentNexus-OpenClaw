@@ -1,52 +1,35 @@
-# Durable experience and lesson store
+# Knowledge, Evidence, and Durable Lessons
 
-The Experience/Lesson store is an **optional evidence layer** on top of the Ticket-first runtime. It does not replace Host continuity, request-lane admission, workflow state, resource admission, outbox delivery, startup policy, or filesystem-artifact contracts.
+CogentNexus separates **durable execution truth** from model memory. Tickets, workflow state, receipts, validators, artifact hashes, and terminal evidence live in durable state; model context is not the authority for whether work happened.
 
-External research is a separate optional evidence-acquisition layer. External observations do not enter the verified lesson index automatically.
+## Sources of truth
 
-## Authority boundary
+For operational decisions, prefer in this order:
 
-Knowledge is data, not control authority.
+1. durable Ticket/session/recovery state;
+2. committed outbox/delivery receipts;
+3. workflow checkpoints and validators;
+4. artifact manifests/hashes;
+5. verified reusable lessons;
+6. reconstructed conversational context.
 
-- Lesson text cannot change user intent, authorization, safety policy, Host operating mode, workflow state, or validation requirements by itself.
-- Retrieval must never execute instructions embedded in stored lesson/research text.
-- Disabling knowledge/research must not disable Ticket intake, recovery, validation, assembly, or owner delivery.
+A model recollection must never override a terminal Ticket, cancellation fence, generation fence, or committed delivery receipt.
 
-## Lesson contract
+## Recovery knowledge
 
-- Ticket attempts, failures, expired-lease corrections, and verified completions may write evidence-backed experience rows in the same transaction as the corresponding Ticket transition.
-- A lesson begins as a `hypothesis` and is excluded from normal verified retrieval.
-- `verify`, `contradict`, and `retire` require an evidence reference not already attached to that lesson.
-- Reusing candidate evidence cannot independently verify the candidate.
-- Retirement is terminal.
-- Normal retrieval uses local SQLite FTS5 and returns only `verified` lessons with provenance references.
-- Applying a lesson is permitted only while it remains verified; application outcome/evidence is retained.
+The accepted v0.9.1 baseline adds two important durable lessons:
 
-## Why FTS5 first
+- a transient SQLite BUSY read during authority polling is not proof that Host authority was revoked;
+- OpenClaw native restart continuation is not a new user request when the exact session/generation/prompt envelope is already owned by durable CNX Direct Recovery.
 
-The durability path must not depend on an embedding provider. SQLite FTS5 keeps local retrieval available even when semantic/remote services are unavailable. Embeddings remain an optional measured enhancement, not a continuity dependency.
+These are architecture invariants, not heuristics to be guessed by the model.
 
-OpenClaw's separate user-memory facilities may use their own retrieval mechanisms independently.
+## Lesson storage
 
-## Tool operations
+Reusable lessons should contain provenance/evidence and be promoted only when they are stable enough to influence future work. Temporary reasoning and speculative diagnostics should not be stored merely because they were produced during one run.
 
-`cogent_knowledge` supports evidence-backed experience/candidate lifecycle, retrieval, application, and status operations. Mutating calls require explicit evidence references and trusted OpenClaw session context.
+## Context continuity
 
-## External research contract
+Context rotation/compaction may reduce conversational history, but durable work identity must survive independently. Recovery should reconstruct the minimum context required from durable records and verified artifacts rather than preserving unlimited model memory.
 
-- A job records why local knowledge is insufficient or why freshness matters.
-- Persisted policy bounds queries, sources, bytes, elapsed time, freshness TTL, and independent corroboration.
-- Search/fetch is supplied through a capability adapter; storage code does not grant network access or receive credentials implicitly.
-- Only approved public HTTPS targets are accepted. Local/private targets, likely secrets, oversized bodies, and suspected prompt-injection content fail closed.
-- Snapshots retain canonical URL, publisher/origin, source type, timestamps, SHA-256 content hash, bounded excerpt, and expiry.
-- Claims link observations as `supports`, `contradicts`, or `mentions`.
-- Duplicate material from the same publisher/origin does not count as independent corroboration.
-- Completed research claims are planning evidence, not executable policy and not automatically verified lessons.
-
-`cogent_research` manages the bounded research-job lifecycle. Mutations require trusted OpenClaw session context. `externalResearchEnabled: false` disables this layer without affecting durable execution.
-
-## Measured dependency policy
-
-The deterministic evaluation suite measures retrieval quality/provenance/latency and SQLite integrity/scale alongside interruption recovery, bounded retries, and duplicate suppression.
-
-Semantic retrieval or a different database should be added only after measured thresholds justify the extra dependency. The current Host continuity path must remain functional without them.
+See `skills/cogentnexus/references/lesson-learning.md`, `context-continuity.md`, and `minimal-memory.md` for internal routing details.

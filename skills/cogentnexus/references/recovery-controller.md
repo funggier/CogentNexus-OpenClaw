@@ -1,11 +1,23 @@
 # Recovery Controller
 
-Use after a FAILURE or failed verification.
+Recovery is deterministic coordination around durable state; it is not a second agent deciding from memory.
 
-    cogent recover classify --task-id CNX-001
-    cogent recover plan --task-id CNX-001
-    cogent recover apply --task-id CNX-001
-    cogent recover apply --task-id CNX-001 --execute-safe
-    cogent recover inspect --task-id CNX-001
+## Direct Recovery authorization
 
-Recovery is dry-run by default. Safe apply changes only durable internal settings and task strategy. It never installs dependencies, bypasses permissions, deletes data, runs arbitrary recovery commands, or performs external actions. Retry budget exhaustion or two recent uses of one strategy opens the circuit breaker. Applied policies create RECOVERY ledger events and atomic state revisions.
+A Direct Ticket may infer again only when durable state proves a genuinely pre-response interrupted call and Host recovery authority. The recovery run preserves owner session/generation and original provider/model.
+
+## Single-owner rule
+
+Do not allow OpenClaw native restart recovery and CNX Direct Recovery to infer concurrently for the same accepted intent. The compatibility fence consumes only the exact native continuation proven to belong to CNX-owned recovery.
+
+## Authority reads
+
+Transient SQLite BUSY/WAL recovery contention is inconclusive, not revocation. Continue polling after bounded busy handling; non-transient DB errors remain errors.
+
+## Delivery recovery
+
+If a durable result already exists, recover delivery rather than inference. `response_ready` is immutable and one `direct_result` is the expected durable Direct output.
+
+## Terminal rule
+
+Completed, failed or cancelled work cannot be resurrected by stale workers, late runtime callbacks, or startup residue.

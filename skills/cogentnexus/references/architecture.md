@@ -1,40 +1,27 @@
-# Architecture and Extension Contract
+# Architecture
 
-CogentNexus v0.8 uses a layered architecture. The canonical public baseline is [../../../docs/BASELINE.md](../../../docs/BASELINE.md).
+The current v0.9.1 architecture has two independent axes: **continuity** and **execution depth**.
 
-## Layers
+## Continuity plane
 
-1. **Host Controller** — external deterministic continuity/lifecycle authority.
-2. **OpenClaw Bridge** — plugin boundary for Ticket intake, owner/session binding, dispatch, recovery, context handoff, and delivery.
-3. **Request lane policy** — DIRECT / LOOKUP / ACTION / STAGED, selected before heavy modules are loaded.
-4. **Durable workflow runtime** — checkpointed controller, deterministic validators, bounded repair/review, artifact evidence.
+```text
+eligible user intent -> durable Ticket -> Host authority -> runtime -> durable result -> delivery receipt
+```
 
-The skill remains a modular monolith for discoverability, but CogentNexus as a system is no longer described as merely one OpenClaw skill. The Host Controller must remain useful when OpenClaw inference is unavailable.
+The Ticket/Host plane survives process-level interruption and is authoritative over transient model/runtime observations.
 
-## Repository contract
+## Execution plane
 
-- `SKILL.md`: compact managed-execution entry point; must not force every request into heavy runtime behavior.
-- `references/`: lazily loaded cognitive and operational contracts.
-- `scripts/host.py`: external Host Controller CLI and deterministic mode/lifecycle ownership.
-- `scripts/runtime.py`: deterministic runtime/supervisor/lifecycle primitives.
-- `scripts/workflow.py`: durable workflow controller.
-- `plugins/cogentnexus-rotation/`: OpenClaw bridge; the historical plugin ID is retained for compatibility.
-- `templates/`: workspace/scheduler/deployment adapters.
-- `.cogent/`: durable runtime state outside version control.
+DIRECT, LOOKUP, ACTION and STAGED lanes choose the minimum machinery appropriate to risk/complexity. Ticket-first admission does not automatically create a workflow.
 
-## Extension rules
+## Recovery authority
 
-Every new module or feature must:
+MANAGED Direct Recovery is fenced by Ticket, owner session, generation, Host-authorized model-call state and recovery run identity. Native OpenClaw restart continuation is consumed only when it exactly matches the already-owned durable recovery envelope.
 
-- have one clear responsibility and authority boundary;
-- preserve the continuity invariant;
-- preserve PASSTHROUGH/native OpenClaw operation;
-- avoid making DIRECT requests pay STAGED overhead;
-- retain deterministic supervision without inference;
-- define interruption/recovery and cancellation semantics;
-- add validation/tests for observable behavior;
-- avoid silently repeating external side effects after interruption.
+Transient SQLite BUSY during authority reads is not durable revocation.
 
-Portable logic should remain in Python/TypeScript modules with platform-specific behavior behind adapters. Windows Task Scheduler, systemd, launchd, cron, Docker, and Kubernetes must preserve the same persisted-state and supervisor contracts.
+## Delivery
 
-Do not add nested `SKILL.md` files as a substitute for deterministic controller logic. Load references lazily rather than expanding the default model context.
+Model completion and user-visible completion are separate. `response_ready`/durable result precede delivery confirmation. Transport retries must not regenerate inference merely because delivery is uncertain.
+
+Canonical operational scope: `docs/BASELINE.md` and `docs/CURRENT_STATE.md`.

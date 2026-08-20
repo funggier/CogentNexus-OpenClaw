@@ -1,357 +1,112 @@
-# CogentNexus v0.8 Baseline
+# CogentNexus v0.9.1 Operational Baseline
 
-This document is the canonical architecture and terminology baseline for CogentNexus v0.8+.
+This document is the canonical architecture and invariant baseline for the current v0.9.1 release. Historical release notes describe earlier states and must not override this file or `docs/CURRENT_STATE.md`.
 
-Historical release notes describe how the project evolved. If older documentation conflicts with this baseline, this baseline governs current design language and intended behavior.
+## Purpose
 
-## 1. Purpose
+CogentNexus preserves user intent across process/runtime boundaries while keeping execution proportional to the task. A message may be durably admitted before inference without being forced into a heavyweight workflow.
 
-CogentNexus exists to preserve user intent and accepted work across failures while using only as much execution machinery as the request actually needs.
+## Core continuity invariant
 
-The system is built around one core continuity rule:
+Once eligible work is durably accepted, it must not silently disappear. It must reach one of these durable outcomes:
 
-> Once an eligible user message is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with evidence.
+- delivered/completed;
+- cancelled by valid authority;
+- explicitly failed with evidence.
 
-This is a **continuity guarantee**, not a requirement to run every request through a heavy workflow.
+## Authority model
 
-## 2. Layer model
+In MANAGED mode, durable CNX state determines recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable Host ownership.
+
+Authority is fenced by:
+
+- Ticket identity and owner session;
+- session generation;
+- model-call state and Host timeout authorization;
+- Direct Recovery state/run identity;
+- cancellation/terminal state;
+- operating mode.
+
+OpenClaw native restart continuation is suppressed only when the exact continuation shape belongs to the same CNX-owned session/generation and the durable original prompt matches. Ordinary messages continue normally.
+
+## Request lanes
+
+- **DIRECT** — ordinary conversation and simple tasks. Ticket durability does not imply workflow creation.
+- **LOOKUP** — focused read-only retrieval.
+- **ACTION** — bounded reversible execution with proportionate checks.
+- **STAGED** — durable multi-step work requiring checkpoints, validators, bounded repair, or interruption-safe orchestration.
+
+Escalation is based on observed risk/complexity rather than ceremony.
+
+## Recovery boundary
+
+A recoverable Direct interruption follows this conceptual sequence:
 
 ```text
-User / Channel
-      |
-      v
-+---------------------------+
-| CogentNexus Host          |
-| continuity + lifecycle    |
-+-------------+-------------+
-              |
-              v
-+---------------------------+
-| OpenClaw                  |
-| channel/session/tool host |
-+-------------+-------------+
-              |
-              v
-+---------------------------+
-| Admission / lane policy   |
-| DIRECT/LOOKUP/ACTION/...  |
-+-------------+-------------+
-              |
-       +------+------+
-       |             |
-       v             v
- lightweight      STAGED
- execution        durable workflow
-                     |
-                     v
-             validator / reviewer
-                     |
-                     v
-                  delivery
+Ticket accepted
+  -> original model call
+  -> Host confirms eligible pre-response interruption
+  -> Host records timeout/recovery authority
+  -> runtime/provider quiesce/restart as required
+  -> Direct Recovery claims same session/generation
+  -> embedded inference on original provider/model
+  -> response_ready committed once
+  -> direct_result durable once
+  -> delivery confirmed
+  -> Ticket completed
 ```
 
-### 2.1 CogentNexus Host Controller
+### Single-owner rule
 
-Runs outside model inference and must remain useful even when OpenClaw or the provider is unavailable.
+When CNX owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The v0.9.9 compatibility fence consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
 
-Responsibilities:
+### SQLite BUSY rule
 
-- persist desired runtime state;
-- persist the selected managed workspace policy;
-- support Ticket-first durable acceptance;
-- supervise health without model inference;
-- distinguish unplanned failure from intentional stop;
-- start/stop/restart managed runtime components;
-- recover eligible non-terminal work;
-- cancel Tickets/sessions and fence cancelled work from resurrection;
-- preserve state across process death and machine reboot.
+Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use a busy timeout and the revocation watcher tolerates transient BUSY conditions. A BUSY read must not reject the watcher and race a still-running inference against `retry()`.
 
-The Host does **not** decide that every request needs STAGED execution.
+### Response/delivery rule
 
-### 2.2 OpenClaw bridge
+`response_ready` is immutable once committed. Delivery transport may retry delivery of a durable result; it must not regenerate inference merely because delivery is uncertain.
 
-The `cogentnexus-rotation` plugin is the OpenClaw integration bridge. The historical plugin ID is retained for compatibility, even though its responsibility is now broader than context rotation.
+CogentNexus therefore provides an **exactly-once-ish durable delivery boundary**, not a universal guarantee that arbitrary external side effects happen exactly once.
 
-Responsibilities include:
-
-- Ticket-first intake inside the OpenClaw request boundary;
-- owner/session binding;
-- durable admission for requests that already qualify for durable execution;
-- Ticket dispatch/recovery/outbox integration;
-- delivery receipt tracking for user-visible replies;
-- context handoff, post-compaction continuation, and completion delivery.
-
-The plugin is a managed component, not the durability authority. Durable authority lives in persisted Host/Ticket/workflow state.
-
-### 2.3 Request lane policy
-
-Admission chooses the lightest reliable lane **before heavy workflow modules are loaded**:
-
-- **DIRECT** — greetings, conversation, explanation, advice, brainstorming, short drafting, simple questions from current context.
-- **LOOKUP** — focused read-only retrieval using the minimum necessary sources/tools.
-- **ACTION** — bounded reversible execution with proportionate verification.
-- **STAGED** — multi-step, consequential, interruption-prone, dependency-heavy, externally mutating, repeatedly failing, or independently reviewed work.
-
-Escalation is based on observed complexity/risk, not on the mere presence of CogentNexus.
-
-### 2.4 Durable workflow runtime
-
-Activated only when work needs durable decomposition/recovery/verification.
-
-Responsibilities:
-
-- stable unit contracts and dependency graph;
-- checkpointed controller state;
-- bounded execution/repair;
-- deterministic validation;
-- reviewer policy where semantic review is required;
-- artifact hashes and integration gates;
-- terminal evidence and owner delivery.
-
-## 3. Authority order
-
-Current design uses this conceptual priority order:
-
-1. system/platform safety and authorization constraints;
-2. explicit user intent and requested outcome;
-3. durable continuity state already committed by Host/Ticket infrastructure;
-4. request-lane admission;
-5. durable workflow controller when STAGED is selected;
-6. executor/tool/reviewer outputs within bounded authority;
-7. deterministic evidence before consequential completion claims;
-8. delivery evidence before a user-visible result is considered delivered.
-
-No AI prose is authoritative merely because it says an action succeeded.
-
-## 4. Operating modes
+## Operating modes
 
 ### MANAGED
 
-CogentNexus owns continuity and managed lifecycle behavior.
-
-Typical state:
-
-```text
-mode = managed
-desiredGateway = running
-desiredProvider = running
-```
-
-The supervisor may reconcile an unplanned failure and resume eligible committed work.
+CNX owns Ticket-first continuity, managed lifecycle, and recovery behavior.
 
 ### PASSTHROUGH
 
-CogentNexus relinquishes OpenClaw interception/background ownership.
-
-`cnx disable` means:
-
-- persist PASSTHROUGH mode;
-- disable CogentNexus background startup ownership;
-- remove the active managed workspace policy block;
-- disable the CogentNexus OpenClaw plugin;
-- keep durable CogentNexus state and the registered managed-policy snapshot;
-- restart/start OpenClaw natively so it remains usable.
-
-PASSTHROUGH is not an uninstall. `cnx enable` is the explicit transition back into CogentNexus-managed operation.
+CNX interception/background ownership are disabled. OpenClaw remains natively usable. Durable CNX state is preserved unless explicitly purged by clean reinstall.
 
 ### MAINTENANCE
 
-Intentional stopped state.
+An operator deliberately stops managed runtime. Recovery must not fight that intent. Later start/restart may resume eligible durable work.
 
-`cnx stop` means:
+## Host and supervisor
 
-- persist MAINTENANCE mode;
-- set desired managed runtime to stopped;
-- stop managed runtime/provider according to policy;
-- prevent the supervisor from fighting the operator's deliberate stop.
+The external supervisor is deterministic and CPU-only in its periodic healthy path. It may inspect endpoint health and durable state, but does not perform model inference itself. Heavy recovery work is entered only when durable state/health warrants it.
 
-`cnx start` is the normal transition from MAINTENANCE back to MANAGED/running.
+## Durable workflow baseline
 
-## 5. Managed policy ownership
+STAGED work retains:
 
-The selected managed workspace policy is Host state, not installer-only state.
+- revisioned task state;
+- checkpoint/resume/rollback;
+- worker leases and generation fences;
+- durable outboxes;
+- deterministic validators;
+- artifact hashes/manifests;
+- bounded retry/repair;
+- terminal evidence gates.
 
-Canonical durable snapshot:
+These features are orthogonal to lightweight Direct Ticket continuity.
 
-```text
-.cogent/host/managed-policy.md
-```
+## Accepted checkpoint
 
-Fresh Core installation seeds the Core managed policy. A companion such as CogentNexus Ecosystem can register a combined policy with:
+Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
-```text
-cnx policy register <policy-file>
-```
+Accepted live Test A v16: one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
 
-Host behavior:
-
-- `policy status` reports the durable snapshot hash/size;
-- `policy register` replaces the selected snapshot and applies it unless in PASSTHROUGH;
-- `policy apply` reapplies the selected snapshot;
-- `policy reset` restores the Core default;
-- `disable` removes only the active `AGENTS.md` block, not the selected snapshot;
-- `enable` reapplies the same registered snapshot automatically;
-- Core updates preserve an already registered companion policy.
-
-This prevents disable/enable or Core upgrades from silently replacing a user's selected Ecosystem policy with a different policy.
-
-## 6. Ticket-first semantics
-
-A Ticket is a lightweight durable record that the system accepted a user message. It is not itself a plan or reasoning trace.
-
-Conceptually:
-
-```text
-receive message
-   -> commit Ticket
-   -> choose lane
-   -> execute
-   -> commit response/terminal state
-   -> deliver
-```
-
-Ticket-first intake should store only durable facts needed for continuity, such as message/session identity, timestamps, status, leases, attempts, workflow binding, response readiness, delivery receipt state, and terminal delivery state.
-
-Do not store private chain-of-thought.
-
-## 7. Delivery Commit Gate
-
-**Execution success is not delivery success.** A model/agent run may finish successfully while the user sees only part of the reply because the Gateway, channel, session, or delivery pipeline is interrupted afterward.
-
-For a direct user-visible response, the durable lifecycle is conceptually:
-
-```text
-ACCEPTED
-   -> execution succeeds
-RESPONSE_READY
-   -> final reply dispatch settles successfully
-DELIVERY_CONFIRMED
-   -> COMPLETED
-```
-
-Rules:
-
-- `agent_end(success=true)` may establish `RESPONSE_READY`; it must not by itself prove that a visible reply reached the user completely.
-- The bridge prefers dispatcher settlement evidence for final replies: final dispatch is observed, delivery drains, and no final delivery failure/cancellation is reported.
-- Where only per-message delivery events are available, success is treated as a fallback receipt after a quiet/settle period rather than completing on the first emitted chunk.
-- Delivery receipt ordering must not matter: if a receipt arrives before `RESPONSE_READY`, it is buffered only for a run that actually owns a Ticket and applied as soon as response readiness is committed.
-- Internal/non-owner runs cannot accumulate early Ticket receipts; run-local receipt state is cleaned when the run ends without a matching Ticket.
-- A failed delivery receipt queues bounded DIRECT redelivery/recovery for unfinished direct work; interruption alone does not require STAGED execution.
-- A `RESPONSE_READY` DIRECT Ticket with no delivery confirmation before the receipt deadline enters bounded DIRECT redelivery/recovery rather than being silently completed or automatically promoted to STAGED execution.
-- If no user-visible output is expected for a successful run, the delivery gate may be satisfied immediately and recorded explicitly.
-- Terminal Ticket/workflow outboxes remain `pending` when a continuation is merely scheduled. Scheduling is not delivery.
-- A terminal delivery is marked `delivered` only when the marked delivery continuation itself settles successfully.
-- If completed result content is already durable, recovery retries delivery instead of recomputing external side effects or completed work.
-
-This gate specifically protects the case where OpenClaw begins displaying a long answer and interruption occurs before all of it reaches the user.
-
-## 8. Interruption, compaction, and recovery
-
-Recovery must distinguish slow work from dead/stale work using observable evidence such as:
-
-- Gateway/provider health;
-- worker PID/lease state;
-- heartbeat and generation;
-- Ticket/workflow status;
-- response/outbox delivery state;
-- deterministic checkpoints;
-- context handoff/compaction state.
-
-Important rules:
-
-- do not rerun completed work;
-- do not rerun external side effects blindly;
-- if response content is already durably ready, retry delivery rather than inference;
-- cancelled work is terminal and must not be resurrected;
-- stale worker generations cannot regain authority;
-- periodic supervision performs no model inference.
-
-### 8.1 Direct Recovery Guard
-
-A resumable interruption does not, by itself, make lightweight DIRECT work a durable workflow. The original committed Ticket remains the authority for the user's intent.
-
-For managed DIRECT work, aborts, successful compaction with unfinished work, failed delivery, and unconfirmed delivery use the same bounded recovery rule:
-
-1. keep the same Ticket in `accepted` with `workflow_eligible=0` unless independent admission evidence requires STAGED execution;
-2. classify the interruption as recoverable and persist retry state in the additive `cnx_direct_recovery` table;
-3. wake the exact owner session through an OpenClaw runtime path available to external plugins rather than relying on bundled-only scheduler APIs;
-4. use deterministic bounded backoff and idempotency so repeated recovery scans cannot create uncontrolled duplicate turns;
-5. inspect the owner transcript/delivery evidence before declaring recovery successful;
-6. for dashboard sessions, a fresh persisted assistant response in the bound session is durable delivery evidence; channel-bound sessions request normal OpenClaw delivery;
-7. if completed response content is already durable, retry delivery only and do not repeat external side effects;
-8. explicit cancellation is terminal and fences recovery from resurrecting abandoned work;
-9. only escalate to STAGED/durable workflow execution when the request independently qualifies for it or bounded Direct recovery repeatedly proves insufficient.
-
-Successful history compaction therefore schedules/checks Direct recovery for the same committed intent instead of automatically promoting a simple request into a heavyweight workflow. If the original run continues normally or the Ticket is already terminal, no duplicate recovery is created.
-
-Legacy v0.8.3 Direct Tickets misclassified by the exact OpenClaw error `Reply operation aborted by user` are narrowly migrated back into this recoverable Direct path only when no workflow is linked and admission still classifies the original request as DIRECT.
-
-## 9. Session cancellation
-
-Cancelling or deleting a managed session must revoke unfinished work associated with the affected session scope.
-
-Cancellation should be represented durably before cleanup so detached workers cannot recreate abandoned work later.
-
-Terminal cancellation may be garbage-collected later, but recovery must always observe the cancellation/tombstone first.
-
-## 10. Reboot / power-loss model
-
-The design assumes that committed durable state on persistent storage survives ordinary process/machine interruption.
-
-After reboot, the Host supervisor can:
-
-1. read persisted operating/desired state;
-2. reconcile Gateway/provider health;
-3. identify stale leases/controllers;
-4. resume eligible non-terminal Tickets/workflows from committed evidence;
-5. retry pending delivery without recomputing completed output.
-
-This architecture does not claim protection against storage corruption, disk loss, or messages that never reached the durable acceptance boundary.
-
-## 11. Startup policy vs operating mode
-
-These are separate concepts:
-
-- **Operating mode** answers: who owns OpenClaw continuity/lifecycle now? (`managed`, `passthrough`, `maintenance`)
-- **Startup policy** answers: should the CogentNexus supervisor be automatically launched by the operating system?
-
-Changing startup policy must not silently change operating mode. Changing operating mode may reconcile startup ownership as part of an explicit `enable`/`disable` operation.
-
-## 12. Resource policy
-
-For local models and constrained hardware:
-
-- default to one inference lane;
-- keep DIRECT context/tool surface small;
-- load references lazily;
-- prefer durable external state over giant always-live context;
-- increase parallelism/context only from measured need.
-
-The intended equation is:
-
-```text
-small active context + durable external state = long-running capability
-```
-
-## 13. Compatibility principle
-
-OpenClaw must remain usable without CogentNexus.
-
-CogentNexus must retain control state without depending on a live OpenClaw inference process.
-
-When combined, CogentNexus enhances continuity and verification without becoming a required dependency for native OpenClaw operation.
-
-## 14. Current naming
-
-Use these names consistently in current documentation:
-
-- **CogentNexus Host Controller** — external deterministic control/lifecycle/policy layer.
-- **CogentNexus OpenClaw Bridge** — plugin integration role; plugin ID remains `cogentnexus-rotation` for compatibility.
-- **Ticket-first continuity** — durable acceptance before inference.
-- **Delivery Commit Gate** — user-visible work becomes terminal only after delivery evidence.
-- **Direct Recovery Guard** — bounded provider-agnostic retry/redelivery for interrupted DIRECT work that preserves the same committed intent before any escalation to STAGED execution.
-- **Request lane** — DIRECT / LOOKUP / ACTION / STAGED.
-- **Durable workflow runtime** — heavy checkpointed/verified machinery used only when needed.
-- **MANAGED / PASSTHROUGH / MAINTENANCE** — host ownership modes.
-
-Avoid describing CogentNexus as a mandatory heavy cognitive runtime for every request.
+See `docs/CURRENT_STATE.md` for supported/deferred boundaries and `docs/CONTINUITY_TESTS.th.md` for acceptance interpretation.

@@ -1,116 +1,118 @@
 # CogentNexus
 
-CogentNexus is a **durable host control layer for OpenClaw**.
+CogentNexus is a **durable Host/control layer for OpenClaw**. It keeps accepted user intent outside the lifetime of a single model call, OpenClaw session, Gateway process, delivery attempt, or context window.
 
-It keeps accepted user work outside the lifetime of any one LLM call, OpenClaw session, Gateway process, delivery attempt, context compaction, or machine uptime. In managed mode, messages can be committed to a lightweight durable Ticket before inference; deterministic supervision can then recover eligible work after interruption without forcing every request into a heavyweight workflow.
+## Current status
 
-> **Continuity invariant:** once an eligible user message is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with evidence.
+**Version:** 0.9.1  
+**Operational baseline:** 2026-08-20  
+**Accepted Recovery Core checkpoint:** `eadb89099637d24f96e265a500d66c577aa939a3`  
+**Validated OpenClaw baseline:** `2026.7.1-2`
 
-CogentNexus is also deliberately optional. `cnx disable` enters **PASSTHROUGH** mode, removes CogentNexus interception/background ownership, and returns OpenClaw to normal native operation without deleting durable CogentNexus state.
+The v0.9.1 recovery core is suitable for **general single-node managed use** on the validated Windows/OpenClaw/Ollama stack. The core Ticket-first, Host-authority, Direct Recovery, restart-ownership, durable response, and delivery boundaries have passed live acceptance. It is not claimed to be fully production-hardened for every failure mode or future OpenClaw release.
 
-## Baseline architecture
+See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the exact supported/accepted boundary.
+
+> **Continuity invariant:** once an eligible user message is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
+
+## Architecture
 
 ```text
 User / Channel
       |
       v
-CogentNexus Host Controller
-  - Ticket-first durability
+Durable Ticket admission
+      |
+      v
+CogentNexus Host authority
   - desired runtime state
-  - CPU-only supervision
-  - lifecycle / cancellation fencing
+  - CPU-only deterministic supervision
+  - lifecycle / cancellation / generation fences
       |
       v
-OpenClaw Gateway
+OpenClaw Gateway + provider
+      |
+      +--> DIRECT / LOOKUP / ACTION / STAGED
       |
       v
-Request lane
-  DIRECT  -> ordinary conversation
-  LOOKUP  -> focused read-only retrieval
-  ACTION  -> bounded reversible execution
-  STAGED  -> durable verified workflow
+Response-ready commit
       |
       v
-LLM / tools / validators / reviewers
+Direct result / outbox delivery
       |
       v
-Delivery Commit Gate
-  RESPONSE_READY -> DELIVERY_CONFIRMED
+Delivery confirmed -> completed
 ```
 
-The architecture intentionally separates four concerns:
-
-1. **Continuity** — Host/Ticket state keeps accepted work from disappearing.
-2. **Execution depth** — the lightest reliable lane is chosen before heavy workflow machinery is loaded.
-3. **Verification** — consequential durable work advances only from measured evidence and bounded controller state.
-4. **Delivery/context continuity** — visible replies are not completed until delivery settles, and successful history compaction does not silently abandon durable work.
-
-A greeting such as `สวัสดีครับ` may therefore have a durable Ticket and still receive a normal lightweight DIRECT reply.
-
-See [docs/BASELINE.md](docs/BASELINE.md) for the canonical v0.8 architecture and invariants.
+In MANAGED mode, CogentNexus is the recovery authority for work it durably owns. OpenClaw native restart continuation is consumed only when the exact native restart envelope matches durable CNX ownership. Transient SQLite `BUSY`/WAL contention during authority polling is not treated as revocation and must not create a second inference attempt.
 
 ## Operating modes
 
-- **MANAGED** — CogentNexus owns Ticket-first continuity, deterministic recovery supervision, and managed runtime lifecycle behavior.
-- **PASSTHROUGH** — CogentNexus interception/background ownership are disabled; OpenClaw behaves normally.
-- **MAINTENANCE** — deliberate stop state; durable state is preserved and automatic recovery must not fight operator intent.
+- **MANAGED** — Ticket-first continuity and CNX lifecycle/recovery ownership are active.
+- **PASSTHROUGH** — CNX interception/background ownership are disabled; OpenClaw behaves natively.
+- **MAINTENANCE** — deliberate stop state; durable state is preserved and recovery must not fight operator intent.
 
-`disable` and `stop` are intentionally different:
-
-- `disable` -> PASSTHROUGH, OpenClaw remains normally usable.
-- `stop` -> MAINTENANCE, managed runtime is intentionally stopped.
+`disable` and `stop` are intentionally different: `disable` returns to native OpenClaw, while `stop` preserves managed intent but deliberately stops the managed runtime.
 
 ## Core capabilities
 
-- durable SQLite Ticket intake before inference for managed owner messages;
+- durable SQLite Ticket admission before inference for eligible managed owner messages;
+- lightweight DIRECT work without forcing every message into a heavyweight workflow;
 - external Host Controller with persisted desired runtime state;
-- MANAGED / PASSTHROUGH / MAINTENANCE ownership semantics;
-- Gateway/provider lifecycle control with deliberate-stop fencing;
-- recovery of committed direct Tickets after confirmed Gateway interruption;
-- **Delivery Commit Gate** separating model success from complete user-visible delivery;
-- recovery of partial, failed, cancelled, or unconfirmed reply delivery;
-- receipt-aware terminal Ticket/workflow outboxes that stay pending until the marked delivery turn settles;
-- **Direct Recovery Guard** for interrupted, compacted, or delivery-uncertain DIRECT work without automatic promotion to a heavyweight workflow;
-- Ticket and session cancellation with terminal fencing;
-- automatic continuation of eligible committed work after restart/reboot;
-- atomic revisioned task state, checkpoint/resume/commit/rollback;
-- deterministic supervisor with health probes, cooldowns, retry budgets, and circuit breaking;
-- worker leases, generation fencing, duplicate suppression, and durable outbox delivery;
-- verified workflow DAGs, artifact hashes, deterministic validators, and bounded repair;
-- context handoff/rotation for long-running local-model work;
-- bounded external research and evidence-backed lesson storage;
-- deterministic interruption/retry/duplication/retrieval/SQLite evaluation gates.
+- Gateway/provider lifecycle control and deliberate-stop fencing;
+- Direct Recovery for genuinely pre-response interrupted work;
+- original provider/model provenance fencing during recovery;
+- single-owner recovery across OpenClaw native restart behavior;
+- transient SQLite BUSY tolerance at the authority-read boundary;
+- recursive/self-intake suppression for recovery continuations;
+- response-ready immutability and one durable `direct_result`;
+- delivery confirmation and exactly-once-ish CNX delivery semantics;
+- ticket/session cancellation and terminal fencing;
+- worker leases, generations, duplicate suppression, bounded retries, durable outboxes;
+- verified STAGED workflows, artifact hashes, validators, bounded repair and checkpoints;
+- context handoff/rotation and durable lesson/evidence storage;
+- deterministic supervisor probes that perform no model inference.
 
-The periodic supervisor itself performs no model inference.
+## Acceptance checkpoint
+
+The accepted Windows live Test A v16 demonstrated one Host-authorized recovery attempt, original provider/model preservation, no recursive Ticket, no same-session duplicate Ticket, no escaped database-lock retry, no native-restart ownership collision, one durable result, and one confirmed delivery.
+
+The isolated validation run also passed targeted v094 tests (3/3), targeted v099 tests (11/11), the full plugin suite (49 files / 237 tests), plugin validation/build, evaluation, and regenerated distribution hash fences.
+
+## Known boundaries
+
+Not yet claimed as fully accepted/hardened:
+
+- real power-loss/cold-boot acceptance;
+- compatibility with OpenClaw versions newer than `2026.7.1-2`;
+- disk-full/database-corruption disaster recovery;
+- high-concurrency/long soak guarantees beyond current tests;
+- exactly-once external side effects when the external system has no idempotency/verification contract.
+
+These boundaries do not prevent ordinary general use; they define where stronger operational guarantees still require additional acceptance work.
 
 ## Install
 
-For a stable installation, use a versioned GitHub Release and verify `SHA256SUMS.txt` before running the installer.
+Stable release install instructions:
 
-Windows PowerShell:
+- [English install guide](docs/INSTALL.md)
+- [คู่มือติดตั้งภาษาไทย](docs/INSTALL.th.md)
+- [Clean reinstall](docs/CLEAN_REINSTALL.md)
+- [ล้างและติดตั้งใหม่แบบสะอาด](docs/CLEAN_REINSTALL.th.md)
+
+From an extracted release/source checkout on Windows:
 
 ```powershell
 .\scripts\install.ps1
 ```
 
-Linux/macOS:
+Clean reinstall with backup-first behavior:
 
-```sh
-chmod +x scripts/install.sh
-./scripts/install.sh
+```powershell
+.\scripts\clean-reinstall.ps1
 ```
 
-Detailed guides:
-
-- [English installation guide](docs/INSTALL.md)
-- [คู่มือติดตั้ง Windows แบบจับมือทำ (ภาษาไทย)](docs/INSTALL.th.md)
-- [คู่มือทดสอบ interruption, partial reply, compaction และ reboot แบบจับมือทำ](docs/CONTINUITY_TESTS.th.md)
-
-A normal Windows installation validates the package, installs the skill/plugin and bounded workspace policy, initializes Host state, enables Ticket-first managed settings and the conversation hooks required for delivery/compaction receipts, creates `cnx.cmd`, enables the hidden Host supervisor, reconciles Gateway/provider state, and verifies health.
-
 ## Everyday control
-
-From the OpenClaw workspace on Windows:
 
 ```powershell
 .\cnx.cmd status
@@ -145,18 +147,13 @@ npm audit --omit=dev
 npm run plugin:validate
 ```
 
-## Project layout
+## Documentation map
 
-```text
-skills/cogentnexus/     policy, references, deterministic runtime
-plugins/                OpenClaw bridge / Ticket integration
-scripts/                installers and packaging helpers
-tests/                  baseline and Host/runtime tests
-docs/                   canonical architecture, install guides, recovery tests, release history
-```
+- [Current operational state](docs/CURRENT_STATE.md)
+- [Architecture / invariants](docs/BASELINE.md)
+- [Continuity acceptance](docs/CONTINUITY_TESTS.th.md)
+- [Knowledge and evidence model](docs/KNOWLEDGE.md)
+- [Ticket-first admission](docs/phase0-ticket-first.md)
+- [v0.9.1 release notes](docs/releases/v0.9.1.md)
 
-Runtime state lives under the OpenClaw workspace `.cogent/` directory and is intentionally excluded from version control.
-
-## Compatibility philosophy
-
-OpenClaw must remain usable without CogentNexus, and CogentNexus must be able to preserve durable control state without a live OpenClaw inference process. When used together, CogentNexus should increase continuity and verifiability without becoming a single point of failure for native OpenClaw operation.
+Historical release notes and benchmark documents are intentionally preserved as historical evidence rather than rewritten to match the current release.
