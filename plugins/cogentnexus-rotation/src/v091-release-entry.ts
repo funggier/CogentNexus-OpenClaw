@@ -11,6 +11,7 @@ import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
+import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -104,6 +105,11 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
     const config = (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig;
+    // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
+    // concurrently with Host-owned CogentNexus Direct Recovery. Consume only
+    // the exact native restart system turn when durable CNX ownership exists,
+    // before the legacy before_agent_run Ticket-first gate can see it.
+    installV099NativeRestartOwnershipFence(api, config);
     const installManagedRuntimeGuards = () => {
       // Once direct_result is durable, transport owns all remaining retries;
       // legacy delivery timeout recovery must not regenerate inference.

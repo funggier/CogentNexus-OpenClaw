@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join, resolve } from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { TicketStore } from "./ticket-store.js";
 
@@ -36,6 +37,97 @@ type RecoveryRuntime = {
   model?: string;
 };
 
+function primitiveDiagnosticValue(value: unknown): unknown {
+  if (value === null || value === undefined) return value ?? null;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (typeof value === "bigint") return value.toString();
+  if (value instanceof Error) {
+    const nested = value as Error & Record<string, unknown>;
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack ?? null,
+      code: primitiveDiagnosticValue(nested.code),
+      errno: primitiveDiagnosticValue(nested.errno),
+      syscall: primitiveDiagnosticValue(nested.syscall),
+      path: primitiveDiagnosticValue(nested.path),
+    };
+  }
+  try {
+    return String(value);
+  } catch {
+    return "<unprintable>";
+  }
+}
+
+function runtimeErrorDiagnostic(error: unknown) {
+  const objectLike = error !== null && (typeof error === "object" || typeof error === "function");
+  const value = objectLike ? error as Record<string, unknown> : undefined;
+  const own: Record<string, unknown> = {};
+
+  if (objectLike) {
+    for (const key of Object.getOwnPropertyNames(error)) {
+      try {
+        own[key] = primitiveDiagnosticValue((error as Record<string, unknown>)[key]);
+      } catch {
+        own[key] = "<unreadable>";
+      }
+    }
+  }
+
+  const ctor =
+    objectLike &&
+    typeof (error as { constructor?: { name?: unknown } }).constructor?.name === "string"
+      ? String((error as { constructor?: { name?: unknown } }).constructor?.name)
+      : null;
+
+  return {
+    type: typeof error,
+    constructor: ctor,
+    name: error instanceof Error ? error.name : primitiveDiagnosticValue(value?.name),
+    message: error instanceof Error ? error.message : primitiveDiagnosticValue(value?.message ?? error),
+    code: primitiveDiagnosticValue(value?.code),
+    errno: primitiveDiagnosticValue(value?.errno),
+    syscall: primitiveDiagnosticValue(value?.syscall),
+    path: primitiveDiagnosticValue(value?.path),
+    stack: error instanceof Error ? error.stack ?? null : primitiveDiagnosticValue(value?.stack),
+    cause: primitiveDiagnosticValue(value?.cause),
+    own,
+  };
+}
+
+function appendRuntimeErrorDiagnostic(
+  workspace: string,
+  recovery: V094DirectRecovery,
+  runId: string,
+  stage: string,
+  error: unknown,
+  runtimeStartedRecorded: boolean,
+) {
+  try {
+    const dir = join(workspace, ".cogent", "runtime");
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(
+      join(dir, "v094-runtime-errors.jsonl"),
+      `${JSON.stringify({
+        timestamp: now(),
+        source: "v094-direct-recovery",
+        stage,
+        ticketId: recovery.ticket_id,
+        ownerSessionKey: recovery.owner_session_key,
+        ownerGeneration: recovery.owner_generation,
+        runId,
+        recoveryAttemptBeforeLaunch: recovery.attempt_count,
+        runtimeStartedRecorded,
+        error: runtimeErrorDiagnostic(error),
+      })}\n`,
+      "utf8",
+    );
+  } catch {
+    // Telemetry must never alter recovery semantics.
+  }
+}
+
 const CLAIM_POLL_MS = 500;
 const ABORT_SETTLE_MS = 5_000;
 
@@ -50,7 +142,11 @@ function delay(ms: number) {
 function openDb(path: string, readOnly = false) {
   if (!readOnly) new TicketStore(path).snapshot();
   const db = readOnly ? new DatabaseSync(path, { readOnly: true }) : new DatabaseSync(path);
-  if (!readOnly) db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
+  if (readOnly) {
+    db.exec("PRAGMA busy_timeout=5000;");
+  } else {
+    db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
+  }
   return db;
 }
 
@@ -377,6 +473,21 @@ function markResponseReady(
   }
 }
 
+function isTransientSqliteBusy(error: unknown) {
+  if (!error || (typeof error !== "object" && typeof error !== "function")) return false;
+  const value = error as Record<string, unknown>;
+  const code = typeof value.code === "string" ? value.code : "";
+  const message = typeof value.message === "string" ? value.message : "";
+  const errcode = Number(value.errcode);
+  const primary = Number.isFinite(errcode) ? (errcode & 0xff) : NaN;
+
+  return (
+    code === "SQLITE_BUSY" ||
+    primary === 5 ||
+    (code === "ERR_SQLITE_ERROR" && /\bdatabase is (?:locked|busy)\b/i.test(message))
+  );
+}
+
 async function waitForClaimRevocation(
   path: string,
   recovery: V094DirectRecovery,
@@ -386,8 +497,18 @@ async function waitForClaimRevocation(
   while (!stopped()) {
     await delay(CLAIM_POLL_MS);
     if (stopped()) break;
-    const identity = claimIdentity(path, recovery, runId);
-    if (!identity.authorized) return identity.reason;
+
+    try {
+      const identity = claimIdentity(path, recovery, runId);
+      if (!identity.authorized) return identity.reason;
+    } catch (error) {
+      if (!isTransientSqliteBusy(error)) throw error;
+
+      // A transient WAL/BUSY read is not evidence that durable authority
+      // was revoked and must never reject the revocation watcher. Rejecting
+      // here races the still-running embedded inference against retry().
+      continue;
+    }
   }
   return undefined;
 }
@@ -438,17 +559,20 @@ export async function launchV094DirectRecovery(
   const abortController = new AbortController();
   let stopFence = false;
   let runtimeStartedRecorded = false;
+  let diagnosticStage = "pre-launch";
 
   try {
     const initialIdentity = claimIdentity(path, recovery, runId);
     if (!initialIdentity.authorized) return;
 
+    diagnosticStage = "owner-session-read";
     const owner = await api.runtime.subagent.getSessionMessages({ sessionKey: recovery.owner_session_key, limit: 24 });
     const beforeLaunch = claimIdentity(path, recovery, runId);
     if (!beforeLaunch.authorized) return;
 
     const timeoutMs = Math.max(60_000, Math.min((cfg.timeoutSeconds ?? 3600) * 1000, 3_600_000));
     const runtimeConfig = api.runtime.config?.current?.() ?? api.config;
+    diagnosticStage = "embedded-run";
     const completionPromise = Promise.resolve(api.runtime.agent.runEmbeddedAgent({
       sessionId: runId,
       agentId,
@@ -481,7 +605,19 @@ export async function launchV094DirectRecovery(
           ...(typeof info.model === "string" && info.model ? { model: info.model } : {}),
           ...(typeof info.backend === "string" && info.backend ? { harness: info.backend } : {}),
         };
-        recordRuntimeStarted(path, recovery, runId, original, phaseRuntime);
+        try {
+          recordRuntimeStarted(path, recovery, runId, original, phaseRuntime);
+        } catch (error) {
+          appendRuntimeErrorDiagnostic(
+            workspace,
+            recovery,
+            runId,
+            "record-runtime-started",
+            error,
+            runtimeStartedRecorded,
+          );
+          throw error;
+        }
         runtimeStartedRecorded = true;
       },
     })).then(
@@ -512,6 +648,14 @@ export async function launchV094DirectRecovery(
         recordRuntimeAbort(path, recovery, runId, identity.reason, true);
         return;
       }
+      appendRuntimeErrorDiagnostic(
+        workspace,
+        recovery,
+        runId,
+        "embedded-promise-rejection",
+        outcome.error,
+        runtimeStartedRecorded,
+      );
       retry(path, recovery, runId, outcome.error instanceof Error ? outcome.error.message : String(outcome.error));
       return;
     }
@@ -523,6 +667,7 @@ export async function launchV094DirectRecovery(
       return;
     }
 
+    diagnosticStage = "post-run-result";
     const runtime = runtimeFromResult(result);
     assertRuntimeMatches(original, runtime);
     if (!runtimeStartedRecorded) {
@@ -534,6 +679,14 @@ export async function launchV094DirectRecovery(
       return;
     }
     if (result?.meta?.error && !embeddedAssistantText(result)) {
+      appendRuntimeErrorDiagnostic(
+        workspace,
+        recovery,
+        runId,
+        "embedded-result-meta-error",
+        result.meta.error,
+        runtimeStartedRecorded,
+      );
       retry(path, recovery, runId, result.meta.error.message ?? "Direct recovery embedded run failed");
       return;
     }
@@ -543,9 +696,18 @@ export async function launchV094DirectRecovery(
       retry(path, recovery, runId, "Direct recovery produced no visible assistant output");
       return;
     }
+    diagnosticStage = "response-ready-commit";
     if (markResponseReady(path, recovery, runId, text, original, runtime)) kickHostDelivery(workspace, cfg);
   } catch (error) {
     stopFence = true;
+    appendRuntimeErrorDiagnostic(
+      workspace,
+      recovery,
+      runId,
+      `outer-catch:${diagnosticStage}`,
+      error,
+      runtimeStartedRecorded,
+    );
     const identity = claimIdentity(path, recovery, runId);
     if (identity.authorized) {
       retry(path, recovery, runId, error instanceof Error ? error.message : String(error));
