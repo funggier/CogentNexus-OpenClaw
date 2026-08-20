@@ -4,8 +4,6 @@ Ticket-first means an eligible owner message in MANAGED mode can be durably admi
 
 ## DIRECT example
 
-For a greeting or ordinary question:
-
 ```text
 user message
   -> durable Ticket
@@ -23,7 +21,7 @@ If Gateway/provider/runtime fails after durable admission, the Host can decide w
 
 ## Duplicate rule
 
-The exact recovery/native restart continuation of an already-owned Direct Ticket is not admitted as a second user Ticket. The v0.9.9 ownership fence runs before legacy Ticket-first intake for that exact compatibility envelope.
+The exact recovery/native restart continuation of an already-owned Direct Ticket is not admitted as a second user Ticket. The **v099 ownership fence** runs before legacy Ticket-first intake for that exact compatibility envelope.
 
 Ordinary messages, different sessions, generation drift, terminal recovery state, missing Host authority, or unreadable durable state must not be falsely claimed by the fence.
 

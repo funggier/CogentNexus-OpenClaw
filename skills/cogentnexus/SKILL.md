@@ -11,7 +11,7 @@ Keep private reasoning private. Expose useful status, evidence, decisions, and r
 
 ## Authority order
 
-1. Preserve higher-priority safety/authorization/platform constraints.
+1. Preserve higher-priority safety, authorization, and platform constraints.
 2. Preserve the user's intended outcome.
 3. Respect durable Ticket/session/recovery state; do not duplicate accepted work blindly.
 4. Choose the lightest reliable lane.
@@ -19,10 +19,10 @@ Keep private reasoning private. Expose useful status, evidence, decisions, and r
 
 ## Request lanes
 
-- **DIRECT** — ordinary conversation, explanation, brainstorming and simple drafting/questions.
+- **DIRECT** — ordinary conversation, explanation, brainstorming, simple drafting, and simple questions.
 - **LOOKUP** — focused read-only retrieval.
 - **ACTION** — bounded reversible execution with proportionate verification.
-- **STAGED** — multi-step, consequential, interruption-prone or independently verified work using the durable workflow controller.
+- **STAGED** — multi-step, consequential, interruption-prone, dependency-heavy, repeatedly failing, or independently verified work using the durable workflow controller.
 
 Ticket creation does not imply STAGED execution.
 
@@ -44,30 +44,47 @@ When durable CNX ownership exists, consume only the exact OpenClaw native restar
 
 ## Runtime invariants
 
-- recover committed state before starting replacement action;
-- never repeat external side effects blindly after interruption;
-- response-ready is a durable boundary, not merely model text in memory;
-- delivery retry may retransport a durable result but must not regenerate inference without new recovery authority;
-- fence duplicate workers with leases/generations;
-- respect terminal/cancelled state and mode authority;
-- periodic supervision performs no model inference;
-- a durably accepted request must become delivered/completed, cancelled, or explicitly failed with evidence.
+- Recover committed state before starting replacement action.
+- Never repeat external side effects blindly after interruption.
+- `response_ready` is a durable boundary, not merely model text in memory.
+- Delivery retry may retransport a durable result but must not regenerate inference without new recovery authority.
+- Fence duplicate workers with leases/generations.
+- Respect terminal/cancelled state and mode authority.
+- Periodic supervision performs no model inference.
+- A durably accepted request must become delivered/completed, cancelled, or explicitly failed with evidence.
 
 ## Module routing
 
-Load references lazily:
+Load references lazily and only when the selected lane/unit needs them:
 
-- architecture: `references/architecture.md`
-- intent/lane: `references/intent-compiler.md`
-- workflows: `references/workflow-runtime.md`
-- recovery: `references/recovery-controller.md`
-- lifecycle: `references/runtime-lifecycle.md`
-- supervision: `references/runtime-supervisor.md`
-- resumption: `references/task-resumption.md`
-- startup: `references/startup-policy.md`
-- context: `references/context-continuity.md`
-- delivery: `references/output-verification.md`
-- remaining specialized references only when required by the selected lane/unit.
+- Ambiguity, consequence, safety, low confidence: [constitution.md](references/constitution.md)
+- Multi-step execution loop: [task-loop.md](references/task-loop.md)
+- Tool-heavy or repeatedly failing execution: [execution-success.md](references/execution-success.md)
+- Resource/interruption survival: [resource-survival.md](references/resource-survival.md)
+- Minimal durable memory: [minimal-memory.md](references/minimal-memory.md)
+- Evidence-backed reusable lessons: [lesson-learning.md](references/lesson-learning.md)
+- Resume from committed state: [task-resumption.md](references/task-resumption.md)
+- Final output/delivery verification: [output-verification.md](references/output-verification.md)
+- Architecture baseline: [architecture.md](references/architecture.md)
+- Runtime toolkit details: [runtime-toolkit.md](references/runtime-toolkit.md)
+- Recovery controller: [recovery-controller.md](references/recovery-controller.md)
+- Capability registry: [capability-registry.md](references/capability-registry.md)
+- Artifact integrity: [artifact-integrity.md](references/artifact-integrity.md)
+- Runtime supervision: [runtime-supervisor.md](references/runtime-supervisor.md)
+- Concurrency admission: [concurrency-manager.md](references/concurrency-manager.md)
+- Context continuity: [context-continuity.md](references/context-continuity.md)
+- Scheduler adapters: [scheduler-adapters.md](references/scheduler-adapters.md)
+- Startup policy: [startup-policy.md](references/startup-policy.md)
+
+## Validation
+
+```sh
+python skills/cogentnexus/scripts/validate.py --workspace-singleton
+python skills/cogentnexus/scripts/workflow.py self-test
+python skills/cogentnexus/scripts/cogent.py self-test
+python skills/cogentnexus/scripts/runtime.py self-test
+python -m unittest discover -s tests -v
+```
 
 ## Current accepted checkpoint
 

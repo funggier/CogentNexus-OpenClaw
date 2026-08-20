@@ -16,14 +16,11 @@ $launcher = Join-Path $Workspace "cnx.cmd"
 $extension = Join-Path $stateRoot "extensions\cogentnexus-rotation"
 $agents = Join-Path $Workspace "AGENTS.md"
 $openclawConfig = Join-Path $stateRoot "openclaw.json"
-$pluginIndex = Join-Path $stateRoot "plugins\installs.json"
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $backup = Join-Path $BackupRoot $stamp
 
 function Require-Command([string]$Name) {
-    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        throw "Required command not found: $Name"
-    }
+    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) { throw "Required command not found: $Name" }
 }
 
 function Invoke-NativeCapture {
@@ -41,8 +38,7 @@ function Invoke-NativeCapture {
 function Copy-Backup([string]$Path, [string]$Name) {
     if (-not (Test-Path -LiteralPath $Path)) { return }
     $dest = Join-Path $backup $Name
-    $parent = Split-Path -Parent $dest
-    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null
     Copy-Item -LiteralPath $Path -Destination $dest -Recurse -Force
 }
 
@@ -53,10 +49,7 @@ function Remove-OwnedPath([string]$Path) {
     }
 }
 
-if (-not (Test-Path -LiteralPath $installer)) {
-    throw "Installer not found beside this script: $installer"
-}
-
+if (-not (Test-Path -LiteralPath $installer)) { throw "Installer not found beside this script: $installer" }
 Require-Command python
 Require-Command openclaw
 Require-Command node
@@ -74,40 +67,32 @@ if (-not $NoBackup) {
     Copy-Backup $extension "extension\cogentnexus-rotation"
     Copy-Backup $agents "AGENTS.md"
     Copy-Backup $openclawConfig "openclaw.json"
-    Copy-Backup $pluginIndex "plugins\installs.json"
     Write-Host "Backup created: $backup"
 }
 else {
     Write-Warning "-NoBackup selected: existing CogentNexus durable state will be permanently purged."
 }
 
-# Return a managed installation to native OpenClaw before destructive cleanup.
+# Never destructively purge a managed installation before native OpenClaw is restored.
 if (Test-Path -LiteralPath $launcher) {
     Write-Host "Disabling existing CogentNexus to restore PASSTHROUGH..."
     $disable = Invoke-NativeCapture { & $launcher disable }
     if ($disable.Output) { Write-Host $disable.Output }
-    if ($disable.Code -ne 0) {
-        throw "cnx disable failed. Refusing destructive cleanup while ownership may still be MANAGED."
-    }
+    if ($disable.Code -ne 0) { throw "cnx disable failed. Refusing destructive cleanup while ownership may still be MANAGED." }
 }
 
-# Inventory must succeed before we decide whether uninstall is required.
 $list = Invoke-NativeCapture { openclaw plugins list --json }
-if ($list.Code -ne 0) {
-    throw "Could not inspect OpenClaw plugins before cleanup:`n$($list.Output)"
-}
+if ($list.Code -ne 0) { throw "Could not inspect OpenClaw plugins before cleanup:`n$($list.Output)" }
 $hasPlugin = $list.Output -match 'cogentnexus-rotation'
 
 if ($hasPlugin) {
-    Write-Host "Uninstalling CogentNexus OpenClaw plugin..."
-    $uninstall = Invoke-NativeCapture { openclaw plugins uninstall cogentnexus-rotation }
+    Write-Host "Uninstalling CogentNexus OpenClaw plugin non-interactively..."
+    $uninstall = Invoke-NativeCapture { openclaw plugins uninstall cogentnexus-rotation --force }
     if ($uninstall.Output) { Write-Host $uninstall.Output }
-    if ($uninstall.Code -ne 0) {
-        throw "OpenClaw plugin uninstall failed; refusing to delete remaining state."
-    }
+    if ($uninstall.Code -ne 0) { throw "OpenClaw plugin uninstall failed; refusing to delete remaining state." }
 }
 
-# Linked/manual plugin installations can leave files even after registry cleanup.
+# Linked/manual plugin installations can leave filesystem residue after registry cleanup.
 Remove-OwnedPath $extension
 Remove-OwnedPath $skill
 Remove-OwnedPath $cnxRoot
@@ -116,28 +101,18 @@ if (Test-Path -LiteralPath $launcher) {
     Write-Host "Removed: $launcher"
 }
 
-# Verify the plugin registry no longer exposes the old installation before reinstall.
 $listAfter = Invoke-NativeCapture { openclaw plugins list --json }
-if ($listAfter.Code -ne 0) {
-    throw "Could not inspect OpenClaw plugins after cleanup:`n$($listAfter.Output)"
-}
+if ($listAfter.Code -ne 0) { throw "Could not inspect OpenClaw plugins after cleanup:`n$($listAfter.Output)" }
 if ($listAfter.Output -match 'cogentnexus-rotation') {
     throw "CogentNexus plugin is still registered after uninstall/cleanup. Refusing reinstall."
 }
 
 Write-Host "Installing fresh CogentNexus from: $repoRoot"
-if ($LinkPlugin) {
-    & $installer -Workspace $Workspace -LinkPlugin
-}
-else {
-    & $installer -Workspace $Workspace
-}
+if ($LinkPlugin) { & $installer -Workspace $Workspace -LinkPlugin }
+else { & $installer -Workspace $Workspace }
 if ($LASTEXITCODE -ne 0) { throw "Fresh CogentNexus installation failed" }
 
-if (-not (Test-Path -LiteralPath $launcher)) {
-    throw "Fresh install did not create cnx.cmd"
-}
-
+if (-not (Test-Path -LiteralPath $launcher)) { throw "Fresh install did not create cnx.cmd" }
 & $launcher status
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus post-install status failed" }
 openclaw gateway status

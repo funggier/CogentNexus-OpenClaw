@@ -8,39 +8,24 @@ CogentNexus preserves user intent across process/runtime boundaries while keepin
 
 ## Core continuity invariant
 
-Once eligible work is durably accepted, it must not silently disappear. It must reach one of these durable outcomes:
-
-- delivered/completed;
-- cancelled by valid authority;
-- explicitly failed with evidence.
+Once eligible work is durably accepted, it must not silently disappear. It must reach one of these durable outcomes: delivered/completed, cancelled by valid authority, or explicitly failed with evidence.
 
 ## Authority model
 
 In MANAGED mode, durable CNX state determines recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable Host ownership.
 
-Authority is fenced by:
-
-- Ticket identity and owner session;
-- session generation;
-- model-call state and Host timeout authorization;
-- Direct Recovery state/run identity;
-- cancellation/terminal state;
-- operating mode.
+Authority is fenced by Ticket identity, owner session, session generation, model-call/Host timeout state, Direct Recovery run identity, cancellation/terminal state, and operating mode.
 
 OpenClaw native restart continuation is suppressed only when the exact continuation shape belongs to the same CNX-owned session/generation and the durable original prompt matches. Ordinary messages continue normally.
 
 ## Request lanes
 
-- **DIRECT** — ordinary conversation and simple tasks. Ticket durability does not imply workflow creation.
+- **DIRECT** — ordinary conversation and simple tasks; Ticket durability does not imply workflow creation.
 - **LOOKUP** — focused read-only retrieval.
 - **ACTION** — bounded reversible execution with proportionate checks.
 - **STAGED** — durable multi-step work requiring checkpoints, validators, bounded repair, or interruption-safe orchestration.
 
-Escalation is based on observed risk/complexity rather than ceremony.
-
 ## Recovery boundary
-
-A recoverable Direct interruption follows this conceptual sequence:
 
 ```text
 Ticket accepted
@@ -58,7 +43,7 @@ Ticket accepted
 
 ### Single-owner rule
 
-When CNX owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The v0.9.9 compatibility fence consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
+When CNX owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The **v099 compatibility fence** consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
 
 ### SQLite BUSY rule
 
@@ -72,36 +57,17 @@ CogentNexus therefore provides an **exactly-once-ish durable delivery boundary**
 
 ## Operating modes
 
-### MANAGED
-
-CNX owns Ticket-first continuity, managed lifecycle, and recovery behavior.
-
-### PASSTHROUGH
-
-CNX interception/background ownership are disabled. OpenClaw remains natively usable. Durable CNX state is preserved unless explicitly purged by clean reinstall.
-
-### MAINTENANCE
-
-An operator deliberately stops managed runtime. Recovery must not fight that intent. Later start/restart may resume eligible durable work.
+- **MANAGED** — CNX owns Ticket-first continuity, managed lifecycle, and recovery behavior.
+- **PASSTHROUGH** — CNX interception/background ownership are disabled and OpenClaw remains natively usable.
+- **MAINTENANCE** — deliberate stop; durable state remains and recovery must not fight operator intent.
 
 ## Host and supervisor
 
-The external supervisor is deterministic and CPU-only in its periodic healthy path. It may inspect endpoint health and durable state, but does not perform model inference itself. Heavy recovery work is entered only when durable state/health warrants it.
+The external supervisor is deterministic and CPU-only in its periodic healthy path. It may inspect endpoint health and durable state, but does not perform model inference itself.
 
 ## Durable workflow baseline
 
-STAGED work retains:
-
-- revisioned task state;
-- checkpoint/resume/rollback;
-- worker leases and generation fences;
-- durable outboxes;
-- deterministic validators;
-- artifact hashes/manifests;
-- bounded retry/repair;
-- terminal evidence gates.
-
-These features are orthogonal to lightweight Direct Ticket continuity.
+STAGED work retains revisioned task state, checkpoint/resume/rollback, worker leases and generation fences, durable outboxes, deterministic validators, artifact hashes/manifests, bounded retry/repair, and terminal evidence gates.
 
 ## Accepted checkpoint
 
