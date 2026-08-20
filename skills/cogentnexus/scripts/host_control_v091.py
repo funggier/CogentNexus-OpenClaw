@@ -14,6 +14,10 @@ MANAGED activation is also a durable invariant: if OpenClaw's plugin config
 later drifts to disabled while Host authority still requests a running managed
 Gateway, the scheduled --execute-safe tick repairs that drift and verifies the
 plugin after a Gateway process boundary. Healthy steady state remains file-only.
+
+Destructive installation lifecycle commands remain part of cnx.cmd itself:
+`reset` recreates fresh state for the installed release, while `uninstall`
+restores native OpenClaw and removes CogentNexus. Both require explicit `y`.
 """
 from __future__ import annotations
 
@@ -23,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import host_control as legacy
+import lifecycle_v091 as lifecycle
 
 HERE = Path(__file__).resolve()
 legacy.HOST = HERE.with_name("host_stall_v091.py")
@@ -125,6 +130,12 @@ def main() -> int:
     argv = legacy.sys.argv[1:]
     root = legacy.root_from_argv(argv)
     command, action = legacy.command_from_argv(argv)
+
+    # reset/uninstall are cnx.cmd lifecycle commands, not Host state-machine
+    # commands. Route them before controller existence checks so a damaged or
+    # partially initialized installation can still be reset/removed safely.
+    if command in {"reset", "uninstall"}:
+        return lifecycle.main(command, root)
 
     # Before first initialization there is no authority to assume MANAGED. Route
     # non-enable commands directly to the hardened Host, which seeds PASSTHROUGH.
