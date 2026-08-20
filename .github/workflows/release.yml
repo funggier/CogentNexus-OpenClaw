@@ -29,7 +29,7 @@ jobs:
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/runtime.py self-test
       - run: python skills/cogentnexus/scripts/workflow.py self-test
-      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/host_v091.py skills/cogentnexus/scripts/host_control.py skills/cogentnexus/scripts/host_control_v091.py skills/cogentnexus/scripts/startup.py skills/cogentnexus/scripts/startup_v091.py
+      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/host_v091.py skills/cogentnexus/scripts/host_control.py skills/cogentnexus/scripts/host_control_v091.py skills/cogentnexus/scripts/lifecycle_v091.py skills/cogentnexus/scripts/startup.py skills/cogentnexus/scripts/startup_v091.py
       - run: python -m unittest discover -s tests -v
       - name: Test plugin path migration helper
         shell: bash
