@@ -4,6 +4,12 @@ import { dirname, resolve } from "node:path";
 
 export const V091_DELIVERY_TELEMETRY_FILE = "v091-delivery-hooks.jsonl";
 
+type RedactedText = {
+  present: boolean;
+  chars: number;
+  sha256?: string;
+};
+
 function cleanString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
@@ -12,7 +18,7 @@ function digest(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-function redactedText(value: unknown) {
+function redactedText(value: unknown): RedactedText {
   if (typeof value !== "string") return { present: false, chars: 0 };
   return {
     present: value.length > 0,
