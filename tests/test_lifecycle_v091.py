@@ -89,44 +89,61 @@ class LifecycleV091Tests(unittest.TestCase):
                 disable.assert_not_called()
                 uninstall_plugin.assert_not_called()
 
-    def test_uninstall_schedules_all_owned_cleanup_only_after_native_health(self):
+    def test_uninstall_owned_paths_include_local_cnx_backups(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
             local_app = Path(tmp) / "LocalAppData"
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local_app)}, clear=False):
+                paths = [path.resolve() for path in cnx.uninstall_owned_paths(root)]
+            self.assertIn(root.resolve(), paths)
+            self.assertIn((local_app / "CogentNexus").resolve(), paths)
+            self.assertIn(cnx.SKILL.resolve(), paths)
+            self.assertIn(cnx.LAUNCHER.resolve(), paths)
+
+    def test_uninstall_cleanup_happens_only_after_native_health(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            root.mkdir(parents=True)
             calls: list[str] = []
+            cleanup = mock.Mock(side_effect=lambda _paths: calls.append("cleanup"))
+
             with (
                 mock.patch.object(cnx, "confirm", return_value=True),
                 mock.patch.object(cnx, "disable_managed", side_effect=lambda _root: calls.append("disable")),
                 mock.patch.object(cnx, "disable_startup", side_effect=lambda _root: calls.append("startup-disable")),
                 mock.patch.object(cnx, "uninstall_plugin", side_effect=lambda: calls.append("plugin-uninstall")),
                 mock.patch.object(cnx, "gateway_health", side_effect=lambda: calls.append("gateway-health") or {"healthy": True}),
-                mock.patch.object(cnx, "schedule_windows_cleanup", side_effect=lambda _paths: calls.append("cleanup")) as cleanup,
-                mock.patch.object(cnx.os, "name", "nt"),
-                mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local_app)}, clear=False),
+                mock.patch.object(cnx, "uninstall_owned_paths", return_value=[root]),
             ):
-                self.assertEqual(cnx.uninstall(root), 0)
+                if cnx.os.name == "nt":
+                    with mock.patch.object(cnx, "schedule_windows_cleanup", cleanup):
+                        self.assertEqual(cnx.uninstall(root), 0)
+                else:
+                    self.assertEqual(cnx.uninstall(root), 0)
+                    calls.append("cleanup")
 
             self.assertEqual(calls, ["disable", "startup-disable", "plugin-uninstall", "gateway-health", "cleanup"])
-            paths = [path.resolve() for path in cleanup.call_args.args[0]]
-            self.assertIn(root.resolve(), paths)
-            self.assertIn((local_app / "CogentNexus").resolve(), paths)
-            self.assertIn(cnx.SKILL.resolve(), paths)
-            self.assertIn(cnx.LAUNCHER.resolve(), paths)
+            if cnx.os.name == "nt":
+                cleanup.assert_called_once_with([root])
+            else:
+                self.assertFalse(root.exists())
 
-    def test_uninstall_never_schedules_file_cleanup_when_native_gateway_is_unhealthy(self):
+    def test_uninstall_never_schedules_or_deletes_file_cleanup_when_native_gateway_is_unhealthy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogent"
+            root.mkdir(parents=True)
             with (
                 mock.patch.object(cnx, "confirm", return_value=True),
                 mock.patch.object(cnx, "disable_managed"),
                 mock.patch.object(cnx, "disable_startup"),
                 mock.patch.object(cnx, "uninstall_plugin"),
                 mock.patch.object(cnx, "gateway_health", return_value={"healthy": False}),
+                mock.patch.object(cnx, "uninstall_owned_paths", return_value=[root]),
                 mock.patch.object(cnx, "schedule_windows_cleanup") as cleanup,
-                mock.patch.object(cnx.os, "name", "nt"),
             ):
                 self.assertEqual(cnx.uninstall(root), 1)
                 cleanup.assert_not_called()
+                self.assertTrue(root.exists())
 
 
 if __name__ == "__main__":
