@@ -7,16 +7,17 @@
 
 ## Classification
 
-CogentNexus v0.9.1 is **operationally usable for general single-node managed use** on the validated stack. The recovery core is acceptance-proven. The project does not claim universal production hardening across every hardware, storage, concurrency, power-loss, or future OpenClaw scenario.
+CogentNexus v0.9.1 is **operationally usable for general single-node managed use** on the validated stack once the release installation gates below pass. The recovery core is acceptance-proven. The project does not claim universal production hardening across every hardware, storage, concurrency, power-loss, or future OpenClaw scenario.
 
-Fresh installation now explicitly materializes the Ticket SQLite schema before MANAGED activation. Ticket/status CLI operations therefore work on an empty installation before any user message has been admitted; schema creation is no longer dependent on the first lazy `TicketStore` open from a chat turn.
+Fresh installation explicitly materializes both the base Ticket SQLite schema and the registration-time managed-runtime tables before MANAGED activation. This is required because the v095 Direct Recovery lane fence is installed during plugin registration and must see both `tickets` and `cnx_direct_recovery` before the first Chat turn. Release validation reproduces that exact registration precondition rather than validating only lazy TicketStore schema creation.
 
 ## Accepted capability boundary
 
 | Capability | State |
 | --- | --- |
 | Ticket-first durable admission | Accepted |
-| Fresh-install Ticket DB bootstrap before MANAGED | Implemented / release-gated |
+| Fresh-install base + managed runtime DB bootstrap before MANAGED | Implemented / release-gated |
+| v095 registration fence on an empty fresh DB | Regression-tested |
 | DIRECT lane without forced workflow promotion | Accepted |
 | Host-owned managed recovery authority | Accepted |
 | Gateway/provider stop/restart recovery path | Accepted |
@@ -53,11 +54,11 @@ The accepted live recovery scenario demonstrated:
 9. one `response_ready`, one `direct_result`, one confirmed delivery;
 10. clean post-recovery session/temp state.
 
-The isolated release validation reproduced the accepted distribution hashes and passed targeted v094 3/3, targeted v099 11/11, the full 49-file/237-test plugin suite, plugin build/validation, and evaluation.
+The isolated recovery-core validation reproduced the accepted distribution hashes and passed targeted v094 3/3, targeted v099 11/11, the full 49-file/237-test plugin suite, plugin build/validation, and evaluation. Subsequent clean-install release validation additionally gates empty-database schema bootstrap and v095 registration readiness.
 
 ## Operational interpretation
 
-For ordinary conversation, research, coding assistance, file/tool work, and other reversible or verifiable tasks, this baseline can be used normally with CNX MANAGED mode.
+For ordinary conversation, research, coding assistance, file/tool work, and other reversible or verifiable tasks, this baseline can be used normally with CNX MANAGED mode after installation reports healthy plugin registration and Ticket-first smoke testing succeeds.
 
 For irreversible external effects, do not infer exactly-once execution solely from a completed CNX Ticket. External systems should expose idempotency keys, receipts, read-after-write verification, or another durable reconciliation mechanism.
 
