@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -87,6 +88,45 @@ class LifecycleV091Tests(unittest.TestCase):
                 self.assertEqual(cnx.uninstall(root), 0)
                 disable.assert_not_called()
                 uninstall_plugin.assert_not_called()
+
+    def test_uninstall_schedules_all_owned_cleanup_only_after_native_health(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            local_app = Path(tmp) / "LocalAppData"
+            calls: list[str] = []
+            with (
+                mock.patch.object(cnx, "confirm", return_value=True),
+                mock.patch.object(cnx, "disable_managed", side_effect=lambda _root: calls.append("disable")),
+                mock.patch.object(cnx, "disable_startup", side_effect=lambda _root: calls.append("startup-disable")),
+                mock.patch.object(cnx, "uninstall_plugin", side_effect=lambda: calls.append("plugin-uninstall")),
+                mock.patch.object(cnx, "gateway_health", side_effect=lambda: calls.append("gateway-health") or {"healthy": True}),
+                mock.patch.object(cnx, "schedule_windows_cleanup", side_effect=lambda _paths: calls.append("cleanup")) as cleanup,
+                mock.patch.object(cnx.os, "name", "nt"),
+                mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local_app)}, clear=False),
+            ):
+                self.assertEqual(cnx.uninstall(root), 0)
+
+            self.assertEqual(calls, ["disable", "startup-disable", "plugin-uninstall", "gateway-health", "cleanup"])
+            paths = [path.resolve() for path in cleanup.call_args.args[0]]
+            self.assertIn(root.resolve(), paths)
+            self.assertIn((local_app / "CogentNexus").resolve(), paths)
+            self.assertIn(cnx.SKILL.resolve(), paths)
+            self.assertIn(cnx.LAUNCHER.resolve(), paths)
+
+    def test_uninstall_never_schedules_file_cleanup_when_native_gateway_is_unhealthy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            with (
+                mock.patch.object(cnx, "confirm", return_value=True),
+                mock.patch.object(cnx, "disable_managed"),
+                mock.patch.object(cnx, "disable_startup"),
+                mock.patch.object(cnx, "uninstall_plugin"),
+                mock.patch.object(cnx, "gateway_health", return_value={"healthy": False}),
+                mock.patch.object(cnx, "schedule_windows_cleanup") as cleanup,
+                mock.patch.object(cnx.os, "name", "nt"),
+            ):
+                self.assertEqual(cnx.uninstall(root), 1)
+                cleanup.assert_not_called()
 
 
 if __name__ == "__main__":
