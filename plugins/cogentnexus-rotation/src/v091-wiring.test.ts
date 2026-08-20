@@ -66,6 +66,18 @@ describe("v0.9.1 production wiring", () => {
     expect(directSource).toContain("nextDirectRecoveryWakeMs");
   });
 
+  it("routes the production recovery service through v0.9.4 embedded-agent execution", () => {
+    const serviceSource = readFileSync(new URL("./v091-direct-recovery.ts", import.meta.url), "utf8");
+    const compatSource = readFileSync(new URL("./v093-direct-recovery.ts", import.meta.url), "utf8");
+    const executorSource = readFileSync(new URL("./v094-direct-recovery.ts", import.meta.url), "utf8");
+    expect(serviceSource).toContain('from "./v093-direct-recovery.js"');
+    expect(compatSource).toContain('from "./v094-direct-recovery.js"');
+    expect(executorSource).toContain("runtime.agent.runEmbeddedAgent");
+    expect(executorSource).toContain("abortSignal: abortController.signal");
+    expect(executorSource).toContain("modelFallbacksOverride: []");
+    expect(executorSource).not.toContain("runtime.subagent.run(");
+  });
+
   it("treats Ticket outbox and assistant delivery as actionable work even when every Ticket is terminal", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-idle-hint-"));
     try {
