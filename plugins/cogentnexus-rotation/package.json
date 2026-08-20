@@ -13,6 +13,7 @@
   },
   "files": [
     "dist",
+    "scripts/bootstrap-ticket-db.mjs",
     "openclaw.plugin.json",
     "README.md"
   ],
