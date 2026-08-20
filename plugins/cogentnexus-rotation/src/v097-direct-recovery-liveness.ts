@@ -80,19 +80,31 @@ export function installV097DirectRecoveryStartupLiveness(
   config: Config,
   pulse: () => void = pulseManagedWorkers,
 ) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  let attempt = 0;
+
+  const clearWake = () => {
+    if (timer) clearTimeout(timer);
+    timer = undefined;
+  };
+
   api.registerService({
     id: DIRECT_RECOVERY_LIVENESS_ID,
     start: async (ctx: any) => {
+      stopped = false;
+      attempt = 0;
+      clearWake();
       const workspace = resolve(config.workspaceDir ?? ctx?.config?.agents?.defaults?.workspace ?? process.cwd());
       const path = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspace));
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let stopped = false;
-      let attempt = 0;
 
       const check = () => {
         if (stopped) return;
         const state = directRecoveryStartupState(path);
-        if (state === "idle") return;
+        if (state === "idle") {
+          clearWake();
+          return;
+        }
         pulse();
         const delay = startupLivenessDelayMs(attempt++);
         timer = setTimeout(check, delay);
@@ -103,15 +115,10 @@ export function installV097DirectRecoveryStartupLiveness(
       // install their listeners, regardless of service start order.
       timer = setTimeout(check, DIRECT_RECOVERY_STARTUP_WAKE_DELAYS_MS[0]);
       timer.unref?.();
-
-      (ctx as any).__cnxV097Stop = () => {
-        stopped = true;
-        if (timer) clearTimeout(timer);
-        timer = undefined;
-      };
     },
-    stop: async (ctx: any) => {
-      (ctx as any)?.__cnxV097Stop?.();
+    stop: async () => {
+      stopped = true;
+      clearWake();
     },
   });
 }
