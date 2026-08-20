@@ -8,6 +8,7 @@ import {
   type DashboardVerifiedDeliveryConfig,
 } from "./v091-dashboard-verified-delivery.js";
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
+import { installV091NativeDeliveryTelemetry } from "./v091-native-delivery-telemetry.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
@@ -105,6 +106,10 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
     const config = (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig;
+    // Diagnostic-only metadata telemetry for the native WebChat delivery
+    // compatibility boundary. It never mutates Ticket/delivery state and never
+    // records raw prompt/reply text; only lengths, hashes, IDs, and hook shape.
+    installV091NativeDeliveryTelemetry(api, pluginCogentRoot(api));
     // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
     // concurrently with Host-owned CogentNexus Direct Recovery. Consume only
     // the exact native restart system turn when durable CNX ownership exists,
