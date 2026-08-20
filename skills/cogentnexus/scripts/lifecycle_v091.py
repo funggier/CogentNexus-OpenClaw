@@ -34,6 +34,14 @@ STARTUP = HERE.with_name("startup_v091.py")
 BOOTSTRAP = EXTENSION / "scripts" / "bootstrap-ticket-db.mjs"
 
 
+def local_cnx_data_root() -> Path | None:
+    """Return the installer-owned Windows backup root, never an arbitrary parent."""
+    value = os.environ.get("LOCALAPPDATA")
+    if not value:
+        return None
+    return Path(value).expanduser().resolve() / "CogentNexus"
+
+
 def creation_flags(detached: bool = False) -> int:
     if os.name != "nt":
         return 0
@@ -92,7 +100,7 @@ def confirm(action: str) -> bool:
         print("WARNING: This will completely remove CogentNexus.")
         print("")
         print("CogentNexus runtime state, configuration, startup integration, OpenClaw plugin,")
-        print("skill files, and cnx.cmd will be removed.")
+        print("skill files, backups, and cnx.cmd will be removed.")
         print("OpenClaw and Ollama are not removed.")
     else:
         raise ValueError(f"unsupported destructive lifecycle action: {action}")
@@ -275,6 +283,23 @@ def schedule_windows_cleanup(paths: list[Path]) -> None:
     )
 
 
+def uninstall_owned_paths(root: Path) -> list[Path]:
+    owned = [root, EXTENSION, SKILL, LAUNCHER]
+    local_root = local_cnx_data_root()
+    if local_root is not None:
+        owned.append(local_root)
+    # Preserve order while preventing duplicate deletion when custom paths overlap.
+    result: list[Path] = []
+    seen: set[str] = set()
+    for path in owned:
+        key = os.path.normcase(str(path.resolve()))
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(path)
+    return result
+
+
 def uninstall(root: Path) -> int:
     if not confirm("uninstall"):
         return 0
@@ -287,7 +312,7 @@ def uninstall(root: Path) -> int:
         if not gateway.get("healthy"):
             raise RuntimeError("native OpenClaw Gateway is not healthy after CogentNexus uninstall boundary")
 
-        owned = [root, EXTENSION, SKILL, LAUNCHER]
+        owned = uninstall_owned_paths(root)
         if os.name == "nt":
             # cnx.cmd and this Python module may still be executing. Delete them
             # only after this process and its parent batch file have returned.
@@ -304,7 +329,7 @@ def uninstall(root: Path) -> int:
         print("OpenClaw : native / healthy")
         print("Ollama   : unchanged")
         if os.name == "nt":
-            print("Cleanup  : cnx.cmd and remaining CNX files scheduled for removal after command exit")
+            print("Cleanup  : cnx.cmd and remaining CNX files/backups scheduled for removal after command exit")
         return 0
     except Exception as error:
         print(json.dumps({
