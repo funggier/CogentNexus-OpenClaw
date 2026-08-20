@@ -55,6 +55,8 @@ When durable CNX ownership exists, consume only the exact OpenClaw native restar
 
 ## Module routing
 
+Do not load heavy CogentNexus modules merely to answer an obvious DIRECT request.
+
 Load references lazily and only when the selected lane/unit needs them:
 
 - Ambiguity, consequence, safety, low confidence: [constitution.md](references/constitution.md)
