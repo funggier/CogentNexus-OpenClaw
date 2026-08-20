@@ -66,12 +66,16 @@ describe("v0.9.1 production wiring", () => {
     expect(directSource).toContain("nextDirectRecoveryWakeMs");
   });
 
-  it("routes the production recovery service through v0.9.4 embedded-agent execution", () => {
+  it("routes the production recovery service through v0.9.5 isolated embedded-agent execution", () => {
     const serviceSource = readFileSync(new URL("./v091-direct-recovery.ts", import.meta.url), "utf8");
     const compatSource = readFileSync(new URL("./v093-direct-recovery.ts", import.meta.url), "utf8");
+    const sessionFenceSource = readFileSync(new URL("./v095-direct-recovery.ts", import.meta.url), "utf8");
     const executorSource = readFileSync(new URL("./v094-direct-recovery.ts", import.meta.url), "utf8");
     expect(serviceSource).toContain('from "./v093-direct-recovery.js"');
-    expect(compatSource).toContain('from "./v094-direct-recovery.js"');
+    expect(compatSource).toContain('from "./v095-direct-recovery.js"');
+    expect(sessionFenceSource).toContain("sessionKey");
+    expect(sessionFenceSource).toContain("sessionFile");
+    expect(sessionFenceSource).toContain("cnx_v095_direct_recovery_lane_lock");
     expect(executorSource).toContain("runtime.agent.runEmbeddedAgent");
     expect(executorSource).toContain("abortSignal: abortController.signal");
     expect(executorSource).toContain("modelFallbacksOverride: []");
