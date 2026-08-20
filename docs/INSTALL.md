@@ -38,6 +38,8 @@ python -m pip install "PyYAML>=6.0,<7"
 
 The installer stages the skill, validates it, initializes Host state in PASSTHROUGH, installs/validates the plugin, writes `cnx.cmd`, then transactionally enables MANAGED mode. A failed activation should not be reported as a successful managed install.
 
+There is intentionally no `cnx.cmd install` command. A new installation is always performed from an extracted CogentNexus release (or a development source checkout).
+
 ## Post-install checks
 
 From the OpenClaw workspace:
@@ -71,15 +73,25 @@ Expected state for normal managed use:
 
 `disable` means native OpenClaw PASSTHROUGH. `stop` means deliberate CNX MAINTENANCE.
 
-## Clean reinstall
-
-Use the backup-first clean reinstall wrapper when you want to remove CNX-owned runtime/install state and reinstall from the current package:
+## Reset CogentNexus to fresh-install state
 
 ```powershell
-.\scripts\clean-reinstall.ps1
+.\cnx.cmd reset
 ```
 
-See [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md) before using it. Clean reinstall intentionally deletes the live `.cogent` state after creating a backup unless `-NoBackup` is explicitly used.
+`reset` is destructive and requires an explicit `y` confirmation. It removes CogentNexus Tickets, recovery/delivery state, runtime/session/workflow state, diagnostics, and CogentNexus configuration changes. It then rebuilds the current installed release to the same fresh MANAGED state produced by a normal installation.
+
+The installed CogentNexus release files and version remain unchanged. OpenClaw and Ollama data are not removed. If reinitialization fails, CogentNexus must not claim MANAGED authority from a partial reset.
+
+## Completely uninstall CogentNexus
+
+```powershell
+.\cnx.cmd uninstall
+```
+
+`uninstall` is destructive and requires an explicit `y` confirmation. It first returns CogentNexus to PASSTHROUGH/native OpenClaw, removes the CNX startup adapter and OpenClaw plugin registration, verifies native Gateway health, then removes CogentNexus state, skill files, plugin residue, and `cnx.cmd` itself.
+
+OpenClaw and Ollama remain installed. To use CogentNexus again after uninstall, perform a normal installation from a GitHub Release as described above.
 
 ## Operational scope
 
