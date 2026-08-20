@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "plugin:build": "npm run build && node ./scripts/verify-v091-schema.mjs",
-    "plugin:validate": "npm run plugin:build",
+    "plugin:validate": "npm run plugin:build && node ./scripts/test-ticket-db-bootstrap.mjs",
+    "ticket-db:bootstrap": "node ./scripts/bootstrap-ticket-db.mjs",
     "test": "vitest run --config ./vitest.config.ts",
     "evaluation": "npm run build && node ./scripts/evaluate.mjs"
   },

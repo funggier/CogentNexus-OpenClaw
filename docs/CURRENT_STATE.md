@@ -9,11 +9,14 @@
 
 CogentNexus v0.9.1 is **operationally usable for general single-node managed use** on the validated stack. The recovery core is acceptance-proven. The project does not claim universal production hardening across every hardware, storage, concurrency, power-loss, or future OpenClaw scenario.
 
+Fresh installation now explicitly materializes the Ticket SQLite schema before MANAGED activation. Ticket/status CLI operations therefore work on an empty installation before any user message has been admitted; schema creation is no longer dependent on the first lazy `TicketStore` open from a chat turn.
+
 ## Accepted capability boundary
 
 | Capability | State |
 | --- | --- |
 | Ticket-first durable admission | Accepted |
+| Fresh-install Ticket DB bootstrap before MANAGED | Implemented / release-gated |
 | DIRECT lane without forced workflow promotion | Accepted |
 | Host-owned managed recovery authority | Accepted |
 | Gateway/provider stop/restart recovery path | Accepted |

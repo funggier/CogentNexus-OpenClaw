@@ -91,6 +91,11 @@ if (-not $SkipPlugin) {
         npm run plugin:validate
         if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
 
+        # A fresh workspace must expose Ticket CLI/schema immediately, before
+        # the first OpenClaw message happens to lazily open TicketStore.
+        node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
+        if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
+
         if ($LinkPlugin) {
             openclaw plugins install --link . --force
         }

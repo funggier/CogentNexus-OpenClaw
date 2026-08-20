@@ -99,6 +99,9 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
     cd "$REPO_ROOT/plugins/cogentnexus-rotation"
     npm ci
     npm run plugin:validate
+    # Materialize the Ticket schema before MANAGED can be committed so CLI and
+    # supervisor reads are valid even before the first OpenClaw message.
+    node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     if [ "$LINK_PLUGIN" -eq 1 ]; then
       openclaw plugins install --link . --force
     else
