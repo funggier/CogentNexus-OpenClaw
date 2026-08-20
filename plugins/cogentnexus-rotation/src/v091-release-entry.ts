@@ -9,6 +9,7 @@ import {
 } from "./v091-dashboard-verified-delivery.js";
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
+import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -33,6 +34,15 @@ function pluginWorkspace(api: OpenClawPluginApi) {
   return resolve(configured ?? runtimeWorkspace ?? join(homedir(), ".openclaw", "workspace"));
 }
 
+function pluginCogentRoot(api: OpenClawPluginApi) {
+  const cfg = (api.pluginConfig ?? {}) as Record<string, unknown>;
+  return resolve(
+    typeof cfg.cogentRoot === "string" && cfg.cogentRoot.trim()
+      ? cfg.cogentRoot.trim()
+      : join(pluginWorkspace(api), ".cogent"),
+  );
+}
+
 /**
  * Host controller.mode=managed is the only activation authority for every
  * inference-capable CogentNexus plugin surface.
@@ -44,13 +54,7 @@ function pluginWorkspace(api: OpenClawPluginApi) {
  * CogentNexus hook, service, recovery worker, or Ticket mutation surface.
  */
 export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
-  const workspace = pluginWorkspace(api);
-  const cfg = (api.pluginConfig ?? {}) as Record<string, unknown>;
-  const root = resolve(
-    typeof cfg.cogentRoot === "string" && cfg.cogentRoot.trim()
-      ? cfg.cogentRoot.trim()
-      : join(workspace, ".cogent"),
-  );
+  const root = pluginCogentRoot(api);
   const controllerPath = resolve(root, "host", "controller.json");
   if (!existsSync(controllerPath)) return { authorized: false, reason: "missing", controllerPath };
   let state: HostControllerState;
@@ -102,6 +106,11 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       // Once direct_result is durable, transport owns all remaining retries;
       // legacy delivery timeout recovery must not regenerate inference.
       installV092DurableDeliveryBoundary();
+      // A cnx_direct_recovery row durably owns the Direct lane. Legacy Host
+      // reconciliation must never promote that Ticket into workflow execution.
+      installV095DirectRecoveryLaneFence(
+        resolve(pluginCogentRoot(api), "runtime", "cogentnexus.sqlite3"),
+      );
       // The model-call lease is observation-only. It records a bounded provider
       // call deadline; only the external Host may act on an expired lease.
       installV091DirectModelCallLease(api);
