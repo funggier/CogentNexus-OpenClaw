@@ -29,6 +29,8 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 Installer จะตรวจ dependency, stage/validate skill, สร้าง Host state เริ่มต้นใน PASSTHROUGH, validate/install plugin, สร้าง `cnx.cmd` และทำ transactional enable ไป MANAGED หลังจากองค์ประกอบที่จำเป็นผ่านการตรวจแล้ว
 
+ตั้งใจ **ไม่มี** คำสั่ง `cnx.cmd install` การติดตั้งใหม่ให้ทำจาก CogentNexus Release ที่แตกไฟล์แล้วตามขั้นตอนด้านบนเสมอ
+
 ## ตรวจหลังติดตั้ง
 
 ```powershell
@@ -60,17 +62,29 @@ openclaw plugins list
 - `disable` = คืน OpenClaw ไปทำงาน native/PASSTHROUGH
 - `stop` = ตั้งใจหยุด CNX ใน MAINTENANCE โดยยังเก็บ durable state
 
-## ล้างแล้วติดตั้งใหม่แบบสะอาด
-
-ถ้าต้องการล้าง CogentNexus ที่ติดตั้งอยู่แล้วและลงใหม่จาก package ปัจจุบัน ใช้:
+## Reset ให้เหมือนเพิ่งติดตั้งใหม่
 
 ```powershell
-.\scripts\clean-reinstall.ps1
+.\cnx.cmd reset
 ```
 
-สคริปต์จะพยายามคืน OpenClaw ไป PASSTHROUGH ก่อน, backup state/config ที่เกี่ยวข้องไว้นอก workspace, uninstall plugin, ลบเฉพาะ CogentNexus-owned residue แล้วเรียก installer ใหม่
+`reset` เป็นคำสั่งทำลายข้อมูลและจะทำงานต่อเมื่อผู้ใช้พิมพ์ `y` ยืนยันเท่านั้น หากกด Enter หรือพิมพ์ค่าอื่นจะยกเลิกโดยไม่เปลี่ยนแปลงระบบ
 
-อ่านรายละเอียดและคำเตือนที่ [CLEAN_REINSTALL.th.md](CLEAN_REINSTALL.th.md)
+เมื่อยืนยันแล้ว ระบบจะคืน OpenClaw ไป PASSTHROUGH ก่อน จากนั้นล้าง Ticket, recovery/delivery state, runtime/session/workflow state, diagnostics และค่าปรับของ CogentNexus แล้วสร้าง schema/default state ใหม่จาก **release เวอร์ชันที่ติดตั้งอยู่เดิม** ก่อน transactional enable กลับไป MANAGED
+
+ไฟล์โปรแกรมและเวอร์ชัน CogentNexus ที่ติดตั้งอยู่จะไม่ถูกเปลี่ยน และจะไม่ลบข้อมูล OpenClaw หรือ Ollama หากการสร้างใหม่ล้มเหลว CogentNexus ต้องไม่อ้าง MANAGED authority จากสถานะที่สร้างไม่ครบ
+
+## ถอน CogentNexus ออกทั้งหมด
+
+```powershell
+.\cnx.cmd uninstall
+```
+
+`uninstall` เป็นคำสั่งทำลายข้อมูลและจะทำงานต่อเมื่อผู้ใช้พิมพ์ `y` ยืนยันเท่านั้น
+
+ระบบจะคืน CogentNexus ไป PASSTHROUGH/native OpenClaw ก่อน, ปิด startup/supervisor integration, ถอน OpenClaw plugin, ตรวจว่า native Gateway healthy แล้วจึงลบ `.cogent`, skill ของ CogentNexus, plugin residue และ `cnx.cmd` ออกทั้งหมด
+
+OpenClaw และ Ollama จะไม่ถูกถอน หากต้องการใช้ CogentNexus อีกครั้งหลัง uninstall ให้ดาวน์โหลด Release แล้วติดตั้งใหม่ตามขั้นตอนปกติด้านบน
 
 ## ขอบเขตที่ยืนยันแล้ว
 

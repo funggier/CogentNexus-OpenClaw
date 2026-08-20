@@ -155,4 +155,4 @@ python $hostScript --root $cogentRoot status
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host status check failed" }
 
 Write-Host "CogentNexus v$version installation completed successfully."
-Write-Host "Control it with: $launcher status|start|stop|restart|gateway|ticket|session|policy|disable|enable"
+Write-Host "Control it with: $launcher status|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"

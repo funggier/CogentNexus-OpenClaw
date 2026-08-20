@@ -61,6 +61,10 @@ CogentNexus therefore provides an **exactly-once-ish durable delivery boundary**
 - **PASSTHROUGH** — CNX interception/background ownership are disabled and OpenClaw remains natively usable.
 - **MAINTENANCE** — deliberate stop; durable state remains and recovery must not fight operator intent.
 
+OpenClaw must remain usable without CogentNexus. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
+
+The durable managed-policy registration is stored at `.cogent/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so disable/PASSTHROUGH can remove active integration without destroying the registered policy source.
+
 ## Host and supervisor
 
 The external supervisor is deterministic and CPU-only in its periodic healthy path. It may inspect endpoint health and durable state, but does not perform model inference itself.
