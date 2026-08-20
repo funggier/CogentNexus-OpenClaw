@@ -4,12 +4,30 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..");
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+const npmArgs = ["pack", "--dry-run", "--json"];
 
-const result = spawnSync(npmCommand, ["pack", "--dry-run", "--json"], {
+function npmInvocation() {
+  // npm exposes the exact CLI entrypoint to npm-run scripts. Invoking that JS
+  // file through the current Node executable avoids direct .cmd execution,
+  // which Node 24 rejects with spawnSync EINVAL on Windows.
+  if (process.env.npm_execpath) {
+    return { command: process.execPath, args: [process.env.npm_execpath, ...npmArgs], shell: false };
+  }
+  // Manual invocation outside npm-run has no npm_execpath. Static arguments
+  // make a platform shell fallback safe here while preserving PATH lookup.
+  return {
+    command: "npm",
+    args: npmArgs,
+    shell: process.platform === "win32",
+  };
+}
+
+const invocation = npmInvocation();
+const result = spawnSync(invocation.command, invocation.args, {
   cwd: packageRoot,
   encoding: "utf8",
   windowsHide: true,
+  shell: invocation.shell,
 });
 
 if (result.error) {
