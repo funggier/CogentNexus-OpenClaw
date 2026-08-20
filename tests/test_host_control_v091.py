@@ -41,6 +41,36 @@ class HostControlV091Tests(unittest.TestCase):
                 cnx.legacy.append_audit = original_audit
             self.assertEqual(calls, ["apply", "delegate", "restore", "audit"])
 
+    def test_reset_routes_to_lifecycle_without_controller(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            original_argv = list(cnx.legacy.sys.argv)
+            original_lifecycle = cnx.lifecycle.main
+            calls = []
+            try:
+                cnx.legacy.sys.argv = ["host_control_v091.py", "--root", str(root), "reset"]
+                cnx.lifecycle.main = lambda command, resolved: calls.append((command, resolved)) or 17
+                self.assertEqual(cnx.main(), 17)
+            finally:
+                cnx.legacy.sys.argv = original_argv
+                cnx.lifecycle.main = original_lifecycle
+            self.assertEqual(calls, [("reset", root.resolve())])
+
+    def test_uninstall_routes_to_lifecycle_without_controller(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogent"
+            original_argv = list(cnx.legacy.sys.argv)
+            original_lifecycle = cnx.lifecycle.main
+            calls = []
+            try:
+                cnx.legacy.sys.argv = ["host_control_v091.py", "--root", str(root), "uninstall"]
+                cnx.lifecycle.main = lambda command, resolved: calls.append((command, resolved)) or 23
+                self.assertEqual(cnx.main(), 23)
+            finally:
+                cnx.legacy.sys.argv = original_argv
+                cnx.lifecycle.main = original_lifecycle
+            self.assertEqual(calls, [("uninstall", root.resolve())])
+
 
 if __name__ == "__main__":
     unittest.main()
