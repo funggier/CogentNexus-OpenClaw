@@ -10,6 +10,7 @@ import {
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
+import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -102,6 +103,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus v0.9.1 compatibility entry does not expose register(api)");
     }
+    const config = (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig;
     const installManagedRuntimeGuards = () => {
       // Once direct_result is durable, transport owns all remaining retries;
       // legacy delivery timeout recovery must not regenerate inference.
@@ -114,12 +116,14 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       // The model-call lease is observation-only. It records a bounded provider
       // call deadline; only the external Host may act on an expired lease.
       installV091DirectModelCallLease(api);
-      installV091DashboardVerifiedDelivery(
-        api,
-        (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig,
-      );
+      installV091DashboardVerifiedDelivery(api, config);
     };
     const registered = register(api);
+    // Test A v9 proved that the Direct Recovery service can start while the
+    // owner-session/model-call readiness fences are still settling after a
+    // Host-driven Gateway restart. Register a durable-work-only pulse bridge
+    // after the legacy services so the pending recovery cannot become unwoken.
+    installV097DirectRecoveryStartupLiveness(api, config);
     if (registered && typeof (registered as Promise<void>).then === "function") {
       return Promise.resolve(registered).then(installManagedRuntimeGuards);
     }
