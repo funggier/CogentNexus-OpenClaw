@@ -19,9 +19,10 @@ if (-not (Test-Path $Source)) {
 }
 
 # Windows PowerShell 5.1 enumerates OrderedDictionary on += in this context.
-# Patch the acceptance harness in a temporary copy so each evidence step is
-# appended as one PSCustomObject and ConvertTo-Json receives a stable object
-# graph. The repository source is left untouched by this runtime wrapper.
+# Patch the acceptance harness in a temporary sibling file so each evidence
+# step is appended as one PSCustomObject and ConvertTo-Json receives a stable
+# object graph. Keeping the temporary file beside the source also preserves
+# the original harness $PSScriptRoot -> repository-root resolution.
 $Original = Get-Content $Source -Raw
 $Old = @'
     $Evidence.steps += [ordered]@{
@@ -52,7 +53,7 @@ if ($Patched -eq $Original) {
     throw 'Acceptance harness patch produced no change.'
 }
 
-$Temp = Join-Path $env:TEMP ("cnx-accept-v092-ps51-{0}.ps1" -f ([guid]::NewGuid().ToString('N')))
+$Temp = Join-Path $PSScriptRoot (".accept-v092-ps51-{0}.tmp.ps1" -f ([guid]::NewGuid().ToString('N')))
 try {
     Set-Content -Path $Temp -Value $Patched -Encoding UTF8
 
