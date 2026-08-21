@@ -3,7 +3,9 @@ param(
     [ValidateSet('ollama','lmstudio')]
     [string]$Provider = 'lmstudio',
 
-    [switch]$RunDestructive
+    [switch]$RunDestructive,
+
+    [switch]$SerializerSelfTestOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,47 +15,133 @@ if ($env:OS -ne 'Windows_NT') {
     throw 'This acceptance harness wrapper is Windows-only.'
 }
 
+function New-EvidenceSerializer {
+    Add-Type -AssemblyName System.Web.Extensions
+    $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $serializer.MaxJsonLength = [int]::MaxValue
+    $serializer.RecursionLimit = 100
+    return $serializer
+}
+
+function ConvertTo-EvidencePlainValue {
+    param($Value)
+
+    if ($null -eq $Value) { return $null }
+    if ($Value -is [string]) { return [string]$Value }
+    if ($Value -is [bool]) { return [bool]$Value }
+    if ($Value -is [datetime]) { return $Value.ToString('o') }
+
+    $numericTypes = @(
+        [byte],[sbyte],[int16],[uint16],[int32],[uint32],
+        [int64],[uint64],[single],[double],[decimal]
+    )
+    foreach ($type in $numericTypes) {
+        if ($Value -is $type) { return $Value }
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        foreach ($key in $Value.Keys) {
+            $map[[string]$key] = ConvertTo-EvidencePlainValue $Value[$key]
+        }
+        return $map
+    }
+
+    if (($Value -is [System.Collections.IEnumerable]) -and -not ($Value -is [string])) {
+        $list = New-Object 'System.Collections.Generic.List[object]'
+        foreach ($item in $Value) {
+            [void]$list.Add((ConvertTo-EvidencePlainValue $item))
+        }
+        return $list
+    }
+
+    $properties = @(
+        $Value.PSObject.Properties |
+            Where-Object { $_.MemberType -in @('NoteProperty','Property','AliasProperty') }
+    )
+    if ($properties.Count -gt 0) {
+        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        foreach ($property in $properties) {
+            try {
+                $propertyValue = $property.Value
+            } catch {
+                $propertyValue = '<unavailable>'
+            }
+            $map[[string]$property.Name] = ConvertTo-EvidencePlainValue $propertyValue
+        }
+        return $map
+    }
+
+    return [string]$Value
+}
+
+function Invoke-EvidenceSerializerSelfTest {
+    $serializer = New-EvidenceSerializer
+    $diagnostic = '{"name":"Provider event adapter","details":{"expected":true,"running":true,"pid":1234},"tags":["provider","event"]}' | ConvertFrom-Json
+    $smoke = [pscustomobject][ordered]@{
+        schemaVersion = 2
+        candidateVersion = '0.9.2'
+        startedAt = (Get-Date).ToString('o')
+        provider = $Provider
+        destructiveRequested = [bool]$RunDestructive
+        repoRoot = 'smoke'
+        openclawConfig = 'smoke'
+        steps = (New-Object System.Collections.ArrayList)
+        result = 'running'
+        openclawBefore = [pscustomobject][ordered]@{
+            primaryModel = 'ollama/qwen3.5:9b'
+            agentTimeoutSeconds = $null
+            stuckSessionAbortMs = $null
+            lmstudioTimeoutSeconds = 600
+            lmstudioCompat = $diagnostic.details
+            cnxPluginPresent = $false
+        }
+        openclawAfter = $null
+        finishedAt = $null
+        error = $null
+    }
+    [void]$smoke.steps.Add([pscustomobject][ordered]@{
+        name = 'openclaw-version'
+        status = 'PASS'
+        at = (Get-Date).ToString('o')
+        data = [pscustomobject][ordered]@{
+            command = @('openclaw.cmd','--version')
+            exitCode = 0
+            durationSeconds = 0.01
+            stdout = "OpenClaw 2026.7.1-2 (0790d9f)`r`n"
+            stderr = ''
+            diagnostic = $diagnostic
+        }
+    })
+
+    $plain = ConvertTo-EvidencePlainValue $smoke
+    $json = $serializer.Serialize($plain)
+    $doc = $json | ConvertFrom-Json
+    if (@($doc.steps).Count -ne 1) {
+        throw 'PowerShell 5.1 evidence serializer self-test lost the step array.'
+    }
+    if ($doc.steps[0].name -ne 'openclaw-version') {
+        throw 'PowerShell 5.1 evidence serializer self-test changed the step name.'
+    }
+    if ($doc.steps[0].data.exitCode -ne 0) {
+        throw 'PowerShell 5.1 evidence serializer self-test changed primitive step data.'
+    }
+    if ($doc.steps[0].data.diagnostic.details.running -ne $true) {
+        throw 'PowerShell 5.1 evidence serializer self-test changed nested diagnostic data.'
+    }
+
+    Write-Host 'PowerShell 5.1 evidence serializer self-test: PASS'
+}
+
+Invoke-EvidenceSerializerSelfTest
+if ($SerializerSelfTestOnly) {
+    exit 0
+}
+
 $Source = Join-Path $PSScriptRoot 'accept-v092-windows.ps1'
 if (-not (Test-Path $Source)) {
     throw "Acceptance harness not found: $Source"
 }
-
-# Verify the object shape we are about to inject actually survives Windows
-# PowerShell 5.1 ConvertTo-Json before touching the real acceptance harness.
-$Smoke = [pscustomobject][ordered]@{
-    schemaVersion = 2
-    candidateVersion = '0.9.2'
-    startedAt = (Get-Date).ToString('o')
-    provider = $Provider
-    destructiveRequested = [bool]$RunDestructive
-    repoRoot = 'smoke'
-    openclawConfig = 'smoke'
-    steps = (New-Object System.Collections.ArrayList)
-    result = 'running'
-    openclawBefore = $null
-    openclawAfter = $null
-    finishedAt = $null
-    error = $null
-}
-$SmokeStep = [pscustomobject][ordered]@{
-    name = 'serialization-smoke'
-    status = 'PASS'
-    at = (Get-Date).ToString('o')
-    data = [pscustomobject][ordered]@{
-        command = @('openclaw.cmd','--version')
-        exitCode = 0
-        durationSeconds = 0.01
-        stdout = 'OpenClaw smoke'
-        stderr = ''
-    }
-}
-[void]$Smoke.steps.Add($SmokeStep)
-$SmokeJson = $Smoke | ConvertTo-Json -Depth 40
-$SmokeRoundTrip = $SmokeJson | ConvertFrom-Json
-if (@($SmokeRoundTrip.steps).Count -ne 1 -or $SmokeRoundTrip.steps[0].name -ne 'serialization-smoke') {
-    throw 'PowerShell 5.1 evidence serialization smoke test failed.'
-}
-Write-Host 'PowerShell 5.1 evidence serialization smoke test: PASS'
 
 # Patch the acceptance harness in a temporary sibling file. Keeping the
 # temporary file beside the source preserves the original harness
@@ -91,6 +179,76 @@ $Evidence = [pscustomobject][ordered]@{
 }
 '@
 
+$OldSave = @'
+function Save-Evidence {
+    $Evidence | ConvertTo-Json -Depth 40 | Set-Content -Path $JsonPath -Encoding UTF8
+}
+'@
+$NewSave = @'
+function New-EvidenceSerializer {
+    Add-Type -AssemblyName System.Web.Extensions
+    $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+    $serializer.MaxJsonLength = [int]::MaxValue
+    $serializer.RecursionLimit = 100
+    return $serializer
+}
+
+function ConvertTo-EvidencePlainValue {
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    if ($Value -is [string]) { return [string]$Value }
+    if ($Value -is [bool]) { return [bool]$Value }
+    if ($Value -is [datetime]) { return $Value.ToString('o') }
+
+    $numericTypes = @(
+        [byte],[sbyte],[int16],[uint16],[int32],[uint32],
+        [int64],[uint64],[single],[double],[decimal]
+    )
+    foreach ($type in $numericTypes) {
+        if ($Value -is $type) { return $Value }
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        foreach ($key in $Value.Keys) {
+            $map[[string]$key] = ConvertTo-EvidencePlainValue $Value[$key]
+        }
+        return $map
+    }
+
+    if (($Value -is [System.Collections.IEnumerable]) -and -not ($Value -is [string])) {
+        $list = New-Object 'System.Collections.Generic.List[object]'
+        foreach ($item in $Value) {
+            [void]$list.Add((ConvertTo-EvidencePlainValue $item))
+        }
+        return $list
+    }
+
+    $properties = @(
+        $Value.PSObject.Properties |
+            Where-Object { $_.MemberType -in @('NoteProperty','Property','AliasProperty') }
+    )
+    if ($properties.Count -gt 0) {
+        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        foreach ($property in $properties) {
+            try { $propertyValue = $property.Value } catch { $propertyValue = '<unavailable>' }
+            $map[[string]$property.Name] = ConvertTo-EvidencePlainValue $propertyValue
+        }
+        return $map
+    }
+
+    return [string]$Value
+}
+
+$EvidenceJsonSerializer = New-EvidenceSerializer
+
+function Save-Evidence {
+    $plain = ConvertTo-EvidencePlainValue $Evidence
+    $json = $EvidenceJsonSerializer.Serialize($plain)
+    Set-Content -Path $JsonPath -Value $json -Encoding UTF8
+}
+'@
+
 $OldStep = @'
     $Evidence.steps += [ordered]@{
         name = $Name
@@ -111,9 +269,26 @@ $NewStep = @'
     Save-Evidence
 '@
 
+$OldComparable = @'
+function ConvertTo-ComparableJson {
+    param($Value)
+    if ($null -eq $Value) { return '<null>' }
+    return ($Value | ConvertTo-Json -Depth 30 -Compress)
+}
+'@
+$NewComparable = @'
+function ConvertTo-ComparableJson {
+    param($Value)
+    if ($null -eq $Value) { return '<null>' }
+    return $EvidenceJsonSerializer.Serialize((ConvertTo-EvidencePlainValue $Value))
+}
+'@
+
 foreach ($pair in @(
     @($OldEvidence, $NewEvidence),
-    @($OldStep, $NewStep)
+    @($OldSave, $NewSave),
+    @($OldStep, $NewStep),
+    @($OldComparable, $NewComparable)
 )) {
     if (-not $Original.Contains($pair[0])) {
         throw 'Expected PowerShell 5.1 serialization patch block was not found; refusing an unverified patch.'
