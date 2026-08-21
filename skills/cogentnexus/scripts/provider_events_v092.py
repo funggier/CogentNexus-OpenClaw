@@ -14,6 +14,7 @@ reconciliation remains a safety fallback.
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import re
@@ -30,6 +31,7 @@ from typing import Any
 import provider
 
 SCHEMA_VERSION = 1
+ADAPTER_STARTUP_SECONDS = 5.0
 PROGRESS_RE = re.compile(
     r"(?i)(?:prompt[^\n]{0,80}?(?:process|processing|eval|prefill)[^\n]{0,80}?)(\d+(?:\.\d+)?)\s*%"
 )
@@ -46,6 +48,10 @@ def state_path(root: Path) -> Path:
 
 def pid_path(root: Path, provider_name: str) -> Path:
     return root / "host" / f"provider-events-{provider_name}.pid"
+
+
+def ownership_lock_path(root: Path, provider_name: str) -> Path:
+    return root / "host" / f"provider-events-{provider_name}.owner.lock"
 
 
 def lock_path(root: Path) -> Path:
@@ -191,17 +197,113 @@ def _pid_alive(pid: int) -> bool:
         return False
 
 
+def _prepare_ownership_file(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = open(path, "a+b", buffering=0)
+    handle.seek(0, os.SEEK_END)
+    if handle.tell() == 0:
+        handle.write(b"\0")
+    handle.seek(0)
+    return handle
+
+
+def _acquire_ownership(handle, *, nonblocking: bool) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        mode = msvcrt.LK_NBLCK if nonblocking else msvcrt.LK_LOCK
+        msvcrt.locking(handle.fileno(), mode, 1)
+        return
+    import fcntl
+
+    operation = fcntl.LOCK_EX | (fcntl.LOCK_NB if nonblocking else 0)
+    fcntl.flock(handle.fileno(), operation)
+
+
+def _release_ownership(handle) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        return
+    import fcntl
+
+    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _ownership_lease(root: Path, provider_name: str):
+    path = ownership_lock_path(root, provider_name)
+    handle = _prepare_ownership_file(path)
+    acquired = False
+    try:
+        _acquire_ownership(handle, nonblocking=True)
+        acquired = True
+        yield
+    finally:
+        if acquired:
+            try:
+                _release_ownership(handle)
+            except OSError:
+                pass
+        handle.close()
+
+
+def _ownership_state(root: Path, provider_name: str) -> dict[str, Any]:
+    """Read ownership without mutating adapter files."""
+    path = ownership_lock_path(root, provider_name)
+    if not path.exists():
+        return {"held": False, "path": str(path)}
+    try:
+        handle = open(path, "r+b", buffering=0)
+    except OSError as error:
+        return {"held": None, "path": str(path), "error": str(error)}
+    acquired = False
+    try:
+        try:
+            _acquire_ownership(handle, nonblocking=True)
+            acquired = True
+        except OSError as error:
+            if error.errno in {errno.EACCES, errno.EAGAIN, errno.EDEADLK}:
+                return {"held": True, "path": str(path)}
+            return {"held": None, "path": str(path), "error": str(error)}
+        return {"held": False, "path": str(path)}
+    finally:
+        if acquired:
+            try:
+                _release_ownership(handle)
+            except OSError:
+                pass
+        handle.close()
+
+
 def adapter_status(root: Path, provider_name: str) -> dict[str, Any]:
+    """Read-only status; never deletes stale pid/lock files."""
     provider_name = provider.normalize_provider(provider_name)
     path = pid_path(root, provider_name)
+    observed_pid = None
     try:
-        pid = int(path.read_text(encoding="utf-8").strip())
+        observed_pid = int(path.read_text(encoding="utf-8").strip())
     except Exception:
-        return {"provider": provider_name, "running": False, "pid": None}
-    alive = _pid_alive(pid)
-    if not alive:
-        path.unlink(missing_ok=True)
-    return {"provider": provider_name, "running": alive, "pid": pid if alive else None}
+        pass
+    alive = _pid_alive(observed_pid) if isinstance(observed_pid, int) else False
+    ownership = _ownership_state(root, provider_name)
+    held = ownership.get("held")
+    running = bool(alive and held is True)
+    degraded = bool((held is True and not alive) or (alive and held is not True) or held is None)
+    return {
+        "provider": provider_name,
+        "running": running,
+        "pid": observed_pid if running else None,
+        "observedPid": observed_pid,
+        "pidAlive": alive,
+        "ownershipHeld": held,
+        "ownershipPath": ownership.get("path"),
+        "ownershipError": ownership.get("error"),
+        "degraded": degraded,
+    }
 
 
 def _terminate_process_tree(pid: int) -> dict[str, Any]:
@@ -230,6 +332,23 @@ def _terminate_process_tree(pid: int) -> dict[str, Any]:
         return {"ok": False, "error": str(error)}
 
 
+def _cleanup_unowned_files(root: Path, provider_name: str, observed_pid: int | None = None) -> None:
+    pid_file = pid_path(root, provider_name)
+    try:
+        if observed_pid is None:
+            pid_file.unlink(missing_ok=True)
+        elif pid_file.exists() and pid_file.read_text(encoding="utf-8").strip() == str(observed_pid):
+            pid_file.unlink()
+    except Exception:
+        pass
+    ownership = _ownership_state(root, provider_name)
+    if ownership.get("held") is False:
+        try:
+            ownership_lock_path(root, provider_name).unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
 def stop_adapter(root: Path, provider_name: str | None = None) -> dict[str, Any]:
     names = [provider.normalize_provider(provider_name)] if provider_name else list(provider.SUPPORTED_PROVIDERS)
     stopped = []
@@ -239,7 +358,30 @@ def stop_adapter(root: Path, provider_name: str | None = None) -> dict[str, Any]
         if isinstance(pid, int):
             result = _terminate_process_tree(pid)
             stopped.append({"provider": name, "pid": pid, "stopped": bool(result.get("ok")), "termination": result})
-        pid_path(root, name).unlink(missing_ok=True)
+            if result.get("ok"):
+                _cleanup_unowned_files(root, name, pid)
+            continue
+
+        observed_pid = status.get("observedPid")
+        if status.get("ownershipHeld") is True:
+            # Ownership is live but the pid cannot be verified. Never guess a
+            # process id for destructive cleanup.
+            stopped.append({
+                "provider": name,
+                "pid": observed_pid,
+                "stopped": False,
+                "error": "adapter ownership is live but pid identity is unverifiable; refusing process termination",
+            })
+            continue
+
+        _cleanup_unowned_files(root, name, observed_pid if isinstance(observed_pid, int) else None)
+        stopped.append({
+            "provider": name,
+            "pid": observed_pid,
+            "stopped": True,
+            "alreadyStopped": True,
+            "stalePidSuppressed": isinstance(observed_pid, int),
+        })
     return {"stopped": stopped}
 
 
@@ -254,9 +396,23 @@ def ensure_adapter(root: Path, provider_name: str) -> dict[str, Any]:
     if provider_name != "lmstudio":
         stop_adapter(root, "lmstudio")
         return {"provider": provider_name, "supported": False, "running": False, "reason": "no provider progress stream adapter required"}
+
     current = adapter_status(root, provider_name)
     if current.get("running"):
         return {**current, "supported": True, "started": False}
+    if current.get("ownershipHeld") is True:
+        return {
+            **current,
+            "supported": True,
+            "started": False,
+            "error": "provider event adapter ownership is live but pid is unverifiable; refusing duplicate adapter start",
+        }
+    _cleanup_unowned_files(
+        root,
+        provider_name,
+        current.get("observedPid") if isinstance(current.get("observedPid"), int) else None,
+    )
+
     cli = provider.find_lms_cli()
     if not cli:
         return {"provider": provider_name, "supported": True, "running": False, "error": "LM Studio lms CLI unavailable"}
@@ -272,13 +428,42 @@ def ensure_adapter(root: Path, provider_name: str) -> dict[str, Any]:
     else:
         kwargs["start_new_session"] = True
     proc = subprocess.Popen(command, **kwargs)
-    # Commit the child pid synchronously so lifecycle verification does not race
-    # the daemon's own startup write. The daemon rewrites the same pid after it
-    # starts, and removes it only if it still owns that exact value.
-    path = pid_path(root, provider_name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(str(proc.pid), encoding="utf-8")
-    return {"provider": provider_name, "supported": True, "running": True, "started": True, "pid": proc.pid, "command": command}
+
+    # This short loop is startup synchronization only; it is not a recovery
+    # timer. The daemon writes its PID only after acquiring the OS ownership lock.
+    deadline = time.monotonic() + ADAPTER_STARTUP_SECONDS
+    last = adapter_status(root, provider_name)
+    while time.monotonic() < deadline:
+        if last.get("running") and last.get("pid") == proc.pid:
+            return {**last, "supported": True, "started": True, "command": command}
+        code = proc.poll()
+        if code is not None:
+            _cleanup_unowned_files(root, provider_name, proc.pid)
+            return {
+                "provider": provider_name,
+                "supported": True,
+                "running": False,
+                "started": False,
+                "pid": None,
+                "error": f"provider event adapter exited during startup with code {code}",
+                "command": command,
+            }
+        time.sleep(0.025)
+        last = adapter_status(root, provider_name)
+
+    termination = _terminate_process_tree(proc.pid)
+    _cleanup_unowned_files(root, provider_name, proc.pid)
+    return {
+        "provider": provider_name,
+        "supported": True,
+        "running": False,
+        "started": False,
+        "pid": None,
+        "error": "provider event adapter did not acquire ownership before startup synchronization expired",
+        "termination": termination,
+        "command": command,
+        "lastStatus": last,
+    }
 
 
 def select_provider(root: Path, provider_name: str) -> dict[str, Any]:
@@ -308,54 +493,65 @@ def run_lmstudio_daemon(root: Path) -> int:
         return 2
     pid_file = pid_path(root, "lmstudio")
     pid_file.parent.mkdir(parents=True, exist_ok=True)
-    pid_file.write_text(str(os.getpid()), encoding="utf-8")
-    publish(root, "lmstudio", "adapter_started", {"pid": os.getpid()})
-    command = [cli, "log", "stream", "--source", "runtime"]
     try:
-        proc = subprocess.Popen(
-            command,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            bufsize=1,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
-        )
-        assert proc.stdout is not None
-        for line in proc.stdout:
-            parsed = parse_runtime_line(line)
-            if parsed is None:
-                continue
-            event_type, evidence = parsed
-            publish(root, "lmstudio", event_type, evidence)
-        code = proc.wait()
-        health = provider.probe("lmstudio", timeout=3.0)
-        if not health.get("healthy"):
-            publish(root, "lmstudio", "provider_dead", {
-                "source": "lmstudio-runtime-stream-ended",
-                "streamExitCode": code,
-                "providerHealth": health,
-            })
-            _wake_host(root)
-            return 1
-        publish(root, "lmstudio", "adapter_disconnected", {
-            "streamExitCode": code,
-            "providerHealth": health,
-        })
-        return 0
-    except Exception as error:
-        health = provider.probe("lmstudio", timeout=3.0)
-        event_type = "provider_dead" if not health.get("healthy") else "adapter_error"
-        publish(root, "lmstudio", event_type, {"error": str(error), "providerHealth": health})
-        if event_type == "provider_dead":
-            _wake_host(root)
-        return 1
-    finally:
+        with _ownership_lease(root, "lmstudio"):
+            pid_file.write_text(str(os.getpid()), encoding="utf-8")
+            publish(root, "lmstudio", "adapter_started", {"pid": os.getpid()})
+            command = [cli, "log", "stream", "--source", "runtime"]
+            try:
+                proc = subprocess.Popen(
+                    command,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    bufsize=1,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
+                )
+                assert proc.stdout is not None
+                for line in proc.stdout:
+                    parsed = parse_runtime_line(line)
+                    if parsed is None:
+                        continue
+                    event_type, evidence = parsed
+                    publish(root, "lmstudio", event_type, evidence)
+                code = proc.wait()
+                health = provider.probe("lmstudio", timeout=3.0)
+                if not health.get("healthy"):
+                    publish(root, "lmstudio", "provider_dead", {
+                        "source": "lmstudio-runtime-stream-ended",
+                        "streamExitCode": code,
+                        "providerHealth": health,
+                    })
+                    _wake_host(root)
+                    return 1
+                publish(root, "lmstudio", "adapter_disconnected", {
+                    "streamExitCode": code,
+                    "providerHealth": health,
+                })
+                return 0
+            except Exception as error:
+                health = provider.probe("lmstudio", timeout=3.0)
+                event_type = "provider_dead" if not health.get("healthy") else "adapter_error"
+                publish(root, "lmstudio", event_type, {"error": str(error), "providerHealth": health})
+                if event_type == "provider_dead":
+                    _wake_host(root)
+                return 1
+            finally:
+                try:
+                    if pid_file.exists() and pid_file.read_text(encoding="utf-8").strip() == str(os.getpid()):
+                        pid_file.unlink()
+                except Exception:
+                    pass
+    except OSError as error:
+        # Another verified adapter owns the lock. Do not publish a provider
+        # failure: this is adapter duplication/ownership evidence only.
         try:
             if pid_file.exists() and pid_file.read_text(encoding="utf-8").strip() == str(os.getpid()):
                 pid_file.unlink()
         except Exception:
             pass
+        return 3
 
 
 def main(argv: list[str] | None = None) -> int:
