@@ -58,21 +58,87 @@ class ProviderEventsV092Tests(unittest.TestCase):
             self.assertFalse(result["supported"])
             self.assertFalse(result["running"])
 
-    def test_ensure_lmstudio_adapter_publishes_child_pid_before_return(self):
+    def test_adapter_status_is_read_only_and_rejects_unowned_reused_pid(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogent"
-            fake = SimpleNamespace(pid=424242)
-            with mock.patch.object(events.provider, "find_lms_cli", return_value="lms"), \
-                 mock.patch.object(events.subprocess, "Popen", return_value=fake):
+            path = events.pid_path(root, "lmstudio")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("777", encoding="utf-8")
+            before = path.read_bytes()
+
+            with mock.patch.object(events, "_pid_alive", return_value=True), \
+                 mock.patch.object(events, "_ownership_state", return_value={"held": False, "path": "owner"}):
+                status = events.adapter_status(root, "lmstudio")
+
+            self.assertFalse(status["running"])
+            self.assertEqual(status["observedPid"], 777)
+            self.assertTrue(status["pidAlive"])
+            self.assertFalse(status["ownershipHeld"])
+            self.assertEqual(path.read_bytes(), before)
+
+    def test_stop_adapter_never_kills_stale_pid_without_ownership(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            path = events.pid_path(root, "lmstudio")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("888", encoding="utf-8")
+
+            with mock.patch.object(events, "_pid_alive", return_value=True), \
+                 mock.patch.object(events, "_ownership_state", return_value={"held": False, "path": "owner"}), \
+                 mock.patch.object(events, "_terminate_process_tree") as terminate:
+                result = events.stop_adapter(root, "lmstudio")
+
+            terminate.assert_not_called()
+            self.assertFalse(path.exists())
+            self.assertTrue(result["stopped"][0]["stalePidSuppressed"])
+
+    def test_stop_adapter_refuses_unknown_pid_when_ownership_is_live(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            path = events.pid_path(root, "lmstudio")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("999", encoding="utf-8")
+
+            with mock.patch.object(events, "_pid_alive", return_value=False), \
+                 mock.patch.object(events, "_ownership_state", return_value={"held": True, "path": "owner"}), \
+                 mock.patch.object(events, "_terminate_process_tree") as terminate:
+                result = events.stop_adapter(root, "lmstudio")
+
+            terminate.assert_not_called()
+            self.assertTrue(path.exists())
+            self.assertFalse(result["stopped"][0]["stopped"])
+            self.assertIn("refusing process termination", result["stopped"][0]["error"])
+
+    def test_ensure_lmstudio_adapter_returns_only_after_owned_pid_is_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            fake = SimpleNamespace(pid=424242, poll=mock.Mock(return_value=None))
+            not_running = {
+                "provider": "lmstudio",
+                "running": False,
+                "pid": None,
+                "observedPid": None,
+                "ownershipHeld": False,
+            }
+            ready = {
+                "provider": "lmstudio",
+                "running": True,
+                "pid": 424242,
+                "observedPid": 424242,
+                "pidAlive": True,
+                "ownershipHeld": True,
+            }
+            with mock.patch.object(events, "adapter_status", side_effect=[not_running, not_running, ready]), \
+                 mock.patch.object(events, "_cleanup_unowned_files"), \
+                 mock.patch.object(events.provider, "find_lms_cli", return_value="lms"), \
+                 mock.patch.object(events.subprocess, "Popen", return_value=fake), \
+                 mock.patch.object(events.time, "sleep"):
                 result = events.ensure_adapter(root, "lmstudio")
 
             self.assertTrue(result["running"])
             self.assertTrue(result["started"])
             self.assertEqual(result["pid"], 424242)
-            self.assertEqual(
-                events.pid_path(root, "lmstudio").read_text(encoding="utf-8"),
-                "424242",
-            )
+            fake.poll.assert_called_once()
 
 
 if __name__ == "__main__":
