@@ -102,34 +102,10 @@ jobs:
       - name: Smoke-test Windows PowerShell 5.1 acceptance serializer
         if: runner.os == 'Windows'
         shell: powershell
-        run: |
-          $source = Get-Content scripts/accept-v092-windows-ps51.ps1 -Raw
-          $marker = "PowerShell 5.1 evidence serialization smoke test: PASS"
-          if (-not $source.Contains($marker)) {
-            throw 'Acceptance PS5.1 serializer smoke-test marker is missing.'
-          }
-          $smoke = [pscustomobject][ordered]@{
-            schemaVersion = 2
-            steps = (New-Object System.Collections.ArrayList)
-            result = 'running'
-          }
-          [void]$smoke.steps.Add([pscustomobject][ordered]@{
-            name = 'serialization-smoke'
-            status = 'PASS'
-            at = (Get-Date).ToString('o')
-            data = [pscustomobject][ordered]@{
-              command = @('openclaw.cmd','--version')
-              exitCode = 0
-              durationSeconds = 0.01
-              stdout = 'OpenClaw smoke'
-              stderr = ''
-            }
-          })
-          $json = $smoke | ConvertTo-Json -Depth 40
-          $doc = $json | ConvertFrom-Json
-          if (@($doc.steps).Count -ne 1 -or $doc.steps[0].name -ne 'serialization-smoke') {
-            throw 'Windows PowerShell 5.1 evidence serializer smoke test failed.'
-          }
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\accept-v092-windows-ps51.ps1
+          -SerializerSelfTestOnly
       - name: Validate POSIX installer syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh
