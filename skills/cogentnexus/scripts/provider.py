@@ -14,6 +14,11 @@ from typing import Any
 
 SUPPORTED_PROVIDERS = ("ollama", "lmstudio")
 DEFAULT_ENDPOINTS = {"ollama": "http://127.0.0.1:11434", "lmstudio": "http://127.0.0.1:1234"}
+MODEL_PROVIDER_PREFIXES = {
+    "ollama": "ollama",
+    "lmstudio": "lmstudio",
+    "lmstudio_local": "lmstudio",
+}
 
 
 def creation_flags() -> int:
@@ -149,8 +154,10 @@ def _start_ollama() -> dict[str, Any]:
         return {"ok": False, "error": "Ollama is not installed or its CLI could not be found"}
     try:
         kwargs: dict[str, Any] = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
-        if os.name == "nt": kwargs["creationflags"] = creation_flags()
-        else: kwargs["start_new_session"] = True
+        if os.name == "nt":
+            kwargs["creationflags"] = creation_flags()
+        else:
+            kwargs["start_new_session"] = True
         subprocess.Popen([cli, "serve"], **kwargs)
         return {"ok": True, "command": [cli, "serve"]}
     except Exception as exc:
@@ -185,7 +192,8 @@ def start(name: str, timeout: float = 30.0) -> dict[str, Any]:
 def _stop_ollama() -> dict[str, Any]:
     if os.name == "nt":
         taskkill = shutil.which("taskkill")
-        if not taskkill: return {"ok": False, "error": "taskkill unavailable"}
+        if not taskkill:
+            return {"ok": False, "error": "taskkill unavailable"}
         attempts = [run([taskkill, "/IM", image, "/T", "/F"], timeout=30) for image in ("ollama app.exe", "ollama.exe")]
         return {"ok": any(item.get("ok") for item in attempts), "attempts": attempts}
     if shutil.which("systemctl"):
@@ -195,7 +203,8 @@ def _stop_ollama() -> dict[str, Any]:
 
 def _stop_lmstudio() -> dict[str, Any]:
     cli = find_lms_cli()
-    if not cli: return {"ok": False, "error": "LM Studio 'lms' CLI unavailable"}
+    if not cli:
+        return {"ok": False, "error": "LM Studio 'lms' CLI unavailable"}
     return run([cli, "server", "stop"], timeout=60)
 
 
@@ -217,13 +226,15 @@ def openclaw_executable() -> str | None:
     candidates = ("openclaw.cmd", "openclaw.exe", "openclaw") if os.name == "nt" else ("openclaw",)
     for name in candidates:
         found = shutil.which(name)
-        if found: return found
+        if found:
+            return found
     return None
 
 
 def openclaw_model_status() -> dict[str, Any]:
     executable = openclaw_executable()
-    if not executable: return {"ok": False, "error": "OpenClaw CLI unavailable", "defaultModel": None}
+    if not executable:
+        return {"ok": False, "error": "OpenClaw CLI unavailable", "defaultModel": None}
     result = run([executable, "models", "status", "--json"], timeout=30)
     if not result.get("ok"):
         return {"ok": False, "error": result.get("stderr") or result.get("error"), "defaultModel": None, "raw": result}
@@ -236,23 +247,28 @@ def openclaw_model_status() -> dict[str, Any]:
         if isinstance(value, dict):
             for key in ("defaultModel", "default", "primary", "model"):
                 found = value.get(key)
-                if isinstance(found, str) and "/" in found: return found
+                if isinstance(found, str) and "/" in found:
+                    return found
                 if isinstance(found, dict):
                     nested = found.get("primary") or found.get("default")
-                    if isinstance(nested, str) and "/" in nested: return nested
+                    if isinstance(nested, str) and "/" in nested:
+                        return nested
             for nested_value in value.values():
                 result_value = find_default(nested_value)
-                if result_value: return result_value
+                if result_value:
+                    return result_value
         elif isinstance(value, list):
             for nested_value in value:
                 result_value = find_default(nested_value)
-                if result_value: return result_value
+                if result_value:
+                    return result_value
         return None
 
     return {"ok": True, "defaultModel": find_default(document), "document": document}
 
 
 def model_provider(model_ref: str | None) -> str | None:
-    if not isinstance(model_ref, str) or "/" not in model_ref: return None
+    if not isinstance(model_ref, str) or "/" not in model_ref:
+        return None
     prefix = model_ref.split("/", 1)[0].strip().lower()
-    return prefix if prefix in SUPPORTED_PROVIDERS else None
+    return MODEL_PROVIDER_PREFIXES.get(prefix)
