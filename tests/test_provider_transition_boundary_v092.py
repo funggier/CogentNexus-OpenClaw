@@ -45,6 +45,23 @@ class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
             self.assertEqual(calls, [(('start',), 'lmstudio')])
             self.assertIsNone(boundary["gatewayRestart"])
 
+    def test_enable_same_route_still_restarts_gateway_to_load_managed_knobs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            calls = []
+
+            def fake_run_host(root_arg, args, target=None, timeout=420):
+                calls.append((tuple(args), target))
+                return {"ok": True, "output": {"command": args[0]}}
+
+            with mock.patch.object(cnx, "run_host", side_effect=fake_run_host):
+                host, boundary = cnx._transition_host_runtime(root, "enable", "lmstudio", False)
+
+            self.assertTrue(host["ok"])
+            self.assertEqual(calls, [(('enable',), 'lmstudio'), (('restart',), 'lmstudio')])
+            self.assertEqual(boundary["primary"]["output"]["command"], "enable")
+            self.assertEqual(boundary["gatewayRestart"]["output"]["command"], "restart")
+
     def test_restart_ensures_provider_then_restarts_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogent"
