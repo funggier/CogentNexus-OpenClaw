@@ -77,18 +77,27 @@ jobs:
           printf '["/tmp/cogentnexus-rotation","/tmp/keep"]' | \
             python scripts/filter_plugin_paths.py --plugin-id cogentnexus-rotation | \
             python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
-      - name: Validate PowerShell installer syntax
+      - name: Validate Windows PowerShell script syntax
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         run: |
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path scripts/install.ps1),
-            [ref]$tokens,
-            [ref]$errors
+          $files = @(
+            'scripts/install.ps1',
+            'scripts/accept-v092-windows.ps1'
           )
-          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            )
+            if ($errors.Count) {
+              $errors | ForEach-Object { Write-Error "$file :: $_" }
+              exit 1
+            }
+          }
       - name: Validate POSIX installer syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh
