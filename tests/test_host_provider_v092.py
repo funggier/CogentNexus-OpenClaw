@@ -35,8 +35,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0)
             self.assertEqual(calls[0][1], ("lifecycle", "start"))
-            payload = json.loads(result.stdout)
-            self.assertEqual(payload["provider"], "lmstudio")
+            self.assertEqual(json.loads(result.stdout)["provider"], "lmstudio")
 
     def test_stop_quiesces_gateway_before_selected_provider(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -70,7 +69,7 @@ class HostProviderV092Tests(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("provider selection required", result.stdout)
 
-    def _create_direct_call_db(self, root: Path) -> Path:
+    def _create_direct_call_db(self, root: Path, *, deadline_delta=-1, state="active", outcome=None) -> Path:
         path = root / "runtime" / "cogentnexus.sqlite3"
         path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path)
@@ -95,7 +94,9 @@ class HostProviderV092Tests(unittest.TestCase):
                   model TEXT,
                   started_at TEXT,
                   deadline_at TEXT,
+                  ended_at TEXT,
                   outcome TEXT,
+                  recovery_started_at TEXT,
                   recovery_attempt_count INTEGER,
                   updated_at TEXT
                 );
@@ -109,19 +110,17 @@ class HostProviderV092Tests(unittest.TestCase):
             )
             now = datetime.now(timezone.utc)
             db.execute(
-                "INSERT INTO tickets(ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,response_ready_at) "
-                "VALUES (?,?,?,?,?,?,?)",
+                "INSERT INTO tickets(ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,response_ready_at) VALUES (?,?,?,?,?,?,?)",
                 ("T1", "R1", "agent:main:test", "accepted", 0, None, None),
             )
+            ended_at = now.isoformat() if state == "ended" else None
             db.execute(
-                "INSERT INTO cnx_direct_model_call("
-                "ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,outcome,recovery_attempt_count,updated_at"
-                ") VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO cnx_direct_model_call(ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,ended_at,outcome,recovery_started_at,recovery_attempt_count,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
-                    "T1", "R1", "C1", "active", "lmstudio_local", "qwen/qwen3.5-9b",
+                    "T1", "R1", "C1", state, "lmstudio_local", "qwen/qwen3.5-9b",
                     (now - timedelta(minutes=10)).isoformat(),
-                    (now - timedelta(seconds=1)).isoformat(),
-                    None, 0, now.isoformat(),
+                    (now + timedelta(seconds=deadline_delta)).isoformat(),
+                    ended_at, outcome, None, 0, now.isoformat(),
                 ),
             )
             db.commit()
@@ -129,43 +128,80 @@ class HostProviderV092Tests(unittest.TestCase):
             db.close()
         return path
 
-    def test_lmstudio_long_running_grace_does_not_consume_recovery_attempt(self):
+    def test_healthy_expired_call_is_guarded_without_extending_deadline(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogent"
             path = self._create_direct_call_db(root)
-            result = hp._defer_lmstudio_long_running_call(root, 600)
-            self.assertIsNotNone(result)
-            self.assertEqual(result["classification"], "cold_model_long_running")
-            self.assertFalse(result["recoveryEligible"])
-            self.assertFalse(result["providerRestart"])
+            db = sqlite3.connect(path)
+            before = db.execute("SELECT deadline_at FROM cnx_direct_model_call WHERE ticket_id='T1'").fetchone()[0]
+            db.close()
+
+            first = hp._guard_healthy_active_call(root, "lmstudio")
+            second = hp._guard_healthy_active_call(root, "lmstudio")
+            self.assertEqual(first["classification"], "active_model_processing_unknown")
+            self.assertFalse(first["recoveryEligible"])
+            self.assertFalse(first["providerRestart"])
+            self.assertEqual(second["callId"], "C1")
 
             db = sqlite3.connect(path)
             try:
                 row = db.execute(
                     "SELECT state,outcome,recovery_attempt_count,deadline_at FROM cnx_direct_model_call WHERE ticket_id='T1'"
                 ).fetchone()
+                events = db.execute(
+                    "SELECT event_type,payload_json FROM ticket_events WHERE ticket_id='T1'"
+                ).fetchall()
+            finally:
+                db.close()
+            self.assertEqual(row, ("active", None, 0, before))
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0][0], "host_direct_model_waiting_for_event_evidence")
+
+    def test_provider_failure_event_makes_active_call_immediately_claimable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            path = self._create_direct_call_db(root, deadline_delta=3600)
+            changed = hp._mark_active_calls_provider_failed(
+                root, "lmstudio", "provider_unreachable", {"endpoint": "refused"}
+            )
+            self.assertEqual(changed, 1)
+            db = sqlite3.connect(path)
+            try:
+                deadline, outcome = db.execute(
+                    "SELECT deadline_at,outcome FROM cnx_direct_model_call WHERE ticket_id='T1'"
+                ).fetchone()
                 event = db.execute(
                     "SELECT event_type,payload_json FROM ticket_events WHERE ticket_id='T1'"
                 ).fetchone()
             finally:
                 db.close()
+            self.assertLessEqual(datetime.fromisoformat(deadline), datetime.now(timezone.utc))
+            self.assertEqual(outcome, "provider-event:provider_unreachable")
+            self.assertEqual(event[0], "host_direct_model_provider_failure")
+            self.assertEqual(json.loads(event[1])["recoveryAuthority"], "explicit-provider-failure-event")
 
-            self.assertEqual(row[0], "active")
-            self.assertEqual(row[1], "cold-model-long-running-grace:600s")
-            self.assertEqual(row[2], 0)
-            self.assertGreater(
-                datetime.fromisoformat(row[3]),
-                datetime.now(timezone.utc) + timedelta(minutes=9),
+    def test_durable_success_event_closes_provider_incident(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            path = self._create_direct_call_db(root, state="ended", outcome="ok")
+            opened = hp.recovery_policy.begin_incident(
+                root, "lmstudio", "provider_unreachable",
+                current=datetime.now(timezone.utc) - timedelta(seconds=1),
             )
-            self.assertEqual(event[0], "host_direct_model_long_running_grace")
-            payload = json.loads(event[1])
-            self.assertEqual(payload["classification"], "cold_model_long_running")
-            self.assertIsNone(hp._defer_lmstudio_long_running_call(root, 600))
+            self.assertTrue(opened["incidentOpen"])
+            closed = hp._reconcile_stable_success(root, "lmstudio")
+            self.assertIsNotNone(closed)
+            self.assertFalse(closed["incidentOpen"])
+            self.assertFalse(closed["circuitOpen"])
+            self.assertTrue(path.exists())
 
-    def test_open_circuit_does_not_claim_or_restart_healthy_provider(self):
+    def test_open_incident_circuit_does_not_claim_or_restart_healthy_provider(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogent"
             root.mkdir()
+            hp.recovery_policy.begin_incident(root, "lmstudio", "provider_unreachable")
+            hp.recovery_policy.record_attempt(root, "lmstudio", success=False, reason="one")
+            hp.recovery_policy.record_attempt(root, "lmstudio", success=False, reason="two")
             state = {
                 "mode": "managed",
                 "desiredGateway": "running",
@@ -173,22 +209,11 @@ class HostProviderV092Tests(unittest.TestCase):
                 "selectedProvider": "lmstudio",
             }
             healthy = {"healthy": True, "name": "lmstudio"}
-            gate = {
-                "provider": "lmstudio",
-                "allowed": False,
-                "circuitOpen": True,
-                "recoveriesLastHour": 2,
-                "maximumRecoveriesPerHour": 2,
-                "cooldownSeconds": 900,
-                "longRunningGraceSeconds": 600,
-            }
             with mock.patch.object(hp.legacy, "load_state", return_value=state), \
                  mock.patch.object(hp, "_state_provider", return_value="lmstudio"), \
                  mock.patch.object(hp, "_set_legacy_ollama_mode", return_value={"changed": False}), \
                  mock.patch.object(hp.providers, "probe", return_value=healthy), \
                  mock.patch.object(hp.v091, "gateway_fast_probe", return_value=True), \
-                 mock.patch.object(hp, "_defer_lmstudio_long_running_call", return_value=None), \
-                 mock.patch.object(hp.recovery_policy, "gate", return_value=gate), \
                  mock.patch.object(hp, "_run_base_supervisor", return_value={"result": "base"}) as base, \
                  mock.patch.object(hp.stall, "claim_expired_direct_model_call") as claim:
                 result = hp.supervisor_tick(root, execute_safe=True)
@@ -197,6 +222,24 @@ class HostProviderV092Tests(unittest.TestCase):
             base.assert_called()
             self.assertEqual(result["result"], "provider-recovery-circuit-open")
             self.assertFalse(result["providerRecovery"]["providerRestart"])
+            self.assertEqual(result["providerRecovery"]["gate"]["recoveryAttempts"], 2)
+
+    def test_base_reconciliation_cannot_use_legacy_timer_claim(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            observed = []
+
+            def fake_base(root_arg, execute_safe):
+                observed.append(hp.stall.claim_expired_direct_model_call(root_arg))
+                return {"result": "base"}
+
+            with mock.patch.object(hp, "BASE_SUPERVISOR_TICK", side_effect=fake_base), \
+                 mock.patch.object(hp.stall, "claim_expired_direct_model_call", return_value={"ticketId": "timer"}) as original_claim:
+                result = hp._run_base_supervisor(root, True, True)
+
+            self.assertEqual(result["result"], "base")
+            self.assertEqual(observed, [None])
+            self.assertIs(hp.stall.claim_expired_direct_model_call, original_claim)
 
 
 if __name__ == "__main__":
