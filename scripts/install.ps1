@@ -97,6 +97,7 @@ if (-not $SkipPlugin) {
 
         if ($LinkPlugin) {
             openclaw plugins install --link . --force
+            if ($LASTEXITCODE -ne 0) { throw "linked plugin installation failed" }
         }
         else {
             $currentPaths = $null
@@ -114,9 +115,36 @@ if (-not $SkipPlugin) {
                 openclaw config set plugins.load.paths $filteredPaths --strict-json --replace
                 if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
             }
-            openclaw plugins install . --force
+
+            # Install from the publishable npm artifact instead of copying the
+            # development checkout. npm ci may create node_modules\openclaw as a
+            # peer/dev link on Windows; copying that link into OpenClaw's managed
+            # extension staging can fail with EPERM even though it is excluded
+            # from the published package by package.json "files".
+            $packOutput = (& npm pack --json | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
+            try {
+                $packed = $packOutput | ConvertFrom-Json
+            }
+            catch {
+                throw "npm pack returned invalid JSON: $($_.Exception.Message)"
+            }
+            $packedItems = @($packed)
+            if ($packedItems.Count -ne 1 -or -not $packedItems[0].filename) {
+                throw "npm pack did not return exactly one package artifact"
+            }
+            $packagePath = Join-Path $pluginDir ([string]$packedItems[0].filename)
+            if (-not (Test-Path -LiteralPath $packagePath)) {
+                throw "npm pack artifact not found: $packagePath"
+            }
+            try {
+                openclaw plugins install ("npm-pack:" + $packagePath) --force
+                if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
+            }
+            finally {
+                Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue
+            }
         }
-        if ($LASTEXITCODE -ne 0) { throw "plugin installation failed" }
 
         openclaw plugins disable cogentnexus-rotation
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus plugin disabled after installation" }
