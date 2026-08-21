@@ -14,7 +14,7 @@ EXPECTED = [
     "references/context-continuity.md", "references/scheduler-adapters.md", "references/startup-policy.md",
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
     "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/startup.py", "scripts/workflow.py", "scripts/validate_templates.py",
-    "scripts/provider.py", "scripts/checks.py", "scripts/cnx.py",
+    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnx.py",
     "scripts/openclaw_route_v092.py", "scripts/openclaw_runtime_boundary_v092.py", "scripts/provider_recovery_v092.py",
     "scripts/host_provider_v092.py", "scripts/host_v092.py", "scripts/host_control_v092.py", "scripts/startup_v092.py", "scripts/lifecycle_v092.py",
     "assets/task-state-template.json", "assets/execution-manifest-template.md", "assets/lesson-template.md",
@@ -28,7 +28,7 @@ EXPECTED = [
 PYTHON_FILES = [
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
     "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/startup.py", "scripts/workflow.py", "scripts/validate_templates.py",
-    "scripts/provider.py", "scripts/checks.py", "scripts/cnx.py",
+    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnx.py",
     "scripts/openclaw_route_v092.py", "scripts/openclaw_runtime_boundary_v092.py", "scripts/provider_recovery_v092.py",
     "scripts/host_provider_v092.py", "scripts/host_v092.py", "scripts/host_control_v092.py", "scripts/startup_v092.py", "scripts/lifecycle_v092.py"
 ]
