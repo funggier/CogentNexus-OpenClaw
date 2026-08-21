@@ -100,3 +100,48 @@ jobs:
         working-directory: plugins/cogentnexus-rotation
       - run: npm run plugin:validate
         working-directory: plugins/cogentnexus-rotation
+
+  package-dry-run:
+    name: package dry-run (no publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Verify Core 0.9.2 and frozen Bridge metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          core=$(tr -d '\r\n' < VERSION)
+          package_version=$(node -p "require('./plugins/cogentnexus-rotation/package.json').version")
+          manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-rotation/openclaw.plugin.json')).version")
+          lock_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').packages[''].version")
+          test "$core" = "0.9.2"
+          test "$package_version" = "0.9.1"
+          test "$package_version" = "$manifest_version"
+          test "$package_version" = "$lock_version"
+          test "$package_version" = "$lock_root_version"
+          test -s docs/BASELINE.md
+          test -s docs/INSTALL.md
+          test -s docs/INSTALL.th.md
+          test -s docs/releases/v0.9.2.md
+      - name: Build and verify release archives without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="cogentnexus-v0.9.2"
+          stage="$RUNNER_TEMP/$name"
+          out="$RUNNER_TEMP/release"
+          mkdir -p "$stage" "$out"
+          rsync -a --exclude '.git/' --exclude '.cogent/' --exclude 'node_modules/' ./ "$stage/"
+          tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
+          (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
+          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          (cd "$out" && sha256sum -c SHA256SUMS.txt)
+          tar -tzf "$out/$name.tar.gz" >/dev/null
+          unzip -tq "$out/$name.zip"
+          test -s "$out/$name.tar.gz"
+          test -s "$out/$name.zip"
+          test -s "$out/SHA256SUMS.txt"
