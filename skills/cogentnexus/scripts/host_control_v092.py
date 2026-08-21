@@ -2,7 +2,7 @@
 """CogentNexus v0.9.2 Host control shim.
 
 Preserves every v0.9.1 watchdog/plugin safety fence while routing normal Host
-work through the provider-neutral v0.9.2 overlay and destructive lifecycle
+work through the final provider-neutral v0.9.2 overlay and destructive lifecycle
 through the provider-aware v0.9.2 wrapper.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import host_control_v091 as v091
 import lifecycle_v092 as lifecycle
 
 HERE = Path(__file__).resolve()
-v091.legacy.HOST = HERE.with_name("host_provider_v092.py")
+v091.legacy.HOST = HERE.with_name("host_v092.py")
 
 
 def option_value(argv: list[str], name: str) -> str | None:
