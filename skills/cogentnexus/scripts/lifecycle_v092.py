@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """CogentNexus v0.9.2 destructive lifecycle wrapper.
 
-Uninstall reuses the accepted v0.9.1 safety path. Reset keeps v0.9.1 explicit-y,
-PASSTHROUGH-first and verification semantics, but chooses the fresh-install
-provider explicitly when more than one local provider is installed.
+Uninstall and reset preserve the accepted v0.9.1 explicit-y and PASSTHROUGH-first
+safety boundaries while also restoring the narrow OpenClaw route/timeout/compat
+fields owned by v0.9.2 before CNX state is removed.
 """
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -15,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import lifecycle_v091 as base
+import openclaw_route_v092 as openclaw_route
 import provider
 
 HERE = Path(__file__).resolve()
@@ -22,7 +24,6 @@ HOST = HERE.with_name("host_provider_v092.py")
 HOST_CONTROL = HERE.with_name("host_control_v092.py")
 STARTUP = HERE.with_name("startup_v092.py")
 
-# Uninstall/disable calls from the accepted lifecycle use current release wiring.
 base.HOST = HOST
 base.HOST_CONTROL = HOST_CONTROL
 base.STARTUP = STARTUP
@@ -85,14 +86,22 @@ def commit_selection(root: Path, target: str) -> None:
 def reset(root: Path, explicit_provider: str | None = None) -> int:
     try:
         target = resolve_fresh_provider(explicit_provider)
+        route_plan = openclaw_route.plan(root, target)
+        if not route_plan.get("ok"):
+            raise RuntimeError(f"OpenClaw route preflight failed: {route_plan}")
     except Exception as error:
         print(json.dumps({"result": "error", "action": "reset", "error": str(error), "stateChanged": False}, ensure_ascii=False, indent=2))
         return 2
 
     if not base.confirm("reset"):
         return 0
+    route_started = False
     try:
         base.disable_managed(root)
+        restored = openclaw_route.restore_native(root)
+        if not restored.get("ok"):
+            raise RuntimeError(f"native OpenClaw route restore failed before reset: {restored}")
+
         base.disable_startup(root)
         base.reset_plugin_configuration()
         if root.exists():
@@ -102,9 +111,12 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         base.bootstrap_ticket_database()
         base.run([sys.executable, str(HOST), "--root", str(root), "policy", "apply"], timeout=120, check=True)
 
-        # Fresh reset state has no selected provider. Only an in-progress target
-        # is durable until MANAGED + provider + Gateway verification succeeds.
         seed_transition(root, target)
+        route_result = openclaw_route.begin(root, target)
+        if not route_result.get("ok"):
+            raise RuntimeError(f"OpenClaw route transaction failed after reset: {route_result}")
+        route_started = True
+
         enabled = base.run([sys.executable, str(HOST_CONTROL), "--root", str(root), "enable"], timeout=300, check=False)
         base.forward(enabled)
         if enabled.returncode != 0:
@@ -113,10 +125,22 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         plugin = base.verify_plugin_loaded()
         gateway = base.gateway_health()
         provider_health = provider.probe(target, timeout=5.0)
+        route_after = openclaw_route.plan(root, target)
+        route_ready = (
+            route_after.get("ok")
+            and route_after.get("currentProvider") == target
+            and route_after.get("currentModel") == route_after.get("model")
+        )
         if not gateway.get("healthy"):
             raise RuntimeError("OpenClaw Gateway failed health verification after CogentNexus reset")
         if not provider_health.get("healthy"):
             raise RuntimeError(f"selected provider '{target}' failed health verification after CogentNexus reset")
+        if not route_ready:
+            raise RuntimeError(f"OpenClaw model route failed verification after CogentNexus reset: {route_after}")
+
+        route_commit = openclaw_route.commit(root)
+        if not route_commit.get("ok"):
+            raise RuntimeError(f"OpenClaw route commit failed after reset: {route_commit}")
         commit_selection(root, target)
 
         print("")
@@ -124,9 +148,15 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         print(f"Workspace : {base.WORKSPACE}")
         print(f"Plugin    : {plugin.get('status')}")
         print(f"Provider  : {target}")
+        print(f"Model     : {route_after.get('model')}")
         print("State     : fresh-install MANAGED")
         return 0
     except Exception as error:
+        try:
+            if route_started:
+                openclaw_route.rollback(root)
+        except Exception:
+            pass
         try:
             if (root / "host" / "controller.json").exists():
                 base.run([sys.executable, str(HOST_CONTROL), "--root", str(root), "disable"], timeout=240, check=False)
@@ -142,12 +172,55 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         return 1
 
 
+def uninstall(root: Path) -> int:
+    if not base.confirm("uninstall"):
+        return 0
+    try:
+        base.disable_managed(root)
+        restored = openclaw_route.restore_native(root)
+        if not restored.get("ok"):
+            raise RuntimeError(f"native OpenClaw route restore failed before uninstall: {restored}")
+
+        base.disable_startup(root)
+        base.uninstall_plugin()
+
+        gateway = base.gateway_health()
+        if not gateway.get("healthy"):
+            raise RuntimeError("native OpenClaw Gateway is not healthy after CogentNexus uninstall boundary")
+
+        owned = base.uninstall_owned_paths(root)
+        if os.name == "nt":
+            base.schedule_windows_cleanup(owned)
+        else:
+            for path in owned:
+                if path.is_dir():
+                    shutil.rmtree(path, ignore_errors=False)
+                elif path.exists():
+                    path.unlink()
+
+        print("")
+        print("COGENTNEXUS UNINSTALL: PASS")
+        print("OpenClaw : native / healthy / pre-CNX route restored")
+        print("Providers: unchanged")
+        if os.name == "nt":
+            print("Cleanup  : cnx.cmd and remaining CNX files/backups scheduled for removal after command exit")
+        return 0
+    except Exception as error:
+        print(json.dumps({
+            "result": "error",
+            "action": "uninstall",
+            "error": str(error),
+            "safety": "destructive file cleanup was not scheduled unless native OpenClaw health and route restoration were verified",
+        }, ensure_ascii=False, indent=2))
+        return 1
+
+
 def main(command: str, root: Path | None = None, explicit_provider: str | None = None) -> int:
     resolved = (root or base.DEFAULT_ROOT).resolve()
     if command == "reset":
         return reset(resolved, explicit_provider)
     if command == "uninstall":
-        return base.uninstall(resolved)
+        return uninstall(resolved)
     raise ValueError(f"unsupported lifecycle command: {command}")
 
 
