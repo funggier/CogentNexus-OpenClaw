@@ -4,17 +4,23 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 WORKSPACE=${OPENCLAW_WORKSPACE:-"$HOME/.openclaw/workspace"}
+PROVIDER=""
 SKIP_PLUGIN=0
 SKIP_GATEWAY_RESTART=0
 LINK_PLUGIN=0
 SKIP_AGENTS_POLICY=0
 VERSION=$(cat "$REPO_ROOT/VERSION" 2>/dev/null || printf 'unknown')
 
-usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
+usage() { echo "Usage: $0 [--workspace PATH] [--provider ollama|lmstudio] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workspace) [ "$#" -ge 2 ] || { usage; exit 2; }; WORKSPACE=$2; shift 2 ;;
+    --provider)
+      [ "$#" -ge 2 ] || { usage; exit 2; }
+      PROVIDER=$2
+      case "$PROVIDER" in ollama|lmstudio) ;; *) echo "Unsupported provider: $PROVIDER" >&2; exit 2 ;; esac
+      shift 2 ;;
     --skip-plugin) SKIP_PLUGIN=1; shift ;;
     --skip-gateway-restart) SKIP_GATEWAY_RESTART=1; shift ;;
     --skip-agents-policy) SKIP_AGENTS_POLICY=1; shift ;;
@@ -25,9 +31,10 @@ while [ "$#" -gt 0 ]; do
 done
 
 echo "Installing CogentNexus v$VERSION"
+[ -n "$PROVIDER" ] && echo "Requested provider: $PROVIDER"
 
 if { [ "$SKIP_PLUGIN" -eq 1 ] || [ "$SKIP_AGENTS_POLICY" -eq 1 ]; } && [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
-  echo "--skip-plugin and --skip-agents-policy are staging-only options in v0.9.1. Use them with --skip-gateway-restart; transactional MANAGED enable requires the bridge and managed policy." >&2
+  echo "--skip-plugin and --skip-agents-policy are staging-only options. Use them with --skip-gateway-restart." >&2
   exit 2
 fi
 
@@ -49,7 +56,7 @@ TARGET_SKILL="$WORKSPACE/skills/cogentnexus"
 STAGED_SKILL="$WORKSPACE/.cogent/install-staging/cogentnexus"
 BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
 HOST_SCRIPT="$TARGET_SKILL/scripts/host_v091.py"
-HOST_CONTROL_SCRIPT="$TARGET_SKILL/scripts/host_control_v091.py"
+CLI_SCRIPT="$TARGET_SKILL/scripts/cnx.py"
 COGENT_ROOT="$WORKSPACE/.cogent"
 
 mkdir -p "$WORKSPACE/skills"
@@ -68,9 +75,6 @@ mv "$STAGED_SKILL" "$TARGET_SKILL"
 echo "Installed CogentNexus skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
-
-# v0.9.1 fresh initialization is PASSTHROUGH. MANAGED is committed only after
-# the transactional Host enable sequence verifies every activation stage.
 python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 1 ]; then
@@ -78,10 +82,8 @@ if [ "$SKIP_GATEWAY_RESTART" -eq 1 ]; then
 import json,sys
 from pathlib import Path
 path=Path(sys.argv[1])
-try:
-    print(json.loads(path.read_text(encoding='utf-8')).get('mode',''))
-except Exception:
-    print('')
+try: print(json.loads(path.read_text(encoding='utf-8')).get('mode',''))
+except Exception: print('')
 PY
 )
   if [ "$mode" != "passthrough" ]; then
@@ -99,8 +101,6 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
     cd "$REPO_ROOT/plugins/cogentnexus-rotation"
     npm ci
     npm run plugin:validate
-    # Materialize the Ticket schema before MANAGED can be committed so CLI and
-    # supervisor reads are valid even before the first OpenClaw message.
     node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     if [ "$LINK_PLUGIN" -eq 1 ]; then
       openclaw plugins install --link . --force
@@ -118,22 +118,33 @@ fi
 LAUNCHER="$WORKSPACE/cnx"
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env sh
-exec python "$HOST_CONTROL_SCRIPT" --root "$COGENT_ROOT" "\$@"
+exec python "$CLI_SCRIPT" --root "$COGENT_ROOT" "\$@"
 EOF
 chmod +x "$LAUNCHER"
-echo "Installed Host Controller launcher to $LAUNCHER"
+echo "Installed CogentNexus launcher to $LAUNCHER"
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
-  python "$HOST_CONTROL_SCRIPT" --root "$COGENT_ROOT" enable
+  if [ -n "$PROVIDER" ]; then
+    python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable --provider "$PROVIDER"
+  else
+    python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable || {
+      echo "CogentNexus enable failed. If both Ollama and LM Studio are installed, rerun with --provider ollama or --provider lmstudio." >&2
+      exit 1
+    }
+  fi
 else
   echo "Skipped Host enable because --skip-gateway-restart was requested."
-  echo "Note: OpenClaw plugin installation itself may have restarted Gateway as part of its native plugin lifecycle."
-  echo "CogentNexus remains PASSTHROUGH with its plugin disabled. Run '$LAUNCHER enable' when ready."
+  echo "CogentNexus remains PASSTHROUGH with its plugin disabled."
+  if [ -n "$PROVIDER" ]; then
+    echo "Provider was not committed during staging; run '$LAUNCHER enable --provider $PROVIDER' when ready."
+  else
+    echo "Run '$LAUNCHER enable [--provider ollama|lmstudio]' when ready."
+  fi
 fi
 
 openclaw gateway status || [ "$SKIP_GATEWAY_RESTART" -eq 1 ]
 python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
-python "$HOST_SCRIPT" --root "$COGENT_ROOT" status
+python "$CLI_SCRIPT" --root "$COGENT_ROOT" status
 
 echo "CogentNexus v$VERSION installation completed successfully."
-echo "Control it with: $LAUNCHER status|start|stop|restart|gateway|ticket|session|policy|disable|enable"
+echo "Control it with: $LAUNCHER status|check|provider|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"
