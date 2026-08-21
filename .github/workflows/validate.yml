@@ -58,6 +58,7 @@ jobs:
           skills/cogentnexus/scripts/startup_v091.py
           skills/cogentnexus/scripts/provider.py
           skills/cogentnexus/scripts/checks.py
+          skills/cogentnexus/scripts/checks_v092.py
           skills/cogentnexus/scripts/cnx.py
           skills/cogentnexus/scripts/openclaw_route_v092.py
           skills/cogentnexus/scripts/openclaw_runtime_boundary_v092.py
