@@ -2,6 +2,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
@@ -56,6 +57,22 @@ class ProviderEventsV092Tests(unittest.TestCase):
             stop.assert_called_once_with(root, "lmstudio")
             self.assertFalse(result["supported"])
             self.assertFalse(result["running"])
+
+    def test_ensure_lmstudio_adapter_publishes_child_pid_before_return(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            fake = SimpleNamespace(pid=424242)
+            with mock.patch.object(events.provider, "find_lms_cli", return_value="lms"), \
+                 mock.patch.object(events.subprocess, "Popen", return_value=fake):
+                result = events.ensure_adapter(root, "lmstudio")
+
+            self.assertTrue(result["running"])
+            self.assertTrue(result["started"])
+            self.assertEqual(result["pid"], 424242)
+            self.assertEqual(
+                events.pid_path(root, "lmstudio").read_text(encoding="utf-8"),
+                "424242",
+            )
 
 
 if __name__ == "__main__":
