@@ -16,6 +16,10 @@ VERDICT_EXIT = base.VERDICT_EXIT
 item = base.item
 render = base.render
 preflight_start = base.preflight_start
+# Keep the v0.9.1/general check facade available to callers that import the
+# v0.9.2 overlay. cnx.provider_transition() uses this exact read-only probe for
+# post-transition Gateway verification.
+check_gateway = base.check_gateway
 
 
 def _controller(root: Path) -> dict[str, Any]:
