@@ -272,6 +272,12 @@ def ensure_adapter(root: Path, provider_name: str) -> dict[str, Any]:
     else:
         kwargs["start_new_session"] = True
     proc = subprocess.Popen(command, **kwargs)
+    # Commit the child pid synchronously so lifecycle verification does not race
+    # the daemon's own startup write. The daemon rewrites the same pid after it
+    # starts, and removes it only if it still owns that exact value.
+    path = pid_path(root, provider_name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(str(proc.pid), encoding="utf-8")
     return {"provider": provider_name, "supported": True, "running": True, "started": True, "pid": proc.pid, "command": command}
 
 
