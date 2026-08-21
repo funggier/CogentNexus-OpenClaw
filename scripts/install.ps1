@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
+    [ValidateSet("ollama", "lmstudio")]
+    [string]$Provider,
     [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
@@ -17,7 +19,7 @@ $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
 $hostScript = Join-Path $targetSkill "scripts\host_v091.py"
-$hostControlScript = Join-Path $targetSkill "scripts\host_control_v091.py"
+$cliScript = Join-Path $targetSkill "scripts\cnx.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
 
 function Require-Command([string]$Name) {
@@ -28,9 +30,10 @@ function Require-Command([string]$Name) {
 
 Write-Host "Installing CogentNexus v$version"
 Write-Host "Workspace: $Workspace"
+if ($Provider) { Write-Host "Requested provider: $Provider" }
 
 if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
-    throw "-SkipPlugin and -SkipAgentsPolicy are staging-only options in v0.9.1. Use them with -SkipGatewayRestart; transactional MANAGED enable requires the bridge and managed policy."
+    throw "-SkipPlugin and -SkipAgentsPolicy are staging-only options. Use them with -SkipGatewayRestart; transactional MANAGED enable requires the bridge and managed policy."
 }
 
 Require-Command python
@@ -63,8 +66,8 @@ Write-Host "Installed CogentNexus skill to $targetSkill"
 python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
-# v0.9.1 fresh initialization is PASSTHROUGH. MANAGED is committed only after
-# the transactional Host enable sequence verifies every activation stage.
+# Fresh initialization remains PASSTHROUGH. Provider selection is committed only
+# after the v0.9.2 CLI verifies provider + Gateway during transactional enable.
 python $hostScript --root $cogentRoot init
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
 
@@ -76,8 +79,6 @@ if ($SkipGatewayRestart) {
     }
 }
 
-# Transactional enable reapplies the registered policy before committing
-# MANAGED; in PASSTHROUGH this command is intentionally a no-op.
 if (-not $SkipAgentsPolicy) {
     python $hostScript --root $cogentRoot policy apply
     if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
@@ -91,8 +92,6 @@ if (-not $SkipPlugin) {
         npm run plugin:validate
         if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
 
-        # A fresh workspace must expose Ticket CLI/schema immediately, before
-        # the first OpenClaw message happens to lazily open TicketStore.
         node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
         if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
 
@@ -119,9 +118,6 @@ if (-not $SkipPlugin) {
         }
         if ($LASTEXITCODE -ne 0) { throw "plugin installation failed" }
 
-        # Installation may restart Gateway through OpenClaw's native plugin
-        # lifecycle. Keep CNX inactive until transactional enable stages valid
-        # config and commits MANAGED.
         openclaw plugins disable cogentnexus-rotation
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus plugin disabled after installation" }
     }
@@ -129,20 +125,32 @@ if (-not $SkipPlugin) {
 }
 
 $launcher = Join-Path $Workspace "cnx.cmd"
-$hostControlEscaped = $hostControlScript.Replace('"','""')
+$cliEscaped = $cliScript.Replace('"','""')
 $rootEscaped = $cogentRoot.Replace('"','""')
-$launcherText = "@echo off`r`npython `"$hostControlEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+$launcherText = "@echo off`r`npython `"$cliEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
-Write-Host "Installed Host Controller launcher to $launcher"
+Write-Host "Installed CogentNexus launcher to $launcher"
 
 if (-not $SkipGatewayRestart) {
-    python $hostControlScript --root $cogentRoot enable
-    if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
+    $enableArgs = @($cliScript, "--root", $cogentRoot, "enable")
+    if ($Provider) { $enableArgs += @("--provider", $Provider) }
+    & python @enableArgs
+    if ($LASTEXITCODE -ne 0) {
+        if (-not $Provider) {
+            throw "CogentNexus enable failed. If both Ollama and LM Studio are installed, rerun with -Provider ollama or -Provider lmstudio."
+        }
+        throw "CogentNexus Host enable failed for provider '$Provider'"
+    }
 }
 else {
     Write-Host "Skipped Host enable because -SkipGatewayRestart was requested."
-    Write-Host "Note: OpenClaw plugin installation itself may have restarted Gateway as part of its native plugin lifecycle."
-    Write-Host "CogentNexus remains PASSTHROUGH with its plugin disabled. Run .\cnx.cmd enable from the workspace when ready."
+    Write-Host "CogentNexus remains PASSTHROUGH with its plugin disabled."
+    if ($Provider) {
+        Write-Host "Provider was not committed during staging; run .\cnx.cmd enable --provider $Provider when ready."
+    }
+    else {
+        Write-Host "Run .\cnx.cmd enable [--provider ollama|lmstudio] when ready."
+    }
 }
 
 openclaw gateway status
@@ -151,8 +159,8 @@ if ($LASTEXITCODE -ne 0 -and -not $SkipGatewayRestart) { throw "Gateway health c
 python (Join-Path $targetSkill "scripts\runtime.py") supervisor doctor
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus supervisor check failed" }
 
-python $hostScript --root $cogentRoot status
-if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host status check failed" }
+& python $cliScript --root $cogentRoot status
+if ($LASTEXITCODE -ne 0) { throw "CogentNexus status check failed" }
 
 Write-Host "CogentNexus v$version installation completed successfully."
-Write-Host "Control it with: $launcher status|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"
+Write-Host "Control it with: $launcher status|check|provider|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"
