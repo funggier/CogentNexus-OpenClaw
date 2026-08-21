@@ -24,6 +24,9 @@ jobs:
       - name: Install plugin development dependencies
         working-directory: plugins/cogentnexus-rotation
         run: npm ci
+      - name: Build and validate plugin before packing
+        working-directory: plugins/cogentnexus-rotation
+        run: npm run plugin:validate
       - name: Verify installer uses npm-pack instead of copying checkout
         shell: powershell
         run: |
