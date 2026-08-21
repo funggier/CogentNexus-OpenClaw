@@ -100,13 +100,15 @@ def gate(root: Path, provider_name: str, current: datetime | None = None) -> dic
     value = _provider_state(state, provider_name)
     attempts = _recent_attempts(value, current)
     cooldown_until = _parse(value.get("cooldownUntil"))
-    circuit_open = cooldown_until is not None and cooldown_until > current
+    cooldown_active = cooldown_until is not None and cooldown_until > current
     limit_reached = len(attempts) >= settings["maximumRecoveriesPerHour"]
-    allowed = not circuit_open and not limit_reached
+    allowed = not cooldown_active and not limit_reached
     return {
         "provider": provider_name,
         "allowed": allowed,
-        "circuitOpen": circuit_open or limit_reached,
+        "circuitOpen": cooldown_active or limit_reached,
+        "cooldownActive": cooldown_active,
+        "limitReached": limit_reached,
         "cooldownUntil": cooldown_until.isoformat() if cooldown_until else None,
         "recoveriesLastHour": len(attempts),
         **settings,
@@ -121,6 +123,12 @@ def record_attempt(
     reason: str,
     current: datetime | None = None,
 ) -> dict[str, Any]:
+    """Record one recovery that already occurred and gate the next one.
+
+    Every automatic attempt starts the provider-specific cooldown immediately.
+    The rolling-hour maximum is an independent upper bound. Production callers
+    must check :func:`gate` before invoking a recovery adapter.
+    """
     current = (current or now_utc()).astimezone(timezone.utc)
     settings = policy(provider_name)
     state = load_state(root)
@@ -134,12 +142,9 @@ def record_attempt(
     value["attempts"] = attempts
     value["lastAttemptAt"] = current.isoformat()
     value["lastAttemptSuccess"] = bool(success)
-    if len(attempts) >= settings["maximumRecoveriesPerHour"]:
-        value["cooldownUntil"] = (
-            current + timedelta(seconds=settings["cooldownSeconds"])
-        ).isoformat()
-    else:
-        value.pop("cooldownUntil", None)
+    value["cooldownUntil"] = (
+        current + timedelta(seconds=settings["cooldownSeconds"])
+    ).isoformat()
     state["updatedAt"] = current.isoformat()
     _atomic_json(state_path(root), state)
     return gate(root, provider_name, current=current)
