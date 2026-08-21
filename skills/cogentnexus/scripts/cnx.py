@@ -230,7 +230,10 @@ def _transition_host_runtime(
     v0.9.1 lifecycle `start` deliberately skips Gateway start when the Gateway is
     already healthy, while `restart` restarts only the Gateway. A provider switch
     therefore needs both semantics: start/verify the target provider first, then
-    force a Gateway process boundary whenever the active route changed.
+    force a Gateway process boundary whenever the active route changed. `enable`
+    also always receives a process boundary because v0.9.2 may have just reapplied
+    provider timeout/schema-compat fields even when the model route string itself
+    is unchanged from the operator's native route.
     """
     boundary: dict[str, Any] | None = None
 
@@ -245,7 +248,7 @@ def _transition_host_runtime(
     if not primary.get("ok"):
         return primary, None
 
-    if route_changed:
+    if route_changed or action == "enable":
         boundary = run_host(root, ["restart"], target=target)
         if not boundary.get("ok"):
             return boundary, {"primary": primary, "gatewayRestart": boundary}
@@ -373,7 +376,7 @@ Lifecycle:
   cnx.cmd restart [--provider ollama|lmstudio]
   cnx.cmd enable [--provider ollama|lmstudio]
   cnx.cmd disable
-  cnx.cmd reset
+  cnx.cmd reset [--provider ollama|lmstudio]
   cnx.cmd uninstall
 
 Inspection (read-only):
