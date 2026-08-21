@@ -17,6 +17,7 @@ from typing import Any
 import checks
 import openclaw_route_v092 as openclaw_route
 import provider
+import provider_recovery_v092 as recovery_policy
 
 HERE = Path(__file__).resolve()
 SKILL = HERE.parents[1]
@@ -296,11 +297,13 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
         }
 
     state = commit_provider(root, target, source)
+    recovery_budget = recovery_policy.clear_after_manual_transition(root, target)
     return 0, {
         "result": "ok", "action": action, "provider": target,
         "selectionSource": source, "providerSelection": state.get("providerSelection"),
         "host": host.get("output"),
         "route": route_commit,
+        "providerRecoveryPolicy": recovery_budget,
         "verification": {"provider": final_provider, "gateway": gateway, "route": route_after},
     }
 
