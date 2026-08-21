@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import checks
+import checks_v092 as checks
 import openclaw_route_v092 as openclaw_route
 import provider
 import provider_recovery_v092 as recovery_policy
