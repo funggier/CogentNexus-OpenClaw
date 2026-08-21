@@ -5,10 +5,10 @@ Preserves every v0.9.1 watchdog/plugin safety fence while routing normal Host
 work through the provider-neutral v0.9.2 overlay and destructive lifecycle
 through the provider-aware v0.9.2 wrapper.
 
-The PASSTHROUGH boundary additionally restores v0.9.2-owned OpenClaw route,
-timeout and schema-compat fields and forces one verified Gateway process
-boundary. A config-file restore alone is not sufficient evidence that the
-running Gateway has loaded the native route.
+The PASSTHROUGH boundary restores v0.9.2-owned OpenClaw route/timeout/schema
+fields, stops CNX provider event adapters, and forces one verified Gateway
+process boundary. A config-file restore alone is not sufficient evidence that
+the running Gateway has loaded the native route.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import host_control_v091 as v091
 import lifecycle_v092 as lifecycle
 import openclaw_route_v092 as openclaw_route
 import openclaw_runtime_boundary_v092 as runtime_boundary
+import provider_events_v092 as provider_events
 
 HERE = Path(__file__).resolve()
 v091.legacy.HOST = HERE.with_name("host_v092.py")
@@ -38,12 +39,17 @@ def _finish_disable_native_boundary(root: Path, delegate_code: int) -> int:
     if delegate_code != 0:
         return delegate_code
 
+    # PASSTHROUGH means CNX must no longer react to provider runtime events even
+    # if restoring/reloading native OpenClaw configuration later fails.
+    adapter_stop = provider_events.stop_adapter(root)
+
     restored = openclaw_route.restore_native(root)
     if not restored.get("ok"):
         print(json.dumps({
             "result": "error",
             "phase": "restore-native-openclaw-route",
             "routeRestore": restored,
+            "providerEventAdapterStop": adapter_stop,
             "safety": "CogentNexus is PASSTHROUGH; destructive cleanup is blocked until the native route is restored",
         }, ensure_ascii=False, indent=2))
         return 1
@@ -54,6 +60,7 @@ def _finish_disable_native_boundary(root: Path, delegate_code: int) -> int:
             "result": "error",
             "phase": "activate-native-openclaw-route",
             "routeRestore": restored,
+            "providerEventAdapterStop": adapter_stop,
             "runtimeBoundary": boundary,
             "safety": "CogentNexus is PASSTHROUGH and native config is durable, but Gateway reload/health could not be verified",
         }, ensure_ascii=False, indent=2))
