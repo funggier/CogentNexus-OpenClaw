@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
-"""v0.9.2 read-only check overlay with prospective provider-route semantics.
-
-The v0.9.1/general check primitives remain observational. This overlay changes
-only the meaning of an explicit provider override: `check ... --provider X`
-asks whether X can be selected next, so the current default model may belong to
-a different provider without making the prospective check fail.
-"""
+"""v0.9.2 read-only checks with prospective route and event-recovery semantics."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 import checks as base
 import openclaw_route_v092 as route
 import provider
+import provider_events_v092 as provider_events
+import provider_recovery_v092 as recovery_policy
 
 VERDICT_EXIT = base.VERDICT_EXIT
 item = base.item
 render = base.render
 preflight_start = base.preflight_start
+
+
+def _controller(root: Path) -> dict[str, Any]:
+    path = root / "host" / "controller.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
 
 
 def check_model(root: Path, override: str | None = None) -> list[dict[str, Any]]:
@@ -108,6 +114,76 @@ def check_model(root: Path, override: str | None = None) -> list[dict[str, Any]]
     return results
 
 
+def check_recovery(root: Path) -> list[dict[str, Any]]:
+    results = list(base.check_recovery(root))
+    controller = _controller(root)
+    selected = controller.get("selectedProvider")
+    if not selected:
+        results.append(item(
+            "Provider recovery incident",
+            "PASS",
+            "No selected provider; no provider recovery incident has authority",
+            incidentOpen=False,
+        ))
+        return results
+
+    try:
+        selected = provider.normalize_provider(str(selected))
+        gate = recovery_policy.gate(root, selected)
+        if gate.get("circuitOpen"):
+            status = "WARN"
+            summary = f"{selected} recovery circuit is open for incident {gate.get('incidentId')}"
+        elif gate.get("incidentOpen"):
+            status = "WARN"
+            summary = f"{selected} has an active provider incident with bounded recovery authority"
+        else:
+            status = "PASS"
+            summary = f"{selected} has no active provider recovery incident"
+        results.append(item(
+            "Provider recovery incident",
+            status,
+            summary,
+            **gate,
+        ))
+    except Exception as exc:
+        results.append(item(
+            "Provider recovery incident",
+            "INDETERMINATE",
+            f"Provider incident state could not be inspected: {exc}",
+        ))
+
+    mode = controller.get("mode")
+    desired = controller.get("desiredProvider")
+    if selected == "lmstudio":
+        adapter = provider_events.adapter_status(root, selected)
+        expected = mode == "managed" and desired == "running"
+        if expected and adapter.get("running"):
+            status = "PASS"
+            summary = "LM Studio blocking provider-event adapter is running"
+        elif expected:
+            status = "WARN"
+            summary = "LM Studio is selected/running but its provider-event adapter is not running; reconciliation fallback remains available"
+        else:
+            status = "PASS"
+            summary = "LM Studio provider-event adapter is not required in the current controller state"
+        results.append(item(
+            "Provider event adapter",
+            status,
+            summary,
+            expected=expected,
+            **adapter,
+        ))
+    else:
+        results.append(item(
+            "Provider event adapter",
+            "PASS",
+            "Selected provider does not require the LM Studio runtime progress adapter",
+            provider=selected,
+            expected=False,
+        ))
+    return results
+
+
 def system_check(root: Path, provider_override: str | None = None) -> dict[str, Any]:
     root = root.resolve()
     entries: list[dict[str, Any]] = []
@@ -118,7 +194,7 @@ def system_check(root: Path, provider_override: str | None = None) -> dict[str, 
     entries.extend(check_model(root, provider_override))
     entries.extend(base.check_gateway())
     entries.extend(base.check_storage(root))
-    entries.extend(base.check_recovery(root))
+    entries.extend(check_recovery(root))
     entries.extend(base.check_delivery(root))
     entries.extend(base.check_resources(root))
     verdict = base.aggregate(entries)
@@ -135,9 +211,12 @@ def system_check(root: Path, provider_override: str | None = None) -> dict[str, 
 
 def component_check(root: Path, component: str, provider_override: str | None = None) -> dict[str, Any]:
     root = root.resolve()
-    if component != "model":
+    if component == "model":
+        entries = check_model(root, provider_override)
+    elif component == "recovery":
+        entries = check_recovery(root)
+    else:
         return base.component_check(root, component, provider_override)
-    entries = check_model(root, provider_override)
     verdict = base.aggregate(entries)
     return {
         "check": component,
