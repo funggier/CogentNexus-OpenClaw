@@ -59,6 +59,8 @@ jobs:
           skills/cogentnexus/scripts/provider.py
           skills/cogentnexus/scripts/checks.py
           skills/cogentnexus/scripts/cnx.py
+          skills/cogentnexus/scripts/openclaw_route_v092.py
+          skills/cogentnexus/scripts/provider_recovery_v092.py
           skills/cogentnexus/scripts/host_provider_v092.py
           skills/cogentnexus/scripts/host_v092.py
           skills/cogentnexus/scripts/host_control_v092.py
