@@ -1,0 +1,73 @@
+name: Windows Installer Pack Smoke
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  npm-pack:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
+      - name: Install plugin development dependencies
+        working-directory: plugins/cogentnexus-rotation
+        run: npm ci
+      - name: Verify installer uses npm-pack instead of copying checkout
+        shell: powershell
+        run: |
+          $source = Get-Content scripts/install.ps1 -Raw
+          if (-not $source.Contains('openclaw plugins install ("npm-pack:" + $packagePath) --force')) {
+            throw 'Windows installer is not using the npm-pack install path.'
+          }
+          if ($source.Contains('openclaw plugins install . --force')) {
+            throw 'Windows installer still contains the managed checkout-copy install path.'
+          }
+      - name: Build and inspect the exact Windows npm-pack artifact
+        shell: powershell
+        working-directory: plugins/cogentnexus-rotation
+        run: |
+          $packOutput = (& npm pack --json | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'npm pack failed' }
+          $packed = $packOutput | ConvertFrom-Json
+          $items = @($packed)
+          if ($items.Count -ne 1 -or -not $items[0].filename) {
+            throw 'npm pack did not return exactly one package artifact'
+          }
+          $artifact = Join-Path (Get-Location) ([string]$items[0].filename)
+          if (-not (Test-Path -LiteralPath $artifact)) {
+            throw "npm pack artifact not found: $artifact"
+          }
+          try {
+            $entries = @(tar -tf $artifact)
+            if ($LASTEXITCODE -ne 0) { throw 'failed to list npm-pack artifact' }
+            $required = @(
+              'package/dist/v091-release-entry.js',
+              'package/scripts/bootstrap-ticket-db.mjs',
+              'package/openclaw.plugin.json',
+              'package/README.md'
+            )
+            foreach ($entry in $required) {
+              if ($entries -notcontains $entry) { throw "npm-pack artifact missing $entry" }
+            }
+            if ($entries | Where-Object { $_ -match '^package/node_modules/' }) {
+              throw 'npm-pack artifact unexpectedly contains node_modules'
+            }
+            if ($entries | Where-Object { $_ -match 'node_modules/openclaw' }) {
+              throw 'npm-pack artifact unexpectedly contains the OpenClaw peer link'
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $artifact -Force -ErrorAction SilentlyContinue
+          }
