@@ -157,6 +157,17 @@ class HostProviderV092Tests(unittest.TestCase):
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0][0], "host_direct_model_waiting_for_event_evidence")
 
+    def test_provider_prompt_progress_upgrades_guard_to_active_processing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            self._create_direct_call_db(root)
+            hp.provider_events.publish(root, "lmstudio", "prompt_progress", {"percent": 70.0})
+            guarded = hp._guard_healthy_active_call(root, "lmstudio")
+            self.assertEqual(guarded["classification"], "active_model_processing")
+            self.assertEqual(guarded["decisionSource"], "provider-runtime-prompt-progress")
+            self.assertEqual(guarded["providerProgress"]["evidence"]["percent"], 70.0)
+            self.assertFalse(guarded["recoveryEligible"])
+
     def test_provider_failure_event_makes_active_call_immediately_claimable(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogent"
@@ -213,6 +224,8 @@ class HostProviderV092Tests(unittest.TestCase):
                  mock.patch.object(hp, "_state_provider", return_value="lmstudio"), \
                  mock.patch.object(hp, "_set_legacy_ollama_mode", return_value={"changed": False}), \
                  mock.patch.object(hp.providers, "probe", return_value=healthy), \
+                 mock.patch.object(hp.provider_events, "ensure_adapter", return_value={"running": True}), \
+                 mock.patch.object(hp.provider_events, "consume_failure", return_value=None), \
                  mock.patch.object(hp.v091, "gateway_fast_probe", return_value=True), \
                  mock.patch.object(hp, "_run_base_supervisor", return_value={"result": "base"}) as base, \
                  mock.patch.object(hp.stall, "claim_expired_direct_model_call") as claim:
@@ -236,10 +249,10 @@ class HostProviderV092Tests(unittest.TestCase):
             with mock.patch.object(hp, "BASE_SUPERVISOR_TICK", side_effect=fake_base), \
                  mock.patch.object(hp.stall, "claim_expired_direct_model_call", return_value={"ticketId": "timer"}) as original_claim:
                 result = hp._run_base_supervisor(root, True, True)
+                original_claim.assert_not_called()
 
             self.assertEqual(result["result"], "base")
             self.assertEqual(observed, [None])
-            self.assertIs(hp.stall.claim_expired_direct_model_call, original_claim)
 
 
 if __name__ == "__main__":
