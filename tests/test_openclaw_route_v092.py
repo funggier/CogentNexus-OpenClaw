@@ -22,6 +22,8 @@ class OpenClawRouteV092Tests(unittest.TestCase):
                     "timeoutSeconds": 600,
                 }
             },
+            # Owned by accepted v0.9.1 host_control watchdog compatibility.
+            # v0.9.2 route transactions must leave it untouched.
             "diagnostics": {"stuckSessionAbortMs": 360000},
             "models": {
                 "providers": {
@@ -68,8 +70,8 @@ class OpenClawRouteV092Tests(unittest.TestCase):
             value = json.loads(config_path.read_text(encoding="utf-8"))
             self.assertEqual(value["agents"]["defaults"]["model"]["primary"], "lmstudio_local/qwen/qwen3.5-9b")
             self.assertEqual(value["models"]["providers"]["lmstudio_local"]["timeoutSeconds"], 1100)
-            self.assertEqual(value["diagnostics"]["stuckSessionAbortMs"], 1_140_000)
             self.assertEqual(value["agents"]["defaults"]["timeoutSeconds"], 1200)
+            self.assertEqual(value["diagnostics"]["stuckSessionAbortMs"], 360000)
             compat = value["models"]["providers"]["lmstudio_local"]["models"][0]["compat"]["unsupportedToolSchemaKeywords"]
             self.assertEqual(compat, ["pattern", "maxLength"])
             self.assertTrue(route.rollback_path(root).is_file())
@@ -124,6 +126,14 @@ class OpenClawRouteV092Tests(unittest.TestCase):
             self.assertTrue(recovered["ok"])
             self.assertTrue(recovered["recovered"])
             self.assertEqual(config_path.read_bytes(), baseline)
+
+    @unittest.skipIf(os.name == "nt", "POSIX permission preservation")
+    def test_atomic_replacement_preserves_existing_config_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = self._write_config(directory)
+            os.chmod(path, 0o640)
+            route._atomic_json(path, self._config())
+            self.assertEqual(path.stat().st_mode & 0o777, 0o640)
 
 
 if __name__ == "__main__":
