@@ -31,7 +31,7 @@ $OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) {
 }
 
 $Evidence = [ordered]@{
-    schemaVersion = 1
+    schemaVersion = 2
     candidateVersion = $Version
     startedAt = (Get-Date).ToString('o')
     provider = $Provider
@@ -68,6 +68,17 @@ function Add-Step {
     Save-Evidence
 }
 
+function ConvertTo-ComparableJson {
+    param($Value)
+    if ($null -eq $Value) { return '<null>' }
+    return ($Value | ConvertTo-Json -Depth 30 -Compress)
+}
+
+function Test-EquivalentValue {
+    param($Left, $Right)
+    return (ConvertTo-ComparableJson $Left) -eq (ConvertTo-ComparableJson $Right)
+}
+
 function Invoke-Captured {
     param(
         [string]$Name,
@@ -89,7 +100,8 @@ function Invoke-Captured {
         Add-Content -Path $LogPath -Value $outText -Encoding UTF8
         Add-Content -Path $LogPath -Value $errText -Encoding UTF8
         $ok = $AllowedExitCodes -contains $proc.ExitCode
-        Add-Step $Name ($ok ? 'PASS' : 'FAIL') @{
+        $stepStatus = if ($ok) { 'PASS' } else { 'FAIL' }
+        Add-Step $Name $stepStatus @{
             command = @($FilePath) + $Arguments
             exitCode = $proc.ExitCode
             durationSeconds = [math]::Round($sw.Elapsed.TotalSeconds, 2)
@@ -134,7 +146,8 @@ function Invoke-CnxConfirmed {
         Add-Content -Path $LogPath -Value $outText -Encoding UTF8
         Add-Content -Path $LogPath -Value $errText -Encoding UTF8
         $ok = $proc.ExitCode -eq 0
-        Add-Step $Name ($ok ? 'PASS' : 'FAIL') @{
+        $stepStatus = if ($ok) { 'PASS' } else { 'FAIL' }
+        Add-Step $Name $stepStatus @{
             command = @('cnx.cmd') + $Arguments
             explicitConfirmation = 'y'
             exitCode = $proc.ExitCode
@@ -181,6 +194,47 @@ function Assert-SelectedProvider {
     }
 }
 
+function Assert-ProviderEventAdapter {
+    param(
+        [string]$Label,
+        [bool]$Expected,
+        [bool]$Running
+    )
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
+    $result = Invoke-Captured "check-recovery-$Label" $cnx @('check','recovery','--json') @(0,1)
+    $doc = $result.Stdout | ConvertFrom-Json
+    $rows = @($doc.checks | Where-Object { $_.name -eq 'Provider event adapter' })
+    if ($rows.Count -ne 1) {
+        throw "Expected exactly one Provider event adapter diagnostic row at '$Label'; found $($rows.Count)."
+    }
+    $actualExpected = [bool]$rows[0].details.expected
+    $actualRunning = [bool]$rows[0].details.running
+    $matches = ($actualExpected -eq $Expected) -and ($actualRunning -eq $Running)
+    $status = if ($matches) { 'PASS' } else { 'FAIL' }
+    Add-Step "provider-event-adapter-$Label" $status @{
+        expected = $Expected
+        running = $Running
+        actualExpected = $actualExpected
+        actualRunning = $actualRunning
+        diagnostic = $rows[0]
+    }
+    if (-not $matches) {
+        throw "Provider event adapter mismatch at '$Label': expected expected=$Expected running=$Running; actual expected=$actualExpected running=$actualRunning."
+    }
+}
+
+function Get-CnxProviderAdapterProcesses {
+    return @(
+        Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object {
+                $null -ne $_.CommandLine -and
+                $_.CommandLine -match 'provider_events_v092\.py' -and
+                $_.CommandLine -match '\.cogent'
+            } |
+            Select-Object ProcessId, CommandLine
+    )
+}
+
 try {
     Set-Content -Path $LogPath -Value "CogentNexus v0.9.2 Windows Live Acceptance`r`n" -Encoding UTF8
     Save-Evidence
@@ -202,25 +256,32 @@ try {
 
     Invoke-Captured 'check-system-managed' $cnx @('check','system','--json') @(0,1) | Out-Null
     Assert-SelectedProvider $Provider
+    $managedAdapter = $Provider -eq 'lmstudio'
+    Assert-ProviderEventAdapter 'managed-after-install' $managedAdapter $managedAdapter
 
     Invoke-Captured 'disable-native' $cnx @('disable') | Out-Null
+    Assert-ProviderEventAdapter 'after-disable' $false $false
     Invoke-Captured 'gateway-after-disable' 'openclaw.cmd' @('gateway','status') | Out-Null
     $disabledFields = Read-OpenClawFields
     Add-Step 'native-fields-after-disable' 'PASS' @{ fields = $disabledFields }
 
     Invoke-Captured 'enable-managed' $cnx @('enable','--provider',$Provider) | Out-Null
     Assert-SelectedProvider $Provider
+    Assert-ProviderEventAdapter 'after-enable' $managedAdapter $managedAdapter
 
     Invoke-Captured 'stop-managed' $cnx @('stop') | Out-Null
+    Assert-ProviderEventAdapter 'after-stop' $false $false
     Invoke-Captured 'start-after-stop' $cnx @('start') | Out-Null
     Assert-SelectedProvider $Provider
+    Assert-ProviderEventAdapter 'after-start' $managedAdapter $managedAdapter
 
     $other = if ($Provider -eq 'lmstudio') { 'ollama' } else { 'lmstudio' }
-    $prospective = Invoke-Captured "prospective-$other" $cnx @('check','system','--provider',$other,'--json') @(0,1,2) 
+    $prospective = Invoke-Captured "prospective-$other" $cnx @('check','system','--provider',$other,'--json') @(0,1,2)
     try {
         $prospectiveDoc = $prospective.Stdout | ConvertFrom-Json
         $routeCheck = @($prospectiveDoc.checks | Where-Object { $_.name -eq 'OpenClaw prospective model route' })
-        Add-Step "prospective-route-semantics-$other" (($routeCheck.Count -eq 1) ? 'PASS' : 'FAIL') @{
+        $routeStatus = if ($routeCheck.Count -eq 1) { 'PASS' } else { 'FAIL' }
+        Add-Step "prospective-route-semantics-$other" $routeStatus @{
             verdict = $prospectiveDoc.verdict
             routeCheck = $routeCheck
         }
@@ -233,8 +294,12 @@ try {
     if ($prospectiveDoc.verdict -in @('READY','READY_WITH_WARNINGS')) {
         Invoke-Captured "switch-to-$other" $cnx @('start','--provider',$other) | Out-Null
         Assert-SelectedProvider $other
+        $otherAdapter = $other -eq 'lmstudio'
+        Assert-ProviderEventAdapter "after-switch-to-$other" $otherAdapter $otherAdapter
+
         Invoke-Captured "switch-back-$Provider" $cnx @('start','--provider',$Provider) | Out-Null
         Assert-SelectedProvider $Provider
+        Assert-ProviderEventAdapter "after-switch-back-$Provider" $managedAdapter $managedAdapter
     } else {
         Add-Step "switch-to-$other" 'SKIP' @{ reason = "prospective verdict: $($prospectiveDoc.verdict)" }
     }
@@ -261,6 +326,7 @@ try {
     $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
     Assert-SelectedProvider $Provider
     Invoke-Captured 'check-system-after-reset' $cnx @('check','system','--json') @(0,1) | Out-Null
+    Assert-ProviderEventAdapter 'after-reset' $managedAdapter $managedAdapter
 
     Invoke-CnxConfirmed 'uninstall-cogentnexus' @('uninstall')
     Start-Sleep -Seconds 4
@@ -273,21 +339,34 @@ try {
     $launcherStillExists = Test-Path (Join-Path $HOME '.openclaw\workspace\cnx.cmd')
     $pluginList = Invoke-Captured 'plugins-after-uninstall' 'openclaw.cmd' @('plugins','list','--json')
     $pluginStillRegistered = $pluginList.Stdout -match 'cogentnexus-rotation'
+    $adapterProcesses = Get-CnxProviderAdapterProcesses
 
     $nativeFieldPass = (
         $afterFields.primaryModel -eq $beforeFields.primaryModel -and
         $afterFields.agentTimeoutSeconds -eq $beforeFields.agentTimeoutSeconds -and
-        $afterFields.lmstudioTimeoutSeconds -eq $beforeFields.lmstudioTimeoutSeconds
+        $afterFields.stuckSessionAbortMs -eq $beforeFields.stuckSessionAbortMs -and
+        $afterFields.lmstudioTimeoutSeconds -eq $beforeFields.lmstudioTimeoutSeconds -and
+        (Test-EquivalentValue $afterFields.lmstudioCompat $beforeFields.lmstudioCompat)
     )
-    Add-Step 'final-native-ownership' (($nativeFieldPass -and -not $pluginStillRegistered -and -not $launcherStillExists) ? 'PASS' : 'FAIL') @{
+    $finalPass = (
+        $nativeFieldPass -and
+        -not $pluginStillRegistered -and
+        -not $launcherStillExists -and
+        -not $afterFields.cnxPluginPresent -and
+        $adapterProcesses.Count -eq 0
+    )
+    $finalStatus = if ($finalPass) { 'PASS' } else { 'FAIL' }
+    Add-Step 'final-native-ownership' $finalStatus @{
         before = $beforeFields
         after = $afterFields
         pluginStillRegistered = $pluginStillRegistered
         launcherStillExists = $launcherStillExists
+        providerAdapterProcesses = $adapterProcesses
     }
-    if (-not $nativeFieldPass) { throw 'Pre-CNX model/request-timeout fields were not restored after uninstall.' }
-    if ($pluginStillRegistered) { throw 'CogentNexus plugin remains registered after uninstall.' }
+    if (-not $nativeFieldPass) { throw 'Pre-CNX model/request-timeout/watchdog/schema-compat fields were not restored after uninstall.' }
+    if ($pluginStillRegistered -or $afterFields.cnxPluginPresent) { throw 'CogentNexus plugin remains registered/configured after uninstall.' }
     if ($launcherStillExists) { throw 'cnx.cmd still exists after uninstall cleanup window.' }
+    if ($adapterProcesses.Count -ne 0) { throw 'CogentNexus provider event adapter process remains after uninstall.' }
 
     $Evidence.result = 'PASS_FULL'
     $Evidence.finishedAt = (Get-Date).ToString('o')
