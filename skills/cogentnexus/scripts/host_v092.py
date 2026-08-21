@@ -2,6 +2,8 @@
 """Final CogentNexus v0.9.2 Host overlay."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import host_provider_v092 as base
 
 legacy = base.legacy
@@ -10,6 +12,36 @@ provider_events = base.provider_events
 ORIGINAL_ENABLE_MANAGED = legacy.enable
 ORIGINAL_RESTART_MANAGED = legacy.restart_managed
 BASE_PROVIDER_RUNTIME = base.provider_aware_runtime
+
+
+def _parse_utc(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def progress_for_call(root, target, started_at):
+    """Match provider proof-of-life to a call using normalized UTC time."""
+    progress = provider_events.latest_progress(root, target)
+    if not isinstance(progress, dict):
+        return None
+    event_time = _parse_utc(progress.get("at"))
+    started_time = _parse_utc(started_at)
+    if event_time is None or started_time is None or event_time < started_time:
+        return None
+    return progress
+
+
+# The provider overlay originally compared ISO strings. Different valid UTC
+# spellings (`Z` vs `+00:00`) are not lexicographically ordered by time, so the
+# final v0.9.2 overlay replaces only that evidence matcher.
+base._progress_for_call = progress_for_call
 
 
 def provider_event_aware_runtime(root, *args, timeout=180, check=True):
