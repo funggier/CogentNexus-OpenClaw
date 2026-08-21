@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import checks
+import openclaw_route_v092 as openclaw_route
 import provider
 
 HERE = Path(__file__).resolve()
@@ -230,32 +231,77 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
             "preflight": preflight, "stateChanged": False,
         }
 
+    route_plan = openclaw_route.plan(root, target)
+    if not route_plan.get("ok"):
+        return 2, {
+            "result": "error",
+            "phase": "route-preflight",
+            "provider": target,
+            "route": route_plan,
+            "stateChanged": False,
+        }
+
     transition = begin_transition(root, target, source)
+    route = openclaw_route.begin(root, target)
+    if not route.get("ok"):
+        return 1, {
+            "result": "error",
+            "phase": "route-transition",
+            "action": action,
+            "provider": target,
+            "transition": transition,
+            "route": route,
+            "selectionCommitted": False,
+        }
+
     host = run_host(root, [action], target=target)
     if not host.get("ok"):
-        # Deliberately preserve providerTransition as durable evidence. A later
-        # `start` without --provider resumes the same target rather than guessing.
+        route_rollback = openclaw_route.rollback(root)
         return 1, {
             "result": "error", "phase": "host-transition", "action": action,
             "provider": target, "transition": transition, "host": host,
+            "routeRollback": route_rollback,
             "selectedProvider": load_state(root).get("selectedProvider"),
             "selectionCommitted": False,
         }
 
     final_provider = provider.probe(target, timeout=5.0)
     gateway = checks.check_gateway()[0]
-    if not final_provider.get("healthy") or gateway.get("status") != "PASS":
+    route_after = openclaw_route.plan(root, target)
+    route_ready = (
+        route_after.get("ok")
+        and route_after.get("currentProvider") == target
+        and route_after.get("currentModel") == route_after.get("model")
+    )
+    if not final_provider.get("healthy") or gateway.get("status") != "PASS" or not route_ready:
+        route_rollback = openclaw_route.rollback(root)
         return 1, {
             "result": "error", "phase": "post-transition-verification", "action": action,
             "provider": target, "transition": transition, "providerHealth": final_provider,
-            "gateway": gateway, "selectionCommitted": False,
+            "gateway": gateway, "route": route_after, "routeRollback": route_rollback,
+            "selectionCommitted": False,
+        }
+
+    route_commit = openclaw_route.commit(root)
+    if not route_commit.get("ok"):
+        route_rollback = openclaw_route.rollback(root)
+        return 1, {
+            "result": "error",
+            "phase": "route-commit",
+            "provider": target,
+            "transition": transition,
+            "routeCommit": route_commit,
+            "routeRollback": route_rollback,
+            "selectionCommitted": False,
         }
 
     state = commit_provider(root, target, source)
     return 0, {
         "result": "ok", "action": action, "provider": target,
         "selectionSource": source, "providerSelection": state.get("providerSelection"),
-        "host": host.get("output"), "verification": {"provider": final_provider, "gateway": gateway},
+        "host": host.get("output"),
+        "route": route_commit,
+        "verification": {"provider": final_provider, "gateway": gateway, "route": route_after},
     }
 
 
@@ -274,7 +320,31 @@ def do_check(root: Path, args: list[str]) -> tuple[int, dict[str, Any]]:
 
 
 def help_text() -> str:
-    return """CogentNexus v0.9.2\n\nLifecycle:\n  cnx.cmd start [--provider ollama|lmstudio]\n  cnx.cmd stop\n  cnx.cmd restart [--provider ollama|lmstudio]\n  cnx.cmd enable [--provider ollama|lmstudio]\n  cnx.cmd disable\n  cnx.cmd reset\n  cnx.cmd uninstall\n\nInspection (read-only):\n  cnx.cmd status\n  cnx.cmd check system [--provider ollama|lmstudio]\n  cnx.cmd check provider [ollama|lmstudio]\n  cnx.cmd check cogentnexus|config|openclaw|gateway|model|storage|recovery|delivery|resources\n  cnx.cmd provider list\n  cnx.cmd provider status\n\nExisting Ticket/session/policy/gateway/supervisor commands remain available.\n"""
+    return """CogentNexus v0.9.2
+
+Lifecycle:
+  cnx.cmd start [--provider ollama|lmstudio]
+  cnx.cmd stop
+  cnx.cmd restart [--provider ollama|lmstudio]
+  cnx.cmd enable [--provider ollama|lmstudio]
+  cnx.cmd disable
+  cnx.cmd reset
+  cnx.cmd uninstall
+
+Inspection (read-only):
+  cnx.cmd status
+  cnx.cmd check system [--provider ollama|lmstudio]
+  cnx.cmd check provider [ollama|lmstudio]
+  cnx.cmd check cogentnexus|config|openclaw|gateway|model|storage|recovery|delivery|resources
+  cnx.cmd provider list
+  cnx.cmd provider status
+
+Existing Ticket/session/policy/gateway/supervisor commands remain available.
+"""
+
+
+def emit(value: Any) -> None:
+    print(json.dumps(value, ensure_ascii=False, indent=2))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -312,16 +382,31 @@ def main(argv: list[str] | None = None) -> int:
         emit(result)
         return code
 
-    # stop preserves selectedProvider; the provider-aware Host overlay translates
-    # the existing v0.9.1 lifecycle --provider boundary to that selected adapter.
     if command == "stop":
         if len(args) != 1:
             emit({"result": "error", "error": "Usage: cnx stop"})
             return 2
         return delegate(root, ["stop"])
 
-    # Everything else, including reset/uninstall, preserves the accepted v0.9.1
-    # command behavior and explicit destructive confirmation semantics.
+    if command == "disable":
+        if len(args) != 1:
+            emit({"result": "error", "error": "Usage: cnx disable"})
+            return 2
+        code = delegate(root, ["disable"])
+        if code != 0:
+            return code
+        restored = openclaw_route.restore_native(root)
+        if not restored.get("ok"):
+            emit({
+                "result": "error",
+                "phase": "restore-native-openclaw-route",
+                "routeRestore": restored,
+                "safety": "CogentNexus is disabled/PASSTHROUGH, but managed OpenClaw route fields could not be fully restored",
+            })
+            return 1
+        emit({"result": "ok", "action": "disable", "openclawRouteRestore": restored})
+        return 0
+
     return delegate(root, args)
 
 
