@@ -38,7 +38,7 @@ all of these model-facing schema surfaces completed successfully when given a su
 - `cron + image_generate`;
 - full OpenClaw `coding` profile (26 tools in the observed run).
 
-The full coding surface also demonstrated another timeout layer: widening the provider/stuck watchdog while leaving `agents.defaults.timeoutSeconds` near 600 seconds still caused a valid long request to be aborted. With all three timeout layers ordered correctly, the same full coding schema completed successfully.
+The full coding surface also demonstrated another timeout layer: widening the provider/stuck watchdog while leaving `agents.defaults.timeoutSeconds` near 600 seconds still caused a valid long request to be aborted. Increasing the agent/provider request envelope allowed the same full coding schema to complete successfully.
 
 ## Failure classes
 
@@ -94,34 +94,41 @@ Automatic provider restart/recovery must never become an infinite loop.
 
 Current v0.9.2 policy:
 
-| Provider | Maximum automatic recoveries / rolling hour | Cooldown | Long-running grace |
+| Provider | Maximum automatic recoveries / rolling hour | Minimum cooldown between attempts | Long-running grace |
 | --- | ---: | ---: | ---: |
 | Ollama | 3 | 300 s | 0 |
 | LM Studio | 2 | 900 s | 600 s |
 
-The durable state is stored outside the provider process. When the circuit is open, the Host reports `provider_recovery_circuit_open` and does not claim another Direct call for restart recovery.
+Every automatic recovery starts its cooldown immediately. The rolling-hour maximum is an independent gate. For LM Studio this means at least 15 minutes between automatic recovery attempts and never more than two attempts in a rolling hour.
+
+The durable state is stored outside the provider process. When either gate blocks recovery, the Host reports `provider_recovery_circuit_open` and does not claim another Direct call for restart recovery.
 
 A successful explicit/manual provider transition clears that provider's automatic-recovery budget because the operator has intentionally re-established and verified the route/runtime.
 
-## Timeout ordering
+## Timeout and recovery authority
 
-For LM Studio, v0.9.2 transactionally manages the relevant OpenClaw timeout fields while CNX is MANAGED.
+v0.9.2 does **not** take ownership of OpenClaw's native stuck-session watchdog. The accepted v0.9.1 Host control already owns that boundary while CogentNexus is MANAGED and moves `diagnostics.stuckSessionAbortMs` to a 24-hour compatibility fence. That keeps the native OpenClaw stuck-session abort outside the normal CogentNexus durable recovery horizon and restores the operator's original value on PASSTHROUGH/disable.
 
-The verified profile is:
-
-```text
-provider timeout             = 1100 s
-diagnostics.stuckSessionAbortMs = 1140 s
-agents.defaults.timeoutSeconds  = 1200 s
-```
-
-The invariant is:
+For LM Studio, v0.9.2 transactionally manages only the additional provider/agent request envelope proven necessary by live testing:
 
 ```text
-provider timeout < stuck-session abort < agent timeout
+models.providers.lmstudio_local.timeoutSeconds = 1100 s
+agents.defaults.timeoutSeconds                 = 1200 s
 ```
 
-This prevents an outer watchdog from killing work that the inner provider request still considers valid. `disable`, `reset`, and `uninstall` restore the user's pre-CNX values.
+The effective authority ordering is therefore:
+
+```text
+CogentNexus durable model-call deadline / evidence classifier
+    -> one-time LM Studio long-running grace when eligible
+    -> bounded CogentNexus recovery if later eligible
+
+LM Studio provider request timeout = 1100 s
+OpenClaw agent timeout             = 1200 s
+OpenClaw native stuck watchdog     = v0.9.1 MANAGED fence (~24 h)
+```
+
+The provider request must expire before the enclosing agent timeout, while the native stuck watchdog remains far outside both. `disable`, `reset`, and `uninstall` restore the v0.9.2-owned provider/agent fields; the accepted v0.9.1 Host control independently restores its watchdog snapshot.
 
 ## Durable-result boundary
 
