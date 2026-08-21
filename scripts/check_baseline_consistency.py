@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when current CogentNexus surfaces drift from the v0.8 baseline."""
+"""Fail when current CogentNexus surfaces drift from the accepted baseline."""
 from __future__ import annotations
 
 import json
@@ -10,13 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 TEXT_SUFFIXES = {".md", ".py", ".ts", ".json", ".ps1", ".sh", ".yml", ".yaml"}
 CURRENT_TOP_LEVEL = {"docs", "skills", "plugins", "scripts", "templates", ".github"}
 SKIP_PREFIXES = (
-    "docs/releases/",       # immutable historical release descriptions
+    "docs/releases/",
     "plugins/cogentnexus-rotation/node_modules/",
     ".git/",
 )
-SKIP_PATHS = {
-    "scripts/check_baseline_consistency.py",  # contains the forbidden strings below
-}
+SKIP_PATHS = {"scripts/check_baseline_consistency.py"}
 FORBIDDEN = {
     "mandatory cognitive runtime": "CogentNexus is not a mandatory heavy runtime for every request",
     "Use this entry point for every request": "DIRECT admission must happen before heavy skill loading",
@@ -52,18 +50,22 @@ def current_text_files():
 def main() -> int:
     failures: list[str] = []
 
-    expected = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    core_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     package = json.loads((ROOT / "plugins/cogentnexus-rotation/package.json").read_text(encoding="utf-8"))
     manifest = json.loads((ROOT / "plugins/cogentnexus-rotation/openclaw.plugin.json").read_text(encoding="utf-8"))
     lock = json.loads((ROOT / "plugins/cogentnexus-rotation/package-lock.json").read_text(encoding="utf-8"))
+
+    # v0.9.2 changes Host/CLI/provider orchestration only. The accepted OpenClaw
+    # Bridge payload remains v0.9.1, so validate Bridge package metadata against
+    # itself rather than forcing an artificial package-lock version bump.
+    bridge_version = package.get("version")
     for label, actual in (
-        ("package.json", package.get("version")),
         ("openclaw.plugin.json", manifest.get("version")),
         ("package-lock.json", lock.get("version")),
         ("package-lock root", lock.get("packages", {}).get("", {}).get("version")),
     ):
-        if actual != expected:
-            failures.append(f"version mismatch: VERSION={expected} but {label}={actual}")
+        if actual != bridge_version:
+            failures.append(f"Bridge version mismatch: package.json={bridge_version} but {label}={actual}")
 
     if manifest.get("name") != "CogentNexus OpenClaw Bridge":
         failures.append(f"plugin display name drift: {manifest.get('name')!r}")
@@ -78,27 +80,15 @@ def main() -> int:
     delivery_source = (ROOT / "plugins/cogentnexus-rotation/src/delivery-continuity.ts").read_text(encoding="utf-8")
     continuity_markers = {
         "index.ts": (
-            'api.on("reply_dispatch"',
-            "waitForIdle",
-            'api.on("message_sent"',
-            'api.on("after_compaction"',
-            "schedulePostCompactionResume",
-            "recoverUndeliveredDirect",
-            "[CogentNexus Continuation: post-compaction]",
+            'api.on("reply_dispatch"', "waitForIdle", 'api.on("message_sent"', 'api.on("after_compaction"',
+            "schedulePostCompactionResume", "recoverUndeliveredDirect", "[CogentNexus Continuation: post-compaction]",
         ),
         "ticket-store.ts": (
-            "response_ready_at",
-            "delivery_confirmed_at",
-            "delivery_last_error",
-            "confirmDirectDelivery",
-            "failDirectDelivery",
-            "recoverUndeliveredDirect",
+            "response_ready_at", "delivery_confirmed_at", "delivery_last_error", "confirmDirectDelivery",
+            "failDirectDelivery", "recoverUndeliveredDirect",
         ),
         "delivery-continuity.ts": (
-            "ticketDeliveryMarker",
-            "workflowDeliveryMarker",
-            "settleDeliveryTarget",
-            "hasPendingSessionWork",
+            "ticketDeliveryMarker", "workflowDeliveryMarker", "settleDeliveryTarget", "hasPendingSessionWork",
         ),
     }
     continuity_text = {"index.ts": source, "ticket-store.ts": ticket_source, "delivery-continuity.ts": delivery_source}
@@ -118,13 +108,8 @@ def main() -> int:
 
     host = (ROOT / "skills/cogentnexus/scripts/host.py").read_text(encoding="utf-8")
     for required in (
-        'policy_snapshot_path',
-        '"register"',
-        '"reset"',
-        '"apply"',
-        'CogentNexus is disabled (PASSTHROUGH)',
-        "promote_interrupted_direct",
-        "hooks.allowConversationAccess",
+        'policy_snapshot_path', '"register"', '"reset"', '"apply"', 'CogentNexus is disabled (PASSTHROUGH)',
+        "promote_interrupted_direct", "hooks.allowConversationAccess",
     ):
         if required not in host:
             failures.append(f"Host Controller missing baseline contract marker: {required}")
@@ -152,25 +137,21 @@ def main() -> int:
             failures.append(f"stale pre-v0.8 install/current example in {relative(path)}: {sorted(set(stale))}")
 
     required_current = (
-        ROOT / "docs/BASELINE.md",
-        ROOT / "docs/INSTALL.md",
-        ROOT / "docs/INSTALL.th.md",
-        ROOT / f"docs/releases/v{expected}.md",
-        ROOT / "skills/cogentnexus/scripts/host.py",
-        ROOT / "skills/cogentnexus/scripts/startup.py",
-        ROOT / "plugins/cogentnexus-rotation/src/delivery-continuity.ts",
+        ROOT / "docs/BASELINE.md", ROOT / "docs/INSTALL.md", ROOT / "docs/INSTALL.th.md",
+        ROOT / f"docs/releases/v{core_version}.md", ROOT / "skills/cogentnexus/scripts/host.py",
+        ROOT / "skills/cogentnexus/scripts/startup.py", ROOT / "plugins/cogentnexus-rotation/src/delivery-continuity.ts",
     )
     for path in required_current:
         if not path.is_file() or not path.read_text(encoding="utf-8").strip():
             failures.append(f"missing/empty baseline artifact: {relative(path)}")
 
     if failures:
-        print("CogentNexus v0.8 baseline consistency FAILED:")
+        print("CogentNexus baseline consistency FAILED:")
         for failure in failures:
             print(f"- {failure}")
         return 1
 
-    print(f"CogentNexus v{expected} baseline consistency: PASS")
+    print(f"CogentNexus v{core_version} baseline consistency: PASS (Bridge v{bridge_version})")
     return 0
 
 
