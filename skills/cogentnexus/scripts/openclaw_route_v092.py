@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Transactional OpenClaw model-route and timeout profile for CogentNexus v0.9.2.
+"""Transactional OpenClaw provider-route profile for CogentNexus v0.9.2.
 
-CogentNexus owns only a narrow set of OpenClaw fields while MANAGED:
-- the default model route needed to reach the selected local provider;
-- timeout ordering required to avoid killing a valid slow local prefill;
-- LM Studio llama.cpp compatibility stripping for unsupported schema keywords.
+This module owns only the narrow OpenClaw fields needed by the selected local
+provider while CogentNexus is MANAGED:
+- the default model route;
+- provider/agent timeout values needed by a slow local provider;
+- LM Studio llama.cpp tool-schema compatibility keywords.
 
-A short-lived byte-for-byte rollback copy protects an in-progress provider switch.
-A separate baseline snapshot restores the user's pre-CNX values on disable/reset/
-uninstall without replacing unrelated OpenClaw configuration.
+The accepted v0.9.1 Host watchdog compatibility remains authoritative for
+`diagnostics.stuckSessionAbortMs`; this module deliberately does not manage it.
+
+A short-lived byte-for-byte rollback copy protects an in-progress provider
+switch. A separate field-level baseline restores pre-CNX values on the native
+PASSTHROUGH boundary without replacing unrelated OpenClaw configuration.
 """
 from __future__ import annotations
 
@@ -24,7 +28,6 @@ from typing import Any
 PROVIDER_PREFIX = {"ollama": "ollama", "lmstudio": "lmstudio_local"}
 LMSTUDIO_COMPAT_KEYWORDS = ("pattern", "maxLength")
 LMSTUDIO_PROVIDER_TIMEOUT_SECONDS = 1100
-LMSTUDIO_STUCK_ABORT_MS = 1_140_000
 LMSTUDIO_AGENT_TIMEOUT_SECONDS = 1200
 
 
@@ -58,17 +61,32 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _mode_for_replace(path: Path) -> int:
+    if path.exists():
+        try:
+            return path.stat().st_mode & 0o777
+        except OSError:
+            pass
+    return 0o600
+
+
 def _atomic_json(path: Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    mode = _mode_for_replace(path)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if os.name != "nt":
+        os.chmod(temporary, mode)
     os.replace(temporary, path)
 
 
 def _atomic_bytes(path: Path, value: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    mode = _mode_for_replace(path)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_bytes(value)
+    if os.name != "nt":
+        os.chmod(temporary, mode)
     os.replace(temporary, path)
 
 
@@ -179,32 +197,6 @@ def _save_state(root: Path, state: dict[str, Any]) -> None:
     _atomic_json(state_path(root), state)
 
 
-def _capture_baseline(config: dict[str, Any], state: dict[str, Any], model_ref: str | None = None) -> None:
-    baseline = state.setdefault("baseline", {})
-    agents = _ensure_dict(config, "agents")
-    defaults = _ensure_dict(agents, "defaults")
-    diagnostics = _ensure_dict(config, "diagnostics")
-
-    baseline.setdefault("model", _snapshot(defaults, "model"))
-    baseline.setdefault("agentTimeoutSeconds", _snapshot(defaults, "timeoutSeconds"))
-    baseline.setdefault("stuckSessionAbortMs", _snapshot(diagnostics, "stuckSessionAbortMs"))
-
-    provider_timeouts = baseline.setdefault("providerTimeouts", {})
-    models = _ensure_dict(config, "models")
-    providers = _ensure_dict(models, "providers")
-    for provider_key in PROVIDER_PREFIX.values():
-        provider_cfg = providers.get(provider_key)
-        if isinstance(provider_cfg, dict) and provider_key not in provider_timeouts:
-            provider_timeouts[provider_key] = _snapshot(provider_cfg, "timeoutSeconds")
-
-    if model_ref and model_ref.startswith(PROVIDER_PREFIX["lmstudio"] + "/"):
-        compat = baseline.setdefault("modelCompat", {})
-        if model_ref not in compat:
-            row = _find_model_entry(config, model_ref)
-            if row is not None:
-                compat[model_ref] = _snapshot(row, "compat")
-
-
 def _find_model_entry(config: dict[str, Any], model_ref: str) -> dict[str, Any] | None:
     if "/" not in model_ref:
         return None
@@ -224,21 +216,38 @@ def _find_model_entry(config: dict[str, Any], model_ref: str) -> dict[str, Any] 
     return None
 
 
+def _capture_baseline(config: dict[str, Any], state: dict[str, Any], model_ref: str | None = None) -> None:
+    baseline = state.setdefault("baseline", {})
+    defaults = _ensure_dict(_ensure_dict(config, "agents"), "defaults")
+    baseline.setdefault("model", _snapshot(defaults, "model"))
+    baseline.setdefault("agentTimeoutSeconds", _snapshot(defaults, "timeoutSeconds"))
+
+    provider_timeouts = baseline.setdefault("providerTimeouts", {})
+    providers = _ensure_dict(_ensure_dict(config, "models"), "providers")
+    for provider_key in PROVIDER_PREFIX.values():
+        provider_cfg = providers.get(provider_key)
+        if isinstance(provider_cfg, dict) and provider_key not in provider_timeouts:
+            provider_timeouts[provider_key] = _snapshot(provider_cfg, "timeoutSeconds")
+
+    if model_ref and model_ref.startswith(PROVIDER_PREFIX["lmstudio"] + "/"):
+        compat = baseline.setdefault("modelCompat", {})
+        if model_ref not in compat:
+            row = _find_model_entry(config, model_ref)
+            if row is not None:
+                compat[model_ref] = _snapshot(row, "compat")
+
+
 def _restore_managed_knobs(config: dict[str, Any], state: dict[str, Any], restore_model: bool) -> None:
     baseline = state.get("baseline")
     if not isinstance(baseline, dict):
         return
-    agents = _ensure_dict(config, "agents")
-    defaults = _ensure_dict(agents, "defaults")
-    diagnostics = _ensure_dict(config, "diagnostics")
+    defaults = _ensure_dict(_ensure_dict(config, "agents"), "defaults")
 
     if restore_model:
         _restore(defaults, "model", baseline.get("model"))
     _restore(defaults, "timeoutSeconds", baseline.get("agentTimeoutSeconds"))
-    _restore(diagnostics, "stuckSessionAbortMs", baseline.get("stuckSessionAbortMs"))
 
-    models = _ensure_dict(config, "models")
-    providers = _ensure_dict(models, "providers")
+    providers = _ensure_dict(_ensure_dict(config, "models"), "providers")
     provider_timeouts = baseline.get("providerTimeouts")
     if isinstance(provider_timeouts, dict):
         for provider_key, snapshot in provider_timeouts.items():
@@ -331,9 +340,6 @@ def plan(root: Path, provider_name: str) -> dict[str, Any]:
         state = _load_state(root)
         current = _primary_model(config)
         current_owner = _prefix_owner(current)
-        if current and current_owner:
-            routes = state.setdefault("routes", {})
-            routes.setdefault(current_owner, current)
         route = _resolve_route(config, state, provider_name)
         key, provider_cfg = _provider_config(config, provider_name)
         if provider_name == "lmstudio" and provider_cfg is None:
@@ -400,12 +406,10 @@ def begin(root: Path, provider_name: str) -> dict[str, Any]:
 
     if provider_name == "lmstudio":
         defaults = _ensure_dict(_ensure_dict(config, "agents"), "defaults")
-        diagnostics = _ensure_dict(config, "diagnostics")
         _, provider_cfg = _provider_config(config, provider_name)
         if provider_cfg is None:
             return {"ok": False, "phase": "apply", "error": "LM Studio provider config disappeared during route transaction"}
         defaults["timeoutSeconds"] = LMSTUDIO_AGENT_TIMEOUT_SECONDS
-        diagnostics["stuckSessionAbortMs"] = LMSTUDIO_STUCK_ABORT_MS
         provider_cfg["timeoutSeconds"] = LMSTUDIO_PROVIDER_TIMEOUT_SECONDS
 
         row = _find_model_entry(config, route)
@@ -415,8 +419,8 @@ def begin(root: Path, provider_name: str) -> dict[str, Any]:
         if not isinstance(compat, dict):
             compat = {}
             row["compat"] = compat
-        current_keywords = compat.get("unsupportedToolSchemaKeywords")
-        values = [str(value) for value in current_keywords] if isinstance(current_keywords, list) else []
+        existing = compat.get("unsupportedToolSchemaKeywords")
+        values = [str(value) for value in existing] if isinstance(existing, list) else []
         for keyword in LMSTUDIO_COMPAT_KEYWORDS:
             if keyword not in values:
                 values.append(keyword)
@@ -459,14 +463,16 @@ def commit(root: Path) -> dict[str, Any]:
     transaction = state.get("transaction")
     if not isinstance(transaction, dict) or transaction.get("status") != "pending":
         return {"ok": True, "committed": False, "reason": "no pending route transaction"}
-    state["activeProvider"] = transaction.get("provider")
-    state["activeModel"] = transaction.get("model")
-    state.setdefault("routes", {})[str(transaction.get("provider"))] = transaction.get("model")
+    provider_name = str(transaction.get("provider"))
+    model_ref = str(transaction.get("model"))
+    state["activeProvider"] = provider_name
+    state["activeModel"] = model_ref
+    state.setdefault("routes", {})[provider_name] = model_ref
     state["transaction"] = None
     state["lastCommittedAt"] = now_iso()
     rollback_path(root).unlink(missing_ok=True)
     _save_state(root, state)
-    return {"ok": True, "committed": True, "provider": state.get("activeProvider"), "model": state.get("activeModel")}
+    return {"ok": True, "committed": True, "provider": provider_name, "model": model_ref}
 
 
 def rollback(root: Path) -> dict[str, Any]:
