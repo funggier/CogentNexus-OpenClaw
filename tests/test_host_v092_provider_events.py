@@ -19,6 +19,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
         self.saved_runtime = provider_base.legacy.runtime
         self.saved_enable = provider_base.legacy.enable
         self.saved_restart = provider_base.legacy.restart_managed
+        self.saved_progress_for_call = provider_base._progress_for_call
         sys.modules.pop("host_v092", None)
         self.host = importlib.import_module("host_v092")
 
@@ -26,6 +27,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
         provider_base.legacy.runtime = self.saved_runtime
         provider_base.legacy.enable = self.saved_enable
         provider_base.legacy.restart_managed = self.saved_restart
+        provider_base._progress_for_call = self.saved_progress_for_call
         sys.modules.pop("host_v092", None)
 
     def test_lifecycle_start_attaches_adapter_before_gateway_start(self):
@@ -94,6 +96,44 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "enable failed"):
                     self.host.enable_managed(root)
             stop.assert_called_once_with(root)
+
+    def test_watcher_cleanup_error_does_not_mask_enable_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogent"
+            with mock.patch.object(
+                self.host, "ORIGINAL_ENABLE_MANAGED", side_effect=RuntimeError("original enable failure")
+            ), mock.patch.object(
+                self.host.provider_events, "stop_adapter", side_effect=RuntimeError("cleanup failure")
+            ):
+                with self.assertRaisesRegex(RuntimeError, "original enable failure"):
+                    self.host.enable_managed(root)
+
+    def test_progress_timestamp_normalizes_z_and_offset_forms(self):
+        progress = {
+            "at": "2026-08-21T13:00:00+00:00",
+            "type": "prompt_progress",
+            "evidence": {"percent": 52.0},
+        }
+        with mock.patch.object(self.host.provider_events, "latest_progress", return_value=progress):
+            same_in_z = self.host.progress_for_call(
+                Path("."), "lmstudio", "2026-08-21T13:00:00.000Z"
+            )
+            same_in_bangkok = self.host.progress_for_call(
+                Path("."), "lmstudio", "2026-08-21T20:00:00+07:00"
+            )
+        self.assertEqual(same_in_z, progress)
+        self.assertEqual(same_in_bangkok, progress)
+
+    def test_progress_before_call_start_is_rejected_after_normalization(self):
+        progress = {
+            "at": "2026-08-21T12:59:59.999+00:00",
+            "type": "prompt_progress",
+            "evidence": {"percent": 87.0},
+        }
+        with mock.patch.object(self.host.provider_events, "latest_progress", return_value=progress):
+            self.assertIsNone(
+                self.host.progress_for_call(Path("."), "lmstudio", "2026-08-21T13:00:00Z")
+            )
 
     def test_restart_attaches_adapter_before_gateway_restart(self):
         with tempfile.TemporaryDirectory() as directory:
