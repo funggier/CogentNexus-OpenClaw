@@ -13,14 +13,14 @@ import checks_v092 as checks
 
 
 class ChecksV092Tests(unittest.TestCase):
-    def _root(self, directory: str) -> tuple[Path, Path]:
+    def _root(self, directory: str, selected: str = "ollama") -> tuple[Path, Path]:
         root = Path(directory) / ".cogent"
         path = root / "host" / "controller.json"
         path.parent.mkdir(parents=True)
         path.write_text(json.dumps({
             "schemaVersion": 1,
             "mode": "managed",
-            "selectedProvider": "ollama",
+            "selectedProvider": selected,
             "desiredGateway": "running",
             "desiredProvider": "running",
         }), encoding="utf-8")
@@ -78,6 +78,65 @@ class ChecksV092Tests(unittest.TestCase):
                 entries = checks.check_model(root, None)
             routing = next(row for row in entries if row["name"] == "OpenClaw model routing")
             self.assertEqual(routing["status"], "FAIL")
+
+    def test_recovery_check_reports_incident_and_adapter_without_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, state_path = self._root(directory, selected="lmstudio")
+            before = state_path.read_bytes()
+            gate = {
+                "provider": "lmstudio",
+                "allowed": True,
+                "circuitOpen": False,
+                "incidentOpen": True,
+                "incidentId": "lmstudio:4",
+                "classification": "provider_unreachable",
+                "recoveryAttempts": 1,
+                "maximumRecoveriesPerIncident": 2,
+                "lastEvent": {"type": "automatic_recovery_attempted"},
+            }
+            with mock.patch.object(checks.base, "check_recovery", return_value=[]), \
+                 mock.patch.object(checks.recovery_policy, "gate", return_value=gate), \
+                 mock.patch.object(
+                     checks.provider_events,
+                     "adapter_status",
+                     return_value={"provider": "lmstudio", "running": True, "pid": 4321},
+                 ):
+                entries = checks.check_recovery(root)
+
+            incident = next(row for row in entries if row["name"] == "Provider recovery incident")
+            adapter = next(row for row in entries if row["name"] == "Provider event adapter")
+            self.assertEqual(incident["status"], "WARN")
+            self.assertEqual(incident["details"]["incidentId"], "lmstudio:4")
+            self.assertEqual(incident["details"]["recoveryAttempts"], 1)
+            self.assertEqual(adapter["status"], "PASS")
+            self.assertTrue(adapter["details"]["running"])
+            self.assertEqual(state_path.read_bytes(), before)
+
+    def test_recovery_check_warns_when_lmstudio_adapter_expected_but_absent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root, _ = self._root(directory, selected="lmstudio")
+            gate = {
+                "provider": "lmstudio",
+                "allowed": False,
+                "circuitOpen": False,
+                "incidentOpen": False,
+                "incidentId": None,
+                "classification": None,
+                "recoveryAttempts": 0,
+                "maximumRecoveriesPerIncident": 2,
+                "lastEvent": None,
+            }
+            with mock.patch.object(checks.base, "check_recovery", return_value=[]), \
+                 mock.patch.object(checks.recovery_policy, "gate", return_value=gate), \
+                 mock.patch.object(
+                     checks.provider_events,
+                     "adapter_status",
+                     return_value={"provider": "lmstudio", "running": False, "pid": None},
+                 ):
+                entries = checks.check_recovery(root)
+            adapter = next(row for row in entries if row["name"] == "Provider event adapter")
+            self.assertEqual(adapter["status"], "WARN")
+            self.assertTrue(adapter["details"]["expected"])
 
 
 if __name__ == "__main__":
