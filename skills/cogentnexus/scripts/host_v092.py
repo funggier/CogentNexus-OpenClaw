@@ -7,6 +7,7 @@ import host_provider_v092 as base
 legacy = base.legacy
 providers = base.providers
 provider_events = base.provider_events
+ORIGINAL_ENABLE_MANAGED = legacy.enable
 ORIGINAL_RESTART_MANAGED = legacy.restart_managed
 BASE_PROVIDER_RUNTIME = base.provider_aware_runtime
 
@@ -48,10 +49,16 @@ def provider_event_aware_runtime(root, *args, timeout=180, check=True):
 
     adapter = provider_events.ensure_adapter(root, target)
     runtime_result = base.ORIGINAL_RUNTIME(root, *cleaned, timeout=timeout, check=False)
+    adapter_rollback = None
+    if runtime_result.returncode != 0:
+        # The Gateway/runtime activation did not commit. Do not leave a CNX
+        # provider watcher behind solely because provider start succeeded.
+        adapter_rollback = provider_events.stop_adapter(root, target)
     return base._finish(base._completed(command, runtime_result.returncode, {
         "provider": target,
         "providerLifecycle": provider_result,
         "providerEventAdapter": adapter,
+        "providerEventAdapterRollback": adapter_rollback,
         "runtime": base._parse_stdout(runtime_result.stdout),
     }, runtime_result.stderr or ""), check)
 
@@ -60,6 +67,17 @@ def provider_event_aware_runtime(root, *args, timeout=180, check=True):
 # only the final v0.9.2 runtime surface so the event adapter is attached before
 # Gateway activation while all v0.9.1 lifecycle internals remain unchanged.
 legacy.runtime = provider_event_aware_runtime
+
+
+def enable_managed(root):
+    """Ensure transactional enable failure cannot leak a managed watcher."""
+    try:
+        return ORIGINAL_ENABLE_MANAGED(root)
+    except Exception:
+        try:
+            provider_events.stop_adapter(root)
+        finally:
+            raise
 
 
 def restart_managed(root):
@@ -80,6 +98,7 @@ def restart_managed(root):
     return result
 
 
+legacy.enable = enable_managed
 legacy.restart_managed = restart_managed
 
 
