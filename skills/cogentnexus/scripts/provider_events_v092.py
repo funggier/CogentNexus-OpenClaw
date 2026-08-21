@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -203,6 +204,32 @@ def adapter_status(root: Path, provider_name: str) -> dict[str, Any]:
     return {"provider": provider_name, "running": alive, "pid": pid if alive else None}
 
 
+def _terminate_process_tree(pid: int) -> dict[str, Any]:
+    if os.name == "nt":
+        taskkill = shutil.which("taskkill") or shutil.which("taskkill.exe")
+        if not taskkill:
+            return {"ok": False, "error": "taskkill unavailable"}
+        proc = subprocess.run(
+            [taskkill, "/PID", str(pid), "/T", "/F"],
+            capture_output=True,
+            text=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        return {
+            "ok": proc.returncode == 0,
+            "exitCode": proc.returncode,
+            "stdout": proc.stdout.strip(),
+            "stderr": proc.stderr.strip(),
+        }
+    try:
+        os.killpg(pid, signal.SIGTERM)
+        return {"ok": True}
+    except ProcessLookupError:
+        return {"ok": True, "alreadyStopped": True}
+    except OSError as error:
+        return {"ok": False, "error": str(error)}
+
+
 def stop_adapter(root: Path, provider_name: str | None = None) -> dict[str, Any]:
     names = [provider.normalize_provider(provider_name)] if provider_name else list(provider.SUPPORTED_PROVIDERS)
     stopped = []
@@ -210,11 +237,8 @@ def stop_adapter(root: Path, provider_name: str | None = None) -> dict[str, Any]
         status = adapter_status(root, name)
         pid = status.get("pid")
         if isinstance(pid, int):
-            try:
-                os.kill(pid, signal.SIGTERM)
-                stopped.append({"provider": name, "pid": pid, "stopped": True})
-            except OSError as error:
-                stopped.append({"provider": name, "pid": pid, "stopped": False, "error": str(error)})
+            result = _terminate_process_tree(pid)
+            stopped.append({"provider": name, "pid": pid, "stopped": bool(result.get("ok")), "termination": result})
         pid_path(root, name).unlink(missing_ok=True)
     return {"stopped": stopped}
 
@@ -301,7 +325,7 @@ def run_lmstudio_daemon(root: Path) -> int:
         code = proc.wait()
         health = provider.probe("lmstudio", timeout=3.0)
         if not health.get("healthy"):
-            event = publish(root, "lmstudio", "provider_dead", {
+            publish(root, "lmstudio", "provider_dead", {
                 "source": "lmstudio-runtime-stream-ended",
                 "streamExitCode": code,
                 "providerHealth": health,
