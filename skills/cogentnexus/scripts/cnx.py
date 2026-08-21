@@ -219,6 +219,41 @@ def provider_snapshot(root: Path) -> dict[str, Any]:
     }
 
 
+def _transition_host_runtime(
+    root: Path,
+    action: str,
+    target: str,
+    route_changed: bool,
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Ensure the target provider exists before a route-bearing Gateway boundary.
+
+    v0.9.1 lifecycle `start` deliberately skips Gateway start when the Gateway is
+    already healthy, while `restart` restarts only the Gateway. A provider switch
+    therefore needs both semantics: start/verify the target provider first, then
+    force a Gateway process boundary whenever the active route changed.
+    """
+    boundary: dict[str, Any] | None = None
+
+    if action == "restart":
+        provider_start = run_host(root, ["start"], target=target)
+        if not provider_start.get("ok"):
+            return provider_start, None
+        boundary = run_host(root, ["restart"], target=target)
+        return boundary, {"providerStart": provider_start, "gatewayRestart": boundary}
+
+    primary = run_host(root, [action], target=target)
+    if not primary.get("ok"):
+        return primary, None
+
+    if route_changed:
+        boundary = run_host(root, ["restart"], target=target)
+        if not boundary.get("ok"):
+            return boundary, {"primary": primary, "gatewayRestart": boundary}
+        return primary, {"primary": primary, "gatewayRestart": boundary}
+
+    return primary, {"primary": primary, "gatewayRestart": None}
+
+
 def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[int, dict[str, Any]]:
     try:
         target, source = resolve_target(root, explicit)
@@ -242,6 +277,11 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
             "stateChanged": False,
         }
 
+    route_changed = (
+        route_plan.get("currentProvider") != target
+        or route_plan.get("currentModel") != route_plan.get("model")
+    )
+
     transition = begin_transition(root, target, source)
     route = openclaw_route.begin(root, target)
     if not route.get("ok"):
@@ -255,12 +295,13 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
             "selectionCommitted": False,
         }
 
-    host = run_host(root, [action], target=target)
+    host, process_boundary = _transition_host_runtime(root, action, target, route_changed)
     if not host.get("ok"):
         route_rollback = openclaw_route.rollback(root)
         return 1, {
             "result": "error", "phase": "host-transition", "action": action,
             "provider": target, "transition": transition, "host": host,
+            "processBoundary": process_boundary,
             "routeRollback": route_rollback,
             "selectedProvider": load_state(root).get("selectedProvider"),
             "selectionCommitted": False,
@@ -279,8 +320,8 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
         return 1, {
             "result": "error", "phase": "post-transition-verification", "action": action,
             "provider": target, "transition": transition, "providerHealth": final_provider,
-            "gateway": gateway, "route": route_after, "routeRollback": route_rollback,
-            "selectionCommitted": False,
+            "gateway": gateway, "route": route_after, "processBoundary": process_boundary,
+            "routeRollback": route_rollback, "selectionCommitted": False,
         }
 
     route_commit = openclaw_route.commit(root)
@@ -302,6 +343,7 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
         "result": "ok", "action": action, "provider": target,
         "selectionSource": source, "providerSelection": state.get("providerSelection"),
         "host": host.get("output"),
+        "processBoundary": process_boundary,
         "route": route_commit,
         "providerRecoveryPolicy": recovery_budget,
         "verification": {"provider": final_provider, "gateway": gateway, "route": route_after},
