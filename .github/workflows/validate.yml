@@ -47,7 +47,23 @@ jobs:
             python skills/cogentnexus/scripts/workflow.py self-test
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/host_v091.py skills/cogentnexus/scripts/host_control.py skills/cogentnexus/scripts/host_control_v091.py skills/cogentnexus/scripts/lifecycle_v091.py skills/cogentnexus/scripts/startup.py skills/cogentnexus/scripts/startup_v091.py
+      - run: >-
+          python -m py_compile
+          skills/cogentnexus/scripts/host.py
+          skills/cogentnexus/scripts/host_v091.py
+          skills/cogentnexus/scripts/host_control.py
+          skills/cogentnexus/scripts/host_control_v091.py
+          skills/cogentnexus/scripts/lifecycle_v091.py
+          skills/cogentnexus/scripts/startup.py
+          skills/cogentnexus/scripts/startup_v091.py
+          skills/cogentnexus/scripts/provider.py
+          skills/cogentnexus/scripts/checks.py
+          skills/cogentnexus/scripts/cnx.py
+          skills/cogentnexus/scripts/host_provider_v092.py
+          skills/cogentnexus/scripts/host_v092.py
+          skills/cogentnexus/scripts/host_control_v092.py
+          skills/cogentnexus/scripts/startup_v092.py
+          skills/cogentnexus/scripts/lifecycle_v092.py
       - run: python -m unittest discover -s tests -v
       - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
       - name: Test plugin path migration helper
