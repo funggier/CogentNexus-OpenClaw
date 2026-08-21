@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Provider-neutral local inference adapters for CogentNexus.
-
-This module intentionally owns only provider discovery/lifecycle/readiness. It does
-not own Ticket, recovery, delivery, or workflow semantics.
-"""
+"""Provider-neutral local inference adapters for CogentNexus."""
 from __future__ import annotations
 
 import json
@@ -17,10 +13,7 @@ from pathlib import Path
 from typing import Any
 
 SUPPORTED_PROVIDERS = ("ollama", "lmstudio")
-DEFAULT_ENDPOINTS = {
-    "ollama": "http://127.0.0.1:11434",
-    "lmstudio": "http://127.0.0.1:1234",
-}
+DEFAULT_ENDPOINTS = {"ollama": "http://127.0.0.1:11434", "lmstudio": "http://127.0.0.1:1234"}
 
 
 def creation_flags() -> int:
@@ -31,34 +24,21 @@ def run(cmd: list[str], timeout: int = 30) -> dict[str, Any]:
     started = time.monotonic()
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, creationflags=creation_flags())
-        return {
-            "ok": proc.returncode == 0,
-            "exitCode": proc.returncode,
-            "durationMs": round((time.monotonic() - started) * 1000),
-            "stdout": proc.stdout.strip(),
-            "stderr": proc.stderr.strip(),
-            "command": cmd,
-        }
+        return {"ok": proc.returncode == 0, "exitCode": proc.returncode, "durationMs": round((time.monotonic() - started) * 1000), "stdout": proc.stdout.strip(), "stderr": proc.stderr.strip(), "command": cmd}
     except Exception as exc:
         return {"ok": False, "durationMs": round((time.monotonic() - started) * 1000), "error": str(exc), "command": cmd}
 
 
 def _existing(candidates: list[str | None]) -> str | None:
     for value in candidates:
-        if not value:
-            continue
-        path = Path(value).expanduser()
-        if path.is_file():
-            return str(path)
+        if value and Path(value).expanduser().is_file():
+            return str(Path(value).expanduser())
     return None
 
 
 def find_ollama_cli() -> str | None:
     local = os.environ.get("LOCALAPPDATA", "")
-    return _existing([
-        shutil.which("ollama"),
-        str(Path(local) / "Programs" / "Ollama" / "ollama.exe") if local else None,
-    ])
+    return _existing([shutil.which("ollama"), str(Path(local) / "Programs" / "Ollama" / "ollama.exe") if local else None])
 
 
 def find_lms_cli() -> str | None:
@@ -66,15 +46,10 @@ def find_lms_cli() -> str | None:
     local = os.environ.get("LOCALAPPDATA", "")
     candidates = [
         shutil.which("lms"), shutil.which("lms.exe"), shutil.which("lms.cmd"),
-        str(home / ".lmstudio" / "bin" / "lms"),
-        str(home / ".lmstudio" / "bin" / "lms.exe"),
-        str(home / ".lmstudio" / "bin" / "lms.cmd"),
+        str(home / ".lmstudio" / "bin" / "lms"), str(home / ".lmstudio" / "bin" / "lms.exe"), str(home / ".lmstudio" / "bin" / "lms.cmd"),
     ]
     if local:
-        candidates.extend([
-            str(Path(local) / "Programs" / "LM Studio" / "bin" / "lms.exe"),
-            str(Path(local) / "Programs" / "LM Studio" / "LM Studio.exe"),
-        ])
+        candidates.extend([str(Path(local) / "Programs" / "LM Studio" / "bin" / "lms.exe"), str(Path(local) / "Programs" / "LM Studio" / "bin" / "lms.cmd")])
     return _existing(candidates)
 
 
@@ -83,10 +58,7 @@ def find_lmstudio_gui() -> str | None:
     program_files = os.environ.get("ProgramFiles", "")
     candidates: list[str | None] = []
     if local:
-        candidates.extend([
-            str(Path(local) / "Programs" / "LM Studio" / "LM Studio.exe"),
-            str(Path(local) / "LM Studio" / "LM Studio.exe"),
-        ])
+        candidates.extend([str(Path(local) / "Programs" / "LM Studio" / "LM Studio.exe"), str(Path(local) / "LM Studio" / "LM Studio.exe")])
     if program_files:
         candidates.append(str(Path(program_files) / "LM Studio" / "LM Studio.exe"))
     if sys.platform == "darwin":
@@ -103,17 +75,22 @@ def normalize_provider(name: str) -> str:
 
 
 def detect(name: str) -> dict[str, Any]:
-    provider = normalize_provider(name)
-    if provider == "ollama":
+    provider_name = normalize_provider(name)
+    if provider_name == "ollama":
         cli = find_ollama_cli()
-        return {"name": provider, "installed": bool(cli), "controllable": bool(cli), "cli": cli, "application": None, "endpoint": DEFAULT_ENDPOINTS[provider]}
+        return {"name": provider_name, "installed": bool(cli), "controllable": bool(cli), "cli": cli, "application": None, "endpoint": DEFAULT_ENDPOINTS[provider_name]}
     cli = find_lms_cli()
     gui = find_lmstudio_gui()
-    return {"name": provider, "installed": bool(cli or gui), "controllable": bool(cli), "cli": cli, "application": gui, "endpoint": DEFAULT_ENDPOINTS[provider]}
+    return {"name": provider_name, "installed": bool(cli or gui), "controllable": bool(cli), "cli": cli, "application": gui, "endpoint": DEFAULT_ENDPOINTS[provider_name]}
 
 
-def _http_json(url: str, timeout: float = 5.0) -> tuple[bool, Any]:
-    request = urllib.request.Request(url, headers={"Accept": "application/json"})
+def _http_json(url: str, timeout: float = 5.0, provider_name: str | None = None) -> tuple[bool, Any]:
+    headers = {"Accept": "application/json"}
+    if provider_name == "lmstudio":
+        token = os.environ.get("LM_API_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             body = response.read().decode("utf-8", errors="replace")
@@ -130,22 +107,13 @@ def _extract_model_ids(provider_name: str, body: Any) -> list[str]:
     if not isinstance(body, dict):
         return []
     values: list[str] = []
-    if provider_name == "ollama":
-        rows = body.get("models")
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, dict):
-                    value = row.get("name") or row.get("model")
-                    if isinstance(value, str) and value:
-                        values.append(value)
-    else:
-        rows = body.get("data") if isinstance(body.get("data"), list) else body.get("models")
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, dict):
-                    value = row.get("id") or row.get("name") or row.get("model")
-                    if isinstance(value, str) and value:
-                        values.append(value)
+    rows = body.get("models") if provider_name == "ollama" else body.get("data") if isinstance(body.get("data"), list) else body.get("models")
+    if isinstance(rows, list):
+        for row in rows:
+            if isinstance(row, dict):
+                value = row.get("name") or row.get("model") if provider_name == "ollama" else row.get("key") or row.get("id") or row.get("name") or row.get("model")
+                if isinstance(value, str) and value:
+                    values.append(value)
     return values
 
 
@@ -153,11 +121,11 @@ def probe(name: str, timeout: float = 5.0) -> dict[str, Any]:
     provider_name = normalize_provider(name)
     info = detect(provider_name)
     if provider_name == "ollama":
-        ok, evidence = _http_json(f"{info['endpoint']}/api/tags", timeout)
+        ok, evidence = _http_json(f"{info['endpoint']}/api/tags", timeout, provider_name)
     else:
-        ok, evidence = _http_json(f"{info['endpoint']}/api/v1/models", timeout)
+        ok, evidence = _http_json(f"{info['endpoint']}/api/v1/models", timeout, provider_name)
         if not ok:
-            fallback_ok, fallback = _http_json(f"{info['endpoint']}/v1/models", timeout)
+            fallback_ok, fallback = _http_json(f"{info['endpoint']}/v1/models", timeout, provider_name)
             if fallback_ok:
                 ok, evidence = fallback_ok, fallback
             else:
@@ -181,10 +149,8 @@ def _start_ollama() -> dict[str, Any]:
         return {"ok": False, "error": "Ollama is not installed or its CLI could not be found"}
     try:
         kwargs: dict[str, Any] = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
-        if os.name == "nt":
-            kwargs["creationflags"] = creation_flags()
-        else:
-            kwargs["start_new_session"] = True
+        if os.name == "nt": kwargs["creationflags"] = creation_flags()
+        else: kwargs["start_new_session"] = True
         subprocess.Popen([cli, "serve"], **kwargs)
         return {"ok": True, "command": [cli, "serve"]}
     except Exception as exc:
@@ -219,8 +185,7 @@ def start(name: str, timeout: float = 30.0) -> dict[str, Any]:
 def _stop_ollama() -> dict[str, Any]:
     if os.name == "nt":
         taskkill = shutil.which("taskkill")
-        if not taskkill:
-            return {"ok": False, "error": "taskkill unavailable"}
+        if not taskkill: return {"ok": False, "error": "taskkill unavailable"}
         attempts = [run([taskkill, "/IM", image, "/T", "/F"], timeout=30) for image in ("ollama app.exe", "ollama.exe")]
         return {"ok": any(item.get("ok") for item in attempts), "attempts": attempts}
     if shutil.which("systemctl"):
@@ -230,8 +195,7 @@ def _stop_ollama() -> dict[str, Any]:
 
 def _stop_lmstudio() -> dict[str, Any]:
     cli = find_lms_cli()
-    if not cli:
-        return {"ok": False, "error": "LM Studio 'lms' CLI unavailable"}
+    if not cli: return {"ok": False, "error": "LM Studio 'lms' CLI unavailable"}
     return run([cli, "server", "stop"], timeout=60)
 
 
@@ -253,15 +217,13 @@ def openclaw_executable() -> str | None:
     candidates = ("openclaw.cmd", "openclaw.exe", "openclaw") if os.name == "nt" else ("openclaw",)
     for name in candidates:
         found = shutil.which(name)
-        if found:
-            return found
+        if found: return found
     return None
 
 
 def openclaw_model_status() -> dict[str, Any]:
     executable = openclaw_executable()
-    if not executable:
-        return {"ok": False, "error": "OpenClaw CLI unavailable", "defaultModel": None}
+    if not executable: return {"ok": False, "error": "OpenClaw CLI unavailable", "defaultModel": None}
     result = run([executable, "models", "status", "--json"], timeout=30)
     if not result.get("ok"):
         return {"ok": False, "error": result.get("stderr") or result.get("error"), "defaultModel": None, "raw": result}
@@ -274,28 +236,23 @@ def openclaw_model_status() -> dict[str, Any]:
         if isinstance(value, dict):
             for key in ("defaultModel", "default", "primary", "model"):
                 found = value.get(key)
-                if isinstance(found, str) and "/" in found:
-                    return found
+                if isinstance(found, str) and "/" in found: return found
                 if isinstance(found, dict):
                     nested = found.get("primary") or found.get("default")
-                    if isinstance(nested, str) and "/" in nested:
-                        return nested
+                    if isinstance(nested, str) and "/" in nested: return nested
             for nested_value in value.values():
                 result_value = find_default(nested_value)
-                if result_value:
-                    return result_value
+                if result_value: return result_value
         elif isinstance(value, list):
             for nested_value in value:
                 result_value = find_default(nested_value)
-                if result_value:
-                    return result_value
+                if result_value: return result_value
         return None
 
     return {"ok": True, "defaultModel": find_default(document), "document": document}
 
 
 def model_provider(model_ref: str | None) -> str | None:
-    if not isinstance(model_ref, str) or "/" not in model_ref:
-        return None
+    if not isinstance(model_ref, str) or "/" not in model_ref: return None
     prefix = model_ref.split("/", 1)[0].strip().lower()
     return prefix if prefix in SUPPORTED_PROVIDERS else None
