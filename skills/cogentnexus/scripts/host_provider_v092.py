@@ -5,18 +5,27 @@ The accepted v0.9.1 Ticket, delivery, single-authority and Direct-stall recovery
 logic remains unchanged. This layer replaces only the local provider lifecycle
 boundary so `--provider` means the durable selected provider (Ollama or LM
 Studio), not hard-coded Ollama.
+
+v0.9.2 additionally adds two provider-specific recovery guards:
+- one bounded LM Studio long-running grace before a healthy endpoint is treated
+  as a stalled Direct call;
+- a durable automatic-recovery circuit breaker so Host recovery cannot loop
+  provider restarts indefinitely.
 """
 from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import host_stall_v091 as stall
 import provider as providers
+import provider_recovery_v092 as recovery_policy
 
 legacy = stall.legacy
 v091 = stall.v091
@@ -135,7 +144,6 @@ def provider_aware_runtime(root: Path, *args: str, timeout: int = 180, check: bo
         }
         return _finish(_completed(command, runtime_result.returncode, payload, runtime_result.stderr or ""), check)
 
-    # Stop inference-capable Gateway first, then stop the selected local provider.
     runtime_result = ORIGINAL_RUNTIME(root, *cleaned, timeout=timeout, check=False)
     if runtime_result.returncode != 0:
         return _finish(runtime_result, check)
@@ -163,6 +171,121 @@ def _run_base_supervisor(root: Path, execute_safe: bool, provider_healthy: bool)
         v091.ollama_fast_probe = original_probe
 
 
+def _defer_lmstudio_long_running_call(root: Path, grace_seconds: int) -> dict[str, Any] | None:
+    """Give one healthy LM Studio Direct call a bounded prefill grace.
+
+    The OpenAI-compatible stream exposes no prompt-processing progress. Live
+    testing proved valid cold prefill can remain silent for >360 seconds. When
+    both Gateway and provider endpoints are healthy, the first expired LM Studio
+    call is therefore reclassified as `cold_model_long_running` and its durable
+    deadline is extended once without restarting the provider or consuming a
+    recovery attempt. A second expiry falls back to the accepted v0.9.1 recovery.
+    """
+    if grace_seconds <= 0:
+        return None
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return None
+
+    now = datetime.now(timezone.utc)
+    now_value = now.isoformat()
+    deadline = (now + timedelta(seconds=grace_seconds)).isoformat()
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        if not stall._model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return None
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at,m.outcome,"
+            "m.recovery_attempt_count,t.owner_session_key "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.response_ready_at IS NULL AND m.state='active' AND m.deadline_at<=? "
+            "AND m.recovery_attempt_count=0 "
+            "AND LOWER(COALESCE(m.provider,'')) LIKE '%lmstudio%' "
+            "AND COALESCE(m.outcome,'') NOT LIKE 'cold-model-long-running-grace:%' "
+            "ORDER BY m.deadline_at,m.ticket_id LIMIT 1",
+            (now_value,),
+        ).fetchone()
+        if row is None:
+            db.commit()
+            return None
+
+        marker = f"cold-model-long-running-grace:{grace_seconds}s"
+        changed = db.execute(
+            "UPDATE cnx_direct_model_call SET deadline_at=?,outcome=?,updated_at=? "
+            "WHERE ticket_id=? AND call_id=? AND state='active' AND recovery_attempt_count=0",
+            (deadline, marker, now_value, row["ticket_id"], row["call_id"]),
+        )
+        if changed.rowcount != 1:
+            db.rollback()
+            return None
+
+        if v091._db_table_exists(db, "ticket_events"):
+            db.execute(
+                "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                (
+                    row["ticket_id"],
+                    "host_direct_model_long_running_grace",
+                    json.dumps({
+                        "runId": row["run_id"],
+                        "callId": row["call_id"],
+                        "provider": row["provider"],
+                        "model": row["model"],
+                        "startedAt": row["started_at"],
+                        "deadlineBefore": row["deadline_at"],
+                        "deadlineAfter": deadline,
+                        "classification": "cold_model_long_running",
+                        "recoveryEligible": False,
+                        "providerRestart": False,
+                        "graceSeconds": grace_seconds,
+                        "source": "host-v092-provider-evidence",
+                    }, ensure_ascii=False),
+                    now_value,
+                ),
+            )
+        db.commit()
+        return {
+            "result": "cold-model-long-running",
+            "classification": "cold_model_long_running",
+            "ticketId": row["ticket_id"],
+            "callId": row["call_id"],
+            "provider": row["provider"],
+            "model": row["model"],
+            "deadlineBefore": row["deadline_at"],
+            "deadlineAfter": deadline,
+            "graceSeconds": grace_seconds,
+            "recoveryEligible": False,
+            "providerRestart": False,
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def _circuit_open_result(
+    root: Path,
+    execute_safe: bool,
+    target: str,
+    current: dict[str, Any],
+    gate: dict[str, Any],
+) -> dict[str, Any]:
+    result = _run_base_supervisor(root, execute_safe, True)
+    result["selectedProvider"] = target
+    result["providerHealth"] = current
+    result["providerRecovery"] = {
+        "classification": "provider_recovery_circuit_open",
+        "recoveryEligible": False,
+        "providerRestart": False,
+        "gate": gate,
+    }
+    result["result"] = "provider-recovery-circuit-open"
+    return result
+
+
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     state = legacy.load_state(root)
     if state.get("mode") != "managed" or state.get("desiredGateway") != "running":
@@ -182,31 +305,76 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     before = providers.probe(target, timeout=3.0)
     recovery: dict[str, Any] | None = None
     current = before
+    gate = recovery_policy.gate(root, target)
+
     if state.get("desiredProvider") == "running" and not before.get("healthy") and execute_safe:
-        recovery = providers.start(target, timeout=45)
-        current = providers.probe(target, timeout=3.0)
+        if gate.get("allowed"):
+            recovery = providers.start(target, timeout=45)
+            current = providers.probe(target, timeout=3.0)
+            gate = recovery_policy.record_attempt(
+                root,
+                target,
+                success=bool(recovery.get("ok") and current.get("healthy")),
+                reason="provider-endpoint-unhealthy",
+            )
+            recovery = {**recovery, "recoveryPolicy": gate}
+        else:
+            return _circuit_open_result(root, execute_safe, target, current, gate)
 
     if state.get("desiredProvider") == "running" and not current.get("healthy"):
         result = _run_base_supervisor(root, execute_safe, True)
         result["selectedProvider"] = target
         result["providerHealth"] = current
         result["providerRecovery"] = recovery or "none"
+        result["providerRecoveryPolicy"] = gate
         result["result"] = "provider-degraded"
         return result
 
-    # The accepted Direct-stall classifier is reused unchanged. Its stop/start
-    # calls flow through provider_aware_runtime above, preserving quiescence while
-    # replacing only the concrete local provider adapter.
     if execute_safe and current.get("healthy") and v091.gateway_fast_probe():
+        if target == "lmstudio":
+            deferred = _defer_lmstudio_long_running_call(
+                root,
+                recovery_policy.policy(target)["longRunningGraceSeconds"],
+            )
+            if deferred is not None:
+                result = _run_base_supervisor(root, execute_safe, True)
+                result["selectedProvider"] = target
+                result["providerHealth"] = current
+                result["providerRecovery"] = recovery or "none"
+                result["providerRecoveryPolicy"] = gate
+                result["modelCallClassification"] = deferred
+                result["result"] = "cold-model-long-running"
+                return result
+
+        gate = recovery_policy.gate(root, target)
+        if not gate.get("allowed"):
+            return _circuit_open_result(root, execute_safe, target, current, gate)
+
         claim = stall.claim_expired_direct_model_call(root)
         if claim is not None:
             try:
                 recovered = stall.recover_expired_direct_model_call(root, claim)
+                gate_after = recovery_policy.record_attempt(
+                    root,
+                    target,
+                    success=True,
+                    reason="direct-model-call-stall-recovery",
+                )
                 recovered["selectedProvider"] = target
                 recovered["providerHealthBefore"] = before
                 recovered["providerRecoveryBeforeStall"] = recovery
+                recovered["providerRecoveryPolicy"] = gate_after
                 return recovered
             except Exception as error:
+                try:
+                    recovery_policy.record_attempt(
+                        root,
+                        target,
+                        success=False,
+                        reason=f"direct-model-call-stall-recovery-error:{error}",
+                    )
+                except Exception:
+                    pass
                 try:
                     stall._release_model_call_claim(root, claim, str(error))
                 except Exception:
@@ -217,6 +385,7 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     result["selectedProvider"] = target
     result["providerHealth"] = current
     result["providerRecovery"] = recovery or "none"
+    result["providerRecoveryPolicy"] = recovery_policy.gate(root, target)
     return result
 
 
