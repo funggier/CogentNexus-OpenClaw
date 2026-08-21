@@ -50,21 +50,26 @@ jobs:
             throw "npm pack artifact not found: $artifact"
           }
           try {
-            $entries = @(tar -tf $artifact)
+            $null = @(tar -tf $artifact)
             if ($LASTEXITCODE -ne 0) { throw 'failed to list npm-pack artifact' }
+
+            $paths = @(
+              $items[0].files |
+                ForEach-Object { [string]$_.path -replace '\\','/' }
+            )
             $required = @(
-              'package/dist/v091-release-entry.js',
-              'package/scripts/bootstrap-ticket-db.mjs',
-              'package/openclaw.plugin.json',
-              'package/README.md'
+              'dist/v091-release-entry.js',
+              'scripts/bootstrap-ticket-db.mjs',
+              'openclaw.plugin.json',
+              'README.md'
             )
             foreach ($entry in $required) {
-              if ($entries -notcontains $entry) { throw "npm-pack artifact missing $entry" }
+              if ($paths -notcontains $entry) { throw "npm-pack artifact missing $entry" }
             }
-            if ($entries | Where-Object { $_ -match '^package/node_modules/' }) {
+            if ($paths | Where-Object { $_ -match '(^|/)node_modules/' }) {
               throw 'npm-pack artifact unexpectedly contains node_modules'
             }
-            if ($entries | Where-Object { $_ -match 'node_modules/openclaw' }) {
+            if ($paths | Where-Object { $_ -match 'node_modules/openclaw' }) {
               throw 'npm-pack artifact unexpectedly contains the OpenClaw peer link'
             }
           }
