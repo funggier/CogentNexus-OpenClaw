@@ -76,8 +76,11 @@ def enable_managed(root):
     except Exception:
         try:
             provider_events.stop_adapter(root)
-        finally:
-            raise
+        except Exception:
+            # Cleanup evidence must never mask the original transactional enable
+            # failure. A later disable/reconciliation pass can retry cleanup.
+            pass
+        raise
 
 
 def restart_managed(root):
