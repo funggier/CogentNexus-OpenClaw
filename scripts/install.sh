@@ -44,6 +44,7 @@ TARGET_SKILL="$WORKSPACE/skills/cogentnexus"
 STAGED_SKILL="$WORKSPACE/.cogent/install-staging/cogentnexus"
 BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
 HOST_SCRIPT="$TARGET_SKILL/scripts/host.py"
+HOST_CONTROL_SCRIPT="$TARGET_SKILL/scripts/host_control_v091.py"
 COGENT_ROOT="$WORKSPACE/.cogent"
 
 mkdir -p "$WORKSPACE/skills"
@@ -91,13 +92,13 @@ fi
 LAUNCHER="$WORKSPACE/cnx"
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env sh
-exec python "$HOST_SCRIPT" --root "$COGENT_ROOT" "\$@"
+exec python "$HOST_CONTROL_SCRIPT" --root "$COGENT_ROOT" "\$@"
 EOF
 chmod +x "$LAUNCHER"
 echo "Installed Host Controller launcher to $LAUNCHER"
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
-  python "$HOST_SCRIPT" --root "$COGENT_ROOT" enable
+  python "$HOST_CONTROL_SCRIPT" --root "$COGENT_ROOT" enable
 else
   echo "Skipped Host enable because --skip-gateway-restart was requested. Run '$LAUNCHER enable' when ready."
 fi

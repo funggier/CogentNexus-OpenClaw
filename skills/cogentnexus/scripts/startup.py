@@ -28,6 +28,7 @@ def python_background():
     p=Path(sys.executable)
     q=p.with_name("pythonw.exe")
     return q if os.name=="nt" and q.exists() else p
+def host_control_path(): return HERE.with_name("host_control.py")
 def ps(script):
     exe=shutil.which("powershell.exe") or shutil.which("powershell")
     if not exe: raise RuntimeError("PowerShell not found")
@@ -51,7 +52,7 @@ def write_windows_definition(path,template):
 def win_enable(root):
     before=win_status(); backup=backup_windows(root)
     template=(SKILL/"templates"/"supervisor"/"windows-task.xml").read_text(encoding="utf-8")
-    values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(HERE.with_name("host.py")),"{{ROOT}}":str(root)}
+    values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(host_control_path()),"{{ROOT}}":str(root)}
     for k,v in values.items():template=template.replace(k,v)
     definition=root/"runtime"/"cogentnexus-supervisor.xml";definition.parent.mkdir(parents=True,exist_ok=True)
     write_windows_definition(definition,template)
@@ -80,7 +81,7 @@ def systemd_status():
 def systemd_enable(root):
     if not shutil.which("systemctl"):raise RuntimeError("no supported systemd user manager")
     service,timer=systemd_paths();service.parent.mkdir(parents=True,exist_ok=True)
-    service.write_text(f"[Unit]\nDescription=CogentNexus hidden background supervisor\n[Service]\nType=oneshot\nExecStart={sys.executable} {HERE.with_name('host.py')} --root {root} supervisor tick --execute-safe\nStandardInput=null\n",encoding="utf-8")
+    service.write_text(f"[Unit]\nDescription=CogentNexus hidden background supervisor\n[Service]\nType=oneshot\nExecStart={sys.executable} {host_control_path()} --root {root} supervisor tick --execute-safe\nStandardInput=null\n",encoding="utf-8")
     timer.write_text("[Unit]\nDescription=CogentNexus every minute\n[Timer]\nOnBootSec=1min\nOnUnitActiveSec=1min\nPersistent=true\n[Install]\nWantedBy=timers.target\n",encoding="utf-8")
     for cmd in (["systemctl","--user","daemon-reload"],["systemctl","--user","enable","--now",timer.name]):
         r=run(cmd)
@@ -111,7 +112,7 @@ def launchd_enable(root):
     if not shutil.which("launchctl"):raise RuntimeError("launchctl not found")
     before=launchd_status(); backup=backup_launchd(root)
     template=(SKILL/"templates"/"supervisor"/"ai.cogentnexus.supervisor.plist").read_text(encoding="utf-8")
-    values={"{{PYTHON}}":str(sys.executable),"{{RUNTIME}}":str(HERE.with_name("host.py")),"{{ROOT}}":str(root)}
+    values={"{{PYTHON}}":str(sys.executable),"{{RUNTIME}}":str(host_control_path()),"{{ROOT}}":str(root)}
     for k,v in values.items():template=template.replace(k,v)
     p=launchd_path();p.parent.mkdir(parents=True,exist_ok=True);p.write_text(template,encoding="utf-8")
     if before.get("loaded"): run(["launchctl","bootout",launchd_service()],timeout=30)

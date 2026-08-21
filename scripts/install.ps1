@@ -17,6 +17,7 @@ $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
 $hostScript = Join-Path $targetSkill "scripts\host.py"
+$hostControlScript = Join-Path $targetSkill "scripts\host_control_v091.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
 
 function Require-Command([string]$Name) {
@@ -92,9 +93,7 @@ if (-not $SkipPlugin) {
                 $currentPaths = openclaw config get plugins.load.paths 2>$null
                 $pathExit = $LASTEXITCODE
             }
-            finally {
-                $ErrorActionPreference = $savedErrorActionPreference
-            }
+            finally { $ErrorActionPreference = $savedErrorActionPreference }
             if ($pathExit -eq 0) {
                 $filteredPaths = $currentPaths | python (Join-Path $repoRoot "scripts\filter_plugin_paths.py") --plugin-id cogentnexus-rotation
                 if ($LASTEXITCODE -ne 0) { throw "failed to inspect existing plugin load paths" }
@@ -109,18 +108,22 @@ if (-not $SkipPlugin) {
 }
 
 # Zero-dependency workspace launcher. It remains usable while OpenClaw is down.
+# Route operator commands through the transactional control wrapper so managed
+# compatibility policy is applied/restored before Host lifecycle actions can
+# start Gateway, and failed enable rolls back to native passthrough.
 $launcher = Join-Path $Workspace "cnx.cmd"
-$hostEscaped = $hostScript.Replace('"','""')
+$hostControlEscaped = $hostControlScript.Replace('"','""')
 $rootEscaped = $cogentRoot.Replace('"','""')
-$launcherText = "@echo off`r`npython `"$hostEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+$launcherText = "@echo off`r`npython `"$hostControlEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed Host Controller launcher to $launcher"
 
 if (-not $SkipGatewayRestart) {
     # Host enable applies the currently registered managed policy, configures the
     # bridge, enables background supervision, reconciles Gateway/provider health,
-    # and resumes eligible committed work.
-    python $hostScript --root $cogentRoot enable
+    # and resumes eligible committed work. Use the control wrapper so watchdog
+    # compatibility is in force before the Gateway can be started/recovered.
+    python $hostControlScript --root $cogentRoot enable
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed" }
 }
 else {

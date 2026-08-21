@@ -132,11 +132,19 @@ def startup(root: Path, action: str, check: bool = True) -> subprocess.Completed
 def gateway_status(timeout: int = 30) -> dict[str, Any]:
     try:
         result = run([openclaw_executable(), "gateway", "status"], timeout=timeout)
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        evidence = f"{stdout}\n{stderr}"
+        healthy = (
+            result.returncode == 0
+            and "Runtime: running" in evidence
+            and "Connectivity probe: ok" in evidence
+        )
         return {
-            "healthy": result.returncode == 0,
+            "healthy": healthy,
             "exitCode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
+            "stdout": stdout,
+            "stderr": stderr,
         }
     except (FileNotFoundError, subprocess.TimeoutExpired) as error:
         return {"healthy": False, "error": str(error)}
@@ -423,6 +431,45 @@ def ticket_snapshot(root: Path) -> dict[str, Any]:
         db.close()
 
 
+
+def reconcile_terminal_fences(root: Path) -> dict[str, int]:
+    """Make terminal intent authoritative before any runtime can wake inference."""
+    path = ticket_db(root)
+    if not path.exists():
+        return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
+    db = sqlite3.connect(path, timeout=5)
+    try:
+        if not table_exists(db, "tickets"):
+            return {"cancelledOutboxSuppressed": 0, "terminalRecoverySuppressed": 0, "cancelledClassificationNormalized": 0}
+        db.execute("BEGIN IMMEDIATE")
+        normalized = db.execute(
+            "UPDATE tickets SET failure_class=NULL WHERE status='cancelled' AND failure_class IS NOT NULL"
+        ).rowcount
+        outbox = 0
+        if table_exists(db, "ticket_outbox"):
+            outbox = db.execute(
+                "DELETE FROM ticket_outbox WHERE delivery_status='pending' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status='cancelled')"
+            ).rowcount
+        recovery = 0
+        if table_exists(db, "cnx_direct_recovery"):
+            stamp = now_iso()
+            recovery = db.execute(
+                "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=COALESCE(last_error,'terminal ticket fence'),updated_at=? "
+                "WHERE state<>'cancelled' AND ticket_id IN (SELECT ticket_id FROM tickets WHERE status IN ('completed','failed','cancelled'))",
+                (stamp,),
+            ).rowcount
+        db.commit()
+        return {
+            "cancelledOutboxSuppressed": int(outbox),
+            "terminalRecoverySuppressed": int(recovery),
+            "cancelledClassificationNormalized": int(normalized),
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
 def cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:
     path = ticket_db(root)
     if not path.exists():
@@ -436,6 +483,8 @@ def cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:
         if not row:
             raise RuntimeError(f"Ticket not found: {ticket_id}")
         if row["status"] in TERMINAL_TICKETS:
+            if row["status"] == "cancelled":
+                reconcile_terminal_fences(root)
             return {"ticketId": ticket_id, "status": row["status"], "changed": False}
         if row["workflow_id"]:
             result = run(
@@ -447,7 +496,7 @@ def cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:
         stamp = now_iso()
         db.execute("BEGIN IMMEDIATE")
         changed = db.execute(
-            "UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class='interrupted',failure_message=?,updated_at=? WHERE ticket_id=? AND status NOT IN ('completed','failed','cancelled')",
+            "UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,failure_class=NULL,failure_message=?,updated_at=? WHERE ticket_id=? AND status NOT IN ('completed','failed','cancelled')",
             (reason[:2000], stamp, ticket_id),
         )
         if changed.rowcount == 1:
@@ -456,10 +505,11 @@ def cancel_ticket(root: Path, ticket_id: str, reason: str) -> dict[str, Any]:
                 (ticket_id, "cancelled", json.dumps({"reason": reason, "source": "host"}), stamp),
             )
             if table_exists(db, "ticket_outbox"):
-                payload = json.dumps({"classification": "interrupted", "message": reason, "source": "host"})
+                db.execute("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'", (ticket_id,))
+            if table_exists(db, "cnx_direct_recovery"):
                 db.execute(
-                    "INSERT OR IGNORE INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES (?,?,'cancelled',?,'pending',?)",
-                    (ticket_id, row["owner_session_key"], payload, stamp),
+                    "UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=? WHERE ticket_id=?",
+                    (reason[:2000], stamp, ticket_id),
                 )
         db.commit()
         return {"ticketId": ticket_id, "status": "cancelled", "changed": changed.rowcount == 1}
@@ -531,6 +581,7 @@ def parse_json_output(value: str) -> Any:
 
 def enable(root: Path) -> dict[str, Any]:
     initialize(root)
+    terminal_fences = reconcile_terminal_fences(root)
     workspace = root.parent
     started = now_iso()
     state = transition(root, mode="managed", desiredGateway="running", desiredProvider="running")
@@ -549,6 +600,7 @@ def enable(root: Path) -> dict[str, Any]:
         "startup": parse_json_output(startup_result.stdout),
         "lifecycle": parse_json_output(lifecycle.stdout),
         "sessionBootstrap": session_bootstrap,
+        "terminalFences": terminal_fences,
         "recoveredTickets": recovered,
     }
 
@@ -576,6 +628,7 @@ def disable(root: Path) -> dict[str, Any]:
 
 def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:
     initialize(root)
+    terminal_fences = reconcile_terminal_fences(root)
     prior = load_state(root)
     started = now_iso()
     state = transition(
@@ -588,7 +641,7 @@ def start_managed(root: Path, provider: bool = True) -> dict[str, Any]:
     session_bootstrap = reconcile_default_session()
     recovered = promote_interrupted_direct(root, started, "Gateway resumed by CogentNexus Host after interruption")
     runtime(root, "supervisor", "tick", "--execute-safe", timeout=180, check=False)
-    return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "recoveredTickets": recovered}
+    return {"state": state, "lifecycle": parse_json_output(result.stdout), "sessionBootstrap": session_bootstrap, "terminalFences": terminal_fences, "recoveredTickets": recovered}
 
 
 def stop_managed(root: Path, provider: bool = True) -> dict[str, Any]:

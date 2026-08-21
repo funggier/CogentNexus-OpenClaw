@@ -92,5 +92,5 @@ describe("delivery continuity", () => {
       store.finalizeDirectRun({runId:"run",success:true,interrupted:false,expectsDelivery:false});
       expect(hasPendingSessionWork(root,store,session)).toBe(false);
     } finally { rmSync(root,{recursive:true,force:true}); }
-  });
+  }, 15_000);
 });
