@@ -2,15 +2,23 @@
 """CogentNexus v0.9.2 Host control shim.
 
 Preserves every v0.9.1 watchdog/plugin safety fence while routing normal Host
-work through the final provider-neutral v0.9.2 overlay and destructive lifecycle
+work through the provider-neutral v0.9.2 overlay and destructive lifecycle
 through the provider-aware v0.9.2 wrapper.
+
+The PASSTHROUGH boundary additionally restores v0.9.2-owned OpenClaw route,
+timeout and schema-compat fields and forces one verified Gateway process
+boundary. A config-file restore alone is not sufficient evidence that the
+running Gateway has loaded the native route.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import host_control_v091 as v091
 import lifecycle_v092 as lifecycle
+import openclaw_route_v092 as openclaw_route
+import openclaw_runtime_boundary_v092 as runtime_boundary
 
 HERE = Path(__file__).resolve()
 v091.legacy.HOST = HERE.with_name("host_v092.py")
@@ -26,12 +34,42 @@ def option_value(argv: list[str], name: str) -> str | None:
     return None
 
 
+def _finish_disable_native_boundary(root: Path, delegate_code: int) -> int:
+    if delegate_code != 0:
+        return delegate_code
+
+    restored = openclaw_route.restore_native(root)
+    if not restored.get("ok"):
+        print(json.dumps({
+            "result": "error",
+            "phase": "restore-native-openclaw-route",
+            "routeRestore": restored,
+            "safety": "CogentNexus is PASSTHROUGH; destructive cleanup is blocked until the native route is restored",
+        }, ensure_ascii=False, indent=2))
+        return 1
+
+    boundary = runtime_boundary.activate_current_config()
+    if not boundary.get("ok"):
+        print(json.dumps({
+            "result": "error",
+            "phase": "activate-native-openclaw-route",
+            "routeRestore": restored,
+            "runtimeBoundary": boundary,
+            "safety": "CogentNexus is PASSTHROUGH and native config is durable, but Gateway reload/health could not be verified",
+        }, ensure_ascii=False, indent=2))
+        return 1
+
+    return 0
+
+
 def main() -> int:
     argv = v091.legacy.sys.argv[1:]
     root = v091.legacy.root_from_argv(argv)
     command, _ = v091.legacy.command_from_argv(argv)
     if command in {"reset", "uninstall"}:
         return lifecycle.main(command, root, option_value(argv, "--provider"))
+    if command == "disable":
+        return _finish_disable_native_boundary(root, v091.main())
     return v091.main()
 
 
