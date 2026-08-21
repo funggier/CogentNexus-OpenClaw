@@ -40,19 +40,19 @@ function ConvertTo-EvidencePlainValue {
     }
 
     if ($Value -is [System.Collections.IDictionary]) {
-        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        $map = @{}
         foreach ($key in $Value.Keys) {
             $map[[string]$key] = ConvertTo-EvidencePlainValue $Value[$key]
         }
-        return $map
+        return ,$map
     }
 
     if (($Value -is [System.Collections.IEnumerable]) -and -not ($Value -is [string])) {
-        $list = New-Object 'System.Collections.Generic.List[object]'
+        $items = New-Object System.Collections.ArrayList
         foreach ($item in $Value) {
-            [void]$list.Add((ConvertTo-EvidencePlainValue $item))
+            [void]$items.Add((ConvertTo-EvidencePlainValue $item))
         }
-        return $list
+        return ,([object[]]$items.ToArray())
     }
 
     $properties = @(
@@ -60,7 +60,7 @@ function ConvertTo-EvidencePlainValue {
             Where-Object { $_.MemberType -in @('NoteProperty','Property','AliasProperty') }
     )
     if ($properties.Count -gt 0) {
-        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        $map = @{}
         foreach ($property in $properties) {
             try {
                 $propertyValue = $property.Value
@@ -69,7 +69,7 @@ function ConvertTo-EvidencePlainValue {
             }
             $map[[string]$property.Name] = ConvertTo-EvidencePlainValue $propertyValue
         }
-        return $map
+        return ,$map
     }
 
     return [string]$Value
@@ -209,19 +209,19 @@ function ConvertTo-EvidencePlainValue {
     }
 
     if ($Value -is [System.Collections.IDictionary]) {
-        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        $map = @{}
         foreach ($key in $Value.Keys) {
             $map[[string]$key] = ConvertTo-EvidencePlainValue $Value[$key]
         }
-        return $map
+        return ,$map
     }
 
     if (($Value -is [System.Collections.IEnumerable]) -and -not ($Value -is [string])) {
-        $list = New-Object 'System.Collections.Generic.List[object]'
+        $items = New-Object System.Collections.ArrayList
         foreach ($item in $Value) {
-            [void]$list.Add((ConvertTo-EvidencePlainValue $item))
+            [void]$items.Add((ConvertTo-EvidencePlainValue $item))
         }
-        return $list
+        return ,([object[]]$items.ToArray())
     }
 
     $properties = @(
@@ -229,12 +229,12 @@ function ConvertTo-EvidencePlainValue {
             Where-Object { $_.MemberType -in @('NoteProperty','Property','AliasProperty') }
     )
     if ($properties.Count -gt 0) {
-        $map = New-Object 'System.Collections.Generic.Dictionary[string,object]'
+        $map = @{}
         foreach ($property in $properties) {
             try { $propertyValue = $property.Value } catch { $propertyValue = '<unavailable>' }
             $map[[string]$property.Name] = ConvertTo-EvidencePlainValue $propertyValue
         }
-        return $map
+        return ,$map
     }
 
     return [string]$Value
