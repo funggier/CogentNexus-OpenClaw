@@ -83,6 +83,16 @@ See [docs/BASELINE.md](docs/BASELINE.md) for the canonical v0.8 architecture and
 
 The periodic supervisor itself performs no model inference.
 
+## Why this matters in practice
+
+A model call can fail **transiently and nondeterministically**: the same OpenClaw configuration, provider, model, and tool policy may stall until the watchdog interrupts the run, while a later retry succeeds without changing configuration or restarting the provider.
+
+This is exactly the kind of failure boundary CogentNexus is designed to make survivable. Ticket-first durability preserves the accepted user intent outside the failed inference call. If a run is confirmed stalled and no durable result or protected external side-effect receipt exists, bounded recovery can retry the same committed Ticket. If completed response content is already durable, recovery retries **delivery only** rather than rerunning inference or completed work.
+
+This is not a claim that any particular provider, model, or tool is universally defective. It is a continuity guarantee: transient inference failure should not silently discard accepted work or cause already-completed work to be repeated.
+
+See [Transient Model-Call Stall Recovery](docs/TRANSIENT_STALL_RECOVERY.md) for the observed failure shape, recovery boundaries, and operational rationale.
+
 ## Install
 
 For a stable installation, use a versioned GitHub Release and verify `SHA256SUMS.txt` before running the installer.
