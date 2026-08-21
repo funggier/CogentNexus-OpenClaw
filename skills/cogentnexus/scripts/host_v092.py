@@ -6,7 +6,60 @@ import host_provider_v092 as base
 
 legacy = base.legacy
 providers = base.providers
+provider_events = base.provider_events
 ORIGINAL_RESTART_MANAGED = legacy.restart_managed
+BASE_PROVIDER_RUNTIME = base.provider_aware_runtime
+
+
+def provider_event_aware_runtime(root, *args, timeout=180, check=True):
+    """Linearize provider start, event adapter, then Gateway activation.
+
+    The provider must be reachable before LM Studio's blocking runtime log stream
+    can be attached. Starting the adapter before the Gateway closes the small
+    activation window where managed inference could begin without provider event
+    evidence being observable.
+    """
+    values = list(args)
+    provider_requested = "--provider" in values
+    lifecycle = len(values) >= 2 and values[0] == "lifecycle"
+    action = values[1] if lifecycle else None
+    if not provider_requested or action != "start":
+        return BASE_PROVIDER_RUNTIME(root, *args, timeout=timeout, check=check)
+
+    target = base._state_provider(root)
+    cleaned = [value for value in values if value != "--provider"]
+    command = [base.sys.executable, str(base.legacy.runtime_path()), "--root", str(root), *cleaned]
+    if not target:
+        return base._finish(base._completed(command, 2, {
+            "result": "error",
+            "error": "provider selection required; use cnx start --provider ollama|lmstudio",
+            "provider": None,
+        }), check)
+
+    base._set_legacy_ollama_mode(root, target)
+    provider_result = providers.start(target, timeout=min(60.0, float(timeout)))
+    if not provider_result.get("ok"):
+        return base._finish(base._completed(command, 2, {
+            "result": "error",
+            "phase": "provider-start",
+            "provider": target,
+            "providerLifecycle": provider_result,
+        }), check)
+
+    adapter = provider_events.ensure_adapter(root, target)
+    runtime_result = base.ORIGINAL_RUNTIME(root, *cleaned, timeout=timeout, check=False)
+    return base._finish(base._completed(command, runtime_result.returncode, {
+        "provider": target,
+        "providerLifecycle": provider_result,
+        "providerEventAdapter": adapter,
+        "runtime": base._parse_stdout(runtime_result.stdout),
+    }, runtime_result.stderr or ""), check)
+
+
+# host_provider_v092 installed its provider-aware wrapper during import. Replace
+# only the final v0.9.2 runtime surface so the event adapter is attached before
+# Gateway activation while all v0.9.1 lifecycle internals remain unchanged.
+legacy.runtime = provider_event_aware_runtime
 
 
 def restart_managed(root):
@@ -19,9 +72,11 @@ def restart_managed(root):
     started = providers.start(target, timeout=45)
     if not started.get("ok"):
         raise RuntimeError(f"selected provider '{target}' failed to start before restart: {started}")
+    adapter = provider_events.ensure_adapter(root, target)
     result = ORIGINAL_RESTART_MANAGED(root)
     result["provider"] = target
     result["providerLifecycle"] = started
+    result["providerEventAdapter"] = adapter
     return result
 
 
