@@ -17,6 +17,7 @@ from typing import Any
 
 import lifecycle_v091 as base
 import openclaw_route_v092 as openclaw_route
+import openclaw_runtime_boundary_v092 as runtime_boundary
 import provider
 
 HERE = Path(__file__).resolve()
@@ -97,6 +98,8 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         return 0
     route_started = False
     try:
+        # host_control_v092 disable restores the native route and verifies a
+        # Gateway process boundary before returning success.
         base.disable_managed(root)
         restored = openclaw_route.restore_native(root)
         if not restored.get("ok"):
@@ -121,6 +124,13 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         base.forward(enabled)
         if enabled.returncode != 0:
             raise RuntimeError("CogentNexus transactional enable failed after reset")
+
+        # v0.9.1 lifecycle start may skip Gateway start when it is already
+        # healthy. Force one process boundary so verification observes the new
+        # provider route and newly enabled plugin in the running Gateway.
+        managed_boundary = runtime_boundary.activate_current_config()
+        if not managed_boundary.get("ok"):
+            raise RuntimeError(f"Gateway failed to activate fresh MANAGED route after reset: {managed_boundary}")
 
         plugin = base.verify_plugin_loaded()
         gateway = base.gateway_health()
@@ -176,6 +186,8 @@ def uninstall(root: Path) -> int:
     if not base.confirm("uninstall"):
         return 0
     try:
+        # host_control_v092 refuses to return success until the native route is
+        # active in a healthy Gateway process.
         base.disable_managed(root)
         restored = openclaw_route.restore_native(root)
         if not restored.get("ok"):
