@@ -1,6 +1,6 @@
 # Provider lifecycle — CogentNexus v0.9.2
 
-CogentNexus v0.9.2 separates durable user intent/recovery authority from the concrete local inference runtime. The accepted v0.9.1 Ticket, Direct Recovery, durable-result and delivery fences remain authoritative. The v0.9.2 provider layer owns discovery, selected-provider lifecycle, the narrow OpenClaw route/request-timeout compatibility transaction required by that provider, and bounded provider recovery.
+CogentNexus v0.9.2 separates durable user intent/recovery authority from the concrete local inference runtime. The accepted v0.9.1 Ticket, Direct Recovery, durable-result and delivery fences remain authoritative. The v0.9.2 provider layer owns discovery, selected-provider lifecycle, the narrow OpenClaw route/request compatibility transaction, provider event evidence, and bounded per-incident recovery.
 
 ## Supported local providers
 
@@ -9,7 +9,7 @@ CogentNexus v0.9.2 separates durable user intent/recovery authority from the con
 | Ollama | `http://127.0.0.1:11434` | `ollama/...` | `ollama` CLI |
 | LM Studio | `http://127.0.0.1:1234` | `lmstudio_local/...` | `lms` CLI |
 
-Both applications may be installed and their servers may even be running at the same time because their normal ports are different. CogentNexus has exactly one **selected provider** for managed lifecycle/recovery responsibility.
+Both may be installed and running because their normal ports differ. CogentNexus has exactly one **selected provider** for MANAGED lifecycle/recovery responsibility.
 
 ## Selecting a provider
 
@@ -18,120 +18,158 @@ Both applications may be installed and their servers may even be running at the 
 .\cnx.cmd start --provider lmstudio
 ```
 
-An explicit provider and its OpenClaw route are validated before lifecycle mutation. On success the Host stores:
-
-- `selectedProvider` — last successfully selected provider;
-- `providerSelection.selectedAt`;
-- `providerSelection.selectionSource`;
-- `providerSelection.lastVerifiedAt`.
-
-Later commands may omit `--provider`:
-
-```powershell
-.\cnx.cmd start
-.\cnx.cmd restart
-```
-
-They reuse the last successfully selected provider.
+A successful verified transition stores `selectedProvider` plus selection metadata. Later `start`/`restart` may omit `--provider` and reuse that verified selection. There is no silent provider fallback.
 
 ## Provider + OpenClaw route transaction
 
-Switching providers is transactional. CogentNexus does **not** rewrite arbitrary OpenClaw configuration. While MANAGED, v0.9.2 owns only the fields required to make the selected local route safe and usable:
+CogentNexus does **not** rewrite arbitrary OpenClaw configuration. While MANAGED, v0.9.2 owns only:
 
-1. the default model route for the selected provider;
-2. provider/agent request timeouts required by the LM Studio route;
-3. LM Studio llama.cpp tool-schema compatibility keywords proven necessary by live testing.
+1. the default local model route for the selected provider;
+2. LM Studio provider/agent request-timeout fields proven necessary by live tests;
+3. LM Studio llama.cpp tool-schema compatibility keywords.
 
-`diagnostics.stuckSessionAbortMs` is deliberately **not** owned by this v0.9.2 transaction. The accepted v0.9.1 Host-control compatibility fence remains authoritative for that field.
+`diagnostics.stuckSessionAbortMs` is deliberately not owned by v0.9.2. The accepted v0.9.1 Host-control compatibility fence remains authoritative for that field.
 
-Before lifecycle mutation, CogentNexus performs provider and route preflight. Once action begins it writes a durable `providerTransition` marker containing `from`, `to`, source and start time and creates a short-lived rollback copy of the pre-transition OpenClaw config.
+Before lifecycle mutation, CogentNexus performs provider and route preflight. It then writes a durable `providerTransition` marker and a short-lived exact OpenClaw rollback copy. `selectedProvider` is committed only after:
 
-The new `selectedProvider` is committed only after:
+1. target provider availability/startability succeeds;
+2. route transaction validates;
+3. target provider starts/verifies;
+4. Gateway receives a process boundary when the active route/config requires it;
+5. provider readiness still succeeds;
+6. Gateway health passes;
+7. active model route resolves to the target provider;
+8. route transaction commits.
 
-1. the requested provider is available/startable;
-2. the OpenClaw route transaction validates;
-3. the target provider is started/verified;
-4. a Gateway process boundary is forced whenever the route changes (and for explicit restart);
-5. provider readiness still succeeds after the transition;
-6. Gateway health verification succeeds;
-7. the active OpenClaw model route resolves to the selected provider;
-8. the route transaction commits.
+If Host transition or verification fails, the OpenClaw route rolls back while `providerTransition` remains durable so the next start resumes the intended target rather than guessing.
 
-If the Host transition or verification fails, the OpenClaw route is rolled back while the durable `providerTransition` marker remains. A later `start` therefore resumes the same intended provider rather than guessing or silently falling back.
+## Native/PASSTHROUGH boundary
 
-## Native/PASSTHROUGH process boundary
-
-Restoring a config file is not enough to prove that a running Gateway has loaded it. On `disable`, the v0.9.2 Host-control boundary:
+`disable` is a runtime boundary, not just a config edit. It:
 
 1. completes the accepted v0.9.1 PASSTHROUGH transition;
-2. restores the pre-CNX route/request-timeout/schema-compat fields;
-3. forces a Gateway restart (falling back to start if necessary);
-4. verifies `Runtime: running` and `Connectivity probe: ok`.
+2. stops CogentNexus provider event adapters;
+3. restores pre-CNX route/request-timeout/schema-compat fields;
+4. forces Gateway restart (falling back to start if needed);
+5. verifies the native Gateway is running/reachable.
 
-`reset` and `uninstall` reuse the same boundary and refuse destructive cleanup if the native Gateway route cannot be reloaded and verified.
+`reset` and `uninstall` reuse this boundary and block destructive cleanup if native OpenClaw cannot be reloaded and verified.
 
 ## Route discovery
 
-CogentNexus does not invent credentials or an unknown model. A provider route must already be resolvable from at least one of:
+CogentNexus does not invent credentials or an unknown model. A route must be resolvable from one of:
 
-- the current OpenClaw default route;
+- current OpenClaw default route;
 - a previously verified CogentNexus route for that provider;
-- an existing model entry in the provider's OpenClaw catalog;
+- an existing provider model catalog entry;
 - `CNX_OLLAMA_MODEL` or `CNX_LMSTUDIO_MODEL`.
 
-For LM Studio, an existing `models.providers.lmstudio_local` configuration is required. This keeps API endpoint/auth/model ownership explicit.
+For LM Studio, an existing `models.providers.lmstudio_local` configuration is required.
 
 ## LM Studio compatibility profile
 
-Live Windows testing with OpenClaw `2026.7.1-2`, LM Studio and Qwen3.5:9B proved two independent compatibility boundaries.
-
 ### llama.cpp tool schema
 
-LM Studio's llama.cpp grammar path rejects some OpenClaw tool-schema keywords unless they are stripped. The verified compatibility profile is:
+The verified profile is:
 
 ```json
 {
-  "unsupportedToolSchemaKeywords": [
-    "pattern",
-    "maxLength"
-  ]
+  "unsupportedToolSchemaKeywords": ["pattern", "maxLength"]
 }
 ```
 
-This profile passed isolated `cron`, isolated `image_generate`, combined `cron + image_generate`, and the full OpenClaw `coding` tool surface.
+It passed isolated `cron`, isolated `image_generate`, combined `cron + image_generate`, and the full OpenClaw `coding` tool surface.
 
-### Request timeout envelope
+### Request envelope
 
-OpenAI-compatible streaming does not expose LM Studio prompt-prefill progress to OpenClaw. A valid cold request can therefore remain silent for several minutes even while llama.cpp is actively processing the prompt.
-
-v0.9.2 applies the two additional request limits proven necessary by live testing:
+Live tests proved valid LM Studio cold prompt processing can remain silent to OpenClaw for several minutes. v0.9.2 therefore applies:
 
 ```text
 models.providers.lmstudio_local.timeoutSeconds = 1100 s
 agents.defaults.timeoutSeconds                 = 1200 s
 ```
 
-The provider request expires before the enclosing agent timeout. Separately, the accepted v0.9.1 MANAGED watchdog compatibility sets OpenClaw's native stuck-session abort far outside the normal CogentNexus recovery horizon (approximately 24 hours in the accepted implementation). That watchdog value is snapshotted/restored by v0.9.1, not by this route transaction.
+These values prevent premature request/agent cancellation. They are not recovery-policy clocks. Separately, accepted v0.9.1 places OpenClaw's native stuck-session watchdog at a ~24-hour MANAGED compatibility fence and restores the operator's value on PASSTHROUGH.
 
-`disable`, `reset`, and `uninstall` restore the pre-CogentNexus v0.9.2-owned route/provider-timeout/agent-timeout/schema-compat fields, while the v0.9.1 Host-control layer independently restores its native-watchdog snapshot.
+## Provider events
+
+For LM Studio, v0.9.2 starts a blocking runtime-event adapter using:
+
+```text
+lms log stream --source runtime
+```
+
+It can persist `prompt_progress` as proof of life. If that blocking stream ends, the adapter probes LM Studio; only a genuinely unreachable provider becomes `provider_dead`, which wakes the Host immediately.
+
+The progress parser is intentionally one-way safe:
+
+```text
+prompt progress -> may suppress destructive recovery
+prompt progress -> can never authorize restart/re-inference
+```
+
+Providers that cannot expose an equivalent progress stream still use the same event-driven decision policy; periodic health reconciliation remains a safety fallback.
+
+## Event-driven recovery authority
+
+Elapsed time alone never authorizes provider recovery in v0.9.2.
+
+```text
+provider/Gateway healthy + silent active call
+    -> active_model_processing_unknown
+    -> wait for stronger event evidence
+    -> no restart
+    -> no re-inference
+
+LM Studio prompt_progress after call start
+    -> active_model_processing
+    -> proof of life
+    -> no restart
+
+provider_dead / provider_unreachable
+    -> open durable provider incident
+    -> bounded automatic recovery allowed
+
+model_call_ended success
+    -> stable_success
+    -> close incident
+```
+
+When an explicit provider-failure event intersects an active Direct model call, v0.9.2 makes the existing lease claimable at the failure-event timestamp and then invokes the accepted v0.9.1 claim/quiesce/result-fence/recovery primitives. The event—not elapsed time—is the authority.
+
+## Per-incident circuit breaker
+
+Current policy:
+
+| Provider | Maximum automatic recoveries per incident |
+| --- | ---: |
+| Ollama | 3 |
+| LM Studio | 2 |
+
+There is no cooldown and no rolling-hour reset. Time passage cannot reopen a circuit.
+
+An incident closes only after stronger evidence such as:
+
+- durable successful model completion; or
+- explicit verified manual start/restart/provider transition.
+
+A later failure opens a new incident generation and receives a fresh bounded attempt budget.
 
 ## No silent fallback
 
-CogentNexus never silently chooses a different provider because a requested provider is missing, unhealthy, or missing a model route.
-
-If a persisted provider is later uninstalled or its route is no longer resolvable, `cnx start` fails closed. Choose another provider explicitly.
+If a persisted provider is removed, unhealthy, uncontrollable, or missing a model route, `cnx start` fails closed. Select another provider explicitly.
 
 ## Fresh state and reset
 
-On a fresh CNX state:
+On fresh state:
 
-- exactly one installed supported provider -> it may be used without an explicit flag;
-- both providers installed -> explicit provider selection is required;
-- neither installed -> managed provider start is refused.
+- exactly one installed supported provider -> it may be selected automatically after successful verification;
+- both installed -> explicit provider required;
+- neither installed -> MANAGED provider start refused.
 
-`stop` preserves the selected provider and MANAGED route. `disable` preserves the durable provider preference but restores native OpenClaw route/request-timeout/schema-compat fields. A later `enable/start` reapplies the selected provider transactionally.
+`stop` preserves provider selection and MANAGED route. `disable` preserves durable provider preference but restores native OpenClaw configuration and stops CNX provider event handling.
 
-`reset` means fresh-install semantics. It intentionally does not preserve the old provider preference. If both providers are installed, specify the fresh provider explicitly:
+`reset` uses fresh-install semantics. With both providers installed:
 
 ```powershell
 .\cnx.cmd reset --provider ollama
@@ -139,24 +177,20 @@ On a fresh CNX state:
 .\cnx.cmd reset --provider lmstudio
 ```
 
-The destructive `y` confirmation and v0.9.1 PASSTHROUGH-first reset safety boundary remain intact. Before CNX state is removed, OpenClaw's pre-CNX managed fields are restored and the native Gateway process boundary is verified. After the fresh provider route is installed, reset forces another Gateway boundary before committing the fresh `selectedProvider`.
+The explicit-`y`, PASSTHROUGH-first v0.9.1 safety boundary remains intact.
 
 ## LM Studio control
 
-LM Studio control requires its `lms` CLI for CogentNexus-managed start/stop. A desktop LM Studio installation without the CLI is detectable but is reported as not controllable.
+LM Studio MANAGED start/stop and runtime event streaming require its `lms` CLI. A GUI installation without `lms` remains detectable but is not controllable by CogentNexus.
 
-If LM Studio API authentication is enabled, `LM_API_TOKEN` may be supplied to the CogentNexus process for readiness probes.
+If LM Studio API authentication is enabled, `LM_API_TOKEN` may be provided for readiness probes.
 
-## Recovery boundary
+## Recovery Core boundary
 
-The provider adapter does not decide whether an inference may be repeated. That authority remains in the Recovery Core plus the v0.9.2 evidence-aware provider guard:
+The provider layer never decides whether an already committed result or possible side effect may be repeated. Accepted v0.9.1 fences remain authoritative:
 
-- deterministic provider protocol/schema/grammar failure -> non-retryable; do not restart provider;
-- healthy LM Studio + healthy Gateway + first expired silent Direct call -> classify `cold_model_long_running`, extend the durable call deadline once, and do not restart provider;
-- no durable result + later eligible expiry -> accepted Direct recovery path may run only if the provider recovery circuit permits it;
-- durable result already exists -> provider restart must not regenerate; delivery owns retry;
-- possible external side effect -> receipt/idempotency verification is required before any repeated action.
-
-Automatic provider recovery is bounded durably. Current policy requires at least 15 minutes between LM Studio automatic recovery attempts and permits no more than two in a rolling hour. A verified manual provider transition starts a fresh automatic-recovery budget.
-
-During a Host-authorized Direct model-call recovery, Gateway is quiesced before the selected local provider is stopped. Classification occurs only while the inference-capable runtime is quiescent, preserving the accepted v0.9.1 ordering.
+- deterministic HTTP/schema/grammar protocol failure -> non-retryable, no restart;
+- durable exact result exists -> delivery retry only;
+- ambiguous visible response without durable payload -> fail closed;
+- possible external side effect -> receipt/idempotency proof required;
+- Host-authorized Direct recovery -> Gateway/provider quiescence and durable result fences remain mandatory.
