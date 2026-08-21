@@ -75,6 +75,11 @@ def main() -> int:
     command, _ = v091.legacy.command_from_argv(argv)
     if command in {"reset", "uninstall"}:
         return lifecycle.main(command, root, option_value(argv, "--provider"))
+    if command == "stop":
+        # Intentional maintenance must silence provider watchers before the
+        # provider is shut down, otherwise a normal stop can look like a crash.
+        provider_events.stop_adapter(root)
+        return v091.main()
     if command == "disable":
         return _finish_disable_native_boundary(root, v091.main())
     return v091.main()
