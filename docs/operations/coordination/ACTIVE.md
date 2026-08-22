@@ -2,45 +2,29 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-014`  
-Updated: 2026-08-23 02:28 ICT  
+Task ID: `CNX-20260823-015`  
+Updated: 2026-08-23 02:43 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-014-complete-task010-evidence-fields.md`](tasks/CNX-20260823-014-complete-task010-evidence-fields.md)
+[`tasks/CNX-20260823-015-complete-task010-evidence-fields-isolated.md`](tasks/CNX-20260823-015-complete-task010-evidence-fields-isolated.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-013-adjudicate-unreported-task010-recovery-evidence.md`](reviews/CNX-20260823-013-adjudicate-unreported-task010-recovery-evidence.md)
+[`reviews/CNX-20260823-014-complete-task010-evidence-fields.md`](reviews/CNX-20260823-014-complete-task010-evidence-fields.md)
 
-Task 013 is `REWORK`. It verified the exact TXT/JSON identities and produced a plausible partial adjudication, but omitted mandatory exact provenance, per-step timestamps, listener endpoints, kill exit statuses, and provider incident transition details.
-
-No recovery gate is newly accepted from Task 013. The existing suite must not be repeated.
+Task 014 is `BLOCKED` because its blanket worktree prohibition conflicted with the scheduled watcher's isolated-worktree requirement. No evidence or runtime action occurred and no recovery gate was accepted.
 
 ## Purpose
 
-Read only the same two immutable evidence files and publish every missing required field as an exact value or `NOT_RECORDED`. Correct the gate adjudication so no gate is marked proven without its required safety and outcome evidence.
+Read only the same two immutable Task 010 evidence files and publish every required exact value or `NOT_RECORDED`.
 
-## Execution authorization
-
-Because `Execution mode` is `AUTO`, the Codex watcher may execute this exact offline evidence-completion task after synchronization and duplicate-fence checks.
-
-Task 014 does not authorize the recovery harness, scenario, confirmation, live process/runtime inspection, checkout operation, memory reclaim, install/reset/uninstall/reinstall, or any state-changing action.
+Task 015 authorizes exactly one deterministic isolated worktree path solely to satisfy watcher execution mechanics. It forbids fallback paths, clones, recovery reruns, live runtime inspection, and lifecycle actions.
 
 Task 011 remains deferred while RAM remains stable.
 
-## Required behavior
-
-1. re-read Task 014 and matching report state;
-2. if the matching report exists, perform no local observation;
-3. verify both exact evidence identities;
-4. use bounded focused extraction only;
-5. report exact values or `NOT_RECORDED` for every required field;
-6. do not repeat or extend any runtime side effect;
-7. publish only the matching Task 014 report.
-
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-014-complete-task010-evidence-fields.md` already exists, do not read any local evidence, path, process, runtime, checkout, or UI. Exit awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-015-complete-task010-evidence-fields-isolated.md` exists, perform no local observation or action and stop awaiting ChatGPT review.
