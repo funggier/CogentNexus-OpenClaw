@@ -40,6 +40,35 @@ Before moving upward into Ticket continuity:
 - no unresolved state-transition ambiguity;
 - v0.9.2 Golden Baseline remains untouched.
 
+
+### 4. Prove the v1.0.0 real-machine consumer lifecycle
+
+After the process-level candidate is accepted, exercise the exact release candidate on the real Windows target through the consumer-facing path.
+
+Required sequence and evidence gates:
+
+1. record the candidate source commit, version, release artifact URL/path, and SHA256;
+2. install from the actual release/consumer path and verify MANAGED/Ollama/Gateway readiness;
+3. install the same candidate over an existing CogentNexus deployment and verify safe, idempotent convergence without first uninstalling;
+4. run the documented `cnx reset` flow, answer its explicit `y` confirmation, and verify CogentNexus state returns to the documented fresh-install baseline;
+5. run `cnx uninstall`, answer its explicit `y` confirmation, and verify CogentNexus-owned tasks, launchers, plugin/package state, and managed artifacts are cleanly removed;
+6. verify external OpenClaw and Ollama installations and user data remain intact;
+7. reinstall from the same actual release/consumer path after uninstall;
+8. verify post-reinstall MANAGED/Ollama state, Gateway on 127.0.0.1:18789, Ollama on 127.0.0.1:11434, and recovery verdict `READY`;
+9. require all applicable CI to be green for the exact artifact/source head and review every Windows evidence file and hash.
+
+Every destructive or state-changing phase must have a duplicate-execution fence. A completed phase may not be repeated merely because the watcher runs again.
+
+### 5. Prepare v1.0.0 for final review
+
+When process recovery, install-over-existing, reset, clean uninstall, reinstall, post-reinstall readiness, artifact provenance, and CI are all accepted:
+
+- update version/release notes and consumer installation documentation for `v1.0.0`;
+- keep PR #24 Draft until its documented acceptance gates are complete;
+- prepare the exact release candidate and PR for final human review;
+- do not merge, tag, or publish automatically from the coordination loop.
+
+
 ## Medium term — prove work continuity, not only process recovery
 
 The medium-term objective is to prove that replacing failed processes does not lose or duplicate user work.
