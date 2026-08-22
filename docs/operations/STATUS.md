@@ -127,22 +127,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-013` is active in automatic execution mode as an offline evidence-adjudication gate.
+Task `CNX-20260823-014` is active in automatic execution mode as an offline exact-evidence completion gate.
 
-Task 012 is reviewed `ACCEPT` as a metadata diagnostic. It proved `COMPLETED_OR_FAILED_UNREPORTED_EXECUTION`: an overlapping watcher invoked the v3 full recovery suite outside the matching Task 010 report. The exact evidence pair is:
+Task 013 is reviewed `REWORK`. It verified the exact TXT/JSON identities and produced a plausible partial adjudication, but omitted mandatory exact source/harness provenance, per-step timestamps, listener endpoints, kill exit statuses, and timestamped provider incident transitions. Therefore no new recovery gate is accepted from Task 013.
 
-- `C:\Users\CDQ-P\Downloads\CNX_V093_OLLAMA_RECOVERY_V3_20260823-003808.txt`
-  - bytes `1802394`
-  - SHA256 `FBA88FF64D236DF58C9A287BDE7B996D9D35A1D71E3976D7FF1C177553F9705F`
-- `C:\Users\CDQ-P\Downloads\CNX_V093_OLLAMA_RECOVERY_V3_20260823-003808.json`
-  - bytes `5900085`
-  - SHA256 `4F86AA70B88129E9CCB258CEB780B5243D9B0E515362BEC69A40E4F099A90D1F`
+Task 014 may read only the same exact immutable evidence pair and must report each required field as an exact value or `NOT_RECORDED`, then correct the gate adjudication without overstating missing data.
 
-The JSON records schema 4, suite result `FAIL`, an error at provider durable-`READY` convergence, explicit `y` confirmation, and final cleanup/status MANAGED with Ollama and recovery verdict `READY`. No live PID remained attached to the scoped paths or harness indicators when Task 012 inspected them.
-
-This does not accept Task 010 or any process-recovery scenario. Task 013 may read only the two exact evidence files after verifying their paths, byte sizes, and hashes. It must determine exact executed/failed/skipped steps, exact-PID and no-tree-kill safety, Gateway and provider recovery evidence, provider incident/convergence classification, cleanup effects, and gate-by-gate verdicts.
-
-The disruptive suite must not be repeated. Task 013 does not authorize live process/runtime commands, confirmation, process injection, checkout inspection or cleanup, memory reclaim, install, `cnx reset`, `cnx uninstall`, reinstall, merge, tag, or release.
+The disruptive suite must not be repeated. Task 014 does not authorize live process/runtime inspection, confirmation, process injection, checkout operations, memory reclaim, install, reset, uninstall, reinstall, merge, tag, or release.
 
 ## Queued desktop-memory diagnostic
 
