@@ -127,16 +127,20 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-005` is active in automatic execution mode.
+Task `CNX-20260822-006` is active in automatic execution mode.
 
-Task 004 added the durable convergence observer and preserved the recovery safety boundaries, but acceptance is blocked because:
+Task 005 is BLOCKED, but its duplicate-execution/source gate behaved safely: Codex detected that the workflow had already changed and stopped without editing code or performing runtime actions.
 
-- the local machine lacked `pytest`, although the three requested tests can run directly with standard-library `unittest`;
-- the v3 smoke workflow failed because a broad multiline regression regex crossed function boundaries and produced a false positive;
-- Task 004's report incorrectly said no implementation commit existed even though commit `592a6fbd37da05013b7a8a5875ccd8b17e188cfa` contains the harness, workflow, and report.
+Current evidence:
 
-Task 005 authorizes only the narrow smoke-contract correction, direct execution of the existing unittest files, safe parser/syntax/contract validation, and completed CI observation. It does not authorize a disruptive Windows run or dependency installation.
+- durable-convergence harness implementation: `592a6fbd37da05013b7a8a5875ccd8b17e188cfa`;
+- corrected v3 smoke workflow: `929fbcc663251941d88f38f09544068a9b3e069d`;
+- current harness blob: `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
+- current workflow blob: `35b6796e4868447cfe3db6a86a7528d0288c8411`;
+- GitHub v3 smoke run `32582330616`, job `97053475362`: success.
 
-After Task 005 and CI are accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
+Task 006 is validation-only. It runs the three existing standard-library unittest files directly, Windows PowerShell parser/`-SyntaxOnly`, the corrected local contract, diff checks, and read-only CI observation. It may add only its matching report. It does not authorize a disruptive Windows run, source changes, dependency installation, or lifecycle commands.
+
+After Task 006 is accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
 
 After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: release-path install → install-over-existing → reset → clean uninstall → release-path reinstall → post-reinstall verification → exact-artifact CI/review.
