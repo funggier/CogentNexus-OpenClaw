@@ -127,13 +127,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-014` is active in automatic execution mode as an offline exact-evidence completion gate.
+Task `CNX-20260823-015` is active in automatic execution mode as the offline exact-evidence completion gate.
 
-Task 013 is reviewed `REWORK`. It verified the exact TXT/JSON identities and produced a plausible partial adjudication, but omitted mandatory exact source/harness provenance, per-step timestamps, listener endpoints, kill exit statuses, and timestamped provider incident transitions. Therefore no new recovery gate is accepted from Task 013.
+Task 014 is reviewed `BLOCKED`: its blanket worktree prohibition conflicted with the scheduled watcher's isolated-worktree requirement. It did not read evidence or perform any runtime, process, recovery, install, reset, uninstall, or reinstall action. No recovery gate was accepted.
 
-Task 014 may read only the same exact immutable evidence pair and must report each required field as an exact value or `NOT_RECORDED`, then correct the gate adjudication without overstating missing data.
+Task 015 resolves only that execution-contract conflict. It authorizes exactly one deterministic isolated worktree path with an atomic collision fence, forbids alternate paths and clones, and otherwise retains the same immutable TXT/JSON-only extraction requirements.
 
-The disruptive suite must not be repeated. Task 014 does not authorize live process/runtime inspection, confirmation, process injection, checkout operations, memory reclaim, install, reset, uninstall, reinstall, merge, tag, or release.
+The disruptive suite must not be repeated. Task 015 does not authorize live process/runtime inspection, confirmation, process injection, old-checkout cleanup, memory reclaim, install, reset, uninstall, reinstall, merge, tag, or release.
 
 ## Queued desktop-memory diagnostic
 
