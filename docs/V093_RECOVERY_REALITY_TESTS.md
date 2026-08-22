@@ -1,119 +1,119 @@
-# v0.9.3 Recovery Reality Tests
+# v0.9.3 Ollama-only Recovery Reality Tests
 
-This document defines the first automated live-recovery test surface for the v0.9.3 development cycle. The product baseline remains the released and verified CogentNexus v0.9.2; these tests do not modify the v0.9.2 release.
+CogentNexus v0.9.3 intentionally narrows local inference support to **Ollama only**.
 
-## Harness
+The released v0.9.2 remains immutable and may still contain LM Studio compatibility code because it was part of that historical release.  v0.9.3 does not select, start, stop, probe, advertise, or test LM Studio.  An upgrade from a managed v0.9.2 deployment first enters the accepted PASSTHROUGH/native boundary with the old launcher, then v0.9.3 enters MANAGED with Ollama.
 
-Windows entry point:
+LM Studio, if separately installed on a user's machine, is left untouched.
+
+## Why the provider surface is being narrowed
+
+- reduce steady-state RAM pressure and operational complexity;
+- remove a second recovery/event-adapter path that exhibited the same core failure classes;
+- make recovery evidence easier to classify and reproduce;
+- concentrate v0.9.3 engineering on execution continuity rather than provider breadth.
+
+## Windows harness
+
+Entry point:
 
 ```powershell
 .\scripts\test-v093-recovery-reality-windows.ps1
 ```
 
-Evidence is written under `Downloads` as:
+Evidence is written to `Downloads` as:
 
-- `CNX_V093_RECOVERY_REALITY_<timestamp>.txt`
-- `CNX_V093_RECOVERY_REALITY_<timestamp>.json`
-- `CNX_V093_RECOVERY_REALITY_<timestamp>\` for downloaded consumer-release material when `-InstallRelease` is used.
+- `CNX_V093_OLLAMA_RECOVERY_<timestamp>.txt`
+- `CNX_V093_OLLAMA_RECOVERY_<timestamp>.json`
+- `CNX_V093_OLLAMA_RECOVERY_<timestamp>\` for downloaded v0.9.2 release material when `-InstallRelease` is used.
 
-The harness follows the same evidence discipline as the v0.9.2 acceptance suite: a top-level PASS is not authoritative by itself; scenario assertions and durable/runtime observations are persisted in JSON.
+A top-level PASS is not authoritative by itself.  Scenario assertions, exact listener PIDs, process identity, durable CNX diagnostics, and bounded observations are persisted in JSON.
 
 ## Safety model
 
-The recovery system remains event-driven. Harness timeouts are **observation fuses only**. They never authorize recovery, restart, re-inference, Ticket claiming, or external side effects.
+Recovery remains event-driven. Harness timeouts are **observation fuses only** and never authorize recovery.
 
-Failure injection is explicit:
+For disruptive scenarios:
 
-- `baseline` is read-only except for normal diagnostic commands.
-- `gateway-crash`, `provider-crash`, and `operator-stop` require `-RunDisruptive`.
-- A disruptive suite also requires one exact lowercase `y` confirmation before any process is killed.
-- The harness does not call `reset` or `uninstall`.
-- On a failed disruptive scenario it attempts a bounded `cnx start --provider <selected>` reconciliation and records whether cleanup succeeded.
+- exact lowercase `y` is required once before any failure injection;
+- only the exact listener PID is eligible for force-kill;
+- Gateway PID must resolve to `node.exe` with an OpenClaw command line;
+- provider PID must resolve to an Ollama process/command line;
+- PowerShell, cmd, conhost, Firefox, Explorer, Windows Terminal/OpenConsole and harness ancestor PIDs are explicitly forbidden kill targets;
+- process-tree kill is never used;
+- active operation + child/target PID evidence is committed before blocking waits or failure injection;
+- the harness never calls `reset` or `uninstall`.
 
-## Optional release-consumer setup
+## Consumer-path setup
 
-`-InstallRelease` exercises the real public-release path before recovery testing:
+With `-InstallRelease`, the harness exercises the real public `v0.9.2` release before recovery testing:
 
-1. fetch GitHub Release metadata for `v0.9.2`;
-2. require a published non-draft, non-prerelease release;
-3. require the expected release target commit;
-4. download `cogentnexus-v0.9.2.zip` and `SHA256SUMS.txt`;
-5. verify the ZIP SHA256;
-6. extract the archive;
-7. verify `VERSION` matches the tag;
-8. run the released `scripts/install.ps1 -Provider <provider>`;
-9. verify a MANAGED baseline.
+1. fetch release metadata;
+2. require the exact accepted release target commit;
+3. download `cogentnexus-v0.9.2.zip` and `SHA256SUMS.txt`;
+4. verify ZIP SHA256;
+5. extract the archive;
+6. run the released installer explicitly with `-Provider ollama`;
+7. verify MANAGED + Ollama before injecting failures.
 
-This mode intentionally requires that `~\.openclaw\workspace\cnx.cmd` does not already exist, because its purpose is to test a clean consumer installation rather than silently mutate an existing deployment.
+This deliberately requires no existing `~\.openclaw\workspace\cnx.cmd`.
 
-## Scenario 0 — baseline
+## Scenario 0 — MANAGED baseline
 
-Verify before any failure injection:
+Require:
 
-- CNX controller mode is `managed`;
-- durable `selectedProvider` matches the requested provider;
-- OpenClaw Gateway listener exists;
-- selected provider listener exists;
-- LM Studio provider-event adapter is expected and running when LM Studio is selected;
-- Ollama does not require the LM Studio provider-event adapter.
+- controller mode `managed`;
+- durable `selectedProvider=ollama`;
+- Gateway listener present;
+- Ollama listener on `11434` present;
+- LM Studio provider-event adapter is **not expected**.
 
 ## Scenario 1 — Gateway hard crash
 
-1. capture Gateway listener port/PID/process name;
-2. force-kill only that listener process;
-3. observe for a replacement Gateway listener with a different PID;
-4. re-run CNX status/provider/recovery diagnostics;
-5. require the controller to remain MANAGED with the same selected provider.
+1. capture Gateway listener PID and full process identity;
+2. reject unsafe/unverified targets;
+3. force-kill that exact PID only;
+4. observe a replacement listener with a different PID;
+5. require MANAGED + Ollama again.
 
-This tests an unplanned process death, not `cnx gateway stop` and not an operator-requested stop.
+## Scenario 2 — Ollama hard crash
 
-## Scenario 2 — provider hard crash
-
-1. capture selected provider listener PID (`1234` LM Studio or `11434` Ollama);
-2. force-kill only the listening process;
-3. observe for a replacement listener with a different PID;
-4. require durable `selectedProvider` to remain unchanged;
-5. inspect the durable provider-recovery incident diagnostic;
-6. fail if the circuit is already open after one injected provider crash;
-7. re-establish the full MANAGED baseline.
-
-This is the first direct reality check that process/endpoint failure can drive recovery without using elapsed model-call silence as authority.
+1. capture listener PID on `11434` and full process identity;
+2. reject unsafe/unverified targets;
+3. force-kill that exact PID only;
+4. observe a replacement Ollama listener with a different PID;
+5. inspect the durable provider-recovery incident row;
+6. fail if the recovery circuit is already open after one injected crash;
+7. require MANAGED + Ollama again.
 
 ## Scenario 3 — intentional operator stop
 
-1. call `cnx stop` normally;
-2. require durable state `mode=maintenance`, `desiredGateway=stopped`, `desiredProvider=stopped`;
-3. observe the Gateway listener disappear;
-4. keep an observation window open and require it to stay down — CNX must **not** auto-recover an intentional stop;
-5. call `cnx start`;
-6. observe Gateway/provider listeners return;
-7. require the MANAGED baseline again.
+1. call `cnx stop`;
+2. require `mode=maintenance`, `desiredGateway=stopped`, `desiredProvider=stopped`;
+3. require the Gateway to remain down through a bounded observation window;
+4. call `cnx start`;
+5. require Gateway + Ollama + MANAGED state again.
 
-## Initial run
-
-For a clean machine after v0.9.2 uninstall, the intended first run is:
+## Intended first live run
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File .\scripts\test-v093-recovery-reality-windows.ps1 `
-  -Provider lmstudio `
   -InstallRelease `
   -Scenario all `
   -RunDisruptive
 ```
 
-The user must still type exact lowercase `y` once before the disruptive scenarios begin.
+No provider argument is needed because v0.9.3 is Ollama-only.
 
-## Planned next scenarios
+## Next continuity scenarios
 
-The first harness deliberately stops before model-call/side-effect continuity. After the process-level suite is proven stable, extend it with durable Ticket fixtures for:
+After the process-level suite is stable, extend the same harness with deterministic Ticket/model-call fixtures for:
 
 - Gateway death while a model call is active;
-- provider death while a model call is active;
-- healthy provider + long silent prefill (must not restart);
+- Ollama death while a model call is active;
+- healthy Ollama + long silent model processing (must not restart);
 - Host death/restart and durable reconciliation;
-- result committed but delivery interrupted (deliver existing result, do not re-infer);
-- abrupt process-tree/power-loss simulation with pending Ticket state;
-- real Windows reboot continuation using a durable resume token and Scheduled Task.
-
-Those scenarios require deterministic Ticket/model-call fixtures so that the harness can prove exactly-once-ish side-effect and result/delivery boundaries rather than merely observing process liveness.
+- committed result but interrupted delivery (deliver existing result, never re-infer merely because delivery broke);
+- abrupt process/power-loss simulation with a pending Ticket;
+- real Windows reboot continuation using durable resume state.
