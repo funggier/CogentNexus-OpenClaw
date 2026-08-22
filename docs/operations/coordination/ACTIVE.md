@@ -2,47 +2,41 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260822-008`  
-Updated: 2026-08-22 23:00 ICT  
+Task ID: `CNX-20260822-009`  
+Updated: 2026-08-22 23:08 ICT  
 Owner: ChatGPT  
 Executor: Codex  
 
 ## Active task
 
-[`tasks/CNX-20260822-008-full-windows-v3-process-recovery.md`](tasks/CNX-20260822-008-full-windows-v3-process-recovery.md)
+[`tasks/CNX-20260822-009-clean-windows-source-checkout-validation.md`](tasks/CNX-20260822-009-clean-windows-source-checkout-validation.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260822-007-full-windows-v3-process-recovery.md`](reviews/CNX-20260822-007-full-windows-v3-process-recovery.md)
+[`reviews/CNX-20260822-008-full-windows-v3-process-recovery.md`](reviews/CNX-20260822-008-full-windows-v3-process-recovery.md)
 
-Task 007 is BLOCKED. Its report stopped before CI observation, Windows preflight, confirmation, suite invocation, process kill, lifecycle command, evidence collection, source edit, or package/runtime mutation.
-
-The immutable Task 007 contained valid workflow-fix commit `929fbcc663251941d88f38f09544068a9b3e069d`. The invalid SHA in the Task 007 report was an executor-side transcription/reconstruction error.
+Task 008 is BLOCKED. Source, literal SHA, harness blob, CI, and read-only Windows health passed, but its isolated checkout lacked the physical harness and contained tracked deletion residue. The single command attempt exited before loading the script. No scenario, process kill, lifecycle command, or runtime mutation occurred.
 
 ## Purpose
 
-Run the full real-Windows v3 Ollama-only process-recovery suite exactly once after literal SHA, source, CI, and read-only health gates. Preserve exact-PID, durable convergence, provider-incident, intentional-stop, evidence-file, and final-state proof.
+Diagnose the unusable Task 008 checkout and prove a reproducible complete, clean isolated Windows source checkout containing the exact v3 harness.
 
 ## Execution authorization
 
-Because `Execution mode` is `AUTO`, the enabled Codex coordination watcher may begin this exact task after synchronization and every source, duplicate-execution, CI, health, and safety check passes.
+Because `Execution mode` is `AUTO`, the Codex watcher may begin this exact non-disruptive task after synchronization and duplicate-fence checks.
 
-Task 008 is the sole new authorization for one disruptive suite invocation and exact lowercase `y` confirmation. Task 007 must not be resumed. This does not authorize a second Task 008 run, manual scenario replay, source edit, package install, `cnx reset`, `cnx uninstall`, release-path install/reinstall, tag, merge, or release.
+Task 009 authorizes only read-only diagnosis of the failed Task 008 checkout and creation/validation of one new unique full isolated clone. It does not authorize Windows runtime preflight, confirmation input, the disruptive harness, process kill, `cnx start`/`stop`, reset, uninstall, install, reinstall, source edits, tag, merge, or release.
 
 ## Required behavior
 
-1. re-read Task 008 and matching report state;
-2. read and compare the exact workflow-fix SHA literally, without reconstruction;
-3. verify all required ancestors and the exact harness blob;
-4. use a clean isolated worktree;
-5. wait for complete green CI for the exact Task 008 start HEAD;
-6. perform only the specified read-only Windows preflight;
-7. if healthy, invoke the exact full-suite command once and type lowercase `y` once;
-8. never rerun the suite or a scenario under any result;
-9. hash and parse both TXT/JSON evidence files;
-10. record final state read-only;
-11. add only the Task 008 report and stop.
+1. re-read Task 009 and matching report state;
+2. inspect the old Task 008 checkout read-only without repairing or deleting it;
+3. fetch the branch and verify exact ancestors;
+4. create one unique full isolated clone at the exact Task 009 start HEAD;
+5. prove clean status, no tracked deletions, exact harness path/blob, parser and `-SyntaxOnly` success;
+6. verify applicable CI for the exact start HEAD;
+7. add only the Task 009 report and stop.
 
 ## Duplicate-execution fence
 
-If a matching report for `CNX-20260822-008` already exists, do not repeat SHA/source checks, CI observation, preflight, confirmation, PID kills, stop/start, suite execution, evidence collection, or any other side effect. Exit awaiting ChatGPT review.
+If a matching report for `CNX-20260822-009` already exists, do not inspect the old checkout, create a clone/worktree, run parser/`-SyntaxOnly`, observe CI, or perform any other side effect. Exit awaiting ChatGPT review.
