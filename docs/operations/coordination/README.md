@@ -125,6 +125,12 @@ Codex interprets that as: synchronize from GitHub, read the current coordination
 
 `สถานะ` is read-only coordination status. `หยุด` means do not begin a new coordination task.
 
+## Problem resolution and communication
+
+See [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md).
+
+A safe execution stop must not become a silent dead end. Codex publishes the matching problem report; ChatGPT reviews it, classifies the blocker, and either opens the narrowest safe diagnostic/fix/replacement task or sets an exact human-decision gate. Meaningful blockers and dispositions are reported to the human operator.
+
 ## Evidence rule
 
 A report must distinguish:
