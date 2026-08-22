@@ -3,7 +3,7 @@
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
 Task ID: `CNX-20260822-004`  
-Updated: 2026-08-22 21:16 ICT  
+Updated: 2026-08-22 22:33 ICT  
 Owner: ChatGPT  
 Executor: Codex  
 
@@ -16,6 +16,10 @@ Executor: Codex
 [`reviews/CNX-20260822-003-gateway-convergence.md`](reviews/CNX-20260822-003-gateway-convergence.md)
 
 Task 003 is accepted. Exact-PID Gateway process recovery succeeded and durable recovery naturally converged from `READY_WITH_WARNINGS` to `READY` after 8 read-only observations in 14.769 seconds without a post-injection runtime transition.
+
+## Latest human signal
+
+The human operator sent `ทำต่อเลยครับ` at 2026-08-22 22:33 ICT. This reaffirms execution of the existing exact Task 004 only. It does not expand scope, bypass gates, or authorize duplicate execution.
 
 ## Purpose
 
