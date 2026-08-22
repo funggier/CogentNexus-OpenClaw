@@ -7,8 +7,10 @@ fields owned by v0.9.2 before CNX state is removed.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -24,6 +26,10 @@ HERE = Path(__file__).resolve()
 HOST = HERE.with_name("host_provider_v092.py")
 HOST_CONTROL = HERE.with_name("host_control_v092.py")
 STARTUP = HERE.with_name("startup_v092.py")
+PLUGIN_ID = base.PLUGIN_ID
+PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-rotation"
+BOOTSTRAP_RELATIVE = Path("scripts") / "bootstrap-ticket-db.mjs"
+TICKET_STORE_RELATIVE = Path("dist") / "ticket-store.js"
 
 base.HOST = HOST
 base.HOST_CONTROL = HOST_CONTROL
@@ -39,6 +45,96 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+def _semver_key(value: object) -> tuple[int, int, int, str]:
+    text = str(value or "")
+    match = re.match(r"^(\d+)\.(\d+)\.(\d+)(.*)$", text)
+    if not match:
+        return (-1, -1, -1, text)
+    return (int(match.group(1)), int(match.group(2)), int(match.group(3)), match.group(4))
+
+
+def _plugin_payload(root: Path) -> dict[str, Any] | None:
+    bootstrap = root / BOOTSTRAP_RELATIVE
+    ticket_store = root / TICKET_STORE_RELATIVE
+    manifest_path = root / "openclaw.plugin.json"
+    package_path = root / "package.json"
+    if not (bootstrap.is_file() and ticket_store.is_file() and manifest_path.is_file() and package_path.is_file()):
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        package = json.loads(package_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(manifest, dict) or manifest.get("id") != PLUGIN_ID:
+        return None
+    if not isinstance(package, dict) or package.get("name") != PLUGIN_PACKAGE:
+        return None
+    fingerprint = hashlib.sha256()
+    fingerprint.update(bootstrap.read_bytes())
+    fingerprint.update(b"\0")
+    fingerprint.update(ticket_store.read_bytes())
+    try:
+        installed_mtime_ns = root.stat().st_mtime_ns
+    except OSError:
+        installed_mtime_ns = 0
+    return {
+        "root": root,
+        "bootstrap": bootstrap,
+        "version": str(package.get("version") or ""),
+        "versionKey": _semver_key(package.get("version")),
+        "fingerprint": fingerprint.hexdigest(),
+        "installedMtimeNs": installed_mtime_ns,
+    }
+
+
+def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
+    """Resolve the verified bootstrap from either legacy or managed npm layout.
+
+    OpenClaw 2026.7.1-2 installs npm-pack plugins below `.openclaw/npm/projects`
+    instead of the historical `.openclaw/extensions/<id>` path.  Reset must use
+    the installed release payload without depending on either layout alone.
+    """
+    resolved_state = (state_root or base.STATE_ROOT).resolve()
+    roots: list[Path] = [resolved_state / "extensions" / PLUGIN_ID]
+    managed_projects = resolved_state / "npm" / "projects"
+    if managed_projects.is_dir():
+        try:
+            roots.extend(path for path in managed_projects.iterdir() if path.is_dir())
+        except OSError:
+            pass
+
+    payloads = [payload for root in roots if (payload := _plugin_payload(root)) is not None]
+    if not payloads:
+        searched = [str(root) for root in roots]
+        raise RuntimeError(
+            "installed CogentNexus plugin lacks a verified scripts/bootstrap-ticket-db.mjs payload; "
+            f"searched legacy and managed OpenClaw plugin roots: {searched}"
+        )
+
+    highest_version = max(payload["versionKey"] for payload in payloads)
+    highest = [payload for payload in payloads if payload["versionKey"] == highest_version]
+    fingerprints = {payload["fingerprint"] for payload in highest}
+    if len(fingerprints) != 1:
+        roots_text = [str(payload["root"]) for payload in highest]
+        raise RuntimeError(
+            "multiple installed CogentNexus plugin payloads have the same highest version but conflicting bootstrap/runtime bytes; "
+            f"refusing ambiguous fresh reset: {roots_text}"
+        )
+
+    selected = max(highest, key=lambda payload: (payload["installedMtimeNs"], str(payload["root"])))
+    return Path(selected["bootstrap"])
+
+
+def bootstrap_ticket_database() -> Path:
+    bootstrap = resolve_installed_bootstrap()
+    base.run(
+        [base.node_executable(), str(bootstrap), "--workspace", str(base.WORKSPACE)],
+        timeout=120,
+        check=True,
+    )
+    return bootstrap
 
 
 def resolve_fresh_provider(explicit: str | None) -> str:
@@ -90,6 +186,10 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         route_plan = openclaw_route.plan(root, target)
         if not route_plan.get("ok"):
             raise RuntimeError(f"OpenClaw route preflight failed: {route_plan}")
+        # Resolve the immutable installed plugin bootstrap before any destructive
+        # state removal. This is read-only and fails closed if the installation
+        # cannot prove a coherent release payload.
+        resolve_installed_bootstrap()
     except Exception as error:
         print(json.dumps({"result": "error", "action": "reset", "error": str(error), "stateChanged": False}, ensure_ascii=False, indent=2))
         return 2
@@ -111,7 +211,7 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
             shutil.rmtree(root)
 
         base.run([sys.executable, str(HOST), "--root", str(root), "init"], timeout=120, check=True)
-        base.bootstrap_ticket_database()
+        bootstrap_ticket_database()
         base.run([sys.executable, str(HOST), "--root", str(root), "policy", "apply"], timeout=120, check=True)
 
         seed_transition(root, target)
