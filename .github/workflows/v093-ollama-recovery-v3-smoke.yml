@@ -40,6 +40,9 @@ jobs:
             "'firefox.exe'",
             "'powershell.exe'",
             'Wait-DurableConvergence',
+            "Wait-DurableConvergence 'converge-gateway-after'",
+            "Wait-DurableConvergence 'converge-provider-after' `$true",
+            "Wait-DurableConvergence 'converge-after-operator-start'",
             'RecoveryFuseSeconds',
             'firstVerdict',
             'finalVerdict',
@@ -50,8 +53,13 @@ jobs:
           )) {
             if (-not $text.Contains($required)) { throw "Missing required v3 contract: $required" }
           }
-          if ($text -match "Wait-Listener[^\r\n]+;\s*Assert-Baseline\s+'(?:gateway|provider|operator)-after'") { throw 'Immediate post-listener Assert-Baseline acceptance remains.' }
-          if ($text -match "observe-(?:gateway|ollama)-recovered[^\r\n]*\r?\n(?:[^\r\n]*\r?\n){0,2}[^\r\n]*Assert-Baseline") { throw 'Post-transition listener observation is not followed by convergence observation.' }
+          foreach ($forbidden in @(
+            "Assert-Baseline 'gateway-after'",
+            "Assert-Baseline 'provider-after'",
+            "Assert-Baseline 'operator-after'"
+          )) {
+            if ($text.Contains($forbidden)) { throw "Immediate post-transition assertion remains: $forbidden" }
+          }
           if ($text.Contains('$status.state.mode')) { throw 'Legacy wrong status.state.mode assertion remains in v3.' }
           if ($text.Contains('$status.state.desiredGateway')) { throw 'Legacy wrong status.state.desiredGateway assertion remains in v3.' }
           if ($text.Contains('$status.state.desiredProvider')) { throw 'Legacy wrong status.state.desiredProvider assertion remains in v3.' }
