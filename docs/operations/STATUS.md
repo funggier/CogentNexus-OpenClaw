@@ -127,20 +127,20 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-007` is active in automatic execution mode.
+Task `CNX-20260822-008` is active in automatic execution mode.
 
-Task 006 is accepted. Accepted non-disruptive evidence includes:
+Task 007 is reviewed `BLOCKED`. Its executor stopped before CI observation, Windows preflight, confirmation, suite invocation, process kill, lifecycle command, evidence collection, source edit, or package/runtime mutation. The full process-recovery suite remains unproven.
 
-- 16 direct standard-library tests passed;
-- Windows PowerShell parser and v3 `-SyntaxOnly` passed;
-- corrected per-scenario convergence contract passed;
-- harness blob `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
-- workflow blob `35b6796e4868447cfe3db6a86a7528d0288c8411`;
-- all eight applicable workflows for validation start HEAD `ef1f89eaf51749b741e0c14c32b1dc2e4248e456` completed successfully;
-- no runtime, lifecycle, PID, or package side effect occurred.
+The Task 007 report used an invalid reconstructed workflow-fix SHA. The immutable Task 007 at its recorded start HEAD contained the valid commit `929fbcc663251941d88f38f09544068a9b3e069d`; this was an executor-side transcription error rather than a repository source-gate defect.
 
-Task 007 authorizes one exact full real-Windows v3 process-recovery suite invocation after clean source, CI, and read-only health preconditions. It covers baseline, Gateway exact-PID crash and natural durable convergence, Ollama exact-PID crash/provider incident and natural durable convergence, intentional stop/no-auto-recovery, and one operator start.
+Task 008 is a fresh, narrowly fenced authorization to run the same full real-Windows v3 Ollama-only process-recovery suite exactly once. It requires literal byte-for-byte SHA verification before CI/preflight and preserves:
 
-The Task 007 suite may not be rerun under any outcome. Process-tree kill remains forbidden. Any unsafe identity, failed scenario, missing evidence, or skipped scenario must remain visible as BLOCKED/FAIL.
+- exact listener PID identity;
+- no process-tree kill;
+- natural Gateway and Ollama durable convergence;
+- provider-incident evidence;
+- intentional stop/no-auto-recovery/start proof;
+- complete TXT/JSON hashes and parsed evidence;
+- no rerun under any result.
 
-After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: exact release artifact/provenance → release-path install-over-existing → reset → clean uninstall → preservation checks → release-path reinstall → post-reinstall readiness → exact-artifact CI/review.
+Install, reset, uninstall, reinstall, tag, merge, and release remain unauthorized until this process-recovery gate is accepted.
