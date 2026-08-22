@@ -1,6 +1,6 @@
 # Current Project Status
 
-**Updated:** 2026-08-22  
+**Updated:** 2026-08-23  
 **Development line:** v0.9.3 implementation and recovery proof  
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
@@ -76,6 +76,24 @@ The focused real-Windows Gateway convergence diagnostic proved:
 
 Therefore the earlier full-suite `gateway-after` failure is classified as an immediate-assertion defect in the v3 test harness, not a demonstrated runtime durable-state completion defect.
 
+
+## Latest provider recovery evidence
+
+Task `CNX-20260823-015` is reviewed `REWORK`, but it preserves important partial evidence from the immutable Task 010 TXT/JSON pair:
+
+- healthy MANAGED/Ollama baseline was proven;
+- the recorded Ollama listener changed from PID `55264` to replacement PID `46240`;
+- runtime/provider health returned and one automatic recovery attempt recorded `success=true`;
+- the provider incident remained open;
+- every normal convergence observation stayed `READY_WITH_WARNINGS`;
+- provider durable-state convergence failed when the 420-second observation fuse expired;
+- operator `cnx stop` and explicit `cnx start` scenarios were skipped;
+- cleanup returned the system to healthy MANAGED/Ollama state.
+
+The correct current classification is `RUNTIME_RECOVERED_DURABLE_STATE_STUCK`. The complete Ollama exact-PID safety gate is not yet accepted from this evidence because required active-operation persistence and separate kill-exit fields were `NOT_RECORDED`. The provider incident lifecycle is not proven because normal incident closure was not recorded.
+
+The disruptive suite must not be repeated until the offline diagnosis is reviewed and an exact later task authorizes the narrowest required validation.
+
 ## Accepted diagnostic
 
 A focused diagnostic now exists:
@@ -106,8 +124,8 @@ The operations-doc commits after that head contain documentation only; runtime c
 
 Do not claim these as passed yet:
 
-- Ollama listener hard-crash recovery;
-- provider incident lifecycle under real Ollama failure;
+- complete Ollama exact-PID crash-safety acceptance (replacement-listener recovery is observed, but required safety fields remain incomplete);
+- provider incident closure and durable-state convergence after real Ollama failure;
 - intentional `cnx stop` no-auto-recovery behavior in the current full suite;
 - operator `cnx start` continuation after that stop scenario;
 - active LLM-call continuation when Gateway dies;
@@ -127,13 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-015` is active in automatic execution mode as the offline exact-evidence completion gate.
+Task `CNX-20260823-016` is active in automatic execution mode as the offline provider durable-convergence diagnosis.
 
-Task 014 is reviewed `BLOCKED`: its blanket worktree prohibition conflicted with the scheduled watcher's isolated-worktree requirement. It did not read evidence or perform any runtime, process, recovery, install, reset, uninstall, or reinstall action. No recovery gate was accepted.
+Task 015 is reviewed `REWORK`: it produced useful partial recovery evidence but omitted required exact fields and overclaimed some `PROVEN` gates. It must not be rerun.
 
-Task 015 resolves only that execution-contract conflict. It authorizes exactly one deterministic isolated worktree path with an atomic collision fence, forbids alternate paths and clones, and otherwise retains the same immutable TXT/JSON-only extraction requirements.
+Task 016 uses only the immutable evidence pair plus tracked repository source. It must correct the evidence matrix, map the provider incident open/advance/stable-success/close/verdict transitions, classify the root cause, and identify the narrowest fix only if source evidence is unambiguous.
 
-The disruptive suite must not be repeated. Task 015 does not authorize live process/runtime inspection, confirmation, process injection, old-checkout cleanup, memory reclaim, install, reset, uninstall, reinstall, merge, tag, or release.
+To prevent manual checkout accumulation, Task 016 may use only the isolated checkout supplied by the scheduled execution environment. It forbids `git worktree add`, clones, nested/fallback checkouts, and any inspection or cleanup of Task 007–015 paths.
+
+No live Windows/runtime inspection, recovery rerun, process kill, install, reset, uninstall, reinstall, merge, tag, or release is authorized.
 
 ## Queued desktop-memory diagnostic
 
