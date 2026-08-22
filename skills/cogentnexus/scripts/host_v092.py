@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import host_provider_v092 as base
+import provider_event_liveness_v092 as provider_event_liveness
+
+provider_event_liveness.patch_provider_events(base.provider_events)
 
 legacy = base.legacy
 providers = base.providers
