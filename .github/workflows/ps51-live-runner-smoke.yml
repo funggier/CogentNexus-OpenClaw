@@ -1,0 +1,28 @@
+name: PS5.1 Live Runner Smoke
+
+on:
+  push:
+    branches:
+      - agent/v0.9.2-provider-preflight
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse observable acceptance runner with Windows PowerShell
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\run-v092-live-acceptance.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            throw 'Observable acceptance runner failed Windows PowerShell syntax validation.'
+          }
+          Write-Host 'Observable acceptance runner PowerShell syntax: PASS'
