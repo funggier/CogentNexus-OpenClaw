@@ -86,7 +86,7 @@ class OpenClawRouteRollbackOwnershipV092Tests(unittest.TestCase):
                 {"OPENCLAW_CONFIG_PATH": str(config_path)},
                 clear=False,
             ), mock.patch.object(
-                route._legacy,
+                route,
                 "validate_openclaw_config",
                 return_value={"ok": True},
             ):
@@ -111,7 +111,7 @@ class OpenClawRouteRollbackOwnershipV092Tests(unittest.TestCase):
                 {"OPENCLAW_CONFIG_PATH": str(config_path)},
                 clear=False,
             ), mock.patch.object(
-                route._legacy,
+                route,
                 "validate_openclaw_config",
                 return_value={"ok": True},
             ):
