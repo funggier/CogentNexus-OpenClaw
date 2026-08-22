@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class V091InstallWiringTests(unittest.TestCase):
-    def test_installers_keep_v091_host_core_and_enter_through_v092_cli(self):
+    def test_installers_keep_v091_host_core_and_enter_through_v093_cli(self):
         ps = (ROOT / "scripts/install.ps1").read_text(encoding="utf-8")
         sh = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
 
@@ -13,14 +13,22 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn("host_v091.py", ps)
         self.assertIn("host_v091.py", sh)
 
-        # Managed lifecycle/provider selection enters through the v0.9.2 CLI,
-        # which layers provider-neutral orchestration over the accepted core.
-        self.assertIn("scripts\\cnx.py", ps)
-        self.assertIn("scripts/cnx.py", sh)
+        # v0.9.3 narrows the operator/provider surface to Ollama while retaining
+        # the accepted v0.9.2 orchestration backend underneath the facade.
+        self.assertIn("scripts\\cnx_v093.py", ps)
+        self.assertIn("scripts/cnx_v093.py", sh)
+        self.assertIn('[ValidateSet("ollama")]', ps)
+        self.assertIn('PROVIDER="ollama"', sh)
 
-        cnx = (ROOT / "skills/cogentnexus/scripts/cnx.py").read_text(encoding="utf-8")
+        cnx_v093 = (ROOT / "skills/cogentnexus/scripts/cnx_v093.py").read_text(encoding="utf-8")
+        provider_v093 = (ROOT / "skills/cogentnexus/scripts/provider_v093.py").read_text(encoding="utf-8")
+        legacy_cnx = (ROOT / "skills/cogentnexus/scripts/cnx.py").read_text(encoding="utf-8")
         control_v092 = (ROOT / "skills/cogentnexus/scripts/host_control_v092.py").read_text(encoding="utf-8")
-        self.assertIn('HERE.with_name("host_control_v092.py")', cnx)
+
+        self.assertIn("import cnx as legacy", cnx_v093)
+        self.assertIn("import provider_v093 as ollama_provider", cnx_v093)
+        self.assertIn('SUPPORTED_PROVIDERS = ("ollama",)', provider_v093)
+        self.assertIn('HERE.with_name("host_control_v092.py")', legacy_cnx)
         self.assertIn("import host_control_v091 as v091", control_v092)
 
     def test_safe_staging_requires_passthrough_and_leaves_plugin_disabled(self):
@@ -62,6 +70,8 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn("not a recognized safe upgrade source", sh)
 
     def test_portable_cnx_template_uses_v092_cli_facade(self):
+        # The portable template is a released-v0.9.2 compatibility artifact; the
+        # v0.9.3 installers generate their launcher against cnx_v093.py directly.
         launcher = (ROOT / "skills/cogentnexus/templates/lifecycle/cnx.cmd").read_text(encoding="utf-8")
         self.assertIn("scripts\\cnx.py", launcher)
         self.assertNotIn('scripts\\host.py"', launcher)
