@@ -9,8 +9,11 @@ from typing import Any
 import checks as base
 import openclaw_route_v092 as route
 import provider
+import provider_event_liveness_v092 as provider_event_liveness
 import provider_events_v092 as provider_events
 import provider_recovery_v092 as recovery_policy
+
+provider_event_liveness.patch_provider_events(provider_events)
 
 VERDICT_EXIT = base.VERDICT_EXIT
 item = base.item
@@ -29,6 +32,64 @@ def _controller(root: Path) -> dict[str, Any]:
         return value if isinstance(value, dict) else {}
     except Exception:
         return {}
+
+
+def _base_recovery_checks(root: Path) -> list[dict[str, Any]]:
+    """Read the v0.9.1 recovery evidence without its status-key collision.
+
+    ``base.item`` already receives the diagnostic status positionally.  Passing
+    a second detail field named ``status`` raises ``TypeError`` when health.json
+    exists, so the v0.9.2 overlay preserves the evidence as ``snapshotStatus``.
+    """
+    results: list[dict[str, Any]] = []
+    maintenance = root / "runtime" / "maintenance.json"
+    if maintenance.exists():
+        try:
+            value = json.loads(maintenance.read_text(encoding="utf-8"))
+            results.append(item(
+                "Maintenance/recovery fence",
+                "WARN",
+                "Intentional maintenance/restart marker is present",
+                marker=value,
+            ))
+        except Exception as exc:
+            results.append(item(
+                "Maintenance/recovery fence",
+                "FAIL",
+                f"Maintenance marker is invalid: {exc}",
+            ))
+    else:
+        results.append(item(
+            "Maintenance/recovery fence",
+            "PASS",
+            "No maintenance marker is active",
+        ))
+
+    health = root / "runtime" / "health.json"
+    if health.exists():
+        try:
+            snapshot = json.loads(health.read_text(encoding="utf-8"))
+            snapshot_status = snapshot.get("status")
+            results.append(item(
+                "Supervisor health snapshot",
+                "PASS" if snapshot_status == "healthy" else "WARN",
+                f"Last supervisor status: {snapshot_status}",
+                timestamp=snapshot.get("timestamp"),
+                snapshotStatus=snapshot_status,
+            ))
+        except Exception as exc:
+            results.append(item(
+                "Supervisor health snapshot",
+                "FAIL",
+                f"Supervisor health snapshot is invalid: {exc}",
+            ))
+    else:
+        results.append(item(
+            "Supervisor health snapshot",
+            "WARN",
+            "No supervisor health snapshot exists yet",
+        ))
+    return results
 
 
 def check_model(root: Path, override: str | None = None) -> list[dict[str, Any]]:
@@ -119,7 +180,7 @@ def check_model(root: Path, override: str | None = None) -> list[dict[str, Any]]
 
 
 def check_recovery(root: Path) -> list[dict[str, Any]]:
-    results = list(base.check_recovery(root))
+    results = _base_recovery_checks(root)
     controller = _controller(root)
     selected = controller.get("selectedProvider")
     if not selected:
