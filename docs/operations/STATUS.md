@@ -144,3 +144,11 @@ The failed Task 008 checkout was diagnosed read-only with 325 tracked deletions 
 Task 010 is the sole new authorization for one full real-Windows v3 process-recovery suite invocation from a newly created complete clean isolated clone. It retains exact-PID-only injection, forbids process-tree kill, requires complete CI and read-only health preflight, accepts lowercase `y` once, and forbids any second suite or scenario execution regardless of outcome.
 
 Install, `cnx reset`, `cnx uninstall`, reinstall, tag, merge, and release remain unauthorized until the complete process-recovery report is reviewed and accepted.
+
+## Queued desktop-memory diagnostic
+
+The human operator observed the Windows ChatGPT desktop process group grow from roughly 2 GB to more than 4 GB and asked Codex to determine whether loaded Project/Chat/Work/Codex sessions or another process role is retaining memory.
+
+Task `CNX-20260822-011` is queued but not active. It must not interrupt or supersede Task 010. After Task 010 reaches a terminal reviewed state, Task 011 may be activated to collect exact-PID multi-sample memory evidence and system-pressure context.
+
+Task 011 is read-only. It forbids process kill, process-tree operations, app restart, window closure, chat/project/session/cache deletion, configuration changes, and CogentNexus/OpenClaw/Ollama actions. Any memory-reclaim action requires a later evidence-based reviewed task.
