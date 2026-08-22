@@ -2,46 +2,45 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260822-010`  
-Updated: 2026-08-22 23:30 ICT  
+Task ID: `CNX-20260823-012`  
+Updated: 2026-08-23 00:40 ICT  
 Owner: ChatGPT  
-Executor: Codex  
+Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260822-010-full-windows-v3-process-recovery.md`](tasks/CNX-20260822-010-full-windows-v3-process-recovery.md)
+[`tasks/CNX-20260823-012-task010-checkout-collision-diagnostic.md`](tasks/CNX-20260823-012-task010-checkout-collision-diagnostic.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260822-009-clean-windows-source-checkout-validation.md`](reviews/CNX-20260822-009-clean-windows-source-checkout-validation.md)
+[`reviews/CNX-20260822-010-full-windows-v3-process-recovery.md`](reviews/CNX-20260822-010-full-windows-v3-process-recovery.md)
 
-Task 009 is ACCEPT. It proved a reproducible complete clean full isolated clone at the exact synchronized HEAD with no tracked deletions, the required physical harness and blob, zero parser errors, successful exact `-SyntaxOnly`, and all eight applicable workflows successful. It performed no Windows runtime or lifecycle action.
+Task 010 is `BLOCKED`. Its reporting run stopped before clone validation, CI observation, Windows preflight, confirmation, harness execution, process injection, or any CogentNexus runtime transition because two Task 010 destination directories already existed.
+
+The two full-process-recovery paths were created four seconds apart. The Task 010 report cannot establish whether another overlapping watcher run only created them or reached the harness. No process-recovery gate is accepted.
 
 ## Purpose
 
-Run the complete v3 Ollama-only real-Windows process-recovery suite once from a newly created full isolated clone and collect exact evidence for Gateway crash recovery, Ollama crash/provider incident recovery, and intentional `cnx stop`/`cnx start`.
+Inspect the exact three documented Task 010 paths, exact attached PIDs, and matching TXT/JSON evidence read-only. Classify whether this was a checkout-only race, active execution, an unreported completed/failed execution, no runtime start, or ambiguous.
 
 ## Execution authorization
 
-Because `Execution mode` is `AUTO`, the Codex watcher may begin this exact task after synchronization and duplicate-fence checks.
+Because `Execution mode` is `AUTO`, the Codex watcher may execute this exact metadata-only diagnostic after synchronization and duplicate-fence checks.
 
-Task 010 authorizes exactly one full suite invocation and exact lowercase `y` confirmation once. It requires a newly created complete clean clone, exact source/blob/load gates, complete green CI, healthy read-only preflight, exact-PID-only injection, and full evidence accounting.
+Task 012 does not authorize the recovery harness, parser, `-SyntaxOnly`, CI wait, Windows health preflight, confirmation, process kill, `cnx`, OpenClaw/Ollama commands, checkout cleanup, memory reclaim, install/reset/uninstall/reinstall, or another manual clone/worktree.
 
-Process-tree kill, a second suite/scenario run, manual post-injection transition, install, reset, uninstall, reinstall, source edits, package installation, tag, merge, and release are prohibited.
+Task 011 remains queued and must not execute until explicitly activated.
 
 ## Required behavior
 
-1. re-read Task 010 and matching report state;
+1. re-read Task 012 and matching report state;
 2. if the report exists, perform no local action;
-3. create one new unique full isolated clone at the exact synchronized start HEAD;
-4. prove clean status, no deletions, exact harness blob/SHA256/size, parser and `-SyntaxOnly`;
-5. require all applicable exact-head CI to complete `success`;
-6. require healthy MANAGED/Ollama/`READY` read-only preflight;
-7. run the exact disruptive command once and type lowercase `y` once;
-8. never rerun the suite or a scenario under any outcome;
-9. preserve exact-PID safety and record every PASS, FAIL, BLOCKED, skipped, and not-reached item;
-10. add only the matching Task 010 report and stop.
+3. do not create another manual clone/worktree/checkout;
+4. inspect only the three exact documented Task 010 paths and task-scoped evidence;
+5. record exact-PID/path relationships without exposing sensitive command lines;
+6. if active execution is detected, observe once, do not interfere, report, and stop;
+7. publish only the matching Task 012 report.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260822-010-full-windows-v3-process-recovery.md` already exists, do not inspect/create a checkout, observe CI/runtime, run preflight, request confirmation, run the suite, kill a process, invoke `cnx stop`/`cnx start`, or perform any other side effect. Exit awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-012-task010-checkout-collision-diagnostic.md` already exists, do not inspect any local path, process, evidence file, checkout, runtime, or UI. Exit awaiting ChatGPT review.
