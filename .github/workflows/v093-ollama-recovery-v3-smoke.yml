@@ -38,10 +38,20 @@ jobs:
             'requestedArguments=$argsCopy',
             'Stop-Process exact PID only',
             "'firefox.exe'",
-            "'powershell.exe'"
+            "'powershell.exe'",
+            'Wait-DurableConvergence',
+            'RecoveryFuseSeconds',
+            'firstVerdict',
+            'finalVerdict',
+            'attempts',
+            'elapsedSeconds',
+            'lastObservation',
+            'providerRecoveryIncident'
           )) {
             if (-not $text.Contains($required)) { throw "Missing required v3 contract: $required" }
           }
+          if ($text -match "Wait-Listener[^\r\n]+;\s*Assert-Baseline\s+'(?:gateway|provider|operator)-after'") { throw 'Immediate post-listener Assert-Baseline acceptance remains.' }
+          if ($text -match "observe-(?:gateway|ollama)-recovered[^\r\n]*\r?\n(?:[^\r\n]*\r?\n){0,2}[^\r\n]*Assert-Baseline") { throw 'Post-transition listener observation is not followed by convergence observation.' }
           if ($text.Contains('$status.state.mode')) { throw 'Legacy wrong status.state.mode assertion remains in v3.' }
           if ($text.Contains('$status.state.desiredGateway')) { throw 'Legacy wrong status.state.desiredGateway assertion remains in v3.' }
           if ($text.Contains('$status.state.desiredProvider')) { throw 'Legacy wrong status.state.desiredProvider assertion remains in v3.' }

@@ -155,6 +155,35 @@ function Assert-Baseline {
     Step "assert-managed-$Label" $(if($ok){'PASS'}else{'FAIL'}) ([ordered]@{mode=[string]$hostState.mode;hostSelectedProvider=[string]$hostState.selectedProvider;selectedProvider=[string]$provider.selectedProvider;recoveryVerdict=[string]$recovery.verdict;providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null});gateway=$gateway;ollama=$ollama})
     if(-not $ok){throw "Managed Ollama baseline failed at $Label."}
 }
+function Wait-DurableConvergence {
+    param([string]$Name,[bool]$RequireProviderIncident=$false)
+    $started=Get-Date; $deadline=$started.AddSeconds($RecoveryFuseSeconds); $observations=@(); $first=$null; $last=$null
+    while((Get-Date)-lt $deadline){
+        $status=Invoke-CnxJson -Name "$Name-status" -CommandArgs @('status')
+        $provider=Invoke-CnxJson -Name "$Name-provider" -CommandArgs @('provider','status','--json')
+        $recovery=Invoke-CnxJson -Name "$Name-recovery" -CommandArgs @('check','recovery','--json') -AllowedExitCodes @(0,1)
+        $adapter=@($recovery.checks|Where-Object{$_.name -eq 'Provider event adapter'})
+        $incident=@($recovery.checks|Where-Object{$_.name -eq 'Provider recovery incident'})
+        $gateway=Get-Listener -Port (Get-GatewayPort); $ollama=Get-Listener -Port 11434
+        $hostState=Get-HostState -StatusDocument $status
+        $observation=[ordered]@{
+            at=(Get-Date).ToString('o'); mode=[string]$hostState.mode; hostSelectedProvider=[string]$hostState.selectedProvider
+            selectedProvider=[string]$provider.selectedProvider; recoveryVerdict=[string]$recovery.verdict
+            gateway=$gateway; ollama=$ollama; providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null})
+            providerRecoveryIncident=$(if($incident.Count -eq 1){$incident[0]}else{$null})
+        }
+        if($null -eq $first){$first=$observation}; $last=$observation; $observations += $observation
+        $incidentOkay=(-not $RequireProviderIncident) -or ($incident.Count -eq 1 -and -not [bool]$incident[0].details.circuitOpen)
+        $ok=($observation.mode -eq 'managed' -and $observation.hostSelectedProvider -eq 'ollama' -and $observation.selectedProvider -eq 'ollama' -and $observation.recoveryVerdict -eq 'READY' -and $adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected -and [bool]$gateway.listening -and [bool]$ollama.listening -and $incidentOkay)
+        if($ok){
+            $data=[ordered]@{observationOnly=$true;firstVerdict=$first.recoveryVerdict;finalVerdict=$observation.recoveryVerdict;attempts=$observations.Count;elapsedSeconds=[math]::Round(((Get-Date)-$started).TotalSeconds,3);lastObservation=$observation;observations=$observations}
+            Step $Name 'PASS' $data; return $data
+        }
+        Start-Sleep -Seconds 1
+    }
+    $data=[ordered]@{observationOnly=$true;firstVerdict=$(if($null -ne $first){$first.recoveryVerdict}else{$null});finalVerdict=$(if($null -ne $last){$last.recoveryVerdict}else{$null});attempts=$observations.Count;elapsedSeconds=[math]::Round(((Get-Date)-$started).TotalSeconds,3);lastObservation=$last;observations=$observations}
+    Step $Name 'FAIL' $data; throw "$Name did not observe durable READY convergence inside RecoveryFuseSeconds."
+}
 function Confirm-Disruptive {
     if($Disruptive.Count -eq 0){return}
     Write-Host ''; Write-Host 'DISRUPTIVE OLLAMA RECOVERY REALITY TESTS REQUESTED.'; Write-Host "Scenarios: $($Disruptive -join ', ')"; Write-Host 'Only exact validated Gateway/Ollama listener PIDs may be force-killed; process trees are never killed.'
@@ -162,14 +191,14 @@ function Confirm-Disruptive {
 }
 function Scenario-Gateway {
     Assert-Baseline 'gateway-before'; $port=Get-GatewayPort; $before=Get-Listener -Port $port; Hard-Kill -Role gateway -Snapshot $before
-    $after=Wait-Listener -Name 'observe-gateway-recovered' -Port $port -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid)); Assert-Baseline 'gateway-after'; Step 'scenario-gateway-crash' 'PASS' ([ordered]@{before=$before;after=$after}); Log 'SCENARIO gateway-crash :: PASS'
+    $after=Wait-Listener -Name 'observe-gateway-recovered' -Port $port -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid)); $convergence=Wait-DurableConvergence 'converge-gateway-after'; Step 'scenario-gateway-crash' 'PASS' ([ordered]@{before=$before;after=$after;convergence=$convergence}); Log 'SCENARIO gateway-crash :: PASS'
 }
 function Scenario-Provider {
     Assert-Baseline 'provider-before'; $before=Get-Listener -Port 11434; Hard-Kill -Role provider -Snapshot $before
     $after=Wait-Listener -Name 'observe-ollama-recovered' -Port 11434 -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid))
     $recovery=Invoke-CnxJson -Name 'recovery-after-ollama-hard-crash' -CommandArgs @('check','recovery','--json') -AllowedExitCodes @(0,1); $incident=@($recovery.checks|Where-Object{$_.name -eq 'Provider recovery incident'})
     if($incident.Count -ne 1){throw 'Provider recovery incident diagnostic row missing.'}; if([bool]$incident[0].details.circuitOpen){throw 'Ollama recovery circuit open after one injected crash.'}
-    Assert-Baseline 'provider-after'; Step 'scenario-provider-crash' 'PASS' ([ordered]@{before=$before;after=$after;recoveryIncident=$incident[0]}); Log 'SCENARIO provider-crash :: PASS'
+    $convergence=Wait-DurableConvergence 'converge-provider-after' $true; Step 'scenario-provider-crash' 'PASS' ([ordered]@{before=$before;after=$after;recoveryIncident=$incident[0];convergence=$convergence}); Log 'SCENARIO provider-crash :: PASS'
 }
 function Scenario-OperatorStop {
     Assert-Baseline 'operator-before'; Invoke-CnxText -Name 'intentional-cnx-stop' -CommandArgs @('stop') | Out-Null
@@ -178,7 +207,7 @@ function Scenario-OperatorStop {
     $port=Get-GatewayPort; [void](Wait-Listener -Name 'observe-gateway-stopped-intentionally' -Port $port -Listening $false -FuseSeconds 60); Start-Sleep -Seconds $IntentionalStopObservationSeconds
     $obs=Get-Listener -Port $port; if([bool]$obs.listening){throw 'Gateway auto-recovered during intentional stop observation.'}; Step 'intentional-stop-no-auto-recovery' 'PASS' ([ordered]@{observationSeconds=$IntentionalStopObservationSeconds;gateway=$obs})
     Invoke-CnxText -Name 'start-after-intentional-stop' -CommandArgs @('start') | Out-Null; [void](Wait-Listener -Name 'observe-gateway-started-after-operator-start' -Port $port -Listening $true); [void](Wait-Listener -Name 'observe-ollama-started-after-operator-start' -Port 11434 -Listening $true)
-    Assert-Baseline 'operator-after'; Step 'scenario-operator-stop' 'PASS' ([ordered]@{noAutoRecoveryObserved=$true}); Log 'SCENARIO operator-stop :: PASS'
+    $convergence=Wait-DurableConvergence 'converge-after-operator-start'; Step 'scenario-operator-stop' 'PASS' ([ordered]@{noAutoRecoveryObserved=$true;convergence=$convergence}); Log 'SCENARIO operator-stop :: PASS'
 }
 function Best-Effort-Reconcile {
     if(-not(Test-Path $Cnx)){return}
