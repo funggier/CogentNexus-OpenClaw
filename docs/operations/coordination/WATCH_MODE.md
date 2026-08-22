@@ -32,8 +32,8 @@ On every scheduled run:
 5. read the exact active task, matching report state, and task-specific safety gates;
 6. if a matching completed report already exists, do not repeat any side effect; exit awaiting ChatGPT review;
 7. execute only the exact active task;
-8. publish the matching Codex-owned report/evidence references;
-9. stop the current run after the report is pushed.
+8. publish the matching Codex-owned report/evidence references, including the full problem contract for any `BLOCKED`, `FAIL`, or partial result;
+9. stop the current run after the report is pushed; ChatGPT owns review, remediation-task selection, and human notification.
 
 A later scheduled run begins a fresh synchronization cycle. Codex must never carry a stale task pointer across cycles.
 
@@ -51,7 +51,7 @@ It does not authorize:
 - inventing a successor task;
 - overriding a task's explicit confirmation or safety requirements.
 
-If a task cannot complete safely without new human authority, publish `BLOCKED` and stop that run.
+If a task cannot complete safely, follow [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md): publish the matching problem report with evidence, classification, safe remediation options, and `Human decision required: YES|NO`, then stop that run. Stopping execution must not suppress the durable problem handoff.
 
 ## Stop and pause
 
