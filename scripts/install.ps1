@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
-    [ValidateSet("ollama", "lmstudio")]
-    [string]$Provider,
+    [ValidateSet("ollama")]
+    [string]$Provider = "ollama",
     [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
@@ -19,7 +19,7 @@ $stagedSkill = Join-Path $Workspace ".cogent\install-staging\cogentnexus"
 $backupRoot = Join-Path $Workspace ".cogent\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
 $hostScript = Join-Path $targetSkill "scripts\host_v091.py"
-$cliScript = Join-Path $targetSkill "scripts\cnx.py"
+$cliScript = Join-Path $targetSkill "scripts\cnx_v093.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
 $controllerPath = Join-Path $cogentRoot "host\controller.json"
 $existingLauncher = Join-Path $Workspace "cnx.cmd"
@@ -71,9 +71,9 @@ function Enter-NativeInstallBoundary {
     Write-Host "Pre-install native handoff: PASS"
 }
 
-Write-Host "Installing CogentNexus v$version"
+Write-Host "Installing CogentNexus v$version (Ollama-only)"
 Write-Host "Workspace: $Workspace"
-if ($Provider) { Write-Host "Requested provider: $Provider" }
+Write-Host "Provider: ollama"
 
 if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
     throw "-SkipPlugin and -SkipAgentsPolicy are staging-only options. Use them with -SkipGatewayRestart; transactional MANAGED enable requires the bridge and managed policy."
@@ -81,6 +81,7 @@ if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
 
 Require-Command python
 Require-Command openclaw
+Require-Command ollama
 if (-not $SkipPlugin) {
     Require-Command node
     Require-Command npm
@@ -91,11 +92,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
-# Upgrades/reinstalls must never mutate the installed skill or plugin while an
-# existing Host still owns MANAGED authority. Use the currently installed
-# launcher before replacing any files so its accepted disable path restores and
-# verifies native OpenClaw first. This also makes repeated live acceptance runs
-# deterministic after an earlier run left CNX MANAGED.
+# A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
+# launcher first so it restores native OpenClaw before v0.9.3 replaces files.
+# The new installation then enters MANAGED with Ollama only.
 Enter-NativeInstallBoundary
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetSkill) | Out-Null
@@ -116,8 +115,6 @@ Write-Host "Installed CogentNexus skill to $targetSkill"
 python (Join-Path $targetSkill "scripts\validate.py")
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus validation failed" }
 
-# Fresh initialization remains PASSTHROUGH. Provider selection is committed only
-# after the v0.9.2 CLI verifies provider + Gateway during transactional enable.
 python $hostScript --root $cogentRoot init
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
 
@@ -165,34 +162,21 @@ if (-not $SkipPlugin) {
                 if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
             }
 
-            # Install from the publishable npm artifact instead of copying the
-            # development checkout. npm ci may create node_modules\openclaw as a
-            # peer/dev link on Windows; copying that link into OpenClaw's managed
-            # extension staging can fail with EPERM even though it is excluded
-            # from the published package by package.json "files".
             $packOutput = (& npm pack --json | Out-String)
             if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
-            try {
-                $packed = $packOutput | ConvertFrom-Json
-            }
-            catch {
-                throw "npm pack returned invalid JSON: $($_.Exception.Message)"
-            }
+            try { $packed = $packOutput | ConvertFrom-Json }
+            catch { throw "npm pack returned invalid JSON: $($_.Exception.Message)" }
             $packedItems = @($packed)
             if ($packedItems.Count -ne 1 -or -not $packedItems[0].filename) {
                 throw "npm pack did not return exactly one package artifact"
             }
             $packagePath = Join-Path $pluginDir ([string]$packedItems[0].filename)
-            if (-not (Test-Path -LiteralPath $packagePath)) {
-                throw "npm pack artifact not found: $packagePath"
-            }
+            if (-not (Test-Path -LiteralPath $packagePath)) { throw "npm pack artifact not found: $packagePath" }
             try {
                 openclaw plugins install ("npm-pack:" + $packagePath) --force
                 if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
             }
-            finally {
-                Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue
-            }
+            finally { Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue }
         }
 
         openclaw plugins disable cogentnexus-rotation
@@ -209,25 +193,13 @@ Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewli
 Write-Host "Installed CogentNexus launcher to $launcher"
 
 if (-not $SkipGatewayRestart) {
-    $enableArgs = @($cliScript, "--root", $cogentRoot, "enable")
-    if ($Provider) { $enableArgs += @("--provider", $Provider) }
-    & python @enableArgs
-    if ($LASTEXITCODE -ne 0) {
-        if (-not $Provider) {
-            throw "CogentNexus enable failed. If both Ollama and LM Studio are installed, rerun with -Provider ollama or -Provider lmstudio."
-        }
-        throw "CogentNexus Host enable failed for provider '$Provider'"
-    }
+    & python $cliScript --root $cogentRoot enable --provider ollama
+    if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host enable failed for Ollama" }
 }
 else {
     Write-Host "Skipped Host enable because -SkipGatewayRestart was requested."
     Write-Host "CogentNexus remains PASSTHROUGH with its plugin disabled."
-    if ($Provider) {
-        Write-Host "Provider was not committed during staging; run .\cnx.cmd enable --provider $Provider when ready."
-    }
-    else {
-        Write-Host "Run .\cnx.cmd enable [--provider ollama|lmstudio] when ready."
-    }
+    Write-Host "Run .\cnx.cmd enable when ready; v0.9.3 will use Ollama."
 }
 
 openclaw gateway status
@@ -239,5 +211,5 @@ if ($LASTEXITCODE -ne 0) { throw "CogentNexus supervisor check failed" }
 & python $cliScript --root $cogentRoot status
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus status check failed" }
 
-Write-Host "CogentNexus v$version installation completed successfully."
+Write-Host "CogentNexus v$version installation completed successfully (Ollama-only)."
 Write-Host "Control it with: $launcher status|check|provider|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"
