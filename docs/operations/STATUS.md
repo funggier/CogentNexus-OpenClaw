@@ -127,20 +127,20 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-006` is active in automatic execution mode.
+Task `CNX-20260822-007` is active in automatic execution mode.
 
-Task 005 is BLOCKED, but its duplicate-execution/source gate behaved safely: Codex detected that the workflow had already changed and stopped without editing code or performing runtime actions.
+Task 006 is accepted. Accepted non-disruptive evidence includes:
 
-Current evidence:
+- 16 direct standard-library tests passed;
+- Windows PowerShell parser and v3 `-SyntaxOnly` passed;
+- corrected per-scenario convergence contract passed;
+- harness blob `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
+- workflow blob `35b6796e4868447cfe3db6a86a7528d0288c8411`;
+- all eight applicable workflows for validation start HEAD `ef1f89eaf51749b741e0c14c32b1dc2e4248e456` completed successfully;
+- no runtime, lifecycle, PID, or package side effect occurred.
 
-- durable-convergence harness implementation: `592a6fbd37da05013b7a8a5875ccd8b17e188cfa`;
-- corrected v3 smoke workflow: `929fbcc663251941d88f38f09544068a9b3e069d`;
-- current harness blob: `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
-- current workflow blob: `35b6796e4868447cfe3db6a86a7528d0288c8411`;
-- GitHub v3 smoke run `32582330616`, job `97053475362`: success.
+Task 007 authorizes one exact full real-Windows v3 process-recovery suite invocation after clean source, CI, and read-only health preconditions. It covers baseline, Gateway exact-PID crash and natural durable convergence, Ollama exact-PID crash/provider incident and natural durable convergence, intentional stop/no-auto-recovery, and one operator start.
 
-Task 006 is validation-only. It runs the three existing standard-library unittest files directly, Windows PowerShell parser/`-SyntaxOnly`, the corrected local contract, diff checks, and read-only CI observation. It may add only its matching report. It does not authorize a disruptive Windows run, source changes, dependency installation, or lifecycle commands.
+The Task 007 suite may not be rerun under any outcome. Process-tree kill remains forbidden. Any unsafe identity, failed scenario, missing evidence, or skipped scenario must remain visible as BLOCKED/FAIL.
 
-After Task 006 is accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
-
-After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: release-path install → install-over-existing → reset → clean uninstall → release-path reinstall → post-reinstall verification → exact-artifact CI/review.
+After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: exact release artifact/provenance → release-path install-over-existing → reset → clean uninstall → preservation checks → release-path reinstall → post-reinstall readiness → exact-artifact CI/review.
