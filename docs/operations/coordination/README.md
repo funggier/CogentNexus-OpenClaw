@@ -11,14 +11,26 @@ Use this layer when ChatGPT designs or reviews work but cannot directly execute 
 The intended loop is:
 
 ```text
-Human intent
-   -> ChatGPT task specification
-   -> GitHub coordination task
-   -> Codex local execution
-   -> GitHub execution report + evidence references
-   -> ChatGPT review
-   -> next task / close
+Human talks primarily with ChatGPT
+        ↓
+ChatGPT publishes/reviews task in GitHub
+        ↓
+ACTIVE.md = READY_FOR_CODEX
+        ↓
+Human sends Codex: ต่อ
+        ↓
+Codex syncs GitHub and executes active task
+        ↓
+Codex pushes execution report/evidence references
+        ↓
+Human tells ChatGPT that Codex has returned, or simply asks to continue
+        ↓
+ChatGPT reads GitHub report, reviews evidence, and publishes next task
+        ↓
+repeat
 ```
+
+The human is a **trigger**, not a courier for task details. Full task specifications and execution reports live in GitHub.
 
 ## Ownership model
 
@@ -26,6 +38,7 @@ To reduce merge conflicts, each side owns different files.
 
 - **ChatGPT owns**
   - `ACTIVE.md`
+  - `STATUS.md`
   - `tasks/*.md`
   - `reviews/*.md`
 - **Codex owns**
@@ -56,22 +69,41 @@ reports/CNX-20260822-001-*.md
 reviews/CNX-20260822-001-*.md
 ```
 
-## State model
+## Handoff state model
 
-The coordination state is descriptive, not execution authority.
+The coordination state is descriptive, not runtime recovery authority.
 
-Typical lifecycle:
+Normal handoff states are:
 
 ```text
-DRAFT
-  -> READY
-  -> EXECUTING
-  -> PASS | FAIL | BLOCKED
-  -> REVIEWED
-  -> CLOSED | REWORK
+READY_FOR_CODEX
+    ↓ human signal: ต่อ
+CODEX_EXECUTING
+    ↓ report pushed
+REPORT_READY
+    ↓ ChatGPT review
+CHATGPT_REVIEWING
+    ↓
+READY_FOR_CODEX | CLOSED | BLOCKED
 ```
 
-`ACTIVE.md` points to the task ChatGPT currently wants executed or reviewed.
+`ACTIVE.md` is the single pointer to the current handoff state and task.
+
+Codex must **not** repeat a task whose report already records completion merely because the operator sends `ต่อ` again. If `ACTIVE.md` is not `READY_FOR_CODEX`, Codex should synchronize, report the state, and stop unless the active task explicitly authorizes another action.
+
+## Minimal human signals
+
+See [`SIGNALS.md`](SIGNALS.md).
+
+The normal execution trigger is now only:
+
+```text
+ต่อ
+```
+
+Codex interprets that as: synchronize from GitHub, read the current coordination records, execute the currently authorized task exactly, push the required report, and stop.
+
+`สถานะ` is read-only coordination status. `หยุด` means do not begin a new coordination task.
 
 ## Evidence rule
 
@@ -132,13 +164,13 @@ SUPERSEDED
 
 A review should explain why and, when needed, point to the next Task ID.
 
-## Human trigger
+## Standing Codex rule
 
-The normal human-to-Codex instruction can be as short as:
+Once Codex has been told to use this coordination layer, later operator messages such as `ต่อ` should not require the full bootstrap prompt again.
 
-> Read `docs/operations/coordination/ACTIVE.md`, follow `docs/operations/coordination/README.md`, execute the active task exactly, and write the required report back to GitHub.
+For every `ต่อ`, Codex must re-read GitHub rather than relying on stale conversational memory. The current `ACTIVE.md`, task file, report state, and task-specific safety gates are the authority for what to execute next.
 
-The human should not need to copy the full task body into Codex when Codex has repository access.
+Codex stops after publishing the report. It does not autonomously invent the next task; ChatGPT reviews and publishes the next authorized task through GitHub.
 
 ## Relationship to the rest of `docs/operations`
 
