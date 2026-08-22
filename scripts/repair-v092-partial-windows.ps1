@@ -28,6 +28,12 @@ $Cnx = Join-Path $Workspace 'cnx.cmd'
 $Root = Join-Path $Workspace '.cogent'
 $Controller = Join-Path $Root 'host\controller.json'
 $RouteState = Join-Path $Root 'host\openclaw-route-v092.json'
+$WatchdogSnapshot = Join-Path $Root 'host\openclaw-watchdog-compat.json'
+$OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) {
+    [IO.Path]::GetFullPath($env:OPENCLAW_CONFIG_PATH)
+} else {
+    Join-Path $HOME '.openclaw\openclaw.json'
+}
 
 $RepairFiles = @(
     'provider_event_liveness_v092.py',
@@ -95,10 +101,14 @@ try {
         Require-File $Cnx 'Installed cnx.cmd'
         Require-File $Controller 'CogentNexus controller state'
         Require-File $RouteState 'v0.9.2 route baseline state'
+        Require-File $WatchdogSnapshot 'v0.9.1 watchdog compatibility snapshot'
+        Require-File $OpenClawConfig 'OpenClaw config'
 
         foreach ($name in $RepairFiles) {
             Require-File (Join-Path $RepoRoot "skills\cogentnexus\scripts\$name") "Candidate repair source $name"
         }
+
+        $watchdogBaseline = Get-Content -LiteralPath $WatchdogSnapshot -Raw | ConvertFrom-Json
 
         Write-Output ''
         Write-Output '============================================================'
@@ -108,6 +118,9 @@ try {
         Write-Output ''
         Write-Output '--- route baseline state ---'
         Get-Content -LiteralPath $RouteState -Raw
+        Write-Output ''
+        Write-Output '--- watchdog baseline state ---'
+        Get-Content -LiteralPath $WatchdogSnapshot -Raw
         Write-Output ''
         Write-Output '--- provider adapter processes ---'
         $beforeProcesses = Get-CnxAdapterProcesses
@@ -188,6 +201,46 @@ try {
             throw "Provider event adapter process remains after disable: $($afterProcesses.Count)"
         }
         Write-Output 'providerEventAdapterProcesses=0'
+
+        Write-Output ''
+        Write-Output '============================================================'
+        Write-Output 'VERIFY v0.9.1 WATCHDOG BASELINE RESTORED'
+        Write-Output '============================================================'
+        if (Test-Path -LiteralPath $WatchdogSnapshot) {
+            throw 'Watchdog compatibility snapshot still exists after successful disable'
+        }
+        $openclaw = Get-Content -LiteralPath $OpenClawConfig -Raw | ConvertFrom-Json
+        $diagnostics = $openclaw.diagnostics
+        $watchdogPresent = $null -ne $diagnostics -and ($diagnostics.PSObject.Properties.Name -contains 'stuckSessionAbortMs')
+        $watchdogValue = if ($watchdogPresent) { $diagnostics.stuckSessionAbortMs } else { $null }
+        $expectedWatchdogPresent = [bool]$watchdogBaseline.originalPresent
+        $expectedWatchdogValue = $watchdogBaseline.originalValue
+        Write-Output "expectedPresent=$expectedWatchdogPresent actualPresent=$watchdogPresent"
+        Write-Output "expectedValue=$expectedWatchdogValue actualValue=$watchdogValue"
+        if ($watchdogPresent -ne $expectedWatchdogPresent) {
+            throw 'OpenClaw native watchdog presence was not restored to the v0.9.1 pre-CNX snapshot'
+        }
+        if ($watchdogPresent) {
+            $expectedJson = $expectedWatchdogValue | ConvertTo-Json -Compress -Depth 20
+            $actualJson = $watchdogValue | ConvertTo-Json -Compress -Depth 20
+            if ($expectedJson -ne $actualJson) {
+                throw 'OpenClaw native watchdog value was not restored to the v0.9.1 pre-CNX snapshot'
+            }
+        }
+        Write-Output 'watchdogBaselineRestored=true'
+
+        Write-Output ''
+        Write-Output '============================================================'
+        Write-Output 'VERIFY CNX PLUGIN IS NOT ENABLED IN PASSTHROUGH'
+        Write-Output '============================================================'
+        $entries = if ($null -ne $openclaw.plugins) { $openclaw.plugins.entries } else { $null }
+        $pluginEntry = if ($null -ne $entries) { $entries.'cogentnexus-rotation' } else { $null }
+        $pluginEnabled = $null -ne $pluginEntry -and $pluginEntry.enabled -eq $true
+        Write-Output "pluginPresent=$($null -ne $pluginEntry)"
+        Write-Output "pluginEnabled=$pluginEnabled"
+        if ($pluginEnabled) {
+            throw 'CogentNexus plugin remains enabled after PASSTHROUGH repair boundary'
+        }
 
         Write-Output ''
         Write-Output '============================================================'
