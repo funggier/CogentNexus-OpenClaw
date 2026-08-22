@@ -61,43 +61,22 @@ The following have direct evidence on the target machine:
 - the killed Gateway returned with a different PID;
 - cleanup after the interrupted suite restored MANAGED + Ollama + Gateway to `READY`.
 
-## Current blocking question
+## Latest accepted recovery result
 
-The current investigation is **Gateway durable-state convergence after physical runtime recovery**.
+Task `CNX-20260822-003` is accepted.
 
-Observed sequence:
+The focused real-Windows Gateway convergence diagnostic proved:
 
-```text
-Gateway healthy
-   ↓
-exact Gateway PID hard-killed
-   ↓
-Gateway listener returns with new PID
-   ↓
-`cnx check recovery` still reports READY_WITH_WARNINGS
-   ↓
-maintenance/recovery marker still active
-```
+- exact OpenClaw Gateway `node.exe` PID `26384` was validated and stopped without a process-tree kill;
+- the replacement Gateway listener appeared as different PID `39108`;
+- no manual runtime transition occurred after injection;
+- recovery first reported `READY_WITH_WARNINGS` while the intentional marker was active;
+- durable recovery naturally converged to `READY` after 8 observations in 14.769 seconds;
+- final state remained MANAGED with Ollama selected and both listeners healthy.
 
-The marker reported:
+Therefore the earlier full-suite `gateway-after` failure is classified as an immediate-assertion defect in the v3 test harness, not a demonstrated runtime durable-state completion defect.
 
-```text
-reason: CogentNexus external supervisor confirmed an unresponsive Gateway
-recoveryPolicy: healthy-runtime
-```
-
-The previous full v3 harness asserted `READY` shortly after the listener returned and therefore failed at `gateway-after`.
-
-This does **not** prove that Gateway recovery failed. Gateway process recovery itself succeeded.
-
-What remains unknown is whether the durable marker:
-
-1. converges to `READY` naturally after additional supervisor reconciliation, or
-2. remains stuck until an operator transition such as `cnx start` occurs.
-
-That distinction determines whether the next fix belongs in the test harness or in the runtime state machine.
-
-## Active diagnostic
+## Accepted diagnostic
 
 A focused diagnostic now exists:
 
@@ -148,11 +127,12 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Run the focused Gateway Convergence diagnostic on the real Windows target and classify the result:
+Task `CNX-20260822-004` is active in automatic execution mode.
 
-- **Natural convergence to `READY`** → adjust full-suite timing/observation semantics; do not modify recovery authority unnecessarily.
-- **No natural convergence inside the evidence fuse** → treat as a runtime durable-state completion bug and fix the recovery boundary before continuing to provider-crash tests.
+It will update the v3 full-suite harness to observe durable/runtime convergence read-only after Gateway/Ollama replacement and after the documented operator start, while preserving exact-PID, provider-incident, intentional-stop, and event/evidence-driven safety invariants.
 
-After this blocker is closed, return to the process-level suite: Gateway crash → Ollama crash → intentional stop/start.
+Task 004 authorizes harness/test changes and non-disruptive validation only. It does not authorize another disruptive Windows run.
+
+After Task 004 implementation and CI evidence are accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
 
 After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: release-path install → install-over-existing → reset → clean uninstall → release-path reinstall → post-reinstall verification → exact-artifact CI/review.
