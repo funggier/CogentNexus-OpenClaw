@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/test-v093-recovery-reality-windows.ps1'
       - 'scripts/install.ps1'
+      - 'scripts/install.sh'
       - 'skills/cogentnexus/scripts/cnx_v093.py'
       - 'skills/cogentnexus/scripts/provider_v093.py'
       - 'docs/V093_RECOVERY_REALITY_TESTS.md'
@@ -49,16 +50,10 @@ jobs:
         shell: powershell
         run: |
           $text = Get-Content '.\scripts\test-v093-recovery-reality-windows.ps1' -Raw
-          if ($text -match '(?i)lmstudio') {
-            throw 'Recovery Reality harness must not contain LM Studio paths in v0.9.3.'
-          }
-          if ($text -match '(?i)taskkill\.exe.*\/T') {
-            throw 'Recovery Reality harness must not kill process trees.'
-          }
+          if ($text -match '(?i)lmstudio') { throw 'Recovery Reality harness must not contain LM Studio paths in v0.9.3.' }
+          if ($text -match '(?i)taskkill\.exe.*\/T') { throw 'Recovery Reality harness must not kill process trees.' }
           foreach ($required in @('firefox.exe','powershell.exe','windowsterminal.exe','Stop-Process exact PID only')) {
-            if ($text -notmatch [regex]::Escape($required)) {
-              throw "Missing process-safety marker: $required"
-            }
+            if ($text -notmatch [regex]::Escape($required)) { throw "Missing process-safety marker: $required" }
           }
           Write-Host 'v0.9.3 process-safety/Ollama-only contract: PASS'
 
@@ -81,6 +76,15 @@ jobs:
           if ($text -notmatch '\[string\]\$Provider\s*=\s*"ollama"') { throw 'Windows installer is not defaulted to Ollama.' }
           if ($text -notmatch 'cnx_v093\.py') { throw 'Windows installer is not wired to the v0.9.3 CLI facade.' }
           Write-Host 'v0.9.3 Windows installer Ollama-only contract: PASS'
+
+      - name: Require POSIX installer Ollama-only contract
+        shell: powershell
+        run: |
+          $text = Get-Content '.\scripts\install.sh' -Raw
+          if ($text -match 'ollama\|lmstudio') { throw 'POSIX installer still exposes LM Studio.' }
+          if ($text -notmatch 'PROVIDER="ollama"') { throw 'POSIX installer is not defaulted to Ollama.' }
+          if ($text -notmatch 'cnx_v093\.py') { throw 'POSIX installer is not wired to the v0.9.3 CLI facade.' }
+          Write-Host 'v0.9.3 POSIX installer Ollama-only contract: PASS'
 
       - name: Compile v0.9.3 Python facades
         shell: powershell
