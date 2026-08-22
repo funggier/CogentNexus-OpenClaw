@@ -135,8 +135,8 @@ function Invoke-EvidenceSerializerSelfTest {
 
 function Invoke-RootProcessExitCodeSelfTest {
     $cases = @(
-        [pscustomobject]@{ Expected = 0; Command = 'exit 0' },
-        [pscustomobject]@{ Expected = 7; Command = 'exit 7' }
+        [pscustomobject]@{ Expected = 0; Command = 'exit /b 0' },
+        [pscustomobject]@{ Expected = 7; Command = 'exit /b 7' }
     )
 
     foreach ($case in $cases) {
@@ -145,6 +145,10 @@ function Invoke-RootProcessExitCodeSelfTest {
         try {
             $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$case.Command) -PassThru -NoNewWindow `
                 -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            # Windows PowerShell 5.1 can lose access to ExitCode for a quickly
+            # exiting process unless the native process handle is cached while
+            # the process is still alive.
+            $null = $proc.Handle
             $proc.WaitForExit()
             $proc.Refresh()
             if (-not $proc.HasExited) {
@@ -316,8 +320,8 @@ function ConvertTo-ComparableJson {
 # process. The installer intentionally launches long-lived Gateway/provider
 # processes, so -Wait can block forever after install.ps1 itself has exited.
 # Start the root process without -Wait and wait on that Process object only.
-# Windows PowerShell 5.1 can expose a stale/null ExitCode until the Process
-# object is refreshed after WaitForExit(), so Refresh()+HasExited are mandatory.
+# Windows PowerShell 5.1 can expose null ExitCode with -NoNewWindow/redirect
+# unless the native handle is cached before the process exits.
 $OldCapturedWait = @'
         $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -Wait -PassThru -NoNewWindow `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
@@ -326,6 +330,7 @@ $OldCapturedWait = @'
 $NewCapturedWait = @'
         $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -PassThru -NoNewWindow `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $null = $proc.Handle
         $proc.WaitForExit()
         $proc.Refresh()
         if (-not $proc.HasExited) { throw "$Name root process did not reach exited state." }
@@ -340,6 +345,7 @@ $OldConfirmedWait = @'
 $NewConfirmedWait = @'
         $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$quoted) -PassThru -NoNewWindow `
             -RedirectStandardInput $stdin -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $null = $proc.Handle
         $proc.WaitForExit()
         $proc.Refresh()
         if (-not $proc.HasExited) { throw "$Name root process did not reach exited state." }
@@ -369,6 +375,9 @@ $Patched = $Original.Replace($OldReturn, $NewReturn)
 
 if ($Patched -match 'Start-Process[\s\S]{0,300}-Wait\s+-PassThru') {
     throw 'Patched acceptance harness still contains descendant-waiting Start-Process -Wait semantics.'
+}
+if (([regex]::Matches($Patched, [regex]::Escape('$proc.Handle'))).Count -lt 2) {
+    throw 'Patched acceptance harness does not cache both root Process handles before waiting.'
 }
 if (([regex]::Matches($Patched, [regex]::Escape('$proc.Refresh()'))).Count -lt 2) {
     throw 'Patched acceptance harness does not refresh both root Process objects before reading ExitCode.'
