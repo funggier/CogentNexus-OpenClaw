@@ -127,23 +127,20 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-010` is active in automatic execution mode.
+Task `CNX-20260823-012` is active in automatic execution mode as a read-only safety diagnostic.
 
-Task 009 is accepted. It proved a reproducible full isolated clone at exact start HEAD `9e53ca8b70a5865a5fc59d5723c4e9a31530c173` with:
+Task 010 is reviewed `BLOCKED`. Its reporting run stopped before clone validation, CI observation, Windows preflight, confirmation, suite invocation, process kill, `cnx stop`, or `cnx start` because two pre-existing Task 010 full-process-recovery directories were found:
 
-- empty clean status before and after validation;
-- no tracked deletion residue;
-- the physical v3 harness at its required relative path;
-- exact harness blob `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
-- harness SHA256 `5F2DBA46602CA88113B21A0DB8B729BC5AB8DA5FC45E9356F4072DDDD31E929F` and size `18782` bytes;
-- zero PowerShell parser errors and successful exact `-SyntaxOnly`;
-- all eight applicable workflows completed `success`.
+- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-full-windows-v3-process-recovery-20260823-003708`;
+- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-full-windows-v3-process-recovery-20260823-003712`.
 
-The failed Task 008 checkout was diagnosed read-only with 325 tracked deletions and no physical harness. It remains unchanged and must not be reused, repaired, deleted, reset, cleaned, or pruned by the coordination loop.
+They were created four seconds apart. The report worktree was:
 
-Task 010 is the sole new authorization for one full real-Windows v3 process-recovery suite invocation from a newly created complete clean isolated clone. It retains exact-PID-only injection, forbids process-tree kill, requires complete CI and read-only health preflight, accepts lowercase `y` once, and forbids any second suite or scenario execution regardless of outcome.
+- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-report-blocked-20260823-0039`.
 
-Install, `cnx reset`, `cnx uninstall`, reinstall, tag, merge, and release remain unauthorized until the complete process-recovery report is reviewed and accepted.
+This is a material duplicate-execution/race ambiguity. Task 012 may inspect only these exact paths, exact attached PIDs, and task-scoped TXT/JSON evidence. It must not run the recovery harness, perform Windows health preflight, issue a confirmation, kill or alter a process, run CogentNexus/OpenClaw/Ollama commands, create another manual checkout, or remove/repair/prune any existing checkout.
+
+No Task 010 process-recovery scenario is accepted. Install, `cnx reset`, `cnx uninstall`, reinstall, tag, merge, and release remain unauthorized.
 
 ## Queued desktop-memory diagnostic
 
