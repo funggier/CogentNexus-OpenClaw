@@ -127,20 +127,22 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-012` is active in automatic execution mode as a read-only safety diagnostic.
+Task `CNX-20260823-013` is active in automatic execution mode as an offline evidence-adjudication gate.
 
-Task 010 is reviewed `BLOCKED`. Its reporting run stopped before clone validation, CI observation, Windows preflight, confirmation, suite invocation, process kill, `cnx stop`, or `cnx start` because two pre-existing Task 010 full-process-recovery directories were found:
+Task 012 is reviewed `ACCEPT` as a metadata diagnostic. It proved `COMPLETED_OR_FAILED_UNREPORTED_EXECUTION`: an overlapping watcher invoked the v3 full recovery suite outside the matching Task 010 report. The exact evidence pair is:
 
-- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-full-windows-v3-process-recovery-20260823-003708`;
-- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-full-windows-v3-process-recovery-20260823-003712`.
+- `C:\Users\CDQ-P\Downloads\CNX_V093_OLLAMA_RECOVERY_V3_20260823-003808.txt`
+  - bytes `1802394`
+  - SHA256 `FBA88FF64D236DF58C9A287BDE7B996D9D35A1D71E3976D7FF1C177553F9705F`
+- `C:\Users\CDQ-P\Downloads\CNX_V093_OLLAMA_RECOVERY_V3_20260823-003808.json`
+  - bytes `5900085`
+  - SHA256 `4F86AA70B88129E9CCB258CEB780B5243D9B0E515362BEC69A40E4F099A90D1F`
 
-They were created four seconds apart. The report worktree was:
+The JSON records schema 4, suite result `FAIL`, an error at provider durable-`READY` convergence, explicit `y` confirmation, and final cleanup/status MANAGED with Ollama and recovery verdict `READY`. No live PID remained attached to the scoped paths or harness indicators when Task 012 inspected them.
 
-- `C:\Users\CDQ-P\.openclaw\worktrees\CNX-20260822-010-report-blocked-20260823-0039`.
+This does not accept Task 010 or any process-recovery scenario. Task 013 may read only the two exact evidence files after verifying their paths, byte sizes, and hashes. It must determine exact executed/failed/skipped steps, exact-PID and no-tree-kill safety, Gateway and provider recovery evidence, provider incident/convergence classification, cleanup effects, and gate-by-gate verdicts.
 
-This is a material duplicate-execution/race ambiguity. Task 012 may inspect only these exact paths, exact attached PIDs, and task-scoped TXT/JSON evidence. It must not run the recovery harness, perform Windows health preflight, issue a confirmation, kill or alter a process, run CogentNexus/OpenClaw/Ollama commands, create another manual checkout, or remove/repair/prune any existing checkout.
-
-No Task 010 process-recovery scenario is accepted. Install, `cnx reset`, `cnx uninstall`, reinstall, tag, merge, and release remain unauthorized.
+The disruptive suite must not be repeated. Task 013 does not authorize live process/runtime commands, confirmation, process injection, checkout inspection or cleanup, memory reclaim, install, `cnx reset`, `cnx uninstall`, reinstall, merge, tag, or release.
 
 ## Queued desktop-memory diagnostic
 
