@@ -89,28 +89,57 @@ def _plugin_payload(root: Path) -> dict[str, Any] | None:
     }
 
 
-def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
-    """Resolve the verified bootstrap from either legacy or managed npm layout.
+def _installed_plugin_candidate_roots(state_root: Path) -> list[Path]:
+    """Return only deterministic CogentNexus package locations.
 
-    OpenClaw 2026.7.1-2 installs npm-pack plugins below `.openclaw/npm/projects`
-    instead of the historical `.openclaw/extensions/<id>` path.  Reset must use
-    the installed release payload without depending on either layout alone.
+    OpenClaw can expose a historical unpacked extension directly under
+    `.openclaw/extensions/<plugin-id>`, or create an npm project wrapper below
+    `.openclaw/npm/projects/<generation>` whose installed package is under
+    `node_modules/<npm-package-name>`.  Some OpenClaw builds may unpack the
+    package directly at the project root, so both exact locations are checked.
+
+    This intentionally does not recursively scan arbitrary node_modules trees.
     """
-    resolved_state = (state_root or base.STATE_ROOT).resolve()
-    roots: list[Path] = [resolved_state / "extensions" / PLUGIN_ID]
-    managed_projects = resolved_state / "npm" / "projects"
+    roots: list[Path] = [state_root / "extensions" / PLUGIN_ID]
+    managed_projects = state_root / "npm" / "projects"
     if managed_projects.is_dir():
         try:
-            roots.extend(path for path in managed_projects.iterdir() if path.is_dir())
+            projects = [path for path in managed_projects.iterdir() if path.is_dir()]
         except OSError:
-            pass
+            projects = []
+        for project in projects:
+            roots.append(project)
+            roots.append(project / "node_modules" / PLUGIN_PACKAGE)
+
+    deduped: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        key = os.path.normcase(os.path.abspath(str(root)))
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(root)
+    return deduped
+
+
+def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
+    """Resolve the verified bootstrap from legacy or managed npm layouts.
+
+    OpenClaw 2026.7.1-2 installs npm-pack plugins below `.openclaw/npm/projects`.
+    The project directory can itself be only an npm wrapper, with the actual
+    CogentNexus package under `node_modules/openclaw-plugin-cogentnexus-rotation`.
+    Reset must use the installed release payload without depending on either
+    layout alone.
+    """
+    resolved_state = (state_root or base.STATE_ROOT).resolve()
+    roots = _installed_plugin_candidate_roots(resolved_state)
 
     payloads = [payload for root in roots if (payload := _plugin_payload(root)) is not None]
     if not payloads:
         searched = [str(root) for root in roots]
         raise RuntimeError(
             "installed CogentNexus plugin lacks a verified scripts/bootstrap-ticket-db.mjs payload; "
-            f"searched legacy and managed OpenClaw plugin roots: {searched}"
+            f"searched legacy and managed OpenClaw plugin package roots: {searched}"
         )
 
     highest_version = max(payload["versionKey"] for payload in payloads)
