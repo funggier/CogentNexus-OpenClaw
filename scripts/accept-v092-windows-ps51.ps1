@@ -134,9 +134,6 @@ function Invoke-EvidenceSerializerSelfTest {
 }
 
 Invoke-EvidenceSerializerSelfTest
-if ($SerializerSelfTestOnly) {
-    exit 0
-}
 
 $Source = Join-Path $PSScriptRoot 'accept-v092-windows.ps1'
 if (-not (Test-Path $Source)) {
@@ -284,14 +281,44 @@ function ConvertTo-ComparableJson {
 }
 '@
 
+# Start-Process -Wait on Windows waits for descendants as well as the requested
+# process. The installer intentionally launches long-lived Gateway/provider
+# processes, so -Wait can block forever after install.ps1 itself has exited.
+# Start the root process without -Wait and wait on that Process object only.
+$OldCapturedWait = @'
+        $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -Wait -PassThru -NoNewWindow `
+            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $sw.Stop()
+'@
+$NewCapturedWait = @'
+        $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -PassThru -NoNewWindow `
+            -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $proc.WaitForExit()
+        $sw.Stop()
+'@
+
+$OldConfirmedWait = @'
+        $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$quoted) -Wait -PassThru -NoNewWindow `
+            -RedirectStandardInput $stdin -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $sw.Stop()
+'@
+$NewConfirmedWait = @'
+        $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$quoted) -PassThru -NoNewWindow `
+            -RedirectStandardInput $stdin -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        $proc.WaitForExit()
+        $sw.Stop()
+'@
+
 foreach ($pair in @(
     @($OldEvidence, $NewEvidence),
     @($OldSave, $NewSave),
     @($OldStep, $NewStep),
-    @($OldComparable, $NewComparable)
+    @($OldComparable, $NewComparable),
+    @($OldCapturedWait, $NewCapturedWait),
+    @($OldConfirmedWait, $NewConfirmedWait)
 )) {
     if (-not $Original.Contains($pair[0])) {
-        throw 'Expected PowerShell 5.1 serialization patch block was not found; refusing an unverified patch.'
+        throw 'Expected PowerShell 5.1 compatibility patch block was not found; refusing an unverified patch.'
     }
     $Original = $Original.Replace($pair[0], $pair[1])
 }
@@ -302,6 +329,10 @@ if (-not $Original.Contains($OldReturn)) {
     throw 'Expected Read-OpenClawFields return block was not found; refusing an unverified patch.'
 }
 $Patched = $Original.Replace($OldReturn, $NewReturn)
+
+if ($Patched -match 'Start-Process[\s\S]{0,300}-Wait\s+-PassThru') {
+    throw 'Patched acceptance harness still contains descendant-waiting Start-Process -Wait semantics.'
+}
 
 $Temp = Join-Path $PSScriptRoot (".accept-v092-ps51-{0}.tmp.ps1" -f ([guid]::NewGuid().ToString('N')))
 try {
@@ -317,6 +348,11 @@ try {
     if ($errors.Count) {
         $errors | ForEach-Object { Write-Error "Patched acceptance harness :: $_" }
         throw 'Patched acceptance harness failed PowerShell syntax validation.'
+    }
+
+    if ($SerializerSelfTestOnly) {
+        Write-Host 'PowerShell 5.1 acceptance patch validation: PASS'
+        exit 0
     }
 
     $Arguments = @(
