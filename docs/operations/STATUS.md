@@ -1,7 +1,8 @@
 # Current Project Status
 
 **Updated:** 2026-08-22  
-**Development line:** v0.9.3  
+**Development line:** v0.9.3 implementation and recovery proof  
+**Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
 **Status:** development / evidence gathering; PR remains Draft
@@ -27,6 +28,24 @@ v0.9.3 intentionally narrows the managed local provider surface to **Ollama only
 LM Studio support remains historical v0.9.2 behavior. v0.9.3 operator-facing paths should not select, start, stop, probe, advertise, or test LM Studio. Existing LM Studio installations on a user's machine are left untouched.
 
 The purpose of the simplification is to reduce provider-specific lifecycle complexity while recovery/continuity semantics are being proven on real Windows systems.
+
+## v1.0.0 acceptance target
+
+The human-authorized release objective is now `v1.0.0`, but the project is not release-ready yet.
+
+In addition to the current process-recovery gates, the exact release candidate must prove on the real Windows target:
+
+- installation from the actual release/consumer path;
+- safe installation over an existing CogentNexus deployment without first uninstalling;
+- `cnx reset` with explicit `y` confirmation and a verified fresh-install state;
+- clean CogentNexus uninstall with explicit `y` confirmation;
+- removal of CogentNexus-owned tasks, package/plugin state, launchers, and managed artifacts;
+- preservation of external OpenClaw and Ollama installations and user data;
+- reinstall from the actual release/consumer path after uninstall;
+- MANAGED/Ollama/Gateway health and recovery verdict `READY` after reinstall;
+- exact artifact/source provenance, SHA256 evidence, and green CI.
+
+The coordination loop will prepare the accepted candidate for final human review. It must not merge, tag, or publish `v1.0.0` automatically.
 
 ## Proven on the current real-Windows test path
 
@@ -135,3 +154,5 @@ Run the focused Gateway Convergence diagnostic on the real Windows target and cl
 - **No natural convergence inside the evidence fuse** → treat as a runtime durable-state completion bug and fix the recovery boundary before continuing to provider-crash tests.
 
 After this blocker is closed, return to the process-level suite: Gateway crash → Ollama crash → intentional stop/start.
+
+After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: release-path install → install-over-existing → reset → clean uninstall → release-path reinstall → post-reinstall verification → exact-artifact CI/review.
