@@ -6,6 +6,49 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-007 — GitHub is the durable ChatGPT-Codex coordination surface
+
+**Date:** 2026-08-22  
+**State:** Active
+
+### Decision
+
+Use `docs/operations/coordination/` as the durable handoff surface between ChatGPT, Codex, and the human operator when ChatGPT is responsible for task design/review and Codex performs local-machine execution.
+
+### Why
+
+ChatGPT and Codex may have different tool surfaces and may run in different sessions. Relying on copied chat text makes task intent, source provenance, execution results, and evidence easy to lose or distort.
+
+GitHub already provides shared durable state, exact commits, reviewable history, and a common repository context for both sides.
+
+### Ownership rule
+
+To reduce write conflicts:
+
+- ChatGPT owns `ACTIVE.md`, `tasks/`, and `reviews/`;
+- Codex owns `reports/`;
+- the human operator remains final authority and may intervene anywhere.
+
+Task specifications are not rewritten by the executor merely to report progress. Execution state and evidence belong in the matching report.
+
+### Consequence
+
+A task may now flow as:
+
+```text
+Human intent
+  -> ChatGPT task file
+  -> ACTIVE.md
+  -> Codex local execution
+  -> Codex report + evidence references
+  -> ChatGPT review
+  -> next task / close
+```
+
+Coordination files are not technical acceptance by themselves. Code, tests, durable evidence, and release gates remain authoritative for proven capability.
+
+---
+
 ## D-006 — Operations documentation is a living layer
 
 **Date:** 2026-08-22  
