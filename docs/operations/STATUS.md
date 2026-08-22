@@ -127,20 +127,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-008` is active in automatic execution mode.
+Task `CNX-20260822-009` is active in automatic execution mode.
 
-Task 007 is reviewed `BLOCKED`. Its executor stopped before CI observation, Windows preflight, confirmation, suite invocation, process kill, lifecycle command, evidence collection, source edit, or package/runtime mutation. The full process-recovery suite remains unproven.
+Task 008 is reviewed `BLOCKED`. All literal-SHA, ancestor, harness-blob, CI, and read-only Windows health gates passed, but the isolated checkout contained tracked deletion residue and did not contain the physical v3 harness path. The single authorized PowerShell command attempt exited before loading the script.
 
-The Task 007 report used an invalid reconstructed workflow-fix SHA. The immutable Task 007 at its recorded start HEAD contained the valid commit `929fbcc663251941d88f38f09544068a9b3e069d`; this was an executor-side transcription error rather than a repository source-gate defect.
+No recovery scenario, process kill, `cnx stop`/`cnx start`, evidence-file generation, install, reset, uninstall, or reinstall occurred. The full process-recovery suite remains unproven and Task 008 must not be resumed.
 
-Task 008 is a fresh, narrowly fenced authorization to run the same full real-Windows v3 Ollama-only process-recovery suite exactly once. It requires literal byte-for-byte SHA verification before CI/preflight and preserves:
+Task 009 is non-disruptive. It will diagnose the failed checkout and prove a reproducible full isolated clone at the exact branch head with:
 
-- exact listener PID identity;
-- no process-tree kill;
-- natural Gateway and Ollama durable convergence;
-- provider-incident evidence;
-- intentional stop/no-auto-recovery/start proof;
-- complete TXT/JSON hashes and parsed evidence;
-- no rerun under any result.
+- clean Git status and no tracked deletions;
+- the exact harness path and blob;
+- parser and `-SyntaxOnly` success;
+- complete green CI.
 
-Install, reset, uninstall, reinstall, tag, merge, and release remain unauthorized until this process-recovery gate is accepted.
+Task 009 does not authorize runtime preflight, confirmation, the disruptive suite, a process kill, or any lifecycle command. Install/reset/uninstall/reinstall remain unauthorized.
