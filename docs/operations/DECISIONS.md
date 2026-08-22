@@ -6,6 +6,35 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-009 — Optional automatic Codex watch mode
+
+**Date:** 2026-08-22  
+**State:** Active
+
+### Decision
+
+Allow an optional continuous coordination mode using a Codex Scheduled task that polls the durable GitHub coordination branch at a minute-based cadence.
+
+Automatic execution is authorized only when `ACTIVE.md` contains both `Status: READY_FOR_CODEX` and `Execution mode: AUTO`.
+
+### Why
+
+The human operator should not need to relay `ต่อ` after every ChatGPT-Codex handoff. GitHub already provides the durable task pointer, immutable execution specification, report state, and duplicate-execution fence.
+
+### Safety boundary
+
+Watch mode does not grant open-ended autonomy. Codex must still re-synchronize on every poll, read the exact task, satisfy every precondition, preserve unrelated work, avoid duplicate side effects, publish a matching report, and stop that run.
+
+Codex may not invent the next task. ChatGPT remains responsible for tasks/reviews and the human remains final authority.
+
+### Operational consequence
+
+Near-immediate pickup means a one-minute Scheduled-task cadence, not a zero-latency webhook. Local execution requires the Windows machine to remain powered on and the ChatGPT desktop app to remain running.
+
+Manual `ต่อ` remains a fallback. `หยุดเฝ้า` pauses/disables the Scheduled task without changing CogentNexus runtime state.
+
+---
+
 ## D-008 — Codex execution is signal-driven from durable GitHub state
 
 **Date:** 2026-08-22  
