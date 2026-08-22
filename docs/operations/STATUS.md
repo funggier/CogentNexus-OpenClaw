@@ -127,17 +127,20 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-009` is active in automatic execution mode.
+Task `CNX-20260822-010` is active in automatic execution mode.
 
-Task 008 is reviewed `BLOCKED`. All literal-SHA, ancestor, harness-blob, CI, and read-only Windows health gates passed, but the isolated checkout contained tracked deletion residue and did not contain the physical v3 harness path. The single authorized PowerShell command attempt exited before loading the script.
+Task 009 is accepted. It proved a reproducible full isolated clone at exact start HEAD `9e53ca8b70a5865a5fc59d5723c4e9a31530c173` with:
 
-No recovery scenario, process kill, `cnx stop`/`cnx start`, evidence-file generation, install, reset, uninstall, or reinstall occurred. The full process-recovery suite remains unproven and Task 008 must not be resumed.
+- empty clean status before and after validation;
+- no tracked deletion residue;
+- the physical v3 harness at its required relative path;
+- exact harness blob `6d4c9347de12bbe4e3e5c428f2fe80333f92757f`;
+- harness SHA256 `5F2DBA46602CA88113B21A0DB8B729BC5AB8DA5FC45E9356F4072DDDD31E929F` and size `18782` bytes;
+- zero PowerShell parser errors and successful exact `-SyntaxOnly`;
+- all eight applicable workflows completed `success`.
 
-Task 009 is non-disruptive. It will diagnose the failed checkout and prove a reproducible full isolated clone at the exact branch head with:
+The failed Task 008 checkout was diagnosed read-only with 325 tracked deletions and no physical harness. It remains unchanged and must not be reused, repaired, deleted, reset, cleaned, or pruned by the coordination loop.
 
-- clean Git status and no tracked deletions;
-- the exact harness path and blob;
-- parser and `-SyntaxOnly` success;
-- complete green CI.
+Task 010 is the sole new authorization for one full real-Windows v3 process-recovery suite invocation from a newly created complete clean isolated clone. It retains exact-PID-only injection, forbids process-tree kill, requires complete CI and read-only health preflight, accepts lowercase `y` once, and forbids any second suite or scenario execution regardless of outcome.
 
-Task 009 does not authorize runtime preflight, confirmation, the disruptive suite, a process kill, or any lifecycle command. Install/reset/uninstall/reinstall remain unauthorized.
+Install, `cnx reset`, `cnx uninstall`, reinstall, tag, merge, and release remain unauthorized until the complete process-recovery report is reviewed and accepted.
