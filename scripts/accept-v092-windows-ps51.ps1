@@ -133,7 +133,38 @@ function Invoke-EvidenceSerializerSelfTest {
     Write-Host 'PowerShell 5.1 evidence serializer self-test: PASS'
 }
 
+function Invoke-RootProcessExitCodeSelfTest {
+    $cases = @(
+        [pscustomobject]@{ Expected = 0; Command = 'exit 0' },
+        [pscustomobject]@{ Expected = 7; Command = 'exit 7' }
+    )
+
+    foreach ($case in $cases) {
+        $stdout = Join-Path $env:TEMP ("cnx-v092-ps51-root-{0}.out.txt" -f ([guid]::NewGuid().ToString('N')))
+        $stderr = Join-Path $env:TEMP ("cnx-v092-ps51-root-{0}.err.txt" -f ([guid]::NewGuid().ToString('N')))
+        try {
+            $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$case.Command) -PassThru -NoNewWindow `
+                -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $proc.WaitForExit()
+            $proc.Refresh()
+            if (-not $proc.HasExited) {
+                throw 'PowerShell 5.1 root-process self-test did not observe process exit.'
+            }
+            $code = [int]$proc.ExitCode
+            if ($code -ne [int]$case.Expected) {
+                throw "PowerShell 5.1 root-process self-test expected exit code $($case.Expected); got $code."
+            }
+        }
+        finally {
+            Remove-Item $stdout,$stderr -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    Write-Host 'PowerShell 5.1 root-process exit-code self-test: PASS'
+}
+
 Invoke-EvidenceSerializerSelfTest
+Invoke-RootProcessExitCodeSelfTest
 
 $Source = Join-Path $PSScriptRoot 'accept-v092-windows.ps1'
 if (-not (Test-Path $Source)) {
@@ -285,6 +316,8 @@ function ConvertTo-ComparableJson {
 # process. The installer intentionally launches long-lived Gateway/provider
 # processes, so -Wait can block forever after install.ps1 itself has exited.
 # Start the root process without -Wait and wait on that Process object only.
+# Windows PowerShell 5.1 can expose a stale/null ExitCode until the Process
+# object is refreshed after WaitForExit(), so Refresh()+HasExited are mandatory.
 $OldCapturedWait = @'
         $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -Wait -PassThru -NoNewWindow `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
@@ -294,6 +327,8 @@ $NewCapturedWait = @'
         $proc = Start-Process -FilePath $FilePath -ArgumentList $Arguments -PassThru -NoNewWindow `
             -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         $proc.WaitForExit()
+        $proc.Refresh()
+        if (-not $proc.HasExited) { throw "$Name root process did not reach exited state." }
         $sw.Stop()
 '@
 
@@ -306,6 +341,8 @@ $NewConfirmedWait = @'
         $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$quoted) -PassThru -NoNewWindow `
             -RedirectStandardInput $stdin -RedirectStandardOutput $stdout -RedirectStandardError $stderr
         $proc.WaitForExit()
+        $proc.Refresh()
+        if (-not $proc.HasExited) { throw "$Name root process did not reach exited state." }
         $sw.Stop()
 '@
 
@@ -332,6 +369,9 @@ $Patched = $Original.Replace($OldReturn, $NewReturn)
 
 if ($Patched -match 'Start-Process[\s\S]{0,300}-Wait\s+-PassThru') {
     throw 'Patched acceptance harness still contains descendant-waiting Start-Process -Wait semantics.'
+}
+if (([regex]::Matches($Patched, [regex]::Escape('$proc.Refresh()'))).Count -lt 2) {
+    throw 'Patched acceptance harness does not refresh both root Process objects before reading ExitCode.'
 }
 
 $Temp = Join-Path $PSScriptRoot (".accept-v092-ps51-{0}.tmp.ps1" -f ([guid]::NewGuid().ToString('N')))
