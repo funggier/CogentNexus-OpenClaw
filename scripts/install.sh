@@ -58,6 +58,54 @@ BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
 HOST_SCRIPT="$TARGET_SKILL/scripts/host_v091.py"
 CLI_SCRIPT="$TARGET_SKILL/scripts/cnx.py"
 COGENT_ROOT="$WORKSPACE/.cogent"
+CONTROLLER_PATH="$COGENT_ROOT/host/controller.json"
+EXISTING_LAUNCHER="$WORKSPACE/cnx"
+
+read_existing_mode() {
+  [ -f "$CONTROLLER_PATH" ] || { printf '%s' ''; return 0; }
+  python - "$CONTROLLER_PATH" <<'PY'
+import json,sys
+from pathlib import Path
+path=Path(sys.argv[1])
+try:
+    value=json.loads(path.read_text(encoding='utf-8'))
+except Exception as error:
+    raise SystemExit(f"Existing CogentNexus controller is unreadable; refusing install mutation: {error}")
+mode=value.get('mode') if isinstance(value,dict) else None
+if not isinstance(mode,str) or not mode.strip():
+    raise SystemExit("Existing CogentNexus controller has no mode; refusing install mutation.")
+print(mode)
+PY
+}
+
+# Never replace an installed skill/plugin while the previous Host still owns
+# MANAGED authority. The old launcher is deliberately used before any file
+# mutation so its own disable path restores and verifies native OpenClaw first.
+existing_mode=$(read_existing_mode)
+case "$existing_mode" in
+  "") ;;
+  passthrough)
+    echo "Existing CogentNexus already PASSTHROUGH; pre-install native handoff not required."
+    ;;
+  managed|maintenance)
+    if [ ! -x "$EXISTING_LAUNCHER" ]; then
+      echo "Existing CogentNexus is $existing_mode but launcher is missing: $EXISTING_LAUNCHER. Refusing install mutation before native handoff." >&2
+      exit 1
+    fi
+    echo "Existing CogentNexus is $existing_mode; entering PASSTHROUGH/native boundary before upgrade mutation."
+    "$EXISTING_LAUNCHER" disable
+    after_mode=$(read_existing_mode)
+    if [ "$after_mode" != "passthrough" ]; then
+      echo "Existing CogentNexus did not reach PASSTHROUGH after disable (mode=$after_mode); refusing install mutation." >&2
+      exit 1
+    fi
+    echo "Pre-install native handoff: PASS"
+    ;;
+  *)
+    echo "Existing CogentNexus mode '$existing_mode' is not a recognized safe upgrade source; refusing install mutation." >&2
+    exit 1
+    ;;
+esac
 
 mkdir -p "$WORKSPACE/skills"
 if [ -d "$TARGET_SKILL" ]; then
@@ -78,7 +126,7 @@ python "$TARGET_SKILL/scripts/validate.py"
 python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 1 ]; then
-  mode=$(python - "$COGENT_ROOT/host/controller.json" <<'PY'
+  mode=$(python - "$CONTROLLER_PATH" <<'PY'
 import json,sys
 from pathlib import Path
 path=Path(sys.argv[1])
