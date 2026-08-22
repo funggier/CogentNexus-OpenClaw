@@ -1,0 +1,47 @@
+name: PS5.1 v0.9.3 Gateway Convergence Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/test-v093-gateway-convergence-windows.ps1'
+      - '.github/workflows/ps51-v093-gateway-convergence-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  ps51-gateway-convergence-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = '.\scripts\test-v093-gateway-convergence-windows.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) {
+            $errors | Format-List *
+            throw 'PowerShell parser errors detected.'
+          }
+      - name: Syntax-only load
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-v093-gateway-convergence-windows.ps1 -SyntaxOnly
+          if ($LASTEXITCODE -ne 0) { throw 'SyntaxOnly failed.' }
+      - name: Verify convergence contract
+        shell: powershell
+        run: |
+          $text = Get-Content .\scripts\test-v093-gateway-convergence-windows.ps1 -Raw
+          foreach ($required in @(
+            "Stop-Process -Id ([int]`$target.pid) -Force",
+            "Wait-RecoveryReady",
+            "check','recovery','--json",
+            "observationOnly=`$true",
+            "Durable recovery state did not converge to READY inside observation fuse",
+            "firefox.exe",
+            "explorer.exe"
+          )) {
+            if (-not $text.Contains($required)) { throw "Missing required convergence/safety contract: $required" }
+          }
+          if ($text -match 'taskkill\s+.*?/T') { throw 'Process-tree kill is forbidden.' }
