@@ -3,9 +3,9 @@
 Status: QUEUED  
 Owner: ChatGPT  
 Executor: Codex  
-Priority: next operational diagnostic after Task 010 reaches a terminal reviewed state  
+Priority: deferred conditional follow-up; must not block CogentNexus recovery work while RAM remains stable  
 Requested by: human operator  
-Predecessor: `CNX-20260822-010` must not be interrupted or superseded
+Predecessor: `CNX-20260823-012` must first resolve the Task 010 collision ambiguity
 
 ## Objective
 
@@ -13,18 +13,25 @@ Determine why the Windows ChatGPT desktop process group increased from roughly 2
 
 This task is diagnostic only until its report is reviewed. It does not authorize process termination, app restart, chat deletion, project deletion, cache deletion, session-file deletion, or operating-system cleanup.
 
+## Operator observation and priority
+
+On 2026-08-23, the human operator reported that ChatGPT desktop RAM usage had decreased and directed coordination to continue CogentNexus once the checkout/race issue is safely resolved.
+
+Treat the lower RAM observation as evidence that immediate pressure improved, not as proof of root cause or permanent remediation. This task is now a deferred conditional diagnostic and must not delay the v0.9.3 process-recovery gates while memory remains stable.
+
 ## Activation condition
 
 This queued task must not execute merely because this file exists.
 
-ChatGPT must first:
+ChatGPT may activate it only when:
 
-1. review the matching Task 010 report;
-2. confirm no Windows recovery suite or other Codex/Work task is still executing;
-3. update `ACTIVE.md` to this exact Task ID with `READY_FOR_CODEX`;
-4. preserve this task's duplicate-execution fence.
+1. Task 012 has been reviewed and proves no overlapping recovery execution remains;
+2. no Windows recovery suite or other Codex/Work task is executing;
+3. RAM growth recurs, system pressure becomes material, or the process-recovery sequence reaches a safe pause where this diagnostic adds value;
+4. `ACTIVE.md` is explicitly updated to this exact Task ID with `READY_FOR_CODEX`;
+5. this task's duplicate-execution fence is preserved.
 
-Until then, Task 010 remains the only active task.
+If RAM remains stable after Task 012, continue the narrow CogentNexus process-recovery plan before activating Task 011.
 
 ## Product boundary
 
