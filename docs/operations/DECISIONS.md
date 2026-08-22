@@ -6,6 +6,51 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-008 — Codex execution is signal-driven from durable GitHub state
+
+**Date:** 2026-08-22  
+**State:** Active
+
+### Decision
+
+Keep substantive project conversation in ChatGPT and reduce the human handoff to Codex to minimal trigger signals.
+
+After Codex accepts the standing bootstrap in `docs/operations/coordination/CODEX_BOOTSTRAP.md`, the normal execution trigger is:
+
+```text
+ต่อ
+```
+
+On each trigger, Codex must synchronize and re-read the current GitHub coordination state rather than depending on copied task text or stale conversation memory.
+
+### Why
+
+The human operator should remain the final authority without becoming a manual message bus between ChatGPT and Codex. GitHub already carries the durable task specification, exact source expectations, evidence contract, and execution report.
+
+### Safety boundary
+
+A human trigger authorizes Codex to evaluate the current active task; it does not bypass task-specific safety gates.
+
+Codex must not repeat completed disruptive effects merely because `ต่อ` is sent again. If a matching completed report exists or the active state is awaiting ChatGPT review, Codex reports that state and stops.
+
+### Consequence
+
+The normal coordination loop is:
+
+```text
+Human talks with ChatGPT
+  -> ChatGPT publishes READY_FOR_CODEX task
+  -> Human sends Codex: ต่อ
+  -> Codex syncs, executes, pushes report, stops
+  -> Human returns to ChatGPT / asks to continue
+  -> ChatGPT reviews GitHub report and publishes next task
+  -> repeat
+```
+
+This is a controlled handshake, not autonomous background execution. ChatGPT and Codex communicate through durable repository state while the human supplies the execution pulse.
+
+---
+
 ## D-007 — GitHub is the durable ChatGPT-Codex coordination surface
 
 **Date:** 2026-08-22  
