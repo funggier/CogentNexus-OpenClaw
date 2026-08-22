@@ -21,11 +21,54 @@ $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-rotation"
 $hostScript = Join-Path $targetSkill "scripts\host_v091.py"
 $cliScript = Join-Path $targetSkill "scripts\cnx.py"
 $cogentRoot = Join-Path $Workspace ".cogent"
+$controllerPath = Join-Path $cogentRoot "host\controller.json"
+$existingLauncher = Join-Path $Workspace "cnx.cmd"
 
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "Required command not found: $Name"
     }
+}
+
+function Get-ExistingCnxMode {
+    if (-not (Test-Path -LiteralPath $controllerPath)) { return $null }
+    try {
+        $controller = Get-Content -LiteralPath $controllerPath -Raw | ConvertFrom-Json
+    }
+    catch {
+        throw "Existing CogentNexus controller is unreadable; refusing install mutation: $($_.Exception.Message)"
+    }
+    $mode = [string]$controller.mode
+    if ([string]::IsNullOrWhiteSpace($mode)) {
+        throw "Existing CogentNexus controller has no mode; refusing install mutation."
+    }
+    return $mode
+}
+
+function Enter-NativeInstallBoundary {
+    $mode = Get-ExistingCnxMode
+    if ($null -eq $mode) { return }
+    if ($mode -eq "passthrough") {
+        Write-Host "Existing CogentNexus already PASSTHROUGH; pre-install native handoff not required."
+        return
+    }
+    if ($mode -notin @("managed", "maintenance")) {
+        throw "Existing CogentNexus mode '$mode' is not a recognized safe upgrade source; refusing install mutation."
+    }
+    if (-not (Test-Path -LiteralPath $existingLauncher)) {
+        throw "Existing CogentNexus is $mode but launcher is missing: $existingLauncher. Refusing install mutation before native handoff."
+    }
+
+    Write-Host "Existing CogentNexus is $mode; entering PASSTHROUGH/native boundary before upgrade mutation."
+    & $existingLauncher disable
+    if ($LASTEXITCODE -ne 0) {
+        throw "Existing CogentNexus disable failed; refusing install mutation."
+    }
+    $afterMode = Get-ExistingCnxMode
+    if ($afterMode -ne "passthrough") {
+        throw "Existing CogentNexus did not reach PASSTHROUGH after disable (mode=$afterMode); refusing install mutation."
+    }
+    Write-Host "Pre-install native handoff: PASS"
 }
 
 Write-Host "Installing CogentNexus v$version"
@@ -47,6 +90,13 @@ python -c "import yaml" 2>$null
 if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
+
+# Upgrades/reinstalls must never mutate the installed skill or plugin while an
+# existing Host still owns MANAGED authority. Use the currently installed
+# launcher before replacing any files so its accepted disable path restores and
+# verifies native OpenClaw first. This also makes repeated live acceptance runs
+# deterministic after an earlier run left CNX MANAGED.
+Enter-NativeInstallBoundary
 
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetSkill) | Out-Null
 if (Test-Path $targetSkill) {
@@ -72,7 +122,6 @@ python $hostScript --root $cogentRoot init
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus Host initialization failed" }
 
 if ($SkipGatewayRestart) {
-    $controllerPath = Join-Path $cogentRoot "host\controller.json"
     $mode = if (Test-Path $controllerPath) { (Get-Content -LiteralPath $controllerPath -Raw | ConvertFrom-Json).mode } else { $null }
     if ($mode -ne "passthrough") {
         throw "-SkipGatewayRestart safe staging requires CogentNexus PASSTHROUGH mode. Run '.\cnx.cmd disable' before staging an upgrade."
