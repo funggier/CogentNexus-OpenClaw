@@ -12,6 +12,7 @@ on:
       - 'skills/cogentnexus/scripts/cnx_v093.py'
       - 'skills/cogentnexus/scripts/provider_v093.py'
       - 'docs/V093_RECOVERY_REALITY_TESTS.md'
+      - 'docs/V093_OLLAMA_ONLY.md'
       - '.github/workflows/ps51-v093-recovery-reality-smoke.yml'
 
 permissions:
