@@ -20,7 +20,10 @@ import host_control_v091 as v091
 import lifecycle_v092 as lifecycle
 import openclaw_route_v092 as openclaw_route
 import openclaw_runtime_boundary_v092 as runtime_boundary
+import provider_event_liveness_v092 as provider_event_liveness
 import provider_events_v092 as provider_events
+
+provider_event_liveness.patch_provider_events(provider_events)
 
 HERE = Path(__file__).resolve()
 v091.legacy.HOST = HERE.with_name("host_v092.py")
