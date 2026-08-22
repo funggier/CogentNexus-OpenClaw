@@ -2,16 +2,16 @@
 """Ownership-safe CogentNexus v0.9.2 OpenClaw route facade.
 
 The original v0.9.2 route implementation remains in
-``openclaw_route_v092_legacy``.  This facade preserves its public API while
+``openclaw_route_v092_legacy``. This facade preserves its public API while
 hardening transaction rollback so the route layer restores only fields it
-owns.  In particular, accepted v0.9.1 remains the sole owner of
+owns. In particular, accepted v0.9.1 remains the sole owner of
 ``diagnostics.stuckSessionAbortMs``.
 
 A full-file rollback can resurrect an older value of an unrelated field after
 another authority has legitimately changed it while the route transaction was
-in progress.  The live Windows acceptance sequence exposed exactly that race:
+in progress. The live Windows acceptance sequence exposed exactly that race:
 v0.9.1 restored the native watchdog, then a v0.9.2 byte-for-byte route rollback
-wrote the managed 24h watchdog back.  Rollback and crash recovery below merge
+wrote the managed 24h watchdog back. Rollback and crash recovery below merge
 only route-owned fields from the transaction backup into the current config.
 """
 from __future__ import annotations
@@ -22,10 +22,12 @@ from typing import Any
 import openclaw_route_v092_legacy as _legacy
 from openclaw_route_v092_legacy import *  # noqa: F401,F403
 
+# Preserve the backend validator separately so the facade can keep the existing
+# monkeypatch contract used by tests without recursively calling itself.
+_backend_validate_openclaw_config = _legacy.validate_openclaw_config
+
 # Preserve private helpers used by the existing regression suite and by this
-# ownership-safe overlay.  Public functions imported above remain bound to the
-# legacy module; patching its rollback/recovery globals below also makes
-# legacy.begin() use the hardened crash-recovery path.
+# ownership-safe overlay.
 _atomic_json = _legacy._atomic_json
 _atomic_bytes = _legacy._atomic_bytes
 _load_json = _legacy._load_json
@@ -35,6 +37,11 @@ _snapshot = _legacy._snapshot
 _restore = _legacy._restore
 _ensure_dict = _legacy._ensure_dict
 _find_model_entry = _legacy._find_model_entry
+
+
+def validate_openclaw_config() -> dict[str, Any]:
+    """Facade validator retained as an overridable test/runtime seam."""
+    return _backend_validate_openclaw_config()
 
 
 def _dict_child(container: Any, key: str) -> dict[str, Any] | None:
@@ -52,8 +59,8 @@ def _restore_route_owned_fields(
     """Restore only fields owned by the v0.9.2 route layer.
 
     The transaction backup is still a complete OpenClaw config because it is
-    useful forensic evidence and gives exact source values.  It is *not*
-    written back wholesale.  Everything outside the route-owned surface keeps
+    useful forensic evidence and gives exact source values. It is *not*
+    written back wholesale. Everything outside the route-owned surface keeps
     its current value, including the v0.9.1 watchdog, plugin state, operator
     edits, and future OpenClaw settings unknown to this release.
     """
@@ -74,8 +81,8 @@ def _restore_route_owned_fields(
     original_models = _dict_child(original, "models") or {}
     original_providers = _dict_child(original_models, "providers") or {}
 
-    # The implementation restores baseline timeout knobs before applying a new
-    # target, so either local provider timeout may be touched during a switch.
+    # The backend restores baseline timeout knobs before applying a new target,
+    # so either local provider timeout may be touched during a switch.
     for provider_key in _legacy.PROVIDER_PREFIX.values():
         current_provider = current_providers.get(provider_key)
         if not isinstance(current_provider, dict):
@@ -89,9 +96,9 @@ def _restore_route_owned_fields(
         )
 
     # Route management can restore previously captured LM Studio compat fields
-    # and then add the two unsupported schema keywords to the target model.
-    # Restore the complete compat object for every model ref the route state can
-    # own, without touching any other model properties.
+    # and then add the unsupported schema keywords to the target model. Restore
+    # the complete compat object for every model ref the route state can own,
+    # without touching any other model properties.
     model_refs: set[str] = set()
     baseline = state.get("baseline")
     if isinstance(baseline, dict):
@@ -154,15 +161,18 @@ def _rollback_pending(root: Path, *, recovery: bool) -> dict[str, Any]:
             "error": f"ownership-safe route rollback failed: {error}",
         }
 
-    validation = _legacy.validate_openclaw_config()
+    # Call through the facade so existing monkeypatch/test seams remain valid.
+    validation = validate_openclaw_config()
     if not validation.get("ok"):
         key = "recovered" if recovery else "rolledBack"
-        return {
+        payload = {
             "ok": False,
             key: False,
-            "error": "rollback config failed validation" if recovery else None,
             "validation": validation,
         }
+        if recovery:
+            payload["error"] = "rollback config failed validation"
+        return payload
 
     backup.unlink(missing_ok=True)
     state["transaction"] = None
@@ -192,8 +202,26 @@ def rollback(root: Path) -> dict[str, Any]:
     return _rollback_pending(root, recovery=False)
 
 
-# Functions such as legacy.begin() resolve these names in the legacy module's
-# global namespace.  Patch them so a pending transaction discovered on startup
-# cannot fall back to the old byte-for-byte recovery implementation.
-_legacy.recover_pending = recover_pending
-_legacy.rollback = rollback
+def _sync_backend_overrides() -> None:
+    """Keep backend global lookups bound to facade ownership/test seams."""
+    _legacy.validate_openclaw_config = validate_openclaw_config
+    _legacy.recover_pending = recover_pending
+    _legacy.rollback = rollback
+
+
+def begin(root: Path, provider_name: str) -> dict[str, Any]:
+    _sync_backend_overrides()
+    return _legacy.begin(root, provider_name)
+
+
+def commit(root: Path) -> dict[str, Any]:
+    _sync_backend_overrides()
+    return _legacy.commit(root)
+
+
+def restore_native(root: Path) -> dict[str, Any]:
+    _sync_backend_overrides()
+    return _legacy.restore_native(root)
+
+
+_sync_backend_overrides()
