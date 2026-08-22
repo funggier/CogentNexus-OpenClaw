@@ -40,6 +40,31 @@ In particular:
 | [ROADMAP.md](ROADMAP.md) | Short-, medium-, and long-term objectives and success criteria |
 | [WORKLOG.md](WORKLOG.md) | Chronological record of meaningful development/recovery milestones |
 | [DECISIONS.md](DECISIONS.md) | Important direction changes and why they were made |
+| [coordination/](coordination/) | Durable GitHub handoff between ChatGPT, Codex, and the human operator |
+
+## ChatGPT ↔ Codex coordination
+
+When ChatGPT can design/review work through GitHub but cannot directly execute on the local Windows machine, and Codex can execute locally, use [`coordination/`](coordination/) as the shared handoff layer.
+
+The normal loop is:
+
+```text
+Human intent
+   ↓
+ChatGPT task specification
+   ↓
+GitHub coordination task
+   ↓
+Codex local execution
+   ↓
+GitHub execution report + evidence references
+   ↓
+ChatGPT review
+   ↓
+next task / close
+```
+
+The active handoff is always pointed to by [`coordination/ACTIVE.md`](coordination/ACTIVE.md). Task, report, and review files use one stable Task ID so that intent, execution, evidence, and review remain traceable across separate agents and sessions.
 
 ## Update discipline
 
