@@ -1,0 +1,41 @@
+name: PS5.1 Partial Repair Smoke
+
+on:
+  push:
+    branches:
+      - agent/v0.9.2-provider-preflight
+  pull_request:
+    paths:
+      - 'scripts/repair-v092-partial-windows.ps1'
+      - '.github/workflows/ps51-partial-repair-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  repair-helper:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse repair helper with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\repair-v092-partial-windows.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'PowerShell 5.1 repair helper syntax: PASS'
+      - name: Load repair helper in syntax-only mode
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass `
+            -File .\scripts\repair-v092-partial-windows.ps1 `
+            -SyntaxOnly
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

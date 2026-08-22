@@ -47,7 +47,28 @@ jobs:
             python skills/cogentnexus/scripts/workflow.py self-test
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/host_v091.py skills/cogentnexus/scripts/host_control.py skills/cogentnexus/scripts/host_control_v091.py skills/cogentnexus/scripts/lifecycle_v091.py skills/cogentnexus/scripts/startup.py skills/cogentnexus/scripts/startup_v091.py
+      - run: >-
+          python -m py_compile
+          skills/cogentnexus/scripts/host.py
+          skills/cogentnexus/scripts/host_v091.py
+          skills/cogentnexus/scripts/host_control.py
+          skills/cogentnexus/scripts/host_control_v091.py
+          skills/cogentnexus/scripts/lifecycle_v091.py
+          skills/cogentnexus/scripts/startup.py
+          skills/cogentnexus/scripts/startup_v091.py
+          skills/cogentnexus/scripts/provider.py
+          skills/cogentnexus/scripts/checks.py
+          skills/cogentnexus/scripts/checks_v092.py
+          skills/cogentnexus/scripts/cnx.py
+          skills/cogentnexus/scripts/openclaw_route_v092.py
+          skills/cogentnexus/scripts/openclaw_runtime_boundary_v092.py
+          skills/cogentnexus/scripts/provider_events_v092.py
+          skills/cogentnexus/scripts/provider_recovery_v092.py
+          skills/cogentnexus/scripts/host_provider_v092.py
+          skills/cogentnexus/scripts/host_v092.py
+          skills/cogentnexus/scripts/host_control_v092.py
+          skills/cogentnexus/scripts/startup_v092.py
+          skills/cogentnexus/scripts/lifecycle_v092.py
       - run: python -m unittest discover -s tests -v
       - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
       - name: Test plugin path migration helper
@@ -56,18 +77,35 @@ jobs:
           printf '["/tmp/cogentnexus-rotation","/tmp/keep"]' | \
             python scripts/filter_plugin_paths.py --plugin-id cogentnexus-rotation | \
             python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
-      - name: Validate PowerShell installer syntax
+      - name: Validate Windows PowerShell script syntax
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         run: |
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path scripts/install.ps1),
-            [ref]$tokens,
-            [ref]$errors
+          $files = @(
+            'scripts/install.ps1',
+            'scripts/accept-v092-windows.ps1',
+            'scripts/accept-v092-windows-ps51.ps1'
           )
-          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            )
+            if ($errors.Count) {
+              $errors | ForEach-Object { Write-Error "$file :: $_" }
+              exit 1
+            }
+          }
+      - name: Smoke-test Windows PowerShell 5.1 acceptance serializer
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\accept-v092-windows-ps51.ps1
+          -SerializerSelfTestOnly
       - name: Validate POSIX installer syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh
@@ -81,3 +119,48 @@ jobs:
         working-directory: plugins/cogentnexus-rotation
       - run: npm run plugin:validate
         working-directory: plugins/cogentnexus-rotation
+
+  package-dry-run:
+    name: package dry-run (no publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Verify Core 0.9.2 and frozen Bridge metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          core=$(tr -d '\r\n' < VERSION)
+          package_version=$(node -p "require('./plugins/cogentnexus-rotation/package.json').version")
+          manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-rotation/openclaw.plugin.json')).version")
+          lock_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').packages[''].version")
+          test "$core" = "0.9.2"
+          test "$package_version" = "0.9.1"
+          test "$package_version" = "$manifest_version"
+          test "$package_version" = "$lock_version"
+          test "$package_version" = "$lock_root_version"
+          test -s docs/BASELINE.md
+          test -s docs/INSTALL.md
+          test -s docs/INSTALL.th.md
+          test -s docs/releases/v0.9.2.md
+      - name: Build and verify release archives without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="cogentnexus-v0.9.2"
+          stage="$RUNNER_TEMP/$name"
+          out="$RUNNER_TEMP/release"
+          mkdir -p "$stage" "$out"
+          rsync -a --exclude '.git/' --exclude '.cogent/' --exclude 'node_modules/' ./ "$stage/"
+          tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
+          (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
+          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          (cd "$out" && sha256sum -c SHA256SUMS.txt)
+          tar -tzf "$out/$name.tar.gz" >/dev/null
+          unzip -tq "$out/$name.zip"
+          test -s "$out/$name.tar.gz"
+          test -s "$out/$name.zip"
+          test -s "$out/SHA256SUMS.txt"

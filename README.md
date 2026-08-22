@@ -4,12 +4,15 @@ CogentNexus is a **durable Host/control layer for OpenClaw**. It keeps accepted 
 
 ## Current status
 
-**Version:** 0.9.1  
-**Operational baseline:** 2026-08-20  
+**Core version:** 0.9.2  
+**OpenClaw Bridge package:** 0.9.1 (unchanged payload)  
+**Operational baseline:** 2026-08-21  
 **Accepted Recovery Core checkpoint:** `eadb89099637d24f96e265a500d66c577aa939a3`  
 **Validated OpenClaw baseline:** `2026.7.1-2`
 
-The v0.9.1 recovery core is suitable for **general single-node managed use** on the validated Windows/OpenClaw/Ollama stack. The core Ticket-first, Host-authority, Direct Recovery, restart-ownership, durable response, and delivery boundaries have passed live acceptance. It is not claimed to be fully production-hardened for every failure mode or future OpenClaw release.
+v0.9.2 keeps the accepted v0.9.1 Ticket/Recovery/Delivery Core and adds a provider-neutral Host boundary, durable provider selection, LM Studio lifecycle support, and a read-only pre-flight inspection namespace.
+
+The accepted live Recovery Core remains the validated Windows/OpenClaw/Ollama baseline. LM Studio support is implemented and covered by repository validation/unit tests, but should receive a local live acceptance run before the same provider-specific operational confidence is assumed.
 
 See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the exact supported/accepted boundary.
 
@@ -26,11 +29,15 @@ Durable Ticket admission
       v
 CogentNexus Host authority
   - desired runtime state
+  - selected provider
   - CPU-only deterministic supervision
   - lifecycle / cancellation / generation fences
       |
       v
-OpenClaw Gateway + provider
+OpenClaw Gateway + selected provider
+      |
+      +--> Ollama :11434
+      +--> LM Studio :1234
       |
       +--> DIRECT / LOOKUP / ACTION / STAGED
       |
@@ -54,12 +61,65 @@ In MANAGED mode, CogentNexus is the recovery authority for work it durably owns.
 
 `disable` and `stop` are intentionally different: `disable` returns to native OpenClaw, while `stop` preserves managed intent but deliberately stops the managed runtime.
 
+## Provider selection
+
+Ollama and LM Studio may be installed on the same machine. Their normal loopback endpoints are separate, and CogentNexus supervises only the **selected provider**.
+
+```powershell
+.\cnx.cmd start --provider ollama
+.\cnx.cmd start --provider lmstudio
+```
+
+A successful explicit start commits the provider selection durably. Later starts/restarts reuse the last successfully selected provider:
+
+```powershell
+.\cnx.cmd start
+.\cnx.cmd restart
+```
+
+Provider selection is transactional. CogentNexus does not commit a new selected provider until provider and Gateway verification succeeds. An interrupted switch leaves a durable `providerTransition` marker so the next start can resume the same target rather than silently guessing or falling back.
+
+`stop`, `disable`, reboot and ordinary restart preserve the selected provider. `reset` returns CNX to fresh-install semantics: if both providers are installed, the reset command requires an explicit `--provider` choice.
+
+See [Provider lifecycle](docs/PROVIDERS.md).
+
+## Pre-flight checks
+
+All diagnostic inspection is grouped under `check` and is **read-only**.
+
+```powershell
+.\cnx.cmd check system
+.\cnx.cmd check system --provider lmstudio
+.\cnx.cmd check provider
+.\cnx.cmd check provider ollama
+.\cnx.cmd check gateway
+.\cnx.cmd check model
+.\cnx.cmd check storage
+.\cnx.cmd check recovery
+.\cnx.cmd check delivery
+.\cnx.cmd check resources
+```
+
+`check system` is the full aircraft-style pre-flight inspection. It evaluates installation/state/configuration, OpenClaw, provider discovery/readiness, model routing, Gateway, Ticket storage, recovery/delivery state, and resource headroom, then returns one verdict:
+
+- `READY`
+- `READY_WITH_WARNINGS`
+- `NOT_READY`
+- `INDETERMINATE`
+
+Checks never start/restart a process, repair state, change provider selection, rewrite config, or mutate the Ticket database. They end with `No state was changed.`
+
+See [System pre-flight checks](docs/CHECK_SYSTEM.md).
+
 ## Core capabilities
 
 - durable SQLite Ticket admission before inference for eligible managed owner messages;
 - lightweight DIRECT work without forcing every message into a heavyweight workflow;
 - external Host Controller with persisted desired runtime state;
+- provider-neutral local lifecycle boundary for Ollama and LM Studio;
+- durable selected-provider state and interrupted provider-transition fencing;
 - Gateway/provider lifecycle control and deliberate-stop fencing;
+- read-only component/system pre-flight checks;
 - Direct Recovery for genuinely pre-response interrupted work;
 - original provider/model provenance fencing during recovery;
 - single-owner recovery across OpenClaw native restart behavior;
@@ -73,16 +133,29 @@ In MANAGED mode, CogentNexus is the recovery authority for work it durably owns.
 - context handoff/rotation and durable lesson/evidence storage;
 - deterministic supervisor probes that perform no model inference.
 
+## Why this matters in practice
+
+Local inference can fail transiently and non-deterministically: the same model/configuration/tool surface can stall in one run and complete normally on a later retry. CogentNexus keeps the accepted intent durable outside that individual model call and can recover only the layer that actually failed.
+
+The recovery boundary remains strict:
+
+- model call stalled and no durable result exists -> bounded inference recovery may be eligible;
+- durable result exists but delivery failed -> retry delivery only, never regenerate;
+- an external side effect may already have happened -> require idempotency/receipt/read-after-write evidence before doing anything again.
+
+See [Transient model-call stall recovery](docs/TRANSIENT_STALL_RECOVERY.md).
+
 ## Acceptance checkpoint
 
 The accepted Windows live Test A v16 demonstrated one Host-authorized recovery attempt, original provider/model preservation, no recursive Ticket, no same-session duplicate Ticket, no escaped database-lock retry, no native-restart ownership collision, one durable result, and one confirmed delivery.
 
-The isolated validation run also passed targeted v094 tests (3/3), targeted v099 tests (11/11), the full plugin suite (49 files / 237 tests), plugin validation/build, evaluation, and regenerated distribution hash fences.
+v0.9.2 deliberately layers provider selection/checks above that accepted Core rather than rewriting its Ticket, classification, durable-result, or delivery fences.
 
 ## Known boundaries
 
 Not yet claimed as fully accepted/hardened:
 
+- LM Studio live recovery acceptance on the target Windows machine;
 - real power-loss/cold-boot acceptance;
 - compatibility with OpenClaw versions newer than `2026.7.1-2`;
 - disk-full/database-corruption disaster recovery;
@@ -103,22 +176,24 @@ Stable release install instructions:
 From an extracted release/source checkout on Windows:
 
 ```powershell
-.\scripts\install.ps1
+.\scripts\install.ps1 -Provider ollama
+# or
+.\scripts\install.ps1 -Provider lmstudio
 ```
 
-Clean reinstall with backup-first behavior:
-
-```powershell
-.\scripts\clean-reinstall.ps1
-```
+If exactly one supported provider is installed, `-Provider` may be omitted. If both are installed on a fresh CNX state, explicit selection is required.
 
 ## Everyday control
 
 ```powershell
 .\cnx.cmd status
+.\cnx.cmd provider list
+.\cnx.cmd check system
 .\cnx.cmd start
+.\cnx.cmd start --provider lmstudio
 .\cnx.cmd stop
 .\cnx.cmd restart
+.\cnx.cmd restart --provider ollama
 .\cnx.cmd gateway start
 .\cnx.cmd gateway stop
 .\cnx.cmd gateway restart
@@ -127,6 +202,8 @@ Clean reinstall with backup-first behavior:
 .\cnx.cmd session cancel <session-key>
 .\cnx.cmd disable
 .\cnx.cmd enable
+.\cnx.cmd reset
+.\cnx.cmd uninstall
 ```
 
 ## Validation
@@ -151,9 +228,12 @@ npm run plugin:validate
 
 - [Current operational state](docs/CURRENT_STATE.md)
 - [Architecture / invariants](docs/BASELINE.md)
+- [Provider lifecycle](docs/PROVIDERS.md)
+- [System pre-flight checks](docs/CHECK_SYSTEM.md)
+- [Transient stall recovery](docs/TRANSIENT_STALL_RECOVERY.md)
 - [Continuity acceptance](docs/CONTINUITY_TESTS.th.md)
 - [Knowledge and evidence model](docs/KNOWLEDGE.md)
 - [Ticket-first admission](docs/phase0-ticket-first.md)
-- [v0.9.1 release notes](docs/releases/v0.9.1.md)
+- [v0.9.2 release notes](docs/releases/v0.9.2.md)
 
 Historical release notes and benchmark documents are intentionally preserved as historical evidence rather than rewritten to match the current release.

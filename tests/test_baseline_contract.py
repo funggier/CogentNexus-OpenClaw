@@ -6,15 +6,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BaselineContractTests(unittest.TestCase):
-    def test_release_versions_are_synchronized(self):
-        expected = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    def test_core_release_and_frozen_bridge_versions_are_consistent(self):
+        core_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
         package = json.loads((ROOT / "plugins/cogentnexus-rotation/package.json").read_text(encoding="utf-8"))
         manifest = json.loads((ROOT / "plugins/cogentnexus-rotation/openclaw.plugin.json").read_text(encoding="utf-8"))
         lock = json.loads((ROOT / "plugins/cogentnexus-rotation/package-lock.json").read_text(encoding="utf-8"))
-        self.assertEqual(expected, package["version"])
-        self.assertEqual(expected, manifest["version"])
-        self.assertEqual(expected, lock["version"])
-        self.assertEqual(expected, lock["packages"][""]["version"])
+
+        bridge_version = package["version"]
+        self.assertEqual(core_version, "0.9.2")
+        self.assertEqual(bridge_version, "0.9.1")
+        self.assertEqual(bridge_version, manifest["version"])
+        self.assertEqual(bridge_version, lock["version"])
+        self.assertEqual(bridge_version, lock["packages"][""]["version"])
+        self.assertTrue((ROOT / f"docs/releases/v{core_version}.md").is_file())
 
     def test_workspace_policy_mirrors_are_identical(self):
         root_policy = (ROOT / "templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")

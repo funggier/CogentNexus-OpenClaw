@@ -29,7 +29,27 @@ jobs:
       - run: python skills/cogentnexus/scripts/cogent.py self-test
       - run: python skills/cogentnexus/scripts/runtime.py self-test
       - run: python skills/cogentnexus/scripts/workflow.py self-test
-      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/host_v091.py skills/cogentnexus/scripts/host_control.py skills/cogentnexus/scripts/host_control_v091.py skills/cogentnexus/scripts/lifecycle_v091.py skills/cogentnexus/scripts/startup.py skills/cogentnexus/scripts/startup_v091.py
+      - run: >-
+          python -m py_compile
+          skills/cogentnexus/scripts/host.py
+          skills/cogentnexus/scripts/host_v091.py
+          skills/cogentnexus/scripts/host_control.py
+          skills/cogentnexus/scripts/host_control_v091.py
+          skills/cogentnexus/scripts/lifecycle_v091.py
+          skills/cogentnexus/scripts/startup.py
+          skills/cogentnexus/scripts/startup_v091.py
+          skills/cogentnexus/scripts/provider.py
+          skills/cogentnexus/scripts/checks.py
+          skills/cogentnexus/scripts/checks_v092.py
+          skills/cogentnexus/scripts/cnx.py
+          skills/cogentnexus/scripts/openclaw_route_v092.py
+          skills/cogentnexus/scripts/openclaw_runtime_boundary_v092.py
+          skills/cogentnexus/scripts/provider_recovery_v092.py
+          skills/cogentnexus/scripts/host_provider_v092.py
+          skills/cogentnexus/scripts/host_v092.py
+          skills/cogentnexus/scripts/host_control_v092.py
+          skills/cogentnexus/scripts/startup_v092.py
+          skills/cogentnexus/scripts/lifecycle_v092.py
       - run: python -m unittest discover -s tests -v
       - name: Test plugin path migration helper
         shell: bash
@@ -59,7 +79,7 @@ jobs:
           fi
           [[ "$tag" == v* ]]
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - name: Verify release version and baseline artifacts
+      - name: Verify Core release and frozen Bridge package metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -71,10 +91,9 @@ jobs:
           lock_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').version")
           lock_root_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').packages[''].version")
           test "$expected" = "$version_file"
-          test "$expected" = "$package_version"
-          test "$expected" = "$manifest_version"
-          test "$expected" = "$lock_version"
-          test "$expected" = "$lock_root_version"
+          test "$package_version" = "$manifest_version"
+          test "$package_version" = "$lock_version"
+          test "$package_version" = "$lock_root_version"
           test -s docs/BASELINE.md
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
@@ -88,11 +107,7 @@ jobs:
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
           mkdir -p "$stage" "$out"
-          rsync -a \
-            --exclude '.git/' \
-            --exclude '.cogent/' \
-            --exclude 'node_modules/' \
-            ./ "$stage/"
+          rsync -a --exclude '.git/' --exclude '.cogent/' --exclude 'node_modules/' ./ "$stage/"
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
           (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
