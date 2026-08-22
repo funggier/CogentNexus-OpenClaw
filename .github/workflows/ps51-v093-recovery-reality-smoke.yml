@@ -1,0 +1,41 @@
+name: PS5.1 v0.9.3 Recovery Reality Smoke
+
+on:
+  push:
+    branches:
+      - agent/v0.9.3-recovery-reality-tests
+  pull_request:
+    paths:
+      - 'scripts/test-v093-recovery-reality-windows.ps1'
+      - 'docs/V093_RECOVERY_REALITY_TESTS.md'
+      - '.github/workflows/ps51-v093-recovery-reality-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse harness with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\test-v093-recovery-reality-windows.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'v0.9.3 Recovery Reality harness PowerShell 5.1 parse: PASS'
+      - name: Load harness in syntax-only mode
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\test-v093-recovery-reality-windows.ps1
+          -SyntaxOnly
