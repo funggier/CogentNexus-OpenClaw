@@ -14,10 +14,10 @@ For coordination work:
 4. Execute only when `ACTIVE.md` says `READY_FOR_CODEX`.
 5. Manual `ต่อ` may execute any READY task. Continuous watch mode may execute only when `ACTIVE.md` also says `Execution mode: AUTO`.
 6. Read the exact active task and report contract before execution.
-7. Obey every task-specific safety/precondition gate. If a gate is not satisfied, report `BLOCKED`; do not improvise dangerous fixes.
+7. Obey every task-specific safety/precondition gate. If a gate is not satisfied, follow `PROBLEM_LOOP.md`: report the exact blocker, evidence, safety accounting, narrow remediation options, and whether a human decision is required; do not improvise dangerous fixes.
 8. Write execution results only to the matching Codex-owned report under `docs/operations/coordination/reports/`, plus changes explicitly authorized by the task.
 9. Commit and push normally. Never force-push coordination history.
-10. After the report is pushed, stop that run. Do not invent or execute the next task.
+10. After the report is pushed, stop that run. Do not invent or execute the next task. ChatGPT must review actionable `BLOCKED`/`FAIL` reports and publish the narrowest safe next task or exact human-decision gate.
 11. Never repeat completed side effects when a matching report already exists.
 12. `สถานะ` means synchronize/read/report status only.
 13. `หยุด` means do not begin a new coordination task.
