@@ -1,0 +1,48 @@
+name: PS5.1 v0.9.3 Ollama Recovery V3 Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/test-v093-ollama-recovery-windows-v3.ps1'
+      - '.github/workflows/v093-ollama-recovery-v3-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  ps51-v3-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = '.\scripts\test-v093-ollama-recovery-windows-v3.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) { $errors | Format-List *; throw 'PowerShell parse errors found.' }
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File $path -SyntaxOnly
+          if ($LASTEXITCODE -ne 0) { throw 'SyntaxOnly failed.' }
+      - name: Assert status schema and safety contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $text = Get-Content '.\scripts\test-v093-ollama-recovery-windows-v3.ps1' -Raw
+          foreach ($required in @(
+            'Get-HostState',
+            '$StatusDocument.host.state',
+            '$hostState.mode',
+            '$hostState.desiredGateway',
+            '$hostState.desiredProvider',
+            "-CommandArgs @('status')",
+            'requestedArguments=$argsCopy',
+            'Stop-Process exact PID only',
+            "'firefox.exe'",
+            "'powershell.exe'"
+          )) {
+            if (-not $text.Contains($required)) { throw "Missing required v3 contract: $required" }
+          }
+          if ($text.Contains('$status.state.mode')) { throw 'Legacy wrong status.state.mode assertion remains in v3.' }
+          if ($text.Contains('$status.state.desiredGateway')) { throw 'Legacy wrong status.state.desiredGateway assertion remains in v3.' }
+          if ($text.Contains('$status.state.desiredProvider')) { throw 'Legacy wrong status.state.desiredProvider assertion remains in v3.' }
+          Write-Host 'v0.9.3 Ollama recovery v3 schema/safety contract: PASS'
