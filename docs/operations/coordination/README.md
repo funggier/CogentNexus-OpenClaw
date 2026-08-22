@@ -32,6 +32,26 @@ repeat
 
 The human is a **trigger**, not a courier for task details. Full task specifications and execution reports live in GitHub.
 
+## Optional continuous watch loop
+
+For repeated work, Codex may use the Scheduled-task mode defined in [`WATCH_MODE.md`](WATCH_MODE.md).
+
+```text
+ChatGPT publishes ACTIVE task with Execution mode: AUTO
+        ↓
+Codex Scheduled task detects it on the next poll
+        ↓
+Codex validates and executes the exact task
+        ↓
+Codex pushes the matching report and stops that run
+        ↓
+ChatGPT reviews and publishes the next authorized task
+```
+
+This removes the repeated `ต่อ` relay. It does not allow Codex to invent tasks, bypass safety gates, or repeat a completed task.
+
+Manual `ต่อ` remains supported. Continuous local execution requires a confirmed enabled Scheduled task, the Windows machine powered on, and the ChatGPT desktop app running.
+
 ## Ownership model
 
 To reduce merge conflicts, each side owns different files.
