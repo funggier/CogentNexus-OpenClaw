@@ -6,6 +6,42 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-010 — v1.0.0 requires real-Windows lifecycle acceptance
+
+**Date:** 2026-08-22  
+**State:** Active
+
+### Decision
+
+Target the current Ollama-only development line for a `v1.0.0` release only after the complete real-Windows consumer lifecycle is proven with reviewable evidence.
+
+The lifecycle gate includes:
+
+- install the exact candidate from the real release/consumer path;
+- install over an existing CogentNexus deployment and verify safe convergence;
+- exercise the documented `cnx reset` confirmation path and verify its outcome;
+- cleanly uninstall CogentNexus after explicit confirmation;
+- verify CogentNexus-owned tasks, package/plugin state, launchers, and managed artifacts are removed or intentionally documented;
+- preserve external OpenClaw and Ollama installations and user data unless a task explicitly proves CogentNexus ownership and authorizes removal;
+- reinstall the exact candidate from the real release/consumer path after uninstall;
+- prove post-reinstall MANAGED/Ollama state, healthy Gateway and Ollama listeners, and recovery verdict `READY`;
+- retain exact artifact version, source commit, SHA256, commands, exit codes, and evidence paths;
+- require all applicable CI and process-recovery gates to be green for the exact release candidate.
+
+### Why
+
+The human operator requested a complete install on the real machine, an uninstall/reinstall proof, and promotion to version 1 when the product is genuinely complete. A successful one-time developer-path install is not sufficient release evidence.
+
+### Safety boundary
+
+Lifecycle tasks must remain exact and reversible. They may not touch the frozen v0.9.2 release, reintroduce LM Studio, uninstall external dependencies, use process-tree kills, conceal skipped checks, or repeat side effects after a matching completed report exists.
+
+### Release consequence
+
+Passing the current process-recovery plan is necessary but not sufficient for `v1.0.0`. After all lifecycle evidence and CI gates are accepted, prepare the PR and release candidate for final human review. Do not merge, tag, or publish the release automatically from the coordination loop.
+
+---
+
 ## D-009 — Optional automatic Codex watch mode
 
 **Date:** 2026-08-22  
