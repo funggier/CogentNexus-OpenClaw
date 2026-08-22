@@ -127,12 +127,16 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260822-004` is active in automatic execution mode.
+Task `CNX-20260822-005` is active in automatic execution mode.
 
-It will update the v3 full-suite harness to observe durable/runtime convergence read-only after Gateway/Ollama replacement and after the documented operator start, while preserving exact-PID, provider-incident, intentional-stop, and event/evidence-driven safety invariants.
+Task 004 added the durable convergence observer and preserved the recovery safety boundaries, but acceptance is blocked because:
 
-Task 004 authorizes harness/test changes and non-disruptive validation only. It does not authorize another disruptive Windows run.
+- the local machine lacked `pytest`, although the three requested tests can run directly with standard-library `unittest`;
+- the v3 smoke workflow failed because a broad multiline regression regex crossed function boundaries and produced a false positive;
+- Task 004's report incorrectly said no implementation commit existed even though commit `592a6fbd37da05013b7a8a5875ccd8b17e188cfa` contains the harness, workflow, and report.
 
-After Task 004 implementation and CI evidence are accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
+Task 005 authorizes only the narrow smoke-contract correction, direct execution of the existing unittest files, safe parser/syntax/contract validation, and completed CI observation. It does not authorize a disruptive Windows run or dependency installation.
+
+After Task 005 and CI are accepted, create a separate exact task for the full process-level Windows suite: Gateway crash → Ollama crash → intentional stop/start.
 
 After the process-level evidence is accepted, continue through the v1.0.0 lifecycle sequence: release-path install → install-over-existing → reset → clean uninstall → release-path reinstall → post-reinstall verification → exact-artifact CI/review.
