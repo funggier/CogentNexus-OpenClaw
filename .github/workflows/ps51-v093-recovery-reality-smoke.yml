@@ -1,4 +1,4 @@
-name: PS5.1 v0.9.3 Recovery Reality Smoke
+name: PS5.1 v0.9.3 Ollama Recovery Reality Smoke
 
 on:
   push:
@@ -7,6 +7,9 @@ on:
   pull_request:
     paths:
       - 'scripts/test-v093-recovery-reality-windows.ps1'
+      - 'scripts/install.ps1'
+      - 'skills/cogentnexus/scripts/cnx_v093.py'
+      - 'skills/cogentnexus/scripts/provider_v093.py'
       - 'docs/V093_RECOVERY_REALITY_TESTS.md'
       - '.github/workflows/ps51-v093-recovery-reality-smoke.yml'
 
@@ -18,6 +21,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+
       - name: Parse harness with Windows PowerShell 5.1
         shell: powershell
         run: |
@@ -32,10 +36,55 @@ jobs:
             $errors | ForEach-Object { Write-Error $_ }
             exit 1
           }
-          Write-Host 'v0.9.3 Recovery Reality harness PowerShell 5.1 parse: PASS'
+          Write-Host 'v0.9.3 Ollama Recovery Reality harness PowerShell 5.1 parse: PASS'
+
       - name: Load harness in syntax-only mode
         shell: powershell
         run: >-
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\scripts\test-v093-recovery-reality-windows.ps1
           -SyntaxOnly
+
+      - name: Enforce process-safety and Ollama-only harness surface
+        shell: powershell
+        run: |
+          $text = Get-Content '.\scripts\test-v093-recovery-reality-windows.ps1' -Raw
+          if ($text -match '(?i)lmstudio') {
+            throw 'Recovery Reality harness must not contain LM Studio paths in v0.9.3.'
+          }
+          if ($text -match '(?i)taskkill\.exe.*\/T') {
+            throw 'Recovery Reality harness must not kill process trees.'
+          }
+          foreach ($required in @('firefox.exe','powershell.exe','windowsterminal.exe','Stop-Process exact PID only')) {
+            if ($text -notmatch [regex]::Escape($required)) {
+              throw "Missing process-safety marker: $required"
+            }
+          }
+          Write-Host 'v0.9.3 process-safety/Ollama-only contract: PASS'
+
+      - name: Parse Windows installer and require Ollama-only default
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\install.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $text = Get-Content '.\scripts\install.ps1' -Raw
+          if ($text -match 'ValidateSet\("ollama",\s*"lmstudio"\)') { throw 'Windows installer still exposes LM Studio.' }
+          if ($text -notmatch '\[string\]\$Provider\s*=\s*"ollama"') { throw 'Windows installer is not defaulted to Ollama.' }
+          if ($text -notmatch 'cnx_v093\.py') { throw 'Windows installer is not wired to the v0.9.3 CLI facade.' }
+          Write-Host 'v0.9.3 Windows installer Ollama-only contract: PASS'
+
+      - name: Compile v0.9.3 Python facades
+        shell: powershell
+        run: >-
+          python -m py_compile
+          .\skills\cogentnexus\scripts\provider_v093.py
+          .\skills\cogentnexus\scripts\cnx_v093.py
