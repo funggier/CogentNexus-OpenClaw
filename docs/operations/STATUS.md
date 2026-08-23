@@ -145,13 +145,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-028` is active in automatic execution mode.
+Task `CNX-20260823-029` is active in automatic execution mode.
 
-Task 027 is accepted for its safe precondition stop only. The watcher-provided Task 027 control was registered against the expected common repository but contained many porcelain-v2 `.D` entries: tracked/indexed files were absent from the working tree. Codex correctly stopped before inspecting Task 025 and made no checkout, process, runtime, provider, or lifecycle change.
+Task 028 is accepted for its safe target-identity stop only. Its exact watcher control path was absent and unregistered, so Codex correctly declined to use Task 027 as a fallback and made no checkout, process, runtime, provider, or lifecycle change. The broader materialization cause remains unproven.
 
-Task 028 must diagnose this incomplete watcher-control materialization read-only. It may inspect the affected Task 027 control and its own watcher-provided control even when dirty, but it may not restore, checkout, reset, clean, change sparse-checkout/configuration, create/remove a worktree, or touch CogentNexus/OpenClaw/Ollama runtime state.
+The branch was human-authorized to fast-forward without force to repair commit `af53fb3d19d6245552699795c638e159edc83204`. That commit restores the complete tracked tree after a malformed publication descendant introduced broad deletions.
 
-Only after the cause and preservation requirements are evidenced may ChatGPT authorize a narrow repair or cleanup. The Task 025 tree/index/worktree reconciliation and provider durable-convergence diagnosis remain pending.
+Task 029 diagnoses the existing Task 027 incomplete control directly from the primary repository. It does not require or create a Task 029 worktree. It must compare registration, configuration, sparse state, tree, index, and filesystem read-only, identify unique content requiring preservation, and define the narrowest safe remediation.
+
+Report publication is fenced to exactly one staged and committed path with zero deletions. No checkout repair, cleanup, worktree removal, process action, runtime/provider action, recovery rerun, or lifecycle action is authorized.
+
+Only after Task 029 evidence is reviewed may ChatGPT authorize an exact repair or cleanup. Task 025 reconciliation and the offline provider durable-convergence diagnosis remain pending.
 
 ## Queued desktop-memory diagnostic
 
