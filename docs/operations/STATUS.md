@@ -5,17 +5,17 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 039 inventorying the unauthorized Task 038 detached worktree; PR remains Draft
+**Status:** Task 040 classifying the Task 038 worktree 415-path loss; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260824-039` is `READY_FOR_CODEX` with execution mode `AUTO`.
+Task `CNX-20260824-040` is `READY_FOR_CODEX` with execution mode `AUTO`.
 
-Task 038's PMC evidence is retained as strong partial proof: the operator-created configuration matched the required 2051-byte size and SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`, contained the expected bounded structural indicators, and left zero Procmon process/driver/service or capture-artifact state.
+Task 039 proved that the unauthorized Task 038 detached worktree is registered at the expected report commit, has stable index/registration metadata, and has no active process attachment. It is not clean: 415 tracked paths are absent from the working tree, while staged, non-deletion modified, untracked, ignored, conflict, submodule, sparse, nested, and active-process counts are zero.
 
-Task 038 is nevertheless reviewed `BLOCKED` because Codex created `C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260824-038` despite an immutable prohibition on worktree mutation. That contradiction prevents acceptance and does not authorize capture.
+Task 039 is reviewed `BLOCKED`; the worktree is not removal-eligible.
 
-Task 039 performs only a read-only inventory of that exact detached worktree using `GIT_OPTIONAL_LOCKS=0`. It must prove registration identity, HEAD/branch state, cleanliness, metadata stability, absence of active-process attachment, and clean-removal eligibility. A PASS does not authorize removal.
+Task 040 performs only read-only path-metadata classification to determine the exact deleted/present selection predicate. It may not read tracked file contents, access the Task 027 worktree, repair/remove/prune the target, launch Procmon, capture, restore paths, or touch runtime state. A PASS authorizes no remediation.
 
 
 ## Stable foundation
@@ -156,11 +156,11 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Complete and review Task `CNX-20260824-039`.
+Complete and review Task `CNX-20260824-040`.
 
-Do not repeat Task 038 PMC validation. Do not create another worktree, remove/repair/prune the Task 038 worktree, launch Procmon, start capture, restore the 382 paths, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
+Do not repeat Tasks 038–039. Do not create another worktree, repair/remove/prune the Task 038 worktree, open tracked file contents, access the Task 027 worktree, launch Procmon, start capture, restore paths, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
 
-If Task 039 proves the worktree clean and exclusively Task 038-owned, any removal must still be a separate narrowly fenced task with explicit human authorization.
+Any remediation or removal decision requires a later exact reviewed task grounded in Task 040 evidence.
 
 
 ## Queued desktop-memory diagnostic
