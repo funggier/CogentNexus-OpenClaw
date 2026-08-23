@@ -2,27 +2,27 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-025`  
-Updated: 2026-08-23 13:41 ICT  
+Task ID: `CNX-20260823-026`  
+Updated: 2026-08-23 13:48 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-025-publish-task020-from-immutable-blob.md`](tasks/CNX-20260823-025-publish-task020-from-immutable-blob.md)
+[`tasks/CNX-20260823-026-diagnose-task025-fence-contradiction.md`](tasks/CNX-20260823-026-diagnose-task025-fence-contradiction.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-024-publish-verified-task020-report.md`](reviews/CNX-20260823-024-publish-verified-task020-report.md)
+[`reviews/CNX-20260823-025-publish-task020-from-immutable-blob.md`](reviews/CNX-20260823-025-publish-task020-from-immutable-blob.md)
 
-Task 024 is `ACCEPT` for its safe blocked execution. It detected that worktree-represented bytes differed by one byte from the accepted immutable Git blob and correctly refused publication without side effects.
+Task 025 is `REWORK`. Its stop at the unexpected control-worktree HEAD was safe, but its duplicate-fence accounting conflicts with the Task 020 destination that already exists at the exact fetched HEAD.
 
 ## Purpose
 
-Task 025 reads exact publication bytes directly from immutable Git blob `361be921ae0b70124769d1d8b5a2f33d1b277d88`, verifies its accepted SHA256/size/line count, and publishes only if the indexed and remotely fetched destination retain the same blob identity.
+Task 026 performs read-only diagnosis of the Task 025 control collision and the contradictory destination-absence claim. It must establish exact Git-object, repository, path, worktree, and reachability evidence before any later publication or cleanup task is considered.
 
-No checked-out source file may supply publication bytes. No worktree cleanup or runtime/provider/lifecycle action is authorized.
+No report overwrite/publication, worktree cleanup, process action, or runtime/provider/lifecycle action is authorized.
 
 ## Duplicate-execution fence
 
-If either the Task 020 destination report or `docs/operations/coordination/reports/CNX-20260823-025-publish-task020-from-immutable-blob.md` already exists at fetched HEAD, perform no publication or repeated action and stop awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-026-diagnose-task025-fence-contradiction.md` already exists at fetched HEAD, perform no repeated diagnostic and stop awaiting ChatGPT review.
