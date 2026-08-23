@@ -145,15 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-022` is active in automatic execution mode.
+Task `CNX-20260823-023` is active in automatic execution mode.
 
-Task 021 is reviewed `ACCEPT` only for its safe `BLOCKED_TARGET_IDENTITY` report. The registered Task 020 target was clean in limited status output but had unexpected HEAD `2bda9b71952f838da515e046fb3efa10a75f2089` instead of the authorized removal identity. It was correctly preserved.
+Task 022 is reviewed `ACCEPT` for its read-only diagnosis. It proved unexpected commit `2bda9b71952f838da515e046fb3efa10a75f2089` is a local unreachable Task 020 report commit whose sole diff adds the matching report and whose content claims Task 017 cleanup passed. The commit is not reachable from fetched remote refs.
 
-Task 022 is read-only. It must establish the unexpected commit's parents, tree, content, report-file identity, local/remote reachability, reflog provenance, Git-operation state, and process use. It records only limited presence/accounting for Task 021 and must not inspect Task 017.
+Task 023 must read the complete report blob, retain exact hashes and all evidence fields, compare it to every Task 020 criterion, verify current Task 017 path/registration absence, and verify the preserving Task 020 worktree remains clean, operation-free, and unused.
 
-No worktree removal or modification, force, reset, clean, prune, process action, runtime/recovery command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
+No publication of the unpublished commit, repeated cleanup, worktree removal/modification, force, reset, clean, prune, process action, runtime/recovery command, provider diagnosis, lifecycle action, source change, merge, tag, or release is authorized.
 
-Only after the unexpected HEAD is proven published/reachable may a later exact cleanup task name it as an authorized removal identity.
+Only after Task 023 proves report completeness and postconditions may a later exact task authorize publication or another safe disposition.
 
 ## Queued desktop-memory diagnostic
 
