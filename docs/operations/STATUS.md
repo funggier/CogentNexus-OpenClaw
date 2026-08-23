@@ -145,15 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-031` is active in automatic execution mode.
+Task `CNX-20260823-032` is active in automatic execution mode.
 
-Task 030 is reviewed `BLOCKED`. Its authorized one-time exact restoration did complete: all 382 absent tracked paths were restored, Task 027 now has 387 indexed and 387 physically materialized paths with zero absent paths, representative blobs match HEAD, and no runtime/process/lifecycle side effect occurred.
+Task 031 is reviewed `BLOCKED`. Its read-only preflight proved that Task 027 returned from the Task 030 verified 387/387 materialized state to 5/387, with 382 tracked paths absent again. No Task 031 mutation or repeated restoration occurred.
 
-The remaining acceptance blocker is exactly one path reported modified by Git even though its HEAD, index, and filesystem blobs are identical and no content diff exists. Task 031 may diagnose that exact path and, only after immutable identity/content gates pass, perform an exact-path index stat refresh. It may not write file content or timestamps, use broad index operations, repeat the 382-path restoration, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
+The issue is now classified as recurring broad worktree materialization loss, not a single-path stat-cache anomaly. Task 032 performs only read-only cause attribution: it compares the recurring absent set, registration/config/index/filesystem metadata, attached processes/watchers/scheduled tasks, available event records, and a bounded 60-second stability observation.
 
-During active execution Codex should publish meaningful progress at least approximately every 3 minutes and immediately at important milestones, while continuing automatically unless a safety or authority gate blocks it.
+Task 032 may not restore files, mutate the index or filesystem, remove/recreate the worktree, stop a process/task, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
 
-Only after Task 031 is reviewed may ChatGPT resume Task 025 reconciliation, then the offline provider durable-convergence sequence.
+Only after Task 032 is reviewed may ChatGPT authorize exact containment and a new independently fenced restoration, then resume Task 025 and the provider durable-convergence sequence.
 
 ## Queued desktop-memory diagnostic
 
