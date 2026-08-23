@@ -5,15 +5,17 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 035 authorized for exact-path Process Monitor proof; PR remains Draft
+**Status:** blocked for interactive Process Monitor configuration authorization; PR remains Draft
 
-## Current coordination diagnostic
+## Current coordination blocker
 
-Task `CNX-20260823-034` is accepted as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`. It proved the recurring 382-path absence and ruled out repository-source reachability to the exact Task 027 worktree, but no PID or filesystem operation sequence was captured.
+Task `CNX-20260823-035` is reviewed `BLOCKED` as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`.
 
-The human operator has explicitly authorized Task `CNX-20260823-035` to acquire the current official portable Microsoft Sysinternals Process Monitor package and run one bounded exact-path trace. The task requires official-source download provenance, SHA256 and Authenticode verification, x64-only execution, an exact Task027 Include filter with filtered events dropped before capture, a maximum 10-minute natural observation, local-only PML/CSV evidence, and verified Procmon shutdown/driver cleanup.
+The official Process Monitor package was acquired once from the authorized Microsoft endpoint and retained under the task-specific temporary directory. ZIP and `Procmon64.exe` SHA256 values, version 4.1, and valid Microsoft Authenticode provenance were recorded.
 
-This authorization does not permit broad capture, restoration/materialization, event provocation, watcher/Supervisor changes, or CogentNexus/OpenClaw/Ollama runtime action. ChatGPT retains cause/fix ownership; Codex performs proof and validation only.
+Procmon was not launched because there was no documented noninteractive path to create and independently prove the exact-path Include filter, filesystem-only classes, disabled Registry/Network/Profiling classes, Drop Filtered Events, and capture-inactive prestate. Consequently no EULA/registry change, driver/service, or broad capture occurred.
+
+Coordination now requires a human decision on a separate interactive configuration-only phase. That phase must not capture; it may only use the verified retained executable to create a task-specific `.PMC` with capture disabled, close Procmon, and prove clean poststate. A later separate task must validate the `.PMC` before any bounded trace.
 
 ## Stable foundation
 
