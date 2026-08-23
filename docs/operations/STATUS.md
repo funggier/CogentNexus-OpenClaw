@@ -145,15 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-017` is active in automatic execution mode as the replacement offline provider durable-convergence diagnosis.
+Task `CNX-20260823-018` is active in automatic execution mode as the exact cleanup gate for the wrong-head Task 017 worktree.
 
-Task 016 is reviewed `ACCEPT` for its safe `BLOCKED` execution report only. The scheduled run supplied no environment-provided isolated checkout, so Codex correctly performed no evidence/source diagnosis and no Windows/runtime action. The provider root cause remains unproven.
+Task 017 is reviewed `ACCEPT` for its safe `BLOCKED` report only. Its worktree command referenced an unset ref variable and created the authorized path at local HEAD `78f6cba4748e59d5975940ca9854961d0e7ff550` instead of fetched coordination HEAD `eb4cefefb2a9859d28dd1d45fb50096835674ec0`. Both immutable evidence identities were verified, but source/evidence diagnosis was skipped. No Windows/runtime action occurred.
 
-Task 017 authorizes exactly one task-owned worktree at `C:\\Users\\CDQ-P\\.openclaw\\worktrees\\cogentnexus-CNX-20260823-017`, with an exact-path collision fence, no fallback/suffixed checkout, and narrow cleanup of only that exact path after clean successful publication.
+Task 018 may inspect only the exact Task 017 path and registration. It must prove identity, clean state, absence of Git operations/unpublished work, and absence of processes bound to that path before normal non-force removal. If any gate fails, it must report `BLOCKED` and leave the path intact.
 
-It must verify the immutable evidence pair, correct the Task 015 evidence matrix, map the provider incident open/advance/stable-success/close/verdict transitions, classify the root cause, and identify the narrowest next disposition. It may not implement a fix.
+Re-creation and provider diagnosis are excluded from Task 018. After its report is reviewed, a new exact diagnosis task may be issued with an explicitly asserted remote ref.
 
-No live Windows/runtime inspection, recovery rerun, process kill, install, reset, uninstall, reinstall, merge, tag, or release is authorized.
+No recovery rerun, process kill, runtime command, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
 ## Queued desktop-memory diagnostic
 
