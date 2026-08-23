@@ -145,17 +145,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-029` is active in automatic execution mode.
+Task `CNX-20260823-030` is active in automatic execution mode.
 
-Task 028 is accepted for its safe target-identity stop only. Its exact watcher control path was absent and unregistered, so Codex correctly declined to use Task 027 as a fallback and made no checkout, process, runtime, provider, or lifecycle change. The broader materialization cause remains unproven.
+Task 029 is accepted. It proved that the exact Task 027 control retains a complete 387-path HEAD and index but only 5 tracked paths are physically materialized; 382 paths are absent. The control has no sparse-checkout explanation, active Git operation, staged change, untracked content, or unique local modification requiring preservation.
 
-The branch was human-authorized to fast-forward without force to repair commit `af53fb3d19d6245552699795c638e159edc83204`. That commit restores the complete tracked tree after a malformed publication descendant introduced broad deletions.
+The historical initiating event remains unproven, but the current materialization failure and safe repair boundary are established. No runtime, provider, process, or lifecycle action occurred.
 
-Task 029 diagnoses the existing Task 027 incomplete control directly from the primary repository. It does not require or create a Task 029 worktree. It must compare registration, configuration, sparse state, tree, index, and filesystem read-only, identify unique content requiring preservation, and define the narrowest safe remediation.
+Task 030 may restore only the exact 382 currently absent tracked paths from Task 027's own verified detached HEAD using a NUL-delimited exact pathspec. It must revalidate the accepted count and hashes, target identity, locks, index/tree blob equality, and absence of unique content before mutation.
 
-Report publication is fenced to exactly one staged and committed path with zero deletions. No checkout repair, cleanup, worktree removal, process action, runtime/provider action, recovery rerun, or lifecycle action is authorized.
+After restoration it must prove an empty porcelain status, 387 indexed and 387 materialized paths, zero absent paths, representative blob equality, and no configuration/ref/index/registration changes. It may not remove or recreate the worktree, reset, clean, perform a broad restore, execute Task 025, or touch CogentNexus/OpenClaw/Ollama runtime state.
 
-Only after Task 029 evidence is reviewed may ChatGPT authorize an exact repair or cleanup. Task 025 reconciliation and the offline provider durable-convergence diagnosis remain pending.
+Only after Task 030 is reviewed may ChatGPT resume the pending Task 025 reconciliation and then return to the offline provider durable-convergence diagnosis.
 
 ## Queued desktop-memory diagnostic
 
