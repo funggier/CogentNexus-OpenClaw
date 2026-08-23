@@ -5,15 +5,15 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 036 authorized for interactive Process Monitor configuration only; PR remains Draft
+**Status:** blocked for human authorization of Task 036 Procmon cleanup; PR remains Draft
 
-## Current coordination task
+## Current coordination blocker
 
-Task `CNX-20260823-036` is authorized and `READY_FOR_CODEX` with execution mode `AUTO_WITH_INTERACTIVE_GATE`.
+Task `CNX-20260823-036` is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
 
-The human operator authorized one configuration-only interactive Process Monitor phase. Codex may use only the already verified retained Microsoft-signed `Procmon64.exe`, launch it with the documented no-connect/no-filter/EULA boundary, prove capture is inactive, configure the exact Task 027 Path-begins-with filesystem filter with Drop Filtered Events, export one task-specific `.PMC`, close normally, and prove clean poststate.
+The verified retained Procmon binary launched once with the authorized no-connect/no-filter arguments, but Codex could not control or prove the elevated GUI state. No filter or `.PMC` was created; no `.PML`, `.CSV`, or backing file was found. After the operator closed the visible GUI, task-owned PIDs 51880 and 59348 remained.
 
-This phase does not authorize capture, PML/backing files, target stimulation, restoration of the 382 absent paths, repeated acquisition, watcher/Supervisor changes, or CogentNexus/OpenClaw/Ollama runtime action. A separate later task must inspect and validate the saved `.PMC` before any bounded trace.
+Coordination requires explicit human authorization for a separate cleanup-only phase. The recommended method is to revalidate exclusive ownership and invoke the verified retained `Procmon64.exe /Terminate` once as graceful shutdown, then verify zero process/driver/capture residue. Force kill, process-tree termination, capture, configuration, restoration, and runtime action remain prohibited.
 
 ## Stable foundation
 

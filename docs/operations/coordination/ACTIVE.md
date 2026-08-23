@@ -1,79 +1,38 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO_WITH_INTERACTIVE_GATE`  
+Status: `BLOCKED_HUMAN_DECISION`  
+Execution mode: `MANUAL_AUTHORIZATION_REQUIRED`  
 Task ID: `CNX-20260823-036`  
-Updated: 2026-08-23 21:25 ICT  
+Updated: 2026-08-23 23:29 ICT  
 Owner: ChatGPT  
-Executor: Codex with human UAC/GUI assistance
+Executor: none until authorized
 
-## Active task
+## Report and review
 
-[`tasks/CNX-20260823-036-configure-task027-procmon-pmc.md`](tasks/CNX-20260823-036-configure-task027-procmon-pmc.md)
+[`reports/CNX-20260823-036-configure-task027-procmon-pmc.md`](reports/CNX-20260823-036-configure-task027-procmon-pmc.md)
 
-## Predecessor report and review
+[`reviews/CNX-20260823-036-configure-task027-procmon-pmc.md`](reviews/CNX-20260823-036-configure-task027-procmon-pmc.md)
 
-[`reports/CNX-20260823-035-capture-task027-procmon-attribution.md`](reports/CNX-20260823-035-capture-task027-procmon-attribution.md)
+Task 036 is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
 
-[`reviews/CNX-20260823-035-capture-task027-procmon-attribution.md`](reviews/CNX-20260823-035-capture-task027-procmon-attribution.md)
+## Proven boundary
 
-Task 035 is `BLOCKED` as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`; the blocker is resolved only for the newly authorized configuration-only phase.
+The verified retained Procmon 4.1 binary was launched once with `/NoConnect /NoFilter /AcceptEula`. Elevated UI control was unavailable, so no filter was configured and no `.PMC` was exported.
 
-## Human authorization
+No `.PMC`, `.PML`, `.CSV`, backing file, target stimulation, restoration, worktree/Git mutation, watcher/Supervisor change, or CogentNexus/OpenClaw/Ollama runtime action was recorded.
 
-The operator explicitly authorized:
+After the operator closed the visible GUI, task-owned Procmon PIDs 51880 and 59348 remained. No force or process-tree kill was used.
 
-`1 อนุญาต Task 036 ตั้งค่า Procmon .PMC แบบโต้ตอบเท่านั้น ห้ามเริ่ม capture`
+## Human decision required
 
-This authorization is fully bounded by the immutable Task 036 specification.
+Decide whether to authorize one cleanup-only Task 037.
 
-## Purpose
+The recommended phase would revalidate exact ownership and absence of any other Procmon instance, then use the verified retained `Procmon64.exe /Terminate` exactly once as a graceful Procmon shutdown. It would verify zero Procmon processes and no unexpected driver/service/capture artifacts afterward.
 
-Use the already verified retained Microsoft-signed `Procmon64.exe` to create one exact-path, filesystem-only, Drop-Filtered-Events `.PMC` while capture remains inactive for the entire task.
+It would not authorize `Stop-Process`, `taskkill`, process-tree/force kill, reboot, capture, filter configuration, restoration, or runtime action.
 
-A later separate task must inspect and validate the saved `.PMC` before any capture is considered.
-
-## Mandatory no-capture gate
-
-Launch only with the documented:
-
-`/NoConnect /NoFilter /AcceptEula`
-
-Before configuration, visually prove Capture Events is inactive/disconnected, zero event rows are present, the event counter is not advancing, and no PML/backing file exists.
-
-If capture is active or no-capture state is uncertain at any point, stop with `BLOCKED_NO_CAPTURE_GUARANTEE`. Do not filter or save captured events.
-
-## Exact configuration
-
-- `Path begins with C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260823-027` — Include
-- File System Activity — enabled
-- Registry Activity — disabled
-- Network Activity — disabled
-- Process and Thread Activity — disabled
-- Profiling Events — disabled
-- Drop Filtered Events — enabled
-- Boot logging/backing file/capture — disabled
-
-Export exactly:
-
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx035-procmon\20260823T140738Z\task027-exact-filesystem-dropfiltered.pmc`
-
-Then close Procmon normally and prove a clean poststate.
-
-## Safety boundary
-
-No capture, PML, backing file, CSV, target touch/stimulation, restoration/materialization, worktree/Git mutation, watcher/Supervisor/task/config change, CogentNexus/OpenClaw/Ollama runtime action, process-tree operation, force-kill, boot logging, PsExec, UAC bypass, policy change, reboot, force push, merge, tag, or release.
-
-## Progress communication
-
-Report meaningful progress approximately every 3 minutes and immediately after preflight, before UAC, after GUI no-capture proof, after exact configuration proof, after `.PMC` export, after normal close/poststate, and at any blocker.
-
-Progress updates are not pause points except at UAC/interactive or defined safety gates.
+No cleanup command, repeated Task 036 attempt, PMC configuration, or trace is authorized by the current state.
 
 ## Duplicate-execution fence
 
-If the matching Task 036 report exists at freshly fetched HEAD, do not repeat any Task 036 action.
-
-If the exact local `.PMC` already exists without a report, do not overwrite or trust it; stop with `BLOCKED_CONFIG_ALREADY_EXISTS`.
-
-Do not repeat Task 035 download/acquisition or remove the retained Task 035 directory.
+Do not repeat Task 036, relaunch Procmon, modify the retained evidence, or attempt any cleanup while this human-decision gate is active.
