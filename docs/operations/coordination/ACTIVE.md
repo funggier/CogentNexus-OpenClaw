@@ -2,36 +2,31 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-019`  
-Updated: 2026-08-23 13:14 ICT  
+Task ID: `CNX-20260823-020`  
+Updated: 2026-08-23 13:18 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-019-adjudicate-and-remove-task017-worktree.md`](tasks/CNX-20260823-019-adjudicate-and-remove-task017-worktree.md)
+[`tasks/CNX-20260823-020-isolated-adjudication-and-task017-removal.md`](tasks/CNX-20260823-020-isolated-adjudication-and-task017-removal.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-018-remove-wrong-head-task017-worktree.md`](reviews/CNX-20260823-018-remove-wrong-head-task017-worktree.md)
+[`reviews/CNX-20260823-019-adjudicate-and-remove-task017-worktree.md`](reviews/CNX-20260823-019-adjudicate-and-remove-task017-worktree.md)
 
-Task 018's safe `BLOCKED_TARGET_DIRTY` report is `ACCEPT`. The exact wrong-head Task 017 worktree has three tracked report deletions and was not removed. No force, reset, clean, prune, process action, or runtime action occurred.
+Task 019 is `ACCEPT` only as a safe `BLOCKED` report. Its blanket no-worktree rule conflicted with the watcher-required isolated-worktree gate, so Codex correctly stopped before target inspection or mutation.
 
 ## Purpose
 
-Task 019 must adjudicate only the three named tracked deletions, prove their blobs are durable and no unpublished work would be lost, re-check that no process or Git operation uses the exact target, and then:
+Task 020 permits exactly one watcher-compatible control worktree at the named Task 020 path. From there it must adjudicate only the three named tracked deletions in the wrong-head Task 017 target.
 
-- restore only the three exact files from the target's own HEAD;
-- verify the target is completely clean;
-- remove only the exact Task 017 worktree using normal non-force Git removal;
-- publish a precise PASS or BLOCKED report.
+Only if every preservation, identity, no-operation, and no-use gate passes may it restore those exact files from the target's own HEAD and remove only the exact Task 017 worktree using normal non-force Git removal.
 
-It must not create another worktree or perform provider diagnosis.
-
-No process kill, recovery rerun, runtime command, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
+No fallback/suffix/second worktree, force, reset, clean, broad prune, process action, runtime command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
 Task 011 remains deferred while RAM remains stable.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-019-adjudicate-and-remove-task017-worktree.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-020-isolated-adjudication-and-task017-removal.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
