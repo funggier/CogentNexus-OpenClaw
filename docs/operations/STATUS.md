@@ -5,17 +5,15 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** blocked for interactive Process Monitor configuration authorization; PR remains Draft
+**Status:** Task 036 authorized for interactive Process Monitor configuration only; PR remains Draft
 
-## Current coordination blocker
+## Current coordination task
 
-Task `CNX-20260823-035` is reviewed `BLOCKED` as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`.
+Task `CNX-20260823-036` is authorized and `READY_FOR_CODEX` with execution mode `AUTO_WITH_INTERACTIVE_GATE`.
 
-The official Process Monitor package was acquired once from the authorized Microsoft endpoint and retained under the task-specific temporary directory. ZIP and `Procmon64.exe` SHA256 values, version 4.1, and valid Microsoft Authenticode provenance were recorded.
+The human operator authorized one configuration-only interactive Process Monitor phase. Codex may use only the already verified retained Microsoft-signed `Procmon64.exe`, launch it with the documented no-connect/no-filter/EULA boundary, prove capture is inactive, configure the exact Task 027 Path-begins-with filesystem filter with Drop Filtered Events, export one task-specific `.PMC`, close normally, and prove clean poststate.
 
-Procmon was not launched because there was no documented noninteractive path to create and independently prove the exact-path Include filter, filesystem-only classes, disabled Registry/Network/Profiling classes, Drop Filtered Events, and capture-inactive prestate. Consequently no EULA/registry change, driver/service, or broad capture occurred.
-
-Coordination now requires a human decision on a separate interactive configuration-only phase. That phase must not capture; it may only use the verified retained executable to create a task-specific `.PMC` with capture disabled, close Procmon, and prove clean poststate. A later separate task must validate the `.PMC` before any bounded trace.
+This phase does not authorize capture, PML/backing files, target stimulation, restoration of the 382 absent paths, repeated acquisition, watcher/Supervisor changes, or CogentNexus/OpenClaw/Ollama runtime action. A separate later task must inspect and validate the saved `.PMC` before any bounded trace.
 
 ## Stable foundation
 
