@@ -145,13 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-026` is active in automatic execution mode.
+Task `CNX-20260823-027` is active in automatic execution mode.
 
-Task 025 is reviewed `REWORK`. Its refusal to use the unexpected Task 025 control worktree was safe, but its report incorrectly states that the Task 020 destination was absent at fetched HEAD `a67515d46927da5b2565d91a6a4bbec532e82aba`. GitHub confirms that the destination already existed there as blocked-report blob `6c165d6f970cd4bc745aa2df83d6500d0be3e059`. Commit `ee545d47e36fb820473b9f92e617f074482cf0ac` added only the Task 025 report.
+Task 026 is reviewed `REWORK`. Its read-only checks safely confirmed that the Task 020 destination exists at explicit fetched commit `a67515d46927da5b2565d91a6a4bbec532e82aba`, but the report's central diagnosis is internally inconsistent: it says local commit `5dbf0425...` changed only the Task 025 report while also claiming its tree omitted Task 020 and recording Task 020 as porcelain `D`.
 
-Task 026 must diagnose this duplicate-fence contradiction and unexpected control HEAD `5dbf0425ed42f23da95ba3fa25ecbc57893f1d92` read-only. It may not overwrite the Task 020 report, publish the immutable PASS blob, remove or modify worktrees, act on processes, or touch runtime/provider/lifecycle state.
+Task 027 must reconcile parent-tree membership, commit-tree membership, index blobs, and working-tree files using exact read-only command outputs. It may not restore or remove a worktree, overwrite or publish a report, act on processes, or touch runtime/provider/lifecycle state.
 
-After exact provenance is established, ChatGPT may authorize the narrowest separate publication or cleanup task. Provider durable-convergence diagnosis remains next after this report/checkout recovery chain closes.
+Only after this state is unambiguous may ChatGPT authorize a narrow restore/publication/cleanup phase. Provider durable-convergence diagnosis remains next after this checkout/report recovery chain closes.
 
 ## Queued desktop-memory diagnostic
 
