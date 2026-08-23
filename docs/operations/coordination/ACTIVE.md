@@ -2,27 +2,27 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-022`  
-Updated: 2026-08-23 13:25 ICT  
+Task ID: `CNX-20260823-023`  
+Updated: 2026-08-23 13:28 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-022-diagnose-task020-unexpected-head.md`](tasks/CNX-20260823-022-diagnose-task020-unexpected-head.md)
+[`tasks/CNX-20260823-023-adjudicate-unpublished-task020-report.md`](tasks/CNX-20260823-023-adjudicate-unpublished-task020-report.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-021-remove-stale-task020-control.md`](reviews/CNX-20260823-021-remove-stale-task020-control.md)
+[`reviews/CNX-20260823-022-diagnose-task020-unexpected-head.md`](reviews/CNX-20260823-022-diagnose-task020-unexpected-head.md)
 
-Task 021 is `ACCEPT` only as a safe blocked report. The exact Task 020 worktree was preserved because its HEAD unexpectedly changed to `2bda9b71952f838da515e046fb3efa10a75f2089`.
+Task 022 is `ACCEPT` for its read-only diagnosis. Commit `2bda9b71952f838da515e046fb3efa10a75f2089` is an unreachable local Task 020 report commit claiming successful Task 017 cleanup, but it is not published to any fetched remote ref.
 
 ## Purpose
 
-Task 022 performs read-only provenance, reachability, content, reflog, operation, and process-use diagnosis of the unexpected Task 020 HEAD. It also records limited presence/accounting for Task 021.
+Task 023 reads the full immutable report blob, checks it against every Task 020 criterion, and verifies current Task 017 absence plus the preserving Task 020 worktree state.
 
-No worktree may be removed or modified. Task 017 must not be inspected. No force/reset/clean/prune, process action, runtime action, provider diagnosis, lifecycle action, merge, tag, or release is authorized.
+It must not publish the unpublished commit, repeat cleanup, remove or modify a worktree, or perform any process/runtime/provider/lifecycle action.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-022-diagnose-task020-unexpected-head.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-023-adjudicate-unpublished-task020-report.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
