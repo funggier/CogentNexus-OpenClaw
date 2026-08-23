@@ -1,17 +1,17 @@
 # Active Coordination Task
 
-Status: `BLOCKED_HUMAN_DECISION`  
-Execution mode: `NONE`  
-Task ID: `CNX-20260823-037`  
-Updated: 2026-08-23 23:37 ICT  
+Status: `READY_FOR_CODEX`  
+Execution mode: `AUTO`  
+Task ID: `CNX-20260824-038`  
+Updated: 2026-08-24 00:32 ICT  
 Owner: ChatGPT  
-Executor: none
+Executor: Codex
 
-## Completed task
+## Active task
 
-[`tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md`](tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md)
+[`tasks/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md`](tasks/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md)
 
-## Report and review
+## Predecessor report and review
 
 [`reports/CNX-20260823-037-graceful-cleanup-task036-procmon.md`](reports/CNX-20260823-037-graceful-cleanup-task036-procmon.md)
 
@@ -19,24 +19,38 @@ Executor: none
 
 Task 037 is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
 
-## Proven cleanup state
+## Human authorization
 
-- zero Procmon/Process Monitor processes remained at Task 037 preflight;
-- `Procmon64.exe /Terminate` was not invoked;
-- no Procmon driver/service or capture/config/backing artifact remained;
-- the retained Microsoft binary and evidence package remain unchanged;
-- no force/process-tree kill, capture, restoration, worktree mutation, or CogentNexus/OpenClaw/Ollama runtime action occurred.
+The operator explicitly authorized:
 
-## Remaining root-cause blocker
+`ได้เลยครับ สร้าง task ให้ codex ได้เลย`
 
-The repeated Task 027 worktree dematerialization remains unexplained.
+This authorizes Task 038 validation and its matching report only.
 
-Task 034 found no CogentNexus/Supervisor source path to the target worktree and no existing exact-path actor telemetry. Task 036 established that Codex cannot control or visually verify the elevated Procmon GUI through its available automation surface, so it could not safely create the exact pre-capture `.PMC`.
+## Purpose
 
-Cleanup success does not authorize guessing the actor, restoring the 382 paths again, broad capture, or changing/stopping an unproven watcher or process.
+Independently validate the operator-created exact-path Procmon `.PMC` artifact without launching Procmon or starting capture.
 
-## Human decision gate
+Required artifact:
 
-A new task requires a separately bounded human decision about the diagnostic route, such as operator-performed elevated Procmon filter configuration with capture kept off and independently verified before any trace.
+`C:\Users\CDQ-P\AppData\Local\Temp\cnx035-procmon\20260823T140738Z\task027-exact-filesystem-dropfiltered.pmc`
 
-No task is ready for Codex. Do not repeat Tasks 035, 036, or 037, and do not perform any Windows runtime, capture, restoration, or lifecycle action from this state.
+Required size: `2051 bytes`
+
+Required SHA256:
+
+`61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`
+
+Codex may inspect only the exact artifact bytes/metadata, narrow Procmon process/driver/service state, and the retained Task 035 directory for unexpected capture/config artifacts.
+
+## Safety boundary
+
+Do not launch Procmon or use `/LoadConfig`, `/OpenLog`, `/BackingFile`, or `/Terminate`.
+
+No capture, PML, CSV, backing file, target stimulation/access, restoration/materialization, Git index/worktree mutation, watcher/Supervisor change, process termination, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+
+A PASS validates only the saved configuration artifact. It does not authorize capture.
+
+## Duplicate-execution fence
+
+If the matching Task 038 report exists at freshly fetched HEAD, do not repeat local inventory or read the `.PMC` again. Stop awaiting ChatGPT review.
