@@ -5,7 +5,15 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** development / evidence gathering; PR remains Draft
+**Status:** blocked for human authorization of exact-path filesystem tracing; PR remains Draft
+
+## Current coordination blocker
+
+Task `CNX-20260823-034` is accepted as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`.
+
+The exact Task 027 worktree still presents the recurring 382-path absence. Source audit found no repository call chain capable of reaching that exact worktree under the documented scopes, and no evidence attributes the deletion to CogentNexus Supervisor or the Codex watcher.
+
+Direct attribution requires a filesystem I/O trace that records initiating PID/image, operation, exact path, result, and UTC time. No suitable exact-path trace facility was already available within Task 034's authority. Coordination is therefore blocked for the human operator to decide whether to authorize a separately bounded installation/use of an official diagnostic tool. No installation, restoration, containment, watcher/task/Supervisor change, or runtime action is currently authorized.
 
 ## Stable foundation
 
