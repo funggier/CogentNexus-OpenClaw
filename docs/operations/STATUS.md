@@ -145,13 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-027` is active in automatic execution mode.
+Task `CNX-20260823-028` is active in automatic execution mode.
 
-Task 026 is reviewed `REWORK`. Its read-only checks safely confirmed that the Task 020 destination exists at explicit fetched commit `a67515d46927da5b2565d91a6a4bbec532e82aba`, but the report's central diagnosis is internally inconsistent: it says local commit `5dbf0425...` changed only the Task 025 report while also claiming its tree omitted Task 020 and recording Task 020 as porcelain `D`.
+Task 027 is accepted for its safe precondition stop only. The watcher-provided Task 027 control was registered against the expected common repository but contained many porcelain-v2 `.D` entries: tracked/indexed files were absent from the working tree. Codex correctly stopped before inspecting Task 025 and made no checkout, process, runtime, provider, or lifecycle change.
 
-Task 027 must reconcile parent-tree membership, commit-tree membership, index blobs, and working-tree files using exact read-only command outputs. It may not restore or remove a worktree, overwrite or publish a report, act on processes, or touch runtime/provider/lifecycle state.
+Task 028 must diagnose this incomplete watcher-control materialization read-only. It may inspect the affected Task 027 control and its own watcher-provided control even when dirty, but it may not restore, checkout, reset, clean, change sparse-checkout/configuration, create/remove a worktree, or touch CogentNexus/OpenClaw/Ollama runtime state.
 
-Only after this state is unambiguous may ChatGPT authorize a narrow restore/publication/cleanup phase. Provider durable-convergence diagnosis remains next after this checkout/report recovery chain closes.
+Only after the cause and preservation requirements are evidenced may ChatGPT authorize a narrow repair or cleanup. The Task 025 tree/index/worktree reconciliation and provider durable-convergence diagnosis remain pending.
 
 ## Queued desktop-memory diagnostic
 
