@@ -5,17 +5,18 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 038 validating operator-created exact-path Procmon configuration; PR remains Draft
+**Status:** Task 039 inventorying the unauthorized Task 038 detached worktree; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260824-038` is `READY_FOR_CODEX` with execution mode `AUTO`.
+Task `CNX-20260824-039` is `READY_FOR_CODEX` with execution mode `AUTO`.
 
-The operator-created exact-path Procmon `.PMC` exists outside the repository with a reviewed expected identity: 2051 bytes and SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`.
+Task 038's PMC evidence is retained as strong partial proof: the operator-created configuration matched the required 2051-byte size and SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`, contained the expected bounded structural indicators, and left zero Procmon process/driver/service or capture-artifact state.
 
-Codex is authorized only to validate the exact artifact identity, bounded raw structural indicators, zero Procmon process/driver/service state, and absence of capture artifacts. Procmon must not be launched and capture must not start.
+Task 038 is nevertheless reviewed `BLOCKED` because Codex created `C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260824-038` despite an immutable prohibition on worktree mutation. That contradiction prevents acceptance and does not authorize capture.
 
-A Task 038 PASS validates only the saved configuration artifact. Trace execution still requires a separate exact task and human authorization.
+Task 039 performs only a read-only inventory of that exact detached worktree using `GIT_OPTIONAL_LOCKS=0`. It must prove registration identity, HEAD/branch state, cleanliness, metadata stability, absence of active-process attachment, and clean-removal eligibility. A PASS does not authorize removal.
+
 
 ## Stable foundation
 
@@ -155,11 +156,12 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Complete and review Task `CNX-20260824-038`.
+Complete and review Task `CNX-20260824-039`.
 
-If the exact artifact identity and clean poststate pass, ChatGPT will design the separately fenced trace phase. That later phase must preserve the exact-path filter, Drop Filtered Events, bounded duration, no target stimulation, graceful cleanup, and duplicate-execution fence. It is not authorized yet.
+Do not repeat Task 038 PMC validation. Do not create another worktree, remove/repair/prune the Task 038 worktree, launch Procmon, start capture, restore the 382 paths, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
 
-Do not repeat Tasks 035–037, restore the 382 paths, launch Procmon during Task 038, broad-capture system activity, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
+If Task 039 proves the worktree clean and exclusively Task 038-owned, any removal must still be a separate narrowly fenced task with explicit human authorization.
+
 
 ## Queued desktop-memory diagnostic
 
