@@ -1,50 +1,45 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO`  
+Status: `BLOCKED_HUMAN_DECISION`  
+Execution mode: `MANUAL_AUTHORIZATION_REQUIRED`  
 Task ID: `CNX-20260823-035`  
-Updated: 2026-08-23 20:31 ICT  
+Updated: 2026-08-23 21:12 ICT  
 Owner: ChatGPT  
-Executor: Codex
+Executor: none until authorized
 
-## Active task
+## Report and review
 
-[`tasks/CNX-20260823-035-capture-task027-procmon-attribution.md`](tasks/CNX-20260823-035-capture-task027-procmon-attribution.md)
+[`reports/CNX-20260823-035-capture-task027-procmon-attribution.md`](reports/CNX-20260823-035-capture-task027-procmon-attribution.md)
 
-## Predecessor review
+[`reviews/CNX-20260823-035-capture-task027-procmon-attribution.md`](reviews/CNX-20260823-035-capture-task027-procmon-attribution.md)
 
-[`reviews/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md`](reviews/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md)
+Task 035 is `BLOCKED` as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`.
 
-Task 034 is `ACCEPT` as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`.
+## Proven boundary
 
-## Human authorization
+The official Process Monitor package was downloaded once to the retained Task 035 temporary directory. ZIP and `Procmon64.exe` hashes, version 4.1, and valid Microsoft Authenticode provenance were recorded.
 
-The operator explicitly authorized:
+Procmon was not launched. No EULA, registry, driver/service, capture, restoration, event provocation, watcher/Supervisor/runtime action, or Git/worktree mutation occurred.
 
-`1 อนุญาต Task 035 ใช้ Procmon ตามขอบเขตนี้`
+## Human decision required
 
-This authorization is fully bounded by the immutable Task 035 specification.
+Decide whether to authorize one interactive configuration-only task using the already verified retained `Procmon64.exe`.
 
-## Purpose
+The configuration-only phase would:
 
-Task 035 acquires only the official portable Microsoft Sysinternals Process Monitor package, verifies SHA256/version/x64 identity and valid Microsoft Authenticode provenance, then attempts one exact-path filesystem trace of the Task027 worktree for at most 10 minutes.
+- allow UAC/EULA only for the verified retained executable;
+- open Procmon with capture disabled;
+- configure the exact Task 027 Path-begins-with Include filter;
+- restrict capture classes to filesystem activity;
+- disable Registry, Network, and Profiling activity;
+- enable Drop Filtered Events;
+- save a task-specific `.PMC` inside the retained Task 035 directory;
+- close Procmon and prove no residual process, capture, or unexpected driver/service state.
 
-ChatGPT owns cause/fix analysis. Codex performs proof and validation only.
+That phase would not start or retain a capture. A separate later task would inspect the saved `.PMC` before authorizing the bounded trace.
 
-## Mandatory capture gate
-
-No recording may begin unless Codex proves that the exact Task027 path Include filter, filesystem-only scope, and drop-filtered-events state are loaded before capture.
-
-If this cannot be proven, or if interactive elevation/filter setup is required, Codex stops with the exact defined blocker. It must not capture broadly and filter afterward.
-
-## Safety boundary
-
-No restoration/materialization/touch; no event provocation; no worktree or Git mutation; no watcher/Supervisor/task change; no CogentNexus/OpenClaw/Ollama runtime action; no process action except the verified task-owned Procmon lifecycle; no boot logging, PsExec, UAC bypass, persistent service, process-tree operation, force push, merge, tag, or release.
-
-## Progress communication
-
-Report meaningful progress approximately every 3 minutes and immediately after duplicate/identity preflight, official-download provenance, elevation/EULA, exact-filter proof, capture start/stop, export/cleanup, actor evidence, or blocker. Progress updates are not pause points except at an explicit safety or interactive gate.
+No interactive configuration or capture is authorized by the current state.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-035-capture-task027-procmon-attribution.md` already exists at freshly fetched HEAD, do not repeat download, extraction, launch, trace, termination, export, or cleanup. Stop awaiting ChatGPT review.
+Do not repeat Task 035 download/acquisition. Do not launch Procmon or remove the retained Task 035 directory while this human-decision gate is active.
