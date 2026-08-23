@@ -1,22 +1,21 @@
 # Current Project Status
 
-**Updated:** 2026-08-23  
+**Updated:** 2026-08-24  
 **Development line:** v0.9.3 implementation and recovery proof  
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 040 accepted; blocked for human authorization of bounded Procmon trace; PR remains Draft
+**Status:** Task 041 reviewed BLOCKED; bounded trace did not reproduce deletion; human decision required; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260824-040` is reviewed `ACCEPT` as `PASS_PATH_LOSS_PATTERN_CLASSIFIED`.
+Task `CNX-20260824-041` is reviewed `BLOCKED` as `BLOCKED_NO_DELETE_EVENT_OBSERVED`.
 
-The Task 038 detached worktree has 420 tracked paths: 415 absent and the same five root files present as the earlier Task 027 mass-loss state. Every tracked path inside every directory is absent. Index/registration metadata remained stable and no process was attached.
+The verified exact-path Procmon trace ran for the authorized 600-second bound. The exact 382 absent Task 027 paths were materialized once after capture-active proof; the restore exited 0. Offline export contained 6,906 events rooted entirely inside Task 027 and zero qualifying successful delete/disposition/replace/rename/move-away events.
 
-This proves the same mass-loss signature class across two worktrees, but not the actor/process/PID, event time, or deletion-versus-nonmaterialization mechanism.
+The bounded poststate was 387 tracked / 387 present / 0 absent. The earlier mass loss did not recur during the observation window, so no actor, PID, or causal mechanism can be attributed. This remains useful negative evidence but does not prove recurrence is impossible outside the window.
 
-Coordination is `BLOCKED_HUMAN_DECISION`. The proposed next phase is a separately fenced elevated Procmon trace using the retained operator-created PMC, exact target-path filter, Drop Filtered Events, a maximum 10-minute passive capture, graceful shutdown, and complete artifact accounting. No restoration or stimulation is included.
-
+Coordination is `BLOCKED_HUMAN_DECISION`. The operator must choose between accepting bounded non-recurrence and resuming the v0.9.3 recovery gates without claiming root cause, or authorizing a separately fenced natural-recurrence observation strategy. The Task 041 restore and capture may not be repeated.
 
 ## Stable foundation
 
@@ -156,12 +155,11 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Await explicit human authorization before creating Task 041 for the bounded passive Procmon trace.
+Await the human operator's direction after Task 041.
 
-Do not repeat Tasks 038–040. Do not launch Procmon, load the PMC, capture, restore paths, stimulate the target, create/remove/repair/prune worktrees, guess or stop a process, change watcher/Supervisor state, or resume recovery/lifecycle execution.
+Option 1 is to retain all trace artifacts, preserve the unresolved root-cause boundary, and resume the planned v0.9.3 Ollama-only recovery gates through new exact tasks. Option 2 is a new separately fenced natural-recurrence observation task with an explicit duration, exact target, artifact-retention policy, and graceful shutdown boundary.
 
-Any later restoration-under-trace phase requires a separate exact task and separate human authorization.
-
+Do not repeat Task 041. Do not launch Procmon, capture, restore paths again, access Task 038, clean/remove/repair/prune worktrees, guess or stop a process, alter watcher/Supervisor state, remove retained evidence, or resume recovery/lifecycle execution without a new exact task and applicable authorization.
 
 ## Queued desktop-memory diagnostic
 
