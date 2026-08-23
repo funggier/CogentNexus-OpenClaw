@@ -5,17 +5,17 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 037 cleanup accepted; worktree actor investigation blocked for human diagnostic decision; PR remains Draft
+**Status:** Task 038 validating operator-created exact-path Procmon configuration; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260823-037` is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
+Task `CNX-20260824-038` is `READY_FOR_CODEX` with execution mode `AUTO`.
 
-Fresh preflight found zero Procmon processes, so the Task 036 processes had exited naturally and the one-shot `Procmon64.exe /Terminate` was correctly skipped. No matching driver/service or capture/config artifact remained, and the retained verified Microsoft binary/evidence stayed unchanged.
+The operator-created exact-path Procmon `.PMC` exists outside the repository with a reviewed expected identity: 2051 bytes and SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`.
 
-Coordination is now `BLOCKED_HUMAN_DECISION`. Cleanup is complete, but the actor and causal mechanism behind the repeated Task 027 worktree dematerialization remain unproven. Codex could not safely control or visually verify the elevated Procmon GUI, so no exact pre-capture `.PMC` was created.
+Codex is authorized only to validate the exact artifact identity, bounded raw structural indicators, zero Procmon process/driver/service state, and absence of capture artifacts. Procmon must not be launched and capture must not start.
 
-No Windows runtime, capture, restoration, recovery, or lifecycle task is currently authorized.
+A Task 038 PASS validates only the saved configuration artifact. Trace execution still requires a separate exact task and human authorization.
 
 ## Stable foundation
 
@@ -155,11 +155,11 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-A separately bounded human decision is required for the next diagnostic route.
+Complete and review Task `CNX-20260824-038`.
 
-The narrow candidate is operator-performed elevated Procmon filter configuration while capture remains off, followed by independent verification of the saved exact-path configuration before any later trace task is authorized. Tasks 035–037 must not be repeated.
+If the exact artifact identity and clean poststate pass, ChatGPT will design the separately fenced trace phase. That later phase must preserve the exact-path filter, Drop Filtered Events, bounded duration, no target stimulation, graceful cleanup, and duplicate-execution fence. It is not authorized yet.
 
-Until that gate is resolved, do not restore the 382 paths again, broad-capture system activity, guess or stop an unproven watcher/process, or resume disruptive recovery/lifecycle execution.
+Do not repeat Tasks 035–037, restore the 382 paths, launch Procmon during Task 038, broad-capture system activity, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
 
 ## Queued desktop-memory diagnostic
 
