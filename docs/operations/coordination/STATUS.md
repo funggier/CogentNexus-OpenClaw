@@ -1,48 +1,27 @@
 # Coordination Channel Status
 
-**State:** `BLOCKED_HUMAN_DECISION`  
-**Updated:** 2026-08-24 01:10 ICT  
+**State:** `READY_FOR_CODEX`  
+**Updated:** 2026-08-24 01:20 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** none pending authorization
-
-## Participants and technical ownership
-
-- **ChatGPT** — root-cause analysis, fix direction, exact task design, evidence review, and next-step decisions
-- **Codex** — local-machine proof, bounded execution, validation, and execution reports
-- **Human operator** — final authority for elevated capture, restoration, cleanup, and destructive/state-changing phases
+**Execution trigger:** automatic watcher or manual `ต่อ`
 
 ## Task 040 outcome
 
-Task `CNX-20260824-040` is reviewed `ACCEPT` as `PASS_PATH_LOSS_PATTERN_CLASSIFIED`.
+Task `CNX-20260824-040` is reviewed `ACCEPT`. Task 038 and Task 027 share the same deterministic five-root-file mass-loss signature, but no actor/PID/event time is proven.
 
-The Task 038 detached worktree has 420 tracked paths: 415 absent and exactly five present root files:
+## Active Task 041
 
-- `.gitignore`
-- `AGENTS.md`
-- `README.md`
-- `requirements-dev.txt`
-- `VERSION`
+Task `CNX-20260824-041` is `READY_FOR_CODEX` with `AUTO_WITH_INTERACTIVE_UAC`.
 
-Every tracked directory-contained path is absent. Task 027 durable evidence shows the same five-file allowlist with 382 absent paths at its earlier HEAD.
+The operator authorized one exact-path Procmon capture for at most 600 seconds and one exact 382-path Task 027 materialization after capture-active proof.
 
-This proves the same mass-loss signature class across two worktrees. It does not prove an actor/process/PID, exact event time, or deletion-versus-nonmaterialization mechanism.
+The retained PMC targets Task 027. Do not redirect it to Task 038.
 
-## Human gate
+Codex must verify target, executable, PMC, and clean Procmon prestate; prove capture active; restore exactly once; let capture stop automatically; export offline; reject filter escape; and rely only on successful post-restore filesystem events for attribution.
 
-The narrowest next direct-evidence phase is a separately fenced elevated Procmon trace task using the retained operator-created PMC.
+## Safety and duplicate fence
 
-The proposed Task 041 would:
+No second restore, broad capture, PMC modification, force termination, Task 038 access, worktree creation/removal/repair/prune, process termination, watcher/Supervisor/task/config change, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/provider/recovery/lifecycle action.
 
-- verify the exact target-path filter and Drop Filtered Events before capture;
-- capture passively for at most 10 minutes against only the exact Task 038 worktree;
-- prohibit restoration, stimulation, worktree mutation/removal, watcher/Supervisor change, and CogentNexus/OpenClaw/Ollama runtime action;
-- stop Procmon gracefully and account for all capture artifacts.
-
-Any restoration-under-trace phase would require a later separate task and explicit human authorization.
-
-## Current safety boundary
-
-No Codex task is executable.
-
-Do not repeat Tasks 038–040. Do not launch Procmon, load the PMC, capture, restore paths, stimulate the target, create/remove/repair/prune a worktree, terminate processes, change watcher/Supervisor state, or resume recovery/lifecycle work.
+If the matching report exists, do not repeat execution. Report progress approximately every 3 minutes and at every major gate.
