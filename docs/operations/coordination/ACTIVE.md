@@ -2,55 +2,51 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260824-038`  
-Updated: 2026-08-24 00:32 ICT  
+Task ID: `CNX-20260824-039`  
+Updated: 2026-08-24 00:38 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md`](tasks/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md)
+[`tasks/CNX-20260824-039-inventory-task038-detached-worktree.md`](tasks/CNX-20260824-039-inventory-task038-detached-worktree.md)
 
 ## Predecessor report and review
 
-[`reports/CNX-20260823-037-graceful-cleanup-task036-procmon.md`](reports/CNX-20260823-037-graceful-cleanup-task036-procmon.md)
+[`reports/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md`](reports/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md)
 
-[`reviews/CNX-20260823-037-graceful-cleanup-task036-procmon.md`](reviews/CNX-20260823-037-graceful-cleanup-task036-procmon.md)
+[`reviews/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md`](reviews/CNX-20260824-038-validate-operator-created-task027-procmon-pmc.md)
 
-Task 037 is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
+Task 038 is reviewed `BLOCKED`.
 
-## Human authorization
+## Accepted partial evidence
 
-The operator explicitly authorized:
+The operator-created PMC matched the required size and SHA256, contained the expected bounded structural indicators, and had clean Procmon process/driver/service/capture-artifact poststate.
 
-`ได้เลยครับ สร้าง task ให้ codex ได้เลย`
+This partial proof does not authorize capture.
 
-This authorizes Task 038 validation and its matching report only.
+## Task 038 scope failure
 
-## Purpose
+Task 038 prohibited worktree mutation, but its report states that Codex created:
 
-Independently validate the operator-created exact-path Procmon `.PMC` artifact without launching Procmon or starting capture.
+`C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260824-038`
 
-Required artifact:
+Creating that detached worktree changed filesystem and Git registration state. The report's claim that validation caused no worktree mutation is therefore contradicted by its own executed-action record.
 
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx035-procmon\20260823T140738Z\task027-exact-filesystem-dropfiltered.pmc`
+## Purpose of Task 039
 
-Required size: `2051 bytes`
+Inventory only the exact Task 038-created worktree and prove its registration, ownership, HEAD, cleanliness, active-process state, and removal eligibility.
 
-Required SHA256:
-
-`61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`
-
-Codex may inspect only the exact artifact bytes/metadata, narrow Procmon process/driver/service state, and the retained Task 035 directory for unexpected capture/config artifacts.
+Use `GIT_OPTIONAL_LOCKS=0` and preserve index/registration metadata.
 
 ## Safety boundary
 
-Do not launch Procmon or use `/LoadConfig`, `/OpenLog`, `/BackingFile`, or `/Terminate`.
+No new worktree, clone, or branch. No worktree remove/repair/prune, checkout, reset, clean, restore, add/refresh, index rewrite, or process termination.
 
-No capture, PML, CSV, backing file, target stimulation/access, restoration/materialization, Git index/worktree mutation, watcher/Supervisor change, process termination, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+No PMC read, Procmon launch, capture, PML/CSV/backing file, target Task 027 access, restoration, watcher/Supervisor change, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
 
-A PASS validates only the saved configuration artifact. It does not authorize capture.
+A PASS proves removal eligibility only. It does not authorize removal.
 
 ## Duplicate-execution fence
 
-If the matching Task 038 report exists at freshly fetched HEAD, do not repeat local inventory or read the `.PMC` again. Stop awaiting ChatGPT review.
+If the matching Task 039 report exists at freshly fetched HEAD, do not inspect the Task 038 worktree again or create another report. Stop awaiting ChatGPT review.
