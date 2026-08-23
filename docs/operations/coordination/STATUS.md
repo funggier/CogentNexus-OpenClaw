@@ -1,51 +1,45 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-22 20:36 ICT  
+**State:** `PREPARING_TASK_035`  
+**Updated:** 2026-08-23 20:30 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** `ต่อ`  
+**Execution trigger:** automatic watcher or manual `ต่อ`
 
-## Participants
+## Participants and technical ownership
 
-- **ChatGPT** — primary conversation, task design, evidence review, next-step decisions
-- **Codex** — local-machine execution and execution reports
-- **Human operator** — final authority and minimal trigger between the two execution contexts
+- **ChatGPT** — root-cause analysis, fix direction, exact task design, evidence review, and next-step decisions
+- **Codex** — local-machine proof, bounded execution, validation, and execution reports
+- **Human operator** — final authority and approval for destructive, elevated, or materially broader actions
 
-## Active task
+Codex may perform cause analysis or design a fix only when the task explicitly states that ChatGPT lacks necessary local access or capability.
 
-`CNX-20260822-001` — Gateway Durable Recovery Convergence
+## Active transition
+
+Task `CNX-20260823-034` is accepted as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`.
+
+The human operator explicitly authorized Task `CNX-20260823-035` to use official Microsoft Sysinternals Process Monitor under its exact bounded scope. The Task 035 specification is published. `ACTIVE.md` is changed to `READY_FOR_CODEX` only after all ChatGPT-owned status records are consistent.
 
 See [`ACTIVE.md`](ACTIVE.md).
 
-## Current handoff state
+## Task 035 boundary
 
-```text
-ChatGPT task published
-        ↓
-ACTIVE.md = READY_FOR_CODEX
-        ↓
-operator sends Codex: ต่อ
-        ↓
-Codex syncs GitHub, executes active task, pushes report
-        ↓
-REPORT_READY
-        ↓
-ChatGPT reviews report and publishes next authorized state/task
-```
+Task 035 may:
 
-## Conversation model
+- download the official Process Monitor ZIP into a task-specific temporary directory;
+- verify SHA256, x64 identity, version, and valid Microsoft Authenticode signature;
+- elevate only the verified `Procmon64.exe` if required;
+- capture at most 10 minutes after proving an exact Task027 filesystem filter with filtered events dropped;
+- retain filtered PML/CSV/config/provenance evidence locally until ChatGPT review.
 
-The operator can keep the substantive project conversation in ChatGPT.
+Task 035 may not broadly capture the system, restore or touch the 382 absent paths, provoke activity, change watcher/Supervisor/task configuration, or touch CogentNexus/OpenClaw/Ollama runtime.
 
-Task details do not need to be copied into Codex. Once [`CODEX_BOOTSTRAP.md`](CODEX_BOOTSTRAP.md) has been accepted by the Codex session, future execution triggers may be the single word `ต่อ`.
+## Handoff rule
 
-Codex must re-read GitHub on each trigger so that ChatGPT and Codex communicate through durable repository state instead of depending on the operator to relay technical instructions.
+Codex must freshly read `ACTIVE.md`, the exact task, and the duplicate fence before execution. It publishes only the matching report and stops for ChatGPT review.
 
-## Channel health rule
+A repeated trigger must not repeat acquisition, trace, or any already-completed side effect when a matching report exists.
 
-The coordination layer is considered usable when both sides can independently read the active task from GitHub and can write only their owned output area without force-pushing or rewriting the other side's records.
+## Progress rule
 
-A task execution result is not accepted merely because a report exists. ChatGPT must review the report and referenced evidence before advancing the active pointer.
-
-A repeated trigger must not repeat already-completed disruptive side effects while review is pending.
+During execution Codex reports meaningful progress approximately every 3 minutes and immediately after preflight, provenance verification, elevation/EULA, exact-filter proof, capture start/stop, export/cleanup, and blocker.
