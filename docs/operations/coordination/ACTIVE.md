@@ -2,27 +2,27 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-024`  
-Updated: 2026-08-23 13:35 ICT  
+Task ID: `CNX-20260823-025`  
+Updated: 2026-08-23 13:41 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-024-publish-verified-task020-report.md`](tasks/CNX-20260823-024-publish-verified-task020-report.md)
+[`tasks/CNX-20260823-025-publish-task020-from-immutable-blob.md`](tasks/CNX-20260823-025-publish-task020-from-immutable-blob.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-023-adjudicate-unpublished-task020-report.md`](reviews/CNX-20260823-023-adjudicate-unpublished-task020-report.md)
+[`reviews/CNX-20260823-024-publish-verified-task020-report.md`](reviews/CNX-20260823-024-publish-verified-task020-report.md)
 
-Task 023 is `ACCEPT`. The immutable Task 020 report is complete, its hashes and evidence fields are verified, Task 017 path/registration absence is confirmed, and the preserving Task 020 worktree is clean, operation-free, and unused.
+Task 024 is `ACCEPT` for its safe blocked execution. It detected that worktree-represented bytes differed by one byte from the accepted immutable Git blob and correctly refused publication without side effects.
 
 ## Purpose
 
-Task 024 publishes only the byte-identical verified Task 020 report content as the normal matching report on the coordination branch.
+Task 025 reads exact publication bytes directly from immutable Git blob `361be921ae0b70124769d1d8b5a2f33d1b277d88`, verifies its accepted SHA256/size/line count, and publishes only if the indexed and remotely fetched destination retain the same blob identity.
 
-It must not publish or reference the unreachable commit itself, modify/remove a worktree, repeat cleanup, or perform any process/runtime/provider/lifecycle action.
+No checked-out source file may supply publication bytes. No worktree cleanup or runtime/provider/lifecycle action is authorized.
 
 ## Duplicate-execution fence
 
-If either the Task 020 destination report or `docs/operations/coordination/reports/CNX-20260823-024-publish-verified-task020-report.md` already exists at fetched HEAD, perform no publication or repeated action and stop awaiting ChatGPT review.
+If either the Task 020 destination report or `docs/operations/coordination/reports/CNX-20260823-025-publish-task020-from-immutable-blob.md` already exists at fetched HEAD, perform no publication or repeated action and stop awaiting ChatGPT review.
