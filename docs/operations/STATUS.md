@@ -5,17 +5,17 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 040 classifying the Task 038 worktree 415-path loss; PR remains Draft
+**Status:** Task 040 accepted; blocked for human authorization of bounded Procmon trace; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260824-040` is `READY_FOR_CODEX` with execution mode `AUTO`.
+Task `CNX-20260824-040` is reviewed `ACCEPT` as `PASS_PATH_LOSS_PATTERN_CLASSIFIED`.
 
-Task 039 proved that the unauthorized Task 038 detached worktree is registered at the expected report commit, has stable index/registration metadata, and has no active process attachment. It is not clean: 415 tracked paths are absent from the working tree, while staged, non-deletion modified, untracked, ignored, conflict, submodule, sparse, nested, and active-process counts are zero.
+The Task 038 detached worktree has 420 tracked paths: 415 absent and the same five root files present as the earlier Task 027 mass-loss state. Every tracked path inside every directory is absent. Index/registration metadata remained stable and no process was attached.
 
-Task 039 is reviewed `BLOCKED`; the worktree is not removal-eligible.
+This proves the same mass-loss signature class across two worktrees, but not the actor/process/PID, event time, or deletion-versus-nonmaterialization mechanism.
 
-Task 040 performs only read-only path-metadata classification to determine the exact deleted/present selection predicate. It may not read tracked file contents, access the Task 027 worktree, repair/remove/prune the target, launch Procmon, capture, restore paths, or touch runtime state. A PASS authorizes no remediation.
+Coordination is `BLOCKED_HUMAN_DECISION`. The proposed next phase is a separately fenced elevated Procmon trace using the retained operator-created PMC, exact target-path filter, Drop Filtered Events, a maximum 10-minute passive capture, graceful shutdown, and complete artifact accounting. No restoration or stimulation is included.
 
 
 ## Stable foundation
@@ -156,11 +156,11 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Complete and review Task `CNX-20260824-040`.
+Await explicit human authorization before creating Task 041 for the bounded passive Procmon trace.
 
-Do not repeat Tasks 038–039. Do not create another worktree, repair/remove/prune the Task 038 worktree, open tracked file contents, access the Task 027 worktree, launch Procmon, start capture, restore paths, guess or stop an unproven watcher/process, or resume recovery/lifecycle execution.
+Do not repeat Tasks 038–040. Do not launch Procmon, load the PMC, capture, restore paths, stimulate the target, create/remove/repair/prune worktrees, guess or stop a process, change watcher/Supervisor state, or resume recovery/lifecycle execution.
 
-Any remediation or removal decision requires a later exact reviewed task grounded in Task 040 evidence.
+Any later restoration-under-trace phase requires a separate exact task and separate human authorization.
 
 
 ## Queued desktop-memory diagnostic
