@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 00:40 ICT  
+**Updated:** 2026-08-24 00:44 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
 **Execution trigger:** automatic watcher or manual `ต่อ`
@@ -12,43 +12,34 @@
 - **Codex** — local-machine proof, bounded execution, validation, and execution reports
 - **Human operator** — final authority and approval for destructive, elevated, interactive, or materially broader actions
 
-## Task 038 review
+## Task 039 review
 
-Task `CNX-20260824-038` is reviewed `BLOCKED`.
+Task `CNX-20260824-039` is reviewed `BLOCKED`.
 
-Its PMC evidence is accepted only as strong partial proof:
+It proved the exact Task 038-created worktree is registered, detached at the Task 038 report commit, metadata-stable, and free of active process attachment.
 
-- exact file size `2051 bytes`;
-- SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`;
-- expected bounded structural indicators;
-- zero Procmon process/driver/service state and no capture artifacts.
+It also found 415 tracked working-tree deletions. All other status categories were zero. The immutable clean-removal eligibility gate therefore failed.
 
-This partial evidence does not authorize Procmon launch or capture.
+No repair, removal, prune, checkout, reset, clean, restore, index mutation, process termination, Procmon action, or runtime action occurred.
 
-Task 038 failed its immutable scope because its report states that Codex created the detached worktree:
+## Active Task 040
 
-`C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260824-038`
+Task `CNX-20260824-040` is `READY_FOR_CODEX` with execution mode `AUTO`.
 
-The task prohibited worktree mutation. Creating the path necessarily changed filesystem and Git worktree registration state, contradicting the report's later no-mutation claim.
+Codex may perform only read-only classification of the 415 deleted paths and the remaining tracked paths using Git tree/index/path metadata and exact-target filesystem metadata.
 
-## Active Task 039
-
-Task `CNX-20260824-039` is `READY_FOR_CODEX` with execution mode `AUTO`.
-
-Codex may perform only a read-only inventory of the exact Task 038-created worktree. It must prove path and registration identity, HEAD/branch state, cleanliness, metadata stability, active-process attachment, and clean-removal eligibility.
-
-Use `GIT_OPTIONAL_LOCKS=0`. Do not open ordinary tracked file contents.
+This local proof is delegated because ChatGPT cannot access the operator machine's exact path inventory. Codex must not design a fix or name an actor/process without direct evidence.
 
 ## Safety and duplicate fence
 
-No new worktree, clone, or branch. No worktree removal, repair, prune, checkout, reset, clean, restore, add/refresh, index rewrite, or process termination.
+Use `GIT_OPTIONAL_LOCKS=0`. No tracked-file content read and no Task 027 worktree access.
 
-No PMC read, Procmon launch, capture, PML/CSV/backing file, target Task 027 access, restoration, watcher/Supervisor change, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+No new worktree, clone, branch, repository, manifest, repair, removal, prune, checkout, reset, clean, restore, add/refresh, index rewrite, process termination, watcher/Supervisor change, Procmon launch/config/capture, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
 
-A Task 039 PASS proves removal eligibility only. It does not authorize removal.
+A PASS classifies the path-loss predicate only and authorizes no remediation or removal.
 
-If the matching Task 039 report exists at freshly fetched HEAD, do not repeat inventory or publish a duplicate report. Stop awaiting ChatGPT review.
+If the matching Task 040 report exists at freshly fetched HEAD, do not repeat classification or publish a duplicate report.
 
 ## Progress rule
 
-Report meaningful progress approximately every 3 minutes and immediately after duplicate preflight, identity/registration proof, clean-state proof, metadata-stability verification, process-attachment verification, and publication or blocker.
+Report meaningful progress approximately every 3 minutes and immediately after duplicate preflight, identity proof, path-set hashing/classification, metadata-stability verification, process-attachment verification, and publication or blocker.
