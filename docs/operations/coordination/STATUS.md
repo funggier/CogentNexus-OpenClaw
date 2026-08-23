@@ -1,45 +1,48 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 00:44 ICT  
+**State:** `BLOCKED_HUMAN_DECISION`  
+**Updated:** 2026-08-24 01:10 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** automatic watcher or manual `ต่อ`
+**Execution trigger:** none pending authorization
 
 ## Participants and technical ownership
 
 - **ChatGPT** — root-cause analysis, fix direction, exact task design, evidence review, and next-step decisions
 - **Codex** — local-machine proof, bounded execution, validation, and execution reports
-- **Human operator** — final authority and approval for destructive, elevated, interactive, or materially broader actions
+- **Human operator** — final authority for elevated capture, restoration, cleanup, and destructive/state-changing phases
 
-## Task 039 review
+## Task 040 outcome
 
-Task `CNX-20260824-039` is reviewed `BLOCKED`.
+Task `CNX-20260824-040` is reviewed `ACCEPT` as `PASS_PATH_LOSS_PATTERN_CLASSIFIED`.
 
-It proved the exact Task 038-created worktree is registered, detached at the Task 038 report commit, metadata-stable, and free of active process attachment.
+The Task 038 detached worktree has 420 tracked paths: 415 absent and exactly five present root files:
 
-It also found 415 tracked working-tree deletions. All other status categories were zero. The immutable clean-removal eligibility gate therefore failed.
+- `.gitignore`
+- `AGENTS.md`
+- `README.md`
+- `requirements-dev.txt`
+- `VERSION`
 
-No repair, removal, prune, checkout, reset, clean, restore, index mutation, process termination, Procmon action, or runtime action occurred.
+Every tracked directory-contained path is absent. Task 027 durable evidence shows the same five-file allowlist with 382 absent paths at its earlier HEAD.
 
-## Active Task 040
+This proves the same mass-loss signature class across two worktrees. It does not prove an actor/process/PID, exact event time, or deletion-versus-nonmaterialization mechanism.
 
-Task `CNX-20260824-040` is `READY_FOR_CODEX` with execution mode `AUTO`.
+## Human gate
 
-Codex may perform only read-only classification of the 415 deleted paths and the remaining tracked paths using Git tree/index/path metadata and exact-target filesystem metadata.
+The narrowest next direct-evidence phase is a separately fenced elevated Procmon trace task using the retained operator-created PMC.
 
-This local proof is delegated because ChatGPT cannot access the operator machine's exact path inventory. Codex must not design a fix or name an actor/process without direct evidence.
+The proposed Task 041 would:
 
-## Safety and duplicate fence
+- verify the exact target-path filter and Drop Filtered Events before capture;
+- capture passively for at most 10 minutes against only the exact Task 038 worktree;
+- prohibit restoration, stimulation, worktree mutation/removal, watcher/Supervisor change, and CogentNexus/OpenClaw/Ollama runtime action;
+- stop Procmon gracefully and account for all capture artifacts.
 
-Use `GIT_OPTIONAL_LOCKS=0`. No tracked-file content read and no Task 027 worktree access.
+Any restoration-under-trace phase would require a later separate task and explicit human authorization.
 
-No new worktree, clone, branch, repository, manifest, repair, removal, prune, checkout, reset, clean, restore, add/refresh, index rewrite, process termination, watcher/Supervisor change, Procmon launch/config/capture, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+## Current safety boundary
 
-A PASS classifies the path-loss predicate only and authorizes no remediation or removal.
+No Codex task is executable.
 
-If the matching Task 040 report exists at freshly fetched HEAD, do not repeat classification or publish a duplicate report.
-
-## Progress rule
-
-Report meaningful progress approximately every 3 minutes and immediately after duplicate preflight, identity proof, path-set hashing/classification, metadata-stability verification, process-attachment verification, and publication or blocker.
+Do not repeat Tasks 038–040. Do not launch Procmon, load the PMC, capture, restore paths, stimulate the target, create/remove/repair/prune a worktree, terminate processes, change watcher/Supervisor state, or resume recovery/lifecycle work.
