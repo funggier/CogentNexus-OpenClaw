@@ -5,15 +5,15 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** blocked for human authorization of exact-path filesystem tracing; PR remains Draft
+**Status:** Task 035 authorized for exact-path Process Monitor proof; PR remains Draft
 
-## Current coordination blocker
+## Current coordination diagnostic
 
-Task `CNX-20260823-034` is accepted as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`.
+Task `CNX-20260823-034` is accepted as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`. It proved the recurring 382-path absence and ruled out repository-source reachability to the exact Task 027 worktree, but no PID or filesystem operation sequence was captured.
 
-The exact Task 027 worktree still presents the recurring 382-path absence. Source audit found no repository call chain capable of reaching that exact worktree under the documented scopes, and no evidence attributes the deletion to CogentNexus Supervisor or the Codex watcher.
+The human operator has explicitly authorized Task `CNX-20260823-035` to acquire the current official portable Microsoft Sysinternals Process Monitor package and run one bounded exact-path trace. The task requires official-source download provenance, SHA256 and Authenticode verification, x64-only execution, an exact Task027 Include filter with filtered events dropped before capture, a maximum 10-minute natural observation, local-only PML/CSV evidence, and verified Procmon shutdown/driver cleanup.
 
-Direct attribution requires a filesystem I/O trace that records initiating PID/image, operation, exact path, result, and UTC time. No suitable exact-path trace facility was already available within Task 034's authority. Coordination is therefore blocked for the human operator to decide whether to authorize a separately bounded installation/use of an official diagnostic tool. No installation, restoration, containment, watcher/task/Supervisor change, or runtime action is currently authorized.
+This authorization does not permit broad capture, restoration/materialization, event provocation, watcher/Supervisor changes, or CogentNexus/OpenClaw/Ollama runtime action. ChatGPT retains cause/fix ownership; Codex performs proof and validation only.
 
 ## Stable foundation
 
@@ -153,17 +153,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-034` is active in automatic execution mode.
+Task `CNX-20260823-035` is authorized and ready for Codex.
 
-Task 033 is accepted as a read-only evidence-completion result. It reconfirmed 387 indexed, 5 materialized, and 382 absent with canonical absent-list SHA256 `6A078DA7D54615B67E0020D978A065171E803B0A0DFE134CE978BB2616B91FB8`; captured exact hashed inventories and a UTC timeline; and did not prove a deletion actor. Neither CogentNexus Supervisor nor Codex watcher is directly implicated.
+Codex must first revalidate the exact Task027 identity and duplicate fence, then download Process Monitor only from the official Microsoft Sysinternals endpoint into a task-specific temporary directory. It must record package/executable hashes and a valid Microsoft Authenticode signature.
 
-Task 034 performs the one accepted next diagnostic: a bounded filesystem I/O trace focused on the exact Task 027 worktree, capturing filesystem operation, path, initiator PID/image, result, and UTC time when an already-installed tracing facility is available. It also audits current GitHub/source code for worktree deletion, cleaning, pruning, resetting, recycling, and materialization paths.
+No capture may begin unless the exact target-path filesystem filter and drop-filtered-events state are proven loaded before recording. The capture may run for at most 10 minutes and may observe only naturally occurring activity. If elevation, exact filter configuration, safe stop, or cleanup cannot be proven, Codex must return the matching blocker without improvisation.
 
-Source capability and runtime attribution remain separate. A deletion-capable code path is not the actor unless direct trace/log evidence proves execution.
-
-Task 034 may not restore the 382 paths, change the target/index/worktree, pause or reconfigure Supervisor/watcher/tasks, install tracing software, enable auditing, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
-
-Only after Task 034 review may ChatGPT authorize one exact containment or an independently fenced restoration.
+Only direct target-filtered successful filesystem operations can prove an actor. Timing or process presence alone remains insufficient.
 
 ## Queued desktop-memory diagnostic
 
