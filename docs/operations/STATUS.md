@@ -5,15 +5,15 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** blocked for human authorization of Task 036 Procmon cleanup; PR remains Draft
+**Status:** Task 037 authorized for one-shot graceful Procmon cleanup; PR remains Draft
 
-## Current coordination blocker
+## Current coordination task
 
-Task `CNX-20260823-036` is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
+Task `CNX-20260823-037` is authorized and `READY_FOR_CODEX` with execution mode `AUTO_WITH_UAC_GATE`.
 
-The verified retained Procmon binary launched once with the authorized no-connect/no-filter arguments, but Codex could not control or prove the elevated GUI state. No filter or `.PMC` was created; no `.PML`, `.CSV`, or backing file was found. After the operator closed the visible GUI, task-owned PIDs 51880 and 59348 remained.
+The task must first inventory every Procmon process and prove exclusive Task 036 ownership. If none remain, it skips termination and verifies clean poststate. Only when every surviving Procmon process is exactly attributable to Task 036 and no other Procmon or capture/config artifact exists may it invoke the verified retained `Procmon64.exe /Terminate` once.
 
-Coordination requires explicit human authorization for a separate cleanup-only phase. The recommended method is to revalidate exclusive ownership and invoke the verified retained `Procmon64.exe /Terminate` once as graceful shutdown, then verify zero process/driver/capture residue. Force kill, process-tree termination, capture, configuration, restoration, and runtime action remain prohibited.
+A second `/Terminate`, force/process-tree kill, `Stop-Process`, `taskkill`, reboot, capture, filter/PMC configuration, restoration, retained-evidence cleanup, and CogentNexus/OpenClaw/Ollama runtime action remain prohibited.
 
 ## Stable foundation
 
