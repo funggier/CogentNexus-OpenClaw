@@ -1,46 +1,52 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO`  
+Status: `BLOCKED_HUMAN_DECISION`  
+Execution mode: `NONE`  
 Task ID: `CNX-20260824-040`  
-Updated: 2026-08-24 00:44 ICT  
+Updated: 2026-08-24 01:10 ICT  
 Owner: ChatGPT  
-Executor: Codex
+Executor: none pending authorization
 
-## Active task
+## Completed report and review
 
-[`tasks/CNX-20260824-040-classify-task038-worktree-415-path-loss.md`](tasks/CNX-20260824-040-classify-task038-worktree-415-path-loss.md)
+[`reports/CNX-20260824-040-classify-task038-worktree-415-path-loss.md`](reports/CNX-20260824-040-classify-task038-worktree-415-path-loss.md)
 
-## Predecessor report and review
+[`reviews/CNX-20260824-040-classify-task038-worktree-415-path-loss.md`](reviews/CNX-20260824-040-classify-task038-worktree-415-path-loss.md)
 
-[`reports/CNX-20260824-039-inventory-task038-detached-worktree.md`](reports/CNX-20260824-039-inventory-task038-detached-worktree.md)
+Task 040 is reviewed `ACCEPT` as `PASS_PATH_LOSS_PATTERN_CLASSIFIED`.
 
-[`reviews/CNX-20260824-039-inventory-task038-detached-worktree.md`](reviews/CNX-20260824-039-inventory-task038-detached-worktree.md)
+## Accepted evidence
 
-Task 039 is reviewed `BLOCKED`.
+Task 038 has 420 tracked paths: 415 are absent and exactly five root files remain.
 
-## Proven state
+The exact present allowlist is:
 
-The exact Task 038-created worktree is registered by the primary repository and detached at the documented Task 038 report commit. Its index and registration metadata remained stable and no process is attached.
+- `.gitignore`
+- `AGENTS.md`
+- `README.md`
+- `requirements-dev.txt`
+- `VERSION`
 
-It has 415 tracked working-tree deletions, with zero staged, non-deletion modified, untracked, ignored, conflict, submodule, sparse, nested, or active-process state.
+Every tracked path inside every directory is absent.
 
-The worktree is not clean and is not removal-eligible.
+Task 027 durable evidence shows the structurally identical five-file allowlist with 382 absent paths at its earlier HEAD. This proves the same mass-loss signature class across two worktrees.
 
-## Purpose of Task 040
+It does not identify an actor, process/PID, event time, or whether the paths were deleted after materialization versus never materialized.
 
-Classify the exact deleted/present path selection pattern using read-only Git tree, index, path, and filesystem metadata.
+## Human decision required
 
-Local path-set proof is delegated to Codex because ChatGPT cannot access the operator machine's exact inventory. Codex must not design a fix or claim an actor/process without direct evidence.
+The next direct-evidence step would be a separately fenced Task 041 to launch Microsoft Sysinternals Procmon elevated with the retained operator-created PMC, verify the exact target-path filter and Drop Filtered Events before capture, then run a bounded passive capture for at most 10 minutes against the exact Task 038 worktree.
 
-## Safety boundary
+The proposed first trace phase would prohibit restoration, target stimulation, worktree mutation/removal, process termination other than graceful Procmon shutdown, watcher/Supervisor change, and CogentNexus/OpenClaw/Ollama runtime action.
 
-Use `GIT_OPTIONAL_LOCKS=0`. No tracked-file content read and no Task 027 worktree access.
+Any later restoration-under-trace phase would require another explicit human authorization and a separate task.
 
-No new worktree, clone, branch, repository, manifest, repair, removal, prune, checkout, reset, clean, restore, add/refresh, index rewrite, process termination, watcher/Supervisor change, Procmon launch/config/capture, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+## Current safety boundary
 
-A PASS classifies the path-loss predicate only. It authorizes no remediation or removal.
+No Codex task is executable.
+
+Do not repeat Tasks 038–040. Do not launch Procmon, load the PMC, capture, restore paths, stimulate the target, create/remove/repair/prune a worktree, terminate a process, alter watcher/Supervisor state, or resume recovery/lifecycle execution.
 
 ## Duplicate-execution fence
 
-If the matching Task 040 report exists at freshly fetched HEAD, do not inspect the target again or create another report. Stop awaiting ChatGPT review.
+If another watcher run observes this state without new human authorization recorded in a new exact task, perform no local action and publish no duplicate report.
