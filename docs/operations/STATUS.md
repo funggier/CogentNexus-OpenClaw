@@ -145,13 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-025` is active in automatic execution mode.
+Task `CNX-20260823-026` is active in automatic execution mode.
 
-Task 024 is reviewed `ACCEPT` for its safe `BLOCKED_SOURCE_MISMATCH` stop. It correctly refused publication because bytes read through the Windows preserving worktree were one byte different from the accepted immutable Git blob contract. No destination, cleanup, ref, process, runtime, provider, lifecycle, or force action occurred.
+Task 025 is reviewed `REWORK`. Its refusal to use the unexpected Task 025 control worktree was safe, but its report incorrectly states that the Task 020 destination was absent at fetched HEAD `a67515d46927da5b2565d91a6a4bbec532e82aba`. GitHub confirms that the destination already existed there as blocked-report blob `6c165d6f970cd4bc745aa2df83d6500d0be3e059`. Commit `ee545d47e36fb820473b9f92e617f074482cf0ac` added only the Task 025 report.
 
-Task 025 must read publication bytes directly from immutable Git blob `361be921ae0b70124769d1d8b5a2f33d1b277d88`, require SHA256 `93b06be819c09b56b46352a07c244bf29e76e4c1c7b0bbd2d79cbc76d44c68e9`, 2,795 bytes, and 36 lines, then require the committed and remotely fetched destination blob to retain the exact same identity. It must not source bytes from a checked-out worktree file.
+Task 026 must diagnose this duplicate-fence contradiction and unexpected control HEAD `5dbf0425ed42f23da95ba3fa25ecbc57893f1d92` read-only. It may not overwrite the Task 020 report, publish the immutable PASS blob, remove or modify worktrees, act on processes, or touch runtime/provider/lifecycle state.
 
-After durable exact publication, a later separate task may remove the preserving Task 020 worktree. Provider durable-convergence diagnosis remains next after this report/checkout recovery chain closes.
+After exact provenance is established, ChatGPT may authorize the narrowest separate publication or cleanup task. Provider durable-convergence diagnosis remains next after this report/checkout recovery chain closes.
 
 ## Queued desktop-memory diagnostic
 
