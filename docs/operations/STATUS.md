@@ -145,15 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-021` is active in automatic execution mode.
+Task `CNX-20260823-022` is active in automatic execution mode.
 
-Task 020 is reviewed `ACCEPT` only for its safe `BLOCKED_CONTROL_COLLISION` report. The watcher had already created and registered the exact Task 020 control worktree at the authorized fetched head, so the task's strict path-absence fence correctly stopped execution before Task 017 inspection.
+Task 021 is reviewed `ACCEPT` only for its safe `BLOCKED_TARGET_IDENTITY` report. The registered Task 020 target was clean in limited status output but had unexpected HEAD `2bda9b71952f838da515e046fb3efa10a75f2089` instead of the authorized removal identity. It was correctly preserved.
 
-Task 021 is a narrow cleanup task for only the exact stale Task 020 control worktree. It explicitly permits adopting its own exact Task 021 control worktree when the watcher pre-creates it, but only after verifying exact registration, fetched HEAD, cleanliness, reachability, no Git operation, and no process use.
+Task 022 is read-only. It must establish the unexpected commit's parents, tree, content, report-file identity, local/remote reachability, reflog provenance, Git-operation state, and process use. It records only limited presence/accounting for Task 021 and must not inspect Task 017.
 
-Task 017 is excluded until Task 021 is reviewed. No force, reset, clean, broad prune, process action, runtime/recovery command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
+No worktree removal or modification, force, reset, clean, prune, process action, runtime/recovery command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
-After stale-control cleanup, a corrected Task 017 adjudication task must use the same watcher-created-control adoption rule rather than requiring its control path to be absent.
+Only after the unexpected HEAD is proven published/reachable may a later exact cleanup task name it as an authorized removal identity.
 
 ## Queued desktop-memory diagnostic
 
