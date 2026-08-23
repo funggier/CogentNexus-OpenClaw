@@ -145,17 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-020` is active in automatic execution mode.
+Task `CNX-20260823-021` is active in automatic execution mode.
 
-Task 019 is reviewed `ACCEPT` only for its safe blocked report. Codex found a contract conflict: the watcher requires a dedicated isolated worktree for every task, while Task 019 prohibited creating any worktree. It correctly stopped before inspecting or mutating the Task 017 target.
+Task 020 is reviewed `ACCEPT` only for its safe `BLOCKED_CONTROL_COLLISION` report. The watcher had already created and registered the exact Task 020 control worktree at the authorized fetched head, so the task's strict path-absence fence correctly stopped execution before Task 017 inspection.
 
-Task 020 resolves the conflict narrowly. It permits exactly one control worktree at `C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260823-020`, with an exact collision and HEAD fence. The wrong-head Task 017 worktree remains the sole cleanup target.
+Task 021 is a narrow cleanup task for only the exact stale Task 020 control worktree. It explicitly permits adopting its own exact Task 021 control worktree when the watcher pre-creates it, but only after verifying exact registration, fetched HEAD, cleanliness, reachability, no Git operation, and no process use.
 
-Task 020 may adjudicate only the three named tracked report deletions. Only after proving content durability, absence of unpublished commits and Git operations, and no process use may it restore those exact target-HEAD blobs and remove the exact Task 017 worktree using normal non-force Git removal.
+Task 017 is excluded until Task 021 is reviewed. No force, reset, clean, broad prune, process action, runtime/recovery command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
-No fallback path, second worktree, force, reset, clean, broad prune, process action, recovery rerun, runtime command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
-
-After Task 020 is reviewed, the next intended step remains the offline provider durable-convergence diagnosis using an exact fetched remote ref and verified control HEAD.
+After stale-control cleanup, a corrected Task 017 adjudication task must use the same watcher-created-control adoption rule rather than requiring its control path to be absent.
 
 ## Queued desktop-memory diagnostic
 
