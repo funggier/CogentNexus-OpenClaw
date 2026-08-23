@@ -145,13 +145,15 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-018` is active in automatic execution mode as the exact cleanup gate for the wrong-head Task 017 worktree.
+Task `CNX-20260823-019` is active in automatic execution mode as the preservation-gated cleanup of the exact wrong-head Task 017 worktree.
 
-Task 017 is reviewed `ACCEPT` for its safe `BLOCKED` report only. Its worktree command referenced an unset ref variable and created the authorized path at local HEAD `78f6cba4748e59d5975940ca9854961d0e7ff550` instead of fetched coordination HEAD `eb4cefefb2a9859d28dd1d45fb50096835674ec0`. Both immutable evidence identities were verified, but source/evidence diagnosis was skipped. No Windows/runtime action occurred.
+Task 018 is reviewed `ACCEPT` for its safe `BLOCKED_TARGET_DIRTY` report only. It verified the exact target and wrong HEAD, but found three tracked report deletions and one path-filtered PowerShell match. It correctly performed no removal, force, reset, clean, prune, process action, or runtime action.
 
-Task 018 may inspect only the exact Task 017 path and registration. It must prove identity, clean state, absence of Git operations/unpublished work, and absence of processes bound to that path before normal non-force removal. If any gate fails, it must report `BLOCKED` and leave the path intact.
+Task 019 may adjudicate only the three named deleted report paths. It must prove their blobs remain durable, no unpublished commit or other change exists, no Git operation is active, and no process is bound to the exact target. Only if every gate passes may it restore those exact files from the target's own HEAD, verify a completely clean tree, and remove only the exact target using normal non-force Git removal.
 
-Re-creation and provider diagnosis are excluded from Task 018. After its report is reviewed, a new exact diagnosis task may be issued with an explicitly asserted remote ref.
+The human operator reports that OpenClaw has addressed the local Codex problem and authorizes coordination to continue. This permits Task 019 to evaluate current state; it does not waive its preservation, identity, or no-process gates.
+
+Provider diagnosis and worktree recreation remain excluded until Task 019 is reviewed.
 
 No recovery rerun, process kill, runtime command, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
