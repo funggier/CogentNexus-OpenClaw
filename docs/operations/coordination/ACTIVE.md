@@ -2,29 +2,27 @@
 
 Status: `READY_FOR_CODEX`  
 Execution mode: `AUTO`  
-Task ID: `CNX-20260823-021`  
-Updated: 2026-08-23 13:22 ICT  
+Task ID: `CNX-20260823-022`  
+Updated: 2026-08-23 13:25 ICT  
 Owner: ChatGPT  
 Executor: Codex
 
 ## Active task
 
-[`tasks/CNX-20260823-021-remove-stale-task020-control.md`](tasks/CNX-20260823-021-remove-stale-task020-control.md)
+[`tasks/CNX-20260823-022-diagnose-task020-unexpected-head.md`](tasks/CNX-20260823-022-diagnose-task020-unexpected-head.md)
 
 ## Predecessor review
 
-[`reviews/CNX-20260823-020-isolated-adjudication-and-task017-removal.md`](reviews/CNX-20260823-020-isolated-adjudication-and-task017-removal.md)
+[`reviews/CNX-20260823-021-remove-stale-task020-control.md`](reviews/CNX-20260823-021-remove-stale-task020-control.md)
 
-Task 020 is `ACCEPT` only as a safe blocked report. The watcher pre-created its exact control worktree, causing the task's strict path-absence fence to fail before Task 017 inspection.
+Task 021 is `ACCEPT` only as a safe blocked report. The exact Task 020 worktree was preserved because its HEAD unexpectedly changed to `2bda9b71952f838da515e046fb3efa10a75f2089`.
 
 ## Purpose
 
-Task 021 removes only the exact stale Task 020 control worktree after proving exact identity, cleanliness, reachability, no active Git operation, and no process use.
+Task 022 performs read-only provenance, reachability, content, reflog, operation, and process-use diagnosis of the unexpected Task 020 HEAD. It also records limited presence/accounting for Task 021.
 
-Its own exact Task 021 control worktree may be adopted when already created by the watcher only if path, registration, fetched HEAD, cleanliness, operation state, and reachability all match.
-
-Task 017 must not be inspected in this task. No force, reset, clean, process action, runtime action, provider diagnosis, lifecycle action, merge, tag, or release is authorized.
+No worktree may be removed or modified. Task 017 must not be inspected. No force/reset/clean/prune, process action, runtime action, provider diagnosis, lifecycle action, merge, tag, or release is authorized.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-021-remove-stale-task020-control.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
+If `docs/operations/coordination/reports/CNX-20260823-022-diagnose-task020-unexpected-head.md` exists, perform no further observation or action and stop awaiting ChatGPT review.
