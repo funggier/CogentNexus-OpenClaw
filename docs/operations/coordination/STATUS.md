@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-23 23:34 ICT  
+**State:** `BLOCKED_HUMAN_DECISION`  
+**Updated:** 2026-08-23 23:37 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** automatic watcher or manual `ต่อ`
+**Execution trigger:** none while blocked
 
 ## Participants and technical ownership
 
@@ -14,30 +14,30 @@
 
 Codex may perform cause analysis or design a fix only when the task explicitly states that ChatGPT lacks necessary local access or capability.
 
-## Task 036 outcome
+## Task 037 outcome
 
-Task `CNX-20260823-036` is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
+Task `CNX-20260823-037` is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
 
-No filter, `.PMC`, `.PML`, `.CSV`, backing file, capture artifact, target stimulation, worktree/runtime action, or force kill was recorded. Task-owned PIDs 51880 and 59348 remained after the visible GUI was closed.
+Fresh preflight found zero Procmon processes. The Task 036 PIDs had exited naturally, so the authorized one-shot `Procmon64.exe /Terminate` was correctly skipped.
 
-## Human authorization for Task 037
+The retained executable still matched its required SHA256, version, and Microsoft signature. No Procmon driver/service, `.PMC`, `.PML`, `.CSV`, backing, capture, or log artifact remained. No UAC, retry, termination, force/process-tree kill, capture/configuration, restoration, worktree mutation, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime action occurred.
 
-The operator explicitly authorized:
+Task 037 must not be repeated.
 
-`อนุญาต Task 037 ตรวจสอบ ownership และใช้ Procmon64.exe /Terminate ได้ 1 ครั้ง เฉพาะเมื่อยืนยันว่าไม่มี Procmon อื่น ห้าม force-kill และห้าม capture`
+## Remaining investigation state
 
-Task `CNX-20260823-037` is published as cleanup-only.
+The repeated Task 027 worktree dematerialization remains unexplained:
 
-It must first inventory every Procmon process and prove exclusive Task 036 ownership. If zero Procmon processes exist, it skips `/Terminate` and verifies clean poststate. If ownership is exact and exclusive, it may invoke the verified retained `Procmon64.exe /Terminate` once only.
+- indexed paths remained 387 while only 5 paths were materialized and 382 were absent;
+- source audit found no CogentNexus/Supervisor route to the target worktree;
+- no exact actor/PID/operation telemetry exists;
+- Codex cannot control or visually prove the elevated Procmon GUI through its available automation surface;
+- therefore no safely preconfigured exact-path `.PMC` or trace was produced.
 
-It does not permit a second `/Terminate`, `Stop-Process`, `taskkill`, Task Manager End Task, process-tree/force kill, service/driver deletion, reboot, capture, filter/PMC configuration, restoration, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime action.
+Cleanup success is not proof of the deleting actor and does not justify restoring paths again, broad capture, or changing/stopping an unproven process.
 
-## Handoff and duplicate fence
+## Human gate
 
-Codex must freshly read [`ACTIVE.md`](ACTIVE.md), exact [Task 037](tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md), Task 036 report/review, and the one-shot fence before action.
+A separately bounded human decision is required before another diagnostic task. The narrow candidate is operator-performed elevated Procmon filter configuration with capture kept off, followed by independent configuration verification before any trace authorization.
 
-If the matching Task 037 report exists, do not repeat any action. If ownership is ambiguous or any unrelated Procmon exists, block without invoking `/Terminate`.
-
-## Progress rule
-
-Report meaningful progress approximately every 3 minutes and immediately after process inventory, retained binary verification, ownership decision, before the one-shot command, after poststate verification, and at any blocker.
+No task is ready for Codex. Do not repeat Tasks 035–037 or perform any capture, restoration, Windows runtime, recovery, or lifecycle action from this state.
