@@ -67,6 +67,20 @@ To reduce merge conflicts, each side owns different files.
 
 Codex should not rewrite task specifications merely to reflect progress. Progress and results belong in the matching report file.
 
+
+## Diagnosis, fix, and proof ownership
+
+The default technical-role split is:
+
+- **ChatGPT leads cause and fix**: inspect durable evidence and source, form the narrow root-cause hypothesis, design the remediation, define safety gates, and publish an exact task or patch specification.
+- **Codex leads proof and validation**: execute the narrowly specified diagnostic or change on the operator's machine, capture commands and evidence, test the proposed fix, and report contradictions or remaining uncertainty.
+- Codex should not be given open-ended root-cause discovery or fix design when ChatGPT can derive and specify them from available source and evidence.
+- ChatGPT may explicitly delegate cause analysis, implementation, or fix design to Codex only when ChatGPT lacks required machine access/capability, or when the task states why local execution knowledge is essential.
+- Contrary machine evidence overrides ChatGPT's hypothesis. Codex records the contradiction without improvising a broader change; ChatGPT then revises the cause, fix, or next proof task.
+- For a suspected source defect, the task should name the relevant path/function, causal mechanism, proposed remedy or decision boundary, and the exact evidence required for acceptance.
+
+This role split changes who leads the work, not the evidence standard or the human operator's final authority.
+
 ## Task identity
 
 Every task has a stable ID:
