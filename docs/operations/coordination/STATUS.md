@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
-**State:** `BLOCKED_HUMAN_DECISION`  
-**Updated:** 2026-08-23 21:14 ICT  
+**State:** `PREPARING_TASK_036`  
+**Updated:** 2026-08-23 21:25 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** explicit authorization required
+**Execution trigger:** automatic watcher or manual `ต่อ`
 
 ## Participants and technical ownership
 
@@ -18,20 +18,37 @@ Codex may perform cause analysis or design a fix only when the task explicitly s
 
 Task `CNX-20260823-035` is reviewed as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`.
 
-The official Microsoft Process Monitor package was downloaded once into the retained task-specific temporary directory. ZIP and `Procmon64.exe` hashes, version 4.1, and valid Microsoft Authenticode provenance were recorded.
+The official Process Monitor package was downloaded once and verified as version 4.1 with valid Microsoft Authenticode provenance. Procmon was not launched and no capture occurred.
 
-Procmon was not launched. No EULA, registry, driver/service, capture, restoration, event provocation, watcher/Supervisor/runtime action, or Git/worktree mutation occurred.
+## Human authorization for Task 036
 
-See [`ACTIVE.md`](ACTIVE.md), the matching [report](reports/CNX-20260823-035-capture-task027-procmon-attribution.md), and [review](reviews/CNX-20260823-035-capture-task027-procmon-attribution.md).
+The operator explicitly authorized:
 
-## Human decision gate
+`1 อนุญาต Task 036 ตั้งค่า Procmon .PMC แบบโต้ตอบเท่านั้น ห้ามเริ่ม capture`
 
-The next possible phase is one interactive configuration-only task using the already verified retained `Procmon64.exe`. It would allow UAC/EULA for that exact binary, keep capture disabled, create the exact Task 027 Path-begins-with filesystem filter with Drop Filtered Events, save a task-specific `.PMC`, close Procmon, and prove a clean poststate.
+Task `CNX-20260823-036` is published as a configuration-only phase using the retained verified `Procmon64.exe`.
 
-That phase would not perform a capture. A later separate task would inspect and validate the saved `.PMC` before any bounded trace.
+It permits:
 
-No interactive configuration or capture is authorized yet.
+- UAC/EULA only for the exact retained Microsoft-signed binary;
+- documented `/NoConnect /NoFilter /AcceptEula` launch;
+- visual proof that capture is inactive before configuration;
+- one exact Task 027 Path-begins-with Include rule;
+- filesystem activity only, with Registry, Network, Process/Thread, and Profiling disabled;
+- Drop Filtered Events;
+- export of one task-specific `.PMC`;
+- normal close and clean poststate proof.
 
-## Duplicate-execution fence
+It does not permit capture, PML/backing file, target stimulation/touch, restoration, watcher/Supervisor changes, or CogentNexus/OpenClaw/Ollama runtime action.
 
-Do not repeat Task 035 acquisition, launch Procmon, start capture, restore the 382 absent paths, alter watcher/Supervisor/runtime state, or remove the retained Task 035 directory while this gate is active.
+A later separate task must inspect and validate the `.PMC` before any bounded trace.
+
+## Handoff and duplicate fence
+
+Codex must freshly read [`ACTIVE.md`](ACTIVE.md), the exact [Task 036](tasks/CNX-20260823-036-configure-task027-procmon-pmc.md), the Task 035 report/review, and the duplicate/partial-execution fence before action.
+
+Do not repeat Task 035 acquisition. If the Task 036 report or local output `.PMC` already exists, follow the exact non-repeat/blocker rules.
+
+## Progress rule
+
+During execution Codex reports meaningful progress approximately every 3 minutes and immediately after preflight, before UAC, after GUI no-capture proof, after filter/config proof, after export, after close/poststate, and at any blocker.
