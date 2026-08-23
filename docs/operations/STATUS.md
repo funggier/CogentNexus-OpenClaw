@@ -145,15 +145,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-032` is active in automatic execution mode.
+Task `CNX-20260823-033` is active in automatic execution mode.
 
-Task 031 is reviewed `BLOCKED`. Its read-only preflight proved that Task 027 returned from the Task 030 verified 387/387 materialized state to 5/387, with 382 tracked paths absent again. No Task 031 mutation or repeated restoration occurred.
+Task 032 is reviewed `REWORK`. It safely reconfirmed the exact recurring state—387 indexed, 5 materialized, 382 absent, canonical absent-list SHA256 `6A078DA7D54615B67E0020D978A065171E803B0A0DFE134CE978BB2616B91FB8`—and observed no change over 60 seconds. It did not prove a deletion actor, and no mutation, restoration, containment, or runtime action occurred.
 
-The issue is now classified as recurring broad worktree materialization loss, not a single-path stat-cache anomaly. Task 032 performs only read-only cause attribution: it compares the recurring absent set, registration/config/index/filesystem metadata, attached processes/watchers/scheduled tasks, available event records, and a bounded 60-second stability observation.
+The Task 032 report did not preserve all mandatory exact inventories and proposed changing the CogentNexus Supervisor and/or Codex watcher without evidence selecting one target. No such containment is authorized.
 
-Task 032 may not restore files, mutate the index or filesystem, remove/recreate the worktree, stop a process/task, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
+Task 033 is a read-only evidence-completion task. It must publish exact hashed configuration, filesystem, process, scheduled-task, watcher, terminal, event-channel, and authorized artifact inventories; correlate one UTC timeline; and identify at most one evidence-supported next diagnostic target or explicitly retain `CAUSE_NOT_PROVEN`.
 
-Only after Task 032 is reviewed may ChatGPT authorize exact containment and a new independently fenced restoration, then resume Task 025 and the provider durable-convergence sequence.
+Task 033 may not restore files, mutate the index/filesystem, pause or change any process/task/watcher, enable auditing, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
+
+Only after Task 033 is reviewed may ChatGPT authorize one exact acquisition/containment step and a later independently fenced restoration.
 
 ## Queued desktop-memory diagnostic
 
