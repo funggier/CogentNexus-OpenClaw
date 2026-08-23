@@ -5,15 +5,17 @@
 **Release target:** v1.0.0 after complete real-Windows lifecycle acceptance  
 **Active PR:** #24 — `v0.9.3: Ollama-only recovery reality and provider simplification`  
 **Branch:** `agent/v0.9.3-recovery-reality-tests`  
-**Status:** Task 037 authorized for one-shot graceful Procmon cleanup; PR remains Draft
+**Status:** Task 037 cleanup accepted; worktree actor investigation blocked for human diagnostic decision; PR remains Draft
 
 ## Current coordination task
 
-Task `CNX-20260823-037` is authorized and `READY_FOR_CODEX` with execution mode `AUTO_WITH_UAC_GATE`.
+Task `CNX-20260823-037` is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
 
-The task must first inventory every Procmon process and prove exclusive Task 036 ownership. If none remain, it skips termination and verifies clean poststate. Only when every surviving Procmon process is exactly attributable to Task 036 and no other Procmon or capture/config artifact exists may it invoke the verified retained `Procmon64.exe /Terminate` once.
+Fresh preflight found zero Procmon processes, so the Task 036 processes had exited naturally and the one-shot `Procmon64.exe /Terminate` was correctly skipped. No matching driver/service or capture/config artifact remained, and the retained verified Microsoft binary/evidence stayed unchanged.
 
-A second `/Terminate`, force/process-tree kill, `Stop-Process`, `taskkill`, reboot, capture, filter/PMC configuration, restoration, retained-evidence cleanup, and CogentNexus/OpenClaw/Ollama runtime action remain prohibited.
+Coordination is now `BLOCKED_HUMAN_DECISION`. Cleanup is complete, but the actor and causal mechanism behind the repeated Task 027 worktree dematerialization remain unproven. Codex could not safely control or visually verify the elevated Procmon GUI, so no exact pre-capture `.PMC` was created.
+
+No Windows runtime, capture, restoration, recovery, or lifecycle task is currently authorized.
 
 ## Stable foundation
 
@@ -153,13 +155,11 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-035` is authorized and ready for Codex.
+A separately bounded human decision is required for the next diagnostic route.
 
-Codex must first revalidate the exact Task027 identity and duplicate fence, then download Process Monitor only from the official Microsoft Sysinternals endpoint into a task-specific temporary directory. It must record package/executable hashes and a valid Microsoft Authenticode signature.
+The narrow candidate is operator-performed elevated Procmon filter configuration while capture remains off, followed by independent verification of the saved exact-path configuration before any later trace task is authorized. Tasks 035–037 must not be repeated.
 
-No capture may begin unless the exact target-path filesystem filter and drop-filtered-events state are proven loaded before recording. The capture may run for at most 10 minutes and may observe only naturally occurring activity. If elevation, exact filter configuration, safe stop, or cleanup cannot be proven, Codex must return the matching blocker without improvisation.
-
-Only direct target-filtered successful filesystem operations can prove an actor. Timing or process presence alone remains insufficient.
+Until that gate is resolved, do not restore the 382 paths again, broad-capture system activity, guess or stop an unproven watcher/process, or resume disruptive recovery/lifecycle execution.
 
 ## Queued desktop-memory diagnostic
 
