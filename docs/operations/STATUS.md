@@ -145,15 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-023` is active in automatic execution mode.
+Task `CNX-20260823-024` is active in automatic execution mode.
 
-Task 022 is reviewed `ACCEPT` for its read-only diagnosis. It proved unexpected commit `2bda9b71952f838da515e046fb3efa10a75f2089` is a local unreachable Task 020 report commit whose sole diff adds the matching report and whose content claims Task 017 cleanup passed. The commit is not reachable from fetched remote refs.
+Task 023 is reviewed `ACCEPT`. It reproduced and verified the complete immutable Task 020 report from unreachable local commit `2bda9b71952f838da515e046fb3efa10a75f2089`, confirmed every required restoration/removal evidence field, and independently confirmed the Task 017 path and registration are absent. The preserving Task 020 worktree remains clean, operation-free, and unused.
 
-Task 023 must read the complete report blob, retain exact hashes and all evidence fields, compare it to every Task 020 criterion, verify current Task 017 path/registration absence, and verify the preserving Task 020 worktree remains clean, operation-free, and unused.
+Task 024 may publish only the byte-identical verified Task 020 report content as the normal matching report file on the coordination branch. It must not cherry-pick, push, or create a ref for the unreachable commit; remove or modify any worktree; repeat Task 017 cleanup; or perform process, runtime, provider, lifecycle, source, merge, tag, or release actions.
 
-No publication of the unpublished commit, repeated cleanup, worktree removal/modification, force, reset, clean, prune, process action, runtime/recovery command, provider diagnosis, lifecycle action, source change, merge, tag, or release is authorized.
-
-Only after Task 023 proves report completeness and postconditions may a later exact task authorize publication or another safe disposition.
+After the verified report is durably published and remotely revalidated, a later separate task may adjudicate removal of the preserving Task 020 worktree. Provider durable-convergence diagnosis remains next after this checkout/report recovery chain is safely closed.
 
 ## Queued desktop-memory diagnostic
 
