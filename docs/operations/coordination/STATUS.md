@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
-**State:** `BLOCKED_HUMAN_DECISION`  
-**Updated:** 2026-08-23 23:29 ICT  
+**State:** `PREPARING_TASK_037`  
+**Updated:** 2026-08-23 23:34 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** explicit cleanup authorization required
+**Execution trigger:** automatic watcher or manual `ต่อ`
 
 ## Participants and technical ownership
 
@@ -14,20 +14,30 @@
 
 Codex may perform cause analysis or design a fix only when the task explicitly states that ChatGPT lacks necessary local access or capability.
 
-## Task 035 outcome
-
-Task `CNX-20260823-035` is reviewed as `BLOCKED_EXACT_FILTER_NOT_PROVABLE`.
-
-The official Process Monitor package was downloaded once and verified as version 4.1 with valid Microsoft Authenticode provenance. Procmon was not launched and no capture occurred.
-
 ## Task 036 outcome
 
 Task `CNX-20260823-036` is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
 
-The verified retained Procmon binary launched once, but elevated UI control was unavailable. No filter or `.PMC` was created and no capture file was found. After the visible GUI was closed, task-owned PIDs 51880 and 59348 remained; no force/process-tree kill was attempted.
+No filter, `.PMC`, `.PML`, `.CSV`, backing file, capture artifact, target stimulation, worktree/runtime action, or force kill was recorded. Task-owned PIDs 51880 and 59348 remained after the visible GUI was closed.
 
-## Human decision gate
+## Human authorization for Task 037
 
-The recommended next phase is one cleanup-only Task 037: revalidate exclusive ownership, invoke the verified retained `Procmon64.exe /Terminate` once as graceful shutdown, and verify clean process/driver/capture poststate. This requires explicit authorization and does not permit force kill, capture, configuration, restoration, or runtime action.
+The operator explicitly authorized:
 
-Do not repeat Task 036 or act on the residual processes while this gate is active.
+`อนุญาต Task 037 ตรวจสอบ ownership และใช้ Procmon64.exe /Terminate ได้ 1 ครั้ง เฉพาะเมื่อยืนยันว่าไม่มี Procmon อื่น ห้าม force-kill และห้าม capture`
+
+Task `CNX-20260823-037` is published as cleanup-only.
+
+It must first inventory every Procmon process and prove exclusive Task 036 ownership. If zero Procmon processes exist, it skips `/Terminate` and verifies clean poststate. If ownership is exact and exclusive, it may invoke the verified retained `Procmon64.exe /Terminate` once only.
+
+It does not permit a second `/Terminate`, `Stop-Process`, `taskkill`, Task Manager End Task, process-tree/force kill, service/driver deletion, reboot, capture, filter/PMC configuration, restoration, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime action.
+
+## Handoff and duplicate fence
+
+Codex must freshly read [`ACTIVE.md`](ACTIVE.md), exact [Task 037](tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md), Task 036 report/review, and the one-shot fence before action.
+
+If the matching Task 037 report exists, do not repeat any action. If ownership is ambiguous or any unrelated Procmon exists, block without invoking `/Terminate`.
+
+## Progress rule
+
+Report meaningful progress approximately every 3 minutes and immediately after process inventory, retained binary verification, ownership decision, before the one-shot command, after poststate verification, and at any blocker.
