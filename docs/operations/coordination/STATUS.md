@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 00:32 ICT  
+**Updated:** 2026-08-24 00:40 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
 **Execution trigger:** automatic watcher or manual `ต่อ`
@@ -12,36 +12,43 @@
 - **Codex** — local-machine proof, bounded execution, validation, and execution reports
 - **Human operator** — final authority and approval for destructive, elevated, interactive, or materially broader actions
 
-## Task 037 outcome
+## Task 038 review
 
-Task `CNX-20260823-037` is reviewed `ACCEPT` as `PASS_ALREADY_CLEAN_NO_TERMINATE`.
+Task `CNX-20260824-038` is reviewed `BLOCKED`.
 
-Zero Procmon processes remained and `/Terminate` was not invoked. No driver/service or capture artifact remained. Task 037 must not be repeated.
+Its PMC evidence is accepted only as strong partial proof:
 
-## Task 038 authorization and scope
+- exact file size `2051 bytes`;
+- SHA256 `61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`;
+- expected bounded structural indicators;
+- zero Procmon process/driver/service state and no capture artifacts.
 
-The operator explicitly authorized creation of Task `CNX-20260824-038`:
+This partial evidence does not authorize Procmon launch or capture.
 
-`ได้เลยครับ สร้าง task ให้ codex ได้เลย`
+Task 038 failed its immutable scope because its report states that Codex created the detached worktree:
 
-Task 038 is proof-only. Codex independently validates the retained operator-created `.PMC` artifact against the exact size, SHA256, timestamps, bounded structural indicators, and clean Procmon process/driver/service/artifact poststate.
+`C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260824-038`
 
-Required artifact:
+The task prohibited worktree mutation. Creating the path necessarily changed filesystem and Git worktree registration state, contradicting the report's later no-mutation claim.
 
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx035-procmon\20260823T140738Z\task027-exact-filesystem-dropfiltered.pmc`
+## Active Task 039
 
-Required size: `2051 bytes`
+Task `CNX-20260824-039` is `READY_FOR_CODEX` with execution mode `AUTO`.
 
-Required SHA256:
+Codex may perform only a read-only inventory of the exact Task 038-created worktree. It must prove path and registration identity, HEAD/branch state, cleanliness, metadata stability, active-process attachment, and clean-removal eligibility.
 
-`61F3BBB57B65F8DC708E66BC15B5B808AB44E9DC770799E8C32ED40724AE6CBC`
+Use `GIT_OPTIONAL_LOCKS=0`. Do not open ordinary tracked file contents.
 
 ## Safety and duplicate fence
 
-Procmon must not be launched. No capture, `/LoadConfig`, PML, CSV, backing file, target worktree access, restoration, process termination, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime action is authorized.
+No new worktree, clone, or branch. No worktree removal, repair, prune, checkout, reset, clean, restore, add/refresh, index rewrite, or process termination.
 
-If the matching Task 038 report exists, do not repeat validation or read the artifact again. A PASS validates only the saved configuration; it does not authorize trace execution.
+No PMC read, Procmon launch, capture, PML/CSV/backing file, target Task 027 access, restoration, watcher/Supervisor change, or CogentNexus/OpenClaw/Ollama runtime/recovery/lifecycle action.
+
+A Task 039 PASS proves removal eligibility only. It does not authorize removal.
+
+If the matching Task 039 report exists at freshly fetched HEAD, do not repeat inventory or publish a duplicate report. Stop awaiting ChatGPT review.
 
 ## Progress rule
 
-Report meaningful progress approximately every 3 minutes and immediately after duplicate preflight, artifact identity verification, bounded structure inspection, clean poststate verification, and publication or blocker.
+Report meaningful progress approximately every 3 minutes and immediately after duplicate preflight, identity/registration proof, clean-state proof, metadata-stability verification, process-attachment verification, and publication or blocker.
