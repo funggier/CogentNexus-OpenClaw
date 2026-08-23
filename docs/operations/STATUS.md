@@ -145,17 +145,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-019` is active in automatic execution mode as the preservation-gated cleanup of the exact wrong-head Task 017 worktree.
+Task `CNX-20260823-020` is active in automatic execution mode.
 
-Task 018 is reviewed `ACCEPT` for its safe `BLOCKED_TARGET_DIRTY` report only. It verified the exact target and wrong HEAD, but found three tracked report deletions and one path-filtered PowerShell match. It correctly performed no removal, force, reset, clean, prune, process action, or runtime action.
+Task 019 is reviewed `ACCEPT` only for its safe blocked report. Codex found a contract conflict: the watcher requires a dedicated isolated worktree for every task, while Task 019 prohibited creating any worktree. It correctly stopped before inspecting or mutating the Task 017 target.
 
-Task 019 may adjudicate only the three named deleted report paths. It must prove their blobs remain durable, no unpublished commit or other change exists, no Git operation is active, and no process is bound to the exact target. Only if every gate passes may it restore those exact files from the target's own HEAD, verify a completely clean tree, and remove only the exact target using normal non-force Git removal.
+Task 020 resolves the conflict narrowly. It permits exactly one control worktree at `C:\Users\CDQ-P\.openclaw\worktrees\cogentnexus-CNX-20260823-020`, with an exact collision and HEAD fence. The wrong-head Task 017 worktree remains the sole cleanup target.
 
-The human operator reports that OpenClaw has addressed the local Codex problem and authorizes coordination to continue. This permits Task 019 to evaluate current state; it does not waive its preservation, identity, or no-process gates.
+Task 020 may adjudicate only the three named tracked report deletions. Only after proving content durability, absence of unpublished commits and Git operations, and no process use may it restore those exact target-HEAD blobs and remove the exact Task 017 worktree using normal non-force Git removal.
 
-Provider diagnosis and worktree recreation remain excluded until Task 019 is reviewed.
+No fallback path, second worktree, force, reset, clean, broad prune, process action, recovery rerun, runtime command, provider diagnosis, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
 
-No recovery rerun, process kill, runtime command, install, reset, uninstall, reinstall, source change, merge, tag, or release is authorized.
+After Task 020 is reviewed, the next intended step remains the offline provider durable-convergence diagnosis using an exact fetched remote ref and verified control HEAD.
 
 ## Queued desktop-memory diagnostic
 
