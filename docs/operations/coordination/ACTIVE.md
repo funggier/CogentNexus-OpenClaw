@@ -1,32 +1,32 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO`  
+Status: `BLOCKED_HUMAN_DECISION`  
+Execution mode: `MANUAL_AUTHORIZATION_REQUIRED`  
 Task ID: `CNX-20260823-034`  
-Updated: 2026-08-23 19:49 ICT  
+Updated: 2026-08-23 20:13 ICT  
 Owner: ChatGPT  
-Executor: Codex
+Executor: none until authorized
 
-## Active task
+## Accepted report and review
 
-[`tasks/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md`](tasks/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md)
+[`reports/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md`](reports/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md)
 
-## Predecessor review
+[`reviews/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md`](reviews/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md)
 
-[`reviews/CNX-20260823-033-complete-recurring-materialization-loss-evidence.md`](reviews/CNX-20260823-033-complete-recurring-materialization-loss-evidence.md)
+Task 034 is `ACCEPT` as `PASS_SOURCE_CAPABILITY_MAPPED_NO_ACTOR`.
 
-Task 033 is `ACCEPT` as a read-only evidence-completion result. It confirmed the recurring 382-path state with hashed inventories and a UTC timeline, but did not prove an actor. Neither Supervisor nor Codex watcher is implicated.
+## Proven boundary
 
-## Purpose
+The exact Task 027 worktree still has 387 indexed paths, 5 materialized paths, and the same 382 absent paths. Repository source contains deletion-capable operations, but the audited paths cannot reach the exact worktree under their documented scopes. No filesystem trace or log proves an initiating PID, operation sequence, or causal link to CogentNexus Supervisor or the Codex watcher.
 
-Task 034 performs the single accepted next diagnostic: a bounded filesystem I/O trace focused on the exact Task 027 target, plus a read-only source audit of deletion/materialization/worktree-cleanup code requested by the human operator.
+## Human decision required
 
-Source capability must remain separate from runtime attribution. No restoration, containment, task/watcher/Supervisor change, software installation, audit enablement, or CogentNexus/OpenClaw/Ollama runtime action is authorized.
+Decide whether to authorize a separate narrow task to install/use a filesystem I/O tracing facility capable of exact-path attribution, preferably Microsoft Sysinternals Process Monitor from the official Microsoft distribution.
 
-## Progress communication
+Any authorization must define the exact download source and hash/provenance recording, installation/extraction scope, elevation boundary, exact-path filter, maximum trace duration, evidence export, and cleanup/retention behavior.
 
-During active execution, report meaningful progress approximately every 3 minutes and immediately after preflight/tool discovery, trace start/stop, source audit, correlation, or blocker. Progress updates are not pause points.
+No tool installation, audit enablement, restoration, containment, process/task/Supervisor change, or runtime action is authorized by the current state.
 
 ## Duplicate-execution fence
 
-If `docs/operations/coordination/reports/CNX-20260823-034-trace-task027-filesystem-io-and-audit-source.md` already exists at freshly fetched HEAD, do not repeat the trace or source audit; stop awaiting ChatGPT review.
+Do not repeat Tasks 030–034. Do not restore the 382 absent paths or attempt containment while this human-decision gate is active.
