@@ -145,17 +145,17 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-033` is active in automatic execution mode.
+Task `CNX-20260823-034` is active in automatic execution mode.
 
-Task 032 is reviewed `REWORK`. It safely reconfirmed the exact recurring state—387 indexed, 5 materialized, 382 absent, canonical absent-list SHA256 `6A078DA7D54615B67E0020D978A065171E803B0A0DFE134CE978BB2616B91FB8`—and observed no change over 60 seconds. It did not prove a deletion actor, and no mutation, restoration, containment, or runtime action occurred.
+Task 033 is accepted as a read-only evidence-completion result. It reconfirmed 387 indexed, 5 materialized, and 382 absent with canonical absent-list SHA256 `6A078DA7D54615B67E0020D978A065171E803B0A0DFE134CE978BB2616B91FB8`; captured exact hashed inventories and a UTC timeline; and did not prove a deletion actor. Neither CogentNexus Supervisor nor Codex watcher is directly implicated.
 
-The Task 032 report did not preserve all mandatory exact inventories and proposed changing the CogentNexus Supervisor and/or Codex watcher without evidence selecting one target. No such containment is authorized.
+Task 034 performs the one accepted next diagnostic: a bounded filesystem I/O trace focused on the exact Task 027 worktree, capturing filesystem operation, path, initiator PID/image, result, and UTC time when an already-installed tracing facility is available. It also audits current GitHub/source code for worktree deletion, cleaning, pruning, resetting, recycling, and materialization paths.
 
-Task 033 is a read-only evidence-completion task. It must publish exact hashed configuration, filesystem, process, scheduled-task, watcher, terminal, event-channel, and authorized artifact inventories; correlate one UTC timeline; and identify at most one evidence-supported next diagnostic target or explicitly retain `CAUSE_NOT_PROVEN`.
+Source capability and runtime attribution remain separate. A deletion-capable code path is not the actor unless direct trace/log evidence proves execution.
 
-Task 033 may not restore files, mutate the index/filesystem, pause or change any process/task/watcher, enable auditing, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
+Task 034 may not restore the 382 paths, change the target/index/worktree, pause or reconfigure Supervisor/watcher/tasks, install tracing software, enable auditing, resume Task 025, migrate repository references, or touch CogentNexus/OpenClaw/Ollama runtime state.
 
-Only after Task 033 is reviewed may ChatGPT authorize one exact acquisition/containment step and a later independently fenced restoration.
+Only after Task 034 review may ChatGPT authorize one exact containment or an independently fenced restoration.
 
 ## Queued desktop-memory diagnostic
 
