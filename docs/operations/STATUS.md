@@ -145,13 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-024` is active in automatic execution mode.
+Task `CNX-20260823-025` is active in automatic execution mode.
 
-Task 023 is reviewed `ACCEPT`. It reproduced and verified the complete immutable Task 020 report from unreachable local commit `2bda9b71952f838da515e046fb3efa10a75f2089`, confirmed every required restoration/removal evidence field, and independently confirmed the Task 017 path and registration are absent. The preserving Task 020 worktree remains clean, operation-free, and unused.
+Task 024 is reviewed `ACCEPT` for its safe `BLOCKED_SOURCE_MISMATCH` stop. It correctly refused publication because bytes read through the Windows preserving worktree were one byte different from the accepted immutable Git blob contract. No destination, cleanup, ref, process, runtime, provider, lifecycle, or force action occurred.
 
-Task 024 may publish only the byte-identical verified Task 020 report content as the normal matching report file on the coordination branch. It must not cherry-pick, push, or create a ref for the unreachable commit; remove or modify any worktree; repeat Task 017 cleanup; or perform process, runtime, provider, lifecycle, source, merge, tag, or release actions.
+Task 025 must read publication bytes directly from immutable Git blob `361be921ae0b70124769d1d8b5a2f33d1b277d88`, require SHA256 `93b06be819c09b56b46352a07c244bf29e76e4c1c7b0bbd2d79cbc76d44c68e9`, 2,795 bytes, and 36 lines, then require the committed and remotely fetched destination blob to retain the exact same identity. It must not source bytes from a checked-out worktree file.
 
-After the verified report is durably published and remotely revalidated, a later separate task may adjudicate removal of the preserving Task 020 worktree. Provider durable-convergence diagnosis remains next after this checkout/report recovery chain is safely closed.
+After durable exact publication, a later separate task may remove the preserving Task 020 worktree. Provider durable-convergence diagnosis remains next after this report/checkout recovery chain closes.
 
 ## Queued desktop-memory diagnostic
 
