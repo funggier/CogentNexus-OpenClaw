@@ -131,6 +131,20 @@ See [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md).
 
 A safe execution stop must not become a silent dead end. Codex publishes the matching problem report; ChatGPT reviews it, classifies the blocker, and either opens the narrowest safe diagnostic/fix/replacement task or sets an exact human-decision gate. Meaningful blockers and dispositions are reported to the human operator.
 
+
+## Progress communication contract
+
+During a running Codex task, progress reporting is part of the execution contract:
+
+- announce the objective and current phase when execution begins;
+- while work is actively running, publish a meaningful progress update at least approximately every 3 minutes;
+- report immediately after preflight, before an authorized mutation, after mutation, after verification, and when a blocker is found;
+- report actions, evidence, outcomes, and the next phase without exposing private reasoning;
+- a progress update is not a pause point: in `AUTO` mode Codex continues immediately unless a safety, authority, permission, or required-information gate blocks execution;
+- finish with actions taken, evidence, side effects, remaining unproven items, and the durable next state.
+
+Avoid empty timer messages. If a phase completes sooner, report its milestone rather than waiting for the interval.
+
 ## Evidence rule
 
 A report must distinguish:
