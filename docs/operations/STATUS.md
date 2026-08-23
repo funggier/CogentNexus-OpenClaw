@@ -145,13 +145,13 @@ This hardening was introduced after an early harness terminated unrelated intera
 
 ## Immediate next step
 
-Task `CNX-20260823-016` is active in automatic execution mode as the offline provider durable-convergence diagnosis.
+Task `CNX-20260823-017` is active in automatic execution mode as the replacement offline provider durable-convergence diagnosis.
 
-Task 015 is reviewed `REWORK`: it produced useful partial recovery evidence but omitted required exact fields and overclaimed some `PROVEN` gates. It must not be rerun.
+Task 016 is reviewed `ACCEPT` for its safe `BLOCKED` execution report only. The scheduled run supplied no environment-provided isolated checkout, so Codex correctly performed no evidence/source diagnosis and no Windows/runtime action. The provider root cause remains unproven.
 
-Task 016 uses only the immutable evidence pair plus tracked repository source. It must correct the evidence matrix, map the provider incident open/advance/stable-success/close/verdict transitions, classify the root cause, and identify the narrowest fix only if source evidence is unambiguous.
+Task 017 authorizes exactly one task-owned worktree at `C:\\Users\\CDQ-P\\.openclaw\\worktrees\\cogentnexus-CNX-20260823-017`, with an exact-path collision fence, no fallback/suffixed checkout, and narrow cleanup of only that exact path after clean successful publication.
 
-To prevent manual checkout accumulation, Task 016 may use only the isolated checkout supplied by the scheduled execution environment. It forbids `git worktree add`, clones, nested/fallback checkouts, and any inspection or cleanup of Task 007–015 paths.
+It must verify the immutable evidence pair, correct the Task 015 evidence matrix, map the provider incident open/advance/stable-success/close/verdict transitions, classify the root cause, and identify the narrowest next disposition. It may not implement a fix.
 
 No live Windows/runtime inspection, recovery rerun, process kill, install, reset, uninstall, reinstall, merge, tag, or release is authorized.
 
