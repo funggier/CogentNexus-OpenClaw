@@ -1,13 +1,17 @@
 # Active Coordination Task
 
-Status: `BLOCKED_HUMAN_DECISION`  
-Execution mode: `MANUAL_AUTHORIZATION_REQUIRED`  
-Task ID: `CNX-20260823-036`  
-Updated: 2026-08-23 23:29 ICT  
+Status: `READY_FOR_CODEX`  
+Execution mode: `AUTO_WITH_UAC_GATE`  
+Task ID: `CNX-20260823-037`  
+Updated: 2026-08-23 23:34 ICT  
 Owner: ChatGPT  
-Executor: none until authorized
+Executor: Codex
 
-## Report and review
+## Active task
+
+[`tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md`](tasks/CNX-20260823-037-graceful-cleanup-task036-procmon.md)
+
+## Predecessor report and review
 
 [`reports/CNX-20260823-036-configure-task027-procmon-pmc.md`](reports/CNX-20260823-036-configure-task027-procmon-pmc.md)
 
@@ -15,24 +19,49 @@ Executor: none until authorized
 
 Task 036 is reviewed `BLOCKED` as `BLOCKED_CLEANUP_UNVERIFIED`.
 
-## Proven boundary
+## Human authorization
 
-The verified retained Procmon 4.1 binary was launched once with `/NoConnect /NoFilter /AcceptEula`. Elevated UI control was unavailable, so no filter was configured and no `.PMC` was exported.
+The operator explicitly authorized:
 
-No `.PMC`, `.PML`, `.CSV`, backing file, target stimulation, restoration, worktree/Git mutation, watcher/Supervisor change, or CogentNexus/OpenClaw/Ollama runtime action was recorded.
+`อนุญาต Task 037 ตรวจสอบ ownership และใช้ Procmon64.exe /Terminate ได้ 1 ครั้ง เฉพาะเมื่อยืนยันว่าไม่มี Procmon อื่น ห้าม force-kill และห้าม capture`
 
-After the operator closed the visible GUI, task-owned Procmon PIDs 51880 and 59348 remained. No force or process-tree kill was used.
+This authorization is fully bounded by the immutable Task 037 specification.
 
-## Human decision required
+## Purpose
 
-Decide whether to authorize one cleanup-only Task 037.
+Resolve the residual Task 036 Procmon state without capture or force.
 
-The recommended phase would revalidate exact ownership and absence of any other Procmon instance, then use the verified retained `Procmon64.exe /Terminate` exactly once as a graceful Procmon shutdown. It would verify zero Procmon processes and no unexpected driver/service/capture artifacts afterward.
+Reported residual identity:
 
-It would not authorize `Stop-Process`, `taskkill`, process-tree/force kill, reboot, capture, filter configuration, restoration, or runtime action.
+- PID 51880 — exact retained `Procmon64.exe /NoConnect /NoFilter /AcceptEula`
+- PID 59348 — child of PID 51880
 
-No cleanup command, repeated Task 036 attempt, PMC configuration, or trace is authorized by the current state.
+## Mandatory ownership gate
+
+Freshly inventory every Procmon process.
+
+- If none remain: do not invoke `/Terminate`; verify and report clean.
+- If every surviving Procmon process is exactly and exclusively attributable to Task 036, the verified retained `Procmon64.exe /Terminate` may be invoked once.
+- If any extra process, changed PID identity/ancestry, PID reuse, unreadable ownership, unexpected capture/config artifact, or uncertainty exists: block without action.
+
+PID or process name alone is insufficient proof.
+
+## One-shot fence
+
+The exact retained executable may be invoked with `/Terminate` at most once across Task 037.
+
+Never retry after timeout, uncertain outcome, UAC interruption, or failure.
+
+No `Stop-Process`, `taskkill`, Task Manager End Task, WMIC/CIM termination, process-tree/force kill, service/driver stop/delete, reboot, logoff, PsExec, UAC bypass, or policy change.
+
+## Safety boundary
+
+No capture, Procmon GUI configuration launch, `.PMC` creation/overwrite, PML/backing file/CSV, target touch/stimulation, restoration/materialization, worktree/Git mutation, watcher/Supervisor change, retained-evidence cleanup, CogentNexus/OpenClaw/Ollama runtime action, force push, merge, tag, or release.
+
+## Progress communication
+
+Report meaningful progress approximately every 3 minutes and immediately after inventory, binary identity proof, ownership decision, before the one-shot graceful action, after bounded poststate verification, and at any blocker.
 
 ## Duplicate-execution fence
 
-Do not repeat Task 036, relaunch Procmon, modify the retained evidence, or attempt any cleanup while this human-decision gate is active.
+If the matching Task 037 report exists at freshly fetched HEAD, do not repeat inventory for action, `/Terminate`, or any side effect. Stop awaiting ChatGPT review.
