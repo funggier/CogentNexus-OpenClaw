@@ -1,32 +1,43 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO_WITH_INTERACTIVE_UAC`  
+Status: `BLOCKED_HUMAN_DECISION`  
+Execution mode: `NONE`  
 Task ID: `CNX-20260824-041`  
-Updated: 2026-08-24 01:20 ICT  
+Updated: 2026-08-24 06:38 ICT  
 Owner: ChatGPT  
-Executor: Codex
+Executor: none pending authorization
 
-## Active task
+## Completed report and review
 
-[`tasks/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md`](tasks/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md)
+[`reports/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md`](reports/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md)
 
-## Predecessor
+[`reviews/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md`](reviews/CNX-20260824-041-capture-task027-exact-filesystem-attribution.md)
 
-[`reports/CNX-20260824-040-classify-task038-worktree-415-path-loss.md`](reports/CNX-20260824-040-classify-task038-worktree-415-path-loss.md)
+Task 041 is reviewed `BLOCKED` as `BLOCKED_NO_DELETE_EVENT_OBSERVED`.
 
-[`reviews/CNX-20260824-040-classify-task038-worktree-415-path-loss.md`](reviews/CNX-20260824-040-classify-task038-worktree-415-path-loss.md)
+## Accepted bounded evidence
 
-Task 040 is reviewed `ACCEPT`.
+The exact Task 027 prestate was 387 tracked / 5 present / 382 absent.
 
-## Authorization
+The exact authorized 382-path restore ran once after capture-active proof and exited 0. Procmon captured for the bounded 600-second runtime, stopped automatically, and exported 6,906 exact-root events with zero filter escapes.
 
-The operator authorized one exact-path Procmon capture for at most 10 minutes and one materialization of the exact 382 absent Task 027 paths after capture-active proof.
+The trace contains zero successful post-restore delete, disposition, replace, rename, or move-away events. The bounded poststate was 387 tracked / 387 present / 0 absent.
 
-The PMC targets Task 027 and must not be redirected to Task 038.
+No actor or causal mechanism is identified. The earlier loss did not recur during this window, but recurrence outside the window remains unproven.
 
-## Safety
+## Human decision required
 
-No Task 038 access, broad capture, PMC change, repeated restore, force termination, worktree creation/removal/repair/prune, watcher/Supervisor change, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/provider/recovery/lifecycle action.
+Choose one direction:
 
-Ordinary interactive UAC may require operator approval. If the matching Task 041 report already exists, do not execute again.
+1. accept bounded non-recurrence, retain the evidence artifacts, and resume the planned v0.9.3 recovery gates without claiming a root cause; or
+2. authorize a separately fenced natural-recurrence observation task with an explicit duration, exact target, artifact-retention policy, and graceful shutdown boundary.
+
+## Current safety boundary
+
+No Codex task is executable.
+
+Do not repeat Task 041. Its one authorized restore and capture are consumed. Do not launch Procmon, capture, restore paths again, access Task 038, clean/remove/repair/prune either worktree, terminate processes, alter watcher/Supervisor state, remove retained evidence, or resume recovery/lifecycle execution without a new exact task and required authorization.
+
+## Duplicate-execution fence
+
+If another watcher run observes this state without a new human decision recorded in a new exact task, perform no local action and publish no duplicate report.
