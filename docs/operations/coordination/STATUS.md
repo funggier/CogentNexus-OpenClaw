@@ -1,27 +1,36 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 01:20 ICT  
+**State:** `BLOCKED_HUMAN_DECISION`  
+**Updated:** 2026-08-24 06:38 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** automatic watcher or manual `ต่อ`
+**Execution trigger:** none pending authorization
 
-## Task 040 outcome
+## Task 041 outcome
 
-Task `CNX-20260824-040` is reviewed `ACCEPT`. Task 038 and Task 027 share the same deterministic five-root-file mass-loss signature, but no actor/PID/event time is proven.
+Task `CNX-20260824-041` is reviewed `BLOCKED` as `BLOCKED_NO_DELETE_EVENT_OBSERVED`.
 
-## Active Task 041
+The exact authorized Task 027 experiment completed safely:
 
-Task `CNX-20260824-041` is `READY_FOR_CODEX` with `AUTO_WITH_INTERACTIVE_UAC`.
+- verified prestate: 387 tracked / 5 present / 382 absent;
+- exact 382-path materialization ran once after capture-active proof and exited 0;
+- Procmon used the verified exact-path PMC for a bounded 600-second runtime;
+- Procmon stopped automatically and left no process/driver/service state;
+- offline export contained 6,906 exact-root events and zero filter escapes;
+- no successful post-restore destructive event was observed;
+- bounded poststate: 387 tracked / 387 present / 0 absent.
 
-The operator authorized one exact-path Procmon capture for at most 600 seconds and one exact 382-path Task 027 materialization after capture-active proof.
+The trace did not reproduce the mass loss and does not identify an actor, PID, event time, or deletion-versus-nonmaterialization mechanism.
 
-The retained PMC targets Task 027. Do not redirect it to Task 038.
+## Human decision gate
 
-Codex must verify target, executable, PMC, and clean Procmon prestate; prove capture active; restore exactly once; let capture stop automatically; export offline; reject filter escape; and rely only on successful post-restore filesystem events for attribution.
+The next direction is a material operator choice:
+
+1. accept bounded non-recurrence and resume the v0.9.3 recovery plan while preserving uncertainty and retained trace artifacts; or
+2. authorize a new separately fenced natural-recurrence observation strategy with explicit duration, exact target, artifact retention, and graceful shutdown.
 
 ## Safety and duplicate fence
 
-No second restore, broad capture, PMC modification, force termination, Task 038 access, worktree creation/removal/repair/prune, process termination, watcher/Supervisor/task/config change, retained-evidence cleanup, or CogentNexus/OpenClaw/Ollama runtime/provider/recovery/lifecycle action.
+No Codex task is executable.
 
-If the matching report exists, do not repeat execution. Report progress approximately every 3 minutes and at every major gate.
+Do not repeat Task 041. Its authorized restore and capture are consumed. Do not capture or restore again, access Task 038, clean/remove/repair/prune worktrees, terminate processes, alter watcher/Supervisor state, remove retained evidence, or resume recovery/lifecycle execution without a new exact task and applicable human authorization.
