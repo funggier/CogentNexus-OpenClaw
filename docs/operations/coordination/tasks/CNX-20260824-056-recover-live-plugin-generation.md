@@ -198,4 +198,3 @@ Current authorization permits read-only inspection, one inventory capture, plan 
 No installer, `rollover-apply`, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, `cnxclaw enable/disable/start/stop/restart/reset/uninstall`, scheduler change, supervisor creation, Gateway/Ollama/model mutation, process termination, force-kill, Procmon/Task 027/038 action, primary-repository mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication is currently authorized.
 
 Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan creation, plan verification, checkpoint publication, and any blocker.
-
