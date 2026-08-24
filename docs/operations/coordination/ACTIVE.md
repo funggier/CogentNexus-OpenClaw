@@ -1,12 +1,11 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`
-Execution mode: `MANUAL_WITH_HUMAN_GATE`
-Task ID: `CNX-20260824-056`
-Current authorization: `PHASE_A_PLAN_ONLY`
-Updated: 2026-08-24 22:25 ICT
+Status: `CHATGPT_EXECUTING`
+Execution mode: `CHATGPT_REPOSITORY_ONLY`
+Task ID: `CNX-20260824-057`
+Updated: 2026-08-24 22:56 ICT
 Owner: ChatGPT
-Executor: Codex after operator's manual signal
+Executor: ChatGPT work environment
 
 ## Authoritative coordination files
 
@@ -15,34 +14,30 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 056 gate.
+`docs/operations/STATUS.md` is project narrative and is not a Task 057 gate.
 
 ## Active task
 
-[`tasks/CNX-20260824-056-recover-live-plugin-generation.md`](tasks/CNX-20260824-056-recover-live-plugin-generation.md)
+[`tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md`](tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md)
 
 ## Predecessor disposition
 
-Task 055 is reviewed `ACCEPT` as:
+Task 056 is reviewed `ACCEPT` as:
 
-`ACCEPT_PLUGIN_GENERATION_ROLLOVER_FIXED`
+`ACCEPT_BLOCKER_OPENCLAW_OPTIONAL_PACKAGE_NAME`
 
-Implementation HEAD `6ad87e6f3ae65327a14bab4b5144dda4416d3645` and report commit `846a58189dea4d8c5ccb137da4bf4c1952eeaaa5` are accepted.
+Task 056 report commit `884c84f269203338eeb144f7db715afe8eee8a51` is accepted. It made zero live mutations and generated no recovery plan.
 
 ## Human authorization
 
-The operator selected `1` to authorize creation and execution of Task 056 Phase A under the proposed plan/checkpoint gate.
+The operator selected `1` to authorize Task 057 and implementation from the ChatGPT work environment.
 
-This does not authorize recovery apply or MANAGED enable.
+This does not authorize a new live plan attempt, recovery apply, or MANAGED enable.
 
 ## Authorized operation
 
-Perform read-only live-state preservation checks, capture one exact OpenClaw plugin inventory, generate and verify the Task 055 recovery plan, publish its exact SHA-256 and bounded fields in the Task 056 checkpoint report, remote-verify that report, and stop.
-
-## Mandatory stop gate
-
-Do not invoke `rollover-apply` or any lifecycle action. Phase B requires a later coordination commit that records the accepted checkpoint review, exact approved plan SHA-256, and separate operator authorization.
+Implement and test the narrow repository compatibility fix for an absent optional OpenClaw inventory `packageName`, publish the Task 057 report, and prepare a separately gated Task 058 plan-only successor after review.
 
 ## Safety
 
-No installer, uninstall/reset/clean reinstall, plugin or generation mutation, ownership rewrite, enable/disable/start/stop/restart, scheduler/supervisor change, Gateway/Ollama/model mutation, process termination, primary-repository mutation, Procmon/Task 027/038 action, excluded-system action, merge, tag, release, or archive publication.
+Repository-only. No live inventory capture, recovery plan/apply, installer, plugin or generation mutation, ownership rewrite, lifecycle, scheduler/supervisor, Gateway/Ollama/model/process, primary-repository, retained-evidence, Procmon/Task 027/038, or excluded-system action.
