@@ -39,7 +39,7 @@ describe("v0.9.1 production wiring", () => {
     const workflow = services.filter((service) => service?.id === WORKFLOW_COMPLETION_ID);
     const tickets = services.filter((service) => service?.id === TICKET_RECOVERY_ID);
     const direct = services.filter((service) => service?.id === DIRECT_RECOVERY_ID);
-    const context = services.filter((service) => service?.id === "cogentnexus-context-maintenance-v091");
+    const context = services.filter((service) => service?.id === "cogentnexus-openclaw-context-maintenance-v091");
 
     expect(host).toHaveLength(1);
     expect(workflow).toHaveLength(1);

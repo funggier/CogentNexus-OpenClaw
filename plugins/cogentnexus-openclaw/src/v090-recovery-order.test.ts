@@ -96,7 +96,7 @@ describe("v0.9 same-session Direct Recovery ordering",()=>{
       installRecoveryOrderAdmission(api,{workspaceDir:root,ticketDatabasePath:path});
       expect(options.priority).toBe(1600);
       const result=await handler({}, {sessionKey:session,runId:"second",workspaceDir:root});
-      expect(result).toMatchObject({outcome:"block",category:"cogentnexus_recovery_order",metadata:{ticketId:second.ticketId,predecessorTicketId:first.ticketId}});
+      expect(result).toMatchObject({outcome:"block",category:"cnxclaw_recovery_order",metadata:{ticketId:second.ticketId,predecessorTicketId:first.ticketId}});
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 });

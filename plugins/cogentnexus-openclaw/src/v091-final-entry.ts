@@ -23,13 +23,13 @@ import {
 } from "./v091-direct-recovery.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
-const WRAPPED = Symbol.for("cogentnexus.v091.release-entry");
-const ADAPTIVE_HOST_RECONCILIATION = Symbol.for("cogentnexus.v091.adaptive-host-reconciliation");
-const EVENT_DRIVEN_SERVICE = Symbol.for("cogentnexus.v091.event-driven-service");
-const TICKET_MUTATION_PULSE_PATCH = Symbol.for("cogentnexus.v091.ticket-mutation-pulse");
-export const HOST_RECONCILIATION_ID = "cogentnexus-v090-host-reconciliation";
-export const WORKFLOW_COMPLETION_ID = "cogentnexus-workflow-completion";
-export const TICKET_RECOVERY_ID = "cogentnexus-ticket-recovery";
+const WRAPPED = Symbol.for("cogentnexus-openclaw.v091.release-entry");
+const ADAPTIVE_HOST_RECONCILIATION = Symbol.for("cogentnexus-openclaw.v091.adaptive-host-reconciliation");
+const EVENT_DRIVEN_SERVICE = Symbol.for("cogentnexus-openclaw.v091.event-driven-service");
+const TICKET_MUTATION_PULSE_PATCH = Symbol.for("cogentnexus-openclaw.v091.ticket-mutation-pulse");
+export const HOST_RECONCILIATION_ID = "cogentnexus-openclaw-v090-host-reconciliation";
+export const WORKFLOW_COMPLETION_ID = "cogentnexus-openclaw-workflow-completion";
+export const TICKET_RECOVERY_ID = "cogentnexus-openclaw-ticket-recovery";
 export const IDLE_RECONCILE_MS = 120_000;
 export const ACTIVE_RECONCILE_MS = 15_000;
 export const DEEP_RECONCILE_MS = 10 * 60_000;

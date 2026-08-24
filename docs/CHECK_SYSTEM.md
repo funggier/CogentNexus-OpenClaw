@@ -54,7 +54,7 @@ The report records both the requested preflight provider and the persisted selec
 ## Component checks
 
 ```powershell
-.\cnxclaw.cmd check cogentnexus
+.\cnxclaw.cmd check cogentnexus-openclaw
 .\cnxclaw.cmd check config
 .\cnxclaw.cmd check openclaw
 .\cnxclaw.cmd check gateway

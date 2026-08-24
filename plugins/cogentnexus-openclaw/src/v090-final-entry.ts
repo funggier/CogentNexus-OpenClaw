@@ -12,9 +12,9 @@ import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
 import { isDashboardSession, prepareV090RecoveryState } from "./v090.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
-const WRAPPED = Symbol.for("cogentnexus.v090.final-entry");
-const DASHBOARD_DIRECT_SETTLEMENT = Symbol.for("cogentnexus.v090.dashboard-direct-settlement");
-export const STARTUP_RECOVERY_FENCE = Symbol.for("cogentnexus.v090.startup-recovery-fence");
+const WRAPPED = Symbol.for("cogentnexus-openclaw.v090.final-entry");
+const DASHBOARD_DIRECT_SETTLEMENT = Symbol.for("cogentnexus-openclaw.v090.dashboard-direct-settlement");
+export const STARTUP_RECOVERY_FENCE = Symbol.for("cogentnexus-openclaw.v090.startup-recovery-fence");
 
 function recoverCrashStaleContextRows(databasePath:string) {
   const db=new DatabaseSync(databasePath),stamp=new Date().toISOString();
@@ -104,7 +104,7 @@ function wrapFinalEntry() {
     const contextRegistration = Object.create(contextApi);
     if (proxy.registerService) {
       contextRegistration.registerService = (service:any) => {
-        if (!/^cogentnexus-context-maintenance-v09[01]$/.test(String(service?.id ?? "")) || typeof service.start !== "function") {
+        if (!/^cogentnexus-openclaw-context-maintenance-v09[01]$/.test(String(service?.id ?? "")) || typeof service.start !== "function") {
           return proxy.registerService(service);
         }
         return proxy.registerService({

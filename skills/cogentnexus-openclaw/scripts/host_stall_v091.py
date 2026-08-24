@@ -298,7 +298,7 @@ def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict
         "--reason",
         reason,
         "--owner",
-        "cogentnexus-host",
+        "cogentnexus-openclaw-host",
         "--recovery-policy",
         "healthy-runtime",
         timeout=60,
@@ -312,7 +312,7 @@ def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict
         "--reason",
         reason,
         "--owner",
-        "cogentnexus-host",
+        "cogentnexus-openclaw-host",
         timeout=240,
         check=True,
     )

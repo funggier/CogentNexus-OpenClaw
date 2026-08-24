@@ -18,7 +18,7 @@ describe("v0.9.5 Direct Recovery compatibility boundaries", () => {
           runEmbeddedAgent: async (input: any) => {
             captured = input;
             directoryDuringRun = dirname(input.sessionFile);
-            expect(input.sessionKey).toMatch(/^temp:cogentnexus-direct-recovery:/u);
+            expect(input.sessionKey).toMatch(/^temp:cogentnexus-openclaw-direct-recovery:/u);
             expect(input.sessionFile).toMatch(/session\.jsonl$/u);
             expect(existsSync(directoryDuringRun)).toBe(true);
             expect(input.disableTrajectory).toBe(true);
@@ -34,7 +34,7 @@ describe("v0.9.5 Direct Recovery compatibility boundaries", () => {
       runId: "cnxclaw-direct-CNXT-test-1-g0",
     });
 
-    expect(captured.sessionKey).toBe("temp:cogentnexus-direct-recovery:cnxclaw-direct-CNXT-test-1-g0");
+    expect(captured.sessionKey).toBe("temp:cogentnexus-openclaw-direct-recovery:cnxclaw-direct-CNXT-test-1-g0");
     expect(directoryDuringRun).not.toBe("");
     expect(existsSync(directoryDuringRun)).toBe(false);
   });

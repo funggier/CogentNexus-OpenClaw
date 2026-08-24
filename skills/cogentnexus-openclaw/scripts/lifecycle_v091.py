@@ -201,7 +201,7 @@ def reset(root: Path) -> int:
         if not gateway.get("healthy"):
             raise RuntimeError("OpenClaw Gateway failed health verification after CogentNexus-OpenClaw reset")
         print("")
-        print("COGENTNEXUS RESET: PASS")
+        print("COGENTNEXUS-OPENCLAW RESET: PASS")
         print(f"Workspace : {WORKSPACE}")
         print(f"Plugin    : {plugin.get('status')}")
         print("State     : fresh-install MANAGED")
@@ -263,7 +263,7 @@ def uninstall_plugin() -> None:
 
 
 def schedule_windows_cleanup(paths: list[Path]) -> None:
-    cleanup = Path(tempfile.gettempdir()) / f"cogentnexus-uninstall-{os.getpid()}.cmd"
+    cleanup = Path(tempfile.gettempdir()) / f"cogentnexus-openclaw-uninstall-{os.getpid()}.cmd"
     lines = ["@echo off", "timeout /t 2 /nobreak >nul"]
     for path in paths:
         escaped = str(path).replace('"', '""')
@@ -325,7 +325,7 @@ def uninstall(root: Path) -> int:
                     path.unlink()
 
         print("")
-        print("COGENTNEXUS UNINSTALL: PASS")
+        print("COGENTNEXUS-OPENCLAW UNINSTALL: PASS")
         print("OpenClaw : native / healthy")
         print("Ollama   : unchanged")
         if os.name == "nt":

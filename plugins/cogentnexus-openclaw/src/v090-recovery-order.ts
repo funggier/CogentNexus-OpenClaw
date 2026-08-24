@@ -127,6 +127,6 @@ export function installRecoveryOrderAdmission(api:any,config:RecoveryOrderConfig
     if(!queued)return {outcome:"pass"};
     api.logger.info?.(`CogentNexus-OpenClaw serialized Ticket ${queued.ticketId} behind ${queued.predecessorTicketId} (${queued.predecessorState}) in ${sessionKey}`);
     return {outcome:"block",reason:"CogentNexus-OpenClaw committed this request and queued it behind older Direct Recovery in the same session",
-      category:"cogentnexus_recovery_order",metadata:queued};
+      category:"cnxclaw_recovery_order",metadata:queued};
   },{priority:1600,timeoutMs:5000});
 }

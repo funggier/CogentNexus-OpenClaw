@@ -64,8 +64,8 @@ type AssistantDeliveryTarget =
 type SessionAuthority = { state: "active" | "deleting" | "deleted"; generation: number };
 type ActiveSynthetic = { childSessionKey: string; generation: number };
 
-const PATCH = Symbol.for("cogentnexus.v090.ticket-patch");
-const WRAP = Symbol.for("cogentnexus.v090.entry-wrap");
+const PATCH = Symbol.for("cogentnexus-openclaw.v090.ticket-patch");
+const WRAP = Symbol.for("cogentnexus-openclaw.v090.entry-wrap");
 const now = () => new Date().toISOString();
 const dbPath = (cfg: Cfg, workspace: string) => resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
 const activeSynthetic = new Map<string, Map<string, ActiveSynthetic>>();
@@ -896,7 +896,7 @@ export async function launchRecovery(api: any, path: string, workspace: string, 
 function recoveryService(api: any, cfg: Cfg) {
   let timer: ReturnType<typeof setInterval> | undefined, active = false;
   return {
-    id: "cogentnexus-direct-recovery-v090",
+    id: "cogentnexus-openclaw-direct-recovery-v090",
     start: async (ctx: any) => {
       const workspace = resolve(cfg.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
       const path = dbPath(cfg, workspace);
@@ -1144,7 +1144,7 @@ export function safeDispatchTicketWorkflows(input: { workspaceDir: string; store
 function safeTicketRecoveryService(api: any, cfg: Cfg) {
   let interval: ReturnType<typeof setInterval> | undefined, active = false;
   return {
-    id: "cogentnexus-ticket-recovery",
+    id: "cogentnexus-openclaw-ticket-recovery",
     start: async (ctx: any) => {
       const workspace = resolve(cfg.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
       const path = dbPath(cfg, workspace);
@@ -1201,7 +1201,7 @@ function wrap() {
     api.on?.("before_agent_run", (event: any, ctx: any) => {
       if (!ctx.sessionKey || ctx.sessionKey.includes(":subagent:")) return { outcome: "pass" };
       if (!isInternalControlText(String(event.prompt ?? ""))) return { outcome: "pass" };
-      return { outcome: "block", reason: "CogentNexus-OpenClaw internal control prompt is forbidden in an owner session", category: "cogentnexus_internal_owner_fence" };
+      return { outcome: "block", reason: "CogentNexus-OpenClaw internal control prompt is forbidden in an owner session", category: "cnxclaw_internal_owner_fence" };
     }, { priority: 5000, timeoutMs: 5000 });
 
     api.on?.("before_message_write", (event: any, ctx: any) => {
@@ -1277,7 +1277,7 @@ function wrap() {
 
     proxy.registerService = (service: any) => {
       if (!reg) return;
-      if (service?.id === "cogentnexus-ticket-recovery") return reg(safeTicketRecoveryService(proxy, cfg));
+      if (service?.id === "cogentnexus-openclaw-ticket-recovery") return reg(safeTicketRecoveryService(proxy, cfg));
       return reg(service);
     };
 

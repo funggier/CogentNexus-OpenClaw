@@ -59,7 +59,7 @@ export function externalizeOversizedSyntheticPayload(input:{
   const manifestPath=resolve(root,"manifest.json");
   writeFileSync(manifestPath,`${JSON.stringify({
     schemaVersion:1,
-    kind:"cogentnexus-synthetic-payload",
+    kind:"cogentnexus-openclaw-synthetic-payload",
     createdAt:new Date().toISOString(),
     ownerSessionKeyHash:sessionHash,
     totalChars:input.message.length,

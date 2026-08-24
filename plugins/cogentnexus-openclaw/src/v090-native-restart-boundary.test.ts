@@ -37,7 +37,7 @@ describe("CogentNexus-OpenClaw v0.9 native main-session restart boundary", () =>
     expect(gate.handler(
       { prompt:OPENCLAW_MAIN_RESTART_RECOVERY_PROMPT },
       { sessionKey:"agent:main:dashboard:owner", runId:"native-recovery-run" },
-    )).toMatchObject({ outcome:"block", category:"cogentnexus_native_restart_recovery_fence" });
+    )).toMatchObject({ outcome:"block", category:"cnxclaw_native_restart_recovery_fence" });
 
     const write = registrations.find((item) => item.name === "before_message_write")!;
     expect(write.handler({

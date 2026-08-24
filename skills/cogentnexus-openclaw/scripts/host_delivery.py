@@ -241,7 +241,7 @@ def ensure_schema(db: sqlite3.Connection) -> None:
 
 def delivery_marker(idempotency_key: str) -> str:
     digest = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()[:32]
-    return f"<!-- cogentnexus-delivery:{digest} -->"
+    return f"<!-- cogentnexus-openclaw-delivery:{digest} -->"
 
 
 def history_contains(session_key: str, marker: str) -> bool:

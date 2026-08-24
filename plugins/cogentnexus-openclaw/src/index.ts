@@ -249,10 +249,10 @@ export async function deliverWorkflowCompletion(api: any, path: string, notice: 
   try {
     const tag = workflowCompletionTag(notice);
     const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey: notice.ownerSessionKey });
-    const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/workflow" && flow.stateJson?.completionTag === tag);
+    const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus-openclaw/workflow" && flow.stateJson?.completionTag === tag);
     if (!previous) {
       const stateJson = { taskId:notice.taskId,workflowStatus:notice.workflowStatus,stateRevision:notice.stateRevision,completionTag:tag };
-      const flow = taskFlow.createManaged({controllerId:"cogentnexus/workflow",goal:`Continue after ${notice.taskId}`,currentStep:"terminal_result",stateJson});
+      const flow = taskFlow.createManaged({controllerId:"cogentnexus-openclaw/workflow",goal:`Continue after ${notice.taskId}`,currentStep:"terminal_result",stateJson});
       const current = taskFlow.get(flow.flowId);
       if (current?.syncMode === "managed") {
         if (notice.workflowStatus === "completed") taskFlow.finish({flowId:flow.flowId,expectedRevision:current.revision,stateJson,endedAt:Date.now()});
@@ -491,8 +491,8 @@ async function startRotation(api: any, taskFlow: any, ownerSessionKey: string, w
   const checked = inspectHandoff(taskId, workspaceDir, config);
   const identity = rotationIdentity(checked.handoff.taskId, checked.handoff.generation);
   const plan = { taskId:checked.handoff.taskId,generation:checked.handoff.generation,ownerSessionKey,childSessionKey:identity.childSessionKey,runId:identity.runId,contractHash:checked.handoff.contractHash,action:"ROTATE" };
-  const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus/rotation" && flow.stateJson?.runId === identity.runId);
-  const flow = previous ?? taskFlow.createManaged({controllerId:"cogentnexus/rotation",goal:checked.handoff.goal ?? `Resume ${checked.handoff.taskId}`,currentStep:"starting_detached_worker",stateJson:plan});
+  const previous = taskFlow.list().find((flow: any) => flow.controllerId === "cogentnexus-openclaw/rotation" && flow.stateJson?.runId === identity.runId);
+  const flow = previous ?? taskFlow.createManaged({controllerId:"cogentnexus-openclaw/rotation",goal:checked.handoff.goal ?? `Resume ${checked.handoff.taskId}`,currentStep:"starting_detached_worker",stateJson:plan});
   const linked = taskFlow.runTask({flowId:flow.flowId,runtime:"subagent",childSessionKey:identity.childSessionKey,runId:identity.runId,label:`CogentNexus-OpenClaw ${checked.handoff.taskId}`,task:checked.handoff.nextAction ?? "Resume from durable handoff",status:"running",startedAt:Date.now(),lastEventAt:Date.now()});
   if (!linked.created && !linked.found) throw new Error(linked.reason);
   if (previous || !linked.created) return {...plan,status:"already-started",flowId:flow.flowId};
@@ -742,7 +742,7 @@ entry.register = (api) => {
       if(promoted) return {
         outcome:"block",
         reason:"post-compaction guard promoted the unfinished direct Ticket to durable recovery",
-        category:"cogentnexus_post_compaction_recovery",
+        category:"cnxclaw_post_compaction_recovery",
         metadata:{ticketId:promoted.ticketId,runId:promoted.runId},
         message:`CogentNexus-OpenClaw resumed committed Ticket ${promoted.ticketId} after history compaction. Durable recovery is continuing automatically; the original request does not need to be sent again.`,
       };
@@ -773,7 +773,7 @@ entry.register = (api) => {
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
     if (decision.lane !== "durable") return { outcome:"pass" };
     if (acceptedTicket) return {
-      outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cogentnexus_ticket_admission",
+      outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cnxclaw_ticket_admission",
       metadata:{ticketId:acceptedTicket.ticketId,score:decision.score,componentCount:decision.sections.length,deduplicated:acceptedTicket.duplicate},
       message:`CogentNexus-OpenClaw committed Ticket ${acceptedTicket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
     };
@@ -792,7 +792,7 @@ entry.register = (api) => {
     return {
       outcome:"block",
       reason:"durable request admitted before conversational inference",
-      category:"cogentnexus_durable_admission",
+      category:"cnxclaw_durable_admission",
       metadata:{taskId:started.taskId,score:decision.score,componentCount,deduplicated:Boolean(duplicate)},
       message:`CogentNexus-OpenClaw ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
@@ -902,7 +902,7 @@ entry.register = (api) => {
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService({
-      id: "cogentnexus-workflow-completion",
+      id: "cogentnexus-openclaw-workflow-completion",
       start: async (ctx: any) => {
         const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
         const tick = async () => {
@@ -926,7 +926,7 @@ entry.register = (api) => {
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService({
-      id: "cogentnexus-ticket-recovery",
+      id: "cogentnexus-openclaw-ticket-recovery",
       start: async (ctx: any) => {
         const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
         const store = new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));

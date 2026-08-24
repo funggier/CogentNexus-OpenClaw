@@ -73,7 +73,7 @@ export function installNativeRestartRecoveryBoundary(api: any) {
     return {
       outcome:"block",
       reason:"OpenClaw internal main-session restart recovery is not fresh human intent; CogentNexus-OpenClaw owns durable recovery",
-      category:"cogentnexus_native_restart_recovery_fence",
+      category:"cnxclaw_native_restart_recovery_fence",
       metadata:{ source:"openclaw-main-session-restart-recovery", sessionKey },
     };
   }, { priority:10_000, timeoutMs:5_000 });

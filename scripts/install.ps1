@@ -28,6 +28,8 @@ $legacyRoot = Join-Path $Workspace ".cogent"
 $legacyControllerPath = Join-Path $legacyRoot "host\controller.json"
 $legacyLauncher = Join-Path $Workspace "cnx.cmd"
 $migrationSource = $null
+$localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
+$applicationDataRoot = Join-Path $localAppData "CogentNexus-OpenClaw"
 
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -99,16 +101,18 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
-# Inventory and prove ownership before the first installation mutation.
-if (Test-Path -LiteralPath $cogentNexusOpenClawRoot) {
-    & python $ownershipScript verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Existing ownership manifest is invalid; refusing upgrade mutation." }
-}
-else {
-    $legacyJson = (& python $ownershipScript inventory-legacy --workspace $Workspace | Out-String)
-    if ($LASTEXITCODE -ne 0) { throw "Legacy namespace ownership is ambiguous or unproven; refusing migration." }
-    $legacyProof = $legacyJson | ConvertFrom-Json
-    if ($legacyProof.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
+# Inventory every legacy/new filesystem surface before the first mutation.
+$classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data $applicationDataRoot | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }
+$classification = $classificationJson | ConvertFrom-Json
+if ($classification.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
+if ($classification.mode -eq "fresh") {
+    $newPluginInventory = openclaw plugins list --json 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0) { throw "Could not prove current plugin registration inventory before installation." }
+    $newTask = Get-ScheduledTask -TaskName "CogentNexus-OpenClaw-Supervisor" -ErrorAction SilentlyContinue
+    if ($newPluginInventory -match 'cogentnexus-openclaw' -or $newTask) {
+        throw "Current plugin/task registration exists without coherent ownership; refusing partial-state adoption."
+    }
 }
 
 # A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
@@ -117,7 +121,6 @@ else {
 Enter-NativeInstallBoundary
 
 if ($migrationSource) {
-    $localAppData = [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)
     $migrationBackupRoot = Join-Path $localAppData "CogentNexus-OpenClaw\migration-backups\v$version-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     New-Item -ItemType Directory -Force -Path $migrationBackupRoot | Out-Null
     foreach ($legacyPath in @($legacyRoot, (Join-Path $Workspace "skills\cogentnexus"), $legacyLauncher)) {
@@ -149,7 +152,7 @@ if ($migrationSource) {
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetSkill) | Out-Null
 if (Test-Path $targetSkill) {
     New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
-    $backup = Join-Path $backupRoot "cogentnexus-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+  $backup = Join-Path $backupRoot "cogentnexus-openclaw-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     Copy-Item -Recurse -Force -LiteralPath $targetSkill -Destination $backup
     Write-Host "Backed up existing skill to $backup"
 }
@@ -241,7 +244,9 @@ $launcherText = "@echo off`r`npython `"$cliEscaped`" --root `"$rootEscaped`" %*`
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 
-$installedPluginPath = Join-Path (Split-Path -Parent $Workspace) "extensions\cogentnexus-openclaw"
+$pluginResolutionJson = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
+$installedPluginPath = [string](($pluginResolutionJson | ConvertFrom-Json).root)
 $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
 if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
 & python @ownershipArguments | Out-Null
@@ -267,9 +272,36 @@ if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw supervisor check failed" 
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw status check failed" }
 
 if ($migrationSource) {
-    openclaw plugins uninstall cogentnexus-rotation --force 2>$null
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $legacyUninstallOutput = openclaw plugins uninstall cogentnexus-rotation --force 2>&1 | Out-String
+        $legacyUninstallExit = $LASTEXITCODE
+    }
+    finally { $ErrorActionPreference = $savedPreference }
+    if ($legacyUninstallExit -ne 0) { throw "Legacy plugin uninstall failed ($legacyUninstallExit): $legacyUninstallOutput" }
+
+    $legacyPluginInventory = openclaw plugins list --json 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -or $legacyPluginInventory -match 'cogentnexus-rotation') {
+        throw "Legacy plugin registration remains after uninstall; refusing migration success."
+    }
+    $legacyLoadPaths = openclaw config get plugins.load.paths 2>$null | Out-String
+    $legacyLoadPathExit = $LASTEXITCODE
+    if ($legacyLoadPathExit -eq 0 -and $legacyLoadPaths -match 'cogentnexus-rotation') {
+        throw "Legacy plugin load path remains after uninstall; refusing migration success."
+    }
+    $legacyConfigEntry = openclaw config get plugins.entries.cogentnexus-rotation 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0 -and $legacyConfigEntry.Trim() -notin @('', 'null')) {
+        throw "Legacy plugin config entry remains after uninstall; refusing migration success."
+    }
     foreach ($legacyPath in @($legacyRoot, (Join-Path $Workspace "skills\cogentnexus"), $legacyLauncher)) {
         if (Test-Path -LiteralPath $legacyPath) { Remove-Item -Recurse -Force -LiteralPath $legacyPath }
+    }
+    $oldTask = Get-ScheduledTask -TaskName "CogentNexus Supervisor" -ErrorAction SilentlyContinue
+    if ($oldTask) { Unregister-ScheduledTask -TaskName "CogentNexus Supervisor" -Confirm:$false }
+    $remainingLegacy = @($legacyRoot, (Join-Path $Workspace "skills\cogentnexus"), $legacyLauncher) | Where-Object { Test-Path -LiteralPath $_ }
+    if ($remainingLegacy.Count -ne 0 -or (Get-ScheduledTask -TaskName "CogentNexus Supervisor" -ErrorAction SilentlyContinue)) {
+        throw "Legacy operational artifacts remain after cleanup; refusing migration success: $remainingLegacy"
     }
     Write-Host "Removed legacy aliases after the new namespace passed validation."
 }

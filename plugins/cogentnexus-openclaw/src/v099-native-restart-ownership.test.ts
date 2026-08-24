@@ -184,7 +184,7 @@ describe("v0.9.9 native restart ownership fence", () => {
         { prompt: `[System] ${OPENCLAW_NATIVE_RESTART_RESUME_BODY}`, sessionKey },
         { sessionKey },
       ),
-    ).toMatchObject({ outcome: "block", category: "cogentnexus_v099_native_restart_ownership" });
+    ).toMatchObject({ outcome: "block", category: "cnxclaw_v099_native_restart_ownership" });
     expect(info).toHaveBeenCalledWith(
       expect.stringContaining("suppressed OpenClaw native restart recovery"),
     );
@@ -245,7 +245,7 @@ describe("v0.9.9 native restart ownership fence", () => {
         { prompt: exactEnvelope, sessionKey },
         { sessionKey },
       ),
-    ).toMatchObject({ outcome: "block", category: "cogentnexus_v099_native_restart_ownership" });
+    ).toMatchObject({ outcome: "block", category: "cnxclaw_v099_native_restart_ownership" });
 
     const genuinelyNewEnvelope =
       `${OPENCLAW_QUEUED_USER_PREFIX}GENUINELY-NEW-USER-MESSAGE` +

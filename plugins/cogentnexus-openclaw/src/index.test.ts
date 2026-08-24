@@ -353,7 +353,7 @@ describe("cogentnexus-openclaw", () => {
         runtime:{tasks:{managedFlows:{}}},
       };
       entry.register?.(api);
-      expect(services.map(service=>service.id)).toEqual(["cogentnexus-ticket-recovery"]);
+      expect(services.map(service=>service.id)).toEqual(["cogentnexus-openclaw-ticket-recovery"]);
 
       await services[0].start({config:{agents:{defaults:{workspace:root}}}});
       expect(store.snapshot().tickets.waiting).toBe(1);
@@ -386,7 +386,7 @@ describe("cogentnexus-openclaw", () => {
       entry.register?.(api);
       const prompt = "PHASE 1\nA\nPHASE 2\nB\nPHASE 3\nC";
       const decision = await hooks.get("before_agent_run")({prompt,senderIsOwner:true},{sessionKey:"agent:main:owner",runId:"gate-run",workspaceDir:root});
-      expect(decision).toMatchObject({outcome:"block",category:"cogentnexus_ticket_admission"});
+      expect(decision).toMatchObject({outcome:"block",category:"cnxclaw_ticket_admission"});
       const store = new TicketStore(databasePath);
       expect(store.ready()).toHaveLength(1);
       expect(existsSync(join(root,".cogentnexus-openclaw","intake"))).toBe(false);

@@ -78,10 +78,10 @@ export function withV095EphemeralEmbeddedSession(api: any) {
       agent: {
         ...owner,
         runEmbeddedAgent: async (input: any) => {
-          const directory = mkdtempSync(join(tmpdir(), "cogentnexus-direct-recovery-"));
+          const directory = mkdtempSync(join(tmpdir(), "cogentnexus-openclaw-direct-recovery-"));
           const sessionFile = join(directory, "session.jsonl");
           const identity = safeSessionIdentity(input?.sessionId ?? input?.runId);
-          const sessionKey = `temp:cogentnexus-direct-recovery:${identity}`;
+          const sessionKey = `temp:cogentnexus-openclaw-direct-recovery:${identity}`;
           try {
             return await runEmbeddedAgent.call(owner, {
               ...input,

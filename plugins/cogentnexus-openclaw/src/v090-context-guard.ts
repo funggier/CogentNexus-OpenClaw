@@ -312,11 +312,11 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
     if(!queued)return {outcome:"pass"};
     api.logger.info?.(`CogentNexus-OpenClaw context barrier ${ctx.sessionKey}: ${pressure.level} ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${queued.ticketId}`);
     return {outcome:"block",reason:"CogentNexus-OpenClaw committed this request and deferred owner inference before context overflow",
-      category:"cogentnexus_context_pressure",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
+      category:"cnxclaw_context_pressure",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
   },{priority:1500,timeoutMs:10000});
 
   let interval:ReturnType<typeof setInterval>|undefined,initial:ReturnType<typeof setTimeout>|undefined,active=false;
-  registrationApi.registerService?.({id:"cogentnexus-context-maintenance-v090",start:async(ctx:any)=>{
+  registrationApi.registerService?.({id:"cogentnexus-openclaw-context-maintenance-v090",start:async(ctx:any)=>{
     const {workspaceDir,databasePath}=paths(ctx),maxAttempts=Math.max(1,Math.min(config.contextMaintenanceMaxAttempts??3,10));
     const tick=async()=>{if(active)return;active=true;try{
       for(const row of due(databasePath,maxAttempts)){

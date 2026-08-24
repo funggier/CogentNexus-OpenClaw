@@ -20,7 +20,7 @@ Use `cnxclaw` for normal operation because Host operating mode, desired state, T
 
 `cnxclaw stop` means intentional MAINTENANCE. `cnxclaw disable` means PASSTHROUGH and must leave native OpenClaw usable; the low-level stop wrapper is **not** a substitute for PASSTHROUGH.
 
-Run portable wrappers from the workspace whose runtime data lives under `.cogentnexus-openclaw`, or set `COGENTNEXUS_ROOT` explicitly.
+Run portable wrappers from the workspace whose runtime data lives under `.cogentnexus-openclaw`, or set `COGENTNEXUS_OPENCLAW_ROOT` explicitly.
 
 On Linux/macOS, make shell wrappers executable when used directly:
 

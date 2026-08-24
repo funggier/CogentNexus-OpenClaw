@@ -39,7 +39,7 @@ JSON_FILES = [
 ]
 
 def validate_windows_task_encoding():
-    spec = importlib.util.spec_from_file_location("cogentnexus_startup", ROOT / "scripts" / "startup.py")
+    spec = importlib.util.spec_from_file_location("cnxclaw_startup", ROOT / "scripts" / "startup.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     template = (ROOT / "templates" / "supervisor" / "windows-task.xml").read_text(encoding="utf-8")

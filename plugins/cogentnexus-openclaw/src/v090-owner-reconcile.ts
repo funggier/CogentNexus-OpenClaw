@@ -9,7 +9,7 @@ type OwnerReconcileConfig = {
   pythonCommand?: string;
 };
 
-const LEGACY_INTERNAL_DIRECT_RECOVERY_PREFIX = "temp:cogentnexus-direct-recovery:";
+const LEGACY_INTERNAL_DIRECT_RECOVERY_PREFIX = "temp:cogentnexus-openclaw-direct-recovery:";
 
 function activeOwnerSessionKeys(databasePath: string) {
   new TicketStore(databasePath).snapshot();
@@ -34,7 +34,7 @@ function tableExists(db: DatabaseSync, table: string) {
 /**
  * v0.9.8 compatibility hygiene.
  *
- * Test A v8 briefly used `temp:cogentnexus-direct-recovery:*` as the embedded
+ * Test A v8 briefly used `temp:cogentnexus-openclaw-direct-recovery:*` as the embedded
  * recovery session key before v0.9.6 moved internal recovery under OpenClaw's
  * normal `agent:<id>:subagent:*` namespace. Ticket-first admission during that
  * short-lived implementation could leave the temp key behind in cnx_sessions.

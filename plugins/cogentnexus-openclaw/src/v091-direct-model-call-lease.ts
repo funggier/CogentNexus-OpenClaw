@@ -5,8 +5,8 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 export const DIRECT_MODEL_CALL_TIMEOUT_MS = 15 * 60_000;
 
-const HOST_RECOVERY_FINALIZE_FENCE = Symbol.for("cogentnexus.v091.host-recovery-finalize-fence");
-const HOST_RECOVERY_RESUME_FENCE = Symbol.for("cogentnexus.v091.host-recovery-resume-fence");
+const HOST_RECOVERY_FINALIZE_FENCE = Symbol.for("cogentnexus-openclaw.v091.host-recovery-finalize-fence");
+const HOST_RECOVERY_RESUME_FENCE = Symbol.for("cogentnexus-openclaw.v091.host-recovery-resume-fence");
 
 type ModelCallStart = {
   runId: string;
@@ -299,7 +299,7 @@ export function installV091DirectModelCallLease(api: any) {
     } catch (error) {
       api.logger?.error?.(`CogentNexus-OpenClaw failed to persist Direct model-call start: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, { registrationId: "cogentnexus-v091-direct-model-call-start" });
+  }, { registrationId: "cogentnexus-openclaw-v091-direct-model-call-start" });
 
   api.on("model_call_ended", (event: any, ctx: any) => {
     const runId = String(event?.runId ?? ctx?.runId ?? "").trim();
@@ -315,7 +315,7 @@ export function installV091DirectModelCallLease(api: any) {
     } catch (error) {
       api.logger?.warn?.(`CogentNexus-OpenClaw failed to persist Direct model-call end: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, { registrationId: "cogentnexus-v091-direct-model-call-end" });
+  }, { registrationId: "cogentnexus-openclaw-v091-direct-model-call-end" });
 
   // agent_end is a fallback close only while the lease is still active. A Host
   // recovery claim changes state to `recovering`, which this hook cannot undo.
@@ -324,5 +324,5 @@ export function installV091DirectModelCallLease(api: any) {
     if (!runId) return;
     try { closeDirectModelCallForRun(databaseFor(api, event, ctx), runId, event?.success ? "agent_end_ok" : "agent_end_error"); }
     catch (error) { api.logger?.warn?.(`CogentNexus-OpenClaw failed to close Direct model-call lease at agent_end: ${error instanceof Error ? error.message : String(error)}`); }
-  }, { registrationId: "cogentnexus-v091-direct-model-call-agent-end" });
+  }, { registrationId: "cogentnexus-openclaw-v091-direct-model-call-agent-end" });
 }

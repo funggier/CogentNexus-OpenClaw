@@ -11,7 +11,7 @@ type Config = {
   admissionMinimumScore?: number;
 };
 
-const WRAPPED = Symbol.for("cogentnexus.v084.entry.host-reconciliation");
+const WRAPPED = Symbol.for("cogentnexus-openclaw.v084.entry.host-reconciliation");
 
 export function hasLegacyDirectPromotion(databasePath: string, admissionMinimumScore = 5): boolean {
   new TicketStore(databasePath).snapshot();
@@ -41,7 +41,7 @@ function wrapEntry() {
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService?.({
-      id: "cogentnexus-v084-host-reconciliation",
+      id: "cogentnexus-openclaw-v084-host-reconciliation",
       start: async (ctx: any) => {
         const workspaceDir = resolve(config.workspaceDir ?? ctx.config?.agents?.defaults?.workspace ?? process.cwd());
         const databasePath = resolve(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));

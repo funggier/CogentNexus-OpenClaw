@@ -44,9 +44,9 @@ type PreRuntimeFenceResult = {
   native: Awaited<ReturnType<typeof reconcileOpenClawNativeTasks>>;
 };
 
-const WRAPPED = Symbol.for("cogentnexus.v090.entry.host-reconciliation");
-const LIVE_POLICY_PATCH = Symbol.for("cogentnexus.v090.live-policy-patch");
-export const PRE_RUNTIME_FENCE = Symbol.for("cogentnexus.v090.pre-runtime-fence");
+const WRAPPED = Symbol.for("cogentnexus-openclaw.v090.entry.host-reconciliation");
+const LIVE_POLICY_PATCH = Symbol.for("cogentnexus-openclaw.v090.live-policy-patch");
+export const PRE_RUNTIME_FENCE = Symbol.for("cogentnexus-openclaw.v090.pre-runtime-fence");
 const CNXCLAW_PLUGIN_LABEL = "plugin:cogentnexus-openclaw";
 const ACTIVE_NATIVE_TASK_STATUSES = new Set(["queued", "running"]);
 const TERMINAL_NATIVE_TICKET_STATUSES = new Set(["failed", "cancelled"]);
@@ -451,7 +451,7 @@ function wrapEntry() {
     let active = false;
     let lastOwnerReconcileAt = 0;
     api.registerService?.({
-      id: "cogentnexus-v090-host-reconciliation",
+      id: "cogentnexus-openclaw-v090-host-reconciliation",
       start: async (ctx: any) => {
         await ensurePreRuntimeFence(ctx);
         const { workspaceDir, databasePath } = resolvePaths(ctx);

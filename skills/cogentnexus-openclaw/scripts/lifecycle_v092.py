@@ -124,37 +124,10 @@ def _installed_plugin_candidate_roots(state_root: Path) -> list[Path]:
 
 
 def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
-    """Resolve the verified bootstrap from legacy or managed npm layouts.
-
-    OpenClaw 2026.7.1-2 installs npm-pack plugins below `.openclaw/npm/projects`.
-    The project directory can itself be only an npm wrapper, with the actual
-    CogentNexus-OpenClaw package under `node_modules/openclaw-plugin-cogentnexus-openclaw`.
-    Reset must use the installed release payload without depending on either
-    layout alone.
-    """
+    """Resolve exactly one v0.9.3 plugin payload from a reviewed layout."""
     resolved_state = (state_root or base.STATE_ROOT).resolve()
-    roots = _installed_plugin_candidate_roots(resolved_state)
-
-    payloads = [payload for root in roots if (payload := _plugin_payload(root)) is not None]
-    if not payloads:
-        searched = [str(root) for root in roots]
-        raise RuntimeError(
-            "installed CogentNexus-OpenClaw plugin lacks a verified scripts/bootstrap-ticket-db.mjs payload; "
-            f"searched legacy and managed OpenClaw plugin package roots: {searched}"
-        )
-
-    highest_version = max(payload["versionKey"] for payload in payloads)
-    highest = [payload for payload in payloads if payload["versionKey"] == highest_version]
-    fingerprints = {payload["fingerprint"] for payload in highest}
-    if len(fingerprints) != 1:
-        roots_text = [str(payload["root"]) for payload in highest]
-        raise RuntimeError(
-            "multiple installed CogentNexus-OpenClaw plugin payloads have the same highest version but conflicting bootstrap/runtime bytes; "
-            f"refusing ambiguous fresh reset: {roots_text}"
-        )
-
-    selected = max(highest, key=lambda payload: (payload["installedMtimeNs"], str(payload["root"])))
-    return Path(selected["bootstrap"])
+    selected = namespace_ownership.resolve_installed_plugin(resolved_state)
+    return Path(selected["root"]) / BOOTSTRAP_RELATIVE
 
 
 def bootstrap_ticket_database() -> Path:
@@ -286,7 +259,7 @@ def reset(root: Path, explicit_provider: str | None = None) -> int:
         commit_selection(root, target)
 
         print("")
-        print("COGENTNEXUS RESET: PASS")
+        print("COGENTNEXUS-OPENCLAW RESET: PASS")
         print(f"Workspace : {base.WORKSPACE}")
         print(f"Plugin    : {plugin.get('status')}")
         print(f"Provider  : {target}")
@@ -348,7 +321,7 @@ def uninstall(root: Path) -> int:
                     path.unlink()
 
         print("")
-        print("COGENTNEXUS UNINSTALL: PASS")
+        print("COGENTNEXUS-OPENCLAW UNINSTALL: PASS")
         print("OpenClaw : native / healthy / pre-CNXCLAW route restored")
         print("Providers: unchanged")
         if os.name == "nt":

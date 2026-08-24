@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { launchV093DirectRecovery } from "./v093-direct-recovery.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
-export const DIRECT_RECOVERY_ID = "cogentnexus-direct-recovery-v090";
+export const DIRECT_RECOVERY_ID = "cogentnexus-openclaw-direct-recovery-v090";
 export const ASSISTANT_DELIVERY_RETRY_MS = 30_000;
 
 type Config = {

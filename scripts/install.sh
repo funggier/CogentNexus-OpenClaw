@@ -62,16 +62,24 @@ CONTROLLER_PATH="$COGENT_ROOT/host/controller.json"
 EXISTING_LAUNCHER="$WORKSPACE/cnxclaw"
 OWNERSHIP_SCRIPT="$SOURCE_SKILL/scripts/namespace_ownership.py"
 MIGRATION_SOURCE=""
+APPLICATION_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw"
 
-if [ -d "$COGENT_ROOT" ]; then
-  python "$OWNERSHIP_SCRIPT" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
-else
-  LEGACY_PROOF=$(python "$OWNERSHIP_SCRIPT" inventory-legacy --workspace "$WORKSPACE")
-  MIGRATION_SOURCE=$(printf '%s' "$LEGACY_PROOF" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
-  if [ -n "$MIGRATION_SOURCE" ]; then
-    CONTROLLER_PATH="$WORKSPACE/.cogent/host/controller.json"
-    EXISTING_LAUNCHER="$WORKSPACE/cnx"
+INSTALL_CLASSIFICATION=$(python "$OWNERSHIP_SCRIPT" classify-install --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT")
+INSTALL_MODE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; print(json.load(sys.stdin)["mode"])')
+MIGRATION_SOURCE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
+if [ "$INSTALL_MODE" = fresh ]; then
+  NEW_PLUGIN_INVENTORY=$(openclaw plugins list --json) || { echo "Could not prove current plugin registration inventory" >&2; exit 1; }
+  case "$NEW_PLUGIN_INVENTORY" in *cogentnexus-openclaw*) echo "Current plugin registration exists without coherent ownership" >&2; exit 1;; esac
+  if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files cogentnexus-openclaw-supervisor.timer --no-legend 2>/dev/null | grep -q cogentnexus-openclaw-supervisor; then
+    echo "Current service identity exists without coherent ownership" >&2; exit 1
   fi
+  if command -v launchctl >/dev/null 2>&1 && launchctl list ai.cogentnexus.openclaw.supervisor >/dev/null 2>&1; then
+    echo "Current service identity exists without coherent ownership" >&2; exit 1
+  fi
+fi
+if [ -n "$MIGRATION_SOURCE" ]; then
+  CONTROLLER_PATH="$WORKSPACE/.cogent/host/controller.json"
+  EXISTING_LAUNCHER="$WORKSPACE/cnx"
 fi
 
 read_existing_mode() {
@@ -132,7 +140,7 @@ fi
 mkdir -p "$WORKSPACE/skills"
 if [ -d "$TARGET_SKILL" ]; then
   mkdir -p "$BACKUP_ROOT"
-  BACKUP="$BACKUP_ROOT/cogentnexus-$(date +%Y%m%d-%H%M%S)"
+BACKUP="$BACKUP_ROOT/cogentnexus-openclaw-$(date +%Y%m%d-%H%M%S)"
   cp -R "$TARGET_SKILL" "$BACKUP"
   echo "Backed up existing skill to $BACKUP"
 fi
@@ -184,7 +192,9 @@ EOF
 chmod +x "$LAUNCHER"
 echo "Installed CogentNexus-OpenClaw launcher to $LAUNCHER"
 
-set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$(dirname "$WORKSPACE")/extensions/cogentnexus-openclaw" --launcher "$LAUNCHER" --version "$VERSION"
+PLUGIN_RESOLUTION=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION")
+INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])')
+set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
 if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
 python "$@" >/dev/null
 
@@ -200,8 +210,27 @@ python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
 python "$CLI_SCRIPT" --root "$COGENT_ROOT" status
 
 if [ -n "$MIGRATION_SOURCE" ]; then
-  openclaw plugins uninstall cogentnexus-rotation --force >/dev/null 2>&1 || true
+  openclaw plugins uninstall cogentnexus-rotation --force
+  LEGACY_PLUGIN_INVENTORY=$(openclaw plugins list --json)
+  case "$LEGACY_PLUGIN_INVENTORY" in *cogentnexus-rotation*) echo "Legacy plugin registration remains after uninstall" >&2; exit 1;; esac
+  if LEGACY_LOAD_PATHS=$(openclaw config get plugins.load.paths 2>/dev/null); then
+    case "$LEGACY_LOAD_PATHS" in *cogentnexus-rotation*) echo "Legacy plugin load path remains after uninstall" >&2; exit 1;; esac
+  fi
+  if LEGACY_CONFIG_ENTRY=$(openclaw config get plugins.entries.cogentnexus-rotation 2>/dev/null); then
+    case "$LEGACY_CONFIG_ENTRY" in ''|null) :;; *) echo "Legacy plugin config entry remains after uninstall" >&2; exit 1;; esac
+  fi
   rm -rf "$WORKSPACE/.cogent" "$WORKSPACE/skills/cogentnexus" "$WORKSPACE/cnx"
+  if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files cogentnexus-supervisor.timer --no-legend 2>/dev/null | grep -q cogentnexus-supervisor; then
+    systemctl --user disable --now cogentnexus-supervisor.timer
+    ! systemctl --user is-enabled cogentnexus-supervisor.timer >/dev/null 2>&1 || { echo "Legacy systemd identity remains enabled" >&2; exit 1; }
+  fi
+  if command -v launchctl >/dev/null 2>&1 && launchctl list ai.cogentnexus.supervisor >/dev/null 2>&1; then
+    launchctl remove ai.cogentnexus.supervisor
+    ! launchctl list ai.cogentnexus.supervisor >/dev/null 2>&1 || { echo "Legacy launchd identity remains" >&2; exit 1; }
+  fi
+  for legacy_path in "$WORKSPACE/.cogent" "$WORKSPACE/skills/cogentnexus" "$WORKSPACE/cnx"; do
+    [ ! -e "$legacy_path" ] || { echo "Legacy operational artifact remains: $legacy_path" >&2; exit 1; }
+  done
   MIGRATION_COMPLETE=1
   trap - EXIT HUP INT TERM
 fi

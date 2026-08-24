@@ -60,9 +60,24 @@ Write-Host "CogentNexus-OpenClaw clean reinstall"
 Write-Host "Workspace : $Workspace"
 Write-Host "Repo/root : $repoRoot"
 
-if (Test-Path -LiteralPath $cnxRoot) {
-    & python $ownershipScript verify --root $cnxRoot --workspace $Workspace | Out-Null
+$classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data (Join-Path $env:LOCALAPPDATA "CogentNexus-OpenClaw") | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "Ownership is missing, partial, mixed, or invalid; refusing clean-reinstall before backup or deletion." }
+$classification = $classificationJson | ConvertFrom-Json
+if ($classification.mode -eq "legacy") { throw "Clean reinstall does not adopt a legacy namespace; run the v0.9.3 installer migration." }
+if ($classification.mode -eq "upgrade") {
+    $ownershipJson = (& python $ownershipScript verify --root $cnxRoot --workspace $Workspace | Out-String)
     if ($LASTEXITCODE -ne 0) { throw "Ownership manifest mismatch; refusing clean-reinstall mutation." }
+    $ownership = $ownershipJson | ConvertFrom-Json
+    $skill = [string]$ownership.skillPath
+    $launcher = [string]$ownership.launcherPath
+    $extension = [string]$ownership.pluginPath
+}
+
+$pluginInventoryBefore = Invoke-NativeCapture { openclaw plugins list --json }
+if ($pluginInventoryBefore.Code -ne 0) { throw "Could not inspect OpenClaw plugins before ownership decision:`n$($pluginInventoryBefore.Output)" }
+$taskBefore = Get-ScheduledTask -TaskName "CogentNexus-OpenClaw-Supervisor" -ErrorAction SilentlyContinue
+if ($classification.mode -eq "fresh" -and ($pluginInventoryBefore.Output -match 'cogentnexus-openclaw' -or $taskBefore)) {
+    throw "Registered plugin/task exists without a coherent ownership manifest; refusing clean-reinstall before backup or deletion."
 }
 
 if (-not $NoBackup) {

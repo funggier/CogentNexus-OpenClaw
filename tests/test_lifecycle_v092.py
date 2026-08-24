@@ -25,7 +25,7 @@ def write_payload(root: Path, version: str, bootstrap_text: str = "console.log('
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(
-        json.dumps({"id": "cogentnexus-openclaw"}), encoding="utf-8"
+        json.dumps({"id": "cogentnexus-openclaw", "version": version}), encoding="utf-8"
     )
     (root / "package.json").write_text(
         json.dumps({"name": "openclaw-plugin-cogentnexus-openclaw", "version": version}),
@@ -48,7 +48,7 @@ class LifecycleV092Tests(unittest.TestCase):
             project = state / "npm" / "projects" / "openclaw-plugin-cogentnexus-openclaw__openclaw-generation__g-live"
             expected = write_payload(
                 project / "node_modules" / "openclaw-plugin-cogentnexus-openclaw",
-                "0.9.1",
+                "0.9.3",
             )
             (project / "package.json").write_text(
                 json.dumps({"private": True, "dependencies": {"openclaw-plugin-cogentnexus-openclaw": "file:plugin.tgz"}}),
@@ -60,14 +60,13 @@ class LifecycleV092Tests(unittest.TestCase):
             self.assertEqual(actual.resolve(), expected.resolve())
             self.assertFalse((state / "extensions" / "cogentnexus-openclaw").exists())
 
-    def test_still_accepts_direct_managed_project_payload_for_compatible_openclaw_layouts(self):
+    def test_accepts_exact_npm_managed_project_root_payload(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
             managed = state / "npm" / "projects" / "direct-package-generation"
-            expected = write_payload(managed, "0.9.1")
+            expected = write_payload(managed, "0.9.3")
 
             actual = cnx.resolve_installed_bootstrap(state)
-
             self.assertEqual(actual.resolve(), expected.resolve())
 
     def test_does_not_recursively_scan_unrelated_nested_node_modules(self):
@@ -85,45 +84,43 @@ class LifecycleV092Tests(unittest.TestCase):
             )
             write_payload(unrelated, "9.9.9")
 
-            with self.assertRaisesRegex(RuntimeError, "lacks a verified scripts/bootstrap-ticket-db.mjs payload"):
+            with self.assertRaisesRegex(RuntimeError, "no exact installed"):
                 cnx.resolve_installed_bootstrap(state)
 
-    def test_prefers_highest_verified_package_version_across_generations(self):
+    def test_rejects_non_exact_package_versions_across_generations(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
             old_root = managed_package_root(state, "generation-old")
             new_root = managed_package_root(state, "generation-new")
             write_payload(old_root, "0.9.0", bootstrap_text="old\n", ticket_text="old-store\n")
-            expected = write_payload(new_root, "0.9.1", bootstrap_text="new\n", ticket_text="new-store\n")
+            write_payload(new_root, "0.9.1", bootstrap_text="new\n", ticket_text="new-store\n")
 
-            actual = cnx.resolve_installed_bootstrap(state)
-
-            self.assertEqual(actual.resolve(), expected.resolve())
+            with self.assertRaisesRegex(RuntimeError, "no exact installed"):
+                cnx.resolve_installed_bootstrap(state)
 
     def test_same_highest_version_with_conflicting_payloads_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
             first = managed_package_root(state, "generation-a")
             second = managed_package_root(state, "generation-b")
-            write_payload(first, "0.9.1", bootstrap_text="a\n", ticket_text="same\n")
-            write_payload(second, "0.9.1", bootstrap_text="b\n", ticket_text="same\n")
+            write_payload(first, "0.9.3", bootstrap_text="a\n", ticket_text="same\n")
+            write_payload(second, "0.9.3", bootstrap_text="b\n", ticket_text="same\n")
 
-            with self.assertRaisesRegex(RuntimeError, "conflicting bootstrap/runtime bytes"):
+            with self.assertRaisesRegex(RuntimeError, "ambiguous"):
                 cnx.resolve_installed_bootstrap(state)
 
-    def test_same_highest_version_identical_payload_uses_latest_generation(self):
+    def test_same_exact_version_identical_payload_is_still_ambiguous(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
             first = managed_package_root(state, "generation-a")
             second = managed_package_root(state, "generation-b")
-            write_payload(first, "0.9.1")
-            expected = write_payload(second, "0.9.1")
+            write_payload(first, "0.9.3")
+            write_payload(second, "0.9.3")
             os.utime(first, ns=(1_000_000_000, 1_000_000_000))
             os.utime(second, ns=(2_000_000_000, 2_000_000_000))
 
-            actual = cnx.resolve_installed_bootstrap(state)
-
-            self.assertEqual(actual.resolve(), expected.resolve())
+            with self.assertRaisesRegex(RuntimeError, "ambiguous"):
+                cnx.resolve_installed_bootstrap(state)
 
     def test_bootstrap_executes_verified_managed_payload_with_workspace(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -145,6 +142,28 @@ class LifecycleV092Tests(unittest.TestCase):
                 timeout=120,
                 check=True,
             )
+
+    def test_reset_ownership_mismatch_has_zero_state_change(self):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(cnx.namespace_ownership, "verify_manifest", side_effect=RuntimeError("tampered")),
+            mock.patch.object(cnx.base, "confirm") as confirm,
+            mock.patch.object(cnx.base, "disable_managed") as disable,
+        ):
+            self.assertEqual(cnx.reset(Path(tmp)), 2)
+            confirm.assert_not_called()
+            disable.assert_not_called()
+
+    def test_uninstall_ownership_mismatch_has_zero_state_change(self):
+        with (
+            tempfile.TemporaryDirectory() as tmp,
+            mock.patch.object(cnx.namespace_ownership, "verify_manifest", side_effect=RuntimeError("tampered")),
+            mock.patch.object(cnx.base, "confirm") as confirm,
+            mock.patch.object(cnx.base, "uninstall_plugin") as uninstall_plugin,
+        ):
+            self.assertEqual(cnx.uninstall(Path(tmp)), 2)
+            confirm.assert_not_called()
+            uninstall_plugin.assert_not_called()
 
 
 if __name__ == "__main__":

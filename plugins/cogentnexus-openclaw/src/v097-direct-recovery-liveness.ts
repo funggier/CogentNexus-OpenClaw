@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { defaultTicketDatabase } from "./ticket-store.js";
 import { pulseManagedWorkers } from "./v091-final-entry.js";
 
-export const DIRECT_RECOVERY_LIVENESS_ID = "cogentnexus-direct-recovery-v097-liveness";
+export const DIRECT_RECOVERY_LIVENESS_ID = "cogentnexus-openclaw-direct-recovery-v097-liveness";
 export const DIRECT_RECOVERY_STARTUP_WAKE_DELAYS_MS = [250, 1_000, 3_000, 10_000, 30_000] as const;
 
 type Config = {

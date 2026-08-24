@@ -42,7 +42,7 @@ describe("v0.9 reload-safe context guard",()=>{
       }}},logger:{info:()=>{},warn:()=>{}}};
       installContextGuard(api,registration,{workspaceDir:root,ticketDatabasePath:path});
       const decision=await hook({prompt:"continue",messages:[],systemPrompt:""},{sessionKey,runId:"run-1",workspaceDir:root});
-      expect(decision).toMatchObject({outcome:"block",category:"cogentnexus_context_pressure",metadata:{ticketId:ticket.ticketId}});
+      expect(decision).toMatchObject({outcome:"block",category:"cnxclaw_context_pressure",metadata:{ticketId:ticket.ticketId}});
       const db=new DatabaseSync(path,{readOnly:true});
       expect(db.prepare("SELECT state,hard_required,owner_generation,session_id FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
         .toEqual({state:"pending",hard_required:1,owner_generation:4,session_id:"physical-old"});

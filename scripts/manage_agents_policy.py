@@ -44,7 +44,7 @@ def install(workspace: Path, policy_path: Path, backup_root: Path | None) -> dic
         root = (backup_root or workspace / ".cogentnexus-openclaw" / "install-backups").resolve()
         root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backup = root / f"AGENTS.pre-cogentnexus-{stamp}.md"
+        backup = root / f"AGENTS.pre-cogentnexus-openclaw-{stamp}.md"
         shutil.copy2(agents, backup)
     if changed:
         workspace.mkdir(parents=True, exist_ok=True)

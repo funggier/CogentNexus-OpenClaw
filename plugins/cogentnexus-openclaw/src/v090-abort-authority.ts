@@ -151,7 +151,7 @@ export function createAbortAuthorityApi(api:any,cfg:any={}) {
     ?? api.registerAgentEventSubscription?.bind(api);
   if(typeof registerEvents==="function") {
     registerEvents({
-      id:"cogentnexus-v090-abort-authority",
+      id:"cogentnexus-openclaw-v090-abort-authority",
       description:"Preserve authoritative UI Stop provenance across agent_end",
       streams:["lifecycle"],
       handle:(event:any)=>{

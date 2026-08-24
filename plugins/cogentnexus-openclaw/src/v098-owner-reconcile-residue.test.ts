@@ -51,7 +51,7 @@ describe("v0.9.8 retired internal recovery owner residue", () => {
     "cnx-v098-retired-residue-",
     async (root, path) => {
       const store = new TicketStore(path);
-      const sessionKey = "temp:cogentnexus-direct-recovery:cnxclaw-direct-CNXT-old-1-g0";
+      const sessionKey = "temp:cogentnexus-openclaw-direct-recovery:cnxclaw-direct-CNXT-old-1-g0";
       const ticket = store.accept({ runId:"legacy-internal", ownerSessionKey:sessionKey, prompt:"internal recovery" });
       store.route(ticket.ticketId, false);
 
@@ -84,7 +84,7 @@ describe("v0.9.8 retired internal recovery owner residue", () => {
     "cnx-v098-live-temp-owner-",
     async (root, path) => {
       const store = new TicketStore(path);
-      const sessionKey = "temp:cogentnexus-direct-recovery:cnxclaw-direct-CNXT-live-1-g0";
+      const sessionKey = "temp:cogentnexus-openclaw-direct-recovery:cnxclaw-direct-CNXT-live-1-g0";
       const ticket = store.accept({ runId:"live-internal", ownerSessionKey:sessionKey, prompt:"still active" });
       store.route(ticket.ticketId, false);
       ensureActiveCnxSession(path, sessionKey);

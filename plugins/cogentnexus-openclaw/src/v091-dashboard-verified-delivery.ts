@@ -7,7 +7,7 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 import { isDashboardSession, sessionAuthority } from "./v090.js";
 import { pulseManagedWorkers } from "./v091-final-entry.js";
 
-const PATCH = Symbol.for("cogentnexus.v091.dashboard-verified-delivery");
+const PATCH = Symbol.for("cogentnexus-openclaw.v091.dashboard-verified-delivery");
 
 export type DashboardVerifiedDeliveryConfig = {
   cogentNexusOpenClawRoot?: string;
@@ -66,7 +66,7 @@ function pendingDirectResult(path: string, runId: string): PendingDirectResult |
 
 export function deliveryMarker(idempotencyKey: string) {
   const digest = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 32);
-  return `<!-- cogentnexus-delivery:${digest} -->`;
+  return `<!-- cogentnexus-openclaw-delivery:${digest} -->`;
 }
 
 function nativePayloadText(text: string, idempotencyKey: string) {

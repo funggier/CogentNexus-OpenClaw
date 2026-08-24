@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { TicketStore } from "./ticket-store.js";
 
-const PATCH = Symbol.for("cogentnexus.v092.durable-direct-delivery-boundary");
+const PATCH = Symbol.for("cogentnexus-openclaw.v092.durable-direct-delivery-boundary");
 
 function ensureBoundaryTables(path: string) {
   new TicketStore(path).snapshot();

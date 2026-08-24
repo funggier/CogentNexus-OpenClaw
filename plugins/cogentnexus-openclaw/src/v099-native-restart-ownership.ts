@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { defaultTicketDatabase } from "./ticket-store.js";
 
 export const V099_NATIVE_RESTART_OWNERSHIP_ID =
-  "cogentnexus-native-restart-ownership-v099";
+  "cogentnexus-openclaw-native-restart-ownership-v099";
 
 export const OPENCLAW_NATIVE_RESTART_RESUME_BODY =
   "Your previous turn was interrupted by a gateway restart while " +
@@ -272,7 +272,7 @@ export function installV099NativeRestartOwnershipFence(api: any, config: Config)
         outcome: "block",
         reason:
           "duplicate OpenClaw native restart continuation is already owned by CogentNexus-OpenClaw Direct Recovery",
-        category: "cogentnexus_v099_native_restart_ownership",
+        category: "cnxclaw_v099_native_restart_ownership",
         metadata: {
           ticketId: ownership.ticketId,
           recoveryState: ownership.recoveryState,
