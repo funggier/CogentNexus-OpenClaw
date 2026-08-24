@@ -1,51 +1,44 @@
 # Active Coordination Task
 
 Status: `READY_FOR_CODEX`  
-Execution mode: `MANUAL_WITH_HUMAN_GATE`  
-Task ID: `CNX-20260824-046`  
-Updated: 2026-08-24 15:02 ICT  
+Execution mode: `MANUAL`  
+Task ID: `CNX-20260824-047`  
+Updated: 2026-08-24 16:18 ICT  
 Owner: ChatGPT  
 Executor: Codex after operator's manual signal
 
 ## Active task
 
-[`tasks/CNX-20260824-046-remove-legacy-and-fresh-install-current.md`](tasks/CNX-20260824-046-remove-legacy-and-fresh-install-current.md)
+[`tasks/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md`](tasks/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md)
 
 ## Predecessor report and review
 
-[`reports/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](reports/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
+[`reports/CNX-20260824-046-remove-legacy-and-fresh-install-current.md`](reports/CNX-20260824-046-remove-legacy-and-fresh-install-current.md)
 
-[`reviews/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](reviews/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
+[`reviews/CNX-20260824-046-remove-legacy-and-fresh-install-current.md`](reviews/CNX-20260824-046-remove-legacy-and-fresh-install-current.md)
 
-Task 045 is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result `BLOCKED_LEGACY_MIGRATION_NOT_AUTHORIZED`.
+Task 046 is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result `BLOCKED_NATIVE_PLUGIN_INVENTORY_TIMEOUT`.
 
-## Human authorization
+## Task 047 scope
 
-The operator directed removal before reinstall, approved the narrowed design, and reconfirmed `1`.
+Read-only diagnosis of the OpenClaw `plugins list --json` timeout:
 
-Authorized outcome:
+- map installed OpenClaw `2026.7.1-2 (0790d9f)` to its exact upstream call path;
+- inspect persisted registry/index/config/path metadata with secrets redacted;
+- run at most three distinct bounded native CLI probes;
+- use process-local lifecycle tracing and persisted-registry bypass only for comparison;
+- if required, time offline synchronous boundaries from a temporary script;
+- identify the first failing boundary or report bounded uncertainty.
 
-- externally back up and hash-verify proven legacy CogentNexus;
-- enter native/PASSTHROUGH;
-- remove only exact legacy launcher/skill/state/plugin/config/load-path/scheduled-task identities;
-- require exact fresh classification;
-- install reviewed current CogentNexus-OpenClaw v0.9.3 once;
-- exact-verify new ownership/runtime and unrelated-data safety.
+## Authority
 
-## Execution boundary
+No new human authorization is required for this read-only diagnostic task. The operator must manually signal Codex because scheduled execution remains disabled.
 
-Task 046 is not install-over migration and must not run `clean-reinstall.ps1`.
-
-The fresh installer may run once only after exact legacy removal and `fresh` classification. No destructive retry or automatic restore is authorized.
-
-If native plugin inventory still times out, ownership/backup/handoff is unproved, or state is mixed/unowned, stop before removal.
+Task 046 destructive removal/install authority is consumed. Task 047 authorizes no repair, removal, or installation.
 
 ## Safety
 
-- “Clear” applies only to proven legacy CogentNexus identities.
-- Preserve OpenClaw, Ollama, models, unrelated workspace/user data, and HermesAgent.
-- No broad wildcard/parent-directory deletion or force-kill.
-- No primary-repository checkout/reset/clean/worktree action.
-- No Procmon/Task 027/038 access.
-- No Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
-- Scheduled ChatGPT/Codex execution remains operator-controlled.
+- Preserve legacy CogentNexus live state, OpenClaw, Ollama/models, Gateway, user data, AGENTS, scheduler, unrelated plugins/projects, primary repository, HermesAgent, Ecosystem, staged-capability-loop, and retained Procmon evidence.
+- No plugin registry refresh, `doctor --fix`, config/state/database write, lifecycle action, Procmon, dump, ACL/ownership/antivirus change, or broad scan.
+- A bounded timeout wrapper may terminate only the exact diagnostic child it created and its verified descendants.
+- Publish exactly the one Task 047 report file.
