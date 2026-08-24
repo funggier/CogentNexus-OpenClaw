@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`
-**Updated:** 2026-08-24 23:23 ICT
+**State:** `READY_FOR_HERMES`
+**Updated:** 2026-08-24 23:50 ICT
 **Transport:** GitHub repository history
 **Human authority:** Task 058 Phase A plan-only checkpoint; no recovery apply or live mutation authorized
-**Execution trigger:** manual `ต่อ`; scheduled execution remains disabled by operator
+**Execution trigger:** manual Hermes continuation; scheduled execution remains disabled by operator
 
 ## Task 057 disposition
 
@@ -32,13 +32,19 @@ Task 057 made zero live actions.
 
 [`tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md`](tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md)
 
-Status: `READY_FOR_CODEX`
+Status: `READY_FOR_HERMES`
+
+Executor: Hermes after the operator's manual signal
 
 Current authorization: `PHASE_A_PLAN_ONLY`
+
+The operator explicitly selected Hermes to execute Task 058 instead of Codex.
 
 Task 058 must independently re-prove the current live preservation state, capture one fresh unmodified `openclaw plugins list --json` inventory, generate a new machine-produced rollover plan with the accepted implementation, verify every safety binding, publish the exact plan SHA-256 in the matching report, and stop.
 
 Task 056 is terminal and must not be resumed. Its inventory and failed planning attempt are not Task 058 planning inputs.
+
+The excluded `HermesAgent` system is not an execution prohibition: Hermes may execute this task, but must not inspect or mutate the separate HermesAgent project/system.
 
 ## Next gate
 
@@ -46,6 +52,6 @@ If Task 058 produces a valid plan, the durable state becomes `AWAITING_PLUGIN_GE
 
 ## Hard fence
 
-No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle/startup/supervisor mutation, controller MANAGED transition, scheduler change, Gateway/Ollama/model/process mutation, primary-repository mutation, Procmon/Task 027/038 action, broad cleanup, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle/startup/supervisor mutation, controller MANAGED transition, scheduler change, Gateway/Ollama/model/process mutation, primary-repository mutation, Procmon/Task 027/038 action, broad cleanup, mutation of the separate HermesAgent project/system, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
 
 Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan generation, plan verification, publication, or blocker.
