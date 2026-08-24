@@ -1,11 +1,12 @@
 # Active Coordination Task
 
-Status: `CHATGPT_EXECUTING`
-Execution mode: `CHATGPT_REPOSITORY_ONLY`
-Task ID: `CNX-20260824-057`
-Updated: 2026-08-24 22:56 ICT
+Status: `READY_FOR_CODEX`
+Execution mode: `MANUAL_WITH_HUMAN_GATE`
+Current authorization: `PHASE_A_PLAN_ONLY`
+Task ID: `CNX-20260824-058`
+Updated: 2026-08-24 23:23 ICT
 Owner: ChatGPT
-Executor: ChatGPT work environment
+Executor: Codex after the operator's manual signal
 
 ## Authoritative coordination files
 
@@ -14,30 +15,46 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 057 gate.
+`docs/operations/STATUS.md` is project narrative and is not a Task 058 gate.
 
 ## Active task
 
-[`tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md`](tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md)
+[`tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md`](tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md)
 
 ## Predecessor disposition
 
-Task 056 is reviewed `ACCEPT` as:
+Task 057 is reviewed `ACCEPT` as:
 
-`ACCEPT_BLOCKER_OPENCLAW_OPTIONAL_PACKAGE_NAME`
+`ACCEPT_OPENCLAW_INVENTORY_SCHEMA_COMPAT_FIXED`
 
-Task 056 report commit `884c84f269203338eeb144f7db715afe8eee8a51` is accepted. It made zero live mutations and generated no recovery plan.
+Accepted implementation commit:
+
+`f379e5c5d8dddb144cb0d1991b645b16055e1303`
+
+Accepted report commit:
+
+`da3525c38c24f76e19c977e28446603b8c7c7063`
+
+Task 057 review commit:
+
+`0bfeefe9e889a4f336f8860efc9dcae0f73af7ad`
+
+The repository compatibility fix is accepted. It made zero live mutations.
 
 ## Human authorization
 
-The operator selected `1` to authorize Task 057 and implementation from the ChatGPT work environment.
+The operator asked ChatGPT to continue the GitHub coordination workflow. Task 058 is prepared for the normal manual Codex trigger.
 
-This does not authorize a new live plan attempt, recovery apply, or MANAGED enable.
+A bare `ต่อ` authorizes evaluation/execution of this exact Phase A task only. It does not authorize recovery apply or any mutation outside the task fence.
 
 ## Authorized operation
 
-Implement and test the narrow repository compatibility fix for an absent optional OpenClaw inventory `packageName`, publish the Task 057 report, and prepare a separately gated Task 058 plan-only successor after review.
+Fresh read-only preservation preflight, one fresh supported OpenClaw plugin inventory capture, machine-generated rollover plan creation with the accepted Task 057 implementation, exact plan verification, and report-only checkpoint publication.
+
+For a valid plan, Codex must stop with `AWAITING_PLUGIN_GENERATION_ROLLOVER_APPLY` and publish the exact plan SHA-256 for later ChatGPT review and a separate human gate.
 
 ## Safety
 
-Repository-only. No live inventory capture, recovery plan/apply, installer, plugin or generation mutation, ownership rewrite, lifecycle, scheduler/supervisor, Gateway/Ollama/model/process, primary-repository, retained-evidence, Procmon/Task 027/038, or excluded-system action.
+No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle mutation, startup/supervisor enable, controller MANAGED transition, scheduler change, Gateway/Ollama/model mutation, process termination, primary-repository mutation, Procmon/Task 027/038 action, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+
+Task 056 is terminal. Do not reuse its raw inventory or failed planning attempt as Task 058 planning input.
