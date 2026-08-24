@@ -1,6 +1,6 @@
-# CogentNexus lifecycle launchers
+# CogentNexus-OpenClaw lifecycle launchers
 
-The generated `cnx.cmd`/shell launchers forward operator commands to the Host Controller.
+The generated `cnxclaw.cmd`/shell launchers forward operator commands to the Host Controller.
 
 Current mode semantics:
 

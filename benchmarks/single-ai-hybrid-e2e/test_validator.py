@@ -63,7 +63,7 @@ def run_validator(root: Path) -> int:
 
 
 def main() -> int:
-    with tempfile.TemporaryDirectory(prefix="cnx-benchmark-") as folder:
+    with tempfile.TemporaryDirectory(prefix="cnxclaw-benchmark-") as folder:
         root = Path(folder)
         make_valid(root)
         if run_validator(root) != 0:

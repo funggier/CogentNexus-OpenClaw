@@ -1,4 +1,4 @@
-# CogentNexus Project Worklog
+# CogentNexus-OpenClaw Project Worklog
 
 This file records meaningful project milestones and investigation results. It is not intended to capture every commit.
 
@@ -18,10 +18,10 @@ The first v0.9.3 full disruptive Windows run proved that the OpenClaw Gateway pr
 - Exact PID hard-killed; no process-tree kill.
 - Replacement Gateway listener appeared with a different PID.
 - Ollama remained healthy.
-- `cnx check recovery --json` still reported an active maintenance/recovery marker.
+- `cnxclaw check recovery --json` still reported an active maintenance/recovery marker.
 - The marker described an externally confirmed unresponsive Gateway with `recoveryPolicy=healthy-runtime`.
 - The v3 suite therefore stopped before provider-crash and operator-stop scenarios.
-- Best-effort cleanup using `cnx start` returned the system to MANAGED + Ollama + `READY`.
+- Best-effort cleanup using `cnxclaw start` returned the system to MANAGED + Ollama + `READY`.
 
 ### Interpretation
 
@@ -33,7 +33,7 @@ A new focused diagnostic was added:
 scripts/test-v093-gateway-convergence-windows.ps1
 ```
 
-It waits for the replacement Gateway and then observes `cnx check recovery --json` without using `cnx start` to force a state transition.
+It waits for the replacement Gateway and then observes `cnxclaw check recovery --json` without using `cnxclaw start` to force a state transition.
 
 Dedicated PS5.1 convergence smoke CI was also added.
 
@@ -57,7 +57,7 @@ Proven baseline properties included:
 - Host/provider selected provider = `ollama`;
 - Gateway listener healthy;
 - Ollama listener healthy;
-- `cnx check recovery` verdict = `READY`;
+- `cnxclaw check recovery` verdict = `READY`;
 - provider event adapter not required for Ollama;
 - `requestedArguments=["status"]` correctly persisted in harness evidence.
 

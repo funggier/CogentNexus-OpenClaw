@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills" / "cogentnexus" / "scripts" / "host_context.py"
+SCRIPT = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_context.py"
 spec = importlib.util.spec_from_file_location("cnx_host_context", SCRIPT)
 cnx = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
@@ -35,7 +35,7 @@ class HostContextTests(unittest.TestCase):
 
     def test_compact_uses_only_sessions_compact_with_fixed_argv(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             captured: list[str] = []
             cnx.openclaw_executable = lambda: "openclaw"
 
@@ -64,7 +64,7 @@ class HostContextTests(unittest.TestCase):
 
     def test_compact_rejects_out_of_bounds_max_lines_before_process_launch(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             launched = False
             cnx.openclaw_executable = lambda: "openclaw"
 

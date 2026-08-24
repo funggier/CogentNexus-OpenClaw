@@ -1,4 +1,4 @@
-# CogentNexus Flexible Roadmap
+# CogentNexus-OpenClaw Flexible Roadmap
 
 **Updated:** 2026-08-22
 
@@ -15,8 +15,8 @@ Success criteria:
 - exact Gateway PID is validated before kill;
 - replacement Gateway PID appears;
 - no process-tree kill;
-- no operator `cnx start` during observation;
-- `cnx check recovery --json` is polled read-only;
+- no operator `cnxclaw start` during observation;
+- `cnxclaw check recovery --json` is polled read-only;
 - result clearly classifies natural convergence vs stuck durable marker.
 
 ### 2. Full process-level Recovery Reality suite
@@ -25,10 +25,10 @@ Once Gateway convergence semantics are correct, prove these in sequence:
 
 - Gateway hard crash → automatic runtime recovery;
 - Ollama hard crash → provider incident/recovery behavior;
-- `cnx stop` → intentional stopped state with no automatic recovery;
-- `cnx start` → verified return to MANAGED running state.
+- `cnxclaw stop` → intentional stopped state with no automatic recovery;
+- `cnxclaw start` → verified return to MANAGED running state.
 
-Success means every scenario produces durable evidence and the suite exits cleanly without using the harness to make recovery decisions for CogentNexus.
+Success means every scenario produces durable evidence and the suite exits cleanly without using the harness to make recovery decisions for CogentNexus-OpenClaw.
 
 ### 3. Freeze a process-level v0.9.3 candidate
 
@@ -49,9 +49,9 @@ Required sequence and evidence gates:
 
 1. record the candidate source commit, version, release artifact URL/path, and SHA256;
 2. install from the actual release/consumer path and verify MANAGED/Ollama/Gateway readiness;
-3. install the same candidate over an existing CogentNexus deployment and verify safe, idempotent convergence without first uninstalling;
-4. run the documented `cnx reset` flow, answer its explicit `y` confirmation, and verify CogentNexus state returns to the documented fresh-install baseline;
-5. run `cnx uninstall`, answer its explicit `y` confirmation, and verify CogentNexus-owned tasks, launchers, plugin/package state, and managed artifacts are cleanly removed;
+3. install the same candidate over an existing CogentNexus-OpenClaw deployment and verify safe, idempotent convergence without first uninstalling;
+4. run the documented `cnxclaw reset` flow, answer its explicit `y` confirmation, and verify CogentNexus-OpenClaw state returns to the documented fresh-install baseline;
+5. run `cnxclaw uninstall`, answer its explicit `y` confirmation, and verify CogentNexus-OpenClaw-owned tasks, launchers, plugin/package state, and managed artifacts are cleanly removed;
 6. verify external OpenClaw and Ollama installations and user data remain intact;
 7. reinstall from the same actual release/consumer path after uninstall;
 8. verify post-reinstall MANAGED/Ollama state, Gateway on 127.0.0.1:18789, Ollama on 127.0.0.1:11434, and recovery verdict `READY`;
@@ -96,7 +96,7 @@ Required distinctions:
 
 ### Host/supervisor death
 
-Prove that CogentNexus control-plane failure itself is recoverable:
+Prove that CogentNexus-OpenClaw control-plane failure itself is recoverable:
 
 ```text
 Host dies
@@ -145,7 +145,7 @@ user intent accepted
 
 ### External side-effect safety
 
-For operations outside CogentNexus, support or require reconciliation mechanisms such as:
+For operations outside CogentNexus-OpenClaw, support or require reconciliation mechanisms such as:
 
 - idempotency keys;
 - durable receipts;
@@ -163,7 +163,7 @@ Continuity authority should remain in durable intent, committed work state, evid
 
 ### Multi-agent / large-scale direction
 
-As CogentNexus expands, preserve the same invariant recursively:
+As CogentNexus-OpenClaw expands, preserve the same invariant recursively:
 
 - one intent may flow through many intelligence/execution units;
 - local failures must not silently redirect the original intent;

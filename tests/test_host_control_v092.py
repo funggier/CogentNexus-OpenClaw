@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -14,7 +14,7 @@ import host_control_v092 as control
 class HostControlV092Tests(unittest.TestCase):
     def test_verified_stop_waits_for_ownership_release(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             held = {"running": True, "ownershipHeld": True, "pid": 123}
             released = {"running": False, "ownershipHeld": False, "pid": None}
             with mock.patch.object(
@@ -31,7 +31,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_verified_stop_fails_closed_when_ownership_does_not_release(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             held = {"running": True, "ownershipHeld": True, "pid": 123}
             with mock.patch.object(
                 control.provider_events, "stop_adapter", return_value={"stopped": [{"stopped": True}]}
@@ -47,7 +47,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_delegate_failure_does_not_continue_native_boundary(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(control, "_stop_provider_events_verified") as stop, \
                  mock.patch.object(control.openclaw_route, "restore_native") as restore, \
                  mock.patch.object(control.runtime_boundary, "activate_current_config") as activate:
@@ -59,7 +59,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_disable_blocks_native_activation_when_adapter_cannot_stop(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             failed_stop = {"ok": False, "verification": "ownership-not-released"}
             with mock.patch.object(
                 control, "_stop_provider_events_verified", return_value=failed_stop
@@ -72,7 +72,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_route_restore_failure_blocks_runtime_activation_after_verified_adapter_stop(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(
                 control, "_stop_provider_events_verified", return_value={"ok": True}
             ), mock.patch.object(
@@ -84,7 +84,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_unhealthy_gateway_after_restore_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(
                 control, "_stop_provider_events_verified", return_value={"ok": True}
             ), mock.patch.object(
@@ -97,7 +97,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_native_route_and_gateway_boundary_pass(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             order = []
 
             def stop(root_arg):
@@ -121,7 +121,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_intentional_stop_verifies_adapter_before_host_shutdown(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             order = []
 
             def stop(root_arg):
@@ -142,7 +142,7 @@ class HostControlV092Tests(unittest.TestCase):
 
     def test_intentional_stop_does_not_shutdown_provider_if_adapter_is_still_owned(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             argv = ["host_control_v092.py", "--root", str(root), "stop"]
             with mock.patch.object(control.v091.legacy.sys, "argv", argv), \
                  mock.patch.object(

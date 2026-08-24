@@ -20,12 +20,12 @@ jobs:
         with:
           node-version: "24"
           cache: npm
-          cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
       - name: Install plugin development dependencies
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
         run: npm ci
       - name: Build and validate plugin before packing
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
         run: npm run plugin:validate
       - name: Verify installer uses npm-pack instead of copying checkout
         shell: powershell
@@ -39,7 +39,7 @@ jobs:
           }
       - name: Build and inspect the exact Windows npm-pack artifact
         shell: powershell
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
         run: |
           $packOutput = (& npm pack --json | Out-String)
           if ($LASTEXITCODE -ne 0) { throw 'npm pack failed' }

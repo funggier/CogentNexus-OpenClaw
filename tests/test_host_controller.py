@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = ROOT / "skills" / "cogentnexus" / "scripts" / "host.py"
+HOST = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host.py"
 spec = importlib.util.spec_from_file_location("cnx_host", HOST)
 cnx_host = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
@@ -18,7 +18,7 @@ spec.loader.exec_module(cnx_host)
 class HostControllerTests(unittest.TestCase):
     def test_state_is_atomic_and_defaults_managed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             state = cnx_host.initialize(root)
             self.assertEqual(state["mode"], "managed")
             next_state = cnx_host.transition(root, mode="passthrough")
@@ -37,12 +37,12 @@ class HostControllerTests(unittest.TestCase):
 
     def test_initialize_seeds_durable_core_policy_snapshot(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             cnx_host.initialize(root)
             snapshot = cnx_host.policy_snapshot_path(root)
             self.assertTrue(snapshot.is_file())
             text = snapshot.read_text(encoding="utf-8")
-            self.assertIn("CogentNexus - Managed Continuity", text)
+            self.assertIn("CogentNexus-OpenClaw - Managed Continuity", text)
             info = cnx_host.policy_info(root)
             self.assertEqual(info["source"], "registered")
             self.assertGreater(info["bytes"], 0)
@@ -51,7 +51,7 @@ class HostControllerTests(unittest.TestCase):
     def test_registered_policy_persists_across_passthrough_and_reapply(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             cnx_host.initialize(root)
             cnx_host.save_state(
@@ -91,7 +91,7 @@ class HostControllerTests(unittest.TestCase):
     def test_reset_policy_restores_core_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             cnx_host.initialize(root)
             custom = Path(tmp) / "custom.md"
@@ -100,7 +100,7 @@ class HostControllerTests(unittest.TestCase):
             self.assertIn("Custom", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
             result = cnx_host.reset_policy(root)
             self.assertTrue(result["applied"])
-            self.assertIn("CogentNexus - Managed Continuity", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
+            self.assertIn("CogentNexus-OpenClaw - Managed Continuity", cnx_host.policy_snapshot_path(root).read_text(encoding="utf-8"))
 
     def _ticket_db(self, root: Path) -> sqlite3.Connection:
         path = cnx_host.ticket_db(root)
@@ -121,7 +121,7 @@ class HostControllerTests(unittest.TestCase):
 
     def test_interrupted_direct_ticket_promotes_to_waiting(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             db = self._ticket_db(root)
             db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,created_at,updated_at) VALUES ('T1','S1','accepted',0,'2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
             db.commit(); db.close()
@@ -136,7 +136,7 @@ class HostControllerTests(unittest.TestCase):
 
     def test_ticket_cancel_is_terminal_silent_and_suppresses_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             db = self._ticket_db(root)
             db.execute("INSERT INTO tickets(ticket_id,owner_session_key,status,workflow_eligible,created_at,updated_at) VALUES ('T2','S2','waiting',1,'2026-01-01T00:00:00+00:00','2026-01-01T00:00:00+00:00')")
             db.execute("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,created_at) VALUES ('T2','S2','failed','{}','pending','2026-01-01T00:00:00+00:00')")
@@ -168,7 +168,7 @@ class HostControllerTests(unittest.TestCase):
 
     def test_passthrough_supervisor_does_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             cnx_host.save_state(root, {"schemaVersion":1,"mode":"passthrough","desiredGateway":"running","desiredProvider":"unchanged","generation":2})
             result = cnx_host.supervisor_tick(root, True)
             self.assertEqual(result["result"], "passthrough")
@@ -176,7 +176,7 @@ class HostControllerTests(unittest.TestCase):
 
     def test_maintenance_supervisor_does_not_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             cnx_host.save_state(root, {"schemaVersion":1,"mode":"managed","desiredGateway":"stopped","desiredProvider":"stopped","generation":2})
             result = cnx_host.supervisor_tick(root, True)
             self.assertEqual(result["result"], "maintenance")

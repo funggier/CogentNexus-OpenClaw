@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "lifecycle_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_lifecycle_v091", SCRIPT)
@@ -31,7 +31,7 @@ class LifecycleV091Tests(unittest.TestCase):
 
     def test_cancelled_reset_performs_no_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             with (
                 mock.patch.object(cnx, "confirm", return_value=False),
                 mock.patch.object(cnx, "disable_managed") as disable,
@@ -45,7 +45,7 @@ class LifecycleV091Tests(unittest.TestCase):
 
     def test_reset_recreates_fresh_state_then_enables(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             root.mkdir(parents=True)
             calls: list[str] = []
 
@@ -79,7 +79,7 @@ class LifecycleV091Tests(unittest.TestCase):
 
     def test_cancelled_uninstall_performs_no_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             with (
                 mock.patch.object(cnx, "confirm", return_value=False),
                 mock.patch.object(cnx, "disable_managed") as disable,
@@ -91,18 +91,18 @@ class LifecycleV091Tests(unittest.TestCase):
 
     def test_uninstall_owned_paths_include_local_cnx_backups(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             local_app = Path(tmp) / "LocalAppData"
             with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local_app)}, clear=False):
                 paths = [path.resolve() for path in cnx.uninstall_owned_paths(root)]
             self.assertIn(root.resolve(), paths)
-            self.assertIn((local_app / "CogentNexus").resolve(), paths)
+            self.assertIn((local_app / "CogentNexus-OpenClaw").resolve(), paths)
             self.assertIn(cnx.SKILL.resolve(), paths)
             self.assertIn(cnx.LAUNCHER.resolve(), paths)
 
     def test_uninstall_cleanup_happens_only_after_native_health(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             root.mkdir(parents=True)
             calls: list[str] = []
             cleanup = mock.Mock(side_effect=lambda _paths: calls.append("cleanup"))
@@ -130,7 +130,7 @@ class LifecycleV091Tests(unittest.TestCase):
 
     def test_uninstall_never_schedules_or_deletes_file_cleanup_when_native_gateway_is_unhealthy(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             root.mkdir(parents=True)
             with (
                 mock.patch.object(cnx, "confirm", return_value=True),

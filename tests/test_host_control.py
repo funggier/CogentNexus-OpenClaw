@@ -11,7 +11,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills" / "cogentnexus" / "scripts" / "host_control.py"
+SCRIPT = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_control.py"
 spec = importlib.util.spec_from_file_location("cnx_host_control", SCRIPT)
 cnx = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
@@ -37,7 +37,7 @@ class HostControlTests(unittest.TestCase):
 
     def test_apply_snapshots_absent_value_and_restore_unsets_it(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             state = {"present": False, "value": None}
             cnx.config_get = lambda _path: (state["present"], state["value"])
             cnx.config_set = lambda _path, value: state.update(present=True, value=value)
@@ -57,7 +57,7 @@ class HostControlTests(unittest.TestCase):
 
     def test_restore_returns_original_operator_value(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             state = {"present": True, "value": 900000}
             cnx.config_get = lambda _path: (state["present"], state["value"])
             cnx.config_set = lambda _path, value: state.update(present=True, value=value)
@@ -70,7 +70,7 @@ class HostControlTests(unittest.TestCase):
 
     def test_supervisor_never_overwrites_an_operator_change_after_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             state = {"present": True, "value": 600000}
             cnx.config_get = lambda _path: (state["present"], state["value"])
             cnx.config_set = lambda _path, value: state.update(present=True, value=value)
@@ -92,7 +92,7 @@ class HostControlTests(unittest.TestCase):
 
     def test_failed_disable_reapplies_managed_watchdog_fence(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             state = {"present": True, "value": 600000}
             cnx.config_get = lambda _path: (state["present"], state["value"])
             cnx.config_set = lambda _path, value: state.update(present=True, value=value)
@@ -117,7 +117,7 @@ class HostControlTests(unittest.TestCase):
 
     def test_passthrough_supervisor_does_not_apply_managed_compatibility(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             (root / "host").mkdir(parents=True)
             (root / "host" / "controller.json").write_text(
                 json.dumps({"mode": "passthrough"}), encoding="utf-8"

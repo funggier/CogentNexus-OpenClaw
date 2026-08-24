@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "host_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_host_v091_disable", SCRIPT)
@@ -45,7 +45,7 @@ class V091DisableTransactionTests(unittest.TestCase):
     def test_disable_commits_passthrough_only_after_native_gateway_is_verified(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             before = self.seed(root)
             order = []
@@ -76,7 +76,7 @@ class V091DisableTransactionTests(unittest.TestCase):
     def test_disable_failure_restores_managed_surfaces_without_state_commit(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             agents = workspace / "AGENTS.md"
             agents.write_text("# managed policy\n", encoding="utf-8")
@@ -116,7 +116,7 @@ class V091DisableTransactionTests(unittest.TestCase):
 
     def test_passthrough_disable_failure_never_reenables_cnx(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             before = self.seed(root, mode="passthrough", generation=80)
             plugin_calls = []
             startup_calls = []

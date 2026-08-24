@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "skills" / "cogentnexus" / "scripts" / "host_delivery.py"
+MODULE_PATH = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_delivery.py"
 SPEC = importlib.util.spec_from_file_location("cnx_host_delivery_dedupe", MODULE_PATH)
 assert SPEC and SPEC.loader
 host_delivery = importlib.util.module_from_spec(SPEC)
@@ -17,10 +17,10 @@ SPEC.loader.exec_module(host_delivery)
 
 class HostDeliveryDedupeTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="cnx-host-delivery-dedupe-")
+        self.temp = tempfile.TemporaryDirectory(prefix="cnxclaw-host-delivery-dedupe-")
         self.workspace = Path(self.temp.name)
-        self.root = self.workspace / ".cogent"
-        self.path = self.root / "runtime" / "cogentnexus.sqlite3"
+        self.root = self.workspace / ".cogentnexus-openclaw"
+        self.path = self.root / "runtime" / "cogentnexus-openclaw.sqlite3"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(self.path)
         db.executescript(
@@ -72,7 +72,7 @@ class HostDeliveryDedupeTests(unittest.TestCase):
                VALUES ('CNXT-dedupe','awaiting_delivery',NULL,NULL,NULL,?)""",
             (stamp,),
         )
-        self.idempotency_key = "cnx-direct-result:CNXT-dedupe:g3"
+        self.idempotency_key = "cnxclaw-direct-result:CNXT-dedupe:g3"
         cursor = db.execute(
             """INSERT INTO cnx_assistant_delivery(
                  ticket_id,owner_session_key,owner_generation,kind,text,target_json,idempotency_key,status,

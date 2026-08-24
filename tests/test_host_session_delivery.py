@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "skills" / "cogentnexus" / "scripts" / "host_delivery.py"
+MODULE_PATH = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_delivery.py"
 SPEC = importlib.util.spec_from_file_location("cnx_host_delivery_v090", MODULE_PATH)
 assert SPEC and SPEC.loader
 host_delivery = importlib.util.module_from_spec(SPEC)
@@ -19,8 +19,8 @@ class HostSessionDeliveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.workspace = Path(self.temp.name)
-        self.root = self.workspace / ".cogent"
-        path = self.root / "runtime" / "cogentnexus.sqlite3"
+        self.root = self.workspace / ".cogentnexus-openclaw"
+        path = self.root / "runtime" / "cogentnexus-openclaw.sqlite3"
         path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path)
         db.executescript(

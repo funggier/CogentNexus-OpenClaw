@@ -4,10 +4,10 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = ROOT / "skills" / "cogentnexus" / "scripts" / "host_authority_v091.py"
-STALL = ROOT / "skills" / "cogentnexus" / "scripts" / "host_stall_v091.py"
-CONTROL = ROOT / "skills" / "cogentnexus" / "scripts" / "host_control_v091.py"
-ENTRY = ROOT / "plugins" / "cogentnexus-rotation" / "src" / "v091-release-entry.ts"
+HOST = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_authority_v091.py"
+STALL = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_stall_v091.py"
+CONTROL = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_control_v091.py"
+ENTRY = ROOT / "plugins" / "cogentnexus-openclaw" / "src" / "v091-release-entry.ts"
 
 
 class HostSingleAuthorityTests(unittest.TestCase):

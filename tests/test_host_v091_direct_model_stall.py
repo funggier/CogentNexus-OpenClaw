@@ -6,7 +6,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -18,7 +18,7 @@ OWNER = "agent:main:dashboard:test"
 
 
 def make_db(root: Path, *, response_ready_at=None):
-    path = root / "runtime" / "cogentnexus.sqlite3"
+    path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
     path.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(path)
     db.executescript(
@@ -108,8 +108,8 @@ def make_db(root: Path, *, response_ready_at=None):
 
 class HostDirectModelStallTests(unittest.TestCase):
     def test_claim_is_host_durable_but_does_not_mutate_ticket(self):
-        with tempfile.TemporaryDirectory(prefix="cnx-host-stall-") as tmp:
-            root = Path(tmp) / ".cogent"
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
             path = make_db(root)
             claim = stall.claim_expired_direct_model_call(root, "2026-08-18T13:16:00+00:00")
             self.assertIsNotNone(claim)
@@ -120,8 +120,8 @@ class HostDirectModelStallTests(unittest.TestCase):
             db.close()
 
     def test_quiesced_classification_authorizes_direct_recovery_without_workflow_promotion(self):
-        with tempfile.TemporaryDirectory(prefix="cnx-host-stall-classify-") as tmp:
-            root = Path(tmp) / ".cogent"
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-classify-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
             path = make_db(root)
             claim = stall.claim_expired_direct_model_call(root, "2026-08-18T13:16:00+00:00")
             result = stall.classify_quiesced_direct_model_call(root, claim)
@@ -144,8 +144,8 @@ class HostDirectModelStallTests(unittest.TestCase):
             db.close()
 
     def test_response_ready_wins_and_is_never_promoted_by_stall_path(self):
-        with tempfile.TemporaryDirectory(prefix="cnx-host-stall-ready-") as tmp:
-            root = Path(tmp) / ".cogent"
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-ready-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
             path = make_db(root, response_ready_at="2026-08-18T13:14:59+00:00")
             # The Host can only claim rows whose Ticket is still pre-response.
             claim = stall.claim_expired_direct_model_call(root, "2026-08-18T13:16:00+00:00")
@@ -156,8 +156,8 @@ class HostDirectModelStallTests(unittest.TestCase):
             db.close()
 
     def test_missing_direct_recovery_schema_fails_without_ticket_promotion(self):
-        with tempfile.TemporaryDirectory(prefix="cnx-host-stall-schema-") as tmp:
-            root = Path(tmp) / ".cogent"
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-schema-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
             path = make_db(root)
             db = sqlite3.connect(path)
             db.execute("DROP TABLE cnx_direct_recovery")

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -56,7 +56,7 @@ class LiveProbeRegressionV092Tests(unittest.TestCase):
 
     def test_recovery_health_snapshot_has_non_conflicting_detail_key(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             runtime = root / "runtime"
             runtime.mkdir(parents=True)
             (runtime / "health.json").write_text(json.dumps({

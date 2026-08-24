@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -15,7 +15,7 @@ import provider_recovery_v092 as recovery
 class ProviderRecoveryV092Tests(unittest.TestCase):
     def test_recovery_requires_explicit_incident(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             gate = recovery.gate(root, "lmstudio")
             self.assertFalse(gate["incidentOpen"])
             self.assertFalse(gate["allowed"])
@@ -24,7 +24,7 @@ class ProviderRecoveryV092Tests(unittest.TestCase):
 
     def test_lmstudio_circuit_opens_after_two_attempts_in_same_incident(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             opened = recovery.begin_incident(root, "lmstudio", "provider_dead", {"endpoint": "down"})
             self.assertTrue(opened["allowed"])
             self.assertTrue(opened["incidentOpen"])
@@ -43,7 +43,7 @@ class ProviderRecoveryV092Tests(unittest.TestCase):
 
     def test_elapsed_time_cannot_reopen_circuit(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             ancient = datetime(2000, 1, 1, tzinfo=timezone.utc)
             recovery.begin_incident(root, "lmstudio", "provider_dead", current=ancient)
             recovery.record_attempt(root, "lmstudio", success=False, reason="one", current=ancient)
@@ -59,7 +59,7 @@ class ProviderRecoveryV092Tests(unittest.TestCase):
 
     def test_stable_success_closes_incident_and_next_failure_gets_new_generation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             first = recovery.begin_incident(root, "lmstudio", "provider_dead")
             recovery.record_attempt(root, "lmstudio", success=True, reason="provider-started")
             closed = recovery.record_stable_success(root, "lmstudio", {"modelCallOutcome": "ok"})
@@ -73,7 +73,7 @@ class ProviderRecoveryV092Tests(unittest.TestCase):
 
     def test_manual_verified_transition_closes_incident(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             recovery.begin_incident(root, "ollama", "provider_unreachable")
             recovery.record_attempt(root, "ollama", success=False, reason="attempt")
             closed = recovery.clear_after_manual_transition(root, "ollama")
@@ -86,7 +86,7 @@ class ProviderRecoveryV092Tests(unittest.TestCase):
 
     def test_development_timer_state_migrates_without_authority(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = recovery.state_path(root)
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({

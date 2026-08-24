@@ -1,18 +1,18 @@
-# `cnx check` — read-only system pre-flight
+# `cnxclaw check` — read-only system pre-flight
 
-CogentNexus v0.9.2 groups diagnostic inspection under the `check` namespace.
+CogentNexus-OpenClaw v0.9.2 groups diagnostic inspection under the `check` namespace.
 
 `status` answers **what state is recorded now**. `check` actively verifies whether that state and its dependencies are coherent/ready, but never repairs or mutates them.
 
 ## Full system check
 
 ```powershell
-.\cnx.cmd check system
+.\cnxclaw.cmd check system
 ```
 
 This is the aircraft-style pre-flight inspection. It evaluates, in dependency order:
 
-1. CogentNexus installation/core files;
+1. CogentNexus-OpenClaw installation/core files;
 2. Host controller state and interrupted provider transitions;
 3. CNX/OpenClaw configuration validity;
 4. OpenClaw installation;
@@ -46,7 +46,7 @@ Exit codes are stable for scripts:
 You can ask whether the machine is ready for a provider without changing the persisted selection:
 
 ```powershell
-.\cnx.cmd check system --provider lmstudio
+.\cnxclaw.cmd check system --provider lmstudio
 ```
 
 The report records both the requested preflight provider and the persisted selection. The command is observational only.
@@ -54,25 +54,25 @@ The report records both the requested preflight provider and the persisted selec
 ## Component checks
 
 ```powershell
-.\cnx.cmd check cogentnexus
-.\cnx.cmd check config
-.\cnx.cmd check openclaw
-.\cnx.cmd check gateway
-.\cnx.cmd check provider
-.\cnx.cmd check provider ollama
-.\cnx.cmd check provider lmstudio
-.\cnx.cmd check model
-.\cnx.cmd check storage
-.\cnx.cmd check recovery
-.\cnx.cmd check delivery
-.\cnx.cmd check resources
+.\cnxclaw.cmd check cogentnexus
+.\cnxclaw.cmd check config
+.\cnxclaw.cmd check openclaw
+.\cnxclaw.cmd check gateway
+.\cnxclaw.cmd check provider
+.\cnxclaw.cmd check provider ollama
+.\cnxclaw.cmd check provider lmstudio
+.\cnxclaw.cmd check model
+.\cnxclaw.cmd check storage
+.\cnxclaw.cmd check recovery
+.\cnxclaw.cmd check delivery
+.\cnxclaw.cmd check resources
 ```
 
 `check system` is not merely `check all`: it can identify cross-component inconsistency that individual components cannot establish by themselves.
 
 ## Read-only invariant
 
-Every `cnx check ...` command must remain read-only.
+Every `cnxclaw check ...` command must remain read-only.
 
 A check must not:
 

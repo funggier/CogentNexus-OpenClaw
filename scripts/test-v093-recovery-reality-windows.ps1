@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 if ($SyntaxOnly) {
-    Write-Host 'CogentNexus v0.9.3 Ollama-only Recovery Reality harness syntax/load: PASS'
+    Write-Host 'CogentNexus-OpenClaw v0.9.3 Ollama-only Recovery Reality harness syntax/load: PASS'
     exit 0
 }
 if ($env:OS -ne 'Windows_NT') { throw 'This harness is Windows-only.' }
@@ -24,16 +24,16 @@ if ($IntentionalStopObservationSeconds -lt 5 -or $IntentionalStopObservationSeco
 
 $Downloads = Join-Path $HOME 'Downloads'
 $Workspace = Join-Path $HOME '.openclaw\workspace'
-$Cnx = Join-Path $Workspace 'cnx.cmd'
+$Cnx = Join-Path $Workspace 'cnxclaw.cmd'
 $OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) {
     [IO.Path]::GetFullPath((Join-Path (Get-Location) $env:OPENCLAW_CONFIG_PATH))
 } else {
     Join-Path $HOME '.openclaw\openclaw.json'
 }
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$LogPath = Join-Path $Downloads "CNX_V093_OLLAMA_RECOVERY_$Stamp.txt"
-$JsonPath = Join-Path $Downloads "CNX_V093_OLLAMA_RECOVERY_$Stamp.json"
-$RunRoot = Join-Path $Downloads "CNX_V093_OLLAMA_RECOVERY_$Stamp"
+$LogPath = Join-Path $Downloads "CNXCLAW_V093_OLLAMA_RECOVERY_$Stamp.txt"
+$JsonPath = Join-Path $Downloads "CNXCLAW_V093_OLLAMA_RECOVERY_$Stamp.json"
+$RunRoot = Join-Path $Downloads "CNXCLAW_V093_OLLAMA_RECOVERY_$Stamp"
 New-Item -ItemType Directory -Force -Path $RunRoot | Out-Null
 
 $ExpandedScenarios = New-Object System.Collections.Generic.List[string]
@@ -274,10 +274,10 @@ function Assert-ManagedBaseline {
     if (-not $ok) { throw "Managed Ollama baseline failed at $Label." }
 }
 
-function Install-ReleasedCogentNexus {
-    if (Test-Path $Cnx) { throw "-InstallRelease requires a clean consumer path with no existing cnx.cmd: $Cnx" }
+function Install-ReleasedCogentNexus-OpenClaw {
+    if (Test-Path $Cnx) { throw "-InstallRelease requires a clean consumer path with no existing cnxclaw.cmd: $Cnx" }
     $api = "https://api.github.com/repos/funggier/cogentnexus/releases/tags/$ReleaseTag"
-    $headers = @{ 'User-Agent'='CogentNexus-Ollama-Recovery-Reality'; 'Accept'='application/vnd.github+json' }
+    $headers = @{ 'User-Agent'='CogentNexus-OpenClaw-Ollama-Recovery-Reality'; 'Accept'='application/vnd.github+json' }
     Set-ActiveOperation 'release-metadata' ([ordered]@{ uri=$api })
     $release = Invoke-RestMethod -Uri $api -Headers $headers -UseBasicParsing
     Clear-ActiveOperation
@@ -300,7 +300,7 @@ function Install-ReleasedCogentNexus {
     if (-not (Test-Path $installer)) { throw 'Released installer missing after extraction.' }
     Add-Step 'release-consumer-download' 'PASS' ([ordered]@{ tag=$ReleaseTag; targetCommit=[string]$release.target_commitish; sha256=$actualHash; sourceRoot=$sourceRoot })
     Invoke-CapturedProcess 'release-consumer-install' 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',$installer,'-Provider','ollama') @(0) 1200 | Out-Null
-    if (-not (Test-Path $Cnx)) { throw 'Release install did not create cnx.cmd.' }
+    if (-not (Test-Path $Cnx)) { throw 'Release install did not create cnxclaw.cmd.' }
     Assert-ManagedBaseline 'after-release-install'
 }
 
@@ -348,13 +348,13 @@ function Invoke-BestEffortReconcile {
     catch { Add-Step 'cleanup-reconcile' 'FAIL' ([ordered]@{ error=$_.Exception.Message }) }
 }
 
-Set-Content -Path $LogPath -Value "CogentNexus v0.9.3 Ollama-only Recovery Reality Windows Harness`r`n" -Encoding UTF8
+Set-Content -Path $LogPath -Value "CogentNexus-OpenClaw v0.9.3 Ollama-only Recovery Reality Windows Harness`r`n" -Encoding UTF8
 Save-Evidence
 try {
     Invoke-DirectProbe 'openclaw-version' { & openclaw.cmd --version } @(0) | Out-Null
     Invoke-DirectProbe 'openclaw-config-validate' { & openclaw.cmd config validate } @(0) | Out-Null
     Invoke-DirectProbe 'ollama-version' { & ollama.exe --version } @(0) | Out-Null
-    if ($InstallRelease) { Install-ReleasedCogentNexus } elseif (-not (Test-Path $Cnx)) { throw 'cnx.cmd is not installed; use -InstallRelease on a clean consumer path.' }
+    if ($InstallRelease) { Install-ReleasedCogentNexus-OpenClaw } elseif (-not (Test-Path $Cnx)) { throw 'cnxclaw.cmd is not installed; use -InstallRelease on a clean consumer path.' }
     Confirm-DisruptiveSuite
     foreach ($name in $ExpandedScenarios) {
         switch ($name) {

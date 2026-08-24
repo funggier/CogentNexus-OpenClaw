@@ -24,8 +24,8 @@ if (-not (Test-Path -LiteralPath $Harness)) {
 $Downloads = Join-Path $HOME 'Downloads'
 New-Item -ItemType Directory -Force -Path $Downloads | Out-Null
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$RunnerOut = Join-Path $Downloads "CNX_V092_LIVE_RUNNER_$Stamp.out.txt"
-$RunnerErr = Join-Path $Downloads "CNX_V092_LIVE_RUNNER_$Stamp.err.txt"
+$RunnerOut = Join-Path $Downloads "CNXCLAW_V092_LIVE_RUNNER_$Stamp.out.txt"
+$RunnerErr = Join-Path $Downloads "CNXCLAW_V092_LIVE_RUNNER_$Stamp.err.txt"
 $StartedAt = Get-Date
 $Deadline = $StartedAt.AddMinutes($TimeoutMinutes)
 
@@ -90,7 +90,7 @@ $arguments = @(
 )
 if ($RunDestructive) { $arguments += '-RunDestructive' }
 
-Write-Host "CogentNexus v0.9.2 observable live acceptance runner"
+Write-Host "CogentNexus-OpenClaw v0.9.2 observable live acceptance runner"
 Write-Host "Harness : $Harness"
 Write-Host "Provider: $Provider"
 Write-Host "Timeout : $TimeoutMinutes minute(s)"

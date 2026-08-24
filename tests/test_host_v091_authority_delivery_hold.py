@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -20,8 +20,8 @@ TICKET = "CNXT-durable-authority"
 class HostV091AuthorityDeliveryHoldTests(unittest.TestCase):
     def test_durable_result_suppresses_pending_inference_recovery(self):
         with tempfile.TemporaryDirectory(prefix="cnx-durable-hold-") as tmp:
-            root = Path(tmp) / ".cogent"
-            path = root / "runtime" / "cogentnexus.sqlite3"
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
             path.parent.mkdir(parents=True, exist_ok=True)
             db = sqlite3.connect(path)
             db.executescript(

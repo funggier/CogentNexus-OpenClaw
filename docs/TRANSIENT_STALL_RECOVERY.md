@@ -1,6 +1,6 @@
 # Evidence-aware, event-driven local model-call recovery
 
-CogentNexus v0.9.2 does not treat elapsed time as proof that a model or provider is dead. Recovery authority comes from durable events and explicit failure evidence. Periodic reconciliation and long watchdogs remain safety mechanisms only.
+CogentNexus-OpenClaw v0.9.2 does not treat elapsed time as proof that a model or provider is dead. Recovery authority comes from durable events and explicit failure evidence. Periodic reconciliation and long watchdogs remain safety mechanisms only.
 
 ## What live LM Studio testing proved
 
@@ -143,7 +143,7 @@ providerRestart = false
 wait_for_event_evidence = true
 ```
 
-The deadline is **not extended** and does not become permission to recover. It is only the point at which CogentNexus records that the call is silent/unknown and waits for stronger evidence.
+The deadline is **not extended** and does not become permission to recover. It is only the point at which CogentNexus-OpenClaw records that the call is silent/unknown and waits for stronger evidence.
 
 ### `provider_dead` / `provider_unreachable`
 
@@ -182,7 +182,7 @@ models.providers.lmstudio_local.timeoutSeconds = 1100 s
 agents.defaults.timeoutSeconds                 = 1200 s
 ```
 
-These values prevent premature request/agent cancellation; they are **not recovery policy timers**. The v0.9.1 ~24-hour native watchdog remains a final external safety fuse, well outside normal CogentNexus event-driven recovery.
+These values prevent premature request/agent cancellation; they are **not recovery policy timers**. The v0.9.1 ~24-hour native watchdog remains a final external safety fuse, well outside normal CogentNexus-OpenClaw event-driven recovery.
 
 `disable`, `reset`, and `uninstall` restore the v0.9.2-owned provider/agent fields, while v0.9.1 independently restores its watchdog snapshot.
 
@@ -213,4 +213,4 @@ A retry is permitted only when the external action has an idempotency/receipt/re
 
 ## Process exit is not success proof
 
-Live diagnostics produced cases where the OpenClaw CLI process returned exit code 0 while the inner agent result was an error/timeout. CogentNexus therefore inspects durable/inner completion evidence instead of treating process exit or a top-level wrapper status as success proof.
+Live diagnostics produced cases where the OpenClaw CLI process returned exit code 0 while the inner agent result was an error/timeout. CogentNexus-OpenClaw therefore inspects durable/inner completion evidence instead of treating process exit or a top-level wrapper status as success proof.

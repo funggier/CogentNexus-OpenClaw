@@ -1,6 +1,6 @@
 # v0.9.3 Ollama-only Recovery Reality Tests
 
-CogentNexus v0.9.3 intentionally narrows local inference support to **Ollama only**.
+CogentNexus-OpenClaw v0.9.3 intentionally narrows local inference support to **Ollama only**.
 
 The released v0.9.2 remains immutable and may still contain LM Studio compatibility code because it was part of that historical release.  v0.9.3 does not select, start, stop, probe, advertise, or test LM Studio.  An upgrade from a managed v0.9.2 deployment first enters the accepted PASSTHROUGH/native boundary with the old launcher, then v0.9.3 enters MANAGED with Ollama.
 
@@ -23,11 +23,11 @@ Entry point:
 
 Evidence is written to `Downloads` as:
 
-- `CNX_V093_OLLAMA_RECOVERY_<timestamp>.txt`
-- `CNX_V093_OLLAMA_RECOVERY_<timestamp>.json`
-- `CNX_V093_OLLAMA_RECOVERY_<timestamp>\` for downloaded v0.9.2 release material when `-InstallRelease` is used.
+- `CNXCLAW_V093_OLLAMA_RECOVERY_<timestamp>.txt`
+- `CNXCLAW_V093_OLLAMA_RECOVERY_<timestamp>.json`
+- `CNXCLAW_V093_OLLAMA_RECOVERY_<timestamp>\` for downloaded v0.9.2 release material when `-InstallRelease` is used.
 
-A top-level PASS is not authoritative by itself.  Scenario assertions, exact listener PIDs, process identity, durable CNX diagnostics, and bounded observations are persisted in JSON.
+A top-level PASS is not authoritative by itself.  Scenario assertions, exact listener PIDs, process identity, durable CNXCLAW diagnostics, and bounded observations are persisted in JSON.
 
 ## Safety model
 
@@ -56,7 +56,7 @@ With `-InstallRelease`, the harness exercises the real public `v0.9.2` release b
 6. run the released installer explicitly with `-Provider ollama`;
 7. verify MANAGED + Ollama before injecting failures.
 
-This deliberately requires no existing `~\.openclaw\workspace\cnx.cmd`.
+This deliberately requires no existing `~\.openclaw\workspace\cnxclaw.cmd`.
 
 ## Scenario 0 — MANAGED baseline
 
@@ -88,10 +88,10 @@ Require:
 
 ## Scenario 3 — intentional operator stop
 
-1. call `cnx stop`;
+1. call `cnxclaw stop`;
 2. require `mode=maintenance`, `desiredGateway=stopped`, `desiredProvider=stopped`;
 3. require the Gateway to remain down through a bounded observation window;
-4. call `cnx start`;
+4. call `cnxclaw start`;
 5. require Gateway + Ollama + MANAGED state again.
 
 ## Intended first live run

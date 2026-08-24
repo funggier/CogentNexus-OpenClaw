@@ -16,14 +16,14 @@ if ($env:OS -ne 'Windows_NT') {
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Version = (Get-Content (Join-Path $RepoRoot 'VERSION') -Raw).Trim()
 if ($Version -ne '0.9.2') {
-    throw "Expected CogentNexus Core 0.9.2 candidate; found '$Version'."
+    throw "Expected CogentNexus-OpenClaw Core 0.9.2 candidate; found '$Version'."
 }
 
 $Downloads = Join-Path $HOME 'Downloads'
 New-Item -ItemType Directory -Force -Path $Downloads | Out-Null
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$LogPath = Join-Path $Downloads "CNX_V092_WINDOWS_ACCEPT_$Stamp.txt"
-$JsonPath = Join-Path $Downloads "CNX_V092_WINDOWS_ACCEPT_$Stamp.json"
+$LogPath = Join-Path $Downloads "CNXCLAW_V092_WINDOWS_ACCEPT_$Stamp.txt"
+$JsonPath = Join-Path $Downloads "CNXCLAW_V092_WINDOWS_ACCEPT_$Stamp.json"
 $OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) {
     [IO.Path]::GetFullPath((Join-Path (Get-Location) $env:OPENCLAW_CONFIG_PATH))
 } else {
@@ -124,9 +124,9 @@ function Invoke-CnxConfirmed {
         [string]$Name,
         [string[]]$Arguments
     )
-    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd'
     if (-not (Test-Path $cnx)) {
-        throw "cnx.cmd not found: $cnx"
+        throw "cnxclaw.cmd not found: $cnx"
     }
     $stdin = Join-Path $env:TEMP "cnx-v092-$Stamp-$([guid]::NewGuid().ToString('N')).in.txt"
     $stdout = Join-Path $env:TEMP "cnx-v092-$Stamp-$([guid]::NewGuid().ToString('N')).out.txt"
@@ -136,7 +136,7 @@ function Invoke-CnxConfirmed {
         $quoted = '"' + $cnx + '" ' + (($Arguments | ForEach-Object {
             if ($_ -match '[\s"]') { '"' + ($_ -replace '"','\"') + '"' } else { $_ }
         }) -join ' ')
-        Write-Evidence "START $Name :: cnx.cmd $($Arguments -join ' ') [explicit y supplied after harness confirmation]"
+        Write-Evidence "START $Name :: cnxclaw.cmd $($Arguments -join ' ') [explicit y supplied after harness confirmation]"
         $sw = [Diagnostics.Stopwatch]::StartNew()
         $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/d','/c',$quoted) -Wait -PassThru -NoNewWindow `
             -RedirectStandardInput $stdin -RedirectStandardOutput $stdout -RedirectStandardError $stderr
@@ -148,7 +148,7 @@ function Invoke-CnxConfirmed {
         $ok = $proc.ExitCode -eq 0
         $stepStatus = if ($ok) { 'PASS' } else { 'FAIL' }
         Add-Step $Name $stepStatus @{
-            command = @('cnx.cmd') + $Arguments
+            command = @('cnxclaw.cmd') + $Arguments
             explicitConfirmation = 'y'
             exitCode = $proc.ExitCode
             durationSeconds = [math]::Round($sw.Elapsed.TotalSeconds, 2)
@@ -180,13 +180,13 @@ function Read-OpenClawFields {
         stuckSessionAbortMs = $cfg.diagnostics.stuckSessionAbortMs
         lmstudioTimeoutSeconds = if ($null -ne $lm) { $lm.timeoutSeconds } else { $null }
         lmstudioCompat = if ($null -ne $lmModel) { $lmModel.compat } else { $null }
-        cnxPluginPresent = $null -ne $cfg.plugins.entries.'cogentnexus-rotation'
+        cnxPluginPresent = $null -ne $cfg.plugins.entries.'cogentnexus-openclaw'
     }
 }
 
 function Assert-SelectedProvider {
     param([string]$Expected)
-    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd'
     $result = Invoke-Captured "provider-status-$Expected" $cnx @('provider','status','--json')
     $doc = $result.Stdout | ConvertFrom-Json
     if ($doc.selectedProvider -ne $Expected) {
@@ -200,7 +200,7 @@ function Assert-ProviderEventAdapter {
         [bool]$Expected,
         [bool]$Running
     )
-    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd'
     $result = Invoke-Captured "check-recovery-$Label" $cnx @('check','recovery','--json') @(0,1)
     $doc = $result.Stdout | ConvertFrom-Json
     $rows = @($doc.checks | Where-Object { $_.name -eq 'Provider event adapter' })
@@ -229,14 +229,14 @@ function Get-CnxProviderAdapterProcesses {
             Where-Object {
                 $null -ne $_.CommandLine -and
                 $_.CommandLine -match 'provider_events_v092\.py' -and
-                $_.CommandLine -match '\.cogent'
+                $_.CommandLine -match '\.cogentnexus-openclaw'
             } |
             Select-Object ProcessId, CommandLine
     )
 }
 
 try {
-    Set-Content -Path $LogPath -Value "CogentNexus v0.9.2 Windows Live Acceptance`r`n" -Encoding UTF8
+    Set-Content -Path $LogPath -Value "CogentNexus-OpenClaw v0.9.2 Windows Live Acceptance`r`n" -Encoding UTF8
     Save-Evidence
 
     $beforeFields = Read-OpenClawFields
@@ -251,8 +251,8 @@ try {
         '-NoProfile','-ExecutionPolicy','Bypass','-File',$install,'-Provider',$Provider
     ) | Out-Null
 
-    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
-    if (-not (Test-Path $cnx)) { throw 'Candidate install did not create cnx.cmd.' }
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd'
+    if (-not (Test-Path $cnx)) { throw 'Candidate install did not create cnxclaw.cmd.' }
 
     Invoke-Captured 'check-system-managed' $cnx @('check','system','--json') @(0,1) | Out-Null
     Assert-SelectedProvider $Provider
@@ -316,14 +316,14 @@ try {
 
     Write-Host ''
     Write-Host 'DESTRUCTIVE ACCEPTANCE REQUESTED.' -ForegroundColor Yellow
-    Write-Host 'This will reset CogentNexus and then uninstall it after verification.' -ForegroundColor Yellow
+    Write-Host 'This will reset CogentNexus-OpenClaw and then uninstall it after verification.' -ForegroundColor Yellow
     $answer = (Read-Host 'Type y to continue with reset + uninstall').Trim().ToLowerInvariant()
     if ($answer -ne 'y') {
         throw 'Destructive acceptance was not explicitly confirmed with y.'
     }
 
     Invoke-CnxConfirmed 'reset-fresh-managed' @('reset','--provider',$Provider)
-    $cnx = Join-Path $HOME '.openclaw\workspace\cnx.cmd'
+    $cnx = Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd'
     Assert-SelectedProvider $Provider
     Invoke-Captured 'check-system-after-reset' $cnx @('check','system','--json') @(0,1) | Out-Null
     Assert-ProviderEventAdapter 'after-reset' $managedAdapter $managedAdapter
@@ -336,9 +336,9 @@ try {
 
     $afterFields = Read-OpenClawFields
     $Evidence.openclawAfter = $afterFields
-    $launcherStillExists = Test-Path (Join-Path $HOME '.openclaw\workspace\cnx.cmd')
+    $launcherStillExists = Test-Path (Join-Path $HOME '.openclaw\workspace\cnxclaw.cmd')
     $pluginList = Invoke-Captured 'plugins-after-uninstall' 'openclaw.cmd' @('plugins','list','--json')
-    $pluginStillRegistered = $pluginList.Stdout -match 'cogentnexus-rotation'
+    $pluginStillRegistered = $pluginList.Stdout -match 'cogentnexus-openclaw'
     $adapterProcesses = Get-CnxProviderAdapterProcesses
 
     $nativeFieldPass = (
@@ -364,9 +364,9 @@ try {
         providerAdapterProcesses = $adapterProcesses
     }
     if (-not $nativeFieldPass) { throw 'Pre-CNX model/request-timeout/watchdog/schema-compat fields were not restored after uninstall.' }
-    if ($pluginStillRegistered -or $afterFields.cnxPluginPresent) { throw 'CogentNexus plugin remains registered/configured after uninstall.' }
-    if ($launcherStillExists) { throw 'cnx.cmd still exists after uninstall cleanup window.' }
-    if ($adapterProcesses.Count -ne 0) { throw 'CogentNexus provider event adapter process remains after uninstall.' }
+    if ($pluginStillRegistered -or $afterFields.cnxPluginPresent) { throw 'CogentNexus-OpenClaw plugin remains registered/configured after uninstall.' }
+    if ($launcherStillExists) { throw 'cnxclaw.cmd still exists after uninstall cleanup window.' }
+    if ($adapterProcesses.Count -ne 0) { throw 'CogentNexus-OpenClaw provider event adapter process remains after uninstall.' }
 
     $Evidence.result = 'PASS_FULL'
     $Evidence.finishedAt = (Get-Date).ToString('o')

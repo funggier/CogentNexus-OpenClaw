@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_runtime():
-    spec = importlib.util.spec_from_file_location("cnx_runtime_windows_stop_test", ROOT / "skills/cogentnexus/scripts/runtime.py")
+    spec = importlib.util.spec_from_file_location("cnx_runtime_windows_stop_test", ROOT / "skills/cogentnexus-openclaw/scripts/runtime.py")
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
     spec.loader.exec_module(module)

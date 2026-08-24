@@ -1,6 +1,6 @@
 # Knowledge, Evidence, and Durable Lessons
 
-CogentNexus separates **durable execution truth** from model memory. Tickets, workflow state, receipts, validators, artifact hashes, and terminal evidence live in durable state; model context is not the authority for whether work happened.
+CogentNexus-OpenClaw separates **durable execution truth** from model memory. Tickets, workflow state, receipts, validators, artifact hashes, and terminal evidence live in durable state; model context is not the authority for whether work happened.
 
 ## Sources of truth
 
@@ -20,7 +20,7 @@ A model recollection must never override a terminal Ticket, cancellation fence, 
 The accepted v0.9.1 baseline adds two important durable lessons:
 
 - a transient SQLite BUSY read during authority polling is not proof that Host authority was revoked;
-- OpenClaw native restart continuation is not a new user request when the exact session/generation/prompt envelope is already owned by durable CNX Direct Recovery.
+- OpenClaw native restart continuation is not a new user request when the exact session/generation/prompt envelope is already owned by durable CNXCLAW Direct Recovery.
 
 These are architecture invariants, not heuristics to be guessed by the model.
 
@@ -32,4 +32,4 @@ Reusable lessons should contain provenance/evidence and be promoted only when th
 
 Context rotation/compaction may reduce conversational history, but durable work identity must survive independently. Recovery should reconstruct the minimum context required from durable records and verified artifacts rather than preserving unlimited model memory.
 
-See `skills/cogentnexus/references/lesson-learning.md`, `context-continuity.md`, and `minimal-memory.md` for internal routing details.
+See `skills/cogentnexus-openclaw/references/lesson-learning.md`, `context-continuity.md`, and `minimal-memory.md` for internal routing details.

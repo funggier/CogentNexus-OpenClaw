@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -32,7 +32,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
 
     def test_lifecycle_start_attaches_adapter_before_gateway_start(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             order = []
 
             def provider_start(name, timeout=45):
@@ -66,7 +66,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
 
     def test_failed_gateway_start_rolls_back_adapter(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             failed = subprocess.CompletedProcess(
                 args=["lifecycle", "start"], returncode=1, stdout=json.dumps({"result": "error"}), stderr="gateway failed"
             )
@@ -87,7 +87,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
 
     def test_failed_transactional_enable_stops_all_provider_adapters(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(
                 self.host, "ORIGINAL_ENABLE_MANAGED", side_effect=RuntimeError("enable failed")
             ), mock.patch.object(
@@ -99,7 +99,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
 
     def test_watcher_cleanup_error_does_not_mask_enable_failure(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(
                 self.host, "ORIGINAL_ENABLE_MANAGED", side_effect=RuntimeError("original enable failure")
             ), mock.patch.object(
@@ -137,7 +137,7 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
 
     def test_restart_attaches_adapter_before_gateway_restart(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             order = []
 
             def provider_start(name, timeout=45):

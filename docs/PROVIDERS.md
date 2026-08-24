@@ -1,6 +1,6 @@
-# Provider lifecycle — CogentNexus v0.9.2
+# Provider lifecycle — CogentNexus-OpenClaw v0.9.2
 
-CogentNexus v0.9.2 separates durable user intent/recovery authority from the concrete local inference runtime. The accepted v0.9.1 Ticket, Direct Recovery, durable-result and delivery fences remain authoritative. The v0.9.2 provider layer owns discovery, selected-provider lifecycle, the narrow OpenClaw route/request compatibility transaction, provider event evidence, and bounded per-incident recovery.
+CogentNexus-OpenClaw v0.9.2 separates durable user intent/recovery authority from the concrete local inference runtime. The accepted v0.9.1 Ticket, Direct Recovery, durable-result and delivery fences remain authoritative. The v0.9.2 provider layer owns discovery, selected-provider lifecycle, the narrow OpenClaw route/request compatibility transaction, provider event evidence, and bounded per-incident recovery.
 
 ## Supported local providers
 
@@ -9,20 +9,20 @@ CogentNexus v0.9.2 separates durable user intent/recovery authority from the con
 | Ollama | `http://127.0.0.1:11434` | `ollama/...` | `ollama` CLI |
 | LM Studio | `http://127.0.0.1:1234` | `lmstudio_local/...` | `lms` CLI |
 
-Both may be installed and running because their normal ports differ. CogentNexus has exactly one **selected provider** for MANAGED lifecycle/recovery responsibility.
+Both may be installed and running because their normal ports differ. CogentNexus-OpenClaw has exactly one **selected provider** for MANAGED lifecycle/recovery responsibility.
 
 ## Selecting a provider
 
 ```powershell
-.\cnx.cmd start --provider ollama
-.\cnx.cmd start --provider lmstudio
+.\cnxclaw.cmd start --provider ollama
+.\cnxclaw.cmd start --provider lmstudio
 ```
 
 A successful verified transition stores `selectedProvider` plus selection metadata. Later `start`/`restart` may omit `--provider` and reuse that verified selection. There is no silent provider fallback.
 
 ## Provider + OpenClaw route transaction
 
-CogentNexus does **not** rewrite arbitrary OpenClaw configuration. While MANAGED, v0.9.2 owns only:
+CogentNexus-OpenClaw does **not** rewrite arbitrary OpenClaw configuration. While MANAGED, v0.9.2 owns only:
 
 1. the default local model route for the selected provider;
 2. LM Studio provider/agent request-timeout fields proven necessary by live tests;
@@ -30,7 +30,7 @@ CogentNexus does **not** rewrite arbitrary OpenClaw configuration. While MANAGED
 
 `diagnostics.stuckSessionAbortMs` is deliberately not owned by v0.9.2. The accepted v0.9.1 Host-control compatibility fence remains authoritative for that field.
 
-Before lifecycle mutation, CogentNexus performs provider and route preflight. It then writes a durable `providerTransition` marker and a short-lived exact OpenClaw rollback copy. `selectedProvider` is committed only after:
+Before lifecycle mutation, CogentNexus-OpenClaw performs provider and route preflight. It then writes a durable `providerTransition` marker and a short-lived exact OpenClaw rollback copy. `selectedProvider` is committed only after:
 
 1. target provider availability/startability succeeds;
 2. route transaction validates;
@@ -48,8 +48,8 @@ If Host transition or verification fails, the OpenClaw route rolls back while `p
 `disable` is a runtime boundary, not just a config edit. It:
 
 1. completes the accepted v0.9.1 PASSTHROUGH transition;
-2. stops CogentNexus provider event adapters;
-3. restores pre-CNX route/request-timeout/schema-compat fields;
+2. stops CogentNexus-OpenClaw provider event adapters;
+3. restores pre-CNXCLAW route/request-timeout/schema-compat fields;
 4. forces Gateway restart (falling back to start if needed);
 5. verifies the native Gateway is running/reachable.
 
@@ -57,12 +57,12 @@ If Host transition or verification fails, the OpenClaw route rolls back while `p
 
 ## Route discovery
 
-CogentNexus does not invent credentials or an unknown model. A route must be resolvable from one of:
+CogentNexus-OpenClaw does not invent credentials or an unknown model. A route must be resolvable from one of:
 
 - current OpenClaw default route;
-- a previously verified CogentNexus route for that provider;
+- a previously verified CogentNexus-OpenClaw route for that provider;
 - an existing provider model catalog entry;
-- `CNX_OLLAMA_MODEL` or `CNX_LMSTUDIO_MODEL`.
+- `CNXCLAW_OLLAMA_MODEL` or `CNXCLAW_LMSTUDIO_MODEL`.
 
 For LM Studio, an existing `models.providers.lmstudio_local` configuration is required.
 
@@ -157,7 +157,7 @@ A later failure opens a new incident generation and receives a fresh bounded att
 
 ## No silent fallback
 
-If a persisted provider is removed, unhealthy, uncontrollable, or missing a model route, `cnx start` fails closed. Select another provider explicitly.
+If a persisted provider is removed, unhealthy, uncontrollable, or missing a model route, `cnxclaw start` fails closed. Select another provider explicitly.
 
 ## Fresh state and reset
 
@@ -167,21 +167,21 @@ On fresh state:
 - both installed -> explicit provider required;
 - neither installed -> MANAGED provider start refused.
 
-`stop` preserves provider selection and MANAGED route. `disable` preserves durable provider preference but restores native OpenClaw configuration and stops CNX provider event handling.
+`stop` preserves provider selection and MANAGED route. `disable` preserves durable provider preference but restores native OpenClaw configuration and stops CNXCLAW provider event handling.
 
 `reset` uses fresh-install semantics. With both providers installed:
 
 ```powershell
-.\cnx.cmd reset --provider ollama
+.\cnxclaw.cmd reset --provider ollama
 # or
-.\cnx.cmd reset --provider lmstudio
+.\cnxclaw.cmd reset --provider lmstudio
 ```
 
 The explicit-`y`, PASSTHROUGH-first v0.9.1 safety boundary remains intact.
 
 ## LM Studio control
 
-LM Studio MANAGED start/stop and runtime event streaming require its `lms` CLI. A GUI installation without `lms` remains detectable but is not controllable by CogentNexus.
+LM Studio MANAGED start/stop and runtime event streaming require its `lms` CLI. A GUI installation without `lms` remains detectable but is not controllable by CogentNexus-OpenClaw.
 
 If LM Studio API authentication is enabled, `LM_API_TOKEN` may be provided for readiness probes.
 

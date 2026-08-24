@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "host_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_host_v091", SCRIPT)
@@ -66,7 +66,7 @@ class HostV091Tests(unittest.TestCase):
     def test_enable_commits_managed_only_after_activation_succeeds(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             before = self.seed_passthrough(root)
             self.stub_enable_dependencies()
@@ -84,7 +84,7 @@ class HostV091Tests(unittest.TestCase):
     def test_enable_reconciles_terminal_fences_before_plugin_activation(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             self.seed_passthrough(root)
             self.stub_enable_dependencies()
@@ -107,7 +107,7 @@ class HostV091Tests(unittest.TestCase):
     def test_enable_failure_preserves_passthrough_generation_and_policy(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             workspace.mkdir(parents=True)
             agents = workspace / "AGENTS.md"
             agents.write_text("# Native policy\n", encoding="utf-8")
@@ -136,7 +136,7 @@ class HostV091Tests(unittest.TestCase):
 
     def test_idle_supervisor_never_enters_heavy_path_when_responsive(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: True)
@@ -149,7 +149,7 @@ class HostV091Tests(unittest.TestCase):
 
     def test_confirmed_gateway_hang_restarts_before_heavy_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             calls = []
             self.patch(cnx, "gateway_fast_probe", lambda: False)
@@ -165,7 +165,7 @@ class HostV091Tests(unittest.TestCase):
 
     def test_transient_gateway_probe_failure_does_not_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             outcomes = iter([False, True])
             self.patch(cnx, "gateway_fast_probe", lambda: next(outcomes))

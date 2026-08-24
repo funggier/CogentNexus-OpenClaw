@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "host_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_host_v091_idle_hint", SCRIPT)
@@ -49,7 +49,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_terminal_database_is_idle(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             _path, db = self.create_ticket_db(root)
             db.execute("INSERT INTO tickets(status) VALUES ('completed')")
@@ -59,7 +59,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_pending_outbox_is_actionable_even_with_terminal_ticket(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             _path, db = self.create_ticket_db(root)
             db.execute("INSERT INTO tickets(status) VALUES ('completed')")
@@ -70,7 +70,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_pending_assistant_delivery_is_actionable_even_with_terminal_ticket(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             _path, db = self.create_ticket_db(root)
             db.execute("INSERT INTO tickets(status) VALUES ('completed')")
@@ -82,7 +82,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_awaiting_direct_delivery_is_actionable(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             _path, db = self.create_ticket_db(root)
             db.execute("INSERT INTO tickets(status) VALUES ('completed')")
@@ -94,7 +94,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_healthy_endpoints_with_pending_work_enter_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             _path, db = self.create_ticket_db(root)
             db.execute("INSERT INTO tickets(status) VALUES ('waiting')")
@@ -110,7 +110,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_gateway_failure_restarts_then_enters_proven_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: False)
             self.patch(cnx, "ollama_fast_probe", lambda: True)
@@ -125,7 +125,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_required_provider_failure_enters_proven_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: False)
@@ -137,7 +137,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
 
     def test_healthy_endpoints_without_work_stay_on_lightweight_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: True)

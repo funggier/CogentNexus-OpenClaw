@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 if ($SyntaxOnly) {
-    Write-Host 'CogentNexus v0.9.3 Ollama Recovery Reality harness v3 syntax/load: PASS'
+    Write-Host 'CogentNexus-OpenClaw v0.9.3 Ollama Recovery Reality harness v3 syntax/load: PASS'
     exit 0
 }
 if ($env:OS -ne 'Windows_NT') { throw 'This harness is Windows-only.' }
@@ -21,11 +21,11 @@ if ($IntentionalStopObservationSeconds -lt 5 -or $IntentionalStopObservationSeco
 
 $Downloads = Join-Path $HOME 'Downloads'
 $Workspace = Join-Path $HOME '.openclaw\workspace'
-$Cnx = Join-Path $Workspace 'cnx.cmd'
+$Cnx = Join-Path $Workspace 'cnxclaw.cmd'
 $OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) { [IO.Path]::GetFullPath((Join-Path (Get-Location) $env:OPENCLAW_CONFIG_PATH)) } else { Join-Path $HOME '.openclaw\openclaw.json' }
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$LogPath = Join-Path $Downloads "CNX_V093_OLLAMA_RECOVERY_V3_$Stamp.txt"
-$JsonPath = Join-Path $Downloads "CNX_V093_OLLAMA_RECOVERY_V3_$Stamp.json"
+$LogPath = Join-Path $Downloads "CNXCLAW_V093_OLLAMA_RECOVERY_V3_$Stamp.txt"
+$JsonPath = Join-Path $Downloads "CNXCLAW_V093_OLLAMA_RECOVERY_V3_$Stamp.json"
 
 $Expanded = New-Object System.Collections.Generic.List[string]
 foreach ($item in $Scenario) {
@@ -71,9 +71,9 @@ function Clear-Active { $Evidence.activeOperation=$null; Save-Evidence }
 
 function Invoke-CnxText {
     param([string]$Name,[string[]]$CommandArgs,[int[]]$AllowedExitCodes=@(0))
-    if (-not (Test-Path $Cnx)) { throw "cnx.cmd not found: $Cnx" }
+    if (-not (Test-Path $Cnx)) { throw "cnxclaw.cmd not found: $Cnx" }
     $argsCopy=@($CommandArgs)
-    Log "START $Name :: cnx.cmd $($argsCopy -join ' ')"
+    Log "START $Name :: cnxclaw.cmd $($argsCopy -join ' ')"
     Active $Name ([ordered]@{requestedFile=$Cnx;requestedArguments=$argsCopy;mode='direct-command'})
     $sw=[Diagnostics.Stopwatch]::StartNew()
     $text = & $Cnx @argsCopy 2>&1 | Out-String
@@ -140,7 +140,7 @@ function Hard-Kill {
 
 function Get-HostState {
     param($StatusDocument)
-    if ($null -eq $StatusDocument.host -or $null -eq $StatusDocument.host.state) { throw 'cnx status JSON is missing host.state.' }
+    if ($null -eq $StatusDocument.host -or $null -eq $StatusDocument.host.state) { throw 'cnxclaw status JSON is missing host.state.' }
     return $StatusDocument.host.state
 }
 function Assert-Baseline {
@@ -214,12 +214,12 @@ function Best-Effort-Reconcile {
     try{Invoke-CnxText -Name 'cleanup-start' -CommandArgs @('start')|Out-Null;Assert-Baseline 'cleanup';Step 'cleanup-reconcile' 'PASS' ([ordered]@{provider='ollama'})}catch{Step 'cleanup-reconcile' 'FAIL' ([ordered]@{error=$_.Exception.Message})}
 }
 
-Set-Content -Path $LogPath -Value "CogentNexus v0.9.3 Ollama-only Recovery Reality Windows Harness v3`r`n" -Encoding UTF8; Save-Evidence
+Set-Content -Path $LogPath -Value "CogentNexus-OpenClaw v0.9.3 Ollama-only Recovery Reality Windows Harness v3`r`n" -Encoding UTF8; Save-Evidence
 try {
     Invoke-Probe -Name 'openclaw-version' -Command { & openclaw.cmd --version }
     Invoke-Probe -Name 'openclaw-config-validate' -Command { & openclaw.cmd config validate }
     Invoke-Probe -Name 'ollama-version' -Command { & ollama.exe --version }
-    if(-not(Test-Path $Cnx)){throw 'cnx.cmd is not installed.'}; Confirm-Disruptive
+    if(-not(Test-Path $Cnx)){throw 'cnxclaw.cmd is not installed.'}; Confirm-Disruptive
     foreach($name in $Expanded){switch($name){'baseline'{Assert-Baseline 'baseline';Step 'scenario-baseline' 'PASS' ([ordered]@{provider='ollama'});Log 'SCENARIO baseline :: PASS'}'gateway-crash'{Scenario-Gateway}'provider-crash'{Scenario-Provider}'operator-stop'{Scenario-OperatorStop}}}
     $Evidence.result='PASS';$Evidence.completedAt=(Get-Date).ToString('o');Clear-Active;Save-Evidence;Log 'COGENTNEXUS v0.9.3 OLLAMA RECOVERY REALITY SUITE V3: PASS';Write-Host "Evidence: $LogPath";Write-Host "Evidence JSON: $JsonPath";exit 0
 } catch {

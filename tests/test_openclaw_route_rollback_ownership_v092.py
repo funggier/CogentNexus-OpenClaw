@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -51,7 +51,7 @@ class OpenClawRouteRollbackOwnershipV092Tests(unittest.TestCase):
         value.setdefault("diagnostics", {}).pop("stuckSessionAbortMs", None)
         value["meta"]["operatorValue"] = "changed-during-route-transaction"
         value["plugins"] = {
-            "entries": {"cogentnexus-rotation": {"enabled": False}}
+            "entries": {"cogentnexus-openclaw": {"enabled": False}}
         }
         path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 
@@ -75,11 +75,11 @@ class OpenClawRouteRollbackOwnershipV092Tests(unittest.TestCase):
             value["meta"]["operatorValue"],
             "changed-during-route-transaction",
         )
-        self.assertFalse(value["plugins"]["entries"]["cogentnexus-rotation"]["enabled"])
+        self.assertFalse(value["plugins"]["entries"]["cogentnexus-openclaw"]["enabled"])
 
     def test_rollback_does_not_resurrect_v091_watchdog_or_clobber_unrelated_changes(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write(directory)
             with mock.patch.dict(
                 os.environ,
@@ -104,7 +104,7 @@ class OpenClawRouteRollbackOwnershipV092Tests(unittest.TestCase):
 
     def test_crash_recovery_uses_same_route_owned_merge(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write(directory)
             with mock.patch.dict(
                 os.environ,

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "host_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_host_v091_delivery_fence", SCRIPT)
@@ -75,7 +75,7 @@ CREATE TABLE cnx_direct_recovery(
 
 class HostV091DeliveryFenceTests(unittest.TestCase):
     def seed(self, root: Path) -> Path:
-        path = root / "runtime" / "cogentnexus.sqlite3"
+        path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
         path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path)
         db.executescript(SCHEMA)
@@ -106,7 +106,7 @@ class HostV091DeliveryFenceTests(unittest.TestCase):
 
     def test_response_ready_without_durable_payload_fails_before_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             path = self.seed(root)
             cutoff = "2026-08-18T11:00:00Z"
 

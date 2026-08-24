@@ -1,4 +1,4 @@
-# CogentNexus Direction Decision Log
+# CogentNexus-OpenClaw Direction Decision Log
 
 This file records decisions that materially change project direction, scope, safety rules, or architecture.
 
@@ -18,11 +18,11 @@ Target the current Ollama-only development line for a `v1.0.0` release only afte
 The lifecycle gate includes:
 
 - install the exact candidate from the real release/consumer path;
-- install over an existing CogentNexus deployment and verify safe convergence;
-- exercise the documented `cnx reset` confirmation path and verify its outcome;
-- cleanly uninstall CogentNexus after explicit confirmation;
-- verify CogentNexus-owned tasks, package/plugin state, launchers, and managed artifacts are removed or intentionally documented;
-- preserve external OpenClaw and Ollama installations and user data unless a task explicitly proves CogentNexus ownership and authorizes removal;
+- install over an existing CogentNexus-OpenClaw deployment and verify safe convergence;
+- exercise the documented `cnxclaw reset` confirmation path and verify its outcome;
+- cleanly uninstall CogentNexus-OpenClaw after explicit confirmation;
+- verify CogentNexus-OpenClaw-owned tasks, package/plugin state, launchers, and managed artifacts are removed or intentionally documented;
+- preserve external OpenClaw and Ollama installations and user data unless a task explicitly proves CogentNexus-OpenClaw ownership and authorizes removal;
 - reinstall the exact candidate from the real release/consumer path after uninstall;
 - prove post-reinstall MANAGED/Ollama state, healthy Gateway and Ollama listeners, and recovery verdict `READY`;
 - retain exact artifact version, source commit, SHA256, commands, exit codes, and evidence paths;
@@ -67,7 +67,7 @@ Codex may not invent the next task. ChatGPT remains responsible for tasks/review
 
 Near-immediate pickup means a one-minute Scheduled-task cadence, not a zero-latency webhook. Local execution requires the Windows machine to remain powered on and the ChatGPT desktop app to remain running.
 
-Manual `ต่อ` remains a fallback. `หยุดเฝ้า` pauses/disables the Scheduled task without changing CogentNexus runtime state.
+Manual `ต่อ` remains a fallback. `หยุดเฝ้า` pauses/disables the Scheduled task without changing CogentNexus-OpenClaw runtime state.
 
 ---
 
@@ -200,7 +200,7 @@ Process health and durable recovery-state convergence must be observed separatel
 
 ### Why
 
-A real Gateway hard-crash test showed that the replacement OpenClaw Gateway listener returned successfully while `cnx check recovery` still reported `READY_WITH_WARNINGS` because a maintenance/recovery marker remained active.
+A real Gateway hard-crash test showed that the replacement OpenClaw Gateway listener returned successfully while `cnxclaw check recovery` still reported `READY_WITH_WARNINGS` because a maintenance/recovery marker remained active.
 
 ### Consequence
 
@@ -257,7 +257,7 @@ Maintaining LM Studio in parallel increased lifecycle, adapter, timeout, ownersh
 
 v0.9.3 operator paths should not select, start, stop, probe, advertise, or test LM Studio.
 
-Existing LM Studio installations are not uninstalled or modified merely because CogentNexus no longer manages them.
+Existing LM Studio installations are not uninstalled or modified merely because CogentNexus-OpenClaw no longer manages them.
 
 v0.9.2 remains historically unchanged.
 

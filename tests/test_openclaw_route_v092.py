@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -49,7 +49,7 @@ class OpenClawRouteV092Tests(unittest.TestCase):
 
     def test_plan_resolves_existing_lmstudio_catalog_without_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write_config(directory)
             before = config_path.read_bytes()
             with mock.patch.dict(os.environ, {"OPENCLAW_CONFIG_PATH": str(config_path)}, clear=False):
@@ -61,7 +61,7 @@ class OpenClawRouteV092Tests(unittest.TestCase):
 
     def test_begin_applies_lmstudio_route_timeouts_and_schema_compat(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write_config(directory)
             with mock.patch.dict(os.environ, {"OPENCLAW_CONFIG_PATH": str(config_path)}, clear=False), \
                  mock.patch.object(route, "validate_openclaw_config", return_value={"ok": True}):
@@ -78,7 +78,7 @@ class OpenClawRouteV092Tests(unittest.TestCase):
 
     def test_rollback_restores_exact_pretransition_config(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write_config(directory)
             before = config_path.read_bytes()
             with mock.patch.dict(os.environ, {"OPENCLAW_CONFIG_PATH": str(config_path)}, clear=False), \
@@ -93,7 +93,7 @@ class OpenClawRouteV092Tests(unittest.TestCase):
 
     def test_commit_then_restore_native_restores_pre_cnx_fields(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write_config(directory)
             baseline = self._config()
             with mock.patch.dict(os.environ, {"OPENCLAW_CONFIG_PATH": str(config_path)}, clear=False), \
@@ -116,7 +116,7 @@ class OpenClawRouteV092Tests(unittest.TestCase):
 
     def test_pending_transaction_is_recovered_before_next_begin(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             config_path = self._write_config(directory)
             baseline = config_path.read_bytes()
             with mock.patch.dict(os.environ, {"OPENCLAW_CONFIG_PATH": str(config_path)}, clear=False), \

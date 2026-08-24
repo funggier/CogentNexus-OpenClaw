@@ -5,12 +5,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import checks
-import cnx
+import cnxclaw as cnx
 import provider
 
 
@@ -31,7 +31,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_transition_target_wins_over_previous_selection(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({
@@ -45,7 +45,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_commit_provider_is_durable_and_clears_transition(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({
@@ -63,7 +63,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_component_check_is_read_only(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             original = {
@@ -96,7 +96,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_preflight_rejects_missing_provider_without_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({"schemaVersion": 1, "mode": "passthrough"}), encoding="utf-8")
@@ -115,7 +115,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_route_preflight_failure_is_zero_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({
@@ -138,7 +138,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_host_failure_rolls_back_route_but_preserves_transition_target(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({
@@ -173,7 +173,7 @@ class ProviderV092Tests(unittest.TestCase):
 
     def test_success_commits_route_before_provider_selection(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = root / "host" / "controller.json"
             path.parent.mkdir(parents=True)
             path.write_text(json.dumps({

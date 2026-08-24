@@ -11,7 +11,7 @@
 
 The operator accepted Task 041 bounded non-recurrence evidence without claiming a root cause and redirected implementation to prevent collisions with the future CogentNexus-HermesAgent product.
 
-Task `CNX-20260824-042` sets `VERSION` to `0.9.3`, adds v0.9.3 release notes describing the explicit naming contract, and changes every current operational namespace from generic CogentNexus/CNX surfaces to explicit CogentNexus-OpenClaw surfaces.
+Task `CNX-20260824-042` sets `VERSION` to `0.9.3`, adds v0.9.3 release notes describing the explicit naming contract, and changes every current operational namespace from generic CogentNexus-OpenClaw/CNX surfaces to explicit CogentNexus-OpenClaw surfaces.
 
 The required Windows launcher is `cnxclaw.cmd`; the skill, plugin, state root, package/tool identifiers, tasks/services, logs/backups, migration, reset, uninstall, documentation, tests, and release packages must be isolated accordingly.
 

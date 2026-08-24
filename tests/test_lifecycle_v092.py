@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "lifecycle_v092.py"
@@ -25,10 +25,10 @@ def write_payload(root: Path, version: str, bootstrap_text: str = "console.log('
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(
-        json.dumps({"id": "cogentnexus-rotation"}), encoding="utf-8"
+        json.dumps({"id": "cogentnexus-openclaw"}), encoding="utf-8"
     )
     (root / "package.json").write_text(
-        json.dumps({"name": "openclaw-plugin-cogentnexus-rotation", "version": version}),
+        json.dumps({"name": "openclaw-plugin-cogentnexus-openclaw", "version": version}),
         encoding="utf-8",
     )
     bootstrap = root / "scripts" / "bootstrap-ticket-db.mjs"
@@ -38,27 +38,27 @@ def write_payload(root: Path, version: str, bootstrap_text: str = "console.log('
 
 
 def managed_package_root(state: Path, project_name: str) -> Path:
-    return state / "npm" / "projects" / project_name / "node_modules" / "openclaw-plugin-cogentnexus-rotation"
+    return state / "npm" / "projects" / project_name / "node_modules" / "openclaw-plugin-cogentnexus-openclaw"
 
 
 class LifecycleV092Tests(unittest.TestCase):
     def test_resolves_openclaw_managed_npm_wrapper_when_legacy_extension_is_absent(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
-            project = state / "npm" / "projects" / "openclaw-plugin-cogentnexus-rotation__openclaw-generation__g-live"
+            project = state / "npm" / "projects" / "openclaw-plugin-cogentnexus-openclaw__openclaw-generation__g-live"
             expected = write_payload(
-                project / "node_modules" / "openclaw-plugin-cogentnexus-rotation",
+                project / "node_modules" / "openclaw-plugin-cogentnexus-openclaw",
                 "0.9.1",
             )
             (project / "package.json").write_text(
-                json.dumps({"private": True, "dependencies": {"openclaw-plugin-cogentnexus-rotation": "file:plugin.tgz"}}),
+                json.dumps({"private": True, "dependencies": {"openclaw-plugin-cogentnexus-openclaw": "file:plugin.tgz"}}),
                 encoding="utf-8",
             )
 
             actual = cnx.resolve_installed_bootstrap(state)
 
             self.assertEqual(actual.resolve(), expected.resolve())
-            self.assertFalse((state / "extensions" / "cogentnexus-rotation").exists())
+            self.assertFalse((state / "extensions" / "cogentnexus-openclaw").exists())
 
     def test_still_accepts_direct_managed_project_payload_for_compatible_openclaw_layouts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,7 +81,7 @@ class LifecycleV092Tests(unittest.TestCase):
                 / "node_modules"
                 / "nested-dependency"
                 / "node_modules"
-                / "openclaw-plugin-cogentnexus-rotation"
+                / "openclaw-plugin-cogentnexus-openclaw"
             )
             write_payload(unrelated, "9.9.9")
 

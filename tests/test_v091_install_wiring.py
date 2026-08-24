@@ -15,17 +15,17 @@ class V091InstallWiringTests(unittest.TestCase):
 
         # v0.9.3 narrows the operator/provider surface to Ollama while retaining
         # the accepted v0.9.2 orchestration backend underneath the facade.
-        self.assertIn("scripts\\cnx_v093.py", ps)
-        self.assertIn("scripts/cnx_v093.py", sh)
+        self.assertIn("scripts\\cnxclaw_v093.py", ps)
+        self.assertIn("scripts/cnxclaw_v093.py", sh)
         self.assertIn('[ValidateSet("ollama")]', ps)
         self.assertIn('PROVIDER="ollama"', sh)
 
-        cnx_v093 = (ROOT / "skills/cogentnexus/scripts/cnx_v093.py").read_text(encoding="utf-8")
-        provider_v093 = (ROOT / "skills/cogentnexus/scripts/provider_v093.py").read_text(encoding="utf-8")
-        legacy_cnx = (ROOT / "skills/cogentnexus/scripts/cnx.py").read_text(encoding="utf-8")
-        control_v092 = (ROOT / "skills/cogentnexus/scripts/host_control_v092.py").read_text(encoding="utf-8")
+        cnx_v093 = (ROOT / "skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py").read_text(encoding="utf-8")
+        provider_v093 = (ROOT / "skills/cogentnexus-openclaw/scripts/provider_v093.py").read_text(encoding="utf-8")
+        legacy_cnx = (ROOT / "skills/cogentnexus-openclaw/scripts/cnxclaw.py").read_text(encoding="utf-8")
+        control_v092 = (ROOT / "skills/cogentnexus-openclaw/scripts/host_control_v092.py").read_text(encoding="utf-8")
 
-        self.assertIn("import cnx as legacy", cnx_v093)
+        self.assertIn("import cnxclaw as legacy", cnx_v093)
         self.assertIn("import provider_v093 as ollama_provider", cnx_v093)
         self.assertIn('SUPPORTED_PROVIDERS = ("ollama",)', provider_v093)
         self.assertIn('HERE.with_name("host_control_v092.py")', legacy_cnx)
@@ -37,7 +37,7 @@ class V091InstallWiringTests(unittest.TestCase):
 
         for text in (ps, sh):
             self.assertIn("PASSTHROUGH", text.upper())
-            self.assertIn("plugins disable cogentnexus-rotation", text.lower())
+            self.assertIn("plugins disable cogentnexus-openclaw", text.lower())
             self.assertIn("plugins install", text.lower())
             self.assertIn("skip", text.lower())
 
@@ -48,7 +48,7 @@ class V091InstallWiringTests(unittest.TestCase):
         # A reinstall can start while the prior accepted runtime is MANAGED.
         # The old launcher must disable that authority before replacing its
         # skill or changing OpenClaw plugin configuration.
-        self.assertIn("& $existingLauncher disable", ps)
+        self.assertIn("& $handoffLauncher disable", ps)
         self.assertIn('"$EXISTING_LAUNCHER" disable', sh)
         self.assertIn("Pre-install native handoff: PASS", ps)
         self.assertIn("Pre-install native handoff: PASS", sh)
@@ -71,18 +71,18 @@ class V091InstallWiringTests(unittest.TestCase):
 
     def test_portable_cnx_template_uses_v092_cli_facade(self):
         # The portable template is a released-v0.9.2 compatibility artifact; the
-        # v0.9.3 installers generate their launcher against cnx_v093.py directly.
-        launcher = (ROOT / "skills/cogentnexus/templates/lifecycle/cnx.cmd").read_text(encoding="utf-8")
-        self.assertIn("scripts\\cnx.py", launcher)
+        # v0.9.3 installers generate their launcher against cnxclaw_v093.py directly.
+        launcher = (ROOT / "skills/cogentnexus-openclaw/templates/lifecycle/cnxclaw.cmd").read_text(encoding="utf-8")
+        self.assertIn("scripts\\cnxclaw.py", launcher)
         self.assertNotIn('scripts\\host.py"', launcher)
         self.assertNotIn('scripts\\host_v091.py"', launcher)
 
-        cnx = (ROOT / "skills/cogentnexus/scripts/cnx.py").read_text(encoding="utf-8")
+        cnx = (ROOT / "skills/cogentnexus-openclaw/scripts/cnxclaw.py").read_text(encoding="utf-8")
         self.assertIn('HOST_CONTROL = HERE.with_name("host_control_v092.py")', cnx)
 
     def test_v091_startup_adapter_targets_v091_control_wrapper(self):
-        startup = (ROOT / "skills/cogentnexus/scripts/startup_v091.py").read_text(encoding="utf-8")
-        host = (ROOT / "skills/cogentnexus/scripts/host_v091.py").read_text(encoding="utf-8")
+        startup = (ROOT / "skills/cogentnexus-openclaw/scripts/startup_v091.py").read_text(encoding="utf-8")
+        host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
         self.assertIn('HERE.with_name("host_control_v091.py")', startup)
         self.assertIn('HERE.with_name("startup_v091.py")', host)
 

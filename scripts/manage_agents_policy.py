@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely install or update the CogentNexus managed AGENTS.md block."""
+"""Safely install or update the CogentNexus-OpenClaw managed AGENTS.md block."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-BEGIN = "<!-- cogentnexus:begin -->"
-END = "<!-- cogentnexus:end -->"
+BEGIN = "<!-- cogentnexus-openclaw:begin -->"
+END = "<!-- cogentnexus-openclaw:end -->"
 
 
 def render(policy: str) -> str:
@@ -21,7 +21,7 @@ def merge(existing: str, policy: str) -> tuple[str, bool]:
     start = existing.find(BEGIN)
     finish = existing.find(END)
     if (start < 0) != (finish < 0) or (start >= 0 and finish < start):
-        raise ValueError("AGENTS.md contains an incomplete CogentNexus managed block")
+        raise ValueError("AGENTS.md contains an incomplete CogentNexus-OpenClaw managed block")
     if start >= 0:
         finish += len(END)
         updated = existing[:start] + block + existing[finish:]
@@ -41,7 +41,7 @@ def install(workspace: Path, policy_path: Path, backup_root: Path | None) -> dic
     updated, changed = merge(existing, policy)
     backup = None
     if changed and agents.exists():
-        root = (backup_root or workspace / ".cogent" / "install-backups").resolve()
+        root = (backup_root or workspace / ".cogentnexus-openclaw" / "install-backups").resolve()
         root.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         backup = root / f"AGENTS.pre-cogentnexus-{stamp}.md"

@@ -17,8 +17,8 @@ def load(name: str, path: Path):
     spec.loader.exec_module(module)
     return module
 
-runtime = load("cnx_runtime_provider_test", ROOT / "skills/cogentnexus/scripts/runtime.py")
-host = load("cnx_host_provider_test", ROOT / "skills/cogentnexus/scripts/host.py")
+runtime = load("cnx_runtime_provider_test", ROOT / "skills/cogentnexus-openclaw/scripts/runtime.py")
+host = load("cnx_host_provider_test", ROOT / "skills/cogentnexus-openclaw/scripts/host.py")
 
 class ProviderRecoveryAuthorityTests(unittest.TestCase):
     def config(self):
@@ -53,7 +53,7 @@ class ProviderRecoveryAuthorityTests(unittest.TestCase):
 
     def test_host_desired_provider_reconciles_with_explicit_lifecycle_start(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             host.save_state(root, {
                 "schemaVersion": 1, "mode": "managed", "desiredGateway": "running",
                 "desiredProvider": "running", "generation": 3

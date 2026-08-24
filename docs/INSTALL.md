@@ -1,4 +1,4 @@
-# Install CogentNexus v0.9.2
+# Install CogentNexus-OpenClaw v0.9.3
 
 This guide installs the v0.9.2 Host/control baseline. The accepted compatibility target remains OpenClaw `2026.7.1-2`; newer OpenClaw versions require compatibility validation before the same guarantees should be assumed.
 
@@ -10,7 +10,7 @@ v0.9.2 keeps the accepted v0.9.1 Recovery Core and adds provider-neutral local l
 - OpenClaw installed and working;
 - Python 3.11+ with PyYAML;
 - Node.js + npm;
-- at least one supported local provider if CNX will manage a local provider:
+- at least one supported local provider if CNXCLAW will manage a local provider:
   - Ollama, or
   - LM Studio with the `lms` CLI available.
 
@@ -18,11 +18,11 @@ Ollama and LM Studio may both be installed on the same machine. Their normal loo
 
 ## Recommended: install from a GitHub Release
 
-1. Download `cogentnexus-v0.9.2.zip` (or tar.gz) and `SHA256SUMS.txt` from the v0.9.2 GitHub Release.
+1. Download `cogentnexus-openclaw-v0.9.3.zip` (or tar.gz) and `SHA256SUMS.txt` from the v0.9.3 GitHub Release.
 2. Verify the archive SHA256.
 3. Extract it to a normal source directory outside the live OpenClaw extensions directory.
 4. Open PowerShell in the extracted directory.
-5. Install with the provider you want CNX to supervise:
+5. Install with the provider you want CNXCLAW to supervise:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
@@ -35,7 +35,7 @@ or:
 .\scripts\install.ps1 -Provider lmstudio
 ```
 
-If exactly one supported provider is installed, `-Provider` may be omitted. If both are installed on a fresh CNX state, explicit provider selection is required.
+If exactly one supported provider is installed, `-Provider` may be omitted. If both are installed on a fresh CNXCLAW state, explicit provider selection is required.
 
 The Process-scope execution-policy change is temporary and ends with that PowerShell process.
 
@@ -46,20 +46,20 @@ python -m pip install "PyYAML>=6.0,<7"
 .\scripts\install.ps1 -Provider ollama
 ```
 
-The installer stages the skill, validates it, initializes Host state in PASSTHROUGH, installs/validates the OpenClaw Bridge, writes `cnx.cmd`, performs provider preflight, then transactionally enables MANAGED mode. A failed provider/Gateway activation is not reported as a successful managed install.
+The installer stages the skill, validates it, initializes Host state in PASSTHROUGH, installs/validates the OpenClaw Bridge, writes `cnxclaw.cmd`, performs provider preflight, then transactionally enables MANAGED mode. A failed provider/Gateway activation is not reported as a successful managed install.
 
-There is intentionally no `cnx.cmd install` command. Installation is performed from an extracted release or development checkout.
+There is intentionally no `cnxclaw.cmd install` command. Installation is performed from an extracted release or development checkout.
 
 ## LM Studio preparation
 
 LM Studio must expose its local server and `lms` CLI. The default server port is `1234`.
 
-OpenClaw model routing is still configured in OpenClaw. CogentNexus provider selection controls local lifecycle/recovery responsibility; it does not silently rewrite the user's model selection.
+OpenClaw model routing is still configured in OpenClaw. CogentNexus-OpenClaw provider selection controls local lifecycle/recovery responsibility; it does not silently rewrite the user's model selection.
 
-After configuring the LM Studio model in OpenClaw, CNX can supervise the provider with:
+After configuring the LM Studio model in OpenClaw, CNXCLAW can supervise the provider with:
 
 ```powershell
-.\cnx.cmd start --provider lmstudio
+.\cnxclaw.cmd start --provider lmstudio
 ```
 
 ## Post-install pre-flight
@@ -68,14 +68,14 @@ From the OpenClaw workspace:
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
-.\cnx.cmd status
-.\cnx.cmd check system
+.\cnxclaw.cmd status
+.\cnxclaw.cmd check system
 ```
 
 For a hypothetical provider check without changing the persisted selection:
 
 ```powershell
-.\cnx.cmd check system --provider lmstudio
+.\cnxclaw.cmd check system --provider lmstudio
 ```
 
 Expected normal managed state:
@@ -84,7 +84,7 @@ Expected normal managed state:
 - one durable `selectedProvider`;
 - selected provider installed/reachable;
 - Gateway healthy;
-- CogentNexus plugin enabled/loaded;
+- CogentNexus-OpenClaw plugin enabled/loaded;
 - Ticket database readable/integrity valid;
 - no unexpected pending recovery/outbox work for an idle system.
 
@@ -93,50 +93,50 @@ Every `check` command is read-only and ends with `No state was changed.`
 ## Everyday lifecycle
 
 ```powershell
-.\cnx.cmd provider list
-.\cnx.cmd status
-.\cnx.cmd check system
-.\cnx.cmd start
-.\cnx.cmd start --provider ollama
-.\cnx.cmd start --provider lmstudio
-.\cnx.cmd stop
-.\cnx.cmd restart
-.\cnx.cmd restart --provider ollama
-.\cnx.cmd disable
-.\cnx.cmd enable
+.\cnxclaw.cmd provider list
+.\cnxclaw.cmd status
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd start
+.\cnxclaw.cmd start --provider ollama
+.\cnxclaw.cmd start --provider lmstudio
+.\cnxclaw.cmd stop
+.\cnxclaw.cmd restart
+.\cnxclaw.cmd restart --provider ollama
+.\cnxclaw.cmd disable
+.\cnxclaw.cmd enable
 ```
 
 A successful `start --provider ...` remembers that provider. Later `start` and `restart` reuse the latest successfully selected provider.
 
-`disable` means native OpenClaw PASSTHROUGH. `stop` means deliberate CNX MAINTENANCE. Both preserve the selected provider.
+`disable` means native OpenClaw PASSTHROUGH. `stop` means deliberate CNXCLAW MAINTENANCE. Both preserve the selected provider.
 
-## Reset CogentNexus to fresh-install state
+## Reset CogentNexus-OpenClaw to fresh-install state
 
 With one supported provider installed:
 
 ```powershell
-.\cnx.cmd reset
+.\cnxclaw.cmd reset
 ```
 
 With both Ollama and LM Studio installed, fresh reset requires an explicit new provider choice:
 
 ```powershell
-.\cnx.cmd reset --provider ollama
+.\cnxclaw.cmd reset --provider ollama
 # or
-.\cnx.cmd reset --provider lmstudio
+.\cnxclaw.cmd reset --provider lmstudio
 ```
 
-`reset` is destructive and requires an explicit `y` confirmation. It removes CogentNexus Tickets, recovery/delivery state, runtime/session/workflow state, diagnostics, and CNX configuration changes. It then rebuilds the currently installed release to fresh MANAGED state.
+`reset` is destructive and requires an explicit `y` confirmation. It removes CogentNexus-OpenClaw Tickets, recovery/delivery state, runtime/session/workflow state, diagnostics, and CNXCLAW configuration changes. It then rebuilds the currently installed release to fresh MANAGED state.
 
-The installed CogentNexus release files/version remain unchanged. OpenClaw, Ollama and LM Studio application/model data are not removed. If reinitialization fails, CogentNexus must not claim MANAGED authority from a partial reset.
+The installed CogentNexus-OpenClaw release files/version remain unchanged. OpenClaw, Ollama and LM Studio application/model data are not removed. If reinitialization fails, CogentNexus-OpenClaw must not claim MANAGED authority from a partial reset.
 
-## Completely uninstall CogentNexus
+## Completely uninstall CogentNexus-OpenClaw
 
 ```powershell
-.\cnx.cmd uninstall
+.\cnxclaw.cmd uninstall
 ```
 
-`uninstall` is destructive and requires an explicit `y` confirmation. It first returns CogentNexus to PASSTHROUGH/native OpenClaw, removes CNX startup integration and Bridge registration, verifies native Gateway health, then removes CogentNexus-owned state, skill files, plugin residue and launcher.
+`uninstall` is destructive and requires an explicit `y` confirmation. It first returns CogentNexus-OpenClaw to PASSTHROUGH/native OpenClaw, removes CNXCLAW startup integration and Bridge registration, verifies native Gateway health, then removes CogentNexus-OpenClaw-owned state, skill files, plugin residue and launcher.
 
 OpenClaw, Ollama and LM Studio remain installed.
 

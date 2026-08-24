@@ -1,6 +1,6 @@
 # Phase 6 durability and retrieval evaluation
 
-This deterministic benchmark exercises CogentNexus against an isolated temporary SQLite database. It never reads or mutates the live runtime database.
+This deterministic benchmark exercises CogentNexus-OpenClaw against an isolated temporary SQLite database. It never reads or mutates the live runtime database.
 
 It verifies:
 

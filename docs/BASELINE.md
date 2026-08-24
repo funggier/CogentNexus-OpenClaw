@@ -1,10 +1,10 @@
-# CogentNexus v0.9.1 Operational Baseline
+# CogentNexus-OpenClaw v0.9.1 Operational Baseline
 
 This document is the canonical architecture and invariant baseline for the current v0.9.1 release. Historical release notes describe earlier states and must not override this file or `docs/CURRENT_STATE.md`.
 
 ## Purpose
 
-CogentNexus preserves user intent across process/runtime boundaries while keeping execution proportional to the task. A message may be durably admitted before inference without being forced into a heavyweight workflow.
+CogentNexus-OpenClaw preserves user intent across process/runtime boundaries while keeping execution proportional to the task. A message may be durably admitted before inference without being forced into a heavyweight workflow.
 
 ## Core continuity invariant
 
@@ -12,7 +12,7 @@ Once eligible work is durably accepted, it must not silently disappear. It must 
 
 ## Authority model
 
-In MANAGED mode, durable CNX state determines recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable Host ownership.
+In MANAGED mode, durable CNXCLAW state determines recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable Host ownership.
 
 Authority is fenced by Ticket identity, owner session, session generation, model-call/Host timeout state, Direct Recovery run identity, cancellation/terminal state, and operating mode.
 
@@ -43,7 +43,7 @@ Ticket accepted
 
 ### Single-owner rule
 
-When CNX owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The **v099 compatibility fence** consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
+When CNXCLAW owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The **v099 compatibility fence** consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
 
 ### SQLite BUSY rule
 
@@ -53,17 +53,17 @@ Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not
 
 `response_ready` is immutable once committed. Delivery transport may retry delivery of a durable result; it must not regenerate inference merely because delivery is uncertain.
 
-CogentNexus therefore provides an **exactly-once-ish durable delivery boundary**, not a universal guarantee that arbitrary external side effects happen exactly once.
+CogentNexus-OpenClaw therefore provides an **exactly-once-ish durable delivery boundary**, not a universal guarantee that arbitrary external side effects happen exactly once.
 
 ## Operating modes
 
-- **MANAGED** — CNX owns Ticket-first continuity, managed lifecycle, and recovery behavior.
-- **PASSTHROUGH** — CNX interception/background ownership are disabled and OpenClaw remains natively usable.
+- **MANAGED** — CNXCLAW owns Ticket-first continuity, managed lifecycle, and recovery behavior.
+- **PASSTHROUGH** — CNXCLAW interception/background ownership are disabled and OpenClaw remains natively usable.
 - **MAINTENANCE** — deliberate stop; durable state remains and recovery must not fight operator intent.
 
-OpenClaw must remain usable without CogentNexus. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
+OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
 
-The durable managed-policy registration is stored at `.cogent/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so disable/PASSTHROUGH can remove active integration without destroying the registered policy source.
+The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so disable/PASSTHROUGH can remove active integration without destroying the registered policy source.
 
 ## Host and supervisor
 

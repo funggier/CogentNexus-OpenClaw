@@ -4,17 +4,17 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-import cnx
+import cnxclaw as cnx
 
 
 class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
     def test_start_switch_forces_gateway_restart_after_target_provider_start(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             calls = []
 
             def fake_run_host(root_arg, args, target=None, timeout=420):
@@ -31,7 +31,7 @@ class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
 
     def test_start_same_route_does_not_restart_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             calls = []
 
             def fake_run_host(root_arg, args, target=None, timeout=420):
@@ -47,7 +47,7 @@ class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
 
     def test_enable_same_route_still_restarts_gateway_to_load_managed_knobs(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             calls = []
 
             def fake_run_host(root_arg, args, target=None, timeout=420):
@@ -64,7 +64,7 @@ class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
 
     def test_restart_ensures_provider_then_restarts_gateway(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             calls = []
 
             def fake_run_host(root_arg, args, target=None, timeout=420):
@@ -81,7 +81,7 @@ class ProviderTransitionBoundaryV092Tests(unittest.TestCase):
 
     def test_provider_start_failure_prevents_gateway_restart(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             calls = []
 
             def fake_run_host(root_arg, args, target=None, timeout=420):

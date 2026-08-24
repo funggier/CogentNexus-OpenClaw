@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Verify CogentNexus-OpenClaw namespace isolation
+        run: python scripts/check_namespace_isolation.py
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -22,51 +24,51 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
       - run: python -m pip install -r requirements-dev.txt
       - run: python scripts/check_baseline_consistency.py
-      - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
-      - run: python skills/cogentnexus/scripts/cogent.py self-test
-      - run: python skills/cogentnexus/scripts/runtime.py self-test
-      - run: python skills/cogentnexus/scripts/workflow.py self-test
+      - run: python skills/cogentnexus-openclaw/scripts/validate.py --workspace-singleton
+      - run: python skills/cogentnexus-openclaw/scripts/cogent.py self-test
+      - run: python skills/cogentnexus-openclaw/scripts/runtime.py self-test
+      - run: python skills/cogentnexus-openclaw/scripts/workflow.py self-test
       - run: >-
           python -m py_compile
-          skills/cogentnexus/scripts/host.py
-          skills/cogentnexus/scripts/host_v091.py
-          skills/cogentnexus/scripts/host_control.py
-          skills/cogentnexus/scripts/host_control_v091.py
-          skills/cogentnexus/scripts/lifecycle_v091.py
-          skills/cogentnexus/scripts/startup.py
-          skills/cogentnexus/scripts/startup_v091.py
-          skills/cogentnexus/scripts/provider.py
-          skills/cogentnexus/scripts/checks.py
-          skills/cogentnexus/scripts/checks_v092.py
-          skills/cogentnexus/scripts/cnx.py
-          skills/cogentnexus/scripts/openclaw_route_v092.py
-          skills/cogentnexus/scripts/openclaw_runtime_boundary_v092.py
-          skills/cogentnexus/scripts/provider_recovery_v092.py
-          skills/cogentnexus/scripts/host_provider_v092.py
-          skills/cogentnexus/scripts/host_v092.py
-          skills/cogentnexus/scripts/host_control_v092.py
-          skills/cogentnexus/scripts/startup_v092.py
-          skills/cogentnexus/scripts/lifecycle_v092.py
+          skills/cogentnexus-openclaw/scripts/host.py
+          skills/cogentnexus-openclaw/scripts/host_v091.py
+          skills/cogentnexus-openclaw/scripts/host_control.py
+          skills/cogentnexus-openclaw/scripts/host_control_v091.py
+          skills/cogentnexus-openclaw/scripts/lifecycle_v091.py
+          skills/cogentnexus-openclaw/scripts/startup.py
+          skills/cogentnexus-openclaw/scripts/startup_v091.py
+          skills/cogentnexus-openclaw/scripts/provider.py
+          skills/cogentnexus-openclaw/scripts/checks.py
+          skills/cogentnexus-openclaw/scripts/checks_v092.py
+          skills/cogentnexus-openclaw/scripts/cnxclaw.py
+          skills/cogentnexus-openclaw/scripts/openclaw_route_v092.py
+          skills/cogentnexus-openclaw/scripts/openclaw_runtime_boundary_v092.py
+          skills/cogentnexus-openclaw/scripts/provider_recovery_v092.py
+          skills/cogentnexus-openclaw/scripts/host_provider_v092.py
+          skills/cogentnexus-openclaw/scripts/host_v092.py
+          skills/cogentnexus-openclaw/scripts/host_control_v092.py
+          skills/cogentnexus-openclaw/scripts/startup_v092.py
+          skills/cogentnexus-openclaw/scripts/lifecycle_v092.py
       - run: python -m unittest discover -s tests -v
       - name: Test plugin path migration helper
         shell: bash
         run: |
-          printf '["/tmp/cogentnexus-rotation","/tmp/keep"]' | \
-            python scripts/filter_plugin_paths.py --plugin-id cogentnexus-rotation | \
+          printf '["/tmp/cogentnexus-openclaw","/tmp/keep"]' | \
+            python scripts/filter_plugin_paths.py --plugin-id cogentnexus-openclaw | \
             python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
       - run: npm ci
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm test
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm run evaluation
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm audit --omit=dev
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm run plugin:validate
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - name: Resolve release tag
         id: release
         shell: bash
@@ -79,17 +81,17 @@ jobs:
           fi
           [[ "$tag" == v* ]]
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - name: Verify Core release and frozen Bridge package metadata
+      - name: Verify CogentNexus-OpenClaw release metadata
         shell: bash
         run: |
           set -euo pipefail
           expected="${{ steps.release.outputs.tag }}"
           expected="${expected#v}"
           version_file=$(tr -d '\r\n' < VERSION)
-          package_version=$(node -p "require('./plugins/cogentnexus-rotation/package.json').version")
-          manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-rotation/openclaw.plugin.json')).version")
-          lock_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').version")
-          lock_root_version=$(node -p "require('./plugins/cogentnexus-rotation/package-lock.json').packages[''].version")
+          package_version=$(node -p "require('./plugins/cogentnexus-openclaw/package.json').version")
+          manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-openclaw/openclaw.plugin.json')).version")
+          lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
           test "$expected" = "$version_file"
           test "$package_version" = "$manifest_version"
           test "$package_version" = "$lock_version"
@@ -103,11 +105,11 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ steps.release.outputs.tag }}"
-          name="cogentnexus-$tag"
+          name="cogentnexus-openclaw-$tag"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
           mkdir -p "$stage" "$out"
-          rsync -a --exclude '.git/' --exclude '.cogent/' --exclude 'node_modules/' ./ "$stage/"
+          rsync -a --exclude '.git/' --exclude '.cogentnexus-openclaw/' --exclude 'node_modules/' ./ "$stage/"
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
           (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
@@ -118,7 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="${{ steps.release.outputs.tag }}"
-          name="cogentnexus-$tag"
+          name="cogentnexus-openclaw-$tag"
           notes="docs/releases/$tag.md"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists; refusing duplicate publication."
@@ -130,7 +132,7 @@ jobs:
             "$RUNNER_TEMP/release/SHA256SUMS.txt"
           )
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            gh release create "$tag" "${common[@]}" --verify-tag --notes-file "$notes" --title "CogentNexus $tag"
+            gh release create "$tag" "${common[@]}" --verify-tag --notes-file "$notes" --title "CogentNexus-OpenClaw $tag"
           else
-            gh release create "$tag" "${common[@]}" --target "$GITHUB_SHA" --notes-file "$notes" --title "CogentNexus $tag"
+            gh release create "$tag" "${common[@]}" --target "$GITHUB_SHA" --notes-file "$notes" --title "CogentNexus-OpenClaw $tag"
           fi

@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 if ($SyntaxOnly) {
-    Write-Host 'CogentNexus v0.9.3 Gateway Convergence diagnostic syntax/load: PASS'
+    Write-Host 'CogentNexus-OpenClaw v0.9.3 Gateway Convergence diagnostic syntax/load: PASS'
     exit 0
 }
 if ($env:OS -ne 'Windows_NT') { throw 'This diagnostic is Windows-only.' }
@@ -18,11 +18,11 @@ if ($RecoveryFuseSeconds -lt 30 -or $RecoveryFuseSeconds -gt 1800) { throw 'Reco
 
 $Downloads = Join-Path $HOME 'Downloads'
 $Workspace = Join-Path $HOME '.openclaw\workspace'
-$Cnx = Join-Path $Workspace 'cnx.cmd'
+$Cnx = Join-Path $Workspace 'cnxclaw.cmd'
 $OpenClawConfig = if ($env:OPENCLAW_CONFIG_PATH) { [IO.Path]::GetFullPath((Join-Path (Get-Location) $env:OPENCLAW_CONFIG_PATH)) } else { Join-Path $HOME '.openclaw\openclaw.json' }
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$LogPath = Join-Path $Downloads "CNX_V093_GATEWAY_CONVERGENCE_$Stamp.txt"
-$JsonPath = Join-Path $Downloads "CNX_V093_GATEWAY_CONVERGENCE_$Stamp.json"
+$LogPath = Join-Path $Downloads "CNXCLAW_V093_GATEWAY_CONVERGENCE_$Stamp.txt"
+$JsonPath = Join-Path $Downloads "CNXCLAW_V093_GATEWAY_CONVERGENCE_$Stamp.json"
 
 function Get-ProcessRecord {
     param([int]$ProcessId)
@@ -62,7 +62,7 @@ function Step { param([string]$Name,[string]$Status,$Data) $Evidence.steps += [o
 function Invoke-CnxJson {
     param([string]$Name,[string[]]$CommandArgs,[int[]]$AllowedExitCodes=@(0),[switch]$Quiet)
     $copy=@($CommandArgs)
-    if (-not $Quiet) { Log "START $Name :: cnx.cmd $($copy -join ' ')" }
+    if (-not $Quiet) { Log "START $Name :: cnxclaw.cmd $($copy -join ' ')" }
     $sw=[Diagnostics.Stopwatch]::StartNew(); $text=& $Cnx @copy 2>&1 | Out-String; $rc=$LASTEXITCODE; $sw.Stop()
     if (-not ($AllowedExitCodes -contains $rc)) { throw "$Name failed with exit code $rc." }
     try { $doc=$text | ConvertFrom-Json } catch { throw "$Name did not return valid JSON." }
@@ -146,10 +146,10 @@ function Best-Effort-Cleanup {
     } catch { Step 'cleanup-start' 'FAIL' ([ordered]@{error=$_.Exception.Message}) }
 }
 
-Set-Content -Path $LogPath -Value "CogentNexus v0.9.3 Gateway Durable Recovery Convergence Diagnostic`r`n" -Encoding UTF8
+Set-Content -Path $LogPath -Value "CogentNexus-OpenClaw v0.9.3 Gateway Durable Recovery Convergence Diagnostic`r`n" -Encoding UTF8
 Save-Evidence
 try {
-    if(-not(Test-Path $Cnx)){throw "cnx.cmd not found: $Cnx"}
+    if(-not(Test-Path $Cnx)){throw "cnxclaw.cmd not found: $Cnx"}
     $answer=Read-Host 'This will hard-kill the exact validated OpenClaw Gateway PID once. Type y to continue'
     if($answer -cne 'y'){throw 'Diagnostic cancelled.'}
     Step 'explicit-disruptive-confirmation' 'PASS' ([ordered]@{confirmation='y'})

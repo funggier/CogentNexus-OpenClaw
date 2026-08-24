@@ -13,19 +13,20 @@ if ($env:OS -ne 'Windows_NT') {
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $Version = (Get-Content -LiteralPath (Join-Path $RepoRoot 'VERSION') -Raw).Trim()
-if ($Version -ne '0.9.2') {
-    throw "Expected CogentNexus Core 0.9.2 candidate; found '$Version'."
+if ($Version -ne '0.9.3') {
+    throw "Expected CogentNexus-OpenClaw v0.9.3 candidate; found '$Version'."
 }
 
 $Downloads = Join-Path $HOME 'Downloads'
 New-Item -ItemType Directory -Force -Path $Downloads | Out-Null
 $Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$LogPath = Join-Path $Downloads "CNX_V092_PARTIAL_REPAIR_$Stamp.txt"
-$BackupRoot = Join-Path $Downloads "CNX_V092_PARTIAL_REPAIR_BACKUP_$Stamp"
-$InstalledSkill = Join-Path $Workspace 'skills\cogentnexus'
+$LogPath = Join-Path $Downloads "CNXCLAW_V092_PARTIAL_REPAIR_$Stamp.txt"
+$BackupRoot = Join-Path $Downloads "CNXCLAW_V092_PARTIAL_REPAIR_BACKUP_$Stamp"
+$InstalledSkill = Join-Path $Workspace 'skills\cogentnexus-openclaw'
 $InstalledScripts = Join-Path $InstalledSkill 'scripts'
-$Cnx = Join-Path $Workspace 'cnx.cmd'
-$Root = Join-Path $Workspace '.cogent'
+$Cnx = Join-Path $Workspace 'cnxclaw.cmd'
+$Root = Join-Path $Workspace '.cogentnexus-openclaw'
+$OwnershipScript = Join-Path $RepoRoot 'skills\cogentnexus-openclaw\scripts\namespace_ownership.py'
 $Controller = Join-Path $Root 'host\controller.json'
 $RouteState = Join-Path $Root 'host\openclaw-route-v092.json'
 $WatchdogSnapshot = Join-Path $Root 'host\openclaw-watchdog-compat.json'
@@ -73,21 +74,23 @@ function Get-CnxAdapterProcesses {
             Where-Object {
                 $null -ne $_.CommandLine -and
                 $_.CommandLine -match 'provider_events_v092\.py' -and
-                $_.CommandLine -match '\.cogent'
+                $_.CommandLine -match '\.cogentnexus-openclaw'
             } |
             Select-Object ProcessId, ParentProcessId, Name, CommandLine
     )
 }
 
 if ($SyntaxOnly) {
-    Write-Host 'CogentNexus v0.9.2 partial repair helper syntax/load: PASS'
+    Write-Host 'CogentNexus-OpenClaw v0.9.3 partial repair helper syntax/load: PASS'
     exit 0
 }
 
 $Result = 0
 try {
     & {
-        Write-Output 'CogentNexus v0.9.2 Partial MANAGED -> Native Repair'
+        & python $OwnershipScript verify --root $Root --workspace $Workspace | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Ownership manifest mismatch; refusing repair mutation.' }
+        Write-Output 'CogentNexus-OpenClaw v0.9.3 Partial MANAGED -> Native Repair'
         Write-Output "Generated : $((Get-Date).ToString('o'))"
         Write-Output "Repo      : $RepoRoot"
         Write-Output "Workspace : $Workspace"
@@ -98,14 +101,14 @@ try {
         Write-Output '- Return an interrupted partial MANAGED install to PASSTHROUGH/native.'
         Write-Output '- Do not reset, uninstall, or delete provider installations.'
 
-        Require-File $Cnx 'Installed cnx.cmd'
-        Require-File $Controller 'CogentNexus controller state'
+        Require-File $Cnx 'Installed cnxclaw.cmd'
+        Require-File $Controller 'CogentNexus-OpenClaw controller state'
         Require-File $RouteState 'v0.9.2 route baseline state'
         Require-File $WatchdogSnapshot 'v0.9.1 watchdog compatibility snapshot'
         Require-File $OpenClawConfig 'OpenClaw config'
 
         foreach ($name in $RepairFiles) {
-            Require-File (Join-Path $RepoRoot "skills\cogentnexus\scripts\$name") "Candidate repair source $name"
+            Require-File (Join-Path $RepoRoot "skills\cogentnexus-openclaw\scripts\$name") "Candidate repair source $name"
         }
 
         $watchdogBaseline = Get-Content -LiteralPath $WatchdogSnapshot -Raw | ConvertFrom-Json
@@ -143,7 +146,7 @@ try {
         Write-Output 'STAGE VERIFIED v0.9.2 SAFETY FIXES'
         Write-Output '============================================================'
         foreach ($name in $RepairFiles) {
-            $source = Join-Path $RepoRoot "skills\cogentnexus\scripts\$name"
+            $source = Join-Path $RepoRoot "skills\cogentnexus-openclaw\scripts\$name"
             $target = Join-Path $InstalledScripts $name
             Copy-Item -LiteralPath $source -Destination $target -Force
             $sourceHash = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
@@ -158,7 +161,7 @@ try {
             & python -m py_compile @($RepairFiles | ForEach-Object { Join-Path $InstalledScripts $_ })
         }
 
-        Invoke-Checked 'DISABLE CNX / RESTORE NATIVE BOUNDARY' {
+        Invoke-Checked 'DISABLE CNXCLAW / RESTORE NATIVE BOUNDARY' {
             & $Cnx disable
         }
 
@@ -218,28 +221,28 @@ try {
         Write-Output "expectedPresent=$expectedWatchdogPresent actualPresent=$watchdogPresent"
         Write-Output "expectedValue=$expectedWatchdogValue actualValue=$watchdogValue"
         if ($watchdogPresent -ne $expectedWatchdogPresent) {
-            throw 'OpenClaw native watchdog presence was not restored to the v0.9.1 pre-CNX snapshot'
+            throw 'OpenClaw native watchdog presence was not restored to the v0.9.1 pre-CNXCLAW snapshot'
         }
         if ($watchdogPresent) {
             $expectedJson = $expectedWatchdogValue | ConvertTo-Json -Compress -Depth 20
             $actualJson = $watchdogValue | ConvertTo-Json -Compress -Depth 20
             if ($expectedJson -ne $actualJson) {
-                throw 'OpenClaw native watchdog value was not restored to the v0.9.1 pre-CNX snapshot'
+                throw 'OpenClaw native watchdog value was not restored to the v0.9.1 pre-CNXCLAW snapshot'
             }
         }
         Write-Output 'watchdogBaselineRestored=true'
 
         Write-Output ''
         Write-Output '============================================================'
-        Write-Output 'VERIFY CNX PLUGIN IS NOT ENABLED IN PASSTHROUGH'
+        Write-Output 'VERIFY CNXCLAW PLUGIN IS NOT ENABLED IN PASSTHROUGH'
         Write-Output '============================================================'
         $entries = if ($null -ne $openclaw.plugins) { $openclaw.plugins.entries } else { $null }
-        $pluginEntry = if ($null -ne $entries) { $entries.'cogentnexus-rotation' } else { $null }
+        $pluginEntry = if ($null -ne $entries) { $entries.'cogentnexus-openclaw' } else { $null }
         $pluginEnabled = $null -ne $pluginEntry -and $pluginEntry.enabled -eq $true
         Write-Output "pluginPresent=$($null -ne $pluginEntry)"
         Write-Output "pluginEnabled=$pluginEnabled"
         if ($pluginEnabled) {
-            throw 'CogentNexus plugin remains enabled after PASSTHROUGH repair boundary'
+            throw 'CogentNexus-OpenClaw plugin remains enabled after PASSTHROUGH repair boundary'
         }
 
         Write-Output ''
@@ -275,14 +278,14 @@ raise SystemExit(0 if match else 2)
         $routeRc = $LASTEXITCODE
         Write-Output "[exitCode=$routeRc]"
         if ($routeRc -ne 0) {
-            throw 'v0.9.2-owned OpenClaw route/timeout/compat fields do not match the durable pre-CNX baseline'
+            throw 'v0.9.2-owned OpenClaw route/timeout/compat fields do not match the durable pre-CNXCLAW baseline'
         }
 
         Write-Output ''
         Write-Output '============================================================'
         Write-Output 'REPAIR RESULT: PASS'
         Write-Output '============================================================'
-        Write-Output 'Machine is back at the CNX PASSTHROUGH/native boundary.'
+        Write-Output 'Machine is back at the CNXCLAW PASSTHROUGH/native boundary.'
         Write-Output 'No reset or uninstall was performed.'
         Write-Output "Finished: $((Get-Date).ToString('o'))"
     } *> $LogPath

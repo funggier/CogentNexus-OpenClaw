@@ -9,8 +9,8 @@ on:
       - 'scripts/test-v093-recovery-reality-windows.ps1'
       - 'scripts/install.ps1'
       - 'scripts/install.sh'
-      - 'skills/cogentnexus/scripts/cnx_v093.py'
-      - 'skills/cogentnexus/scripts/provider_v093.py'
+      - 'skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py'
+      - 'skills/cogentnexus-openclaw/scripts/provider_v093.py'
       - 'docs/V093_RECOVERY_REALITY_TESTS.md'
       - 'docs/V093_OLLAMA_ONLY.md'
       - '.github/workflows/ps51-v093-recovery-reality-smoke.yml'
@@ -91,5 +91,5 @@ jobs:
         shell: powershell
         run: >-
           python -m py_compile
-          .\skills\cogentnexus\scripts\provider_v093.py
-          .\skills\cogentnexus\scripts\cnx_v093.py
+          .\skills\cogentnexus-openclaw\scripts\provider_v093.py
+          .\skills\cogentnexus-openclaw\scripts\cnxclaw_v093.py

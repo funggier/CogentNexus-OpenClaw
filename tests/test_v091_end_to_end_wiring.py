@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 HOST_SCRIPT = SCRIPTS / "host_v091.py"
@@ -61,7 +61,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_fresh_initialization_is_passthrough_and_uses_v091_startup(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             state = cnx.legacy.initialize(root)
             persisted = cnx.legacy.load_state(root)
 
@@ -74,7 +74,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_configure_failure_stays_passthrough_and_restores_native_gateway(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             before = self.seed_passthrough(root)
             plugin_calls = []
             gateway_restores = []
@@ -94,7 +94,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_plugin_enable_failure_stays_passthrough(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             before = self.seed_passthrough(root)
             calls = []
             self.install_common_success_stubs()
@@ -118,7 +118,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
     def test_startup_partial_failure_removes_created_adapter(self):
         with tempfile.TemporaryDirectory() as tmp:
             workspace = Path(tmp) / "workspace"
-            root = workspace / ".cogent"
+            root = workspace / ".cogentnexus-openclaw"
             before = self.seed_passthrough(root)
             marker = workspace / "scheduled-task-created"
             startup_calls = []
@@ -146,7 +146,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_lifecycle_start_failure_disables_startup_and_restores_gateway(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             before = self.seed_passthrough(root)
             startup_calls = []
             gateway_restores = []
@@ -175,7 +175,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_gateway_verify_failure_rolls_back_all_activation_surfaces(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             before = self.seed_passthrough(root)
             startup_calls = []
             plugin_calls = []
@@ -201,7 +201,7 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
     def test_failure_from_non_passthrough_prior_state_forces_safe_passthrough_without_generation_bump(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / "workspace" / ".cogent"
+            root = Path(tmp) / "workspace" / ".cogentnexus-openclaw"
             prior = cnx.legacy.save_state(root, {
                 "schemaVersion": 1,
                 "mode": "managed",

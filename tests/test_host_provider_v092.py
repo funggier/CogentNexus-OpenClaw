@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -18,7 +18,7 @@ import host_provider_v092 as hp
 class HostProviderV092Tests(unittest.TestCase):
     def test_start_provider_boundary_strips_legacy_provider_flag(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
             calls = []
 
@@ -39,7 +39,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_stop_quiesces_gateway_before_selected_provider(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
             order = []
 
@@ -62,7 +62,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_missing_selection_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
             with mock.patch.object(hp, "_state_provider", return_value=None):
                 result = hp.provider_aware_runtime(root, "lifecycle", "start", "--provider", timeout=30, check=False)
@@ -70,7 +70,7 @@ class HostProviderV092Tests(unittest.TestCase):
             self.assertIn("provider selection required", result.stdout)
 
     def _create_direct_call_db(self, root: Path, *, deadline_delta=-1, state="active", outcome=None) -> Path:
-        path = root / "runtime" / "cogentnexus.sqlite3"
+        path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
         path.parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(path)
         try:
@@ -130,7 +130,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_healthy_expired_call_is_guarded_without_extending_deadline(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = self._create_direct_call_db(root)
             db = sqlite3.connect(path)
             before = db.execute("SELECT deadline_at FROM cnx_direct_model_call WHERE ticket_id='T1'").fetchone()[0]
@@ -159,7 +159,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_provider_prompt_progress_upgrades_guard_to_active_processing(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             self._create_direct_call_db(root)
             hp.provider_events.publish(root, "lmstudio", "prompt_progress", {"percent": 70.0})
             guarded = hp._guard_healthy_active_call(root, "lmstudio")
@@ -170,7 +170,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_provider_failure_event_makes_active_call_immediately_claimable(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = self._create_direct_call_db(root, deadline_delta=3600)
             changed = hp._mark_active_calls_provider_failed(
                 root, "lmstudio", "provider_unreachable", {"endpoint": "refused"}
@@ -193,7 +193,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_durable_success_event_closes_provider_incident(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = self._create_direct_call_db(root, state="ended", outcome="ok")
             opened = hp.recovery_policy.begin_incident(
                 root, "lmstudio", "provider_unreachable",
@@ -208,7 +208,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_open_incident_circuit_does_not_claim_or_restart_healthy_provider(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
             hp.recovery_policy.begin_incident(root, "lmstudio", "provider_unreachable")
             hp.recovery_policy.record_attempt(root, "lmstudio", success=False, reason="one")
@@ -239,7 +239,7 @@ class HostProviderV092Tests(unittest.TestCase):
 
     def test_base_reconciliation_cannot_use_legacy_timer_claim(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             observed = []
 
             def fake_base(root_arg, execute_safe):

@@ -8,45 +8,45 @@ ROOT = Path(__file__).resolve().parents[1]
 class BaselineContractTests(unittest.TestCase):
     def test_core_release_and_frozen_bridge_versions_are_consistent(self):
         core_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        package = json.loads((ROOT / "plugins/cogentnexus-rotation/package.json").read_text(encoding="utf-8"))
-        manifest = json.loads((ROOT / "plugins/cogentnexus-rotation/openclaw.plugin.json").read_text(encoding="utf-8"))
-        lock = json.loads((ROOT / "plugins/cogentnexus-rotation/package-lock.json").read_text(encoding="utf-8"))
+        package = json.loads((ROOT / "plugins/cogentnexus-openclaw/package.json").read_text(encoding="utf-8"))
+        manifest = json.loads((ROOT / "plugins/cogentnexus-openclaw/openclaw.plugin.json").read_text(encoding="utf-8"))
+        lock = json.loads((ROOT / "plugins/cogentnexus-openclaw/package-lock.json").read_text(encoding="utf-8"))
 
         bridge_version = package["version"]
-        self.assertEqual(core_version, "0.9.2")
-        self.assertEqual(bridge_version, "0.9.1")
+        self.assertEqual(core_version, "0.9.3")
+        self.assertEqual(bridge_version, "0.9.3")
         self.assertEqual(bridge_version, manifest["version"])
         self.assertEqual(bridge_version, lock["version"])
         self.assertEqual(bridge_version, lock["packages"][""]["version"])
         self.assertTrue((ROOT / f"docs/releases/v{core_version}.md").is_file())
 
     def test_workspace_policy_mirrors_are_identical(self):
-        root_policy = (ROOT / "templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")
-        skill_policy = (ROOT / "skills/cogentnexus/templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")
+        root_policy = (ROOT / "templates/AGENTS.cogentnexus-openclaw.md").read_text(encoding="utf-8")
+        skill_policy = (ROOT / "skills/cogentnexus-openclaw/templates/AGENTS.cogentnexus-openclaw.md").read_text(encoding="utf-8")
         self.assertEqual(root_policy, skill_policy)
 
     def test_policy_selects_lane_before_heavy_skill_loading(self):
-        policy = (ROOT / "skills/cogentnexus/templates/AGENTS.cogentnexus.md").read_text(encoding="utf-8")
-        self.assertIn("Choose the lightest reliable lane before loading heavy CogentNexus references", policy)
+        policy = (ROOT / "skills/cogentnexus-openclaw/templates/AGENTS.cogentnexus-openclaw.md").read_text(encoding="utf-8")
+        self.assertIn("Choose the lightest reliable lane before loading heavy CogentNexus-OpenClaw references", policy)
         self.assertIn("DIRECT conversation stays lightweight", policy)
-        self.assertIn("Load the `cogentnexus` skill", policy)
-        self.assertNotIn("Load and apply the `cogentnexus` skill before reasoning", policy)
+        self.assertIn("Load the `cogentnexus-openclaw` skill", policy)
+        self.assertNotIn("Load and apply the `cogentnexus-openclaw` skill before reasoning", policy)
 
     def test_skill_does_not_force_every_request_into_runtime(self):
-        skill = (ROOT / "skills/cogentnexus/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("Do not load heavy CogentNexus modules merely to answer an obvious DIRECT", skill)
+        skill = (ROOT / "skills/cogentnexus-openclaw/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Do not load heavy CogentNexus-OpenClaw modules merely to answer an obvious DIRECT", skill)
         self.assertNotIn("Use this entry point for every request", skill)
         self.assertNotIn("Choose Direct, Verified, or Durable", skill)
 
     def test_openclaw_bridge_source_and_manifest_agree(self):
-        source = (ROOT / "plugins/cogentnexus-rotation/src/index.ts").read_text(encoding="utf-8")
-        manifest = json.loads((ROOT / "plugins/cogentnexus-rotation/openclaw.plugin.json").read_text(encoding="utf-8"))
-        self.assertEqual(manifest["name"], "CogentNexus OpenClaw Bridge")
-        self.assertIn('name: "CogentNexus OpenClaw Bridge"', source)
+        source = (ROOT / "plugins/cogentnexus-openclaw/src/index.ts").read_text(encoding="utf-8")
+        manifest = json.loads((ROOT / "plugins/cogentnexus-openclaw/openclaw.plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["name"], "CogentNexus-OpenClaw Bridge")
+        self.assertIn('name: "CogentNexus-OpenClaw Bridge"', source)
         self.assertIn("Host-managed continuity", manifest["description"])
         self.assertIn("Host-managed continuity", source)
         self.assertNotIn("Disabled by default during Phase 0", source)
-        self.assertNotEqual(manifest["name"], "CogentNexus Rotation Controller")
+        self.assertNotEqual(manifest["name"], "CogentNexus-OpenClaw Rotation Controller")
 
     def test_canonical_baseline_and_install_guides_exist(self):
         for relative in (
@@ -62,9 +62,9 @@ class BaselineContractTests(unittest.TestCase):
     def test_passthrough_and_policy_invariants_are_documented(self):
         baseline = (ROOT / "docs/BASELINE.md").read_text(encoding="utf-8")
         self.assertIn("PASSTHROUGH", baseline)
-        self.assertIn("OpenClaw must remain usable without CogentNexus", baseline)
+        self.assertIn("OpenClaw must remain usable without CogentNexus-OpenClaw", baseline)
         self.assertIn("must not silently disappear", baseline)
-        self.assertIn(".cogent/host/managed-policy.md", baseline)
+        self.assertIn(".cogentnexus-openclaw/host/managed-policy.md", baseline)
         self.assertIn("policy register", baseline)
 
     def test_current_docs_do_not_call_core_a_mandatory_heavy_runtime(self):
@@ -72,14 +72,14 @@ class BaselineContractTests(unittest.TestCase):
             ROOT / "README.md",
             ROOT / "docs/BASELINE.md",
             ROOT / "docs/INSTALL.md",
-            ROOT / "skills/cogentnexus/SKILL.md",
-            ROOT / "skills/cogentnexus/references/architecture.md",
-            ROOT / "skills/cogentnexus/references/intent-compiler.md",
+            ROOT / "skills/cogentnexus-openclaw/SKILL.md",
+            ROOT / "skills/cogentnexus-openclaw/references/architecture.md",
+            ROOT / "skills/cogentnexus-openclaw/references/intent-compiler.md",
         ]
         forbidden = (
             "mandatory cognitive runtime",
             "Use this entry point for every request",
-            "Load and apply the `cogentnexus` skill before reasoning",
+            "Load and apply the `cogentnexus-openclaw` skill before reasoning",
         )
         for path in current:
             text = path.read_text(encoding="utf-8")

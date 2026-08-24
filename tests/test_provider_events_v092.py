@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -29,7 +29,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_failure_event_is_consumed_exactly_once(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             first = events.publish(root, "lmstudio", "provider_dead", {"source": "runtime-eof"})
             self.assertGreater(first["sequence"], 0)
             consumed = events.consume_failure(root, "lmstudio")
@@ -42,7 +42,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_progress_event_never_becomes_failure_authority(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             event = events.publish(root, "lmstudio", "prompt_progress", {"percent": 52.0})
             progress = events.latest_progress(root, "lmstudio")
             self.assertEqual(progress["sequence"], event["sequence"])
@@ -51,7 +51,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_selecting_non_lmstudio_stops_lmstudio_adapter(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             with mock.patch.object(events, "stop_adapter", return_value={"stopped": []}) as stop:
                 result = events.ensure_adapter(root, "ollama")
             stop.assert_called_once_with(root, "lmstudio")
@@ -60,7 +60,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_adapter_status_is_read_only_and_rejects_unowned_reused_pid(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = events.pid_path(root, "lmstudio")
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("777", encoding="utf-8")
@@ -78,7 +78,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_stop_adapter_never_kills_stale_pid_without_ownership(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = events.pid_path(root, "lmstudio")
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("888", encoding="utf-8")
@@ -94,7 +94,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_stop_adapter_refuses_unknown_pid_when_ownership_is_live(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             path = events.pid_path(root, "lmstudio")
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("999", encoding="utf-8")
@@ -111,7 +111,7 @@ class ProviderEventsV092Tests(unittest.TestCase):
 
     def test_ensure_lmstudio_adapter_returns_only_after_owned_pid_is_ready(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / ".cogent"
+            root = Path(directory) / ".cogentnexus-openclaw"
             fake = SimpleNamespace(pid=424242, poll=mock.Mock(return_value=None))
             not_running = {
                 "provider": "lmstudio",

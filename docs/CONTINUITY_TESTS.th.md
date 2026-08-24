@@ -15,7 +15,7 @@ Test A v16 แบบ live ผ่านเงื่อนไขสำคัญด
 - Direct Recovery มีเพียง attempt 1 และไม่มี retry event;
 - transient SQLite BUSY ไม่หลุดออกมาเป็น inference failure;
 - ไม่มี recursive recovery Ticket และไม่มี same-session extra Ticket;
-- OpenClaw native restart continuation ถูก suppress เฉพาะกรณีที่ CNX มี durable ownership;
+- OpenClaw native restart continuation ถูก suppress เฉพาะกรณีที่ CNXCLAW มี durable ownership;
 - `response_ready` มีครั้งเดียวและ immutable;
 - `direct_result` มีหนึ่ง durable result;
 - delivery marker/history ยืนยันหนึ่ง delivery;
@@ -31,7 +31,7 @@ v16 ยืนยันว่า failure mode ที่เคย escaped ไม�
 
 ## Native restart ownership
 
-OpenClaw 2026.7.1-2 สามารถสร้าง native restart continuation ได้หลัง Gateway restart จึงมี v099 fence ที่ทำงานก่อน Ticket-first intake และ consume เฉพาะ exact continuation envelope ที่พิสูจน์ได้ว่าเป็นงานเดิมซึ่ง CNX เป็นเจ้าของ
+OpenClaw 2026.7.1-2 สามารถสร้าง native restart continuation ได้หลัง Gateway restart จึงมี v099 fence ที่ทำงานก่อน Ticket-first intake และ consume เฉพาะ exact continuation envelope ที่พิสูจน์ได้ว่าเป็นงานเดิมซึ่ง CNXCLAW เป็นเจ้าของ
 
 ordinary user prompt ต้องผ่านตามปกติ และ unreadable DB ต้อง fail open กลับไป native behavior แทนการ suppress แบบเดาสุ่ม
 
@@ -50,8 +50,8 @@ ordinary user prompt ต้องผ่านตามปกติ และ unr
 ตรวจสถานะทั่วไปได้โดยไม่ fault-inject:
 
 ```powershell
-.\cnx.cmd status
-.\cnx.cmd ticket list --limit 10
+.\cnxclaw.cmd status
+.\cnxclaw.cmd ticket list --limit 10
 openclaw gateway status
 ollama ps
 ```

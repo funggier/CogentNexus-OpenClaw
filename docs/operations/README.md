@@ -1,6 +1,6 @@
-# CogentNexus Project Operations
+# CogentNexus-OpenClaw Project Operations
 
-This directory is the **living operational memory** of the CogentNexus project.
+This directory is the **living operational memory** of the CogentNexus-OpenClaw project.
 
 It records what has been completed, what is being investigated now, what is planned next, and which project decisions changed the direction of development.
 

@@ -1,4 +1,4 @@
-# CogentNexus Agent Instructions
+# CogentNexus-OpenClaw Agent Instructions
 
 Use this file as a compact entry point. Deeper project truth lives under `docs/`.
 

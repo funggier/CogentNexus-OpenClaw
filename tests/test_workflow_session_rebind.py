@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
-WORKFLOW=ROOT/"skills"/"cogentnexus"/"scripts"/"workflow.py"
+WORKFLOW=ROOT/"skills"/"cogentnexus-openclaw"/"scripts"/"workflow.py"
 spec=importlib.util.spec_from_file_location("cnx_workflow_session_rebind",WORKFLOW)
 workflow=importlib.util.module_from_spec(spec)
 assert spec and spec.loader

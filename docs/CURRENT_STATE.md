@@ -1,14 +1,14 @@
-# CogentNexus Current Operational State
+# CogentNexus-OpenClaw Current Operational State
 
 **As of:** 2026-08-21  
-**Core version:** 0.9.2  
-**OpenClaw Bridge package:** 0.9.1 (unchanged payload)  
+**Core version:** 0.9.3
+**OpenClaw Bridge package:** 0.9.3
 **Accepted Recovery Core:** `eadb89099637d24f96e265a500d66c577aa939a3`  
 **Validated OpenClaw:** `2026.7.1-2`
 
 ## Classification
 
-CogentNexus v0.9.2 is **operationally usable for general single-node managed use** on the validated Windows/OpenClaw/Ollama stack once release installation gates pass. The accepted v0.9.1 Recovery Core remains the authority for Ticket admission, Direct recovery, durable-result ownership, and delivery.
+CogentNexus-OpenClaw v0.9.3 is **operationally usable for general single-node managed use** on the validated Windows/OpenClaw/Ollama stack once release installation gates pass. The accepted Recovery Core remains the authority for Ticket admission, Direct recovery, durable-result ownership, and delivery.
 
 v0.9.2 adds provider-neutral local lifecycle support, durable selected-provider/transition state, LM Studio adapters, and read-only system pre-flight checks without rewriting the accepted Recovery Core.
 
@@ -31,15 +31,15 @@ LM Studio lifecycle support is implemented and repository-tested, but has not ye
 | Single recovery inference attempt in Test A v16 | Accepted |
 | Response-ready immutability | Accepted |
 | One durable direct result | Accepted |
-| Delivery confirmation / exactly-once-ish CNX delivery | Accepted |
+| Delivery confirmation / exactly-once-ish CNXCLAW delivery | Accepted |
 | PASSTHROUGH design / native OpenClaw compatibility mode | Implemented |
 | MAINTENANCE deliberate-stop semantics | Implemented |
 | Durable selected provider (`ollama` / `lmstudio`) | Implemented / release-gated |
 | Interrupted provider-transition resume marker | Implemented / unit-tested |
 | LM Studio discovery/start/stop/readiness adapter | Implemented / unit-tested; live acceptance pending |
 | Provider-neutral Direct-stall lifecycle translation | Implemented / unit-tested; Ollama live Core remains accepted baseline |
-| `cnx check system` aircraft-style pre-flight | Implemented / read-only invariant tested |
-| Component checks under `cnx check ...` | Implemented |
+| `cnxclaw check system` aircraft-style pre-flight | Implemented / read-only invariant tested |
+| Component checks under `cnxclaw check ...` | Implemented |
 | Real power-loss/cold-boot acceptance | Deferred |
 | Newer OpenClaw version compatibility | Deferred |
 | High-concurrency/long-soak hardening | Not fully accepted |
@@ -56,7 +56,7 @@ A provider switch writes `providerTransition` before lifecycle mutation. If the 
 
 ## System-check semantics
 
-`cnx check ...` is observational only. It does not start/restart processes, mutate provider selection, repair runtime state, rewrite config, mutate the Ticket DB, or execute model inference.
+`cnxclaw check ...` is observational only. It does not start/restart processes, mutate provider selection, repair runtime state, rewrite config, mutate the Ticket DB, or execute model inference.
 
 `check system` reports `READY`, `READY_WITH_WARNINGS`, `NOT_READY`, or `INDETERMINATE` and uses stable exit codes 0/1/2/3.
 
@@ -79,9 +79,9 @@ v0.9.2 intentionally layers provider selection/preflight above this accepted beh
 
 ## Operational interpretation
 
-For ordinary conversation, research, coding assistance, file/tool work, and other reversible or verifiable tasks, this baseline can be used normally with CNX MANAGED mode after installation and `cnx check system` report an acceptable readiness state.
+For ordinary conversation, research, coding assistance, file/tool work, and other reversible or verifiable tasks, this baseline can be used normally with CNXCLAW MANAGED mode after installation and `cnxclaw check system` report an acceptable readiness state.
 
-For irreversible external effects, do not infer exactly-once execution solely from a completed CNX Ticket. External systems should expose idempotency keys, receipts, read-after-write verification, or another durable reconciliation mechanism.
+For irreversible external effects, do not infer exactly-once execution solely from a completed CNXCLAW Ticket. External systems should expose idempotency keys, receipts, read-after-write verification, or another durable reconciliation mechanism.
 
 ## Frozen-core rule
 

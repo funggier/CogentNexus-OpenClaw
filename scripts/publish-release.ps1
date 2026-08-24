@@ -42,13 +42,15 @@ if ($remoteExisting.Trim()) { throw "Remote $releaseBranch already exists; refus
 if (-not $SkipLocalValidation) {
     Push-Location $repoRoot
     try {
+        python scripts/check_namespace_isolation.py
+        if ($LASTEXITCODE -ne 0) { throw "namespace isolation failed" }
         python scripts/check_baseline_consistency.py
         if ($LASTEXITCODE -ne 0) { throw "baseline consistency failed" }
-        python skills/cogentnexus/scripts/validate.py --workspace-singleton
+        python skills/cogentnexus-openclaw/scripts/validate.py --workspace-singleton
         if ($LASTEXITCODE -ne 0) { throw "skill validation failed" }
         python -m unittest discover -s tests -v
         if ($LASTEXITCODE -ne 0) { throw "Python tests failed" }
-        Push-Location (Join-Path $repoRoot "plugins\cogentnexus-rotation")
+        Push-Location (Join-Path $repoRoot "plugins\cogentnexus-openclaw")
         try {
             npm ci
             if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }

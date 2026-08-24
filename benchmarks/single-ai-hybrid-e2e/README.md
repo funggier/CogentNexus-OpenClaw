@@ -1,7 +1,7 @@
 # Single-AI Hybrid E2E Benchmark
 
 This benchmark tests whether one tool-using model can complete a staged,
-evidence-backed workflow without CogentNexus orchestration. It is intentionally
+evidence-backed workflow without CogentNexus-OpenClaw orchestration. It is intentionally
 small in data volume but demanding in workflow discipline.
 
 For a complete Thai-language test procedure, fairness rules, and result-report

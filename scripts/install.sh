@@ -19,7 +19,7 @@ while [ "$#" -gt 0 ]; do
     --provider)
       [ "$#" -ge 2 ] || { usage; exit 2; }
       PROVIDER=$2
-      case "$PROVIDER" in ollama) ;; *) echo "Unsupported provider in CogentNexus v0.9.3: $PROVIDER (only ollama is supported)" >&2; exit 2 ;; esac
+      case "$PROVIDER" in ollama) ;; *) echo "Unsupported provider in CogentNexus-OpenClaw v0.9.3: $PROVIDER (only ollama is supported)" >&2; exit 2 ;; esac
       shift 2 ;;
     --skip-plugin) SKIP_PLUGIN=1; shift ;;
     --skip-gateway-restart) SKIP_GATEWAY_RESTART=1; shift ;;
@@ -30,7 +30,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-echo "Installing CogentNexus v$VERSION (Ollama-only)"
+echo "Installing CogentNexus-OpenClaw v$VERSION (Ollama-only)"
 echo "Provider: ollama"
 
 if { [ "$SKIP_PLUGIN" -eq 1 ] || [ "$SKIP_AGENTS_POLICY" -eq 1 ]; } && [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
@@ -51,15 +51,28 @@ python -c "import yaml" >/dev/null 2>&1 || {
   exit 1
 }
 
-SOURCE_SKILL="$REPO_ROOT/skills/cogentnexus"
-TARGET_SKILL="$WORKSPACE/skills/cogentnexus"
-STAGED_SKILL="$WORKSPACE/.cogent/install-staging/cogentnexus"
-BACKUP_ROOT="$WORKSPACE/.cogent/install-backups"
+SOURCE_SKILL="$REPO_ROOT/skills/cogentnexus-openclaw"
+TARGET_SKILL="$WORKSPACE/skills/cogentnexus-openclaw"
+STAGED_SKILL="$WORKSPACE/.cogentnexus-openclaw/install-staging/cogentnexus-openclaw"
+BACKUP_ROOT="$WORKSPACE/.cogentnexus-openclaw/install-backups"
 HOST_SCRIPT="$TARGET_SKILL/scripts/host_v091.py"
-CLI_SCRIPT="$TARGET_SKILL/scripts/cnx_v093.py"
-COGENT_ROOT="$WORKSPACE/.cogent"
+CLI_SCRIPT="$TARGET_SKILL/scripts/cnxclaw_v093.py"
+COGENT_ROOT="$WORKSPACE/.cogentnexus-openclaw"
 CONTROLLER_PATH="$COGENT_ROOT/host/controller.json"
-EXISTING_LAUNCHER="$WORKSPACE/cnx"
+EXISTING_LAUNCHER="$WORKSPACE/cnxclaw"
+OWNERSHIP_SCRIPT="$SOURCE_SKILL/scripts/namespace_ownership.py"
+MIGRATION_SOURCE=""
+
+if [ -d "$COGENT_ROOT" ]; then
+  python "$OWNERSHIP_SCRIPT" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
+else
+  LEGACY_PROOF=$(python "$OWNERSHIP_SCRIPT" inventory-legacy --workspace "$WORKSPACE")
+  MIGRATION_SOURCE=$(printf '%s' "$LEGACY_PROOF" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
+  if [ -n "$MIGRATION_SOURCE" ]; then
+    CONTROLLER_PATH="$WORKSPACE/.cogent/host/controller.json"
+    EXISTING_LAUNCHER="$WORKSPACE/cnx"
+  fi
+fi
 
 read_existing_mode() {
   [ -f "$CONTROLLER_PATH" ] || { printf '%s' ''; return 0; }
@@ -70,10 +83,10 @@ path=Path(sys.argv[1])
 try:
     value=json.loads(path.read_text(encoding='utf-8'))
 except Exception as error:
-    raise SystemExit(f"Existing CogentNexus controller is unreadable; refusing install mutation: {error}")
+    raise SystemExit(f"Existing CogentNexus-OpenClaw controller is unreadable; refusing install mutation: {error}")
 mode=value.get('mode') if isinstance(value,dict) else None
 if not isinstance(mode,str) or not mode.strip():
-    raise SystemExit("Existing CogentNexus controller has no mode; refusing install mutation.")
+    raise SystemExit("Existing CogentNexus-OpenClaw controller has no mode; refusing install mutation.")
 print(mode)
 PY
 }
@@ -84,20 +97,37 @@ PY
 existing_mode=$(read_existing_mode)
 case "$existing_mode" in
   "") ;;
-  passthrough) echo "Existing CogentNexus already PASSTHROUGH; pre-install native handoff not required." ;;
+  passthrough) echo "Existing CogentNexus-OpenClaw already PASSTHROUGH; pre-install native handoff not required." ;;
   managed|maintenance)
     if [ ! -x "$EXISTING_LAUNCHER" ]; then
-      echo "Existing CogentNexus is $existing_mode but launcher is missing: $EXISTING_LAUNCHER. Refusing install mutation before native handoff." >&2
+      echo "Existing CogentNexus-OpenClaw is $existing_mode but launcher is missing: $EXISTING_LAUNCHER. Refusing install mutation before native handoff." >&2
       exit 1
     fi
-    echo "Existing CogentNexus is $existing_mode; entering PASSTHROUGH/native boundary before upgrade mutation."
+    echo "Existing CogentNexus-OpenClaw is $existing_mode; entering PASSTHROUGH/native boundary before upgrade mutation."
     "$EXISTING_LAUNCHER" disable
     after_mode=$(read_existing_mode)
-    [ "$after_mode" = "passthrough" ] || { echo "Existing CogentNexus did not reach PASSTHROUGH after disable (mode=$after_mode)." >&2; exit 1; }
+    [ "$after_mode" = "passthrough" ] || { echo "Existing CogentNexus-OpenClaw did not reach PASSTHROUGH after disable (mode=$after_mode)." >&2; exit 1; }
     echo "Pre-install native handoff: PASS"
     ;;
-  *) echo "Existing CogentNexus mode '$existing_mode' is not a recognized safe upgrade source." >&2; exit 1 ;;
+  *) echo "Existing CogentNexus-OpenClaw mode '$existing_mode' is not a recognized safe upgrade source." >&2; exit 1 ;;
 esac
+
+if [ -n "$MIGRATION_SOURCE" ]; then
+  MIGRATION_BACKUP="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw/migration-backups/v$VERSION-$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$MIGRATION_BACKUP"
+  for legacy_path in "$WORKSPACE/.cogent" "$WORKSPACE/skills/cogentnexus" "$WORKSPACE/cnx"; do
+    [ ! -e "$legacy_path" ] || cp -R "$legacy_path" "$MIGRATION_BACKUP/"
+  done
+  echo "Backed up proven legacy installation to $MIGRATION_BACKUP"
+  MIGRATION_COMPLETE=0
+  migration_exit_report() {
+    [ "$MIGRATION_COMPLETE" -eq 1 ] && return 0
+    [ ! -x "$WORKSPACE/cnxclaw" ] || "$WORKSPACE/cnxclaw" disable >/dev/null 2>&1 || true
+    printf '{"status":"INTERRUPTED","productId":"cogentnexus-openclaw","safetyState":"PASSTHROUGH_REQUESTED","backup":"%s","humanDecisionRequired":true}\n' "$MIGRATION_BACKUP" > "$MIGRATION_BACKUP/migration-report.json"
+    printf 'CogentNexus-OpenClaw migration interrupted; recoverable report: %s\n' "$MIGRATION_BACKUP/migration-report.json" >&2
+  }
+  trap migration_exit_report EXIT HUP INT TERM
+fi
 
 mkdir -p "$WORKSPACE/skills"
 if [ -d "$TARGET_SKILL" ]; then
@@ -111,7 +141,7 @@ mkdir -p "$(dirname "$STAGED_SKILL")"
 cp -R "$SOURCE_SKILL" "$STAGED_SKILL"
 rm -rf "$TARGET_SKILL"
 mv "$STAGED_SKILL" "$TARGET_SKILL"
-echo "Installed CogentNexus skill to $TARGET_SKILL"
+echo "Installed CogentNexus-OpenClaw skill to $TARGET_SKILL"
 
 python "$TARGET_SKILL/scripts/validate.py"
 python "$HOST_SCRIPT" --root "$COGENT_ROOT" init
@@ -126,7 +156,7 @@ if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
 fi
 
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
-  PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-rotation"
+  PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
   (
     cd "$PLUGIN_DIR"
     npm ci
@@ -142,27 +172,38 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
       rm -f "$PLUGIN_DIR/$PACKAGE_FILE"
       trap - EXIT HUP INT TERM
     fi
-    openclaw plugins disable cogentnexus-rotation
+    openclaw plugins disable cogentnexus-openclaw
   )
 fi
 
-LAUNCHER="$WORKSPACE/cnx"
+LAUNCHER="$WORKSPACE/cnxclaw"
 cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env sh
 exec python "$CLI_SCRIPT" --root "$COGENT_ROOT" "\$@"
 EOF
 chmod +x "$LAUNCHER"
-echo "Installed CogentNexus launcher to $LAUNCHER"
+echo "Installed CogentNexus-OpenClaw launcher to $LAUNCHER"
+
+set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$(dirname "$WORKSPACE")/extensions/cogentnexus-openclaw" --launcher "$LAUNCHER" --version "$VERSION"
+if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
+python "$@" >/dev/null
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable --provider ollama
 else
   echo "Skipped Host enable because --skip-gateway-restart was requested."
-  echo "CogentNexus remains PASSTHROUGH; run '$LAUNCHER enable' when ready."
+  echo "CogentNexus-OpenClaw remains PASSTHROUGH; run '$LAUNCHER enable' when ready."
 fi
 
 openclaw gateway status
 python "$TARGET_SKILL/scripts/runtime.py" supervisor doctor
 python "$CLI_SCRIPT" --root "$COGENT_ROOT" status
 
-echo "CogentNexus v$VERSION installation completed successfully (Ollama-only)."
+if [ -n "$MIGRATION_SOURCE" ]; then
+  openclaw plugins uninstall cogentnexus-rotation --force >/dev/null 2>&1 || true
+  rm -rf "$WORKSPACE/.cogent" "$WORKSPACE/skills/cogentnexus" "$WORKSPACE/cnx"
+  MIGRATION_COMPLETE=1
+  trap - EXIT HUP INT TERM
+fi
+
+echo "CogentNexus-OpenClaw v$VERSION installation completed successfully (Ollama-only)."

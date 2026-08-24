@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 SCRIPT = SCRIPTS / "host_control_v091.py"
 spec = importlib.util.spec_from_file_location("cnx_host_control_v091", SCRIPT)
@@ -19,7 +19,7 @@ spec.loader.exec_module(cnx)
 class HostControlV091Tests(unittest.TestCase):
     def test_failed_enable_restores_watchdog(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             original_argv = list(cnx.legacy.sys.argv)
             original_apply = cnx.legacy.apply_watchdog_compat
             original_delegate = cnx.legacy.delegate
@@ -43,7 +43,7 @@ class HostControlV091Tests(unittest.TestCase):
 
     def test_reset_routes_to_lifecycle_without_controller(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             original_argv = list(cnx.legacy.sys.argv)
             original_lifecycle = cnx.lifecycle.main
             calls = []
@@ -58,7 +58,7 @@ class HostControlV091Tests(unittest.TestCase):
 
     def test_uninstall_routes_to_lifecycle_without_controller(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp) / ".cogent"
+            root = Path(tmp) / ".cogentnexus-openclaw"
             original_argv = list(cnx.legacy.sys.argv)
             original_lifecycle = cnx.lifecycle.main
             calls = []

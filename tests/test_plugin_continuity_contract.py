@@ -2,8 +2,8 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-INDEX = (ROOT / "plugins/cogentnexus-rotation/src/index.ts").read_text(encoding="utf-8")
-TICKETS = (ROOT / "plugins/cogentnexus-rotation/src/ticket-store.ts").read_text(encoding="utf-8")
+INDEX = (ROOT / "plugins/cogentnexus-openclaw/src/index.ts").read_text(encoding="utf-8")
+TICKETS = (ROOT / "plugins/cogentnexus-openclaw/src/ticket-store.ts").read_text(encoding="utf-8")
 
 
 class PluginContinuityContractTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class PluginContinuityContractTests(unittest.TestCase):
 
     def test_post_compaction_guard_promotes_original_direct_ticket(self):
         for marker in (
-            '[CogentNexus Continuation: post-compaction]',
+            '[CogentNexus-OpenClaw Continuation: post-compaction]',
             "promotePendingDirectForSession",
             "hasPendingDirectExecutionForSession",
             'status=\'waiting\',workflow_eligible=1',

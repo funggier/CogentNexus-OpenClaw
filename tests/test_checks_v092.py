@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus" / "scripts"
+SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "cogentnexus-openclaw" / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
@@ -14,7 +14,7 @@ import checks_v092 as checks
 
 class ChecksV092Tests(unittest.TestCase):
     def _root(self, directory: str, selected: str = "ollama") -> tuple[Path, Path]:
-        root = Path(directory) / ".cogent"
+        root = Path(directory) / ".cogentnexus-openclaw"
         path = root / "host" / "controller.json"
         path.parent.mkdir(parents=True)
         path.write_text(json.dumps({
