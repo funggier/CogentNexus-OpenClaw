@@ -1,41 +1,51 @@
 # Coordination Channel Status
 
-**State:** `CHATGPT_EXECUTING`
-**Updated:** 2026-08-24 22:56 ICT
+**State:** `READY_FOR_CODEX`
+**Updated:** 2026-08-24 23:23 ICT
 **Transport:** GitHub repository history
-**Human authority:** Task 057 repository-only compatibility fix; all live recovery remains prohibited
-**Execution trigger:** manual only; scheduled execution remains disabled by operator
+**Human authority:** Task 058 Phase A plan-only checkpoint; no recovery apply or live mutation authorized
+**Execution trigger:** manual `ต่อ`; scheduled execution remains disabled by operator
 
-## Task 056 disposition
+## Task 057 disposition
 
-Task `CNX-20260824-056` is reviewed:
+Task `CNX-20260824-057` is reviewed:
 
-`ACCEPT_BLOCKER_OPENCLAW_OPTIONAL_PACKAGE_NAME`
+`ACCEPT_OPENCLAW_INVENTORY_SCHEMA_COMPAT_FIXED`
+
+Implementation commit:
+
+`f379e5c5d8dddb144cb0d1991b645b16055e1303`
 
 Accepted report commit:
 
-`884c84f269203338eeb144f7db715afe8eee8a51`
+`da3525c38c24f76e19c977e28446603b8c7c7063`
 
-Task 056 stopped before mutation when plan generation rejected the supported inventory schema. No plan or plan SHA-256 exists and Phase B is not authorized.
+Review commit:
 
-## Root cause
+`0bfeefe9e889a4f336f8860efc9dcae0f73af7ad`
 
-OpenClaw 2026.7.1-2 omitted optional `packageName` from its supported plugin-list record. The Task 055 planner required that optional field before it inspected the exact bound payload, even though the payload plugin/package manifests independently prove ID/package/version.
+The supported OpenClaw inventory shape with absent optional `packageName` is now handled only after exact bound payload package proof. Present null/foreign package identity and all prior ownership, ambiguity, wrapper, project-tree, inventory, and apply-time drift gates remain fail-closed. Exact-head GitHub Actions for the implementation were independently verified successful.
 
-Task 057 makes no live-state claim. A fresh Task 058 preflight remains mandatory.
+Task 057 made zero live actions.
 
-## Active Task 057
+## Active Task 058
 
-[`tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md`](tasks/CNX-20260824-057-fix-openclaw-inventory-package-proof.md)
+[`tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md`](tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md)
 
-Goal: add a real-schema RED fixture and narrowly accept an absent optional inventory package field only after exact active-root payload package proof. Present wrong/null package identity and all other safety contradictions remain fail-closed.
+Status: `READY_FOR_CODEX`
 
-Execution is repository-only in the ChatGPT work environment. Exact-head CI and a report-only publication fence are required.
+Current authorization: `PHASE_A_PLAN_ONLY`
 
-After Task 057 is verified and reviewed, a new Task 058 may repeat Phase A plan generation. Task 056 must not be resumed because its report is terminal and no plan was created.
+Task 058 must independently re-prove the current live preservation state, capture one fresh unmodified `openclaw plugins list --json` inventory, generate a new machine-produced rollover plan with the accepted implementation, verify every safety binding, publish the exact plan SHA-256 in the matching report, and stop.
+
+Task 056 is terminal and must not be resumed. Its inventory and failed planning attempt are not Task 058 planning inputs.
+
+## Next gate
+
+If Task 058 produces a valid plan, the durable state becomes `AWAITING_PLUGIN_GENERATION_ROLLOVER_APPLY` only. ChatGPT must review the exact checkpoint and the operator must explicitly approve that exact plan SHA-256 before any later task may record `PHASE_B_APPLY_AUTHORIZED`.
 
 ## Hard fence
 
-No live inventory capture, recovery plan/apply, installer, generation move/delete, ownership rewrite, plugin/lifecycle action, scheduler/supervisor change, Gateway/Ollama/model/process mutation, broad cleanup, primary-repository mutation, retained-evidence access, Procmon/Task 027/038 action, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle/startup/supervisor mutation, controller MANAGED transition, scheduler change, Gateway/Ollama/model/process mutation, primary-repository mutation, Procmon/Task 027/038 action, broad cleanup, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
 
-Report meaningful progress approximately every 3 minutes and after every major evidence boundary.
+Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan generation, plan verification, publication, or blocker.
