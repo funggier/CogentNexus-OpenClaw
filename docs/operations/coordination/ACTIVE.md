@@ -1,38 +1,39 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `AUTO`  
-Task ID: `CNX-20260824-044`  
-Updated: 2026-08-24 11:27 ICT  
+Status: `AWAITING_HUMAN_AUTHORIZATION`  
+Execution mode: `HUMAN_GATE`  
+Task ID: `PENDING-CNX-20260824-045`  
+Updated: 2026-08-24 12:26 ICT  
 Owner: ChatGPT  
-Executor: Codex
+Executor: Codex only after explicit operator authorization
 
-## Active task
+## Completed predecessor
 
-[`tasks/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](tasks/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
+[`reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
 
-## Predecessor report and review
+[`reviews/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](reviews/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
 
-[`reports/CNX-20260824-043-harden-namespace-ownership-and-migration.md`](reports/CNX-20260824-043-harden-namespace-ownership-and-migration.md)
+Task 044 is reviewed `ACCEPT` for repository implementation commit `4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`.
 
-[`reviews/CNX-20260824-043-harden-namespace-ownership-and-migration.md`](reviews/CNX-20260824-043-harden-namespace-ownership-and-migration.md)
+## Pending human gate
 
-Retain Task 043's exact manifest/plugin/legacy/lint hardening. Repair only unrelated npm-project classification, default backup-enabled clean-reinstall composition, skip-plugin preflight, and post-create ownership verification.
+The next proposed task is a bounded live Windows clean-reinstall acceptance sequence using only the reviewed default backup root:
 
-## Human direction
+`%LOCALAPPDATA%\CogentNexus-OpenClaw-Clean-Reinstall-Backups`
 
-The operator said to continue. CogentNexus-Ecosystem and staged-capability-loop remain paused and excluded.
+It would read and preserve the current exact ownership/runtime state, create and verify one backup, enter PASSTHROUGH, uninstall only exact CogentNexus-OpenClaw-owned artifacts, install v0.9.3 fresh, and verify OpenClaw/Ollama plus namespace isolation.
 
-## Purpose
+This live task is destructive and is **not authorized yet**. Do not create or execute Task 045 until the operator explicitly approves the presented scope.
 
-Ensure the repository implementation can later proceed to separately authorized live clean uninstall/install/reinstall acceptance without false classification, self-created backup conflict, or partial mutation.
+## Safety fence
 
-## Safety
+Until authorization:
 
-Repository-only repair in one isolated full clone. No Git worktree creation, live workspace/config/runtime/install/clean-reinstall/reset/uninstall, Gateway/Ollama/scheduler/service action, Procmon action, Ecosystem work, merge, tag, or release.
+- no live workspace/config/runtime/install/clean-reinstall/reset/uninstall mutation;
+- no Gateway/Ollama/scheduler/service mutation;
+- no Procmon action;
+- no CogentNexus-Ecosystem or staged-capability-loop work;
+- no merge, tag, GitHub Release, or release archive;
+- do not wake Codex for a live task.
 
-Do not repeat Task 041/042 or Task 043 wholesale.
-
-## Duplicate fence
-
-If the matching Task 044 report exists at freshly fetched HEAD, do not repeat implementation or publish a duplicate.
+Scheduled execution remains operator-controlled.
