@@ -71,7 +71,8 @@ jobs:
           skills/cogentnexus-openclaw/scripts/host_control_v092.py
           skills/cogentnexus-openclaw/scripts/startup_v092.py
           skills/cogentnexus-openclaw/scripts/lifecycle_v092.py
-      - run: python -m unittest discover -s tests -v
+          skills/cogentnexus-openclaw/scripts/namespace_ownership.py
+      - run: python -m pytest -q
       - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
       - name: Test plugin path migration helper
         shell: bash
@@ -86,7 +87,8 @@ jobs:
           $files = @(
             'scripts/install.ps1',
             'scripts/accept-v092-windows.ps1',
-            'scripts/accept-v092-windows-ps51.ps1'
+            'scripts/accept-v092-windows-ps51.ps1',
+            'scripts/invoke-root-process-exact.ps1'
           )
           foreach ($file in $files) {
             $tokens = $null
@@ -108,6 +110,12 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass
           -File .\scripts\accept-v092-windows-ps51.ps1
           -SerializerSelfTestOnly
+      - name: Smoke-test exact numeric root-process exit capture
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\invoke-root-process-exact.ps1 -SelfTest
       - name: Validate POSIX installer syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh

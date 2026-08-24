@@ -35,6 +35,22 @@ def test_windows_installer_orders_proof_handoff_manifest_and_enable():
     assert source.index("classify-install --workspace") < source.index("Copy-Item -Recurse -Force -LiteralPath $sourceSkill")
 
 
+def test_windows_installer_applies_verified_rollover_before_single_candidate_resolution():
+    source = read("scripts/install.ps1")
+    install = source.index('openclaw plugins install ("npm-pack:" + $packagePath) --force')
+    inventory = source.index("openclaw plugins list --json", install)
+    plan = source.index('"rollover-plan"', inventory)
+    apply = source.index('"rollover-apply"', plan)
+    resolve = source.index(" resolve-plugin --openclaw-state", apply)
+    assert install < inventory < plan < apply < resolve
+    plugin_guard = source.index("if (-not $SkipPlugin) {")
+    upgrade_guard = source.index('if ($classification.mode -eq "upgrade") {', install)
+    assert plugin_guard < install < upgrade_guard < plan
+    assert "-LinkPlugin is incompatible with ownership-safe managed installation" in source
+    assert source.count("openclaw plugins list --json", install, apply) == 2
+    assert "$rolloverApplyInventoryPath" in source
+
+
 def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report():
     source = read("scripts/install.sh")
     assert 'LAUNCHER="$WORKSPACE/cnxclaw"' in source
@@ -46,6 +62,24 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
     assert source.index(' create --root "$COGENT_ROOT"') < source.index(' verify --root "$COGENT_ROOT"') < source.index('enable --provider ollama')
     assert "plugins.entries.cogentnexus-rotation" in source
     assert "openclaw plugins uninstall cogentnexus-rotation --force" in source
+
+
+def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
+    source = read("scripts/install.sh")
+    install = source.index('openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force')
+    inventory = source.index("openclaw plugins list --json", install)
+    plan = source.index("rollover-plan", inventory)
+    apply = source.index("rollover-apply", plan)
+    resolve = source.index(" resolve-plugin --openclaw-state", apply)
+    assert install < inventory < plan < apply < resolve
+    plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ]; then')
+    upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then', install)
+    assert plugin_guard < install < upgrade_guard < plan
+    assert "--link-plugin is incompatible with ownership-safe managed installation" in source
+    assert source.count("openclaw plugins list --json", install, apply) == 2
+    linked_filter = source.index("filter_plugin_paths.py", plugin_guard)
+    assert linked_filter < install
+    assert "plugins.load.paths" in source[linked_filter - 300:linked_filter + 300]
 
 
 def test_release_package_names_are_variant_scoped():

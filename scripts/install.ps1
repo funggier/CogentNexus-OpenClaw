@@ -106,6 +106,9 @@ $classificationJson = (& python $ownershipScript classify-install --workspace $W
 if ($LASTEXITCODE -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }
 $classification = $classificationJson | ConvertFrom-Json
 if ($classification.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
+if ($LinkPlugin) {
+    throw "-LinkPlugin is incompatible with ownership-safe managed installation; linked and npm-managed roots must not be mixed."
+}
 if ($SkipPlugin) {
     & python $ownershipScript preflight-skip-plugin --mode ([string]$classification.mode) | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "-SkipPlugin requires a coherent upgrade with an existing exact v0.9.3 plugin; refusing before mutation." }
@@ -197,48 +200,77 @@ if (-not $SkipPlugin) {
         node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
         if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
 
-        if ($LinkPlugin) {
-            openclaw plugins install --link . --force
-            if ($LASTEXITCODE -ne 0) { throw "linked plugin installation failed" }
+        $currentPaths = $null
+        $pathExit = 1
+        $savedErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $currentPaths = openclaw config get plugins.load.paths 2>$null
+            $pathExit = $LASTEXITCODE
         }
-        else {
-            $currentPaths = $null
-            $pathExit = 1
-            $savedErrorActionPreference = $ErrorActionPreference
-            try {
-                $ErrorActionPreference = "Continue"
-                $currentPaths = openclaw config get plugins.load.paths 2>$null
-                $pathExit = $LASTEXITCODE
-            }
-            finally { $ErrorActionPreference = $savedErrorActionPreference }
-            if ($pathExit -eq 0) {
-                $filteredPaths = $currentPaths | python (Join-Path $repoRoot "scripts\filter_plugin_paths.py") --plugin-id cogentnexus-openclaw
-                if ($LASTEXITCODE -ne 0) { throw "failed to inspect existing plugin load paths" }
-                openclaw config set plugins.load.paths $filteredPaths --strict-json --replace
-                if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
-            }
+        finally { $ErrorActionPreference = $savedErrorActionPreference }
+        if ($pathExit -eq 0) {
+            $filteredPaths = $currentPaths | python (Join-Path $repoRoot "scripts\filter_plugin_paths.py") --plugin-id cogentnexus-openclaw
+            if ($LASTEXITCODE -ne 0) { throw "failed to inspect existing plugin load paths" }
+            openclaw config set plugins.load.paths $filteredPaths --strict-json --replace
+            if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
+        }
 
-            $packOutput = (& npm pack --json | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
-            try { $packed = $packOutput | ConvertFrom-Json }
-            catch { throw "npm pack returned invalid JSON: $($_.Exception.Message)" }
-            $packedItems = @($packed)
-            if ($packedItems.Count -ne 1 -or -not $packedItems[0].filename) {
-                throw "npm pack did not return exactly one package artifact"
-            }
-            $packagePath = Join-Path $pluginDir ([string]$packedItems[0].filename)
-            if (-not (Test-Path -LiteralPath $packagePath)) { throw "npm pack artifact not found: $packagePath" }
-            try {
-                openclaw plugins install ("npm-pack:" + $packagePath) --force
-                if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
-            }
-            finally { Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue }
+        $packOutput = (& npm pack --json | Out-String)
+        if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
+        try { $packed = $packOutput | ConvertFrom-Json }
+        catch { throw "npm pack returned invalid JSON: $($_.Exception.Message)" }
+        $packedItems = @($packed)
+        if ($packedItems.Count -ne 1 -or -not $packedItems[0].filename) {
+            throw "npm pack did not return exactly one package artifact"
         }
+        $packagePath = Join-Path $pluginDir ([string]$packedItems[0].filename)
+        if (-not (Test-Path -LiteralPath $packagePath)) { throw "npm pack artifact not found: $packagePath" }
+        try {
+            openclaw plugins install ("npm-pack:" + $packagePath) --force
+            if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
+        }
+        finally { Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue }
 
         openclaw plugins disable cogentnexus-openclaw
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
     }
     finally { Pop-Location }
+
+    if ($classification.mode -eq "upgrade") {
+        $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
+        New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
+        $rolloverId = [guid]::NewGuid().ToString("N")
+        $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
+        $rolloverApplyInventoryPath = Join-Path $rolloverStaging "plugin-inventory-apply-$rolloverId.json"
+        $rolloverPlanPath = Join-Path $rolloverStaging "plugin-rollover-plan-$rolloverId.json"
+        try {
+            $rolloverInventory = (& openclaw plugins list --json | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
+            [System.IO.File]::WriteAllText(
+                $rolloverInventoryPath,
+                $rolloverInventory,
+                (New-Object System.Text.UTF8Encoding($false))
+            )
+            $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--plan" $rolloverPlanPath | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover plan was rejected" }
+            $rolloverPlanSha256 = [string](($rolloverPlanOutput | ConvertFrom-Json).planSha256)
+            if ([string]::IsNullOrWhiteSpace($rolloverPlanSha256)) { throw "plugin generation rollover plan hash was not observed" }
+            $rolloverApplyInventory = (& openclaw plugins list --json | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "could not re-prove active canonical plugin registration immediately before rollover apply" }
+            [System.IO.File]::WriteAllText(
+                $rolloverApplyInventoryPath,
+                $rolloverApplyInventory,
+                (New-Object System.Text.UTF8Encoding($false))
+            )
+            & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-apply" "--plan" $rolloverPlanPath "--plan-sha256" $rolloverPlanSha256 "--inventory-json" $rolloverApplyInventoryPath | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover apply failed" }
+            Write-Host "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
+        }
+        finally {
+            Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 $launcher = Join-Path $Workspace "cnxclaw.cmd"
