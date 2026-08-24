@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `AWAITING_HUMAN_GATE`
 Execution mode: `MANUAL_WITH_HUMAN_GATE`
-Current authorization: `PHASE_A_PLAN_ONLY`
+Current authorization: `PHASE_A_ACCEPTED_NO_APPLY`
 Task ID: `CNX-20260825-059`
-Updated: 2026-08-25 01:02 ICT
+Updated: 2026-08-25 01:24 ICT
 Owner: ChatGPT
-Executor: Hermes after the operator's manual signal
+Executor: none until explicit operator approval of the exact accepted plan SHA-256
 
 ## Authoritative coordination files
 
@@ -15,50 +15,44 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 059 gate.
+`docs/operations/STATUS.md` remains project narrative and is not a Task 059 apply gate.
 
 ## Active task
 
 [`tasks/CNX-20260825-059-reprove-rollover-plan-input-binding.md`](tasks/CNX-20260825-059-reprove-rollover-plan-input-binding.md)
 
-## Predecessor disposition
+## Accepted Task 059 checkpoint
 
-Task 058 report commit:
+Task 059 report commit:
 
-`1650436aabb5d9c384e44a0e10013047090b7729`
+`d832d5d9a0566f122817c32401d847739ba8ebb1`
 
-Task 058 reported plan SHA-256:
+Task 059 review decision:
 
-`360393b0ac8a9ffee0ad603e67efb23b48fe06a7f5e9719d0bc18d03ace76c2c`
+`ACCEPT_ROLLOVER_PLAN_INPUT_BINDING_REPROVED`
 
-Task 058 is reviewed:
+Task 059 review commit:
 
-`REWORK_INVENTORY_CAPTURE_BINDING_AMBIGUOUS`
+`756a1f96164d95e82d694fd062878092f2ac74fe`
 
-Task 058 review commit:
+Accepted Task 059 plan SHA-256:
 
-`0e93970e145c8795d6578b8a4df6d2f198f6b3d9`
+`f81c60185b3e5ff5f7fd9ffdecda0760c53a5ce8d5aef1e7e2c84e8fd4fbf523`
 
-The Task 058 plan is not accepted and is not eligible for apply authorization.
+The checkpoint proves a single immutable OpenClaw inventory capture bound to the exact planner input, all 49 plan-binding checks passed, the Task 049 manifest SHA-256 was durably published, poststate remained preserved, and live mutation count was zero.
 
-## Reason for rework
+## Human gate
 
-Task 058 required exactly one `openclaw plugins list --json` invocation, but its report also records an identical-state recapture and retains a `before-recapture` inventory file. This makes the exact raw-byte planner-input binding ambiguous despite the reported normalized equality.
+No Phase B task exists yet.
 
-The Task 058 report also omitted the required fresh Task 049 manifest SHA-256 from durable publication.
+The operator must explicitly approve this exact accepted plan SHA-256 before ChatGPT may create a successor task with `PHASE_B_APPLY_AUTHORIZED`:
 
-## Human authorization
+`f81c60185b3e5ff5f7fd9ffdecda0760c53a5ce8d5aef1e7e2c84e8fd4fbf523`
 
-The operator asked ChatGPT to continue the coordination workflow and previously selected Hermes as executor.
-
-A manual continuation signal to Hermes authorizes evaluation/execution of this exact Task 059 Phase A checkpoint only. It does not authorize recovery apply or any mutation outside the task fence.
-
-## Authorized operation
-
-Task 059 may perform a fresh read-only preservation checkpoint, exactly one immutable OpenClaw plugin inventory capture, exactly one machine-generated rollover-plan invocation using that exact raw file, complete binding verification, and report-only publication.
-
-For a valid fresh plan, Hermes must stop with `AWAITING_PLUGIN_GENERATION_ROLLOVER_APPLY` and publish the exact new plan SHA-256 for ChatGPT review and a separate explicit human gate.
+A bare `ต่อ` or generic continuation signal is not approval of the SHA and does not authorize apply.
 
 ## Safety
 
-No Task 058 plan reuse. No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle mutation, startup/supervisor enable, controller MANAGED transition, scheduler change, Gateway/Ollama/model mutation, process termination, primary-repository mutation, Procmon/Task 027/038 action, mutation of the separate HermesAgent project/system, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+No `rollover-apply`, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, installer, reset/uninstall/lifecycle mutation, controller MANAGED transition, startup/supervisor/scheduler mutation, Gateway/Ollama/model/process mutation, primary-repository mutation, Procmon/Task 027/038 action, HermesAgent mutation, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+
+The rejected Task 058 plan SHA-256 `360393b0ac8a9ffee0ad603e67efb23b48fe06a7f5e9719d0bc18d03ace76c2c` remains permanently ineligible for apply authorization.
