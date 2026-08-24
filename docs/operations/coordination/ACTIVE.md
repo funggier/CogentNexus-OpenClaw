@@ -1,50 +1,52 @@
 # Active Coordination Task
 
 Status: `READY_FOR_CODEX`  
-Execution mode: `MANUAL_WITH_BOUNDED_COMMAND_FIX`  
-Task ID: `CNX-20260824-048`  
-Updated: 2026-08-24 18:02 ICT  
+Execution mode: `MANUAL_WITH_HUMAN_GATE`  
+Task ID: `CNX-20260824-049`  
+Updated: 2026-08-24 18:58 ICT  
 Owner: ChatGPT  
 Executor: Codex after operator's manual signal
 
 ## Authoritative coordination files
 
-Only these full repository paths are execution gates:
+Only:
 
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 048 gate.
+`docs/operations/STATUS.md` is project narrative and is not a Task 049 gate.
 
 ## Active task
 
-[`tasks/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md`](tasks/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md)
+[`tasks/CNX-20260824-049-backup-remove-legacy-stop-at-fresh.md`](tasks/CNX-20260824-049-backup-remove-legacy-stop-at-fresh.md)
 
 ## Predecessor report and review
 
-[`reports/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md`](reports/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md)
+[`reports/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md`](reports/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md)
 
-[`reviews/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md`](reviews/CNX-20260824-047-diagnose-openclaw-plugin-inventory-timeout.md)
+[`reviews/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md`](reviews/CNX-20260824-048-diagnose-openclaw-plugin-inventory-timeout.md)
 
-Task 047 is reviewed `ACCEPT_SAFE_SPECIFICATION_STOP`. It ran no plugin probes because an abbreviated path allowed the non-authoritative project STATUS file to be selected.
+Task 048 is reviewed `ACCEPT_BOUNDED_NONREPRODUCTION`. Native registry/list returned valid JSON and identified exact legacy plugin ownership; no repair was justified.
 
-## Task 048 scope
+## Human authorization
 
-- localize the exact OpenClaw `plugins list --json` failure boundary;
-- use at most three bounded native read-only probes plus safe offline microprobes if needed;
-- if root cause is command selection, arguments, invocation, output parsing, timeout wrapper, or a repository-owned command wrapper, apply the smallest correction and prove it once;
-- otherwise report the localized cause or bounded uncertainty without repair.
+The operator approved option `1` for the successor design:
 
-## Human authority
+- create a verified external backup;
+- if the native inventory gate fails again, use the bounded repair ladder;
+- hand off legacy management to PASSTHROUGH/native;
+- uninstall/remove only proven legacy CogentNexus;
+- reach and prove CogentNexus classifier `mode=fresh`;
+- stop and report before any current CogentNexus-OpenClaw installation.
 
-The operator approved option `1`: command-surface correction may proceed without another pause after proof.
+## Mandatory stop
 
-This does not authorize `registry --refresh`, `doctor --fix`, live OpenClaw config/registry/database/global-package changes, OpenClaw upgrade, plugin mutation, CogentNexus lifecycle, legacy removal, or fresh installation.
+Task 049 must not invoke `scripts/install.ps1`, `clean-reinstall.ps1`, any Release installer, or create current-product artifacts.
 
-Task 046 destructive authority remains consumed. A later removal/fresh-install attempt requires a new task and new explicit operator authorization.
+Installation requires report review, a successor task, and new explicit operator approval.
 
 ## Safety
 
-Preserve legacy CogentNexus state, OpenClaw/Gateway, Ollama/models, user data, AGENTS, scheduler, unrelated plugins/projects, primary repository, HermesAgent, Ecosystem, staged-capability-loop, and retained Procmon evidence.
+Preserve OpenClaw/Gateway, Ollama/models, user data, AGENTS, unrelated plugins/projects, primary repository, HermesAgent, Ecosystem, staged-capability-loop, and retained Procmon evidence.
 
-A timeout wrapper may terminate only the exact diagnostic child it created and its verified descendants. The final report commit must be report-only.
+No OpenClaw upgrade/reinstall, manual SQLite edit, broad deletion, force kill, or automatic restore. The final report commit must be report-only.
