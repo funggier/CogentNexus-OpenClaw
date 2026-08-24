@@ -1,51 +1,46 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 12:34 ICT  
+**State:** `AWAITING_HUMAN_AUTHORIZATION`  
+**Updated:** 2026-08-24 14:57 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator; Task 045 explicitly authorized by reply `1`  
+**Human authority:** operator  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 044 disposition
+## Task 045 disposition
 
-Task `CNX-20260824-044` is reviewed `ACCEPT`.
+Task `CNX-20260824-045` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP`.
 
-Accepted implementation commit:
+Accepted result:
 
-`4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`
+`BLOCKED_LEGACY_MIGRATION_NOT_AUTHORIZED`
 
-## Active Task 045
+The live machine is classifier-proven legacy/managed. Exact legacy launcher, skill, controller, OpenClaw config, and AGENTS hashes were retained. Exact v0.9.3 CogentNexus-OpenClaw artifacts were absent.
 
-Task `CNX-20260824-045` is ready for the operator's manual Codex signal.
+Destructive invocation count was zero. No install, uninstall, migration, clean reinstall, reset, backup, cleanup, configuration, plugin, Gateway/Ollama, scheduler/service, or unrelated-data mutation occurred.
 
-Purpose: live Windows clean-reinstall acceptance using the reviewed default external backup path, exact ownership gates, one destructive invocation maximum, fresh v0.9.3 installation, and post-install/side-effect proof.
+## Root cause
 
-## Mandatory pre-mutation classification gate
+Task 045 authorized clean reinstall only from a coherent v0.9.3 upgrade. The live source is still managed legacy CogentNexus, and legacy migration was explicitly excluded.
 
-Only an exact coherent v0.9.3 `upgrade` may proceed.
+The `openclaw plugins list --json` read-only command timed out twice and remains a migration preflight uncertainty.
 
-The task must stop read-only if the live machine is:
+## Recommended pending Task 046
 
-- legacy CogentNexus requiring migration;
-- fresh with product plugin/task/service residue;
-- mixed, partial, ambiguous, or unowned;
-- missing exact manifest/plugin/launcher/artifacts;
-- affected by source drift, command collision, unsafe backup boundary, or insufficient preflight conditions.
+Authorize one bounded live legacy migration/install-over to v0.9.3, then stop for review.
 
-Legacy migration is not included in the current authorization.
+Required gates:
 
-## Authorized destructive boundary
+- recheck exact retained legacy hashes and mode;
+- safely resolve or stop on plugin-inventory timeout;
+- verified external migration backup;
+- legacy MANAGED-to-PASSTHROUGH handoff;
+- one install-over migration from isolated reviewed source;
+- exact legacy plugin/config/load-path cleanup;
+- exact new ownership/plugin/runtime verification;
+- HermesAgent, unrelated OpenClaw, Ollama, Ecosystem, staged-capability-loop, Procmon, and primary-repository side-effect proof.
 
-If every preflight gate passes, Codex may invoke the reviewed `scripts/clean-reinstall.ps1` exactly once with only the live workspace argument and default backup behavior.
+Task 046 must not perform clean reinstall. Clean-reinstall acceptance requires a later separate authorization after migration is reviewed.
 
-No retry, `-NoBackup`, custom backup root, linked plugin, manual substitute deletion, automatic restore, or broader force action is authorized.
+## Safety
 
-## Failure behavior
-
-On any failure, stop, preserve backup and recovery evidence, publish one report, and request a new human decision. Do not manually finish or repeat installation.
-
-## Paused/excluded work
-
-`CogentNexus-HermesAgent`, `CogentNexus-Ecosystem`, `staged-capability-loop`, Procmon/Task 027/038 evidence, merge, tag, Release, and archive remain excluded.
-
-Report meaningful progress approximately every 3 minutes and at every safety transition.
+No Task 046 has been created or authorized. Until explicit operator approval, remain read-only and do not wake Codex for migration.
