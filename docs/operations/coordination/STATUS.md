@@ -1,46 +1,43 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_HUMAN_AUTHORIZATION`  
-**Updated:** 2026-08-24 14:57 ICT  
+**State:** `READY_FOR_CODEX`  
+**Updated:** 2026-08-24 15:02 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator  
+**Human authority:** operator; Task 046 destructive design explicitly approved and reconfirmed `1`  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
 ## Task 045 disposition
 
-Task `CNX-20260824-045` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP`.
-
-Accepted result:
+Task `CNX-20260824-045` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result:
 
 `BLOCKED_LEGACY_MIGRATION_NOT_AUTHORIZED`
 
-The live machine is classifier-proven legacy/managed. Exact legacy launcher, skill, controller, OpenClaw config, and AGENTS hashes were retained. Exact v0.9.3 CogentNexus-OpenClaw artifacts were absent.
+It proved a managed legacy installation and performed zero destructive invocations.
 
-Destructive invocation count was zero. No install, uninstall, migration, clean reinstall, reset, backup, cleanup, configuration, plugin, Gateway/Ollama, scheduler/service, or unrelated-data mutation occurred.
+## Active Task 046
 
-## Root cause
+Task `CNX-20260824-046` is ready for the operator's manual Codex signal.
 
-Task 045 authorized clean reinstall only from a coherent v0.9.3 upgrade. The live source is still managed legacy CogentNexus, and legacy migration was explicitly excluded.
+Goal: remove only classifier/proof-bound legacy CogentNexus, then fresh-install the reviewed current CogentNexus-OpenClaw v0.9.3 once.
 
-The `openclaw plugins list --json` read-only command timed out twice and remains a migration preflight uncertainty.
+## Required sequence
 
-## Recommended pending Task 046
+1. Re-prove legacy ownership, hashes, plugin inventory, collision-free state, source integrity, and unrelated sentinels.
+2. Create one external backup and verify source/destination counts, bytes, and hashes.
+3. Invoke exact legacy `cnx.cmd disable` once if required and prove PASSTHROUGH/native health.
+4. Uninstall/remove only exact `cogentnexus-rotation`, exact legacy config/load paths, exact `CogentNexus Supervisor`, `cnx.cmd`, `skills\cogentnexus`, `.cogent`, and exact proven plugin residue.
+5. Require classifier result `fresh`.
+6. Invoke current `scripts/install.ps1` once with only the workspace argument.
+7. Exact-verify `cnxclaw.cmd`, new skill/state/ownership/plugin/scheduler, Gateway/Ollama, backup, legacy absence, and unrelated data.
 
-Authorize one bounded live legacy migration/install-over to v0.9.3, then stop for review.
+## Stop gates
 
-Required gates:
+Stop before removal if native plugin inventory still times out, source/ownership/backup/handoff is unproved, or state is mixed/unowned.
 
-- recheck exact retained legacy hashes and mode;
-- safely resolve or stop on plugin-inventory timeout;
-- verified external migration backup;
-- legacy MANAGED-to-PASSTHROUGH handoff;
-- one install-over migration from isolated reviewed source;
-- exact legacy plugin/config/load-path cleanup;
-- exact new ownership/plugin/runtime verification;
-- HermesAgent, unrelated OpenClaw, Ollama, Ecosystem, staged-capability-loop, Procmon, and primary-repository side-effect proof.
+If removal or fresh installation fails, preserve backup/recovery evidence and stop. No retry, automatic restore, manual broad cleanup, clean reinstall, or install-over migration.
 
-Task 046 must not perform clean reinstall. Clean-reinstall acceptance requires a later separate authorization after migration is reviewed.
+## Exclusions
 
-## Safety
+No OpenClaw user-data reset, Ollama model/provider change, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, primary-repository Git mutation, merge, tag, Release, or archive action.
 
-No Task 046 has been created or authorized. Until explicit operator approval, remain read-only and do not wake Codex for migration.
+Report meaningful progress approximately every 3 minutes and at every safety transition.
