@@ -1,43 +1,57 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CODEX`  
-Execution mode: `MANUAL_WITH_HUMAN_GATE`  
-Task ID: `CNX-20260824-045`  
-Updated: 2026-08-24 12:34 ICT  
+Status: `AWAITING_HUMAN_AUTHORIZATION`  
+Execution mode: `HUMAN_GATE`  
+Task ID: `PENDING-CNX-20260824-046`  
+Updated: 2026-08-24 14:57 ICT  
 Owner: ChatGPT  
-Executor: Codex after operator's manual signal
+Executor: Codex only after explicit operator authorization
 
-## Active task
+## Completed predecessor
 
-[`tasks/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](tasks/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
+[`reports/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](reports/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
 
-## Predecessor report and review
+[`reviews/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](reviews/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
 
-[`reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
+Task 045 is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result `BLOCKED_LEGACY_MIGRATION_NOT_AUTHORIZED`.
 
-[`reviews/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](reviews/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
+## Proven live state
 
-Task 044 is reviewed `ACCEPT` for repository implementation commit `4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`.
+The live machine contains a managed legacy CogentNexus installation:
 
-## Human authorization
+- `cnx.cmd`;
+- `skills\cogentnexus`;
+- `.cogent`;
+- controller mode `managed`;
+- desired provider `running`;
+- generation `32`.
 
-The operator selected `1`, authorizing the bounded live Windows Task 045 scope recorded in the task.
+Exact CogentNexus-OpenClaw v0.9.3 launcher, skill, state root, and direct plugin paths are absent.
 
-Scheduled ChatGPT/Codex execution remains disabled. The operator will trigger Codex manually.
+Task 045 performed zero destructive invocations and changed no live state.
 
-## Execution boundary
+## Pending human gate
 
-Task 045 first performs a read-only source/collision/current-state/ownership preflight.
+The recommended proposed Task 046 is one bounded live migration/install-over only:
 
-Only an exact coherent v0.9.3 `upgrade` classification may proceed to one invocation of the reviewed default-backup clean-reinstall script.
+1. revalidate Task 045 legacy hashes and current managed state;
+2. resolve the read-only `openclaw plugins list --json` timeout without mutation or stop;
+3. create and verify the reviewed external migration backup;
+4. use the exact legacy launcher to enter PASSTHROUGH/native OpenClaw;
+5. run one v0.9.3 install-over migration from isolated reviewed source;
+6. remove only proven legacy plugin/config/load-path identities;
+7. exact-verify the new `cnxclaw.cmd`, skill, state root, ownership manifest, plugin, Gateway/Ollama integration, scheduler/service, and unrelated-data sentinels;
+8. stop for review after migration; do not run clean reinstall in Task 046.
 
-Legacy, fresh-with-residue, mixed, partial, ambiguous, source-drift, collision, or ownership failure must stop before mutation. Legacy migration is not authorized by this task.
+This migration is destructive and is **not authorized yet**.
 
 ## Safety
 
-- Default backup root only: `%LOCALAPPDATA%\CogentNexus-OpenClaw-Clean-Reinstall-Backups`.
-- No `-NoBackup`, custom `-BackupRoot`, or `-LinkPlugin`.
-- No destructive retry or automatic restore.
-- No primary-repository checkout/reset/clean/worktree change.
-- No Procmon or Task 027/038 evidence access.
-- No CogentNexus-HermesAgent, CogentNexus-Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
+Until explicit approval:
+
+- no legacy disable/migration/install/uninstall/config/plugin/task/service mutation;
+- no clean reinstall, reset, deletion, retry, or automatic restore;
+- no primary-repository checkout/reset/clean/worktree action;
+- no Procmon or Task 027/038 evidence access;
+- no CogentNexus-HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action;
+- scheduled ChatGPT/Codex execution remains operator-controlled.
