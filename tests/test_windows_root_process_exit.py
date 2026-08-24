@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,7 +37,10 @@ def test_ci_parses_and_runs_the_windows_numeric_exit_self_test():
     assert "pytest" in requirements
 
 
-@pytest.mark.skipif(shutil.which("pwsh") is None, reason="PowerShell is unavailable on this host")
+@pytest.mark.skipif(
+    os.name != "nt" or shutil.which("pwsh") is None,
+    reason="Windows PowerShell process semantics require a Windows host with pwsh",
+)
 def test_wrapper_self_test_observes_numeric_zero_and_nonzero_exit_codes():
     completed = subprocess.run(
         ["pwsh", "-NoProfile", "-File", str(SCRIPT), "-SelfTest"],

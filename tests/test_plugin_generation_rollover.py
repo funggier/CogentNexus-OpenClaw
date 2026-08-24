@@ -141,7 +141,7 @@ def test_task054_two_roots_are_ambiguous_but_plan_binds_old_and_active_new(tmp_p
     assert len(plan["activeRegistrationSha256"]) == 64
     assert len(plan["retiredProjectTreeSha256"]) == 64
     assert len(plan["replacementProjectTreeSha256"]) == 64
-    assert plan["activeRegistration"]["rootDir"] == str(paths["new_plugin"].resolve())
+    assert plan["activeRegistration"]["rootDir"] == ownership._canonical(paths["new_plugin"])
 
 
 def test_plan_rejects_foreign_or_shared_wrapper_even_when_it_depends_on_product(tmp_path: Path):
