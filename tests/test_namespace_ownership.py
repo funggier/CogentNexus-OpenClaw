@@ -118,6 +118,91 @@ def test_equal_version_candidates_are_ambiguous_even_when_bytes_match(tmp_path: 
         ownership.resolve_installed_plugin(workspace.parent)
 
 
+def test_unrelated_npm_wrappers_do_not_create_product_inventory(tmp_path: Path):
+    workspace, _, _, _, _ = layout(tmp_path)
+    projects = workspace.parent / "npm/projects"
+    unrelated_direct = workspace.parent / "extensions/unrelated-plugin/payload.bin"
+    unrelated_direct.parent.mkdir(parents=True)
+    unrelated_direct.write_bytes(b"unrelated-direct-sentinel")
+    fixtures = {
+        "one": {"name": "unrelated-plugin", "dependencies": {"other-package": "1.0.0"}},
+        "two": {"private": True, "optionalDependencies": {"another-package": "2.0.0"}},
+    }
+    before = {}
+    for name, package in fixtures.items():
+        root = projects / name
+        root.mkdir(parents=True)
+        (root / "package.json").write_text(json.dumps(package), encoding="utf-8")
+        nested = root / "node_modules/unrelated/node_modules" / ownership.PLUGIN_PACKAGE
+        nested.mkdir(parents=True)
+        (nested / "foreign.bin").write_bytes(b"foreign-sentinel")
+        before[name] = (root / "package.json").read_bytes() + (nested / "foreign.bin").read_bytes()
+    assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "fresh"
+    for name in fixtures:
+        root = projects / name
+        nested = root / "node_modules/unrelated/node_modules" / ownership.PLUGIN_PACKAGE
+        assert (root / "package.json").read_bytes() + (nested / "foreign.bin").read_bytes() == before[name]
+    assert unrelated_direct.read_bytes() == b"unrelated-direct-sentinel"
+
+
+@pytest.mark.parametrize("kind", ["missing", "corrupt", "old"])
+def test_exact_product_child_partial_payload_is_not_ignored(tmp_path: Path, kind: str):
+    workspace, _, _, _, _ = layout(tmp_path)
+    child = workspace.parent / "npm/projects/wrapper/node_modules" / ownership.PLUGIN_PACKAGE
+    child.mkdir(parents=True)
+    if kind == "corrupt":
+        (child / "package.json").write_text("{", encoding="utf-8")
+    elif kind == "old":
+        write_plugin(child, version="0.9.2")
+    with pytest.raises(RuntimeError, match="ownership manifest"):
+        ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")
+
+
+def test_valid_npm_managed_layout_remains_a_coherent_upgrade(tmp_path: Path):
+    workspace, root, skill, launcher, _ = layout(tmp_path)
+    plugin = workspace.parent / "npm/projects/wrapper/node_modules" / ownership.PLUGIN_PACKAGE
+    root.mkdir(parents=True); skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("name: CogentNexus-OpenClaw", encoding="utf-8")
+    launcher.write_text("cnxclaw", encoding="utf-8")
+    write_plugin(plugin)
+    ownership.write_manifest(root, ownership.build_manifest(
+        root=root, workspace=workspace, skill=skill, plugin_path=plugin,
+        launcher=launcher, version="0.9.3",
+    ))
+    assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
+
+
+def test_second_exact_product_child_makes_existing_install_ambiguous(tmp_path: Path):
+    workspace, _, _ = complete_install(tmp_path)
+    second = workspace.parent / "npm/projects/conflict/node_modules" / ownership.PLUGIN_PACKAGE
+    write_plugin(second, marker="conflicting-payload")
+    with pytest.raises(RuntimeError, match="ambiguous"):
+        ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")
+
+
+def test_product_wrapper_dependency_is_inventory_even_before_payload_exists(tmp_path: Path):
+    workspace, _, _, _, _ = layout(tmp_path)
+    wrapper = workspace.parent / "npm/projects/wrapper"
+    wrapper.mkdir(parents=True)
+    (wrapper / "package.json").write_text(json.dumps({
+        "private": True, "dependencies": {ownership.PLUGIN_PACKAGE: "file:plugin.tgz"},
+    }), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="ownership manifest"):
+        ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")
+
+
+@pytest.mark.parametrize("mode", ["fresh", "legacy"])
+def test_skip_plugin_is_rejected_for_non_upgrade_before_mutation(mode: str):
+    with pytest.raises(RuntimeError, match="coherent upgrade"):
+        ownership.require_skip_plugin_safe(mode)
+
+
+def test_skip_plugin_is_allowed_only_after_coherent_upgrade_classification(tmp_path: Path):
+    workspace, _, _ = complete_install(tmp_path)
+    mode = ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"]
+    assert ownership.require_skip_plugin_safe(mode)["skipPlugin"] == "allowed-existing-exact-plugin"
+
+
 @pytest.mark.parametrize("artifact", ["launcherWindows", "launcherPosix", "skill", "state", "applicationData", "directPlugin"])
 def test_each_partial_new_artifact_blocks_fresh_install(tmp_path: Path, artifact: str):
     workspace, root, skill, launcher, plugin = layout(tmp_path)

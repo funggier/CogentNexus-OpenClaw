@@ -67,6 +67,7 @@ APPLICATION_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw
 INSTALL_CLASSIFICATION=$(python "$OWNERSHIP_SCRIPT" classify-install --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT")
 INSTALL_MODE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; print(json.load(sys.stdin)["mode"])')
 MIGRATION_SOURCE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
+if [ "$SKIP_PLUGIN" -eq 1 ]; then python "$OWNERSHIP_SCRIPT" preflight-skip-plugin --mode "$INSTALL_MODE" >/dev/null; fi
 if [ "$INSTALL_MODE" = fresh ]; then
   NEW_PLUGIN_INVENTORY=$(openclaw plugins list --json) || { echo "Could not prove current plugin registration inventory" >&2; exit 1; }
   case "$NEW_PLUGIN_INVENTORY" in *cogentnexus-openclaw*) echo "Current plugin registration exists without coherent ownership" >&2; exit 1;; esac
@@ -197,6 +198,7 @@ INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import jso
 set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
 if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
 python "$@" >/dev/null
+python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable --provider ollama

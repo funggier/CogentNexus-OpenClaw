@@ -106,6 +106,10 @@ $classificationJson = (& python $ownershipScript classify-install --workspace $W
 if ($LASTEXITCODE -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }
 $classification = $classificationJson | ConvertFrom-Json
 if ($classification.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
+if ($SkipPlugin) {
+    & python $ownershipScript preflight-skip-plugin --mode ([string]$classification.mode) | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "-SkipPlugin requires a coherent upgrade with an existing exact v0.9.3 plugin; refusing before mutation." }
+}
 if ($classification.mode -eq "fresh") {
     $newPluginInventory = openclaw plugins list --json 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) { throw "Could not prove current plugin registration inventory before installation." }
@@ -251,6 +255,8 @@ $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"
 if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
 & python @ownershipArguments | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
+& python (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
 
 if (-not $SkipGatewayRestart) {
     & python $cliScript --root $cogentNexusOpenClawRoot enable --provider ollama

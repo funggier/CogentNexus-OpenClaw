@@ -96,6 +96,44 @@ def plugin_candidate_roots(openclaw_state: Path) -> list[Path]:
     return result
 
 
+def _wrapper_identifies_product(project: Path) -> bool:
+    """Return true only for a top-level npm wrapper that names our exact package."""
+    package_path = project / "package.json"
+    if not package_path.is_file():
+        return False
+    try:
+        package = json.loads(package_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(package, dict):
+        return False
+    if package.get("name") == PLUGIN_PACKAGE:
+        return True
+    for field in ("dependencies", "optionalDependencies", "devDependencies"):
+        dependencies = package.get(field)
+        if isinstance(dependencies, dict) and PLUGIN_PACKAGE in dependencies:
+            return True
+    return False
+
+
+def product_plugin_inventory(openclaw_state: Path) -> dict[str, Path]:
+    """Inventory product evidence without treating unrelated npm projects as ours."""
+    items: dict[str, Path] = {}
+    direct = openclaw_state / "extensions" / PRODUCT_ID
+    if direct.exists():
+        items["directPlugin"] = direct
+    projects = openclaw_state / "npm" / "projects"
+    if not projects.is_dir():
+        return items
+    for project in sorted((item for item in projects.iterdir() if item.is_dir()), key=lambda item: item.name):
+        child = project / "node_modules" / PLUGIN_PACKAGE
+        if child.exists():
+            items[f"npmPackage:{project.name}"] = child
+        if _wrapper_identifies_product(project):
+            items[f"npmWrapper:{project.name}"] = project
+    return items
+
+
 def resolve_installed_plugin(openclaw_state: Path, *, expected_version: str = INSTALLED_VERSION) -> dict[str, Any]:
     candidates = [payload for root in plugin_candidate_roots(openclaw_state)
                   if (payload := _plugin_payload(root, expected_version=expected_version)) is not None]
@@ -198,10 +236,8 @@ def current_inventory(workspace: Path, *, app_data: Path | None = None) -> dict[
     new_items: dict[str, Path] = {
         "launcherWindows": paths["launchers"][0], "launcherPosix": paths["launchers"][1],
         "skill": paths["skillPath"], "state": paths["stateRoot"], "applicationData": app_root,
-        "directPlugin": paths["openclawState"] / "extensions" / PRODUCT_ID,
     }
-    for index, candidate in enumerate(plugin_candidate_roots(paths["openclawState"])):
-        new_items[f"pluginCandidate{index}"] = candidate
+    new_items.update(product_plugin_inventory(paths["openclawState"]))
     legacy_items = {
         "launcherWindows": workspace / "cnx.cmd", "launcherPosix": workspace / "cnx",
         "skill": workspace / "skills" / "cogentnexus", "state": workspace / ".cogent",
@@ -224,6 +260,12 @@ def classify_install(workspace: Path, *, app_data: Path | None = None) -> dict[s
     if inventory["legacy"]:
         return prove_legacy_ownership(workspace, inventory=inventory)
     return {"mode": "fresh", **inventory}
+
+
+def require_skip_plugin_safe(mode: str) -> dict[str, str]:
+    if mode != "upgrade":
+        raise RuntimeError("skip-plugin requires a coherent upgrade with an existing exact v0.9.3 plugin")
+    return {"mode": mode, "skipPlugin": "allowed-existing-exact-plugin"}
 
 
 def prove_legacy_ownership(workspace: Path, *, inventory: dict[str, list[str]] | None = None) -> dict[str, Any]:
@@ -267,6 +309,8 @@ def main() -> int:
     inventory.add_argument("--workspace", type=Path, required=True); inventory.add_argument("--app-data", type=Path)
     resolver = sub.add_parser("resolve-plugin")
     resolver.add_argument("--openclaw-state", type=Path, required=True); resolver.add_argument("--version", default=INSTALLED_VERSION)
+    skip = sub.add_parser("preflight-skip-plugin")
+    skip.add_argument("--mode", required=True)
     create = sub.add_parser("create")
     for name in ("root", "workspace", "skill", "plugin-path", "launcher"):
         create.add_argument(f"--{name}", type=Path, required=True)
@@ -279,6 +323,8 @@ def main() -> int:
     elif args.command == "resolve-plugin":
         payload = resolve_installed_plugin(args.openclaw_state, expected_version=args.version)
         result = {"root": str(payload["root"]), "version": payload["version"], "fingerprint": payload["fingerprint"]}
+    elif args.command == "preflight-skip-plugin":
+        result = require_skip_plugin_safe(args.mode)
     else:
         result = build_manifest(root=args.root, workspace=args.workspace, skill=args.skill,
                                 plugin_path=args.plugin_path, launcher=args.launcher,

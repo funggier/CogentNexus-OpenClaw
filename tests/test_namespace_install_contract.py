@@ -24,8 +24,10 @@ def test_windows_installer_orders_proof_handoff_manifest_and_enable():
     handoff = source.index("Enter-NativeInstallBoundary\n")
     mutation = source.index("Copy-Item -Recurse -Force -LiteralPath $sourceSkill")
     manifest = source.index('"scripts\\namespace_ownership.py"), "create"')
+    verify = source.index('"scripts\\namespace_ownership.py") verify --root')
     enable = source.index("enable --provider ollama")
-    assert proof < handoff < mutation < manifest < enable
+    skip_preflight = source.index("preflight-skip-plugin")
+    assert proof < skip_preflight < handoff < mutation < manifest < verify < enable
     assert source.count("& $handoffLauncher disable") == 1
     assert "migration-report.json" in source
     assert "Legacy plugin uninstall failed" in source
@@ -40,6 +42,8 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
     assert 'COGENT_ROOT="$WORKSPACE/.cogentnexus-openclaw"' in source
     assert "migration-report.json" in source
     assert source.index("classify-install") < source.index('cp -R "$SOURCE_SKILL"')
+    assert source.index("preflight-skip-plugin") < source.index('cp -R "$SOURCE_SKILL"')
+    assert source.index(' create --root "$COGENT_ROOT"') < source.index(' verify --root "$COGENT_ROOT"') < source.index('enable --provider ollama')
     assert "plugins.entries.cogentnexus-rotation" in source
     assert "openclaw plugins uninstall cogentnexus-rotation --force" in source
 
@@ -62,3 +66,11 @@ def test_destructive_current_paths_are_manifest_gated():
     first_delete = reinstall.index("Remove-OwnedPath $extension")
     assert classify < first_backup < first_delete
     assert "Registered plugin/task exists without a coherent ownership manifest" in reinstall
+    assert 'CogentNexus-OpenClaw-Clean-Reinstall-Backups' in reinstall
+    assert "validate-boundary" in reinstall
+    assert "write-recovery" in reinstall
+    assert 'Copy-Backup $applicationDataRoot "application-data\\CogentNexus-OpenClaw"' in reinstall
+    assert "Remove-OwnedPath $applicationDataRoot" in reinstall
+    assert "clean-reinstall-backups" not in reinstall
+    assert "[switch]$NoBackup" in reinstall
+    assert "-NoBackup selected" in reinstall

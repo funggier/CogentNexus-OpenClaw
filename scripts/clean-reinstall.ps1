@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact="High")]
 param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
-    [string]$BackupRoot = (Join-Path $env:LOCALAPPDATA "CogentNexus-OpenClaw\clean-reinstall-backups"),
+    [string]$BackupRoot = (Join-Path $env:LOCALAPPDATA "CogentNexus-OpenClaw-Clean-Reinstall-Backups"),
     [switch]$NoBackup,
     [switch]$LinkPlugin
 )
@@ -19,6 +19,8 @@ $openclawConfig = Join-Path $stateRoot "openclaw.json"
 $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $backup = Join-Path $BackupRoot $stamp
 $ownershipScript = Join-Path $repoRoot "skills\cogentnexus-openclaw\scripts\namespace_ownership.py"
+$handoffScript = Join-Path $repoRoot "scripts\clean_reinstall_handoff.py"
+$applicationDataRoot = Join-Path $env:LOCALAPPDATA "CogentNexus-OpenClaw"
 
 function Require-Command([string]$Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) { throw "Required command not found: $Name" }
@@ -60,7 +62,12 @@ Write-Host "CogentNexus-OpenClaw clean reinstall"
 Write-Host "Workspace : $Workspace"
 Write-Host "Repo/root : $repoRoot"
 
-$classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data (Join-Path $env:LOCALAPPDATA "CogentNexus-OpenClaw") | Out-String)
+if (-not $NoBackup) {
+    & python $handoffScript validate-boundary --app-data $applicationDataRoot --backup-root $BackupRoot | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Backup boundary is unsafe; refusing clean reinstall before mutation." }
+}
+
+$classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data $applicationDataRoot | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "Ownership is missing, partial, mixed, or invalid; refusing clean-reinstall before backup or deletion." }
 $classification = $classificationJson | ConvertFrom-Json
 if ($classification.mode -eq "legacy") { throw "Clean reinstall does not adopt a legacy namespace; run the v0.9.3 installer migration." }
@@ -86,6 +93,7 @@ if (-not $NoBackup) {
     Copy-Backup $skill "skills\cogentnexus-openclaw"
     Copy-Backup $launcher "cnxclaw.cmd"
     Copy-Backup $extension "extension\cogentnexus-openclaw"
+    Copy-Backup $applicationDataRoot "application-data\CogentNexus-OpenClaw"
     Copy-Backup $agents "AGENTS.md"
     Copy-Backup $openclawConfig "openclaw.json"
     Write-Host "Backup created: $backup"
@@ -117,6 +125,7 @@ if ($hasPlugin) {
 Remove-OwnedPath $extension
 Remove-OwnedPath $skill
 Remove-OwnedPath $cnxRoot
+Remove-OwnedPath $applicationDataRoot
 if (Test-Path -LiteralPath $launcher) {
     Remove-Item -LiteralPath $launcher -Force
     Write-Host "Removed: $launcher"
@@ -129,9 +138,18 @@ if ($listAfter.Output -match 'cogentnexus-openclaw') {
 }
 
 Write-Host "Installing fresh CogentNexus-OpenClaw from: $repoRoot"
-if ($LinkPlugin) { & $installer -Workspace $Workspace -LinkPlugin }
-else { & $installer -Workspace $Workspace }
-if ($LASTEXITCODE -ne 0) { throw "Fresh CogentNexus-OpenClaw installation failed" }
+try {
+    if ($LinkPlugin) { & $installer -Workspace $Workspace -LinkPlugin }
+    else { & $installer -Workspace $Workspace }
+    if ($LASTEXITCODE -ne 0) { throw "Fresh CogentNexus-OpenClaw installation failed with exit code $LASTEXITCODE" }
+}
+catch {
+    if (-not $NoBackup -and (Test-Path -LiteralPath $backup)) {
+        & python $handoffScript write-recovery --backup $backup --workspace $Workspace --error $_.Exception.Message | Out-Null
+        Write-Warning "Fresh install failed; backup and recovery record were preserved at $backup"
+    }
+    throw
+}
 
 if (-not (Test-Path -LiteralPath $launcher)) { throw "Fresh install did not create cnxclaw.cmd" }
 & $launcher status
