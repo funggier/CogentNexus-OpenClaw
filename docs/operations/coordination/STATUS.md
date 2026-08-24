@@ -1,27 +1,40 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 11:27 ICT  
+**State:** `AWAITING_HUMAN_AUTHORIZATION`  
+**Updated:** 2026-08-24 12:26 ICT  
 **Transport:** GitHub repository history  
 **Human authority:** operator  
-**Execution trigger:** automatic watcher or manual `ต่อ`
+**Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 043 disposition
+## Task 044 disposition
 
-Task `CNX-20260824-043` materially hardened exact manifest validation, product plugin resolution, partial-state rejection, legacy removal, destructive lifecycle ownership, and namespace lint. Implementation commit `04710b980c6e98fb3a802fa5706a08a22213bd47` is retained.
+Task `CNX-20260824-044` is reviewed `ACCEPT`.
 
-Its PASS result is reviewed `BLOCKED` on four bounded composition defects:
+Accepted implementation commit:
 
-- unrelated OpenClaw npm project directories are counted as CogentNexus-OpenClaw inventory;
-- the default clean-reinstall backup under the active application-data root makes the following installer classify its own verified backup as partial state;
-- skip-plugin staging can fail only after skill/state/launcher mutation;
-- the newly written manifest is not exact-verified before MANAGED enable.
+`4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`
 
-## Active Task 044
+Accepted repository repairs:
 
-Task `CNX-20260824-044` repairs only those classifier and reinstall-handoff defects.
+- product-specific npm inventory without unrelated-project false positives;
+- default external clean-reinstall backup and failure recovery accounting;
+- pre-mutation skip-plugin restriction to coherent upgrades;
+- exact post-create ownership verification before `enable`.
 
-Required result: `PASS_INSTALL_CLASSIFIER_AND_REINSTALL_HANDOFF`.
+No live installation, clean reinstall, reset, uninstall, runtime, scheduler/service, Procmon, Ecosystem, tag, Release, archive, or merge was performed.
+
+## Pending decision
+
+The next proposed Task 045 is a destructive live Windows clean-reinstall acceptance sequence. It must use the reviewed default backup root and exact ownership fences. It has not been created or authorized.
+
+Required human decision: explicitly authorize or decline the bounded live sequence after reviewing these intended phases:
+
+1. read-only preflight and exact current-state/ownership snapshot;
+2. verified external backup;
+3. PASSTHROUGH/native handoff;
+4. exact CogentNexus-OpenClaw cleanup only;
+5. fresh v0.9.3 install;
+6. post-install namespace, OpenClaw, Ollama, scheduler, and rollback evidence.
 
 ## Paused optional work
 
@@ -29,6 +42,4 @@ Required result: `PASS_INSTALL_CLASSIFIER_AND_REINSTALL_HANDOFF`.
 
 ## Safety
 
-Repository-only work in one isolated full clone. No Git worktree creation, live install/config/runtime/clean-reinstall/reset/uninstall, Gateway/Ollama/scheduler/service action, Task 027/038 access, Procmon action, Ecosystem mutation, merge, tag, or release.
-
-Report meaningful progress approximately every 3 minutes and at classifier, reinstall-handoff, skip-plugin, post-create verification, validation, and publication gates.
+Until explicit approval, Codex must not mutate the live workspace/config/runtime/install, invoke clean reinstall/reset/uninstall, change Gateway/Ollama/scheduler/service state, use Procmon, or perform merge/tag/release actions.
