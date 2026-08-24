@@ -1,13 +1,17 @@
 # Active Coordination Task
 
-Status: `AWAITING_HUMAN_AUTHORIZATION`  
-Execution mode: `HUMAN_GATE`  
-Task ID: `PENDING-CNX-20260824-045`  
-Updated: 2026-08-24 12:26 ICT  
+Status: `READY_FOR_CODEX`  
+Execution mode: `MANUAL_WITH_HUMAN_GATE`  
+Task ID: `CNX-20260824-045`  
+Updated: 2026-08-24 12:34 ICT  
 Owner: ChatGPT  
-Executor: Codex only after explicit operator authorization
+Executor: Codex after operator's manual signal
 
-## Completed predecessor
+## Active task
+
+[`tasks/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md`](tasks/CNX-20260824-045-live-windows-clean-reinstall-acceptance.md)
+
+## Predecessor report and review
 
 [`reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md`](reports/CNX-20260824-044-repair-install-classifier-and-clean-reinstall-handoff.md)
 
@@ -15,25 +19,25 @@ Executor: Codex only after explicit operator authorization
 
 Task 044 is reviewed `ACCEPT` for repository implementation commit `4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`.
 
-## Pending human gate
+## Human authorization
 
-The next proposed task is a bounded live Windows clean-reinstall acceptance sequence using only the reviewed default backup root:
+The operator selected `1`, authorizing the bounded live Windows Task 045 scope recorded in the task.
 
-`%LOCALAPPDATA%\CogentNexus-OpenClaw-Clean-Reinstall-Backups`
+Scheduled ChatGPT/Codex execution remains disabled. The operator will trigger Codex manually.
 
-It would read and preserve the current exact ownership/runtime state, create and verify one backup, enter PASSTHROUGH, uninstall only exact CogentNexus-OpenClaw-owned artifacts, install v0.9.3 fresh, and verify OpenClaw/Ollama plus namespace isolation.
+## Execution boundary
 
-This live task is destructive and is **not authorized yet**. Do not create or execute Task 045 until the operator explicitly approves the presented scope.
+Task 045 first performs a read-only source/collision/current-state/ownership preflight.
 
-## Safety fence
+Only an exact coherent v0.9.3 `upgrade` classification may proceed to one invocation of the reviewed default-backup clean-reinstall script.
 
-Until authorization:
+Legacy, fresh-with-residue, mixed, partial, ambiguous, source-drift, collision, or ownership failure must stop before mutation. Legacy migration is not authorized by this task.
 
-- no live workspace/config/runtime/install/clean-reinstall/reset/uninstall mutation;
-- no Gateway/Ollama/scheduler/service mutation;
-- no Procmon action;
-- no CogentNexus-Ecosystem or staged-capability-loop work;
-- no merge, tag, GitHub Release, or release archive;
-- do not wake Codex for a live task.
+## Safety
 
-Scheduled execution remains operator-controlled.
+- Default backup root only: `%LOCALAPPDATA%\CogentNexus-OpenClaw-Clean-Reinstall-Backups`.
+- No `-NoBackup`, custom `-BackupRoot`, or `-LinkPlugin`.
+- No destructive retry or automatic restore.
+- No primary-repository checkout/reset/clean/worktree change.
+- No Procmon or Task 027/038 evidence access.
+- No CogentNexus-HermesAgent, CogentNexus-Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
