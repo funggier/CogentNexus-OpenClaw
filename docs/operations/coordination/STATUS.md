@@ -1,48 +1,54 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 19:42 ICT  
+**Updated:** 2026-08-24 19:59 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator directed continuation after Codex reported the Task 052 report missing  
+**Human authority:** operator authorized a new install-over after Task 052 evidence was not recovered  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 051 disposition
+## Task 053 disposition
 
-Task `CNX-20260824-051` remains reviewed:
+Task `CNX-20260824-053` is reviewed:
 
-`ACCEPT_CANONICAL_CHECK_HELP_ALIGNED`
+`ACCEPT_RECONCILIATION_CURRENT_TASK050_HEALTHY_TASK052_UNACCEPTED`
 
-Implementation commit: `6d90025f832bb36c477176809a0af2e6c1858c19`.
+Accepted evidence:
 
-## Task 052 incident
+- Task 052 contemporaneous execution/exit evidence is absent and historical execution remains indeterminate;
+- the live installation is healthy, coherent `mode=upgrade`, and still exactly Task 050 pre-fix for the two Help files;
+- Task 051 corrected Help is not installed;
+- ownership, controller, policy, SQLite, AGENTS, plugin/supervisor, Gateway, Ollama, four models, 71 unrelated plugins, Task 049 backup, and excluded systems are healthy/preserved;
+- Task 053 made zero live mutations.
 
-Task 052 remains unreviewed. No Task 052 report or report commit is present on the coordination branch.
+Task 052 is closed as unaccepted and superseded. This was an evidence/publication failure, not a CogentNexus-OpenClaw runtime failure.
 
-Codex reported that the original report could not be found in the workspace, isolated clones, `%LOCALAPPDATA%\Temp`, readable Git refs/history, or readable session data. During that publication attempt it did not rerun the installer/postcheck, touch the live runtime, or create/push a commit.
+## Active Task 054
 
-This does not establish whether Task 052 executed. It establishes only that the required publication evidence is missing. Do not infer PASS, failure, or installer exit code.
+[`tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md`](tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md)
 
-## Active Task 053
+Goal: perform one new supported install-over using the accepted Task 051 source and preserve durable evidence until the remote report is confirmed.
 
-[`tasks/CNX-20260824-053-reconcile-lost-task052-evidence.md`](tasks/CNX-20260824-053-reconcile-lost-task052-evidence.md)
+## Exact invocation
 
-Goal: perform one bounded read-only reconciliation that separates original contemporaneous Task 052 proof from retrospective current-state evidence.
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "C:\Users\CDQ-P\.openclaw\workspace"`
 
-## Required determinations
+Invoke once through an exit-code-retaining process wrapper. No custom flags and no retry.
 
-Task 053 must return:
+## Required outcome
 
-- one execution classification: proven exit-0 execution, execution with exit unproven, proven not executed, or indeterminate;
-- one current-state classification: healthy Task 051 installed, healthy Task 050 pre-fix installed, unhealthy, or indeterminate;
-- one exact Task 053 result token.
+- observed child exit `0`;
+- Task 051 help files installed exactly;
+- canonical Help/check accepted and generic component rejected;
+- coherent ownership and state preserved;
+- MANAGED/Ollama/Gateway healthy;
+- 71 unrelated plugins, four models, Task 049 backup, primary repository, user data, and excluded systems unchanged;
+- exactly one report commit, freshly fetched and remotely verified before cleanup.
 
-A healthy current state alone cannot satisfy Task 052's observed-exit-0 acceptance gate.
+## Evidence retention
 
-## Hard fence
+Create preflight JSON, `report-draft.md`, stdout/stderr, and wrapper poststate in one unique `%LOCALAPPDATA%\Temp` directory before launch. Keep the evidence directory and isolated clone until the remote report path, commit SHA, one-path diff, and content SHA are verified.
 
-No installer, second install-over, fresh/clean install, migration, reset, uninstall, repair, restore, lifecycle command, manual installed-file/config/database/AGENTS/plugin/task edit, process termination, force-kill, Procmon/Task 027/038 access, OpenClaw/Ollama/model mutation, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, GitHub Release, or archive publication.
+If publication verification fails, keep the evidence and report exact paths/hashes. Do not rerun the installer.
 
-Only read-only status/check/probe and bounded artifact/hash inspection are authorized. Publish exactly the Task 053 Markdown report and no other path.
-
-Report meaningful progress approximately every 3 minutes and after each major evidence boundary.
+Report meaningful progress approximately every 3 minutes and after every major boundary.
 
