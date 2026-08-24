@@ -1,36 +1,36 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-24 23:50 ICT
+**Updated:** 2026-08-25 01:02 ICT
 **Transport:** GitHub repository history
-**Human authority:** Task 058 Phase A plan-only checkpoint; no recovery apply or live mutation authorized
+**Human authority:** Task 059 Phase A plan-only checkpoint; no recovery apply or live mutation authorized
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled by operator
 
-## Task 057 disposition
+## Task 058 disposition
 
-Task `CNX-20260824-057` is reviewed:
+Task `CNX-20260824-058` report commit:
 
-`ACCEPT_OPENCLAW_INVENTORY_SCHEMA_COMPAT_FIXED`
+`1650436aabb5d9c384e44a0e10013047090b7729`
 
-Implementation commit:
+Reported Task 058 plan SHA-256:
 
-`f379e5c5d8dddb144cb0d1991b645b16055e1303`
+`360393b0ac8a9ffee0ad603e67efb23b48fe06a7f5e9719d0bc18d03ace76c2c`
 
-Accepted report commit:
+Review decision:
 
-`da3525c38c24f76e19c977e28446603b8c7c7063`
+`REWORK_INVENTORY_CAPTURE_BINDING_AMBIGUOUS`
 
 Review commit:
 
-`0bfeefe9e889a4f336f8860efc9dcae0f73af7ad`
+`0e93970e145c8795d6578b8a4df6d2f198f6b3d9`
 
-The supported OpenClaw inventory shape with absent optional `packageName` is now handled only after exact bound payload package proof. Present null/foreign package identity and all prior ownership, ambiguity, wrapper, project-tree, inventory, and apply-time drift gates remain fail-closed. Exact-head GitHub Actions for the implementation were independently verified successful.
+The report-only publication fence passed and the report records zero live mutations. However, Task 058 cannot be accepted because it both claimed an exact-once OpenClaw inventory capture and recorded an identical-state recapture with a `before-recapture` inventory artifact. The published raw SHA therefore does not unambiguously bind the exact bytes supplied to the planner. The required fresh Task 049 manifest SHA-256 was also absent from durable publication.
 
-Task 057 made zero live actions.
+Task 058 plan SHA-256 is not eligible for apply authorization.
 
-## Active Task 058
+## Active Task 059
 
-[`tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md`](tasks/CNX-20260824-058-fresh-rollover-plan-checkpoint.md)
+[`tasks/CNX-20260825-059-reprove-rollover-plan-input-binding.md`](tasks/CNX-20260825-059-reprove-rollover-plan-input-binding.md)
 
 Status: `READY_FOR_HERMES`
 
@@ -38,20 +38,18 @@ Executor: Hermes after the operator's manual signal
 
 Current authorization: `PHASE_A_PLAN_ONLY`
 
-The operator explicitly selected Hermes to execute Task 058 instead of Codex.
+Task 059 must use a new isolated clone and new evidence directory, freshly re-prove preservation state, invoke `openclaw plugins list --json` exactly once total, retain exactly one immutable raw inventory file, hash it immediately, feed that exact same path to exactly one `rollover-plan` invocation, perform every normalized verification from that same raw file without recapture, publish the fresh Task 049 manifest SHA-256, prove exactly two expected v0.9.3 payload roots and no third, verify the fresh plan, publish the exact new plan SHA-256, and stop.
 
-Task 058 must independently re-prove the current live preservation state, capture one fresh unmodified `openclaw plugins list --json` inventory, generate a new machine-produced rollover plan with the accepted implementation, verify every safety binding, publish the exact plan SHA-256 in the matching report, and stop.
-
-Task 056 is terminal and must not be resumed. Its inventory and failed planning attempt are not Task 058 planning inputs.
-
-The excluded `HermesAgent` system is not an execution prohibition: Hermes may execute this task, but must not inspect or mutate the separate HermesAgent project/system.
+No Task 058 inventory or plan may be used as Task 059 planning input.
 
 ## Next gate
 
-If Task 058 produces a valid plan, the durable state becomes `AWAITING_PLUGIN_GENERATION_ROLLOVER_APPLY` only. ChatGPT must review the exact checkpoint and the operator must explicitly approve that exact plan SHA-256 before any later task may record `PHASE_B_APPLY_AUTHORIZED`.
+If Task 059 produces a valid checkpoint, durable state becomes `AWAITING_PLUGIN_GENERATION_ROLLOVER_APPLY` only after ChatGPT review accepts the exact Task 059 report.
+
+Even after acceptance, apply remains prohibited until the operator explicitly approves the exact accepted Task 059 plan SHA-256 and a new coordination task records `PHASE_B_APPLY_AUTHORIZED`, that exact SHA-256, and the accepted Task 059 review commit.
 
 ## Hard fence
 
 No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, lifecycle/startup/supervisor mutation, controller MANAGED transition, scheduler change, Gateway/Ollama/model/process mutation, primary-repository mutation, Procmon/Task 027/038 action, broad cleanup, mutation of the separate HermesAgent project/system, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
 
-Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan generation, plan verification, publication, or blocker.
+Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan generation, verification, publication, or blocker.
