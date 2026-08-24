@@ -2,9 +2,9 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `MANUAL_WITH_HUMAN_GATE`
-Current authorization: `PHASE_B_APPLY_AUTHORIZED`
-Task ID: `CNX-20260825-060`
-Updated: 2026-08-25 01:27 ICT
+Current authorization: `MANAGED_REENTRY_AUTHORIZED`
+Task ID: `CNX-20260825-061`
+Updated: 2026-08-25 03:15 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's manual continuation signal
 
@@ -15,65 +15,58 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` remains project narrative and is not a Task 060 execution gate.
+`docs/operations/STATUS.md` remains project narrative and is not a Task 061 execution gate.
 
 ## Active task
 
-[`tasks/CNX-20260825-060-apply-approved-plugin-generation-rollover.md`](tasks/CNX-20260825-060-apply-approved-plugin-generation-rollover.md)
-
-## Explicit human authorization
-
-At 2026-08-25 01:27 ICT, the operator explicitly approved this exact accepted Task 059 plan SHA-256 for Phase B:
-
-`f81c60185b3e5ff5f7fd9ffdecda0760c53a5ce8d5aef1e7e2c84e8fd4fbf523`
-
-This satisfies the human gate required by the accepted Task 059 review.
+[`tasks/CNX-20260825-061-return-managed-lifecycle.md`](tasks/CNX-20260825-061-return-managed-lifecycle.md)
 
 ## Accepted predecessor
 
-Task 059 report commit:
-
-`d832d5d9a0566f122817c32401d847739ba8ebb1`
-
-Task 059 review decision:
-
-`ACCEPT_ROLLOVER_PLAN_INPUT_BINDING_REPROVED`
-
-Task 059 review commit:
-
-`756a1f96164d95e82d694fd062878092f2ac74fe`
-
-Accepted local plan path:
-
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx059-rollover-plan-20260824T181054Z\task059-rollover-plan.json`
-
-## Authorized operation
-
-A manual continuation signal to Hermes now authorizes execution of the exact Task 060 only.
-
-Task 060 may:
-
-- create its bounded evidence directory;
-- perform the required read-only drift/preflight checks;
-- capture one fresh pre-apply OpenClaw inventory;
-- verify the exact approved plan SHA and apply-time normalized inventory/registration bindings;
-- run the accepted root-process exit-code self-test;
-- invoke the reviewed `rollover-apply` primitive exactly once using the exact approved Task 059 plan/SHA and fresh Task 060 inventory;
-- perform read-only post-apply ownership/runtime/plugin verification;
-- publish only the matching Task 060 report.
-
-The reviewed apply may perform only its internal exact-path backup/atomic retirement and ownership-manifest atomic update. If its verification fails, its built-in rollback semantics apply. No manual repair or retry is authorized.
-
-## Required successful stop state
-
-A successful Task 060 must stop with:
+Task 060 result:
 
 `PASS_PLUGIN_GENERATION_ROLLOVER_APPLIED_PASSTHROUGH`
 
-Controller must remain PASSTHROUGH and startup must remain disabled. No lifecycle return to MANAGED is authorized in Task 060.
+Task 060 report commit:
+
+`0ae317d51a0efc13ebcfaabab6cb6b9595b2d2c5`
+
+Task 060 review disposition:
+
+`ACCEPT_PLUGIN_GENERATION_ROLLOVER_APPLIED_PASSTHROUGH`
+
+Task 060 review commit:
+
+`633cefcfe06c83aae8aede17f3bf6b36ed4d3eb7`
+
+Accepted post-rollover ownership-manifest SHA-256:
+
+`0667004DC9D6483450A3C99DDA6F34BB7F384F0261F43813763019E2C3BA0341`
+
+The live installation now has exactly one canonical v0.9.3 payload owned at the active replacement generation. The prior generation is retained at the reviewed external rollover backup. Controller remains PASSTHROUGH, startup disabled, and plugin registration disabled.
+
+## Human authorization
+
+The operator asked ChatGPT to continue after Task 060. ChatGPT reviewed and accepted Task 060 and published Task 061 as the next bounded lifecycle step.
+
+A manual continuation signal to Hermes authorizes execution of exactly Task 061 only.
+
+## Authorized operation
+
+Task 061 may freshly prove the accepted post-rollover state and installed-code identity, then invoke the supported installed command exactly once:
+
+`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable`
+
+Only the internal effects of that one supported Host `enable` sequence are authorized: MANAGED controller transition, managed policy application, canonical plugin enable/configuration, startup-adapter enablement, lifecycle/provider start, default-session reconciliation, bounded interrupted-work reconciliation, and one safe supervisor tick.
+
+No individual substep may be reproduced manually.
+
+## Required successful stop state
+
+`PASS_MANAGED_REENTRY_VERIFIED`
+
+A successful Task 061 must prove MANAGED mode, generation 8, desired Gateway/provider running, startup adapter enabled and exact, one loaded canonical v0.9.3 replacement plugin, exact managed configuration, exact managed AGENTS block over the preserved baseline, unchanged ownership/replacement/rollover-backup bindings, healthy Gateway/Ollama, and bounded Ticket/session continuity.
 
 ## Safety
 
-No plan regeneration, no Task 058 plan reuse, no second `rollover-apply`, no manual generation move/delete/copy, no manual ownership rewrite, no plugin install/uninstall/enable/disable, no installer/reset/uninstall/lifecycle mutation, no controller MANAGED transition, no startup/supervisor/scheduler mutation, no Gateway/Ollama/model/process mutation, no primary Git repository checkout/reset/clean/source edit, no Procmon/Task 027/038 action, no HermesAgent mutation, no Ecosystem/staged-capability-loop work, and no merge/tag/release/archive publication.
-
-The rejected Task 058 plan SHA-256 `360393b0ac8a9ffee0ad603e67efb23b48fe06a7f5e9719d0bc18d03ace76c2c` remains permanently ineligible.
+No installer, reset, uninstall, rollover plan/apply, manual generation move/delete/copy, rollover-backup mutation, manual ownership edit, separate plugin enable/disable/config mutation, separate startup/lifecycle mutation, process termination, provider/model selection change, primary Git mutation, Procmon Task 027/038 action, HermesAgent mutation, Ecosystem/staged-capability-loop work, merge, tag, release, or archive publication.
