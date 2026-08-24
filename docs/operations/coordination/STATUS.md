@@ -1,56 +1,62 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 19:18 ICT  
+**Updated:** 2026-08-24 19:32 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized immediate repository-only Task 051 execution  
+**Human authority:** operator authorized install-over as a real acceptance test  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 050 disposition
+## Task 051 disposition
 
-Task `CNX-20260824-050` is reviewed:
+Task `CNX-20260824-051` is reviewed:
 
-`ACCEPT_INSTALLED_RUNTIME_WITH_HELP_DEFECT`
+`ACCEPT_CANONICAL_CHECK_HELP_ALIGNED`
 
-The live current installation is accepted as materialized:
+Implementation commit `6d90025f832bb36c477176809a0af2e6c1858c19` changes only the two CLI help/usage surfaces, namespace lint, and focused tests.
 
-- classifier `mode=upgrade`;
-- exact ownership manifest verified;
-- one canonical plugin v0.9.3;
-- canonical launcher/skill/state/supervisor;
-- MANAGED with Ollama;
-- Gateway/Ollama/four models healthy;
-- canonical AGENTS block and preserved baseline;
-- unrelated data and Task 049 backup preserved.
+Accepted evidence:
 
-The exact terminated installer exit code was not retained and must not be invented or recovered by reinstalling.
+- canonical-help RED reproduced;
+- minimal GREEN passed;
+- lint RED/GREEN passed;
+- final focused suite: 6 passed;
+- final full suite: 252 passed, 1 skip, 4 subtests;
+- namespace/baseline/compile/diff validation passed;
+- no live side effect.
 
-## Confirmed repository defect
+## Active Task 052
 
-`checks.py` accepts component `cogentnexus-openclaw`, while `cnxclaw.py` and `cnxclaw_v093.py` advertise invalid `check cogentnexus`.
+[`tasks/CNX-20260824-052-live-install-over-v093-acceptance.md`](tasks/CNX-20260824-052-live-install-over-v093-acceptance.md)
 
-The canonical live command passed with verdict `READY`; the advertised generic command failed as unsupported.
+Goal: perform one supported install-over update of the coherent live v0.9.3 installation and use it as a full upgrade acceptance test.
 
-## Active Task 051
+## Exact invocation
 
-[`tasks/CNX-20260824-051-align-canonical-check-help.md`](tasks/CNX-20260824-051-align-canonical-check-help.md)
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "C:\Users\CDQ-P\.openclaw\workspace"`
 
-Goal: repository-only TDD correction of canonical check help/usage plus namespace-lint regression protection.
+The exact child PID and exit code must be retained through a no-timeout process object. PASS requires one observed exit `0`.
 
-Required design:
+## Required preservation
 
-1. reproduce stale-help failure with a focused test;
-2. minimally replace current operator-facing generic component with `cogentnexus-openclaw`;
-3. preserve rejection of generic `cogentnexus`;
-4. add lint coverage against regression;
-5. inventory/fix current non-historical documentation only;
-6. run full validation;
-7. publish implementation then a report-only commit.
+- coherent classifier `mode=upgrade` before and after;
+- ownership manifest/plugin exact verification;
+- Task 051 help files installed exactly;
+- durable Ticket/workflow/session/policy state not reset;
+- AGENTS one canonical block and exact 7,196-byte stripped baseline;
+- one canonical plugin/scheduler, no legacy;
+- MANAGED/Ollama/Gateway healthy;
+- same 71 unrelated plugins and four models;
+- Task 049 backup and excluded systems unchanged;
+- no installer/lifecycle orphan.
 
-## Safety
+## Retry and failure fence
 
-No live installer, installed-file edit, repair, enable/restart, OpenClaw plugin/config action, Gateway/Ollama/scheduler/controller action, reset/uninstall, Procmon, primary-repository mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive.
+No clean reinstall, migration, fresh install, custom flags, second installer, manual installed-file edit, manual partial completion, automatic restore, force-kill, or broad cleanup.
 
-After review of Task 051, any installed-copy update requires a separate explicit operator authorization.
+An alive child must be observed, not duplicated. Nonzero/unobserved exit or any preservation/runtime failure requires a report and stop.
 
-Report meaningful progress approximately every 3 minutes and after inventory, RED, GREEN, lint, full validation, and publication.
+## Exclusions
+
+No destructive recovery test, reset/uninstall, OpenClaw upgrade/reinstall, manual SQLite/config edit, Ollama/model mutation, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, merge, tag, GitHub Release, or archive publication.
+
+Report meaningful progress approximately every 3 minutes and after preflight, PASSTHROUGH, skill/plugin/ownership, exit capture, corrected-help, state comparison, runtime, and publication.
