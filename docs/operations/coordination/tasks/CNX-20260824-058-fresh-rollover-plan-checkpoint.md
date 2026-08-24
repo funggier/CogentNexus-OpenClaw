@@ -1,6 +1,6 @@
 # CNX-20260824-058 — Fresh Plugin Generation Rollover Plan Checkpoint
 
-Status: `READY_FOR_CODEX`
+Status: `READY_FOR_HERMES`
 
 Execution mode: `MANUAL_WITH_HUMAN_GATE`
 
@@ -8,13 +8,19 @@ Current authorization: `PHASE_A_PLAN_ONLY`
 
 Owner: ChatGPT
 
-Executor: Codex after the operator's manual signal
+Executor: Hermes after the operator's manual signal
 
 ## Goal
 
 Use the accepted Task 057 inventory-schema compatibility fix to independently regenerate the live CogentNexus-OpenClaw v0.9.3 plugin-generation recovery plan from a fresh read-only checkpoint. Publish the exact machine-generated plan SHA-256 and bounded bindings, then stop for ChatGPT review and a separate human authorization before any apply.
 
 This task authorizes Phase A only. No rollover apply, generation retirement, ownership rewrite, plugin enable, startup/supervisor enable, MANAGED transition, installer, or lifecycle mutation is authorized.
+
+## Executor substitution authorization
+
+The operator explicitly selected Hermes to execute Task 058 instead of Codex. Hermes is authorized only as the executor of the exact Task 058 Phase A procedure below and receives no broader authority.
+
+References to `HermesAgent` in the excluded-system safety fence mean the separate HermesAgent project/system must not be inspected, repaired, mutated, or used as a target of this task. They do not prohibit Hermes from acting as the selected executor for this CogentNexus-OpenClaw task.
 
 ## Required source
 
@@ -83,7 +89,7 @@ Before execution:
 - verify no matching Task 058 report already records a completed Phase A;
 - prove zero concurrent installer, uninstall/reset, CogentNexus lifecycle, rollover apply, report publisher, Procmon capture, or another Task 058 executor.
 
-Do not infer apply authority from a bare `ต่อ` signal.
+Do not infer apply authority from a bare manual continuation signal.
 
 ## Phase A — authorized plan checkpoint only
 
@@ -210,6 +216,6 @@ Return exactly one:
 
 ## Hard fence
 
-No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, `cnxclaw enable/disable/start/stop/restart/reset/uninstall`, scheduler change, supervisor creation, Gateway/Ollama/model mutation, process termination, force-kill, primary-repository mutation, Procmon/Task 027/038 action, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
+No `rollover-apply`, installer, generation move/delete, ownership rewrite, plugin enable/disable/install/uninstall, `cnxclaw enable/disable/start/stop/restart/reset/uninstall`, scheduler change, supervisor creation, Gateway/Ollama/model mutation, process termination, force-kill, primary-repository mutation, Procmon/Task 027/038 action, mutation of the separate HermesAgent project/system, Ecosystem, staged-capability-loop, merge, tag, release, or archive publication.
 
 Report meaningful progress approximately every 3 minutes and immediately after duplicate/concurrency preflight, live-state preflight, inventory capture, plan generation, plan verification, publication, or blocker.
