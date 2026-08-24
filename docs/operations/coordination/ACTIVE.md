@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_CODEX`  
-Execution mode: `MANUAL_READ_ONLY`  
-Task ID: `CNX-20260824-053`  
-Updated: 2026-08-24 19:42 ICT  
+Execution mode: `MANUAL_WITH_HUMAN_GATE`  
+Task ID: `CNX-20260824-054`  
+Updated: 2026-08-24 19:59 ICT  
 Owner: ChatGPT  
 Executor: Codex after operator's manual signal
 
@@ -14,25 +14,31 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 053 gate.
+`docs/operations/STATUS.md` is project narrative and is not a Task 054 gate.
 
 ## Active task
 
-[`tasks/CNX-20260824-053-reconcile-lost-task052-evidence.md`](tasks/CNX-20260824-053-reconcile-lost-task052-evidence.md)
+[`tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md`](tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md)
 
-## Task 052 status
+## Predecessor disposition
 
-Task 052 is unreviewed and has no published report. The expected report was not found and remote HEAD remained `e29e9fdd7c25aca2c715e12fa47068359cc0cd7f` during the publication attempt.
+Task 053 is reviewed `ACCEPT` as:
 
-Do not rerun Task 052, its installer, or its original postcheck.
+`ACCEPT_RECONCILIATION_CURRENT_TASK050_HEALTHY_TASK052_UNACCEPTED`
+
+Task 052 is superseded and unaccepted. Do not rerun Task 052.
+
+## Human authorization
+
+The operator authorized one new install-over when Task 052 evidence could not be recovered.
 
 ## Authorized operation
 
-Perform one bounded read-only reconciliation of retained Task 052 evidence and the current installed state. Publish only the Task 053 Markdown report.
+Run the default installer exactly once from a fresh isolated Task 051 source clone against the healthy current `mode=upgrade` installation, retain the exact child exit code, verify preservation/runtime, and publish/remote-verify the Task 054 report.
+
+Temporary evidence and the isolated clone must remain until remote report verification succeeds.
 
 ## Safety
 
-No installer, install/reinstall, migration, reset, uninstall, repair, restore, lifecycle command, installed-file edit, process termination, runtime mutation, Procmon/evidence access, primary-repository mutation, or excluded-system action.
-
-Read-only status/check/probe and bounded artifact/hash inspection are authorized. A healthy current state alone does not prove Task 052 acceptance.
+No second installer or retry, clean/fresh reinstall, migration, reset, uninstall, manual repair/restore, force-kill, broad cleanup, excluded-system mutation, merge, tag, or release publication.
 
