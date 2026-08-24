@@ -1,60 +1,57 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 18:02 ICT  
+**Updated:** 2026-08-24 18:58 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator approved bounded command-surface correction with response `1`  
+**Human authority:** operator approved Task 049 backup/removal-to-fresh design with response `1`  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 047 disposition
+## Task 048 disposition
 
-Task `CNX-20260824-047` is reviewed `ACCEPT_SAFE_SPECIFICATION_STOP` with result:
+Task `CNX-20260824-048` is reviewed `ACCEPT_BOUNDED_NONREPRODUCTION` with result:
 
-`BLOCKED_DUPLICATE_OR_SOURCE_FENCE`
+`BLOCKED_INSUFFICIENT_EVIDENCE`
 
-The report was published through an exact one-file commit. Codex safely stopped after selecting `docs/operations/STATUS.md` instead of the authoritative coordination status path. No plugin probe, repair, lifecycle action, removal, or installation occurred.
+The earlier timeout did not reproduce. Native registry inspection returned valid JSON in 16.378 seconds; native plugin list returned valid JSON for 72 plugins in 4.785 seconds; lifecycle trace completed normally. The legacy plugin is natively owned as `cogentnexus-rotation` / `openclaw-plugin-cogentnexus-rotation` v0.9.1. No live repair or mutation occurred.
 
-## Active Task 048
+## Active Task 049
 
-Task `CNX-20260824-048` is ready for the operator's manual Codex signal.
+Task `CNX-20260824-049` is ready for the operator's manual Codex signal.
 
-Authoritative gates are exactly:
+Goal: create a verified external backup, remove only proven legacy CogentNexus, reach the current installation classifier result `mode=fresh`, and stop before installing the current CogentNexus-OpenClaw.
 
-- `docs/operations/coordination/ACTIVE.md`
-- `docs/operations/coordination/STATUS.md`
+## Required sequence
 
-The project narrative `docs/operations/STATUS.md` must not be used as a Task 048 gate.
+1. Prove exact coordination/source/collision/legacy ownership and current runtime sentinels.
+2. Run the now-proven native inventory command once.
+3. If it fails again, back up first, then use at most one registry refresh and one `doctor --fix`, with bounded retries.
+4. Create and independently verify the external legacy/config/SQLite/scheduler/plugin backup.
+5. Invoke legacy `cnx.cmd disable` once and prove PASSTHROUGH/native health.
+6. Preview and invoke the exact native plugin uninstall once.
+7. Remove only the exact legacy supervisor task, launcher, skill, state, owned plugin residue, and exact config/load-path/install-record residue.
+8. Gracefully restart Gateway once only if required to unload the removed plugin.
+9. Prove OpenClaw registry health and CogentNexus classifier `mode=fresh` separately.
+10. Verify unrelated systems/data and publish a report-only commit.
 
-## Diagnostic and correction sequence
+## Mandatory stop-before-install gate
 
-1. Prove exact coordination/source/duplicate/process fences.
-2. Map installed OpenClaw `2026.7.1-2 (0790d9f)` to the upstream command call path.
-3. Inspect redacted registry/index/config/root metadata.
-4. Run the three distinct bounded read-only probes.
-5. If needed, time safe offline boundaries and exact implicated paths.
-6. Localize the first failing boundary.
-7. If and only if it is command selection/invocation/arguments/parsing/wrapper behavior, apply the smallest permitted correction and run one focused test plus one bounded live read-only proof.
-8. Verify unchanged live state and publish a final report-only commit.
+Task 049 must not invoke or download/run:
 
-## Permitted correction
+- `scripts/install.ps1`;
+- `clean-reinstall.ps1`;
+- any current Release installer;
+- any equivalent current-product installation path.
 
-A repository-owned command wrapper/parser and its focused test may be corrected in one separate minimal commit. If no repository file owns the misuse, use and document the proven official read-only equivalent without editing live software.
+It must not create `cnxclaw.cmd`, `skills\cogentnexus-openclaw`, `.cogentnexus-openclaw`, or the current plugin/controller/scheduler.
+
+Installation requires Task 049 report review, a successor task, and new explicit operator approval.
 
 ## Stop gates
 
-Stop and report before any remedy requiring:
-
-- `plugins registry --refresh` or `doctor --fix`;
-- live OpenClaw config/registry/database/plugin/global-package write;
-- OpenClaw upgrade/downgrade/reinstall;
-- plugin mutation;
-- CogentNexus lifecycle or behavior change beyond a proved repository-owned invocation surface;
-- legacy removal or fresh installation.
-
-Task 046 destructive authority remains consumed. Any later removal/fresh-install attempt needs a new task and new explicit authorization.
+Stop and report on backup failure, ownership drift, native repair failure, handoff failure, unsafe plugin removal, locked/unowned legacy cleanup, fresh-classification failure, preservation failure, or unsafe publication. Do not auto-restore.
 
 ## Exclusions
 
-No Gateway/Ollama/model change, user-data mutation, scheduler change, Procmon/Task 027/038, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
+No OpenClaw upgrade/downgrade/reinstall, manual SQLite edit, Ollama/model change, broad cleanup, wildcard/parent deletion, force kill, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, merge, tag, Release, or archive action.
 
-Report meaningful progress approximately every 3 minutes and at every diagnostic/correction/safety transition.
+Report meaningful progress approximately every 3 minutes and at every backup/repair/handoff/removal/fresh-classification/safety transition.
