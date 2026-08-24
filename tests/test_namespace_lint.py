@@ -24,3 +24,10 @@ def test_canonical_variants_and_historical_evidence_pass():
     assert not lint.find_violations("scripts/example.py", "CogentNexus-OpenClaw cnxclaw CNXCLAW_MODEL")
     assert not lint.find_violations("templates/cogentnexus-openclaw-cleanup.cmd", "CogentNexus-HermesAgent")
     assert not lint.find_violations("docs/operations/coordination/reports/old.md", "COGENTNEXUS RESET")
+
+
+def test_generic_check_component_fails_even_in_current_migration_documentation():
+    current_doc = "docs/V093_RECOVERY_REALITY_TESTS.md"
+    generic_command = "cnxclaw.cmd check " + "cogentnexus"
+    assert lint.find_violations(current_doc, generic_command)
+    assert not lint.find_violations(current_doc, "cnxclaw.cmd check cogentnexus-openclaw")

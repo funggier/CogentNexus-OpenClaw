@@ -355,7 +355,7 @@ def provider_transition(root: Path, action: str, explicit: str | None) -> tuple[
 
 def do_check(root: Path, args: list[str]) -> tuple[int, dict[str, Any]]:
     if len(args) < 2:
-        return 2, {"result": "error", "error": "Usage: cnxclaw check system|cogentnexus|config|openclaw|gateway|provider|model|storage|recovery|delivery|resources"}
+        return 2, {"result": "error", "error": "Usage: cnxclaw check system|cogentnexus-openclaw|config|openclaw|gateway|provider|model|storage|recovery|delivery|resources"}
     component = args[1].lower()
     explicit = option_value(args[2:], "--provider")
     if component == "provider" and len(args) >= 3 and not args[2].startswith("-"):
@@ -383,7 +383,7 @@ Inspection (read-only):
   cnxclaw.cmd status
   cnxclaw.cmd check system [--provider ollama|lmstudio]
   cnxclaw.cmd check provider [ollama|lmstudio]
-  cnxclaw.cmd check cogentnexus|config|openclaw|gateway|model|storage|recovery|delivery|resources
+  cnxclaw.cmd check cogentnexus-openclaw|config|openclaw|gateway|model|storage|recovery|delivery|resources
   cnxclaw.cmd provider list
   cnxclaw.cmd provider status
 

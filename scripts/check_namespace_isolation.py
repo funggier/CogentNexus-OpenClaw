@@ -28,6 +28,7 @@ FORBIDDEN = re.compile(
     re.IGNORECASE,
 )
 LEGACY_ENV = re.compile(r"(?<![A-Za-z0-9_])CNX_(?=[A-Z])")
+GENERIC_CHECK_COMPONENT = re.compile(r"\bcheck\s+cogentnexus(?!-openclaw)(?=[\s|;&]|$)", re.IGNORECASE)
 
 
 def historical(relative: str) -> bool:
@@ -61,6 +62,9 @@ def find_violations(relative: str, text: str) -> list[str]:
         failures.append(f"{normalized}: forbidden operational filename")
     for number, line in enumerate(text.splitlines(), 1):
         if normalized == "scripts/check_namespace_isolation.py":
+            continue
+        if GENERIC_CHECK_COMPONENT.search(line):
+            failures.append(f"{normalized}:{number}: forbidden generic check component: {line.strip()}")
             continue
         if (FORBIDDEN.search(line) or LEGACY_ENV.search(line)) and not migration_literal_allowed(normalized, line):
             failures.append(f"{normalized}:{number}: forbidden generic namespace: {line.strip()}")

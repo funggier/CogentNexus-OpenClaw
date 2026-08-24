@@ -69,7 +69,7 @@ Inspection (read-only):
   cnxclaw.cmd status
   cnxclaw.cmd check system
   cnxclaw.cmd check provider [ollama]
-  cnxclaw.cmd check cogentnexus|config|openclaw|gateway|model|storage|recovery|delivery|resources
+  cnxclaw.cmd check cogentnexus-openclaw|config|openclaw|gateway|model|storage|recovery|delivery|resources
   cnxclaw.cmd provider list
   cnxclaw.cmd provider status
 
