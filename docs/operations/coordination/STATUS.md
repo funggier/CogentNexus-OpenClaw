@@ -1,54 +1,42 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 19:59 ICT  
+**Updated:** 2026-08-24 20:20 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized a new install-over after Task 052 evidence was not recovered  
-**Execution trigger:** manual only; scheduled execution remains disabled by operator
+**Human authority:** repository diagnosis/fix only; live repair deferred to a reviewed successor task  
+**Execution trigger:** automatic watcher or operator manual signal
 
-## Task 053 disposition
+## Task 054 disposition
 
-Task `CNX-20260824-053` is reviewed:
+Task `CNX-20260824-054` is reviewed:
 
-`ACCEPT_RECONCILIATION_CURRENT_TASK050_HEALTHY_TASK052_UNACCEPTED`
+`ACCEPT_BLOCKER_PLUGIN_GENERATION_AMBIGUITY`
 
-Accepted evidence:
+Accepted state:
 
-- Task 052 contemporaneous execution/exit evidence is absent and historical execution remains indeterminate;
-- the live installation is healthy, coherent `mode=upgrade`, and still exactly Task 050 pre-fix for the two Help files;
-- Task 051 corrected Help is not installed;
-- ownership, controller, policy, SQLite, AGENTS, plugin/supervisor, Gateway, Ollama, four models, 71 unrelated plugins, Task 049 backup, and excluded systems are healthy/preserved;
-- Task 053 made zero live mutations.
+- one installer invocation installed the Task 051 skill;
+- OpenClaw created a new generated plugin project while the prior manifest-owned project remained;
+- exact ownership correctly failed closed on two canonical roots;
+- live controller remains PASSTHROUGH and startup disabled;
+- ownership manifest remains old and ambiguous;
+- Gateway, Ollama, four models, SQLite, policy, unrelated plugins/data, Task 049 backup, and excluded systems remain healthy;
+- the Task 054 wrapper did not retain a numeric child exit code and must not be reused.
 
-Task 052 is closed as unaccepted and superseded. This was an evidence/publication failure, not a CogentNexus-OpenClaw runtime failure.
+## Root cause
 
-## Active Task 054
+The installer assumes `plugins install --force` retires the prior npm project. The observed OpenClaw behavior creates a new generation and retains the old root. The ownership resolver is correct to reject the ambiguity.
 
-[`tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md`](tasks/CNX-20260824-054-repeat-install-over-v093-acceptance.md)
+## Active Task 055
 
-Goal: perform one new supported install-over using the accepted Task 051 source and preserve durable evidence until the remote report is confirmed.
+[`tasks/CNX-20260824-055-fix-plugin-generation-rollover.md`](tasks/CNX-20260824-055-fix-plugin-generation-rollover.md)
 
-## Exact invocation
+Goal: implement a TDD repository fix for Windows/POSIX ownership-safe plugin generation rollover, a fail-closed plan/apply recovery primitive, and tested numeric exit-code capture.
 
-`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "C:\Users\CDQ-P\.openclaw\workspace"`
+## Live-state fence
 
-Invoke once through an exit-code-retaining process wrapper. No custom flags and no retry.
+No live installer, plugin mutation, root retirement, recovery apply, ownership rewrite, AGENTS edit, lifecycle action, scheduler change, Gateway/Ollama/model mutation, process termination, primary-repository mutation, Procmon/Task 027/038 access, or excluded-system action.
 
-## Required outcome
+After Task 055 is reviewed, a separate Task 056 may repair the exact live two-root state without rerunning the installer, then restore MANAGED operation.
 
-- observed child exit `0`;
-- Task 051 help files installed exactly;
-- canonical Help/check accepted and generic component rejected;
-- coherent ownership and state preserved;
-- MANAGED/Ollama/Gateway healthy;
-- 71 unrelated plugins, four models, Task 049 backup, primary repository, user data, and excluded systems unchanged;
-- exactly one report commit, freshly fetched and remotely verified before cleanup.
-
-## Evidence retention
-
-Create preflight JSON, `report-draft.md`, stdout/stderr, and wrapper poststate in one unique `%LOCALAPPDATA%\Temp` directory before launch. Keep the evidence directory and isolated clone until the remote report path, commit SHA, one-path diff, and content SHA are verified.
-
-If publication verification fails, keep the evidence and report exact paths/hashes. Do not rerun the installer.
-
-Report meaningful progress approximately every 3 minutes and after every major boundary.
+Report meaningful progress approximately every 3 minutes and after each major implementation boundary.
 
