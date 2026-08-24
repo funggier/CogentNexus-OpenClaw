@@ -1,9 +1,9 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_HUMAN_AUTHORIZATION`  
-**Updated:** 2026-08-24 12:26 ICT  
+**State:** `READY_FOR_CODEX`  
+**Updated:** 2026-08-24 12:34 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator  
+**Human authority:** operator; Task 045 explicitly authorized by reply `1`  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
 ## Task 044 disposition
@@ -14,32 +14,38 @@ Accepted implementation commit:
 
 `4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`
 
-Accepted repository repairs:
+## Active Task 045
 
-- product-specific npm inventory without unrelated-project false positives;
-- default external clean-reinstall backup and failure recovery accounting;
-- pre-mutation skip-plugin restriction to coherent upgrades;
-- exact post-create ownership verification before `enable`.
+Task `CNX-20260824-045` is ready for the operator's manual Codex signal.
 
-No live installation, clean reinstall, reset, uninstall, runtime, scheduler/service, Procmon, Ecosystem, tag, Release, archive, or merge was performed.
+Purpose: live Windows clean-reinstall acceptance using the reviewed default external backup path, exact ownership gates, one destructive invocation maximum, fresh v0.9.3 installation, and post-install/side-effect proof.
 
-## Pending decision
+## Mandatory pre-mutation classification gate
 
-The next proposed Task 045 is a destructive live Windows clean-reinstall acceptance sequence. It must use the reviewed default backup root and exact ownership fences. It has not been created or authorized.
+Only an exact coherent v0.9.3 `upgrade` may proceed.
 
-Required human decision: explicitly authorize or decline the bounded live sequence after reviewing these intended phases:
+The task must stop read-only if the live machine is:
 
-1. read-only preflight and exact current-state/ownership snapshot;
-2. verified external backup;
-3. PASSTHROUGH/native handoff;
-4. exact CogentNexus-OpenClaw cleanup only;
-5. fresh v0.9.3 install;
-6. post-install namespace, OpenClaw, Ollama, scheduler, and rollback evidence.
+- legacy CogentNexus requiring migration;
+- fresh with product plugin/task/service residue;
+- mixed, partial, ambiguous, or unowned;
+- missing exact manifest/plugin/launcher/artifacts;
+- affected by source drift, command collision, unsafe backup boundary, or insufficient preflight conditions.
 
-## Paused optional work
+Legacy migration is not included in the current authorization.
 
-`CogentNexus-Ecosystem` and `staged-capability-loop` remain paused and excluded.
+## Authorized destructive boundary
 
-## Safety
+If every preflight gate passes, Codex may invoke the reviewed `scripts/clean-reinstall.ps1` exactly once with only the live workspace argument and default backup behavior.
 
-Until explicit approval, Codex must not mutate the live workspace/config/runtime/install, invoke clean reinstall/reset/uninstall, change Gateway/Ollama/scheduler/service state, use Procmon, or perform merge/tag/release actions.
+No retry, `-NoBackup`, custom backup root, linked plugin, manual substitute deletion, automatic restore, or broader force action is authorized.
+
+## Failure behavior
+
+On any failure, stop, preserve backup and recovery evidence, publish one report, and request a new human decision. Do not manually finish or repeat installation.
+
+## Paused/excluded work
+
+`CogentNexus-HermesAgent`, `CogentNexus-Ecosystem`, `staged-capability-loop`, Procmon/Task 027/038 evidence, merge, tag, Release, and archive remain excluded.
+
+Report meaningful progress approximately every 3 minutes and at every safety transition.
