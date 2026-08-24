@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_CODEX`  
-Execution mode: `MANUAL_REPOSITORY_ONLY`  
-Task ID: `CNX-20260824-051`  
-Updated: 2026-08-24 19:18 ICT  
+Execution mode: `MANUAL_WITH_HUMAN_GATE`  
+Task ID: `CNX-20260824-052`  
+Updated: 2026-08-24 19:32 ICT  
 Owner: ChatGPT  
 Executor: Codex after operator's manual signal
 
@@ -14,40 +14,49 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` is project narrative and is not a Task 051 gate.
+`docs/operations/STATUS.md` is project narrative and is not a Task 052 gate.
 
 ## Active task
 
-[`tasks/CNX-20260824-051-align-canonical-check-help.md`](tasks/CNX-20260824-051-align-canonical-check-help.md)
+[`tasks/CNX-20260824-052-live-install-over-v093-acceptance.md`](tasks/CNX-20260824-052-live-install-over-v093-acceptance.md)
 
-## Task 050 report and review
+## Task 051 report and review
 
-[`reports/CNX-20260824-050-fresh-install-current-v093.md`](reports/CNX-20260824-050-fresh-install-current-v093.md)
+[`reports/CNX-20260824-051-align-canonical-check-help.md`](reports/CNX-20260824-051-align-canonical-check-help.md)
 
-[`reviews/CNX-20260824-050-fresh-install-current-v093.md`](reviews/CNX-20260824-050-fresh-install-current-v093.md)
+[`reviews/CNX-20260824-051-align-canonical-check-help.md`](reviews/CNX-20260824-051-align-canonical-check-help.md)
 
-Task 050 is reviewed `ACCEPT_WITH_FOLLOWUP_REQUIRED` as `ACCEPT_INSTALLED_RUNTIME_WITH_HELP_DEFECT`.
+Task 051 is reviewed `ACCEPT` as `ACCEPT_CANONICAL_CHECK_HELP_ALIGNED`.
+
+Implementation commit:
+
+`6d90025f832bb36c477176809a0af2e6c1858c19`
 
 ## Human authorization
 
-The operator authorized immediate Codex execution:
+The operator approved using the update as a real install-over test and then directed continuation after the Task 051 report.
 
-> `ให้ codex ทำเลยก็ได้ครับ แล้วค่อยรายงานงาน`
+Scheduled execution remains disabled. Codex starts only from the operator's manual signal.
 
-Scheduled execution remains disabled. Codex starts from the operator's manual signal.
+## Authorized operation
 
-## Root cause and bounded repair
+Invoke the reviewed default installer exactly once against the coherent current `mode=upgrade` installation:
 
-The check engine correctly accepts canonical component `cogentnexus-openclaw` and rejects generic `cogentnexus`, but base/v0.9.3 CLI help and usage still advertise the invalid generic command.
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "C:\Users\CDQ-P\.openclaw\workspace"`
 
-Task 051 must use TDD to correct only current operator-facing help/usage and add namespace-lint regression coverage.
+Use an exit-code-retaining process wrapper. Do not use clean reinstall, custom flags, migration, manual installed-file edits, or a second installer.
 
-Do not add a generic compatibility alias.
+## Acceptance focus
 
-## Live-machine boundary
+- install Task 051 help files through the supported upgrade path;
+- capture observed installer exit code `0`;
+- preserve Ticket/workflow/session/policy state;
+- preserve AGENTS baseline and one canonical block;
+- maintain one canonical plugin and scheduler;
+- return MANAGED/Ollama/Gateway health;
+- preserve 71 unrelated plugins, four models, Task 049 backup, primary repository, and excluded systems;
+- prove canonical check passes and generic check remains rejected.
 
-The live CogentNexus-OpenClaw v0.9.3 installation is accepted as materialized and healthy under canonical checks.
+## Safety
 
-Task 051 is repository-only. It must not access or mutate the live installation, OpenClaw, Gateway, Ollama, scheduler, controller, plugin registry/config, Task 049 backup, primary repository, or excluded projects/evidence.
-
-After Task 051 is reviewed, updating the installed copy requires a separate explicit human decision.
+On preflight drift, nonzero/unobserved exit, partial state, rollback, preservation failure, or runtime failure: do not retry, manually complete, clean reinstall, or restore. Publish the report and stop.
