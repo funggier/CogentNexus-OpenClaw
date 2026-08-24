@@ -394,7 +394,10 @@ def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: 
         raise RuntimeError(f"OpenClaw active canonical registration is not unique ({len(records)})")
     record = records[0]
     version = record.get("version") or record.get("packageVersion")
-    if record.get("packageName") != PLUGIN_PACKAGE or version != INSTALLED_VERSION:
+    package_name_present = "packageName" in record
+    if version != INSTALLED_VERSION or (
+        package_name_present and record.get("packageName") != PLUGIN_PACKAGE
+    ):
         raise RuntimeError("OpenClaw active canonical registration package/version is unproven")
     root_text = record.get("rootDir")
     if not isinstance(root_text, str) or not root_text.strip():
@@ -407,7 +410,8 @@ def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: 
         raise RuntimeError(f"OpenClaw active canonical registration payload is not exact: {active_root}")
     registration = {
         "id": record.get("id"),
-        "packageName": record.get("packageName"),
+        "packageName": PLUGIN_PACKAGE,
+        "packageNameEvidence": "inventory" if package_name_present else "payload-package-json",
         "version": version,
         "rootDir": _canonical(active_root),
         "source": record.get("source"),

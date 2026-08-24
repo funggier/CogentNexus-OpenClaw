@@ -142,6 +142,33 @@ def test_task054_two_roots_are_ambiguous_but_plan_binds_old_and_active_new(tmp_p
     assert len(plan["retiredProjectTreeSha256"]) == 64
     assert len(plan["replacementProjectTreeSha256"]) == 64
     assert plan["activeRegistration"]["rootDir"] == ownership._canonical(paths["new_plugin"])
+    assert plan["activeRegistration"]["packageName"] == ownership.PLUGIN_PACKAGE
+    assert plan["activeRegistration"]["packageNameEvidence"] == "inventory"
+
+
+def test_plan_accepts_live_openclaw_record_without_optional_package_name_when_payload_proves_it(
+    tmp_path: Path,
+):
+    paths = rollover_layout(tmp_path)
+    record = paths["inventory"]["plugins"][0]
+    record.pop("packageName")
+    record.update({
+        "name": "CogentNexus-OpenClaw Bridge",
+        "origin": "global",
+    })
+
+    plan = build_plan(paths)
+
+    assert plan["activeRegistration"] == {
+        "id": "cogentnexus-openclaw",
+        "packageName": "openclaw-plugin-cogentnexus-openclaw",
+        "packageNameEvidence": "payload-package-json",
+        "version": "0.9.3",
+        "rootDir": ownership._canonical(paths["new_plugin"]),
+        "source": str(paths["new_plugin"] / "dist" / "index.js"),
+        "enabled": False,
+        "status": "disabled",
+    }
 
 
 def test_plan_rejects_foreign_or_shared_wrapper_even_when_it_depends_on_product(tmp_path: Path):
@@ -181,6 +208,7 @@ def test_plan_accepts_only_openclaw_declared_managed_peer_dependencies(tmp_path:
 @pytest.mark.parametrize("field,value", [
     ("id", "foreign"),
     ("packageName", "foreign-package"),
+    ("packageName", None),
     ("version", "0.9.2"),
     ("rootDir", "foreign-root"),
 ])
