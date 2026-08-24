@@ -49,4 +49,3 @@ The report commit is a direct child of the reviewed implementation HEAD and adds
 Accept the repository fix and recovery primitive. Task 055 made zero live actions and intentionally left the Task 054 machine state unchanged.
 
 The successor may generate and publish a recovery plan from the live two-root state. Applying that plan requires a separate durable checkpoint containing the exact plan SHA-256 and an additional operator authorization. No installer, uninstall, reset, broad cleanup, or ambiguity weakening is authorized by this review.
-
