@@ -1,43 +1,46 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 15:02 ICT  
+**Updated:** 2026-08-24 16:18 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator; Task 046 destructive design explicitly approved and reconfirmed `1`  
+**Human authority:** operator; no new authority required for read-only Task 047  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 045 disposition
+## Task 046 disposition
 
-Task `CNX-20260824-045` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result:
+Task `CNX-20260824-046` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result:
 
-`BLOCKED_LEGACY_MIGRATION_NOT_AUTHORIZED`
+`BLOCKED_NATIVE_PLUGIN_INVENTORY_TIMEOUT`
 
-It proved a managed legacy installation and performed zero destructive invocations.
+The branch advanced by exactly one report-only commit. The native plugin inventory timed out after 120 seconds, zero matching processes remained, and every destructive/lifecycle count was zero. Legacy managed state, Gateway, Ollama/models, user data, and unrelated systems remained unchanged.
 
-## Active Task 046
+Task 046 removal/install authority is consumed and must not be reused.
 
-Task `CNX-20260824-046` is ready for the operator's manual Codex signal.
+## Active Task 047
 
-Goal: remove only classifier/proof-bound legacy CogentNexus, then fresh-install the reviewed current CogentNexus-OpenClaw v0.9.3 once.
+Task `CNX-20260824-047` is ready for the operator's manual Codex signal.
 
-## Required sequence
+Goal: localize the exact synchronous boundary that prevents OpenClaw `2026.7.1-2 (0790d9f)` from returning valid JSON for `openclaw plugins list --json`.
 
-1. Re-prove legacy ownership, hashes, plugin inventory, collision-free state, source integrity, and unrelated sentinels.
-2. Create one external backup and verify source/destination counts, bytes, and hashes.
-3. Invoke exact legacy `cnx.cmd disable` once if required and prove PASSTHROUGH/native health.
-4. Uninstall/remove only exact `cogentnexus-rotation`, exact legacy config/load paths, exact `CogentNexus Supervisor`, `cnx.cmd`, `skills\cogentnexus`, `.cogent`, and exact proven plugin residue.
-5. Require classifier result `fresh`.
-6. Invoke current `scripts/install.ps1` once with only the workspace argument.
-7. Exact-verify `cnxclaw.cmd`, new skill/state/ownership/plugin/scheduler, Gateway/Ollama, backup, legacy absence, and unrelated data.
+## Diagnostic sequence
+
+1. Prove coordination/source/duplicate/process fences.
+2. Hash-map the installed compiled OpenClaw package to the exact upstream call path.
+3. Read the persisted registry/index/config/plugin-root metadata with secrets redacted.
+4. Run one bounded `plugins registry --json` probe.
+5. Run one bounded `plugins list --json` probe with lifecycle tracing.
+6. If needed, run one bounded comparison with the process-local persisted-registry bypass.
+7. If still unresolved, time offline synchronous boundaries from one temporary script without importing plugin runtime code.
+8. Verify zero live mutations and publish exactly one Task 047 report.
 
 ## Stop gates
 
-Stop before removal if native plugin inventory still times out, source/ownership/backup/handoff is unproved, or state is mixed/unowned.
+Stop if source/coordination is ambiguous, the diagnostic process cannot be owned exactly, a diagnostic orphan remains, installed source diverges materially, or publication cannot remain report-only.
 
-If removal or fresh installation fails, preserve backup/recovery evidence and stop. No retry, automatic restore, manual broad cleanup, clean reinstall, or install-over migration.
+Return a localized root cause only when a minimal comparison and exact source path support it. Otherwise return bounded insufficient evidence.
 
 ## Exclusions
 
-No OpenClaw user-data reset, Ollama model/provider change, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, primary-repository Git mutation, merge, tag, Release, or archive action.
+No CogentNexus lifecycle, deletion, backup, fresh installer, plugin/config/registry repair, `doctor --fix`, Gateway/Ollama/model change, OpenClaw user-data mutation, Procmon/Task 027/038, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
 
-Report meaningful progress approximately every 3 minutes and at every safety transition.
+Report meaningful progress approximately every 3 minutes and at every diagnostic/safety transition.
