@@ -1,46 +1,60 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_CODEX`  
-**Updated:** 2026-08-24 16:18 ICT  
+**Updated:** 2026-08-24 18:02 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator; no new authority required for read-only Task 047  
+**Human authority:** operator approved bounded command-surface correction with response `1`  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
-## Task 046 disposition
+## Task 047 disposition
 
-Task `CNX-20260824-046` is reviewed `ACCEPT_SAFE_PREMUTATION_STOP` with result:
+Task `CNX-20260824-047` is reviewed `ACCEPT_SAFE_SPECIFICATION_STOP` with result:
 
-`BLOCKED_NATIVE_PLUGIN_INVENTORY_TIMEOUT`
+`BLOCKED_DUPLICATE_OR_SOURCE_FENCE`
 
-The branch advanced by exactly one report-only commit. The native plugin inventory timed out after 120 seconds, zero matching processes remained, and every destructive/lifecycle count was zero. Legacy managed state, Gateway, Ollama/models, user data, and unrelated systems remained unchanged.
+The report was published through an exact one-file commit. Codex safely stopped after selecting `docs/operations/STATUS.md` instead of the authoritative coordination status path. No plugin probe, repair, lifecycle action, removal, or installation occurred.
 
-Task 046 removal/install authority is consumed and must not be reused.
+## Active Task 048
 
-## Active Task 047
+Task `CNX-20260824-048` is ready for the operator's manual Codex signal.
 
-Task `CNX-20260824-047` is ready for the operator's manual Codex signal.
+Authoritative gates are exactly:
 
-Goal: localize the exact synchronous boundary that prevents OpenClaw `2026.7.1-2 (0790d9f)` from returning valid JSON for `openclaw plugins list --json`.
+- `docs/operations/coordination/ACTIVE.md`
+- `docs/operations/coordination/STATUS.md`
 
-## Diagnostic sequence
+The project narrative `docs/operations/STATUS.md` must not be used as a Task 048 gate.
 
-1. Prove coordination/source/duplicate/process fences.
-2. Hash-map the installed compiled OpenClaw package to the exact upstream call path.
-3. Read the persisted registry/index/config/plugin-root metadata with secrets redacted.
-4. Run one bounded `plugins registry --json` probe.
-5. Run one bounded `plugins list --json` probe with lifecycle tracing.
-6. If needed, run one bounded comparison with the process-local persisted-registry bypass.
-7. If still unresolved, time offline synchronous boundaries from one temporary script without importing plugin runtime code.
-8. Verify zero live mutations and publish exactly one Task 047 report.
+## Diagnostic and correction sequence
+
+1. Prove exact coordination/source/duplicate/process fences.
+2. Map installed OpenClaw `2026.7.1-2 (0790d9f)` to the upstream command call path.
+3. Inspect redacted registry/index/config/root metadata.
+4. Run the three distinct bounded read-only probes.
+5. If needed, time safe offline boundaries and exact implicated paths.
+6. Localize the first failing boundary.
+7. If and only if it is command selection/invocation/arguments/parsing/wrapper behavior, apply the smallest permitted correction and run one focused test plus one bounded live read-only proof.
+8. Verify unchanged live state and publish a final report-only commit.
+
+## Permitted correction
+
+A repository-owned command wrapper/parser and its focused test may be corrected in one separate minimal commit. If no repository file owns the misuse, use and document the proven official read-only equivalent without editing live software.
 
 ## Stop gates
 
-Stop if source/coordination is ambiguous, the diagnostic process cannot be owned exactly, a diagnostic orphan remains, installed source diverges materially, or publication cannot remain report-only.
+Stop and report before any remedy requiring:
 
-Return a localized root cause only when a minimal comparison and exact source path support it. Otherwise return bounded insufficient evidence.
+- `plugins registry --refresh` or `doctor --fix`;
+- live OpenClaw config/registry/database/plugin/global-package write;
+- OpenClaw upgrade/downgrade/reinstall;
+- plugin mutation;
+- CogentNexus lifecycle or behavior change beyond a proved repository-owned invocation surface;
+- legacy removal or fresh installation.
+
+Task 046 destructive authority remains consumed. Any later removal/fresh-install attempt needs a new task and new explicit authorization.
 
 ## Exclusions
 
-No CogentNexus lifecycle, deletion, backup, fresh installer, plugin/config/registry repair, `doctor --fix`, Gateway/Ollama/model change, OpenClaw user-data mutation, Procmon/Task 027/038, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
+No Gateway/Ollama/model change, user-data mutation, scheduler change, Procmon/Task 027/038, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
 
-Report meaningful progress approximately every 3 minutes and at every diagnostic/safety transition.
+Report meaningful progress approximately every 3 minutes and at every diagnostic/correction/safety transition.
