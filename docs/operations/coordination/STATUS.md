@@ -1,52 +1,64 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_HUMAN_INSTALL_AUTHORIZATION`  
-**Updated:** 2026-08-24 18:55 ICT  
+**State:** `READY_FOR_CODEX`  
+**Updated:** 2026-08-24 19:01 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator accepted the restored pre-host `AGENTS.md` as normal  
+**Human authority:** operator authorized Task 050 with response `1`  
 **Execution trigger:** manual only; scheduled execution remains disabled by operator
 
 ## Task 049 disposition
 
-Task `CNX-20260824-049` is reviewed `ACCEPT` as:
+Task `CNX-20260824-049` is reviewed `ACCEPT_FRESH_WITH_EXPECTED_PREHOST_AGENTS_RESTORE`.
 
-`ACCEPT_FRESH_WITH_EXPECTED_PREHOST_AGENTS_RESTORE`
+Legacy CogentNexus was externally backed up and removed. The accepted machine boundary is exact `mode=fresh`; the 7,196-byte pre-host `AGENTS.md` baseline is correct and no current product is installed.
 
-The exact operational goal completed: a verified external backup was created, proven legacy CogentNexus was removed, the classifier reached exact `mode=fresh`, and no current CogentNexus-OpenClaw installer ran.
+## Active Task 050
 
-The report-only publication fence passed.
+Task `CNX-20260824-050` is ready for the operator's manual Codex signal:
 
-## AGENTS.md adjudication
+[`tasks/CNX-20260824-050-fresh-install-current-v093.md`](tasks/CNX-20260824-050-fresh-install-current-v093.md)
 
-The final workspace `AGENTS.md` is accepted as the correct fresh baseline:
+Goal: install reviewed CogentNexus-OpenClaw v0.9.3 exactly once from a new isolated clone, then prove exact ownership, canonical namespace, MANAGED/Ollama integration, and preservation.
 
-- 7,196 bytes;
-- SHA-256 `C9A664B73200AE5D6B0DA0908DE3256CDB4DDA8BA6FE99F5E6C5115C3983604C`;
-- exact match to the legacy pre-host backup;
-- no legacy CogentNexus managed-block markers.
+## Important pre-install review findings
 
-Legacy source and baseline documentation prove that `cnx disable` intentionally removes the active managed workspace policy block. The Task 049 invariant requiring the pre-task managed hash to remain unchanged was therefore over-strict. No AGENTS restoration or repair is required.
+- Required implementation commit: `4c825f8ec1ed6b43a419ad52e0bb85cee28007c1`.
+- There is no non-coordination code drift after that implementation commit.
+- Fresh classifier and native plugin/task residue checks occur before installer mutation.
+- Plugin packaging/installation is non-linked and exact-ID.
+- Ownership manifest creation and exact verification occur before MANAGED authority.
+- Transactional enable rolls back policy/plugin/scheduler/host state toward PASSTHROUGH/native on activation failure.
+- Failure before transactional enable may leave a partial current installation; therefore Task 050 forbids a retry, manual completion, or automatic legacy restore and requires exact partial-state reporting.
 
-## Current machine boundary
+## Exact authorized invocation
 
-Accepted state:
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "C:\Users\CDQ-P\.openclaw\workspace"`
 
-- legacy CogentNexus: absent;
-- current CogentNexus-OpenClaw: absent;
-- classifier: `mode=fresh`;
-- OpenClaw/Gateway: preserved and healthy in the Task 049 proof;
-- Ollama and four-model inventory: preserved;
-- unrelated plugins/data/excluded projects: preserved;
-- external verified legacy-removal backup: retained.
+No `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy`, `-LinkPlugin`, custom provider, clean reinstall, migration, or Release installer.
 
-## Installation gate
+## Expected success state
 
-There is no active executable task.
+- classifier: `mode=upgrade`;
+- launcher: `cnxclaw.cmd`;
+- skill: `skills\cogentnexus-openclaw`;
+- state: `.cogentnexus-openclaw`;
+- ownership manifest exact-verified for v0.9.3;
+- plugin: exactly one `cogentnexus-openclaw` v0.9.3 payload;
+- scheduler: `CogentNexus-OpenClaw-Supervisor`;
+- controller: MANAGED;
+- provider: Ollama only;
+- Gateway/Ollama healthy;
+- no legacy aliases/artifacts;
+- unrelated data and Task 049 backup preserved.
 
-A current CogentNexus-OpenClaw installation requires a new successor task and new explicit operator authorization. The operator must then manually signal Codex because scheduled execution remains disabled.
+## Stop gates
 
-Until authorized, do not run any current installer or create `cnxclaw.cmd`, `skills\cogentnexus-openclaw`, `.cogentnexus-openclaw`, or the current plugin/controller/scheduler.
+Stop and report on source/duplicate/concurrency drift, fresh-baseline drift, native inventory failure, nonzero/unresolved installer outcome, partial namespace, managed-enable rollback, ownership/runtime verification failure, unexplained unrelated drift, or unsafe publication.
+
+Do not retry the installer. An outer-wrapper timeout does not authorize a duplicate invocation; observe the original child/durable state.
 
 ## Exclusions
 
-No repeat of Task 049, legacy restore, OpenClaw upgrade/downgrade/reinstall, manual SQLite edit, Ollama/model change, broad cleanup, wildcard/parent deletion, force kill, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, merge, tag, Release, or archive action.
+No Task 049 repeat, legacy restore, clean reinstall, second installer, manual partial completion, reset/uninstall, destructive recovery tests, force-kill, broad cleanup, OpenClaw upgrade/reinstall, manual SQLite/config edit, Ollama/model mutation, primary-repository Git mutation, HermesAgent, Ecosystem, staged-capability-loop, Procmon/Task 027/038, merge, tag, GitHub Release, or archive publication.
+
+Report meaningful progress approximately every 3 minutes and at every source/fresh/install/plugin/ownership/enable/runtime/publication transition.
