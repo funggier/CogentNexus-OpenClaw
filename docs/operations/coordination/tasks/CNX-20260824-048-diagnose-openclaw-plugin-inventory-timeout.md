@@ -12,7 +12,7 @@ Resume the read-only diagnosis that Task 047 correctly did not start. Localize w
 
 `openclaw plugins list --json`
 
-No repair, removal, lifecycle action, or installation is authorized.
+A narrowly bounded command-surface correction is conditionally authorized after root-cause proof. No live OpenClaw repair, CogentNexus lifecycle action, removal, or installation is authorized.
 
 ## Predecessors
 
@@ -169,6 +169,35 @@ Distinguish persisted registry/database read, stale fingerprint/derived discover
 
 Do not attribute the problem to legacy CogentNexus merely because it is installed.
 
+## Conditional command-surface correction
+
+After the root-cause standard is satisfied, apply a correction in this task only when the evidence proves the failure is caused by command selection, invocation, arguments, output parsing, timeout-wrapper behavior, or a CogentNexus repository wrapper/harness that calls the native command incorrectly.
+
+Allowed correction:
+
+- replace the incorrect command/arguments with the exact official read-only equivalent supported by installed OpenClaw `2026.7.1-2 (0790d9f)`;
+- correct a repository-owned wrapper/harness/parser that invokes or consumes that command;
+- add or update the smallest focused repository test/fixture for the corrected command contract;
+- if no repository file owns the misuse, use the proven official read-only command as the corrected Task 048 verification method and document the old/new command without editing live software;
+- run the corrected read-only command exactly once with the same bounded ownership/orphan controls;
+- commit any repository code/test correction separately before the report commit, changing only the minimum proved files.
+
+Before changing repository code, demonstrate the failing command contract. After the correction, run the focused test and the one bounded live read-only proof. Do not bundle refactoring or naming changes.
+
+This authority does **not** include:
+
+- `openclaw plugins registry --refresh`;
+- `openclaw doctor --fix`;
+- edits to live OpenClaw config, installed-plugin registry, SQLite/state database, plugin files, or global npm package;
+- OpenClaw upgrade/downgrade/reinstall;
+- plugin enable/disable/install/uninstall/update;
+- registry/database repair, ACL/ownership/antivirus changes;
+- any change to CogentNexus runtime behavior unless evidence proves a repository-owned invocation bug and the change is limited to that invocation surface.
+
+If the smallest remedy requires any excluded action, do not attempt it. Publish the localized diagnosis and the exact proposed live mutation for a later authorization.
+
+A successful command correction does not authorize legacy removal or fresh installation. Those require a new task and new explicit operator authorization.
+
 ## Required poststate
 
 Before publication prove:
@@ -198,10 +227,12 @@ Include:
 - confirmed root cause or bounded uncertainty;
 - before/after hashes and runtime poststate;
 - one narrow next-step recommendation;
-- explicit zero repair/lifecycle/removal/install statement.
+- if command correction occurred: failing contract, exact correction, changed repository paths/commit, focused test result, and single corrected live proof;
+- explicit statement of zero live OpenClaw repair, CogentNexus lifecycle, removal, or installation.
 
 Return exactly one:
 
+- `PASS_COMMAND_SURFACE_CORRECTED`
 - `PASS_ROOT_CAUSE_LOCALIZED`
 - `BLOCKED_DUPLICATE_OR_SOURCE_FENCE`
 - `BLOCKED_DIAGNOSTIC_PROCESS_OWNERSHIP`
@@ -212,7 +243,7 @@ Return exactly one:
 
 ## Publication fence
 
-The report commit must change exactly the one Task 048 report path. Do not commit temporary evidence, copied config/database data, scripts, screenshots, or unrelated files.
+The final report commit must change exactly the one Task 048 report path. If a repository-owned command wrapper/parser requires correction, publish that minimal source-and-test commit first, then publish the report-only commit. Do not commit temporary evidence, copied config/database data, diagnostic scripts, screenshots, or unrelated files.
 
 ## Progress communication
 
@@ -220,4 +251,4 @@ Report meaningful progress approximately every 3 minutes and immediately after s
 
 ## Prohibited
 
-No CogentNexus disable/stop/start/reset/uninstall/install; no plugin enable/disable/install/uninstall/update/registry refresh; no `doctor --fix`; no OpenClaw config/state/database write; no scheduler change; no Gateway/Ollama/model lifecycle; no Procmon/Task 027/038; no dump; no ACL/ownership/antivirus change; no primary-repository checkout/reset/clean/worktree action; no HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
+No CogentNexus disable/stop/start/reset/uninstall/install; no plugin enable/disable/install/uninstall/update/registry refresh; no `doctor --fix`; no OpenClaw config/state/database/global-package write; no scheduler change; no Gateway/Ollama/model lifecycle; no Procmon/Task 027/038; no dump; no ACL/ownership/antivirus change; no primary-repository checkout/reset/clean/worktree action; no HermesAgent, Ecosystem, staged-capability-loop, merge, tag, Release, or archive action.
