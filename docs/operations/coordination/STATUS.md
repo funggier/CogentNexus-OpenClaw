@@ -1,96 +1,88 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-25 01:27 ICT
+**Updated:** 2026-08-25 03:15 ICT
 **Transport:** GitHub repository history
-**Human authority:** exact Task 059 plan SHA-256 explicitly approved for Task 060 Phase B rollover apply
+**Human authority:** Task 060 accepted; Task 061 bounded MANAGED re-entry authorized
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Active Task 060
+## Task 060 accepted
 
-[`tasks/CNX-20260825-060-apply-approved-plugin-generation-rollover.md`](tasks/CNX-20260825-060-apply-approved-plugin-generation-rollover.md)
-
-Status: `READY_FOR_HERMES`
-
-Current authorization: `PHASE_B_APPLY_AUTHORIZED`
-
-Executor: Hermes after the operator's manual continuation signal
-
-## Explicit operator approval
-
-At 2026-08-25 01:27 ICT the operator explicitly approved exactly:
-
-`f81c60185b3e5ff5f7fd9ffdecda0760c53a5ce8d5aef1e7e2c84e8fd4fbf523`
-
-for Phase B.
-
-This is the accepted Task 059 plan SHA-256 and the only SHA eligible for Task 060 apply.
-
-## Accepted Task 059 checkpoint
-
-Task 059 report commit:
-
-`d832d5d9a0566f122817c32401d847739ba8ebb1`
-
-Review decision:
-
-`ACCEPT_ROLLOVER_PLAN_INPUT_BINDING_REPROVED`
-
-Review commit:
-
-`756a1f96164d95e82d694fd062878092f2ac74fe`
-
-Accepted local plan path:
-
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx059-rollover-plan-20260824T181054Z\task059-rollover-plan.json`
-
-## Task 060 apply contract
-
-Task 060 must freshly verify the retained plan hash and all live preservation gates, capture one fresh apply-time OpenClaw inventory, require its normalized inventory and active-registration hashes to match the accepted plan, prove the accepted exact root-process wrapper, and then invoke `rollover-apply` exactly once with:
-
-- the exact retained Task 059 plan path;
-- exact approved SHA-256 `f81c60185b3e5ff5f7fd9ffdecda0760c53a5ce8d5aef1e7e2c84e8fd4fbf523`;
-- the fresh Task 060 pre-apply inventory file.
-
-The reviewed primitive revalidates plan hash, manifest-before hash, fresh normalized inventory, exact active registration, exact retired/replacement roots, fingerprints, wrapper/tree proofs, backup boundary, PASSTHROUGH mode, and same-volume atomic rename before mutation.
-
-The only permitted live effects are the reviewed primitive's exact backup/atomic retirement of the manifest-owned prior npm project and atomic ownership-manifest update to the active replacement generation. The primitive has built-in rollback on final verification failure. Task 060 forbids manual repair and forbids a second apply attempt.
-
-## Required successful state
-
-Success token:
+Task `CNX-20260825-060` result:
 
 `PASS_PLUGIN_GENERATION_ROLLOVER_APPLIED_PASSTHROUGH`
 
-A successful Task 060 must prove:
+Report commit:
 
-- prior npm project retired to the exact accepted backup path;
-- backup tree equals the reviewed retired tree hash;
-- replacement project remains exact;
-- ownership binds the replacement payload;
-- exactly one canonical v0.9.3 payload resolves;
-- active OpenClaw registration remains the replacement and disabled;
-- unrelated plugin state is preserved;
-- controller remains PASSTHROUGH;
+`0ae317d51a0efc13ebcfaabab6cb6b9595b2d2c5`
+
+Review disposition:
+
+`ACCEPT_PLUGIN_GENERATION_ROLLOVER_APPLIED_PASSTHROUGH`
+
+Review commit:
+
+`633cefcfe06c83aae8aede17f3bf6b36ed4d3eb7`
+
+Accepted live state:
+
+- exactly one canonical v0.9.3 plugin payload remains under OpenClaw state;
+- ownership binds the active replacement generation;
+- new ownership-manifest SHA-256 is `0667004DC9D6483450A3C99DDA6F34BB7F384F0261F43813763019E2C3BA0341`;
+- retired prior generation is retained at the exact reviewed external rollover backup with tree SHA-256 `05981336d143a83b20d81803a29e66a849e845fe49064b8fd5c97cdecd3f94ee`;
+- replacement project tree remains `3621dbb46b6e6fadf5b0c0ecade860f1206640949804a26129612005202d1c7d`;
+- controller remains PASSTHROUGH generation 7;
 - startup remains disabled;
-- Gateway/Ollama/SQLite and bounded preservation state remain healthy.
+- canonical replacement plugin registration remains disabled;
+- Gateway/Ollama/SQLite preservation checks passed.
+
+The Task 060 report contains a non-authoritative one-character typo when restating the already-rejected Task 058 SHA. The Task 060 review records the canonical rejected SHA and confirms the actual accepted/apply SHA was correct throughout the live operation. No live rework is required.
+
+## Active Task 061
+
+[`tasks/CNX-20260825-061-return-managed-lifecycle.md`](tasks/CNX-20260825-061-return-managed-lifecycle.md)
+
+Status: `READY_FOR_HERMES`
+
+Current authorization: `MANAGED_REENTRY_AUTHORIZED`
+
+Executor: Hermes after the operator's manual continuation signal
+
+## Task 061 contract
+
+Task 061 first verifies installed Host/runtime/startup code and templates against a fresh isolated clone, then freshly re-proves the accepted Task 060 poststate.
+
+If and only if all preconditions hold, it invokes exactly once:
+
+`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable`
+
+The supported Host `enable` implementation owns the entire transition. Its internal effects may transition the controller to MANAGED, apply the registered managed policy, enable/configure the canonical plugin, enable the Windows startup supervisor adapter, start Gateway/provider lifecycle, reconcile/bootstrap the default OpenClaw session, reconcile bounded interrupted work, and run one safe supervisor tick.
+
+No individual internal effect may be reproduced manually and no retry is authorized if enable fails.
+
+## Required successful state
+
+Result:
+
+`PASS_MANAGED_REENTRY_VERIFIED`
+
+Success requires:
+
+- controller `managed`, generation `8`, desired Gateway/provider `running`;
+- Windows `CogentNexus-OpenClaw-Supervisor` startup adapter installed/enabled/hidden with exact installed action binding;
+- exactly one canonical v0.9.3 registration at the replacement payload, `enabled=true`, `status=loaded`;
+- exact bounded managed plugin configuration;
+- exactly one managed policy block in `AGENTS.md`, equal to the registered policy, with stripped baseline SHA-256 `C9A664B73200AE5D6B0DA0908DE3256CDB4DDA8BA6FE99F5E6C5115C3983604C`;
+- ownership manifest and replacement/backup trees unchanged from accepted Task 060 state;
+- Gateway/Ollama healthy and CNX SQLite/Ticket continuity bounded;
+- matching Task 061 report-only publication.
 
 ## Next gate
 
-Hermes must publish only the matching Task 060 report and stop.
-
-Even after successful Task 060 apply, no controller MANAGED transition, startup/supervisor enablement, install-over acceptance, merge, tag, or release is authorized until ChatGPT reviews the Task 060 report and publishes a separate successor task.
-
-## Task 058 disposition
-
-Task 058 remains `REWORK_INVENTORY_CAPTURE_BINDING_AMBIGUOUS`. Its rejected plan SHA-256
-
-`360393b0ac8a9ffee0ad603e67efb23b48fe06a7f5e9719d0bc18d03ace76c2c`
-
-is permanently ineligible.
+Hermes must publish only the matching Task 061 report and stop. ChatGPT must review that report before any broader install-over acceptance, end-to-end message smoke, merge, tag, or release work.
 
 ## Hard fence
 
-No plan regeneration, no Task 058 reuse, no second apply, no manual generation move/delete/copy, no manual ownership rewrite, no plugin install/uninstall/enable/disable, no installer/reset/uninstall/lifecycle mutation, no controller MANAGED transition, no startup/supervisor/scheduler mutation, no Gateway/Ollama/model/process mutation, no primary Git checkout/reset/clean/source edit, no Procmon/Task 027/038 action, no broad cleanup, no mutation of the separate HermesAgent project/system, no Ecosystem/staged-capability-loop work, and no merge/tag/release/archive publication.
+No installer, reset, uninstall, rollover plan/apply, manual generation move/delete/copy, retained rollover-backup mutation, manual ownership edit, separate plugin enable/disable/config mutation, separate startup/lifecycle mutation, process termination/force-kill, model/provider-selection change, primary Git mutation, Procmon Task 027/038 action, broad cleanup, mutation of the separate HermesAgent project/system, Ecosystem/staged-capability-loop work, merge, tag, release, or archive publication.
 
-Report meaningful progress approximately every 3 minutes and immediately after the approved-plan hash gate, live-state preflight, fresh apply-time inventory binding, root-process self-test, before/after the one authorized apply, post-apply verification, publication, or blocker.
+Report meaningful progress approximately every 3 minutes and immediately after source-identity preflight, accepted-state preflight, root-process self-test, before/after the one supported enable, post-enable verification, publication, or blocker.
