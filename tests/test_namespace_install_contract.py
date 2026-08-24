@@ -90,6 +90,12 @@ def test_release_package_names_are_variant_scoped():
     assert '--title "CogentNexus-OpenClaw $tag"' in release
 
 
+def test_recovery_reality_smoke_requires_the_variant_scoped_cli_facade():
+    workflow = read(".github/workflows/ps51-v093-recovery-reality-smoke.yml")
+    assert workflow.count("cnxclaw_v093\\.py") == 2
+    assert "cnx_v093\\.py" not in workflow
+
+
 def test_destructive_current_paths_are_manifest_gated():
     lifecycle = read("skills/cogentnexus-openclaw/scripts/lifecycle_v092.py")
     reinstall = read("scripts/clean-reinstall.ps1")
