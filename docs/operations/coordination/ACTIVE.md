@@ -1,12 +1,12 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_REWORK_TDD_WINDOWS_INTEGRATION`
-Current authorization: `RUNTIME_AUTHORITY_REWORK_AUTHORIZED`
-Task ID: `CNX-20260825-064`
-Updated: 2026-08-25 18:58 ICT
+Execution mode: `SOURCE_REWORK_TDD_INSTALLER_INTEGRATION`
+Current authorization: `INSTALLER_RUNTIME_AUTHORITY_CLOSURE_AUTHORIZED`
+Task ID: `CNX-20260825-065`
+Updated: 2026-08-25 19:28 ICT
 Owner: ChatGPT
-Executor: Hermes after the operator's manual continuation signal
+Executor: Hermes after the operator's continuation signal
 
 ## Authoritative coordination files
 
@@ -19,17 +19,21 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md`](tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md)
+[`tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md`](tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md)
 
 ## Predecessor review
 
-Task 063 reported:
+Task 064 reported:
 
-`PASS_OWNED_RUNTIME_AND_FLASH_FIX_IMPLEMENTED`
+`PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`
 
-Implementation/report commit:
+Implementation HEAD:
 
-`5962383ac8e16b1336e0af78f659e2f5fa29dd97`
+`6e4245112a38dab3e6614e6f91d3e37ac85f2afe`
+
+Report HEAD:
+
+`f3a4731b87f8a530dd71eed3826a93f963a9de34`
 
 Independent review decision:
 
@@ -37,36 +41,35 @@ Independent review decision:
 
 Disposition:
 
-`REWORK_WINDOWS_RUNTIME_AUTHORITY_INTEGRATION_DEFECTS`
+`REWORK_INSTALLER_RUNTIME_AUTHORITY_EXECUTION_GAPS`
 
 Review commit:
 
-`ba4e03ca7d5719075daba23a9dad3a2f89a76bc7`
+`5fe706d89f41083fda37d2032c17bc0ba6e1d353`
 
-The accepted Task 063 diagnosis remains `FLASH_CHILD_PROCESS`, but live reinstall is blocked because the source implementation contains Windows runtime-authority defects: invalid `pythonw.exe` Path construction, duplicated application-data-root semantics, and a startup fallback that can re-persist an executor venv.
+Task 064's B1-B3 runtime/startup corrections and the accepted Task 063 `FLASH_CHILD_PROCESS` diagnosis remain useful, but live reinstall is still blocked by production installer integration defects.
 
-## Authorized Task 064 operation
+## Current defects
 
-Task 064 is source/tests only. It must use strict TDD and executable Windows/temp-boundary integration tests to correct the runtime authority before any live installation change.
+Task 065 must close only these remaining runtime-authority gaps:
 
-Required outcomes include:
+1. the committed `install.ps1` runtime-authority path contains a literal newline inside `scripts\runtime_authority.py`, which breaks fresh provisioning;
+2. installer runtime validation currently runs only when `python.exe` is absent, so a stale runtime with a missing/corrupt manifest or broken background interpreter can bypass repair;
+3. post-provision MANAGED enable/status and other stdlib-capable CogentNexus operations still use ambient bare `python` rather than the established owned runtime;
+4. prior tests did not exercise the failing production installer-facing boundary.
 
-- exact `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python` ownership with no duplicated product directory;
-- valid owned `python.exe` and `pythonw.exe` provisioning from a verified non-venv base interpreter;
-- Windows startup registration fails closed when owned runtime is missing/corrupt and never falls back to Hermes/Codex/agent `sys.executable`;
-- generated launcher and task-definition contracts execute/reference the exact owned interpreters;
-- normal non-mutating CogentNexus CLI/control import/start path runs successfully under the owned runtime;
-- developer test dependencies are installed only in an isolated test venv and full canonical tests are rerun;
-- implementation commit(s) and a separate report-only publication commit.
+## Authorized Task 065 operation
+
+Task 065 is source/tests only. It must use strict TDD, correct the production installer path, make runtime ensure/validation unconditional before durable definitions, validate both foreground/background interpreters, transition safe post-provision product calls to `$ownedPython`, and add installer-facing regression coverage that fails against the current Task 064 source.
 
 ## Live hard fence
 
-No current CogentNexus lifecycle mutation, install/install-over/uninstall/reset, Scheduled Task change/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite write, process termination, primary-workspace Git mutation, merge, tag, or release.
+No current install/install-over/uninstall/reset, lifecycle mutation, Scheduled Task change/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite write, process termination, primary-workspace Git mutation, merge, tag, or release.
 
-All provisioning tests must use temporary application-data roots outside the live product root.
+All tests must use isolated/temp boundaries outside the live product root.
 
 ## Pre-authorized successor
 
-The operator explicitly requested a definitive repair followed by clean removal and fresh installation.
+The operator already authorized definitive repair followed by clean removal and fresh installation.
 
-If Task 064 is independently reviewed and accepted as `PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`, a separate successor may clean-uninstall the current installation and fresh-install the reviewed corrected build without asking for additional confirmation, while preserving unrelated OpenClaw/Ollama/user state and verifying no Hermes dependency or recurring console flash across natural supervisor ticks.
+If Task 065 is independently reviewed and accepted as `PASS_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`, proceed without another confirmation to a separate bounded clean uninstall/fresh reinstall task, then verify exact CogentNexus-owned launcher/supervisor runtime, no Hermes/agent path, multiple natural supervisor ticks with no recurring console flash, and healthy MANAGED/OpenClaw/Ollama/plugin/ownership/SQLite state.
