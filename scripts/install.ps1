@@ -280,7 +280,9 @@ $ownedPython = (Join-Path $applicationDataRoot "runtime\python\Scripts\python.ex
 if (-not (Test-Path $ownedPython)) {
     # Provision the CogentNexus-owned runtime from a verified base interpreter
     # before any durable launcher/task definition is written. Fail closed.
-    & python (Join-Path $targetSkill "scripts\runtime_authority.py") ensure-runtime --app-data $applicationDataRoot | Out-Null
+    # --application-data-root receives the EXACT product root; no duplication.
+    & python (Join-Path $targetSkill "scripts
+untime_authority.py") ensure-runtime --application-data-root "$applicationDataRoot" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }
 }
 if (-not (Test-Path $ownedPython)) { throw "Owned runtime interpreter not found at $ownedPython after provisioning." }

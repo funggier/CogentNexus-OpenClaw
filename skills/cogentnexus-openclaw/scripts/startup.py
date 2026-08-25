@@ -25,25 +25,16 @@ def save_policy(root,value):
     q.write_text(json.dumps({"schemaVersion":1,"policy":value,"updatedAt":datetime.now(timezone.utc).isoformat()},indent=2),encoding="utf-8")
     os.replace(q,p)
 def python_background():
-    """Return the CogentNexus-owned background interpreter.
+    """Return ONLY the validated CogentNexus-owned background interpreter.
 
-    Durable execution authority must never be registration-time
-    ``sys.executable`` (which can be an executor venv such as a coding
-    agent's). Delegate to the owned runtime authority; fall back to the
-    transient bootstrap sibling only when the owned runtime is not yet
-    provisioned (first install), so the installer can enable startup only
-    after provisioning succeeds.
+    Fail-closed contract (Task CNX-20260825-064 B3): if the owned runtime is
+    missing or corrupt, raise — never fall back to registration-time
+    ``sys.executable``/sibling pythonw, which can persist an executor venv as
+    durable startup authority. Transient bootstrap Python is allowed only
+    inside the installer boundary before durable definitions are written.
     """
-    try:
-        import runtime_authority
-        owned = runtime_authority.require_background_interpreter()
-        if owned.exists():
-            return owned
-    except Exception:
-        pass
-    p=Path(sys.executable)
-    q=p.with_name("pythonw.exe")
-    return q if os.name=="nt" and q.exists() else p
+    import runtime_authority
+    return runtime_authority.require_background_interpreter(runtime_authority.app_data_root())
 def host_control_path(): return HERE.with_name("host_control.py")
 def ps(script):
     exe=shutil.which("powershell.exe") or shutil.which("powershell")

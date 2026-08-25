@@ -5,16 +5,17 @@ Establishes one stable, product-owned Python runtime under the CogentNexus
 application-data boundary so durable launcher/startup execution never depends
 on an ambient PATH Python or a registration-time executor venv.
 
-Design notes (Task CNX-20260825-063):
+Contract (Task CNX-20260825-064):
+- ``app_data_root(env)`` derives the exact product root from the LOCALAPPDATA
+  base: ``<LOCALAPPDATA>\\CogentNexus-OpenClaw``.
+- ``runtime_root_from_application_data(root)`` accepts an ALREADY-EXACT product
+  root and appends only ``runtime\\python``. The two forms must never be mixed;
+  no API/CLI argument ambiguously means both.
 - The system/base Python remains an installation prerequisite; this module
-  deliberately provisions a product-owned virtual environment from a verified
-  non-venv base interpreter and treats that environment as the product's
-  runtime dependency. It is NOT claimed to be fully standalone.
-- Provisioning fails closed: if no valid base interpreter can be verified,
-  callers must surface an actionable error instead of falling back to an
-  arbitrary ``sys.executable``.
-- A small non-secret manifest records interpreter provenance/version and the
-  exact owned runtime paths so install-over can validate or recreate it.
+  provisions a product-owned virtual environment from a verified non-venv base
+  interpreter. It is deliberately NOT claimed to be fully standalone.
+- Provisioning fails closed; callers never fall back to arbitrary
+  ``sys.executable`` for durable execution authority.
 """
 from __future__ import annotations
 
@@ -22,12 +23,12 @@ import json
 import os
 import subprocess
 import sys
-import sysconfig
 from pathlib import Path
 from typing import Any
 
 MANIFEST_NAME = "runtime-manifest.json"
 RUNTIME_DIR_NAME = "python"
+PRODUCT_DIR_NAME = "CogentNexus-OpenClaw"
 SCHEMA_VERSION = 1
 
 
@@ -40,104 +41,101 @@ def creation_flags() -> int:
 
 
 def app_data_root(env: dict[str, str] | None = None) -> Path:
+    """Derive the exact CogentNexus product root from a LOCALAPPDATA base."""
     values = env if env is not None else dict(os.environ)
     local = values.get("LOCALAPPDATA")
     if not local:
         raise RuntimeProvisioningError("LOCALAPPDATA is not set; cannot resolve CogentNexus application-data boundary")
-    return Path(local) / "CogentNexus-OpenClaw"
+    return Path(local) / PRODUCT_DIR_NAME
+
+
+def runtime_root_from_application_data(application_data_root: Path | str) -> Path:
+    """Return the runtime root under an EXACT product application-data root."""
+    return Path(application_data_root) / "runtime" / RUNTIME_DIR_NAME
 
 
 def runtime_root(env: dict[str, str] | None = None) -> Path:
-    return app_data_root(env) / "runtime" / RUNTIME_DIR_NAME
-
-
-def _venv_site_packages(runtime: Path, base: Path) -> Path:
-    scripts = "Scripts" if os.name == "nt" else "bin"
-    suffix = ""
-    if os.name != "nt":
-        version = f"{sys.version_info.major}.{sys.version_info.minor}"
-        suffix = f"-cpython-{version}"
-    return runtime / "lib" if os.name == "nt" else runtime / "lib"
+    return runtime_root_from_application_data(app_data_root(env))
 
 
 def _interpreter_paths(runtime: Path) -> tuple[Path, Path]:
     scripts = runtime / ("Scripts" if os.name == "nt" else "bin")
-    foreground = scripts / ("python.exe" if os.name == "nt" else "python3")
-    background = scripts / ("pythonw.exe",) if os.name == "nt" else (scripts / "python3",)
-    return foreground, background
+    if os.name == "nt":
+        return scripts / "python.exe", scripts / "pythonw.exe"
+    return scripts / "python3", scripts / "python3"
 
 
-def _probe(interpreter: Path, timeout: int = 30) -> str:
-    if not interpreter.exists():
-        raise RuntimeProvisioningError(f"owned interpreter missing: {interpreter}")
+def _probe_foreground(interpreter: Path, timeout: int = 60) -> str:
+    if not interpreter.is_file():
+        raise RuntimeProvisioningError(f"owned foreground interpreter missing: {interpreter}")
     result = subprocess.run(
-        [str(interpreter), "-c", "import json,sys;print(json.dumps({'version':sys.version,'base':getattr(sys,'base_prefix','')}))"],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        creationflags=creation_flags(),
+        [str(interpreter), "-c", "import json,sys;print(json.dumps({'version':sys.version}))"],
+        capture_output=True, text=True, timeout=timeout, creationflags=creation_flags(),
     )
     if result.returncode != 0:
-        raise RuntimeProvisioningError(f"owned interpreter probe failed ({result.returncode}): {interpreter}")
+        raise RuntimeProvisioningError(f"owned foreground probe failed ({result.returncode}): {interpreter}")
     return result.stdout.strip()
 
 
-def resolve_base_interpreter(candidate: Path | None = None) -> Path:
-    """Resolve a valid NON-venv base interpreter.
-
-    Never accepts a venv interpreter as durable authority. When invoked inside
-    a venv, resolves the real base executable via standard metadata.
-    """
-    chosen: Path | None = candidate
-    if chosen is None:
-        base_exec = getattr(sys, "_base_executable", None) or getattr(sys, "base_prefix", None)
-        if base_exec:
-            prefix = Path(base_exec)
-            chosen = prefix / ("python.exe" if os.name == "nt" else "bin/python3")
-            if not chosen.exists():
-                chosen = Path(sys.executable)
-        else:
-            chosen = Path(sys.executable)
-    chosen = Path(chosen).resolve()
-    # Reject venv paths: a venv python has pyvenv.cfg beside its parent.
-    probe = subprocess.run(
-        [str(chosen), "-c",
-         "import json,sys,os;"
-         "print(json.dumps({'is_venv': sys.prefix != getattr(sys,'base_prefix',sys.prefix)}))"],
-        capture_output=True, text=True, timeout=30, creationflags=creation_flags(),
-    )
-    if probe.returncode != 0:
-        raise RuntimeProvisioningError(f"bootstrap interpreter probe failed: {chosen}")
+def _probe_background(interpreter: Path, sentinel_dir: Path, timeout: int = 60) -> None:
+    """Exit-only/sentinel probe that assumes no console stdio exists."""
+    if not interpreter.is_file():
+        raise RuntimeProvisioningError(f"owned background interpreter missing: {interpreter}")
+    sentinel = sentinel_dir / "cnx-bg-sentinel.txt"
     try:
-        info = json.loads(probe.stdout.strip())
-    except json.JSONDecodeError as error:
-        raise RuntimeProvisioningError(f"unreadable interpreter probe output: {chosen}") from error
-    if info.get("is_venv"):
-        base_exec = getattr(sys, "_base_executable", "")
-        # Ask the venv itself for its base executable.
-        deeper = subprocess.run(
-            [str(chosen), "-c",
-             "import json,sys;print(json.dumps(getattr(sys,'_base_executable','') or ''))"],
+        result = subprocess.run(
+            [str(interpreter), "-c", f"open(r'{sentinel}','w').write('ok')"],
+            capture_output=True, text=True, timeout=timeout,
+            creationflags=creation_flags() | getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        if result.returncode != 0:
+            raise RuntimeProvisioningError(
+                f"owned background interpreter probe failed ({result.returncode}): {interpreter}: {result.stderr.strip()[:200]}"
+            )
+        if not sentinel.exists():
+            raise RuntimeProvisioningError(f"owned background interpreter did not execute probe: {interpreter}")
+    finally:
+        try:
+            sentinel.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def resolve_base_interpreter(candidate: Path | str | None = None) -> Path:
+    """Resolve a verified NON-venv base interpreter; never accept a venv path."""
+    chosen: Path | None = Path(candidate).resolve() if candidate else None
+    if chosen is None:
+        base_exec = getattr(sys, "_base_executable", "") or getattr(sys, "base_prefix", "")
+        chosen = Path(base_exec) if base_exec else Path(sys.executable)
+        exe_name = "python.exe" if os.name == "nt" else "python3"
+        guess = (Path(base_exec) / exe_name) if base_exec and not Path(base_exec).suffix == ".exe" else Path(chosen)
+        chosen = guess if guess.exists() else Path(sys.executable)
+
+    def venv_state(interpreter: Path) -> bool:
+        probe = subprocess.run(
+            [str(interpreter), "-c",
+             "import json,sys;print(json.dumps({'is_venv': sys.prefix != getattr(sys,'base_prefix',sys.prefix),"
+             "'base_exec': getattr(sys,'_base_executable','') or ''}))"],
             capture_output=True, text=True, timeout=30, creationflags=creation_flags(),
         )
-        if deeper.returncode == 0:
-            value = deeper.stdout.strip().strip('"')
-            if value and Path(value).exists() and Path(value).resolve() != chosen:
-                return resolve_base_interpreter(Path(value))
-        base_hint = Path(base_exec) if base_exec else None
-        if base_hint and base_hint.exists():
-            resolved = base_hint.resolve()
-            if resolved != chosen:
-                return resolve_base_interpreter(resolved)
+        if probe.returncode != 0:
+            raise RuntimeProvisioningError(f"bootstrap interpreter probe failed: {interpreter}")
+        return json.loads(probe.stdout.strip())
+
+    info = venv_state(chosen)
+    if info.get("is_venv"):
+        base_exec = info.get("base_exec") or ""
+        if base_exec and Path(base_exec).exists() and Path(base_exec).resolve() != chosen:
+            return resolve_base_interpreter(Path(base_exec))
         raise RuntimeProvisioningError(
-            "bootstrap Python is a venv without resolvable base interpreter; "
+            f"bootstrap Python '{chosen}' is a venv without a resolvable non-venv base interpreter; "
             "install a system Python before installing CogentNexus-OpenClaw"
         )
     return chosen
 
 
-def provisioned_manifest(root: Path | None = None, env: dict[str, str] | None = None) -> dict[str, Any] | None:
-    path = (root or runtime_root(env)) / MANIFEST_NAME
+def provisioned_manifest(application_data_root: Path | str | None = None) -> dict[str, Any] | None:
+    path = runtime_root_from_application_data(application_data_root or app_data_root()) / MANIFEST_NAME
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else None
@@ -145,29 +143,61 @@ def provisioned_manifest(root: Path | None = None, env: dict[str, str] | None = 
         return None
 
 
-def validate_runtime(manifest: dict[str, Any] | None, env: dict[str, str] | None = None) -> bool:
+def validate_runtime(manifest: dict[str, Any] | None, application_data_root: Path | str | None = None) -> bool:
+    """Ancestry-based manifest validation against the EXACT product root.
+
+    Uses resolved-path parent relationships instead of string prefixes so a
+    sibling such as ``CogentNexus-OpenClaw-evil`` cannot validate.
+    """
     if not isinstance(manifest, dict):
         return False
-    expected_root = str(runtime_root(env))
-    if manifest.get("runtimeRoot", "").lower() != expected_root.lower():
+    expected_app_root = Path(application_data_root).resolve() if application_data_root else app_data_root().resolve()
+    expected_runtime = (expected_app_root / "runtime" / RUNTIME_DIR_NAME)
+    try:
+        declared_runtime = Path(manifest.get("runtimeRoot", "")).resolve()
+    except Exception:
+        return False
+    if declared_runtime != expected_runtime.resolve():
         return False
     for key in ("foregroundInterpreter", "backgroundInterpreter"):
         value = manifest.get(key)
         if not isinstance(value, str) or not value:
             return False
-        if not str(value).lower().startswith(expected_root.lower()):
+        interp = Path(value)
+        try:
+            resolved = interp.resolve()
+        except Exception:
             return False
-        if not Path(value).exists():
+        # ancestry check: <app-root>/runtime/python/<Scripts>/<exe>
+        try:
+            resolved.relative_to(expected_runtime.resolve())
+        except ValueError:
+            return False
+        if not resolved.is_file():
             return False
     return True
 
 
-def ensure_runtime(bootstrap: Path | None = None, env: dict[str, str] | None = None, force: bool = False) -> dict[str, Any]:
-    """Provision/verify the CogentNexus-owned runtime and return its manifest."""
-    root = runtime_root(env)
-    existing = provisioned_manifest(root, env)
-    if not force and validate_runtime(existing, env):
-        _probe(Path(existing["backgroundInterpreter"]))
+def ensure_runtime(
+    application_data_root: Path | str | None = None,
+    bootstrap: Path | str | None = None,
+    force: bool = False,
+    env: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Provision/verify the owned runtime and return its manifest.
+
+    ``application_data_root`` accepts either an exact product root or, when
+    only ``env`` is given, derives it from LOCALAPPDATA — never both layered.
+    """
+    root = (
+        runtime_root_from_application_data(application_data_root)
+        if application_data_root
+        else runtime_root(env)
+    )
+    exact_app_root = root.parents[1]
+    existing = provisioned_manifest(exact_app_root)
+    if not force and validate_runtime(existing, exact_app_root):
+        _probe_foreground(Path(existing["foregroundInterpreter"]))
         return existing
 
     base = resolve_base_interpreter(bootstrap)
@@ -182,45 +212,45 @@ def ensure_runtime(bootstrap: Path | None = None, env: dict[str, str] | None = N
         )
 
     foreground, background = _interpreter_paths(root)
-    fg_probe = _probe(foreground)
-    if os.name == "nt":
-        bg_probe = _probe(background)
-    else:
-        bg_probe = fg_probe
+    fg_probe = _probe_foreground(foreground)
+    _probe_background(background, sentinel_dir=root.parent)
+
+    version = ""
     try:
-        version = json.loads(fg_probe).get("version", "")
+        version = json.loads(fg_probe).get("version", "").split(" ")[0]
     except Exception:
-        version = ""
+        pass
 
     manifest = {
         "schemaVersion": SCHEMA_VERSION,
         "runtimeRoot": str(root),
+        "applicationDataRoot": str(exact_app_root),
         "foregroundInterpreter": str(foreground),
         "backgroundInterpreter": str(background),
         "baseInterpreter": str(base),
-        "pythonVersion": version.split(" ")[0],
+        "pythonVersion": version,
         "platform": sys.platform,
     }
     (root / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    if not validate_runtime(manifest, env):
+    if not validate_runtime(manifest, exact_app_root):
         raise RuntimeProvisioningError("owned runtime manifest failed validation immediately after provisioning")
     return manifest
 
 
-def require_background_interpreter(env: dict[str, str] | None = None) -> Path:
-    """Return the product-owned background interpreter or fail closed."""
-    manifest = provisioned_manifest(runtime_root(env), env)
-    if not validate_runtime(manifest, env):
+def require_background_interpreter(application_data_root: Path | str | None = None) -> Path:
+    """Return ONLY the validated product-owned background interpreter, or fail closed."""
+    manifest = provisioned_manifest(application_data_root or app_data_root())
+    if not validate_runtime(manifest, application_data_root or app_data_root()):
         raise RuntimeProvisioningError(
             "CogentNexus-owned runtime is missing or invalid; run the installer to provision it"
         )
     return Path(manifest["backgroundInterpreter"])
 
 
-def require_foreground_interpreter(env: dict[str, str] | None = None) -> Path:
-    """Return the product-owned foreground interpreter or fail closed."""
-    manifest = provisioned_manifest(runtime_root(env), env)
-    if not validate_runtime(manifest, env):
+def require_foreground_interpreter(application_data_root: Path | str | None = None) -> Path:
+    """Return ONLY the validated product-owned foreground interpreter, or fail closed."""
+    manifest = provisioned_manifest(application_data_root or app_data_root())
+    if not validate_runtime(manifest, application_data_root or app_data_root()):
         raise RuntimeProvisioningError(
             "CogentNexus-owned runtime is missing or invalid; run the installer to provision it"
         )
@@ -233,17 +263,18 @@ def _cli(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="CogentNexus owned-runtime authority")
     sub = parser.add_subparsers(dest="command", required=True)
     ensure = sub.add_parser("ensure-runtime", help="provision/verify the owned runtime")
-    ensure.add_argument("--app-data", default=None, help="CogentNexus application-data root override")
+    ensure.add_argument("--application-data-root", default=None,
+                        help="EXACT CogentNexus product application-data root")
     ensure.add_argument("--force", action="store_true")
     show = sub.add_parser("show", help="print current runtime manifest as JSON")
-    show.add_argument("--app-data", default=None)
+    show.add_argument("--application-data-root", default=None)
     args = parser.parse_args(argv)
-    env = {"LOCALAPPDATA": args.app_data} if args.app_data else None
+    app_root = Path(args.application_data_root) if args.application_data_root else None
     try:
         if args.command == "ensure-runtime":
-            manifest = ensure_runtime(env=env, force=args.force)
+            manifest = ensure_runtime(application_data_root=app_root, force=args.force)
         else:
-            manifest = provisioned_manifest(runtime_root(env), env)
+            manifest = provisioned_manifest(app_root or app_data_root())
             if manifest is None:
                 raise RuntimeProvisioningError("owned runtime is not provisioned")
         print(json.dumps(manifest, indent=2))
