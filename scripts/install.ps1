@@ -101,6 +101,17 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
+# CNX-20260825-067 D2: before classification, recover any incomplete
+# fresh-install transaction left by a previously failed/crashed install.
+# Fail-closed: without a valid incomplete marker, unowned residue is refused.
+$recoveryJson = (& python $ownershipScript recovery-preflight --workspace $Workspace --app-data $applicationDataRoot | Out-String)
+if ($LASTEXITCODE -eq 0) {
+    $recovery = $recoveryJson | ConvertFrom-Json
+    if ($recovery.status -eq "RECOVERED_FRESH") {
+        Write-Host "Recovered incomplete fresh-install transaction; workspace returned to coherent fresh state."
+    }
+}
+
 # Inventory every legacy/new filesystem surface before the first mutation.
 $classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data $applicationDataRoot | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }

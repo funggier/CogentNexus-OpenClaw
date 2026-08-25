@@ -46,6 +46,16 @@ try {
   throw new Error(`npm pack --dry-run returned invalid JSON: ${result.stdout}`, { cause: error });
 }
 
+// npm >= 12 emits a single-entry object keyed by package name instead of an
+// array. Normalize both shapes so package-content verification stays
+// reproducible across the supported npm 11 and npm 12 toolchains.
+if (packed !== null && typeof packed === "object" && !Array.isArray(packed)) {
+  const values = Object.values(packed);
+  if (values.length === 1) {
+    packed = values;
+  }
+}
+
 if (!Array.isArray(packed) || packed.length !== 1 || !Array.isArray(packed[0]?.files)) {
   throw new Error(`Unexpected npm pack --dry-run shape: ${result.stdout}`);
 }
