@@ -212,21 +212,9 @@ def rollback_transaction(workspace: Path, *, archive: bool = True) -> dict[str, 
             removed.append(item)
         except OSError as error:
             errors.append(f"{item}: {error}")
-    # remove now-empty recorded parents within the owned boundary
-    for key in ("skillPath", "stateRoot"):
-        boundary = roots[key]
-        current = boundary
-        while _contained(current, roots["workspace"]) and current != roots["workspace"]:
-            try:
-                next(current.iterdir())
-                break
-            except StopIteration:
-                current.rmdir()
-            except OSError:
-                break
-            finally:
-                pass
-            current = current.parent
+    # CNX-20260826-068 (P5/D2c): deletion authority stops at the exact owned
+    # roots. Shared parents such as <workspace>\\skills are NEVER removed,
+    # even when empty.
     marker = transaction_path(roots["stateRoot"])
     result = {"status": "ROLLED_BACK", "removed": removed, "errors": errors}
     if errors:
@@ -265,18 +253,15 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
     rollback_transaction(workspace, archive=False)
     # remove the owned boundary dirs themselves if the bounded rollback left them empty
     roots = _transaction_roots(workspace)
-    import shutil as _shutil
-    for key in ("skillPath", "stateRoot"):
+    # CNX-20260826-068 (P5/D2c): exact-root boundary. Owned roots that are now
+    # empty may be removed themselves, but never their shared parents.
+    for key in ("skillPath", "stateRoot", "applicationData"):
         boundary = roots[key]
         try:
+            if key == "applicationData":
+                continue  # application-data parent chain is never walked upward
             if boundary.is_dir() and not any(boundary.iterdir()):
                 boundary.rmdir()
-        except OSError:
-            pass
-        parent = boundary.parent
-        try:
-            if parent != roots["workspace"] and _contained(parent, roots["workspace"]) and parent.is_dir() and not any(parent.iterdir()):
-                parent.rmdir()
         except OSError:
             pass
     return {"status": "RECOVERED_FRESH", "inventory": current_inventory(workspace, app_data=app_data)}
@@ -966,6 +951,8 @@ def main() -> int:
     txn_record.add_argument("--workspace", type=Path, required=True); txn_record.add_argument("--path", type=Path, required=True)
     txn_commit = sub.add_parser("transaction-commit")
     txn_commit.add_argument("--workspace", type=Path, required=True)
+    txn_rollback = sub.add_parser("transaction-rollback")
+    txn_rollback.add_argument("--workspace", type=Path, required=True)
     create = sub.add_parser("create")
     for name in ("root", "workspace", "skill", "plugin-path", "launcher"):
         create.add_argument(f"--{name}", type=Path, required=True)
@@ -1005,6 +992,8 @@ def main() -> int:
         commit_transaction(args.workspace)
         marker = load_transaction_marker(args.workspace)
         result = {"state": marker["state"] if marker else "absent"}
+    elif args.command == "transaction-rollback":
+        result = rollback_transaction(args.workspace, archive=False)
     else:
         result = build_manifest(root=args.root, workspace=args.workspace, skill=args.skill,
                                 plugin_path=args.plugin_path, launcher=args.launcher,

@@ -133,6 +133,32 @@ if ($classification.mode -eq "fresh") {
     }
 }
 
+# CNX-20260826-068: production fresh-install transaction.
+# Begin ONLY for fresh mode, after classification, before the first
+# residue-capable mutation. The marker itself is the authorized first
+# fresh mutation (it may create the CNX state root).
+$isFreshTransaction = $false
+function Invoke-FreshTransactionRollback {
+    param(
+        [string]$WorkspacePath,
+        [object]$OriginalError
+    )
+    $rollbackOutput = & python $ownershipScript transaction-rollback --workspace $WorkspacePath 2>&1 | Out-String
+    $rollbackExit = $LASTEXITCODE
+    if ($rollbackExit -ne 0) {
+        throw "Install failed AND bounded rollback failed. Install error: $OriginalError || Rollback error/state: $rollbackOutput"
+    }
+    Write-Host "Bounded fresh-install rollback completed; original install error follows."
+    throw $OriginalError
+}
+
+if ($classification.mode -eq "fresh") {
+    & python $ownershipScript transaction-begin --workspace $Workspace --app-data $applicationDataRoot | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Failed to begin the fresh-install transaction; refusing mutation." }
+    $isFreshTransaction = $true
+    Write-Host "Fresh-install transaction started; created owned paths will be recorded for bounded recovery."
+}
+
 # A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
 # launcher first so it restores native OpenClaw before v0.9.3 replaces files.
 # The new installation then enters MANAGED with Ollama only.
@@ -176,6 +202,16 @@ if (Test-Path $targetSkill) {
 }
 
 if (Test-Path $stagedSkill) { Remove-Item -Recurse -Force -LiteralPath $stagedSkill }
+if ($isFreshTransaction) {
+    # Record owned paths BEFORE/at creation so a crash cannot leave an
+    # unrecorded fresh artifact. Recording is bounded to exact CNX roots.
+    & python $ownershipScript transaction-record --workspace $Workspace --path $targetSkill | Out-Null
+    & python $ownershipScript transaction-record --workspace $Workspace --path $cogentNexusOpenClawRoot | Out-Null
+    if (-not (Test-Path $applicationDataRoot)) {
+        & python $ownershipScript transaction-record --workspace $Workspace --path $applicationDataRoot | Out-Null
+    }
+}
+
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $stagedSkill) | Out-Null
 Copy-Item -Recurse -Force -LiteralPath $sourceSkill -Destination $stagedSkill
 if (Test-Path $targetSkill) { Remove-Item -Recurse -Force -LiteralPath $targetSkill }
@@ -304,6 +340,9 @@ if (-not (Test-Path -LiteralPath $ownedPython)) { throw "Owned foreground interp
 if (-not (Test-Path -LiteralPath $ownedPythonw)) { throw "Owned background interpreter not found after provisioning: $ownedPythonw" }
 Write-Host "Owned runtime interpreter: $ownedPython"
 $launcherText = "@echo off`r`n`"$ownedPython`" `"$cliEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+if ($isFreshTransaction) {
+    & python $ownershipScript transaction-record --workspace $Workspace --path $launcher | Out-Null
+}
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 
@@ -313,9 +352,21 @@ $installedPluginPath = [string](($pluginResolutionJson | ConvertFrom-Json).root)
 $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
 if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
 & $ownedPython @ownershipArguments | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
+if ($LASTEXITCODE -ne 0) {
+    if ($isFreshTransaction) { Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError "Ownership manifest creation failed; refusing MANAGED authority." }
+    throw "Ownership manifest creation failed; refusing MANAGED authority."
+}
 & $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+if ($LASTEXITCODE -ne 0) {
+    if ($isFreshTransaction) { Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+    throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH."
+}
+if ($isFreshTransaction) {
+    # CNX-20260826-068: commit only AFTER ownership create + exact verify.
+    & python $ownershipScript transaction-commit --workspace $Workspace | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Fresh-install transaction commit failed after ownership verification." }
+    Write-Host "Fresh-install transaction committed; recovery marker retired."
+}
 
 if (-not $SkipGatewayRestart) {
     & $ownedPython $cliScript --root $cogentNexusOpenClawRoot enable --provider ollama
