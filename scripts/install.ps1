@@ -276,33 +276,38 @@ if (-not $SkipPlugin) {
 $launcher = Join-Path $Workspace "cnxclaw.cmd"
 $cliEscaped = $cliScript.Replace('"','""')
 $rootEscaped = $cogentNexusOpenClawRoot.Replace('"','""')
-$ownedPython = (Join-Path $applicationDataRoot "runtime\python\Scripts\python.exe")
-if (-not (Test-Path $ownedPython)) {
-    # Provision the CogentNexus-owned runtime from a verified base interpreter
-    # before any durable launcher/task definition is written. Fail closed.
-    # --application-data-root receives the EXACT product root; no duplication.
-    & python (Join-Path $targetSkill "scripts
-untime_authority.py") ensure-runtime --application-data-root "$applicationDataRoot" | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }
+# One explicit runtime-authority script resolution (Task CNX-20260825-065 B5).
+$runtimeAuthorityScript = Join-Path $targetSkill "scripts\runtime_authority.py"
+if (-not (Test-Path -LiteralPath $runtimeAuthorityScript)) {
+    throw "Runtime authority script not found: $runtimeAuthorityScript"
 }
-if (-not (Test-Path $ownedPython)) { throw "Owned runtime interpreter not found at $ownedPython after provisioning." }
+# Unconditional ensure/validate on every install/install-over (B6): a stale
+# runtime with a missing manifest or broken interpreter must be repaired or
+# fail closed BEFORE any durable launcher/task definition is written.
+$runtimeManifestJson = (& python $runtimeAuthorityScript ensure-runtime --application-data-root "$applicationDataRoot" | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }
+$runtimeManifest = $runtimeManifestJson | ConvertFrom-Json
+$ownedPython = [string]$runtimeManifest.foregroundInterpreter
+$ownedPythonw = [string]$runtimeManifest.backgroundInterpreter
+if (-not (Test-Path -LiteralPath $ownedPython)) { throw "Owned foreground interpreter not found after provisioning: $ownedPython" }
+if (-not (Test-Path -LiteralPath $ownedPythonw)) { throw "Owned background interpreter not found after provisioning: $ownedPythonw" }
 Write-Host "Owned runtime interpreter: $ownedPython"
 $launcherText = "@echo off`r`n`"$ownedPython`" `"$cliEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 
-$pluginResolutionJson = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
+$pluginResolutionJson = (& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
 if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
 $installedPluginPath = [string](($pluginResolutionJson | ConvertFrom-Json).root)
 $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
 if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
-& python @ownershipArguments | Out-Null
+& $ownedPython @ownershipArguments | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
-& python (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
+& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
 
 if (-not $SkipGatewayRestart) {
-    & python $cliScript --root $cogentNexusOpenClawRoot enable --provider ollama
+    & $ownedPython $cliScript --root $cogentNexusOpenClawRoot enable --provider ollama
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw Host enable failed for Ollama" }
 }
 else {
@@ -314,10 +319,10 @@ else {
 openclaw gateway status
 if ($LASTEXITCODE -ne 0 -and -not $SkipGatewayRestart) { throw "Gateway health check failed" }
 
-python (Join-Path $targetSkill "scripts\runtime.py") supervisor doctor
+& $ownedPython (Join-Path $targetSkill "scripts\runtime.py") supervisor doctor
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw supervisor check failed" }
 
-& python $cliScript --root $cogentNexusOpenClawRoot status
+& $ownedPython $cliScript --root $cogentNexusOpenClawRoot status
 if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw status check failed" }
 
 if ($migrationSource) {

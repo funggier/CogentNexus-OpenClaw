@@ -197,7 +197,11 @@ def ensure_runtime(
     exact_app_root = root.parents[1]
     existing = provisioned_manifest(exact_app_root)
     if not force and validate_runtime(existing, exact_app_root):
+        # Reuse requires capability proof of BOTH interpreters, not file
+        # existence alone (Task CNX-20260825-065 B6): a broken pythonw.exe
+        # must never be accepted as healthy merely because the file exists.
         _probe_foreground(Path(existing["foregroundInterpreter"]))
+        _probe_background(Path(existing["backgroundInterpreter"]), sentinel_dir=root.parent)
         return existing
 
     base = resolve_base_interpreter(bootstrap)
