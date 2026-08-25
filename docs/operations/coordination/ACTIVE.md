@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_REWORK_TDD_PRODUCTION_INSTALLER_TRANSACTION`
-Current authorization: `INSTALLER_TRANSACTION_WIRING_REWORK_AUTHORIZED`
-Task ID: `CNX-20260826-068`
-Updated: 2026-08-26 03:16 ICT
+Execution mode: `SOURCE_REWORK_TDD_FRESH_TRANSACTION_FAILURE_COVERAGE`
+Current authorization: `FRESH_TRANSACTION_FAILURE_COVERAGE_REWORK_AUTHORIZED`
+Task ID: `CNX-20260826-069`
+Updated: 2026-08-26 05:57 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,21 +19,21 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md`](tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md)
+[`tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md`](tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md)
 
-## Task 067 review
+## Task 068 review
 
-Task 067 reported:
+Task 068 reported:
 
-`PASS_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY_FIXED`
+`PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`
 
 Implementation HEAD:
 
-`ec51d7b20c228070a95a6cf0987cebd7e71cbfaf`
+`2a0ca9fd9abda07765e3da222f7fc4d7730d3d30`
 
 Report HEAD:
 
-`30075a3a3e646f24e0144f74aac9104c0ce1e888`
+`3fc596a394fa2167d6c50e1672294c355120e809`
 
 Independent review decision:
 
@@ -41,41 +41,43 @@ Independent review decision:
 
 Disposition:
 
-`REWORK_INSTALLER_TRANSACTION_NOT_WIRED_AND_ROLLBACK_PARENT_BOUNDARY`
+`REWORK_CAUGHT_FAILURE_AND_APPLICATION_DATA_TRANSACTION_GAPS`
 
 Review commit:
 
-`38b46a4e78a9a2a2bcfc2c2cbaa230d888f7312c`
+`ad914838420028b4170cab9fc1e6d466dc7d444f`
 
-## Accepted Task 067 evidence
+## Accepted Task 068 portions
 
-The D1 lock/package correction is accepted and must be preserved:
+Preserve:
 
-- exact OpenClaw devDependency `2026.7.1-2`;
-- clean npm 11.16.0 and npm 12.0.2 install/validate/test/pack evidence;
-- plugin v0.9.3 unchanged.
-
-The transaction/recovery Python API is useful but not accepted as production-complete.
+- fresh-only transaction begin after classification and before first fresh workspace mutation;
+- transaction record call sites for state/skill/launcher/application-data;
+- commit after ownership create + exact verify;
+- exact-root rollback no longer removes shared `<workspace>\skills` parent;
+- accepted Task 067 npm 11/npm 12 lockfile fix;
+- separate report-only publication fence.
 
 ## Blocking findings
 
-1. Production `scripts/install.ps1` adds `recovery-preflight` only; it never invokes `transaction-begin`, `transaction-record`, `transaction-commit`, or caught-failure rollback.
-2. Current R1/R1b tests call the transaction Python API directly and therefore do not prove production installer ordering.
-3. Rollback/recovery can walk upward and remove the shared `<workspace>\skills` parent when empty; deletion authority must stop at exact CNX-owned roots.
+1. Caught fresh failures before ownership create/verify still bypass rollback; P3 only proves the rollback helper exists rather than injecting a real early production-path failure.
+2. Fresh installer records `%LOCALAPPDATA%\CogentNexus-OpenClaw`, but marker validation does not allow the exact application-data product root, so a legitimate marker can reject its own rollback/recovery.
+3. Any unavoidable pre-commit product external effect, especially fresh plugin registration, must be reordered post-commit where safe or have a supported bounded inverse so rerun does not dead-end.
 
 ## Current live condition
 
-Preserve the accepted Task-066 state:
+Preserve the accepted Task-066 native state:
 
 - no CogentNexus Supervisor task;
 - no launcher/plugin registration;
 - OpenClaw Gateway native/healthy;
 - Ollama healthy;
-- Task-066 partial workspace residue remains intentionally untouched and has no valid ownership manifest.
+- Task-066 partial workspace residue remains intentionally untouched and has no valid ownership manifest;
+- AGENTS managed block absent.
 
-## Authorized Task 068 operation
+## Authorized Task 069 operation
 
-Source/tests only. Wire the transaction into the actual installer before fresh residue-capable mutation, record fresh-created paths, rollback caught failures, commit only after ownership verification, and tighten deletion boundaries so shared parents are never removed. Add production installer-facing RED/GREEN coverage and preserve the accepted npm 11/12 D1 fix.
+Source/tests only. Establish one fresh pre-commit caught-failure boundary, make exact application-data ownership/validation consistent, reject unsafe paths at record time, and prove recovery of product-owned external effects without weakening ownership safety.
 
 ## Live hard fence
 
@@ -83,4 +85,4 @@ No live residue cleanup, install/uninstall/reset/lifecycle operation, Scheduled 
 
 ## Pre-authorized successor
 
-If Task 068 is independently accepted, Task 069 may perform the bounded one-time Task-066 residue cleanup and fresh install, then exact owned-runtime/no-Hermes binding, at least three natural no-flash PT1M ticks, and final MANAGED health acceptance without another confirmation.
+If Task 069 is independently accepted, Task 070 may perform bounded one-time Task-066 residue cleanup and fresh install, then exact owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks, and final MANAGED health acceptance without another confirmation.
