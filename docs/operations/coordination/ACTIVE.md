@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_REWORK_TDD_INSTALLER_INTEGRATION`
-Current authorization: `INSTALLER_RUNTIME_AUTHORITY_CLOSURE_AUTHORIZED`
-Task ID: `CNX-20260825-065`
-Updated: 2026-08-25 19:28 ICT
+Execution mode: `LIVE_CLEAN_REINSTALL_WITH_PRESERVATION_AND_MULTI_TICK_ACCEPTANCE`
+Current authorization: `CLEAN_REINSTALL_AND_LIVE_RUNTIME_ACCEPTANCE_AUTHORIZED`
+Task ID: `CNX-20260825-066`
+Updated: 2026-08-25 20:47 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,57 +19,58 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md`](tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md)
+[`tasks/CNX-20260825-066-clean-reinstall-owned-runtime-live-acceptance.md`](tasks/CNX-20260825-066-clean-reinstall-owned-runtime-live-acceptance.md)
 
-## Predecessor review
+## Accepted predecessor
 
-Task 064 reported:
+Task 065 report result:
 
-`PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`
+`PASS_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`
 
 Implementation HEAD:
 
-`6e4245112a38dab3e6614e6f91d3e37ac85f2afe`
+`21686f70520c5e0263e8aea4d644d2c87324e872`
 
 Report HEAD:
 
-`f3a4731b87f8a530dd71eed3826a93f963a9de34`
+`8c74686dfe4c6817e2dcc9cbe27e2a8670c24c76`
 
 Independent review decision:
 
-`REWORK`
+`ACCEPT`
 
 Disposition:
 
-`REWORK_INSTALLER_RUNTIME_AUTHORITY_EXECUTION_GAPS`
+`ACCEPT_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`
 
 Review commit:
 
-`5fe706d89f41083fda37d2032c17bc0ba6e1d353`
+`f45f3c2c55828114026d07813ad447a5e4048b8e`
 
-Task 064's B1-B3 runtime/startup corrections and the accepted Task 063 `FLASH_CHILD_PROCESS` diagnosis remain useful, but live reinstall is still blocked by production installer integration defects.
+## Current live condition
 
-## Current defects
+The operator reports the periodic visible window flash still occurs. This is expected at this boundary because Tasks 063-065 were source/tests only and the current live Scheduled Task has not yet been replaced. Treat this as `PRE_REINSTALL_BASELINE`.
 
-Task 065 must close only these remaining runtime-authority gaps:
+## Authorized Task 066 operation
 
-1. the committed `install.ps1` runtime-authority path contains a literal newline inside `scripts\runtime_authority.py`, which breaks fresh provisioning;
-2. installer runtime validation currently runs only when `python.exe` is absent, so a stale runtime with a missing/corrupt manifest or broken background interpreter can bypass repair;
-3. post-provision MANAGED enable/status and other stdlib-capable CogentNexus operations still use ambient bare `python` rather than the established owned runtime;
-4. prior tests did not exercise the failing production installer-facing boundary.
+Task 066 may perform the already-authorized bounded live repair:
 
-## Authorized Task 065 operation
+- fresh preservation/preflight evidence;
+- supported clean CogentNexus-OpenClaw uninstall using the product's normal confirmation;
+- prove unrelated OpenClaw/Ollama/user/plugin/config state is preserved;
+- fresh install from exact reviewed implementation commit `21686f70520c5e0263e8aea4d644d2c87324e872` using the normal Windows installer;
+- prove launcher and Scheduled Task bind exact CogentNexus-owned `python.exe` / `pythonw.exe`, with no Hermes/Codex/agent interpreter path;
+- observe at least three natural PT1M supervisor ticks with bounded process-start evidence and require no causal `conhost.exe`/console trampoline;
+- verify final MANAGED/Gateway/Ollama/plugin/ownership/AGENTS/SQLite health.
 
-Task 065 is source/tests only. It must use strict TDD, correct the production installer path, make runtime ensure/validation unconditional before durable definitions, validate both foreground/background interpreters, transition safe post-provision product calls to `$ownedPython`, and add installer-facing regression coverage that fails against the current Task 064 source.
+No separate confirmation is required for this exact successor because the operator already authorized clean removal and fresh installation.
 
-## Live hard fence
+## Mutation fence
 
-No current install/install-over/uninstall/reset, lifecycle mutation, Scheduled Task change/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite write, process termination, primary-workspace Git mutation, merge, tag, or release.
+No manual broad deletion, source patching, reboot/power-cycle, provider/model changes, HermesAgent mutation, merge/tag/release, or unrelated OpenClaw/Ollama mutation is authorized.
 
-All tests must use isolated/temp boundaries outside the live product root.
+If supported uninstall/install reveals a product defect, stop and report instead of masking it with manual cleanup.
 
-## Pre-authorized successor
+## Next gate
 
-The operator already authorized definitive repair followed by clean removal and fresh installation.
-
-If Task 065 is independently reviewed and accepted as `PASS_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`, proceed without another confirmation to a separate bounded clean uninstall/fresh reinstall task, then verify exact CogentNexus-owned launcher/supervisor runtime, no Hermes/agent path, multiple natural supervisor ticks with no recurring console flash, and healthy MANAGED/OpenClaw/Ollama/plugin/ownership/SQLite state.
+Hermes publishes only the matching Task 066 report. ChatGPT independently reviews preservation evidence, uninstall/install behavior, exact runtime binding, multi-tick no-flash evidence, post-install health, and publication fence before live repair is accepted.
