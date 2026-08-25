@@ -138,11 +138,32 @@ if ($classification.mode -eq "fresh") {
 # residue-capable mutation. The marker itself is the authorized first
 # fresh mutation (it may create the CNX state root).
 $isFreshTransaction = $false
+$script:FreshPluginInstalled = $false
+# CNX-20260826-069 B1/B3: one production fresh-transaction failure boundary.
+# Every caught failure after successful transaction-begin and before successful
+# transaction-commit routes through this helper, which performs all safe bounded
+# recovery for effects created by THIS fresh attempt before rethrowing the
+# original error. Supported OpenClaw surfaces are used for external effects:
+# the plugin inverse applies only because fresh preflight proved no plugin was
+# registered before this attempt ($script:FreshPluginInstalled is set only
+# after a successful plugins install in this same attempt).
 function Invoke-FreshTransactionRollback {
     param(
         [string]$WorkspacePath,
         [object]$OriginalError
     )
+    if ($script:FreshPluginInstalled) {
+        $savedPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $pluginUninstallOutput = openclaw plugins uninstall cogentnexus-openclaw --force 2>&1 | Out-String
+            $pluginUninstallExit = $LASTEXITCODE
+        }
+        finally { $ErrorActionPreference = $savedPreference }
+        if ($pluginUninstallExit -ne 0) {
+            throw "Install failed AND the supported fresh-attempt plugin inverse failed. Install error: $OriginalError || Plugin uninstall error/state: $pluginUninstallOutput"
+        }
+    }
     $rollbackOutput = & python $ownershipScript transaction-rollback --workspace $WorkspacePath 2>&1 | Out-String
     $rollbackExit = $LASTEXITCODE
     if ($rollbackExit -ne 0) {
@@ -158,6 +179,19 @@ if ($classification.mode -eq "fresh") {
     $isFreshTransaction = $true
     Write-Host "Fresh-install transaction started; created owned paths will be recorded for bounded recovery."
 }
+
+# CNX-20260826-069 B1: single production caught-failure boundary. Everything
+# from here until successful transaction-commit is protected: any caught
+# exception or nonzero failure performs same-run bounded rollback/recovery of
+# this fresh attempt and rethrows the original error. Upgrade/legacy installs
+# never enter this boundary (their failure path stays the plain throw).
+try {
+    if (-not $isFreshTransaction) {
+        # Non-fresh installs run unprotected inside the try; a throw here would
+        # wrongly roll back an upgrade, so guard by rethrowing before any
+        # rollback state exists.
+        throw "__UPGRADE_PASSTHROUGH__"
+    }
 
 # A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
 # launcher first so it restores native OpenClaw before v0.9.3 replaces files.
@@ -232,8 +266,8 @@ if ($SkipGatewayRestart) {
 }
 
 if (-not $SkipAgentsPolicy) {
-    python $hostScript --root $cogentNexusOpenClawRoot policy apply
-    if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
+    # moved below transaction-commit (CNX-20260826-069 B3): a failed
+    # pre-commit installation can no longer leave a managed AGENTS block.
 }
 
 if (-not $SkipPlugin) {
@@ -246,7 +280,6 @@ if (-not $SkipPlugin) {
 
         node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
         if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
-
         $currentPaths = $null
         $pathExit = 1
         $savedErrorActionPreference = $ErrorActionPreference
@@ -276,6 +309,10 @@ if (-not $SkipPlugin) {
         try {
             openclaw plugins install ("npm-pack:" + $packagePath) --force
             if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
+            # CNX-20260826-069 B3: mark the external effect this fresh attempt
+            # created so the single failure boundary can apply its exact
+            # supported inverse (plugins uninstall) if a later step fails.
+            if ($isFreshTransaction) { $script:FreshPluginInstalled = $true }
         }
         finally { Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue }
 
@@ -352,20 +389,29 @@ $installedPluginPath = [string](($pluginResolutionJson | ConvertFrom-Json).root)
 $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
 if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
 & $ownedPython @ownershipArguments | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    if ($isFreshTransaction) { Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError "Ownership manifest creation failed; refusing MANAGED authority." }
-    throw "Ownership manifest creation failed; refusing MANAGED authority."
-}
+if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
 & $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    if ($isFreshTransaction) { Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
-    throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH."
-}
+if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
 if ($isFreshTransaction) {
     # CNX-20260826-068: commit only AFTER ownership create + exact verify.
     & python $ownershipScript transaction-commit --workspace $Workspace | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Fresh-install transaction commit failed after ownership verification." }
     Write-Host "Fresh-install transaction committed; recovery marker retired."
+}
+} catch {
+    # CNX-20260826-069 B1: the single production fresh-transaction failure
+    # boundary. Every caught pre-commit failure rolls this fresh attempt back
+    # through the production helper; non-fresh installs rethrow untouched.
+    if (-not $isFreshTransaction -or $_.Exception.Message -eq "__UPGRADE_PASSTHROUGH__") {
+        if ($_.Exception.Message -eq "__UPGRADE_PASSTHROUGH__") { throw "Non-fresh install cannot use the fresh transaction failure boundary." }
+        throw
+    }
+    Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError $_.Exception.Message
+}
+
+if (-not $SkipAgentsPolicy) {
+    python $hostScript --root $cogentNexusOpenClawRoot policy apply
+    if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
 }
 
 if (-not $SkipGatewayRestart) {

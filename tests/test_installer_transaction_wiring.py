@@ -54,9 +54,9 @@ def test_p2_required_paths_recorded():
 def test_p4_commit_only_after_verify():
     create_pos = _pos(r"namespace_ownership\.py\"\), \"create\"|namespace_ownership\.py\"\), 'create'")
     verify_pos = min(
-        p for p in [m.start() for m in re.finditer(r"verify --root \$cogentNexusOpenClawRoot", INSTALL_PS1)]
+        p for p in [m.start() for m in re.finditer(r"verify --root \$cogentNexusOpenClawRoot --workspace", INSTALL_PS1)]
     )
-    commit_match = re.search(r"transaction-commit", INSTALL_PS1)
+    commit_match = re.search(r"transaction-commit --workspace", INSTALL_PS1)
     assert commit_match, "production installer must retire the marker via transaction-commit"
     # the verify exit-code check must appear between verify and commit, and
     # the commit must be inside a $isFreshTransaction block that follows it

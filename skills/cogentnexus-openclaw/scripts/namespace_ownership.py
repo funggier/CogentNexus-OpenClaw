@@ -78,7 +78,7 @@ TRANSACTION_NAME = "install-transaction.json"
 _TRANSACTION_FIELDS = {
     "schemaVersion", "transactionId", "productId", "installedVersion",
     "workspace", "stateRoot", "skillPath", "applicationData",
-    "state", "createdAt", "createdPaths",
+    "applicationDataPreexisting", "state", "createdAt", "createdPaths",
 }
 _TRANSACTION_SCHEMA_VERSION = 1
 _TRANSACTION_ACTIVE_STATES = {"incomplete"}
@@ -100,11 +100,22 @@ def _transaction_roots(workspace: Path) -> dict[str, Path]:
 
 
 def begin_fresh_transaction(workspace: Path, *, app_data: Path | None = None) -> dict[str, Any]:
-    """Write the incomplete-installation marker BEFORE any residue-capable mutation."""
+    """Write the incomplete-installation marker BEFORE any residue-capable mutation.
+
+    CNX-20260826-069: ``app_data`` is authoritative when provided. The marker
+    binds the exact application-data root the installer will use, so record/
+    rollback/recovery validate against it rather than an environment-derived
+    path. The root is recorded for deletion ONLY if it does not preexist.
+    """
     paths = expected_paths(workspace)
     roots = _transaction_roots(workspace)
     if app_data is not None:
-        roots["applicationData"] = app_data.resolve(strict=False)
+        app_data = app_data.resolve(strict=False)
+        _validate_application_data_root(app_data)
+        roots["applicationData"] = app_data
+        application_data_preexisting = app_data.exists()
+    else:
+        application_data_preexisting = None
     state_root = paths["stateRoot"]
     if manifest_path(state_root).exists():
         raise RuntimeError("ownership manifest already exists; fresh transaction is not applicable")
@@ -121,6 +132,12 @@ def begin_fresh_transaction(workspace: Path, *, app_data: Path | None = None) ->
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "createdPaths": [],
     }
+    if application_data_preexisting is not None:
+        payload["applicationDataPreexisting"] = bool(application_data_preexisting)
+    else:
+        # no explicit --app-data: the default root is authoritative and its
+        # preexistence is proven here so the marker schema stays exact.
+        payload["applicationDataPreexisting"] = Path(payload["applicationData"]).exists()
     marker = transaction_path(state_root)
     if not marker.exists():
         state_root.mkdir(parents=True, exist_ok=True)
@@ -138,8 +155,30 @@ def load_transaction_marker(workspace: Path) -> dict[str, Any] | None:
     return payload
 
 
+def _validate_application_data_root(app_data: Path) -> None:
+    """CNX-20260826-069 B2: only the exact canonical product application-data
+    root is a valid transaction boundary — never its parent or siblings."""
+    if app_data.name.lower() != DISPLAY_NAME.lower():
+        raise RuntimeError(
+            f"application-data root must be exactly the {DISPLAY_NAME} product root: {app_data}")
+
+
+def _marker_roots(workspace: Path, payload: dict[str, Any] | None = None) -> dict[str, Path]:
+    """Transaction roots bound by the marker's authoritative application-data."""
+    roots = _transaction_roots(workspace)
+    if payload and isinstance(payload.get("applicationData"), str):
+        roots["applicationData"] = Path(payload["applicationData"]).resolve(strict=False)
+    return roots
+
+
 def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[str, Path]:
-    """Fail closed unless the marker exactly matches the canonical CNX boundary."""
+    """Fail closed unless the marker exactly matches the canonical CNX boundary.
+
+    CNX-20260826-069 B2: the exact application-data product root recorded at
+    begin time is authoritative for this marker (custom isolated test roots
+    included) instead of an environment-derived path, and is allowed inside
+    ``createdPaths`` as a first-class deletion boundary.
+    """
     if set(payload) != _TRANSACTION_FIELDS:
         raise RuntimeError("install transaction marker schema fields are not exact; refusing recovery")
     if payload.get("schemaVersion") != _TRANSACTION_SCHEMA_VERSION:
@@ -148,10 +187,17 @@ def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[
         raise RuntimeError("install transaction marker product identity mismatch; refusing recovery")
     if payload.get("state") not in _TRANSACTION_ACTIVE_STATES:
         raise RuntimeError(f"install transaction marker state {payload.get('state')!r} authorizes nothing; refusing recovery")
-    roots = _transaction_roots(workspace)
+    roots = _marker_roots(workspace, payload)
+    application_data = roots["applicationData"]
+    try:
+        _validate_application_data_root(application_data)
+    except RuntimeError as error:
+        raise RuntimeError(f"{error}; refusing recovery") from error
     for key in ("workspace", "stateRoot", "skillPath", "applicationData"):
         if payload.get(key) != _canonical(roots[key]):
             raise RuntimeError(f"install transaction marker {key} does not match this workspace; refusing recovery")
+    if not isinstance(payload.get("applicationDataPreexisting"), bool):
+        raise RuntimeError("install transaction marker applicationDataPreexisting must be boolean; refusing recovery")
     for key in ("stateRoot", "skillPath"):
         if not _contained(roots[key], roots["workspace"]):
             raise RuntimeError(f"install transaction marker {key} escapes the workspace; refusing recovery")
@@ -161,19 +207,57 @@ def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[
     allowed = {_canonical(roots[key]) for key in ("stateRoot", "skillPath")}
     launchers = expected_paths(workspace)["launchers"]
     allowed.update(_canonical(launcher) for launcher in launchers)
+    # CNX-20260826-069 B2: the exact application-data root participates as a
+    # transaction-owned boundary ONLY when this attempt proved it absent.
+    if not payload["applicationDataPreexisting"]:
+        allowed.add(_canonical(application_data))
+    local_app_data = application_data.parent
     for item in created:
         candidate = Path(item)
-        if not any(_contained(candidate, Path(boundary)) for boundary in allowed):
+        within_owned = any(_contained(candidate, Path(boundary)) for boundary in allowed)
+        # descendants of the exact product application-data root are permitted
+        # only when that root itself was transaction-created; the root's
+        # parent (%LOCALAPPDATA% or any custom parent) is never deletable.
+        within_app_data = (
+            not payload["applicationDataPreexisting"]
+            and _contained(candidate, application_data)
+            and _canonical(candidate) != _canonical(local_app_data)
+        )
+        if not (within_owned or within_app_data):
             raise RuntimeError(f"install transaction marker createdPath escapes owned boundaries: {item}")
     return roots
 
 
-def record_transaction_path(workspace: Path, path: Path) -> None:
-    """Record a created path in the active marker so rollback stays bounded."""
+def record_transaction_path(workspace: Path, path: Path, *, app_data: Path | None = None) -> None:
+    """Record a created path in the active marker so rollback stays bounded.
+
+    CNX-20260826-069 F5: unsafe paths are rejected AT RECORD TIME with the
+    marker left unchanged — never deferred to a later failing deletion.
+    """
     payload = load_transaction_marker(workspace)
     if payload is None or payload.get("state") != "incomplete":
         return
     entry = _canonical(path)
+    candidate = Path(entry)
+    roots = _marker_roots(workspace, payload)
+    application_data = roots["applicationData"]
+    allowed = {_canonical(roots[key]) for key in ("stateRoot", "skillPath")}
+    launchers = expected_paths(workspace)["launchers"]
+    allowed.update(_canonical(launcher) for launcher in launchers)
+    preexisting = payload.get("applicationDataPreexisting")
+    if not isinstance(preexisting, bool):
+        raise RuntimeError("active install transaction marker lacks applicationDataPreexisting; cannot record safely")
+    if not preexisting:
+        allowed.add(_canonical(application_data))
+    within_owned = any(_contained(candidate, Path(boundary)) for boundary in allowed)
+    within_app_data = (
+        not preexisting
+        and _contained(candidate, application_data)
+        and _canonical(candidate) != _canonical(application_data.parent)
+    )
+    if not (within_owned or within_app_data):
+        raise RuntimeError(
+            f"refusing to record path outside owned transaction boundaries: {entry}")
     if entry not in payload["createdPaths"]:
         payload["createdPaths"].append(entry)
         marker = transaction_path(expected_paths(workspace)["stateRoot"])
@@ -192,11 +276,15 @@ def commit_transaction(workspace: Path) -> None:
     marker.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def rollback_transaction(workspace: Path, *, archive: bool = True) -> dict[str, Any]:
+def rollback_transaction(workspace: Path, *, archive: bool = True,
+                         app_data: Path | None = None) -> dict[str, Any]:
     """Bounded rollback of only marker-recorded paths after a caught failure."""
     payload = load_transaction_marker(workspace)
     if payload is None:
         raise RuntimeError("no install transaction marker; nothing to roll back")
+    if payload.get("state") != "incomplete":
+        raise RuntimeError(
+            f"install transaction marker state {payload.get('state')!r} authorizes no rollback")
     roots = _validate_marker_boundary(workspace, payload)
     removed: list[str] = []
     errors: list[str] = []
@@ -237,7 +325,10 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
     """
     payload = load_transaction_marker(workspace)
     paths = expected_paths(workspace)
-    inventory = current_inventory(workspace, app_data=app_data)
+    inventory = current_inventory(
+        workspace, app_data=app_data or (
+            Path(payload["applicationData"]) if payload and isinstance(payload.get("applicationData"), str)
+            else None))
     if manifest_path(paths["stateRoot"]).exists():
         # coherent installed state: a committed/retired marker authorizes nothing
         return {"status": "OWNERSHIP_PRESENT", "inventory": inventory}
@@ -252,7 +343,7 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
         return {"status": "RECOVERED_FRESH", "inventory": inventory}
     rollback_transaction(workspace, archive=False)
     # remove the owned boundary dirs themselves if the bounded rollback left them empty
-    roots = _transaction_roots(workspace)
+    roots = _marker_roots(workspace, payload)
     # CNX-20260826-068 (P5/D2c): exact-root boundary. Owned roots that are now
     # empty may be removed themselves, but never their shared parents.
     for key in ("skillPath", "stateRoot", "applicationData"):
@@ -948,7 +1039,9 @@ def main() -> int:
     txn_begin = sub.add_parser("transaction-begin")
     txn_begin.add_argument("--workspace", type=Path, required=True); txn_begin.add_argument("--app-data", type=Path)
     txn_record = sub.add_parser("transaction-record")
-    txn_record.add_argument("--workspace", type=Path, required=True); txn_record.add_argument("--path", type=Path, required=True)
+    txn_record.add_argument("--workspace", type=Path, required=True)
+    txn_record.add_argument("--path", type=Path, required=True)
+    txn_record.add_argument("--app-data", type=Path)
     txn_commit = sub.add_parser("transaction-commit")
     txn_commit.add_argument("--workspace", type=Path, required=True)
     txn_rollback = sub.add_parser("transaction-rollback")
@@ -985,7 +1078,7 @@ def main() -> int:
     elif args.command == "transaction-begin":
         result = begin_fresh_transaction(args.workspace, app_data=args.app_data)
     elif args.command == "transaction-record":
-        record_transaction_path(args.workspace, args.path)
+        record_transaction_path(args.workspace, args.path, app_data=args.app_data)
         marker = load_transaction_marker(args.workspace)
         result = {"recorded": str(args.path), "createdPaths": marker["createdPaths"] if marker else []}
     elif args.command == "transaction-commit":
