@@ -1,24 +1,24 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 03:16 ICT
+**Updated:** 2026-08-26 05:57 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through clean reinstall/live acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 067 review
+## Task 068 review
 
-Task 067 result:
+Task 068 result:
 
-`PASS_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY_FIXED`
+`PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`
 
 Implementation HEAD:
 
-`ec51d7b20c228070a95a6cf0987cebd7e71cbfaf`
+`2a0ca9fd9abda07765e3da222f7fc4d7730d3d30`
 
 Report HEAD:
 
-`30075a3a3e646f24e0144f74aac9104c0ce1e888`
+`3fc596a394fa2167d6c50e1672294c355120e809`
 
 Independent review:
 
@@ -26,53 +26,56 @@ Decision `REWORK`
 
 Disposition:
 
-`REWORK_INSTALLER_TRANSACTION_NOT_WIRED_AND_ROLLBACK_PARENT_BOUNDARY`
+`REWORK_CAUGHT_FAILURE_AND_APPLICATION_DATA_TRANSACTION_GAPS`
 
 Review commit:
 
-`38b46a4e78a9a2a2bcfc2c2cbaa230d888f7312c`
+`ad914838420028b4170cab9fc1e6d466dc7d444f`
 
-### Accepted Task 067 evidence
+### Accepted Task 068 evidence
 
-D1 lockfile reproducibility correction is accepted:
+- production fresh transaction begin is now fresh-only, after classification and before first fresh workspace mutation;
+- transaction commit is after ownership create + exact verify;
+- shared parent deletion bug was corrected: `<workspace>\skills` survives rollback/recovery;
+- Task 067 D1 lock/package correction remains accepted under npm 11.16.0 and npm 12.0.2;
+- implementation/report publication fence is correct.
 
-- plugin OpenClaw devDependency pinned to `2026.7.1-2`;
-- lock regenerated consistently;
-- clean npm 11.16.0 and npm 12.0.2 `npm ci` passed;
-- plugin validation/test/pack passed under both toolchains;
-- plugin remains v0.9.3.
+### Blocking findings
 
-Publication fence also passed: implementation and report are separate, and report commit is report-only.
+B1 — caught-failure coverage:
 
-### Blocking D2 findings
+`Invoke-FreshTransactionRollback` is invoked only on ownership manifest creation/verification failure. Earlier caught failures after transaction begin, including validation, host init, npm/plugin work and runtime provisioning, can still exit without same-run bounded rollback. The P3 test only checks helper existence and does not inject a production-path failure.
 
-1. Exact implementation diff shows `scripts/install.ps1` added only `recovery-preflight`; no `transaction-begin`, `transaction-record`, `transaction-commit`, or caught-failure rollback is wired into production.
-2. Fresh installer still creates/copies skill/state artifacts after classification without first creating the durable incomplete marker, so the Task-066 unmarked-residue dead end can recur.
-3. Current R1/R1b tests exercise the Python transaction API directly rather than production installer ordering, allowing the missing integration to pass.
-4. `rollback_transaction()`/`recovery_preflight()` can remove the shared `<workspace>\skills` parent after deleting the exact CNX skill root if that parent is empty. Shared parents are outside product deletion authority.
+B2 — application-data authority mismatch:
+
+Fresh production installer records `%LOCALAPPDATA%\CogentNexus-OpenClaw` when newly created, but `_validate_marker_boundary()` does not allow the exact application-data root in `createdPaths`. A legitimate transaction can therefore poison itself and later be rejected by rollback/recovery.
+
+B3 — pre-commit external effects:
+
+Any plugin/config/AGENTS effect created before ownership commit must either be safely reordered post-commit or have an exact supported inverse proven by fresh preflight; filesystem deletion alone must not leave a rerun dead end.
 
 ## Current live baseline
 
-Machine remains in accepted Task-066 native state: no CNX Supervisor task, launcher or plugin registration; Gateway/Ollama healthy; two Task-066 partial residue roots remain intentionally untouched and unowned.
+Machine remains in accepted Task-066 native state: no CNX Supervisor task, launcher or plugin registration; Gateway/Ollama healthy; Task-066 partial unowned residue remains intentionally untouched; AGENTS managed block absent.
 
-## Active Task 068
+## Active Task 069
 
-[`tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md`](tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md)
+[`tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md`](tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `INSTALLER_TRANSACTION_WIRING_REWORK_AUTHORIZED`
+Authorization: `FRESH_TRANSACTION_FAILURE_COVERAGE_REWORK_AUTHORIZED`
 
-Execution mode: `SOURCE_REWORK_TDD_PRODUCTION_INSTALLER_TRANSACTION`
+Execution mode: `SOURCE_REWORK_TDD_FRESH_TRANSACTION_FAILURE_COVERAGE`
 
-Task 068 must preserve the accepted D1 npm fix, wire transaction begin/record/rollback/commit into the actual fresh installer path, prove ordering with production installer-facing tests, and stop rollback at exact CNX-owned roots without deleting shared parent namespaces.
+Task 069 must establish a production-wide fresh pre-commit caught-failure boundary, make application-data transaction validation exact and consistent, reject unsafe record paths immediately, and leave no product external effect that makes a supported rerun dead-end.
 
 ## Live hard fence
 
-No live residue cleanup, install/uninstall/reset/lifecycle operation, Scheduled Task mutation, Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, primary workspace mutation, HermesAgent mutation, merge/tag/release.
+No live residue cleanup, install/install-over/uninstall/reset/lifecycle action, Scheduled Task mutation, Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, primary workspace mutation, HermesAgent mutation, merge/tag/release.
 
 ## Next gate
 
-If Task 068 reports `PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`, ChatGPT must independently review production call ordering, failure rollback, exact deletion boundary, npm 11/12 regressions, full tests and report-only publication fence.
+If Task 069 reports `PASS_FRESH_TRANSACTION_FAILURE_COVERAGE_CLOSED`, ChatGPT must independently review F1-F8, production failure boundary, application-data safety, external-effect recovery/reordering, npm 11/12 regressions, full tests and report-only publication fence.
 
-Only after acceptance may Task 069 perform the one-time bounded cleanup of the exact Task-066 residue and complete fresh installation, owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks and final MANAGED health acceptance.
+Only after acceptance may Task 070 perform the one-time bounded cleanup of the exact Task-066 residue and complete fresh installation, owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks and final MANAGED health acceptance.
