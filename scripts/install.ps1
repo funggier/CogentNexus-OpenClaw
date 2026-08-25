@@ -276,7 +276,16 @@ if (-not $SkipPlugin) {
 $launcher = Join-Path $Workspace "cnxclaw.cmd"
 $cliEscaped = $cliScript.Replace('"','""')
 $rootEscaped = $cogentNexusOpenClawRoot.Replace('"','""')
-$launcherText = "@echo off`r`npython `"$cliEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
+$ownedPython = (Join-Path $applicationDataRoot "runtime\python\Scripts\python.exe")
+if (-not (Test-Path $ownedPython)) {
+    # Provision the CogentNexus-owned runtime from a verified base interpreter
+    # before any durable launcher/task definition is written. Fail closed.
+    & python (Join-Path $targetSkill "scripts\runtime_authority.py") ensure-runtime --app-data $applicationDataRoot | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }
+}
+if (-not (Test-Path $ownedPython)) { throw "Owned runtime interpreter not found at $ownedPython after provisioning." }
+Write-Host "Owned runtime interpreter: $ownedPython"
+$launcherText = "@echo off`r`n`"$ownedPython`" `"$cliEscaped`" --root `"$rootEscaped`" %*`r`nexit /b %ERRORLEVEL%`r`n"
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 

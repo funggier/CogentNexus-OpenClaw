@@ -25,6 +25,22 @@ def save_policy(root,value):
     q.write_text(json.dumps({"schemaVersion":1,"policy":value,"updatedAt":datetime.now(timezone.utc).isoformat()},indent=2),encoding="utf-8")
     os.replace(q,p)
 def python_background():
+    """Return the CogentNexus-owned background interpreter.
+
+    Durable execution authority must never be registration-time
+    ``sys.executable`` (which can be an executor venv such as a coding
+    agent's). Delegate to the owned runtime authority; fall back to the
+    transient bootstrap sibling only when the owned runtime is not yet
+    provisioned (first install), so the installer can enable startup only
+    after provisioning succeeds.
+    """
+    try:
+        import runtime_authority
+        owned = runtime_authority.require_background_interpreter()
+        if owned.exists():
+            return owned
+    except Exception:
+        pass
     p=Path(sys.executable)
     q=p.with_name("pythonw.exe")
     return q if os.name=="nt" and q.exists() else p
@@ -112,7 +128,7 @@ def launchd_enable(root):
     if not shutil.which("launchctl"):raise RuntimeError("launchctl not found")
     before=launchd_status(); backup=backup_launchd(root)
     template=(SKILL/"templates"/"supervisor"/"ai.cogentnexus.openclaw.supervisor.plist").read_text(encoding="utf-8")
-    values={"{{PYTHON}}":str(sys.executable),"{{RUNTIME}}":str(host_control_path()),"{{ROOT}}":str(root)}
+    values={"{{PYTHON}}":str(python_background()),"{{RUNTIME}}":str(host_control_path()),"{{ROOT}}":str(root)}
     for k,v in values.items():template=template.replace(k,v)
     p=launchd_path();p.parent.mkdir(parents=True,exist_ok=True);p.write_text(template,encoding="utf-8")
     if before.get("loaded"): run(["launchctl","bootout",launchd_service()],timeout=30)
