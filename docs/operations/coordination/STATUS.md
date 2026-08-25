@@ -1,82 +1,88 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES_RESUME`
-**Updated:** 2026-08-25 23:08 ICT
+**State:** `READY_FOR_HERMES`
+**Updated:** 2026-08-25 23:25 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair, clean uninstall/fresh reinstall, and live runtime/no-flash acceptance
-**Execution trigger:** fresh manual Hermes continuation; scheduled execution remains disabled
+**Human authority:** operator authorized definitive repair through clean reinstall/live acceptance
+**Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 065 accepted
+## Task 066 review
 
-Task 065 report result:
+Task 066 result:
 
-`PASS_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`
+`BLOCKED_FRESH_INSTALL_FAILURE`
 
-Implementation HEAD:
+Report commit:
 
-`21686f70520c5e0263e8aea4d644d2c87324e872`
+`d6812dd90a6ca28557cf18b6008a88dbfe5fe926`
 
-Report HEAD:
+Independent review:
 
-`8c74686dfe4c6817e2dcc9cbe27e2a8670c24c76`
-
-Independent review decision:
-
-`ACCEPT`
+Decision `ACCEPT`
 
 Disposition:
 
-`ACCEPT_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`
+`ACCEPT_BLOCKER_FRESH_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY`
 
 Review commit:
 
-`f45f3c2c55828114026d07813ad447a5e4048b8e`
+`21971ff01142ac98c166dc196c47df7cec60f434`
 
-Accepted source findings:
+### Accepted Task 066 live evidence
 
-- production installer runtime-authority path is exact and verified;
-- runtime ensure/validation is unconditional on every install/install-over;
-- both owned foreground/background interpreter capability are validated;
-- post-provision MANAGED enable/status/ownership/doctor use owned Python;
-- Windows startup remains fail-closed with no registration-time `sys.executable` fallback;
-- installer-facing regression coverage passed in a complete isolated dev environment (`302 passed, 2 skipped, 0 failed`).
+- resume session proved the interrupted old Hermes session had not yet performed uninstall/install;
+- preservation preflight completed;
+- supported clean uninstall completed;
+- old Hermes-bound `CogentNexus-OpenClaw-Supervisor` task removed;
+- launcher, installed CNX skill/state/application-data, plugin registration/config and managed AGENTS block removed as expected;
+- OpenClaw Gateway remained native/healthy;
+- Ollama remained healthy with the same four models;
+- unrelated plugin/config state and AGENTS baseline were preserved;
+- fresh install failed and CogentNexus is not currently MANAGED/installed.
 
-## Task 066 executor-context interruption
+### Independently confirmed source blockers
 
-The prior Hermes session stopped because its active model request exceeded the primary provider request/context limit (`Request too large for gpt-5.6-luna in organization`). The configured local fallback `qwen3.5:9b` also became impractically slow under the oversized session. This is an executor-session/context failure, not evidence that CogentNexus or the Task 065 runtime fix failed.
+D1 — lockfile reproducibility:
 
-No Task 066 report exists on the coordination branch. The last operator-visible Hermes message showed successful Task 066 preflight and entry into Phase A evidence collection, but that message is not sufficient proof of the final live state.
+`plugins/cogentnexus-openclaw/package-lock.json` records `openclaw/node_modules/@types/retry` `0.12.5`, while `openclaw/node_modules/p-retry@4.6.2` declares exact `@types/retry` `0.12.0`. npm 12 correctly rejects the inconsistent lock.
 
-Task 066 therefore remains active and must resume in a **fresh Hermes session**. The fresh executor must read `ACTIVE.md`, `STATUS.md`, and the Task 066 task file, then inspect the actual live machine before any destructive or lifecycle action. It must determine whether uninstall or install already happened and must never repeat a completed disruptive effect.
+D2 — partial-install recovery:
 
-## Active Task 066
+`namespace_ownership.py::classify_install()` treats any new-namespace inventory as upgrade and immediately requires a valid ownership manifest. A failed fresh install that creates state/skill before `ownership.json` therefore cannot be retried or supported-uninstalled.
 
-[`tasks/CNX-20260825-066-clean-reinstall-owned-runtime-live-acceptance.md`](tasks/CNX-20260825-066-clean-reinstall-owned-runtime-live-acceptance.md)
+## Current live baseline
 
-Status: `READY_FOR_HERMES_RESUME`
+The machine is in native OpenClaw operation with no CogentNexus supervisor task, no launcher and no registered CNX plugin. The flash-producing old PT1M Hermes interpreter chain is gone. Two Task-066-created partial residue roots remain in the workspace and intentionally remain untouched until a corrected source path is accepted.
 
-Authorization: `CLEAN_REINSTALL_AND_LIVE_RUNTIME_ACCEPTANCE_AUTHORIZED`
+This is NOT final no-flash acceptance because a fresh CogentNexus supervisor has not yet been installed and observed.
 
-Execution mode: `LIVE_CLEAN_REINSTALL_WITH_PRESERVATION_AND_MULTI_TICK_ACCEPTANCE`
+## Active Task 067
 
-Task 066 must, from the actual recovered phase:
+[`tasks/CNX-20260825-067-repair-install-reproducibility-and-partial-recovery.md`](tasks/CNX-20260825-067-repair-install-reproducibility-and-partial-recovery.md)
 
-- capture/preserve fresh evidence still required;
-- run supported clean uninstall only if not already completed;
-- prove only CogentNexus-owned state is removed and OpenClaw/Ollama/unrelated configuration remains healthy;
-- install from exact reviewed implementation commit `21686f70520c5e0263e8aea4d644d2c87324e872` only if not already completed;
-- prove durable launcher/task interpreter authority is under `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python` and contains no Hermes/Codex/agent venv path;
-- observe at least three natural PT1M supervisor ticks with bounded process-start evidence and require no causal `conhost.exe`/console trampoline;
-- verify final MANAGED/Gateway/Ollama/plugin/ownership/AGENTS/SQLite health.
+Status: `READY_FOR_HERMES`
 
-## Live mutation boundary
+Authorization: `INSTALL_REPRODUCIBILITY_AND_RECOVERY_REPAIR_AUTHORIZED`
 
-Task 066 may perform only supported CogentNexus uninstall/install and their intended lifecycle/plugin/Gateway effects, plus bounded read-only diagnostics.
+Execution mode: `SOURCE_REPAIR_TDD_INSTALL_REPRODUCIBILITY_AND_RECOVERY`
 
-No manual broad cleanup, source edits, reboot/power-cycle, provider/model change, HermesAgent mutation, merge/tag/release, or unrelated OpenClaw/Ollama mutation is authorized.
+Task 067 must:
 
-If supported uninstall/install exposes a defect, stop and report rather than masking it.
+- reproduce npm 12 lock rejection RED;
+- make clean `npm ci` pass under npm 11.16.0 and 12.0.2 without relying on an older permissive installer npm;
+- keep OpenClaw target pinned/reproducible at 2026.7.1-2 for this branch;
+- add a durable fresh-install transaction/recovery contract before residue-capable mutation;
+- prove caught-failure rollback, crash/rerun recovery, successful commit transition, malicious/out-of-bound marker rejection and unmarked-residue fail-closed behavior;
+- run full Python/Node/plugin/canonical validation;
+- make no live product mutation;
+- publish implementation and report separately.
+
+## Live hard fence
+
+No current residue cleanup, install/uninstall/reset/lifecycle action, Scheduled Task mutation, Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, primary workspace mutation, merge/tag/release, or HermesAgent mutation is authorized in Task 067.
 
 ## Next gate
 
-Hermes publishes only the matching Task 066 report. ChatGPT reviews the preservation fence, clean-uninstall contract, exact install-source provenance, owned-runtime binding, three-tick no-flash evidence, post-install health, and report-only publication fence before accepting live repair.
+If Task 067 reports `PASS_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY_FIXED`, ChatGPT independently reviews source, RED/GREEN evidence, both npm clean-install results, recovery safety, full tests and report-only publication fence.
+
+Only after acceptance may Task 068 perform bounded one-time cleanup of the exact Task-066 residue and complete fresh install, owned-runtime/no-Hermes binding, three natural no-flash ticks, and final MANAGED health acceptance.
