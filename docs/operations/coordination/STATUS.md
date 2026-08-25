@@ -1,88 +1,78 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-25 23:25 ICT
+**Updated:** 2026-08-26 03:16 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through clean reinstall/live acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 066 review
+## Task 067 review
 
-Task 066 result:
+Task 067 result:
 
-`BLOCKED_FRESH_INSTALL_FAILURE`
+`PASS_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY_FIXED`
 
-Report commit:
+Implementation HEAD:
 
-`d6812dd90a6ca28557cf18b6008a88dbfe5fe926`
+`ec51d7b20c228070a95a6cf0987cebd7e71cbfaf`
+
+Report HEAD:
+
+`30075a3a3e646f24e0144f74aac9104c0ce1e888`
 
 Independent review:
 
-Decision `ACCEPT`
+Decision `REWORK`
 
 Disposition:
 
-`ACCEPT_BLOCKER_FRESH_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY`
+`REWORK_INSTALLER_TRANSACTION_NOT_WIRED_AND_ROLLBACK_PARENT_BOUNDARY`
 
 Review commit:
 
-`21971ff01142ac98c166dc196c47df7cec60f434`
+`38b46a4e78a9a2a2bcfc2c2cbaa230d888f7312c`
 
-### Accepted Task 066 live evidence
+### Accepted Task 067 evidence
 
-- resume session proved the interrupted old Hermes session had not yet performed uninstall/install;
-- preservation preflight completed;
-- supported clean uninstall completed;
-- old Hermes-bound `CogentNexus-OpenClaw-Supervisor` task removed;
-- launcher, installed CNX skill/state/application-data, plugin registration/config and managed AGENTS block removed as expected;
-- OpenClaw Gateway remained native/healthy;
-- Ollama remained healthy with the same four models;
-- unrelated plugin/config state and AGENTS baseline were preserved;
-- fresh install failed and CogentNexus is not currently MANAGED/installed.
+D1 lockfile reproducibility correction is accepted:
 
-### Independently confirmed source blockers
+- plugin OpenClaw devDependency pinned to `2026.7.1-2`;
+- lock regenerated consistently;
+- clean npm 11.16.0 and npm 12.0.2 `npm ci` passed;
+- plugin validation/test/pack passed under both toolchains;
+- plugin remains v0.9.3.
 
-D1 — lockfile reproducibility:
+Publication fence also passed: implementation and report are separate, and report commit is report-only.
 
-`plugins/cogentnexus-openclaw/package-lock.json` records `openclaw/node_modules/@types/retry` `0.12.5`, while `openclaw/node_modules/p-retry@4.6.2` declares exact `@types/retry` `0.12.0`. npm 12 correctly rejects the inconsistent lock.
+### Blocking D2 findings
 
-D2 — partial-install recovery:
-
-`namespace_ownership.py::classify_install()` treats any new-namespace inventory as upgrade and immediately requires a valid ownership manifest. A failed fresh install that creates state/skill before `ownership.json` therefore cannot be retried or supported-uninstalled.
+1. Exact implementation diff shows `scripts/install.ps1` added only `recovery-preflight`; no `transaction-begin`, `transaction-record`, `transaction-commit`, or caught-failure rollback is wired into production.
+2. Fresh installer still creates/copies skill/state artifacts after classification without first creating the durable incomplete marker, so the Task-066 unmarked-residue dead end can recur.
+3. Current R1/R1b tests exercise the Python transaction API directly rather than production installer ordering, allowing the missing integration to pass.
+4. `rollback_transaction()`/`recovery_preflight()` can remove the shared `<workspace>\skills` parent after deleting the exact CNX skill root if that parent is empty. Shared parents are outside product deletion authority.
 
 ## Current live baseline
 
-The machine is in native OpenClaw operation with no CogentNexus supervisor task, no launcher and no registered CNX plugin. The flash-producing old PT1M Hermes interpreter chain is gone. Two Task-066-created partial residue roots remain in the workspace and intentionally remain untouched until a corrected source path is accepted.
+Machine remains in accepted Task-066 native state: no CNX Supervisor task, launcher or plugin registration; Gateway/Ollama healthy; two Task-066 partial residue roots remain intentionally untouched and unowned.
 
-This is NOT final no-flash acceptance because a fresh CogentNexus supervisor has not yet been installed and observed.
+## Active Task 068
 
-## Active Task 067
-
-[`tasks/CNX-20260825-067-repair-install-reproducibility-and-partial-recovery.md`](tasks/CNX-20260825-067-repair-install-reproducibility-and-partial-recovery.md)
+[`tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md`](tasks/CNX-20260826-068-wire-installer-transaction-and-tighten-rollback-boundary.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `INSTALL_REPRODUCIBILITY_AND_RECOVERY_REPAIR_AUTHORIZED`
+Authorization: `INSTALLER_TRANSACTION_WIRING_REWORK_AUTHORIZED`
 
-Execution mode: `SOURCE_REPAIR_TDD_INSTALL_REPRODUCIBILITY_AND_RECOVERY`
+Execution mode: `SOURCE_REWORK_TDD_PRODUCTION_INSTALLER_TRANSACTION`
 
-Task 067 must:
-
-- reproduce npm 12 lock rejection RED;
-- make clean `npm ci` pass under npm 11.16.0 and 12.0.2 without relying on an older permissive installer npm;
-- keep OpenClaw target pinned/reproducible at 2026.7.1-2 for this branch;
-- add a durable fresh-install transaction/recovery contract before residue-capable mutation;
-- prove caught-failure rollback, crash/rerun recovery, successful commit transition, malicious/out-of-bound marker rejection and unmarked-residue fail-closed behavior;
-- run full Python/Node/plugin/canonical validation;
-- make no live product mutation;
-- publish implementation and report separately.
+Task 068 must preserve the accepted D1 npm fix, wire transaction begin/record/rollback/commit into the actual fresh installer path, prove ordering with production installer-facing tests, and stop rollback at exact CNX-owned roots without deleting shared parent namespaces.
 
 ## Live hard fence
 
-No current residue cleanup, install/uninstall/reset/lifecycle action, Scheduled Task mutation, Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, primary workspace mutation, merge/tag/release, or HermesAgent mutation is authorized in Task 067.
+No live residue cleanup, install/uninstall/reset/lifecycle operation, Scheduled Task mutation, Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, primary workspace mutation, HermesAgent mutation, merge/tag/release.
 
 ## Next gate
 
-If Task 067 reports `PASS_INSTALL_REPRODUCIBILITY_AND_PARTIAL_RECOVERY_FIXED`, ChatGPT independently reviews source, RED/GREEN evidence, both npm clean-install results, recovery safety, full tests and report-only publication fence.
+If Task 068 reports `PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`, ChatGPT must independently review production call ordering, failure rollback, exact deletion boundary, npm 11/12 regressions, full tests and report-only publication fence.
 
-Only after acceptance may Task 068 perform bounded one-time cleanup of the exact Task-066 residue and complete fresh install, owned-runtime/no-Hermes binding, three natural no-flash ticks, and final MANAGED health acceptance.
+Only after acceptance may Task 069 perform the one-time bounded cleanup of the exact Task-066 residue and complete fresh installation, owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks and final MANAGED health acceptance.
