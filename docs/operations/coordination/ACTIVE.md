@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_FIX_WITH_READ_ONLY_FLASH_DIAGNOSIS`
-Current authorization: `OWNED_RUNTIME_AND_FLASH_FIX_AUTHORIZED`
-Task ID: `CNX-20260825-063`
-Updated: 2026-08-25 18:15 ICT
+Execution mode: `SOURCE_REWORK_TDD_WINDOWS_INTEGRATION`
+Current authorization: `RUNTIME_AUTHORITY_REWORK_AUTHORIZED`
+Task ID: `CNX-20260825-064`
+Updated: 2026-08-25 18:58 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's manual continuation signal
 
@@ -15,69 +15,58 @@ Only:
 - `docs/operations/coordination/ACTIVE.md`
 - `docs/operations/coordination/STATUS.md`
 
-`docs/operations/STATUS.md` remains project narrative and is not a Task 063 execution gate.
+`docs/operations/STATUS.md` remains project narrative and is not a coordination gate.
 
 ## Active task
 
-[`tasks/CNX-20260825-063-own-supervisor-runtime-and-eliminate-console-flash.md`](tasks/CNX-20260825-063-own-supervisor-runtime-and-eliminate-console-flash.md)
+[`tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md`](tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md)
 
-## Accepted predecessor
+## Predecessor review
 
-Task 062 result:
+Task 063 reported:
 
-`DIAGNOSIS_COMPLETE_ROOT_CAUSE_BOUND`
+`PASS_OWNED_RUNTIME_AND_FLASH_FIX_IMPLEMENTED`
 
-Task 062 report commit:
+Implementation/report commit:
 
-`13ee5ddb5d88a9deb657f325026611286b1b2e33`
+`5962383ac8e16b1336e0af78f659e2f5fa29dd97`
 
-Task 062 review disposition:
+Independent review decision:
 
-`ACCEPT_DIAGNOSIS_ROOT_CAUSE_BOUND_WITH_MULTI_REBOOT_SCOPE_CORRECTION`
+`REWORK`
 
-Task 062 review commit:
+Disposition:
 
-`28947721cb002304d638536c5c143e919116ad77`
+`REWORK_WINDOWS_RUNTIME_AUTHORITY_INTEGRATION_DEFECTS`
 
-Task 062 bound F1 to managed-block blank-line strip verification and F2 to `CONFIG_READ_SURFACE_MISMATCH`. No live AGENTS/config repair is required.
+Review commit:
 
-## Current defect
+`ba4e03ca7d5719075daba23a9dad3a2f89a76bc7`
 
-The live Windows supervisor task is durably coupled to:
+The accepted Task 063 diagnosis remains `FLASH_CHILD_PROCESS`, but live reinstall is blocked because the source implementation contains Windows runtime-authority defects: invalid `pythonw.exe` Path construction, duplicated application-data-root semantics, and a startup fallback that can re-persist an executor venv.
 
-`C:\Users\CDQ-P\AppData\Local\hermes\hermes-agent\venv\Scripts\pythonw.exe`
+## Authorized Task 064 operation
 
-because startup registration persists registration-time `sys.executable` semantics. The operator also reports a recurring visible window/console flash correlated with the periodic supervisor cadence.
+Task 064 is source/tests only. It must use strict TDD and executable Windows/temp-boundary integration tests to correct the runtime authority before any live installation change.
 
-CogentNexus must not depend on Hermes/another executor venv for durable runtime ownership, and periodic supervision must be genuinely background/no-console.
+Required outcomes include:
 
-## Authorized Task 063 operation
-
-Task 063 may:
-
-- observe at least two natural supervisor intervals with a bounded read-only process-start trace to bind the flashing process;
-- edit only a fresh isolated repository clone;
-- use strict TDD to implement a CogentNexus-owned Python runtime authority under the product application-data boundary;
-- update installer/launcher/startup ownership so durable execution does not use ambient bare `python` or registration-time arbitrary venv paths;
-- harden Windows subprocess creation on the healthy supervisor path where evidence/source audit requires it;
-- add/update tests for runtime provisioning, launcher/startup binding, no-console semantics, uninstall/reset/install-over ownership;
-- run focused/full tests and validations;
-- publish only the matching Task 063 report.
+- exact `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python` ownership with no duplicated product directory;
+- valid owned `python.exe` and `pythonw.exe` provisioning from a verified non-venv base interpreter;
+- Windows startup registration fails closed when owned runtime is missing/corrupt and never falls back to Hermes/Codex/agent `sys.executable`;
+- generated launcher and task-definition contracts execute/reference the exact owned interpreters;
+- normal non-mutating CogentNexus CLI/control import/start path runs successfully under the owned runtime;
+- developer test dependencies are installed only in an isolated test venv and full canonical tests are rerun;
+- implementation commit(s) and a separate report-only publication commit.
 
 ## Live hard fence
 
-Task 063 must not modify the current installation, Scheduled Task, Gateway, Ollama, plugin/config, AGENTS, ownership, SQLite, or lifecycle state. No install-over/uninstall/reinstall occurs until ChatGPT reviews the source report.
+No current CogentNexus lifecycle mutation, install/install-over/uninstall/reset, Scheduled Task change/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite write, process termination, primary-workspace Git mutation, merge, tag, or release.
+
+All provisioning tests must use temporary application-data roots outside the live product root.
 
 ## Pre-authorized successor
 
 The operator explicitly requested a definitive repair followed by clean removal and fresh installation.
 
-If Task 063 source implementation is reviewed and accepted, a separate successor is already authorized to perform a bounded supported clean uninstall and reinstall of the reviewed fixed release path, then verify:
-
-- no Hermes/agent venv dependency;
-- CogentNexus-owned launcher and supervisor runtime;
-- no recurring visible console/window flash across multiple natural supervisor ticks;
-- preserved unrelated OpenClaw/Ollama/user state;
-- healthy MANAGED/plugin/Gateway/Ollama/ownership/SQLite state.
-
-No additional operator confirmation is required for that exact bounded successor.
+If Task 064 is independently reviewed and accepted as `PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`, a separate successor may clean-uninstall the current installation and fresh-install the reviewed corrected build without asking for additional confirmation, while preserving unrelated OpenClaw/Ollama/user state and verifying no Hermes dependency or recurring console flash across natural supervisor ticks.
