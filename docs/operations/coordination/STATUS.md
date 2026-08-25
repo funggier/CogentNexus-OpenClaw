@@ -1,91 +1,74 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-25 18:15 ICT
+**Updated:** 2026-08-25 18:58 ICT
 **Transport:** GitHub repository history
-**Human authority:** Task 062 diagnosis accepted; operator authorized definitive owned-runtime/flash fix and clean reinstall successor
+**Human authority:** operator authorized definitive owned-runtime/flash repair and subsequent clean uninstall/fresh reinstall
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 062 accepted
+## Task 063 review
 
-Task `CNX-20260825-062` result:
+Task 063 report result:
 
-`DIAGNOSIS_COMPLETE_ROOT_CAUSE_BOUND`
+`PASS_OWNED_RUNTIME_AND_FLASH_FIX_IMPLEMENTED`
 
-Report commit:
+Implementation/report commit:
 
-`13ee5ddb5d88a9deb657f325026611286b1b2e33`
+`5962383ac8e16b1336e0af78f659e2f5fa29dd97`
 
-Review decision:
+Independent review decision:
 
-`ACCEPT`
+`REWORK`
 
-Review disposition:
+Disposition:
 
-`ACCEPT_DIAGNOSIS_ROOT_CAUSE_BOUND_WITH_MULTI_REBOOT_SCOPE_CORRECTION`
+`REWORK_WINDOWS_RUNTIME_AUTHORITY_INTEGRATION_DEFECTS`
 
 Review commit:
 
-`28947721cb002304d638536c5c143e919116ad77`
+`ba4e03ca7d5719075daba23a9dad3a2f89a76bc7`
 
-Accepted conclusions:
+### Accepted Task 063 evidence
 
-- F1 is a verification-strip boundary issue, not live AGENTS corruption;
-- F2 is `CONFIG_READ_SURFACE_MISMATCH`; full managed config persisted under the plugin entry and survived reboot;
-- latest observed boot recovered Gateway/supervisor/plugin health automatically and SQLite remained intact/empty;
-- multiple reboot boundaries occurred, so only latest-boot recovery is individually evidenced;
-- installed Scheduled Task currently depends on the Hermes-agent venv `pythonw.exe` due registration-time interpreter persistence.
+The bounded live process trace is accepted as:
 
-## Active Task 063
+`FLASH_CHILD_PROCESS`
 
-[`tasks/CNX-20260825-063-own-supervisor-runtime-and-eliminate-console-flash.md`](tasks/CNX-20260825-063-own-supervisor-runtime-and-eliminate-console-flash.md)
+The currently installed Hermes/uv venv `pythonw.exe` path produces console-subsystem child/base-Python transitions and `conhost.exe` on natural PT1M supervisor ticks. Task 063 did not mutate the live installation.
+
+### Blocking implementation findings
+
+Task 063 source cannot be installed live yet:
+
+1. Windows `runtime_authority._interpreter_paths()` divides a `Path` by the tuple `("pythonw.exe",)`, which breaks real Windows background-interpreter provisioning.
+2. installer passes an already-complete `%LOCALAPPDATA%\CogentNexus-OpenClaw` root to a CLI surface that treats the value as `LOCALAPPDATA` and appends `CogentNexus-OpenClaw` again; fresh provisioning and installer validation target different directories.
+3. `startup.py::python_background()` silently falls back to registration-time `sys.executable`/sibling `pythonw.exe` on owned-runtime failure, recreating the original Hermes/Codex/agent-venv persistence defect.
+4. focused tests relied too heavily on source-string assertions and did not execute the failing Windows provisioning/startup integration paths. The full unittest environment also lacked `pytest` imports.
+
+Therefore the pre-authorized clean reinstall gate is not satisfied yet.
+
+## Active Task 064
+
+[`tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md`](tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md)
 
 Status: `READY_FOR_HERMES`
 
-Current authorization: `OWNED_RUNTIME_AND_FLASH_FIX_AUTHORIZED`
+Authorization: `RUNTIME_AUTHORITY_REWORK_AUTHORIZED`
 
-Execution mode: `SOURCE_FIX_WITH_READ_ONLY_FLASH_DIAGNOSIS`
+Execution mode: `SOURCE_REWORK_TDD_WINDOWS_INTEGRATION`
 
-## Task 063 objectives
+Task 064 must correct B1-B4 with strict RED/GREEN TDD and real temporary Windows runtime provisioning outside the live product root. It must prove the exact product-root contract, valid foreground/background interpreters, manifest ancestry validation, startup fail-closed behavior, exact owned task/launcher command generation, and a non-mutating CogentNexus CLI/control start/import under the owned runtime.
 
-Task 063 must solve both related Windows startup defects before any live reinstall:
+Developer dependencies from `requirements-dev.txt` must be installed only in an isolated test environment; focused and complete repository tests/canonical validators must be rerun fresh.
 
-1. **Runtime ownership:** durable launcher/supervisor execution must use a CogentNexus-owned runtime under the product application-data boundary, not Hermes/Codex/agent venv or ambient PATH Python.
-2. **Visible flash:** bind the recurring visible window/console to an exact natural supervisor process-start path and ensure healthy periodic supervision is genuinely background/no-console.
+Implementation/tests must be committed separately from a final report-only commit.
 
-The task uses strict TDD and source/tests only after a bounded read-only live process-start observation.
+## Live hard fence
 
-Required implementation properties include:
-
-- product-owned Python runtime provisioning/manifest;
-- generated `cnxclaw.cmd` using the exact owned foreground interpreter, not bare `python`;
-- Windows Scheduled Task using product-owned `pythonw.exe` where available;
-- no silent fallback to arbitrary registration-time venv;
-- Windows supervisor child process creation uses no-console semantics where required;
-- reset/uninstall/install-over ownership is updated so the runtime can be safely recreated/removed only within CogentNexus boundaries;
-- startup v0.9.2 target remains `host_control_v092.py`.
-
-## Live-state fence
-
-No lifecycle mutation, install-over, uninstall/reinstall, Scheduled Task change/run/end, plugin/config/AGENTS/ownership/SQLite write, Gateway/Ollama/provider change, process kill, merge/tag/release publication, or primary workspace Git mutation is authorized in Task 063.
-
-## Pre-authorized clean reinstall successor
-
-The operator explicitly requested that the defect be fixed definitively and the current installation then be removed and installed fresh.
-
-After ChatGPT accepts a Task 063 PASS, a separate successor may proceed without asking for another confirmation to:
-
-- prepare/use the reviewed fixed release path;
-- capture preservation evidence;
-- run supported clean uninstall with the command's required confirmation;
-- prove only CogentNexus-owned surfaces are removed;
-- fresh-install the fixed release;
-- prove launcher + supervisor are bound to the CogentNexus-owned runtime and not Hermes/agent state;
-- observe multiple natural supervisor ticks with no visible-console child process;
-- verify MANAGED/Gateway/Ollama/plugin/ownership/SQLite health.
-
-The successor must still stop and report on any unexpected preservation or safety contradiction rather than deleting foreign state.
+No current install/install-over/uninstall/reset, `cnxclaw` lifecycle mutation, Scheduled Task create/update/delete/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite mutation, process termination, primary workspace Git mutation, merge/tag/release, or HermesAgent project change is authorized in Task 064.
 
 ## Next gate
 
-Hermes publishes only the matching Task 063 implementation report. ChatGPT reviews source diff, RED/GREEN/full tests, flash trace, ownership semantics, and publication fence before any live reinstall begins.
+If Task 064 reports `PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`, ChatGPT must independently inspect the source diff, executable Windows integration evidence, focused/full tests, and report-only publication fence.
+
+Only after that acceptance does the operator's pre-authorization permit the next bounded task to clean-uninstall the current CogentNexus-OpenClaw and fresh-install the reviewed corrected build, then verify no Hermes dependency and no recurring visible console flash across natural supervisor ticks.
