@@ -1,20 +1,24 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-25 18:58 ICT
+**Updated:** 2026-08-25 19:28 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive owned-runtime/flash repair and subsequent clean uninstall/fresh reinstall
+**Human authority:** operator authorized definitive repair and subsequent clean uninstall/fresh reinstall
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 063 review
+## Task 064 review
 
-Task 063 report result:
+Task 064 report result:
 
-`PASS_OWNED_RUNTIME_AND_FLASH_FIX_IMPLEMENTED`
+`PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`
 
-Implementation/report commit:
+Implementation HEAD:
 
-`5962383ac8e16b1336e0af78f659e2f5fa29dd97`
+`6e4245112a38dab3e6614e6f91d3e37ac85f2afe`
+
+Report HEAD:
+
+`f3a4731b87f8a530dd71eed3826a93f963a9de34`
 
 Independent review decision:
 
@@ -22,53 +26,49 @@ Independent review decision:
 
 Disposition:
 
-`REWORK_WINDOWS_RUNTIME_AUTHORITY_INTEGRATION_DEFECTS`
+`REWORK_INSTALLER_RUNTIME_AUTHORITY_EXECUTION_GAPS`
 
 Review commit:
 
-`ba4e03ca7d5719075daba23a9dad3a2f89a76bc7`
+`5fe706d89f41083fda37d2032c17bc0ba6e1d353`
 
-### Accepted Task 063 evidence
+### Accepted Task 064 evidence
 
-The bounded live process trace is accepted as:
+- implementation/report commits are correctly separated;
+- exact product-root semantics and Windows interpreter Path construction were materially improved;
+- Windows startup interpreter selection now fails closed instead of intentionally falling back to registration-time `sys.executable`;
+- real temp-owned-runtime coverage was added;
+- isolated dev environment reported `295 passed, 2 skipped`;
+- no live installation mutation occurred;
+- accepted Task 063 flash diagnosis remains `FLASH_CHILD_PROCESS`.
 
-`FLASH_CHILD_PROCESS`
+### Blocking review findings
 
-The currently installed Hermes/uv venv `pythonw.exe` path produces console-subsystem child/base-Python transitions and `conhost.exe` on natural PT1M supervisor ticks. Task 063 did not mutate the live installation.
+Live reinstall remains blocked because:
 
-### Blocking implementation findings
+1. the production `scripts/install.ps1` committed at Task 064 contains a literal newline inside the `scripts\runtime_authority.py` path, so fresh runtime provisioning would call an invalid path;
+2. production installer invokes `ensure-runtime` only when `$ownedPython` is absent, so stale/corrupt runtime state can bypass validation/repair;
+3. after provisioning, MANAGED enable/status and other stdlib-capable product Python operations still use ambient bare `python` rather than the established owned runtime;
+4. Task 064 tests execute `runtime_authority` and intended launcher shapes but do not exercise the failed production installer-facing boundary, so the above defects escaped the 295-pass suite.
 
-Task 063 source cannot be installed live yet:
+## Active Task 065
 
-1. Windows `runtime_authority._interpreter_paths()` divides a `Path` by the tuple `("pythonw.exe",)`, which breaks real Windows background-interpreter provisioning.
-2. installer passes an already-complete `%LOCALAPPDATA%\CogentNexus-OpenClaw` root to a CLI surface that treats the value as `LOCALAPPDATA` and appends `CogentNexus-OpenClaw` again; fresh provisioning and installer validation target different directories.
-3. `startup.py::python_background()` silently falls back to registration-time `sys.executable`/sibling `pythonw.exe` on owned-runtime failure, recreating the original Hermes/Codex/agent-venv persistence defect.
-4. focused tests relied too heavily on source-string assertions and did not execute the failing Windows provisioning/startup integration paths. The full unittest environment also lacked `pytest` imports.
-
-Therefore the pre-authorized clean reinstall gate is not satisfied yet.
-
-## Active Task 064
-
-[`tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md`](tasks/CNX-20260825-064-correct-windows-runtime-authority-integration.md)
+[`tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md`](tasks/CNX-20260825-065-close-installer-runtime-authority-gaps.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `RUNTIME_AUTHORITY_REWORK_AUTHORIZED`
+Authorization: `INSTALLER_RUNTIME_AUTHORITY_CLOSURE_AUTHORIZED`
 
-Execution mode: `SOURCE_REWORK_TDD_WINDOWS_INTEGRATION`
+Execution mode: `SOURCE_REWORK_TDD_INSTALLER_INTEGRATION`
 
-Task 064 must correct B1-B4 with strict RED/GREEN TDD and real temporary Windows runtime provisioning outside the live product root. It must prove the exact product-root contract, valid foreground/background interpreters, manifest ancestry validation, startup fail-closed behavior, exact owned task/launcher command generation, and a non-mutating CogentNexus CLI/control start/import under the owned runtime.
-
-Developer dependencies from `requirements-dev.txt` must be installed only in an isolated test environment; focused and complete repository tests/canonical validators must be rerun fresh.
-
-Implementation/tests must be committed separately from a final report-only commit.
+Task 065 is deliberately narrow: repair the exact installer path, make runtime ensure/validation unconditional before durable definitions, validate both owned interpreters, move safe post-provision product operations to `$ownedPython`, and add installer-facing RED/GREEN coverage that fails on the current production source rather than a duplicated intended representation.
 
 ## Live hard fence
 
-No current install/install-over/uninstall/reset, `cnxclaw` lifecycle mutation, Scheduled Task create/update/delete/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite mutation, process termination, primary workspace Git mutation, merge/tag/release, or HermesAgent project change is authorized in Task 064.
+No current install/install-over/uninstall/reset, lifecycle mutation, Scheduled Task create/update/delete/run/end, Gateway/Ollama/provider/plugin/config/AGENTS/ownership/SQLite mutation, process termination, primary workspace Git mutation, merge/tag/release, or HermesAgent project mutation is authorized in Task 065.
 
 ## Next gate
 
-If Task 064 reports `PASS_WINDOWS_RUNTIME_AUTHORITY_REWORK_VERIFIED`, ChatGPT must independently inspect the source diff, executable Windows integration evidence, focused/full tests, and report-only publication fence.
+If Task 065 reports `PASS_INSTALLER_RUNTIME_AUTHORITY_GAPS_CLOSED`, ChatGPT must independently inspect the implementation diff, installer-facing executable evidence, focused/full tests, and report-only publication fence.
 
-Only after that acceptance does the operator's pre-authorization permit the next bounded task to clean-uninstall the current CogentNexus-OpenClaw and fresh-install the reviewed corrected build, then verify no Hermes dependency and no recurring visible console flash across natural supervisor ticks.
+Only after that acceptance does the operator's existing authorization permit the next bounded task to clean-uninstall the current CogentNexus-OpenClaw and fresh-install the reviewed build, then verify no Hermes dependency and no recurring visible console flash across multiple natural supervisor ticks.
