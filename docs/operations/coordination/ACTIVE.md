@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_REWORK_TDD_FRESH_TRANSACTION_FAILURE_COVERAGE`
-Current authorization: `FRESH_TRANSACTION_FAILURE_COVERAGE_REWORK_AUTHORIZED`
-Task ID: `CNX-20260826-069`
-Updated: 2026-08-26 05:57 ICT
+Execution mode: `SOURCE_REWORK_TDD_INSTALLER_MODE_ISOLATION`
+Current authorization: `INSTALLER_MODE_ISOLATION_REWORK_AUTHORIZED`
+Task ID: `CNX-20260826-070`
+Updated: 2026-08-26 11:24 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,21 +19,21 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md`](tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md)
+[`tasks/CNX-20260826-070-restore-nonfresh-installer-mode-isolation.md`](tasks/CNX-20260826-070-restore-nonfresh-installer-mode-isolation.md)
 
-## Task 068 review
+## Task 069 review
 
-Task 068 reported:
+Task 069 reported:
 
-`PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`
+`PASS_FRESH_TRANSACTION_FAILURE_COVERAGE_CLOSED`
 
 Implementation HEAD:
 
-`2a0ca9fd9abda07765e3da222f7fc4d7730d3d30`
+`7f48bb803fe3ca46b7a786e50abe8df22da857fc`
 
 Report HEAD:
 
-`3fc596a394fa2167d6c50e1672294c355120e809`
+`fee1a44b5e2212e3b21f627c57e943eb3154878c`
 
 Independent review decision:
 
@@ -41,28 +41,34 @@ Independent review decision:
 
 Disposition:
 
-`REWORK_CAUGHT_FAILURE_AND_APPLICATION_DATA_TRANSACTION_GAPS`
+`REWORK_NONFRESH_INSTALL_MODE_ABORT_REGRESSION`
 
 Review commit:
 
-`ad914838420028b4170cab9fc1e6d466dc7d444f`
+`a9112161391a2696733f1c09d1721e8611ab843a`
 
-## Accepted Task 068 portions
+## Accepted Task 069 portions
 
 Preserve:
 
-- fresh-only transaction begin after classification and before first fresh workspace mutation;
-- transaction record call sites for state/skill/launcher/application-data;
-- commit after ownership create + exact verify;
-- exact-root rollback no longer removes shared `<workspace>\skills` parent;
-- accepted Task 067 npm 11/npm 12 lockfile fix;
-- separate report-only publication fence.
+- fresh pre-commit caught-failure boundary concept;
+- exact application-data transaction authority and preexisting-root preservation;
+- record-time unsafe path rejection;
+- supported fresh plugin inverse;
+- AGENTS policy moved post-transaction-commit;
+- exact-root/shared-parent rollback safety;
+- npm 11/npm 12 reproducibility and exact OpenClaw `2026.7.1-2` pin;
+- implementation/report publication fence.
 
-## Blocking findings
+## Blocking finding
 
-1. Caught fresh failures before ownership create/verify still bypass rollback; P3 only proves the rollback helper exists rather than injecting a real early production-path failure.
-2. Fresh installer records `%LOCALAPPDATA%\CogentNexus-OpenClaw`, but marker validation does not allow the exact application-data product root, so a legitimate marker can reject its own rollback/recovery.
-3. Any unavoidable pre-commit product external effect, especially fresh plugin registration, must be reordered post-commit where safe or have a supported bounded inverse so rerun does not dead-end.
+Task 069 inserted a sentinel inside the shared installer try block:
+
+`if (-not $isFreshTransaction) { throw "__UPGRADE_PASSTHROUGH__" }`
+
+The catch converts that into `Non-fresh install cannot use the fresh transaction failure boundary.`
+
+Therefore every coherent upgrade or legacy install aborts before the existing installer body can run. Fresh rollback behavior improved, but install-over/upgrade and legacy migration were regressed.
 
 ## Current live condition
 
@@ -72,12 +78,13 @@ Preserve the accepted Task-066 native state:
 - no launcher/plugin registration;
 - OpenClaw Gateway native/healthy;
 - Ollama healthy;
-- Task-066 partial workspace residue remains intentionally untouched and has no valid ownership manifest;
+- Task-066 partial unowned workspace residue remains intentionally untouched;
+- no valid ownership manifest;
 - AGENTS managed block absent.
 
-## Authorized Task 069 operation
+## Authorized Task 070 operation
 
-Source/tests only. Establish one fresh pre-commit caught-failure boundary, make exact application-data ownership/validation consistent, reject unsafe paths at record time, and prove recovery of product-owned external effects without weakening ownership safety.
+Source/tests only. Restore normal upgrade/legacy reachability while keeping fresh caught-failure rollback mode-scoped. Non-fresh failures must rethrow normally and must never invoke fresh transaction rollback. Add executable mode-isolation regression coverage and preserve all accepted transaction/npm safety work.
 
 ## Live hard fence
 
@@ -85,4 +92,4 @@ No live residue cleanup, install/uninstall/reset/lifecycle operation, Scheduled 
 
 ## Pre-authorized successor
 
-If Task 069 is independently accepted, Task 070 may perform bounded one-time Task-066 residue cleanup and fresh install, then exact owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks, and final MANAGED health acceptance without another confirmation.
+If Task 070 is independently accepted, Task 071 may perform bounded one-time Task-066 residue cleanup and fresh install, then exact owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks, and final MANAGED health acceptance without another confirmation.
