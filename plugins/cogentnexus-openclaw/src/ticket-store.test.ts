@@ -56,6 +56,40 @@ describe("TicketStore", () => {
     rmSync(root,{recursive:true,force:true});
   });
 
+  it("rejects supplied run settlement when Ticket outbox has no durable binding", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-unbound-run-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    try {
+      const makeOutbox=(runId:string) => {
+        const ticket=store.accept({runId,ownerSessionKey:"owner-a",prompt:"terminal work"});
+        const lease=store.claim({ticketId:ticket.ticketId,workerId:`worker-${runId}`,leaseMs:10_000})!;
+        store.complete({...lease,result:{ok:true}});
+        return store.pendingOutbox().filter((item) => item.ticketId === ticket.ticketId).at(-1)!;
+      };
+      const successOutbox=makeOutbox("unbound-success"),failureOutbox=makeOutbox("unbound-failure");
+      expect(store.markOutboxDelivered(successOutbox.outboxId,new Date("2026-08-15T00:00:01.000Z"),"unbound-ticket-run","owner-a")).toBe(false);
+      expect(store.markOutboxFailed(failureOutbox.outboxId,"must remain pending","unbound-ticket-run","owner-a")).toBe(false);
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT delivery_status,delivery_run_id,last_delivery_error FROM ticket_outbox WHERE outbox_id=?").get(successOutbox.outboxId)).toEqual({delivery_status:"pending",delivery_run_id:null,last_delivery_error:null});
+      expect(db.prepare("SELECT delivery_status,delivery_run_id,last_delivery_error FROM ticket_outbox WHERE outbox_id=?").get(failureOutbox.outboxId)).toEqual({delivery_status:"pending",delivery_run_id:null,last_delivery_error:null});
+      db.close();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+  it("requires the exact bound Ticket delivery run and owner to settle", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-bound-run-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    try {
+      const ticket=store.accept({runId:"bound-ticket",ownerSessionKey:"owner-a",prompt:"terminal work"});
+      const lease=store.claim({ticketId:ticket.ticketId,workerId:"worker-bound",leaseMs:10_000})!;
+      store.complete({...lease,result:{ok:true}});
+      const outbox=store.pendingOutbox()[0];
+      expect(store.bindOutboxRun(outbox.outboxId,"run-a","owner-a")).toBe(true);
+      expect(store.bindOutboxRun(outbox.outboxId,"run-a","owner-a")).toBe(true);
+      expect(store.bindOutboxRun(outbox.outboxId,"run-b","owner-a")).toBe(false);
+      expect(store.markOutboxDelivered(outbox.outboxId,new Date(),"run-b","owner-a")).toBe(false);
+      expect(store.markOutboxDelivered(outbox.outboxId,new Date(),"run-a","owner-b")).toBe(false);
+      expect(store.markOutboxDelivered(outbox.outboxId,new Date("2026-08-15T00:00:01.000Z"),"run-a","owner-a")).toBe(true);
+      expect(store.markOutboxDelivered(outbox.outboxId,new Date(),"run-a","owner-a")).toBe(false);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("keeps a successful direct Ticket response-ready until delivery is confirmed", () => {
     const root=mkdtempSync(join(tmpdir(),"cnx-ticket-direct-delivery-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
     const ticket=store.accept({runId:"direct-ok",ownerSessionKey:"owner",prompt:"simple work"});

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,14 +10,57 @@ import {
   markWorkflowDeliveryScheduled,
   parseDeliveryMarker,
   postCompactionResumeTag,
+  publishCompletionLock,
   settleDeliveryTarget,
   ticketDeliveryMarker,
+  withCompletionLock,
   workflowDeliveryIsRetryable,
   workflowDeliveryMarker,
 } from "./delivery-continuity.js";
 import { TicketStore } from "./ticket-store.js";
 
 describe("delivery continuity", () => {
+  it("does not expose a canonical lock when owner publication is interrupted", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-lock-publication-crash-"));
+    try {
+      const dir=join(root,".cogentnexus-openclaw","workflows","WF-LOCK-CRASH");mkdirSync(dir,{recursive:true});
+      const lockPath=join(dir,"completion.json.lock"),record={pid:process.pid,token:"publication-test-token",acquiredAt:"2026-08-15T00:00:00.000Z"};
+      const interrupt=(..._args:any[]) => { const error=new Error("synthetic publication interruption") as NodeJS.ErrnoException; error.code="EINTR"; throw error; };
+      expect(() => publishCompletionLock(lockPath,record,interrupt)).toThrow(/publication interruption/);
+      expect(existsSync(lockPath)).toBe(false);
+      expect(existsSync(`${lockPath}.${process.pid}.${record.token}.tmp`)).toBe(false);
+      publishCompletionLock(lockPath,record);
+      expect(JSON.parse(readFileSync(lockPath,"utf8"))).toEqual(record);
+      rmSync(lockPath,{force:true});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("publishes complete lock metadata before critical-section visibility", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-lock-visible-record-"));
+    try {
+      const path=join(root,"completion.json");
+      expect(withCompletionLock(path,() => {
+        const lock=JSON.parse(readFileSync(`${path}.lock`,"utf8"));
+        expect(lock).toEqual(expect.objectContaining({pid:process.pid,token:expect.any(String),acquiredAt:expect.any(String)}));
+        return true;
+      })).toBe(true);
+      expect(existsSync(`${path}.lock`)).toBe(false);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("does not release a replacement lock owned by another token", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-lock-replacement-"));
+    try {
+      const path=join(root,"completion.json"),lockPath=`${path}.lock`,replacement={pid:process.pid,token:"replacement-token",acquiredAt:"2026-08-15T00:00:00.000Z"};
+      expect(withCompletionLock(path,() => {
+        unlinkSync(lockPath);
+        publishCompletionLock(lockPath,replacement);
+        return true;
+      })).toBe(true);
+      expect(JSON.parse(readFileSync(lockPath,"utf8"))).toEqual(replacement);
+      unlinkSync(lockPath);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("detects whether agent_end contains visible assistant output", () => {
     expect(hasVisibleAssistantOutput([])).toBe(false);
     expect(hasVisibleAssistantOutput([{role:"assistant",content:[]}])).toBe(false);
@@ -111,6 +154,20 @@ describe("delivery continuity", () => {
       expect(JSON.parse(readFileSync(path,"utf8"))).toMatchObject({deliveryStatus:"delivered",deliveredAt:"2026-08-15T00:00:02.000Z"});
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
+  it("rejects an unbound workflow run from terminal settlement", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-workflow-unbound-run-"));
+    try {
+      const taskId="WF-UNBOUND",dir=join(root,".cogentnexus-openclaw","workflows",taskId);mkdirSync(dir,{recursive:true});
+      const path=join(dir,"completion.json");
+      const notice={schemaVersion:1,taskId,ownerSessionKey:"agent:main:owner",workflowStatus:"completed",stateRevision:6,createdAt:"2026-08-15T00:00:00.000Z",deliveryStatus:"pending"};
+      writeFileSync(path,JSON.stringify(notice),"utf8");
+      const store=new TicketStore(join(root,"tickets.sqlite3"));
+      const target={kind:"workflow" as const,taskId,stateRevision:6};
+      expect(settleDeliveryTarget({workspaceDir:root,store,target,success:true,runId:"unbound-run",sessionKey:"agent:main:owner"})).toBe(false);
+      expect(settleDeliveryTarget({workspaceDir:root,store,target,success:false,runId:"unbound-run",sessionKey:"agent:main:owner",error:"must remain pending"})).toBe(false);
+      expect(JSON.parse(readFileSync(path,"utf8"))).toMatchObject({deliveryStatus:"pending"});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("does not let stale schedule failure overwrite delivered state", () => {
     const root=mkdtempSync(join(tmpdir(),"cnx-workflow-stale-failure-"));
     try {
@@ -121,6 +178,7 @@ describe("delivery continuity", () => {
       const scheduled=markWorkflowDeliveryScheduled(path,notice,new Date("2026-08-15T00:00:01.000Z"))!;
       const store=new TicketStore(join(root,"tickets.sqlite3"));
       const target={kind:"workflow" as const,taskId,stateRevision:4};
+      expect(bindDeliveryRun({workspaceDir:root,store,target,runId:"run-new",sessionKey:"agent:main:owner",now:new Date("2026-08-15T00:00:01.500Z")})).toBe(true);
       expect(settleDeliveryTarget({workspaceDir:root,store,target,success:true,runId:"run-new",now:new Date("2026-08-15T00:00:02.000Z")})).toBe(true);
       expect(bindDeliveryRun({workspaceDir:root,store,target,runId:"run-stale",now:new Date("2026-08-15T00:00:03.000Z")})).toBe(false);
       expect((markWorkflowDeliveryScheduleFailed as any)(path,scheduled,"synthetic schedule error")).toBeUndefined();

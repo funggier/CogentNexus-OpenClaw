@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { closeSync, existsSync, openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { TicketStore } from "./ticket-store.js";
 
@@ -100,27 +100,36 @@ function processIsAlive(pid: number): boolean {
   try { process.kill(pid, 0); return true; } catch { return false; }
 }
 
-function withCompletionLock<T>(path: string, callback: () => T): T | undefined {
+export function publishCompletionLock(lockPath: string, record: CompletionLock, publish: typeof linkSync = linkSync): void {
+  const temporary = `${lockPath}.${record.pid}.${record.token}.tmp`;
+  try {
+    writeFileSync(temporary, JSON.stringify(record), "utf8");
+    publish(temporary, lockPath);
+  } finally {
+    try { unlinkSync(temporary); } catch {}
+  }
+}
+
+export function withCompletionLock<T>(path: string, callback: () => T): T | undefined {
   const lockPath = `${path}.lock`;
-  const token = randomUUID();
-  let fd: number | undefined;
+  const record: CompletionLock = { pid: process.pid, token: randomUUID(), acquiredAt: new Date().toISOString() };
+  let published = false;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      fd = openSync(lockPath, "wx");
-      writeFileSync(fd, JSON.stringify({ pid: process.pid, token, acquiredAt: new Date().toISOString() }), "utf8");
+      publishCompletionLock(lockPath, record);
+      published = true;
       break;
-    } catch {
-      if (fd !== undefined) { try { closeSync(fd); } catch {} fd = undefined; }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") return undefined;
       const existing = readCompletionLock(path);
       if (!existing || processIsAlive(existing.pid)) return undefined;
       try { unlinkSync(lockPath); } catch { return undefined; }
     }
   }
-  if (fd === undefined) return undefined;
+  if (!published) return undefined;
   try { return callback(); } finally {
-    try { closeSync(fd); } catch {}
     const current = readCompletionLock(path);
-    if (current?.pid === process.pid && current.token === token) { try { unlinkSync(lockPath); } catch {} }
+    if (current?.pid === process.pid && current.token === record.token) { try { unlinkSync(lockPath); } catch {} }
   }
 }
 
@@ -166,7 +175,7 @@ export function settleDeliveryTarget(input: {
       const notice = readCompletion(path);
       if (!notice || notice.deliveryStatus !== "pending" || notice.taskId !== workflowTarget.taskId || Number(notice.stateRevision ?? 0) !== workflowTarget.stateRevision) return false;
     if (input.sessionKey && notice.ownerSessionKey !== input.sessionKey) return false;
-    if (input.runId && notice.deliveryRunId && notice.deliveryRunId !== input.runId) return false;
+    if (input.runId && notice.deliveryRunId !== input.runId) return false;
     const nowIso = (input.now ?? new Date()).toISOString();
     if (input.success) {
       writeCompletion(path, { ...notice, deliveryStatus: "delivered", deliveredAt: nowIso, lastDeliveryError: undefined, scheduledAt: undefined });

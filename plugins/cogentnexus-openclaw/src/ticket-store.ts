@@ -546,8 +546,8 @@ export class TicketStore {
     const db=this.open();
     try {
       const result = ownerSessionKey
-        ? db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND owner_session_key=? AND delivery_status='pending'").run(runId,outboxId,ownerSessionKey)
-        : db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending'").run(runId,outboxId);
+        ? db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND owner_session_key=? AND delivery_status='pending' AND (delivery_run_id IS NULL OR delivery_run_id=?)").run(runId,outboxId,ownerSessionKey,runId)
+        : db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending' AND (delivery_run_id IS NULL OR delivery_run_id=?)").run(runId,outboxId,runId);
       return result.changes===1;
     } finally { db.close(); }
   }
@@ -557,7 +557,7 @@ export class TicketStore {
     try {
       const predicates = ["outbox_id=?", "delivery_status='pending'"];
       const args: any[] = [outboxId];
-      if (runId) { predicates.push("(delivery_run_id IS NULL OR delivery_run_id=?)"); args.push(runId); }
+      if (runId !== undefined) { predicates.push("delivery_run_id=?"); args.push(runId); }
       if (ownerSessionKey) { predicates.push("owner_session_key=?"); args.push(ownerSessionKey); }
       args.push(now.toISOString());
       return db.prepare(`UPDATE ticket_outbox SET delivery_status='delivered',delivered_at=?,last_delivery_error=NULL,scheduled_at=NULL
@@ -569,7 +569,7 @@ export class TicketStore {
     const db=this.open();
     try {
       const predicates=["outbox_id=?","delivery_status='pending'"]; const args:any[]=[outboxId];
-      if (runId) { predicates.push("(delivery_run_id IS NULL OR delivery_run_id=?)"); args.push(runId); }
+      if (runId !== undefined) { predicates.push("delivery_run_id=?"); args.push(runId); }
       if (ownerSessionKey) { predicates.push("owner_session_key=?"); args.push(ownerSessionKey); }
       return db.prepare(`UPDATE ticket_outbox SET last_delivery_error=?,scheduled_at=NULL,delivery_run_id=NULL
         WHERE ${predicates.join(" AND ")}`).run(message.slice(0,2000),...args).changes===1;
