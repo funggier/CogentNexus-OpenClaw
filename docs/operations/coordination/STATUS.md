@@ -12,121 +12,131 @@ Tasks 078/079/080 remain accepted candidate behavior covering owner/session deli
 
 Task 082 independently repaired and proved the Windows/npm 11/npm 12 `npm pack --json` installer boundary.
 
-Last accepted source before the current rollover-attestation repair:
-
-`df412ed10522d79a722e1b48d681e7553cb79ae2`
-
 Provider readiness remains:
 
 `PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
 
 No additional direct Ollama probe is authorized.
 
-## Task 083 result
+## Task 083 accepted blocker
 
-Task 083 attempted one supported live recovery install-over from exact source `df412ed10522d79a722e1b48d681e7553cb79ae2`.
+Task 083 attempted one supported recovery install-over and correctly stopped after the source-safe rollover rejected a deliberately changed same-version replacement.
 
-Reported result:
-
-`BLOCKED_SUPPORTED_RECOVERY_INSTALL_OVER`
-
-Report HEAD:
-
-`1b5238bc3d7e8611e5fe305a969fad45735b142a`
-
-Independent review:
-
-Decision: `ACCEPT`
-
-Disposition:
+Accepted disposition:
 
 `ACCEPT_BLOCKER_SAME_VERSION_ROLLOVER_ATTESTATION_GAP`
 
-Publication fence: report-only, one commit from execution HEAD `58533e25bb23f00606bccf236193e5c2d1a17f86`.
+The live system remains in the bounded two-generation PASSTHROUGH topology created by that failed installer attempt.
 
-## Task 083 failure boundary
+## Task 084 result and independent review
 
-The Task-082 npm-pack repair worked live: the installer successfully packed, resolved and installed the exact candidate artifact.
+Task 084 implementation:
 
-The next ownership-safe generation rollover then failed closed with:
+`0847a260d6f689f364bb096bd7857bb1dd4d58e1`
 
-`replacement payload conflicts with the manifest-owned same-version payload`
+Task 084 report:
 
-Current rollover source intentionally requires the active replacement fingerprint to equal the manifest-owned prior fingerprint. Existing tests intentionally reject a conflicting same-version payload.
+`658eb55b5163c5d74a44ce75ca2c04f538a46ba3`
 
-That invariant is now incomplete for development install-over because accepted Tasks 078–082 changed source while retaining plugin version `0.9.3`.
+Reported token:
 
-The required replacement policy is not “accept any same-version payload.” It is:
+`PASS_ATTESTED_SAME_VERSION_ROLLOVER_AND_PENDING_RECOVERY_REPAIRED`
 
-`accept a changed same-version replacement only when it equals the exact expected source-candidate fingerprint and all existing ownership/inventory/plan/apply fences also pass`.
+Independent decision:
+
+`REWORK`
+
+Disposition:
+
+`REWORK_ATTESTED_CLASSIFICATION_AND_PENDING_ROLLOVER_CONTROL_FLOW`
+
+Publication fence is valid and the attestation primitives are preserved as rework base evidence.
+
+## Preserved Task-084 evidence
+
+- `plugin-fingerprint` derives authority from the exact source candidate through existing `_plugin_payload()` semantics.
+- newer live generation fingerprint `8fd911e3...` equals accepted source candidate fingerprint;
+- prior manifest-owned generation fingerprint `7e9189f8...` differs;
+- expected source fingerprint is carried into rollover plan/apply;
+- changed replacement without attestation and wrong attestation remain rejected;
+- generic two-candidate resolution remains fail-closed;
+- atomic retirement/rollback and plan/inventory/manifest/wrapper/tree/hash fences remain in place;
+- plugin payload source did not change;
+- live partial state was not mutated by Task 084.
+
+## Task-084 blocking findings
+
+### Pending rollover production wiring
+
+The installer currently nests rollover under the same outer gate that requires `pendingRollover=false`.
+
+Thus the intended Task-083 recovery state `pendingRollover=true` skips the required rollover-plan/apply and would later reach unique resolution with both candidates still present.
+
+### Ordinary changed-source upgrade classification
+
+A coherent single manifest-owned generation whose fingerprint differs from current candidate source is currently rejected by attested classification.
+
+It must instead remain a supported normal upgrade requiring plugin installation followed by attested rollover.
+
+### Explicit source equality on two-generation topology
+
+When retired and active replacement happen to have equal fingerprints, current `_exact_rollover_state()` can avoid comparing the explicitly supplied expected source fingerprint to the active replacement.
+
+Explicit attestation must always require exact active-replacement/source equality.
 
 ## Current live partial state
 
-Task 083 stopped without retry or manual repair.
+Still read-only and not accepted MANAGED state:
 
-Current accepted state:
-
-- controller PASSTHROUGH, generation 13;
+- controller PASSTHROUGH generation 13;
 - startup disabled;
 - Supervisor absent;
 - AGENTS managed markers absent;
-- ownership manifest still identifies the prior generation;
-- old generation `g-5593cbcfff5b35d5` present;
-- newer Task-083 generation `g-7257c4555ca8ad21` present and registered disabled;
-- both identify v0.9.3 but have different fingerprints;
-- Gateway healthy / dashboard HTTP `200`;
+- ownership manifest -> prior `g-5593cbcfff5b35d5`;
+- active disabled replacement -> `g-7257c4555ca8ad21`;
+- Gateway healthy/dashboard reachable;
 - Ollama healthy with accepted four models;
-- SQLite integrity `ok`, Tickets `0`, outbox `0`;
-- no semantic/provider work created by Task 083.
+- SQLite integrity ok, Tickets/outbox zero.
 
-Generic unique plugin resolution is now intentionally ambiguous. Do not manually delete a generation or edit the manifest.
+Do not manually normalize this topology.
 
-## Active Task 084
+## Active Task 085
 
-[`tasks/CNX-20260827-084-repair-same-version-rollover-attestation-and-pending-recovery.md`](tasks/CNX-20260827-084-repair-same-version-rollover-attestation-and-pending-recovery.md)
+[`tasks/CNX-20260827-085-correct-attested-classification-and-pending-rollover-control-flow.md`](tasks/CNX-20260827-085-correct-attested-classification-and-pending-rollover-control-flow.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `ATTESTED_ROLLOVER_SOURCE_REPAIR_AUTHORIZED`
+Authorization: `TASK084_CONTROL_FLOW_REWORK_AUTHORIZED`
 
-Execution mode: `SOURCE_TDD_ATTESTED_ROLLOVER_AND_PENDING_RECOVERY`
+Execution mode: `SOURCE_TDD_ATTESTED_UPGRADE_TRUTH_TABLE_REPAIR`
 
-Task 084 is source/test-only and must:
+Task 085 must:
 
-- prove the newer live Task-083 generation fingerprint equals the exact accepted source plugin fingerprint;
-- preserve plugin runtime/package payload files unchanged;
-- RED-prove the current same-version changed-payload policy gap;
-- add a production source-plugin fingerprint interface;
-- bind expected replacement fingerprint into rollover plan/apply;
-- preserve rejection of unattested/wrong replacements;
-- add an explicit attested installer classification for the exact pending-rollover topology while generic two-candidate resolution remains strict;
-- make recovery complete the already-installed pending rollover before any new plugin install;
-- skip redundant plugin generation creation when the canonical generation is already source-exact;
-- preserve all existing atomic retirement/rollback/inventory/manifest/tree/hash fences;
-- rerun full ownership/install/recovery, semantic/delivery, npm 11/npm 12, Python, PowerShell and baseline regressions.
-
-## Plugin payload preservation requirement
-
-Task 084 may not change:
-
-`plugins/cogentnexus-openclaw/**`
-
-The current newer live generation must remain source-exact for the later supported recovery.
+- RED-prove all three review findings;
+- correct single-generation normal-upgrade vs already-exact classification;
+- require explicit expected source equality for all attested pending replacements;
+- add one executable production plugin lifecycle action truth table;
+- make installer actions exactly:
+  - ordinary upgrade: install + rollover;
+  - pending recovery: rollover only;
+  - already exact: neither;
+  - fresh/legacy: preserve current creation behavior;
+- separate package installation and rollover into independent action gates;
+- ensure pending rollover finishes before unique resolution and ownership publication;
+- preserve Task-084 security/atomicity and Task-078/079/080/082 regressions;
+- keep `plugins/cogentnexus-openclaw/**` byte-unchanged;
+- run full Python/npm11/npm12/PowerShell/installer/semantic/baseline verification.
 
 ## Hard live fence
 
-No live install/install-over/uninstall/reset/cleanup or plugin generation mutation is authorized in Task 084. No controller/startup/Supervisor/AGENTS/ownership/runtime/config repair, no live Ticket/session/SQLite mutation, no Dashboard/WebChat or CLI semantic message, no direct Ollama probe, no provider/model/timeout change, no restart/reboot, merge, tag or release.
-
-Read-only live state/fingerprint inspection is allowed.
+Task 085 is source/test-only. No live install/install-over/uninstall/reset/cleanup, generation mutation, ownership/controller/startup/Supervisor/AGENTS/config/runtime/SQLite/session mutation, Dashboard/WebChat/CLI semantic message, direct Ollama probe, provider/model/timeout change, restart/reboot, merge/tag or release.
 
 ## Successor logic
 
-If Task 084 is independently accepted, the next live recovery task will use the exact corrected source and one supported installer invocation to:
+Only after independent acceptance of:
 
-- attest and complete the current pending rollover without manual deletion or a third semantic generation;
-- restore MANAGED/startup/Supervisor/AGENTS;
-- prove source/live plugin+skill parity and ownership/runtime/Gateway/Ollama/SQLite health;
-- observe at least five natural PT1M ticks with no-flash evidence;
-- prove Dashboard/WebChat authenticated owner-surface readiness without sending a semantic prompt.
+`PASS_ATTESTED_CLASSIFICATION_AND_PENDING_ROLLOVER_CONTROL_FLOW_REPAIRED`
 
-Only after that live recovery passes independent review may the final semantic task send exactly one fresh authenticated Dashboard/WebChat owner message.
+may one supported live recovery install-over be authorized against the existing two-generation state.
+
+That later live task must complete rollover without a third generation, restore MANAGED/startup/Supervisor/AGENTS, prove exact source/live parity and owned runtime health, observe five natural PT1M ticks with no-flash evidence, and prove Dashboard/WebChat owner-surface readiness without sending a semantic message.
