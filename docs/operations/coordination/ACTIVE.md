@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_WORKFLOW_DELIVERY_ATOMICITY_REPAIR`
-Current authorization: `WORKFLOW_DELIVERY_ATOMICITY_REPAIR_AUTHORIZED`
-Task ID: `CNX-20260826-079`
-Updated: 2026-08-26 22:49 ICT
+Execution mode: `SOURCE_TDD_CRASH_SAFE_DELIVERY_FENCING`
+Current authorization: `CRASH_SAFE_DELIVERY_FENCING_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260826-080`
+Updated: 2026-08-26 23:20 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
 
@@ -19,21 +19,22 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md`](tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md)
+[`tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md`](tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md)
 
-## Task 078 report/review
+## Task 079 report/review
 
-Task 078 reported:
+Task 079 reported:
 
-`PASS_SEMANTIC_P1S_REPAIRED_PROVIDER_READY`
+`PASS_WORKFLOW_DELIVERY_ATOMICITY_CLOSED`
 
-Implementation HEAD:
+Implementation/test HEADs:
 
-`e25fbd5ab0c2773ee65d98782ecba942cbe36d58`
+- `3c5c637d7299435bd1fef614d399f9a7017cb358`
+- `ef22d03ae2b2cc68da76640c2108944d01bc9524`
 
-Final report HEAD reviewed:
+Report HEAD:
 
-`b934eea6a9df91e1aa6602730c00c66d995ff62e`
+`a5228f65cf5da0b40831703d49e234ae585d5fde`
 
 Independent review:
 
@@ -41,35 +42,39 @@ Decision: `REWORK`
 
 Disposition:
 
-`REWORK_WORKFLOW_DELIVERY_ATOMICITY_INCOMPLETE`
+`REWORK_CRASH_SAFE_LOCK_PUBLICATION_AND_EXACT_RUN_FENCING`
 
 Review path:
 
-[`reviews/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md`](reviews/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md)
+[`reviews/CNX-20260826-079-finish-workflow-delivery-atomicity.md`](reviews/CNX-20260826-079-finish-workflow-delivery-atomicity.md)
 
-## Accepted Task-078 evidence to preserve
+## Accepted Task-078/079 candidate evidence to preserve
 
-Do not redo unless a regression is independently demonstrated:
+Do not redo unless a focused regression proves otherwise:
 
-- delivery-marker fail-closed owner/run fencing on the registered hook path;
-- repeated Ticket admission/routing idempotency;
-- one Ticket/Host timeout recovery authority for Ticketed direct runs;
-- direct model-call lease/Host interleaving tests and no-production-fix disposition;
-- registered direct lifecycle `accepted -> routed -> response_ready -> delivery_confirmed -> completed` with duplicate convergence and negative owner/CLI/subagent coverage;
-- full plugin/Python/baseline verification reported green;
-- provider disposition `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` from exactly two already-consumed direct Ollama probes (TTFT approximately 7.7 s and 0.2 s).
+- owner/session-bound delivery-marker fail-closed behavior;
+- repeated owner Ticket admission/routing idempotency;
+- one Ticket/Host timeout-recovery authority;
+- direct model-call lease/Host ordering coverage with no production lease fix required;
+- direct semantic lifecycle `accepted -> routed -> response_ready -> delivery_confirmed -> completed` and negative owner/CLI/subagent coverage;
+- provider disposition `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` from the two already-consumed Task-078 direct Ollama probes;
+- stale workflow schedule-failure rollback CAS;
+- workflow scheduling/binding/settlement serialization;
+- same-run bind idempotency and different-bound-run rejection;
+- repeated scheduling/rollback/retry convergence;
+- complete well-formed dead-PID lock recovery and live-PID non-steal behavior;
+- full npm/Python/baseline verification reported green.
 
-No additional provider probe is authorized or required in Task 079.
+No further Ollama probe is authorized or required.
 
-## Why Task 079 exists
+## Why Task 080 exists
 
-Task-078 Gate W is incomplete in three atomicity/crash-recovery areas:
+Independent review found two remaining fail-closed gaps:
 
-1. scheduling-failure rollback still writes a stale notice without atomic re-read and can overwrite a newer `delivered` state;
-2. workflow delivery-run binding is still an unlocked read/write and can race settlement;
-3. the new exclusive `.lock` file has no bounded abandoned-lock recovery and can permanently suppress delivery after process death.
+1. current completion lock creates the canonical `.lock` file before writing complete owner metadata. A process death in that tiny acquisition window can leave an empty/partial canonical lock; `readCompletionLock()` then cannot classify it and every future acquisition returns without recovery, violating the crash-liveness invariant;
+2. workflow and Ticket settlement with a supplied run id can still accept an unbound durable record. Workflow settlement rejects only a different existing run, and Ticket outbox SQL currently allows `delivery_run_id IS NULL OR delivery_run_id=?`. Durable settlement must require the exact prior run binding when a run identity is supplied.
 
-Task 079 must RED/GREEN these exact gaps and strengthen repeated/concurrent retry convergence while preserving all accepted Task-078 semantic/provider results.
+Task 080 must RED/GREEN only these final delivery-fencing gaps, preserve all accepted predecessor behavior, and rerun the complete semantic/recovery/security regression gates.
 
 ## Hard live fence
 
@@ -79,8 +84,8 @@ Accepted live production remains:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-Task-078/079 candidate source is not live until a later supported install-over/source-live parity gate.
+Task-078/079/080 candidate source remains non-live until supported install-over parity is independently authorized and accepted.
 
 ## Successor gate
 
-If Task 079 is independently accepted, the next task is supported install-over/source-live parity/health/no-flash using the combined accepted Task-078/079 implementation. It may prepare a fresh authenticated Dashboard/WebChat owner session but must not send the final semantic nonce.
+If Task 080 passes independent review, the next task is supported install-over/source-live parity/health/no-flash using the combined accepted Task-078/079/080 implementation. That live task may prepare/verify a fresh authenticated Dashboard/WebChat owner session but must not send the final semantic nonce.
