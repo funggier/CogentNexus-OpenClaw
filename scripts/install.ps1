@@ -25,6 +25,7 @@ $controllerPath = Join-Path $cogentNexusOpenClawRoot "host\controller.json"
 $existingLauncher = Join-Path $Workspace "cnxclaw.cmd"
 $ownershipScript = Join-Path $sourceSkill "scripts\namespace_ownership.py"
 $artifactResolver = Join-Path $repoRoot "scripts\resolve-npm-pack-artifact.ps1"
+$actionResolver = Join-Path $repoRoot "scripts\resolve-plugin-lifecycle-actions.ps1"
 $legacyRoot = Join-Path $Workspace ".cogent"
 $legacyControllerPath = Join-Path $legacyRoot "host\controller.json"
 $legacyLauncher = Join-Path $Workspace "cnx.cmd"
@@ -154,6 +155,13 @@ if ($classificationExit -ne 0) { throw "Installation ownership is partial, mixed
 $classification = $classificationJson | ConvertFrom-Json
 $pendingRollover = [bool]$classification.pendingRollover
 $pluginAlreadyExact = [bool]$classification.pluginAlreadyExact
+
+$actionArgs = @("-Mode", [string]$classification.mode)
+if ($pendingRollover) { $actionArgs += "-PendingRollover" }
+if ($pluginAlreadyExact) { $actionArgs += "-PluginAlreadyExact" }
+if ($SkipPlugin) { $actionArgs += "-SkipPlugin" }
+$actionsJson = (& $actionResolver @actionArgs | Out-String)
+$actions = $actionsJson | ConvertFrom-Json
 
 if ($classification.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
 if ($LinkPlugin) {
@@ -302,7 +310,12 @@ if (-not $SkipAgentsPolicy) {
     # pre-commit installation can no longer leave a managed AGENTS block.
 }
 
-if (-not $SkipPlugin -and -not $pendingRollover -and -not $pluginAlreadyExact) {
+if (-not $SkipPlugin) {
+    node (Join-Path $pluginDir "scripts\bootstrap-ticket-db.mjs") --workspace $Workspace
+    if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
+}
+
+if ($actions.installPlugin) {
     Push-Location $pluginDir
     try {
         if (-not $pluginPrepared) {
@@ -312,8 +325,6 @@ if (-not $SkipPlugin -and -not $pendingRollover -and -not $pluginAlreadyExact) {
             if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
         }
 
-        node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
-        if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
         $currentPaths = $null
         $pathExit = 1
         $savedErrorActionPreference = $ErrorActionPreference
@@ -356,7 +367,7 @@ if (-not $SkipPlugin -and -not $pendingRollover -and -not $pluginAlreadyExact) {
     finally { Pop-Location }
 
     if ($classification.mode -eq "upgrade") {
-        if (-not $pluginAlreadyExact) {
+        if ($actions.rolloverPlugin) {
         $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
         New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
         $rolloverId = [guid]::NewGuid().ToString("N")

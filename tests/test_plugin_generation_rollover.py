@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import shutil
 
 import pytest
 
@@ -397,6 +398,74 @@ def test_plan_apply_cli_round_trip_requires_and_returns_review_hash(tmp_path: Pa
     )
     assert applied.returncode == 0, applied.stderr
     assert json.loads(applied.stdout)["status"] == "ROLLOVER_APPLIED_PASSTHROUGH"
+
+
+def test_task085_single_manifest_owned_changed_source_is_normal_upgrade(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    shutil.rmtree(paths["new_project"])
+    expected = ownership._plugin_payload(paths["old_plugin"])["fingerprint"]
+    (paths["old_plugin"] / "dist" / "ticket-store.js").write_text("old", encoding="utf-8")
+    expected_source = expected
+    inventory = json.loads(json.dumps(paths["inventory"]))
+    inventory["plugins"][0]["rootDir"] = str(paths["old_plugin"])
+    result = ownership.classify_install(
+        paths["workspace"], app_data=paths["app_data"],
+        plugin_inventory=inventory,
+        expected_replacement_fingerprint=expected_source,
+    )
+    assert result["pendingRollover"] is False
+    assert result["pluginAlreadyExact"] is False
+
+
+def test_task085_equivalent_pending_payload_still_requires_source_equality(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    with pytest.raises(RuntimeError, match="source"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint="0" * 64,
+        )
+
+
+def test_task085_production_action_truth_table_exists_and_pending_is_rollover_only():
+    helper = Path(__file__).parents[1] / "scripts" / "resolve-plugin-lifecycle-actions.ps1"
+    assert helper.is_file()
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(helper),
+         "-Mode", "upgrade", "-PendingRollover"],
+        text=True, capture_output=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    actions = json.loads(result.stdout)
+    assert actions["installPlugin"] is False
+    assert actions["rolloverPlugin"] is True
+
+
+def test_task085_production_action_truth_table_all_supported_states():
+    helper = Path(__file__).parents[1] / "scripts" / "resolve-plugin-lifecycle-actions.ps1"
+    cases = [
+        (("fresh",), {"installPlugin": True, "rolloverPlugin": False}),
+        (("legacy",), {"installPlugin": True, "rolloverPlugin": False}),
+        (("upgrade",), {"installPlugin": True, "rolloverPlugin": True}),
+        (("upgrade", "-PendingRollover"), {"installPlugin": False, "rolloverPlugin": True}),
+        (("upgrade", "-PluginAlreadyExact"), {"installPlugin": False, "rolloverPlugin": False}),
+        (("upgrade", "-PendingRollover", "-SkipPlugin"), {"installPlugin": False, "rolloverPlugin": False}),
+    ]
+    for args, expected in cases:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(helper),
+             "-Mode", args[0], *args[1:]], text=True, capture_output=True, check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        actions = json.loads(result.stdout)
+        assert {key: actions[key] for key in expected} == expected
+
+    impossible = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(helper),
+         "-Mode", "upgrade", "-PendingRollover", "-PluginAlreadyExact"],
+        text=True, capture_output=True, check=False,
+    )
+    assert impossible.returncode != 0
 
 
 def test_source_attested_changed_payload_is_authorized_and_bound_into_plan(tmp_path: Path):

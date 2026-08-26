@@ -747,11 +747,13 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
         raise RuntimeError("OpenClaw active replacement is not one of the two canonical candidates")
     if _canonical(replacement["root"]) == _canonical(retired_root):
         raise RuntimeError("OpenClaw still registers the manifest-owned prior generation as active")
-    if replacement["fingerprint"] != retired["fingerprint"]:
-        if not isinstance(expected_replacement_fingerprint, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
-            raise RuntimeError("replacement payload conflicts with the manifest-owned same-version payload; source attestation is required")
+    if expected_replacement_fingerprint is not None:
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
+            raise RuntimeError("expected source fingerprint is invalid")
         if replacement["fingerprint"].lower() != expected_replacement_fingerprint.lower():
             raise RuntimeError("replacement payload does not match the expected source attestation")
+    elif replacement["fingerprint"] != retired["fingerprint"]:
+        raise RuntimeError("replacement payload conflicts with the manifest-owned same-version payload; source attestation is required")
     retired_project = _npm_project_for_plugin(retired_root, paths["openclawState"])
     replacement_project = _npm_project_for_plugin(replacement["root"], paths["openclawState"])
     if _canonical(retired_project) == _canonical(replacement_project):
@@ -1010,12 +1012,11 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
         candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
                       if (payload := _plugin_payload(candidate)) is not None]
         if len(candidates) == 1 and _canonical(candidates[0]["root"]) == attested_manifest["pluginPath"]:
-            if candidates[0]["fingerprint"].lower() != expected_replacement_fingerprint.lower():
-                raise RuntimeError("manifest-owned plugin does not match the expected source attestation")
+            plugin_exact = candidates[0]["fingerprint"].lower() == expected_replacement_fingerprint.lower()
             return {
-                "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": True,
+                "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": plugin_exact,
                 "manifestPluginPath": _canonical(candidates[0]["root"]),
-                "replacementPluginPath": _canonical(candidates[0]["root"]),
+                "replacementPluginPath": _canonical(candidates[0]["root"]) if plugin_exact else None,
                 "expectedReplacementFingerprint": expected_replacement_fingerprint,
                 **inventory,
             }
