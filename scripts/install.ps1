@@ -180,18 +180,11 @@ if ($classification.mode -eq "fresh") {
     Write-Host "Fresh-install transaction started; created owned paths will be recorded for bounded recovery."
 }
 
-# CNX-20260826-069 B1: single production caught-failure boundary. Everything
-# from here until successful transaction-commit is protected: any caught
-# exception or nonzero failure performs same-run bounded rollback/recovery of
-# this fresh attempt and rethrows the original error. Upgrade/legacy installs
-# never enter this boundary (their failure path stays the plain throw).
+# CNX-20260826-069 B1 / CNX-20260826-070: single production caught-failure
+# boundary. The try body is SHARED by fresh/upgrade/legacy modes; only the
+# catch branches on $isFreshTransaction. Non-fresh failures propagate through
+# the normal error path without any fresh rollback.
 try {
-    if (-not $isFreshTransaction) {
-        # Non-fresh installs run unprotected inside the try; a throw here would
-        # wrongly roll back an upgrade, so guard by rethrowing before any
-        # rollback state exists.
-        throw "__UPGRADE_PASSTHROUGH__"
-    }
 
 # A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
 # launcher first so it restores native OpenClaw before v0.9.3 replaces files.
@@ -399,14 +392,13 @@ if ($isFreshTransaction) {
     Write-Host "Fresh-install transaction committed; recovery marker retired."
 }
 } catch {
-    # CNX-20260826-069 B1: the single production fresh-transaction failure
-    # boundary. Every caught pre-commit failure rolls this fresh attempt back
-    # through the production helper; non-fresh installs rethrow untouched.
-    if (-not $isFreshTransaction -or $_.Exception.Message -eq "__UPGRADE_PASSTHROUGH__") {
-        if ($_.Exception.Message -eq "__UPGRADE_PASSTHROUGH__") { throw "Non-fresh install cannot use the fresh transaction failure boundary." }
-        throw
+    # CNX-20260826-069 B1 / CNX-20260826-070: only a fresh transaction rolls
+    # back. Upgrade/legacy failures propagate through the normal error path
+    # with no fresh rollback and no plugin inverse.
+    if ($isFreshTransaction) {
+        Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError $_.Exception.Message
     }
-    Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError $_.Exception.Message
+    throw
 }
 
 if (-not $SkipAgentsPolicy) {

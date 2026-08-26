@@ -225,7 +225,7 @@ def _pos(pattern: str) -> int:
 def test_f1_structural_single_boundary_wraps_begin_to_commit():
     begin_invocation = INSTALL_PS1_TEXT.find("transaction-begin --workspace")
     boundary_open = re.search(
-        r"B1: single production caught-failure boundary[\s\S]{0,600}?(?m:^)try \{",
+        r"single production caught-failure[\s\S]{0,600}?(?m:^)try \{",
         INSTALL_PS1_TEXT)
     assert boundary_open, "the protected boundary try must open right after the B1 marker comment"
     try_open = boundary_open.end() - len("try {")
