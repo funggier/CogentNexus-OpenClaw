@@ -1,90 +1,101 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 23:20 ICT
+**Updated:** 2026-08-26 23:56 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through final live/semantic acceptance and approved heavy comprehensive source work while Hermes/Codex budget is available
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
 
-Task 075 remains the accepted live baseline source:
+Task 075 remains the accepted live production baseline source:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-The live product remains MANAGED with previously accepted Gateway/Ollama health, CogentNexus-owned runtime, one canonical v0.9.3 plugin generation and no-flash operation. Task-078/079 source has not been installed live.
+The live product remains MANAGED with previously accepted Gateway/Ollama health, CogentNexus-owned runtime/Supervisor binding, one canonical v0.9.3 plugin generation, ownership verification and no-flash operation.
 
-## Semantic/provider lineage preserved
+## Accepted semantic source lineage
 
-Task 076's single CLI-targeted semantic run is retired and its nonce must not be reused. It established that CLI session-key targeting is not an authenticated owner surface. Dashboard/WebChat remains the required future trusted owner surface.
+Task 078 repaired/proved owner/session delivery security, admission/routing idempotency, one timeout recovery authority, direct model-call lease ordering, direct lifecycle convergence and provider readiness.
 
-Task 078 materially repaired/proved:
+Task 079 repaired stale workflow schedule-failure rollback, workflow scheduling/binding/settlement serialization, retry convergence and bounded dead-owner lock recovery.
 
-- delivery marker owner/session fail-closed behavior;
-- repeated admission/routing idempotency;
-- one Ticket/Host timeout recovery authority;
-- direct model-call lease ordering;
-- direct registered lifecycle and duplicate convergence;
-- owner/CLI/subagent negative security behavior;
-- provider readiness `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` using exactly two bounded direct Ollama probes already consumed.
+Task 080 closed the final delivery-fencing defects:
 
-Task 079 materially repaired:
+- complete lock metadata is atomically published into the canonical completion-lock path before the lock becomes visible;
+- live locks remain non-stealable and complete dead-owner locks remain recoverable;
+- release removes only the exact PID/token lock owned by the releaser;
+- workflow settlement with a supplied run id requires exact prior `deliveryRunId` binding;
+- Ticket outbox supplied-run success/failure settlement requires exact prior `delivery_run_id` binding;
+- wrong/unbound owner/run paths fail closed.
 
-- stale schedule-failure rollback CAS;
-- workflow bind/schedule/settle serialization;
-- repeated scheduling/retry convergence;
-- well-formed dead-PID lock recovery and live-lock non-steal behavior.
+Task 080 implementation:
 
-## Task 079 independent review
+`70d02e76233ca1084da445d488f88b628455f4aa`
 
-Task 079 implementation/test HEADs:
+Task 080 report:
 
-- `3c5c637d7299435bd1fef614d399f9a7017cb358`
-- `ef22d03ae2b2cc68da76640c2108944d01bc9524`
+`1798bfd4bb2ef69fb579b151f5d0423f0fc196f8`
 
-Report HEAD:
+Independent review:
 
-`a5228f65cf5da0b40831703d49e234ae585d5fde`
-
-Independent decision:
-
-`REWORK`
+Decision: `ACCEPT`
 
 Disposition:
 
-`REWORK_CRASH_SAFE_LOCK_PUBLICATION_AND_EXACT_RUN_FENCING`
+`ACCEPT_CRASH_SAFE_DELIVERY_FENCING_CLOSED`
 
-The remaining gaps are narrow but still affect crash-safe durable delivery:
+The exact combined Task-078/079/080 production candidate accepted for live installation is therefore:
 
-1. canonical completion lock is created before complete owner metadata is written; a process death between these operations can leave an unparsable product lock that later acquisitions will never recover;
-2. workflow settlement with a supplied run id accepts the state when no `deliveryRunId` has ever been bound;
-3. Ticket outbox settlement has the analogous `(delivery_run_id IS NULL OR delivery_run_id=?)` run fence.
+`70d02e76233ca1084da445d488f88b628455f4aa`
 
-## Active Task 080
+Provider readiness remains:
 
-[`tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md`](tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md)
+`PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
+
+The two Task-078 direct Ollama probes are already consumed and must not be repeated.
+
+## Historical semantic blocker
+
+Task 076's single CLI-targeted run/session remains historical. It proved that `openclaw agent --session-key agent:main:main` is not an authenticated owner surface. That session/nonce must not be reused.
+
+The final semantic acceptance must use a fresh authenticated Dashboard/WebChat owner path proven from exact OpenClaw `2026.7.1-2` behavior.
+
+## Active Task 081
+
+[`tasks/CNX-20260826-081-install-over-semantic-candidate-live-parity.md`](tasks/CNX-20260826-081-install-over-semantic-candidate-live-parity.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `CRASH_SAFE_DELIVERY_FENCING_REPAIR_AUTHORIZED`
+Authorization: `ONE_SUPPORTED_INSTALL_OVER_AND_LIVE_PARITY_AUTHORIZED`
 
-Execution mode: `SOURCE_TDD_CRASH_SAFE_DELIVERY_FENCING`
+Execution mode: `LIVE_SUPPORTED_INSTALL_OVER_SEMANTIC_CANDIDATE_PARITY`
 
-Task 080 must use strict RED/GREEN TDD to:
+Task 081 must:
 
-- eliminate the malformed canonical-lock publication crash window with an atomic complete-record create-if-absent protocol;
-- preserve live-lock safety and valid dead-owner recovery;
-- require exact prior `deliveryRunId` binding for workflow settlement when a run id is supplied;
-- require exact prior run binding for Ticket outbox run-bound success/failure settlement;
-- preserve all accepted Task-078/079 security/recovery/idempotency behavior;
-- rerun npm 11/12, plugin validate/tests, full Python and baseline gates.
+1. re-prove the current live baseline before mutation;
+2. use an exact clean deployment tree at candidate `70d02e76233ca1084da445d488f88b628455f4aa`;
+3. prove existing ownership/non-fresh `upgrade` classification;
+4. run exactly one normal supported install-over;
+5. prove canonical installed plugin package/tree parity against the candidate artifact;
+6. prove one active v0.9.3 generation and ownership-safe rollover;
+7. re-prove product-owned runtime/launcher/Supervisor bindings;
+8. observe at least five natural PT1M ticks with `NO_FLASH_MULTI_TICK_PROVEN`;
+9. re-prove MANAGED/Gateway/Ollama/AGENTS/ownership/SQLite health;
+10. prove/prepare a fresh authenticated Dashboard/WebChat owner surface without sending a user prompt.
 
-No additional provider probe is authorized.
+## Hard semantic fence
 
-## Hard live fence
+Task 081 sends zero semantic messages and zero provider probes.
 
-No OpenClaw semantic message, Dashboard/WebChat live turn, CLI semantic test, direct Ollama probe, live Ticket/session/SQLite mutation, install/install-over/uninstall/reset/cleanup, provider/model/config/plugin/AGENTS change, restart/reboot, merge/tag/release. Implementation must use a fresh isolated worktree.
+No Dashboard/WebChat chat send, no `chat.send`, no `openclaw agent`, no `sessions_send`, no channel message, no synthetic Ticket mutation, no direct Ollama probe, no model/provider/timeout change, no uninstall/reset/clean reinstall, no reboot, merge, tag or release.
+
+If Dashboard session creation inherently requires its first user message, Task 081 must stop at proving the owner surface and leave session creation to the final semantic task.
 
 ## Successor logic
 
-If Task 080 passes independent review, the combined Task-078/079/080 candidate must first undergo supported install-over/source-live parity/health/no-flash acceptance. That live parity gate may prepare a fresh authenticated Dashboard/WebChat owner session but cannot consume the final semantic nonce. A separate final semantic task will authorize exactly one real owner message afterward.
+Only an independently accepted `PASS_LIVE_PARITY_SEMANTIC_CANDIDATE_READY` may authorize the final semantic task.
+
+That final task will allow exactly one new authenticated Dashboard/WebChat owner message and must prove the full durable/runtime chain:
+
+`owner message -> Ticket accepted before provider -> Ollama inference -> response_ready -> exact owner/run delivery -> delivery_confirmed -> completed -> visible response`.
