@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_SUPPORTED_INSTALL_OVER_SOURCE_PARITY_OWNED_RUNTIME_NO_FLASH`
-Current authorization: `SUPPORTED_INSTALL_OVER_PARITY_ACCEPTANCE_AUTHORIZED`
-Task ID: `CNX-20260826-075`
-Updated: 2026-08-26 18:29 ICT
+Execution mode: `LIVE_BOUNDED_REAL_USER_MESSAGE_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`
+Current authorization: `FINAL_SEMANTIC_ACCEPTANCE_AUTHORIZED`
+Task ID: `CNX-20260826-076`
+Updated: 2026-08-26 20:00 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,21 +19,21 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md`](tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md)
+[`tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md`](tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md)
 
-## Task 074 review
+## Task 075 review
 
-Task 074 reported:
+Task 075 reported:
 
-`PASS_RECOVERY_TESTS_ISOLATED_FROM_LIVE_APPDATA`
+`PASS_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
 
-Test-only implementation HEAD:
+Install-over source:
 
-`8fc2f4640a761204e9614d2a2fbcfb55cc23d311`
+`79b51ed06363f6e8862c491ee0a313ddb412c806`
 
 Report HEAD:
 
-`545fc3e6f989e8423ba4e94acc3fe9c60b0fa827`
+`38a8bfa345ea6bf808870eb4c99efdafa7edf3e2`
 
 Independent review decision:
 
@@ -41,44 +41,35 @@ Independent review decision:
 
 Disposition:
 
-`ACCEPT_RECOVERY_TESTS_ISOLATED_AND_TASK073_PRODUCTION_CORRECTION_RELEASED`
+`ACCEPT_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
 
 Review commit:
 
-`7a28292007b96d972e4aa71bc1f0f31f23d5da11`
+`665da6c3df05b98aa1a6e06115db80b7ba0967a0`
 
-## Accepted production source for live install-over
+## Accepted live state
 
-`79b51ed06363f6e8862c491ee0a313ddb412c806`
+- supported install-over from exact corrected source completed exactly once;
+- installed skill tree is byte-for-byte source/live parity with `79b51ed...` for the compared production tree;
+- recovery preflight/upgrade path behaved coherently with no fresh transaction;
+- exactly one canonical v0.9.3 plugin generation remains active after supported rollover;
+- launcher and Supervisor remain CogentNexus-owned runtime bound with no durable Hermes/Codex/temp dependency;
+- five post-install-over natural PT1M ticks again proved `NO_FLASH_MULTI_TICK_PROVEN`;
+- final MANAGED/Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite health passed;
+- no product semantic LLM smoke has yet been executed.
 
-Task 074 changed tests only and closes the sole full-suite blocker on the Task-073 production correction.
+## Authorized Task 076 operation
 
-Accepted verification now includes:
+Exactly one bounded real owner-session semantic message through a supported OpenClaw user-message surface. Prove the installed plugin commits one Ticket before inference, the normal OpenClaw run uses provider Ollama, the direct Ticket records response-ready and confirmed final delivery, the user-visible response contains the unique nonce, and no duplicate Ticket/delivery side effect occurs.
 
-- recovery semantics/fail-closed installer correction;
-- full pytest `356 passed, 2 skipped, 0 failed` while the real Task-072 live app-data root remains present and unchanged;
-- npm 11/npm 12 gates;
-- exact OpenClaw `2026.7.1-2`, plugin `0.9.3`;
-- upgrade/legacy/fresh transaction regressions.
-
-## Current live baseline
-
-Preserve the accepted Task-072 healthy MANAGED installation until Task 075 preflight proves it:
-
-- CogentNexus-owned runtime;
-- no durable Hermes/Codex/temp binding;
-- Supervisor PT1M;
-- five natural ticks already proved no flash;
-- Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite healthy.
-
-## Authorized Task 075 operation
-
-Exactly one supported install-over from exact production source `79b51ed...`; no uninstall, reset or manual cleanup. Then prove upgrade-path/source-live parity, canonical plugin generation/ownership, owned runtime, final MANAGED health and at least three natural PT1M no-flash ticks.
+Do not use TicketStore/SQLite/manual hook/model shortcuts as the semantic input. Do not resend the acceptance message if slow.
 
 ## Hard fences
 
-No uninstall/reset/manual cleanup, no reboot, no provider/model/OpenClaw change, no source edits, no HermesAgent mutation, no semantic product LLM smoke, no merge/tag/release. Never repeat a completed install-over after interruption; inspect actual live state first.
+No install/install-over/uninstall/reset/cleanup, no manual SQLite mutation, no provider/model/config change, no reboot, no merge/tag/release. Authorized mutation is only the one semantic message and its natural Ticket/session/Ollama/delivery effects.
 
-## Pre-authorized successor
+## Completion gate
 
-If Task 075 is independently accepted, Task 076 may perform the final semantic Ticket -> Ollama -> durable result/delivery -> response acceptance.
+If Task 076 reports `PASS_FINAL_SEMANTIC_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`, ChatGPT must independently review the real user-entry path, Ticket-first runtime ordering, correlated Ollama inference, terminal delivery evidence, idempotency accounting, post-run health and report-only publication fence.
+
+Independent acceptance of that result completes the agreed current v0.9.3 OpenClaw acceptance scope.
