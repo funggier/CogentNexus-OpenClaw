@@ -174,8 +174,18 @@ export class TicketStore {
     const nowIso = now.toISOString();
     try {
       db.exec("BEGIN IMMEDIATE");
+      const row = db.prepare("SELECT workflow_eligible FROM tickets WHERE ticket_id=? AND status='accepted'").get(ticketId) as any;
+      if (!row) { db.exec("COMMIT"); return false; }
+      const desired = workflowEligible ? 1 : 0;
+      const existing = db.prepare("SELECT event_type,payload_json FROM ticket_events WHERE ticket_id=? AND event_type='routed' ORDER BY event_id DESC LIMIT 1").get(ticketId) as any;
+      if (existing) {
+        const prior = JSON.parse(existing.payload_json ?? "{}");
+        if (Number(prior.workflowEligible ? 1 : 0) !== desired) throw new Error("conflicting route transition");
+        db.exec("COMMIT");
+        return false;
+      }
       const changed = db.prepare("UPDATE tickets SET workflow_eligible=?,updated_at=? WHERE ticket_id=? AND status='accepted'")
-        .run(workflowEligible ? 1 : 0,nowIso,ticketId);
+        .run(desired,nowIso,ticketId);
       if (changed.changes === 1) this.event(db,ticketId,"routed",{workflowEligible},nowIso);
       db.exec("COMMIT");
       return changed.changes === 1;
@@ -532,27 +542,37 @@ export class TicketStore {
     } finally { db.close(); }
   }
 
-  bindOutboxRun(outboxId:number, runId:string): boolean {
+  bindOutboxRun(outboxId:number, runId:string, ownerSessionKey?: string): boolean {
     const db=this.open();
     try {
-      return db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending'")
-        .run(runId,outboxId).changes===1;
+      const result = ownerSessionKey
+        ? db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND owner_session_key=? AND delivery_status='pending'").run(runId,outboxId,ownerSessionKey)
+        : db.prepare("UPDATE ticket_outbox SET delivery_run_id=?,last_delivery_error=NULL WHERE outbox_id=? AND delivery_status='pending'").run(runId,outboxId);
+      return result.changes===1;
     } finally { db.close(); }
   }
 
-  markOutboxDelivered(outboxId: number, now = new Date()): boolean {
+  markOutboxDelivered(outboxId: number, now = new Date(), runId?: string, ownerSessionKey?: string): boolean {
     const db = this.open();
     try {
+      const predicates = ["outbox_id=?", "delivery_status='pending'"];
+      const args: any[] = [outboxId];
+      if (runId) { predicates.push("(delivery_run_id IS NULL OR delivery_run_id=?)"); args.push(runId); }
+      if (ownerSessionKey) { predicates.push("owner_session_key=?"); args.push(ownerSessionKey); }
+      args.push(now.toISOString());
       return db.prepare(`UPDATE ticket_outbox SET delivery_status='delivered',delivered_at=?,last_delivery_error=NULL,scheduled_at=NULL
-        WHERE outbox_id=? AND delivery_status='pending'`).run(now.toISOString(),outboxId).changes === 1;
+        WHERE ${predicates.join(" AND ")}`).run(args.pop(),...args).changes === 1;
     } finally { db.close(); }
   }
 
-  markOutboxFailed(outboxId: number, message: string): boolean {
-    const db = this.open();
+  markOutboxFailed(outboxId: number, message: string, runId?: string, ownerSessionKey?: string): boolean {
+    const db=this.open();
     try {
+      const predicates=["outbox_id=?","delivery_status='pending'"]; const args:any[]=[outboxId];
+      if (runId) { predicates.push("(delivery_run_id IS NULL OR delivery_run_id=?)"); args.push(runId); }
+      if (ownerSessionKey) { predicates.push("owner_session_key=?"); args.push(ownerSessionKey); }
       return db.prepare(`UPDATE ticket_outbox SET last_delivery_error=?,scheduled_at=NULL,delivery_run_id=NULL
-        WHERE outbox_id=? AND delivery_status='pending'`).run(message.slice(0,2000),outboxId).changes === 1;
+        WHERE ${predicates.join(" AND ")}`).run(message.slice(0,2000),...args).changes===1;
     } finally { db.close(); }
   }
 

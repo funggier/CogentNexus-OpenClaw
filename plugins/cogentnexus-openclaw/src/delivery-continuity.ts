@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { TicketStore } from "./ticket-store.js";
 
@@ -85,17 +85,26 @@ function writeCompletion(path: string, notice: WorkflowDeliveryNotice) {
   renameSync(temporary, path);
 }
 
+function withCompletionLock<T>(path: string, callback: () => T): T | undefined {
+  const lockPath = `${path}.lock`;
+  let fd: number | undefined;
+  try { fd = openSync(lockPath, "wx"); } catch { return undefined; }
+  try { return callback(); } finally { try { if (fd !== undefined) closeSync(fd); } catch {} try { unlinkSync(lockPath); } catch {} }
+}
+
 export function bindDeliveryRun(input: {
   workspaceDir: string;
   store: TicketStore;
   target: DeliveryTarget;
   runId: string;
+  sessionKey?: string;
   now?: Date;
 }): boolean {
-  if (input.target.kind === "ticket") return input.store.bindOutboxRun(input.target.outboxId, input.runId);
+  if (input.target.kind === "ticket") return input.store.bindOutboxRun(input.target.outboxId, input.runId, input.sessionKey);
   const path = completionPath(input.workspaceDir, input.target);
   const notice = readCompletion(path);
   if (!notice || notice.deliveryStatus !== "pending" || notice.taskId !== input.target.taskId || Number(notice.stateRevision ?? 0) !== input.target.stateRevision) return false;
+  if (input.sessionKey && notice.ownerSessionKey !== input.sessionKey) return false;
   writeCompletion(path, { ...notice, deliveryRunId: input.runId, lastDeliveryAttemptAt: (input.now ?? new Date()).toISOString() });
   return true;
 }
@@ -105,39 +114,50 @@ export function settleDeliveryTarget(input: {
   store: TicketStore;
   target: DeliveryTarget;
   success: boolean;
+  runId?: string;
+  sessionKey?: string;
   error?: string;
   now?: Date;
 }): boolean {
   if (input.target.kind === "ticket") {
     return input.success
-      ? input.store.markOutboxDelivered(input.target.outboxId, input.now)
-      : input.store.markOutboxFailed(input.target.outboxId, input.error ?? "delivery failed");
+      ? input.store.markOutboxDelivered(input.target.outboxId, input.now, input.runId, input.sessionKey)
+      : input.store.markOutboxFailed(input.target.outboxId, input.error ?? "delivery failed", input.runId, input.sessionKey);
   }
-  const path = completionPath(input.workspaceDir, input.target);
-  const notice = readCompletion(path);
-  if (!notice || notice.deliveryStatus !== "pending" || notice.taskId !== input.target.taskId || Number(notice.stateRevision ?? 0) !== input.target.stateRevision) return false;
-  const nowIso = (input.now ?? new Date()).toISOString();
-  if (input.success) {
-    writeCompletion(path, { ...notice, deliveryStatus: "delivered", deliveredAt: nowIso, lastDeliveryError: undefined, scheduledAt: undefined });
-  } else {
-    writeCompletion(path, { ...notice, deliveryStatus: "pending", lastDeliveryError: (input.error ?? "delivery failed").slice(0, 2000), scheduledAt: undefined, deliveryRunId: undefined });
-  }
-  return true;
+    const path = completionPath(input.workspaceDir, input.target);
+    const workflowTarget = input.target as Extract<DeliveryTarget, { kind: "workflow" }>;
+    return withCompletionLock(path, () => {
+      const notice = readCompletion(path);
+      if (!notice || notice.deliveryStatus !== "pending" || notice.taskId !== workflowTarget.taskId || Number(notice.stateRevision ?? 0) !== workflowTarget.stateRevision) return false;
+    if (input.sessionKey && notice.ownerSessionKey !== input.sessionKey) return false;
+    if (input.runId && notice.deliveryRunId && notice.deliveryRunId !== input.runId) return false;
+    const nowIso = (input.now ?? new Date()).toISOString();
+    if (input.success) {
+      writeCompletion(path, { ...notice, deliveryStatus: "delivered", deliveredAt: nowIso, lastDeliveryError: undefined, scheduledAt: undefined });
+    } else {
+      writeCompletion(path, { ...notice, deliveryStatus: "pending", lastDeliveryError: (input.error ?? "delivery failed").slice(0, 2000), scheduledAt: undefined, deliveryRunId: undefined });
+    }
+    return true;
+  }) ?? false;
 }
 
-export function markWorkflowDeliveryScheduled(path: string, notice: WorkflowDeliveryNotice, now = new Date()): WorkflowDeliveryNotice {
-  const nowIso = now.toISOString();
-  const next: WorkflowDeliveryNotice = {
-    ...notice,
-    deliveryStatus: "pending",
-    deliveryAttempts: (notice.deliveryAttempts ?? 0) + 1,
-    lastDeliveryAttemptAt: nowIso,
-    lastDeliveryError: undefined,
-    scheduledAt: nowIso,
-    deliveryRunId: undefined,
-  };
-  writeCompletion(path, next);
-  return next;
+export function markWorkflowDeliveryScheduled(path: string, notice: WorkflowDeliveryNotice, now = new Date()): WorkflowDeliveryNotice | undefined {
+  return withCompletionLock(path, () => {
+    const current = readCompletion(path);
+    if (!current || current.taskId !== notice.taskId || Number(current.stateRevision ?? 0) !== Number(notice.stateRevision ?? 0) || current.ownerSessionKey !== notice.ownerSessionKey || current.deliveryStatus !== notice.deliveryStatus || current.deliveryStatus === "delivered" || !workflowDeliveryIsRetryable(current, now)) return undefined;
+    const nowIso = now.toISOString();
+    const next: WorkflowDeliveryNotice = {
+      ...current,
+      deliveryStatus: "pending",
+      deliveryAttempts: (current.deliveryAttempts ?? 0) + 1,
+      lastDeliveryAttemptAt: nowIso,
+      lastDeliveryError: undefined,
+      scheduledAt: nowIso,
+      deliveryRunId: undefined,
+    };
+    writeCompletion(path, next);
+    return next;
+  });
 }
 
 export function markWorkflowDeliveryScheduleFailed(path: string, notice: WorkflowDeliveryNotice, error: string): WorkflowDeliveryNotice {

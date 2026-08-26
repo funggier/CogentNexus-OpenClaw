@@ -48,8 +48,9 @@ describe("delivery continuity", () => {
       writeFileSync(path,JSON.stringify(notice),"utf8");
       const scheduled=markWorkflowDeliveryScheduled(path,notice,new Date("2026-08-15T00:00:01.000Z"));
       expect(scheduled).toMatchObject({deliveryStatus:"pending",deliveryAttempts:1,scheduledAt:"2026-08-15T00:00:01.000Z"});
-      expect(workflowDeliveryIsRetryable(scheduled,new Date("2026-08-15T00:04:59.000Z"),300_000)).toBe(false);
-      expect(workflowDeliveryIsRetryable(scheduled,new Date("2026-08-15T00:05:02.000Z"),300_000)).toBe(true);
+      expect(scheduled).toBeDefined();
+      expect(workflowDeliveryIsRetryable(scheduled!,new Date("2026-08-15T00:04:59.000Z"),300_000)).toBe(false);
+      expect(workflowDeliveryIsRetryable(scheduled!,new Date("2026-08-15T00:05:02.000Z"),300_000)).toBe(true);
 
       const store=new TicketStore(join(root,"tickets.sqlite3"));
       const target={kind:"workflow" as const,taskId,stateRevision:3};
@@ -80,6 +81,35 @@ describe("delivery continuity", () => {
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
+  it("rejects a Ticket delivery marker from the wrong owner session", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-marker-owner-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    try {
+      const ticket=store.accept({runId:"marker-owner",ownerSessionKey:"agent:main:dashboard:owner-a",prompt:"failed work"});
+      store.route(ticket.ticketId,true);
+      const lease=store.claim({ticketId:ticket.ticketId,workerId:"marker-worker",leaseMs:10_000})!;
+      store.complete({...lease,result:{ok:true}});
+      const outbox=store.pendingOutbox()[0];
+      expect(outbox).toBeTruthy();
+      expect((bindDeliveryRun as any)({workspaceDir:root,store,target:{kind:"ticket",outboxId:outbox.outboxId},runId:"owner-b-run",sessionKey:"agent:main:dashboard:owner-b"})).toBe(false);
+      expect(store.pendingOutbox()[0].deliveryRunId).toBeNull();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("does not reschedule a workflow completion after it is delivered", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-workflow-delivery-stale-"));
+    try {
+      const taskId="WF-STALE",workflowDir=join(root,".cogentnexus-openclaw","workflows",taskId);mkdirSync(workflowDir,{recursive:true});
+      const path=join(workflowDir,"completion.json");
+      const notice={schemaVersion:1,taskId,ownerSessionKey:"agent:main:owner",workflowStatus:"completed",stateRevision:2,createdAt:"2026-08-15T00:00:00.000Z",deliveryStatus:"pending"};
+      writeFileSync(path,JSON.stringify(notice),"utf8");
+      const first=markWorkflowDeliveryScheduled(path,notice,new Date("2026-08-15T00:00:01.000Z"));
+      const store=new TicketStore(join(root,"tickets.sqlite3"));
+      const target={kind:"workflow" as const,taskId,stateRevision:2};
+      expect(settleDeliveryTarget({workspaceDir:root,store,target,success:true,now:new Date("2026-08-15T00:00:02.000Z")})).toBe(true);
+      expect((markWorkflowDeliveryScheduled as any)(path,first,new Date("2026-08-15T00:00:03.000Z"))).toBeUndefined();
+      expect(JSON.parse(readFileSync(path,"utf8"))).toMatchObject({deliveryStatus:"delivered",deliveredAt:"2026-08-15T00:00:02.000Z"});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("reports pending session work after a Ticket is durably accepted", () => {
     const root=mkdtempSync(join(tmpdir(),"cnx-pending-session-"));
     try {

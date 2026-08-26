@@ -246,6 +246,7 @@ export function pendingWorkflowCompletions(workspaceDir: string, now = new Date(
 
 export async function deliverWorkflowCompletion(api: any, path: string, notice: WorkflowCompletion) {
   const scheduled = markWorkflowDeliveryScheduled(path, notice);
+  if (!scheduled) return notice;
   try {
     const tag = workflowCompletionTag(notice);
     const taskFlow = api.runtime.tasks.managedFlows.bindSession({ sessionKey: notice.ownerSessionKey });
@@ -716,7 +717,7 @@ entry.register = (api) => {
     const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
     const target=deliveryTargets.get(runId);
     const directResult=success ? store.confirmDirectDelivery({runId}) : store.failDirectDelivery({runId,message:error});
-    if(target) settleDeliveryTarget({workspaceDir,store,target,success,error});
+    if(target) settleDeliveryTarget({workspaceDir,store,target,success,error,runId,sessionKey:runSessions.get(runId)});
     if(!target && directResult === "unchanged" && ticketedRuns.has(runId)) {
       earlyDeliveryReceipts.set(runId,{success,error});
       return;
@@ -730,11 +731,14 @@ entry.register = (api) => {
     if(currentRunId){runWorkspaces.set(currentRunId,currentWorkspace);if(ctx.sessionKey)runSessions.set(currentRunId,ctx.sessionKey);}
     const deliveryTarget=parseDeliveryMarker(event.prompt);
     if(deliveryTarget){
-      if(currentRunId){
+      if(currentRunId && ctx.sessionKey){
         const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
-        if(bindDeliveryRun({workspaceDir:currentWorkspace,store,target:deliveryTarget,runId:currentRunId})) deliveryTargets.set(currentRunId,deliveryTarget);
+        if(bindDeliveryRun({workspaceDir:currentWorkspace,store,target:deliveryTarget,runId:currentRunId,sessionKey:ctx.sessionKey})) {
+          deliveryTargets.set(currentRunId,deliveryTarget);
+          return {outcome:"pass"};
+        }
       }
-      return {outcome:"pass"};
+      return {outcome:"block",reason:"invalid or owner-mismatched internal delivery marker",category:"cnxclaw_delivery_integrity"};
     }
     if(event.prompt.includes("[CogentNexus-OpenClaw Continuation: post-compaction]") && ctx.sessionKey){
       const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
@@ -858,7 +862,8 @@ entry.register = (api) => {
       catch(error) { api.logger.warn(`CogentNexus-OpenClaw post-compaction guard cleanup failed: ${error instanceof Error?error.message:String(error)}`); }
     }
     const internalDelivery=Boolean(runId && deliveryTargets.has(runId));
-    if(!internalDelivery) await scheduleInterruptedResume({
+    const ticketedDirect=Boolean(runId && ticketedRuns.has(runId));
+    if(!internalDelivery && !ticketedDirect) await scheduleInterruptedResume({
       success: event.success,
       error: event.error,
       runId,

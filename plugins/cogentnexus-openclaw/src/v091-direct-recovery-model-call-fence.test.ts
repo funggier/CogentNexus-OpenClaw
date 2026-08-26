@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { TicketStore } from "./ticket-store.js";
-import { recordDirectModelCallStarted } from "./v091-direct-model-call-lease.js";
+import { closeDirectModelCallForRun, recordDirectModelCallEnded, recordDirectModelCallStarted } from "./v091-direct-model-call-lease.js";
 import { dueDirectRecovery, nextDirectRecoveryWakeMs } from "./v091-direct-recovery.js";
 
 const tempDirs: string[] = [];
@@ -85,6 +85,27 @@ describe("Direct recovery provider-call ownership fence", () => {
     expect(nextDirectRecoveryWakeMs(path, {}, now)).toBeUndefined();
   });
 
+  it("keeps one durable authority across provider-call ordering interleavings", () => {
+    const first = fixture();
+    expect(recordDirectModelCallStarted(first.path, { runId: "run-live-provider", callId: "call-order-1", now: new Date("2026-08-18T13:00:00.000Z"), timeoutMs: 60_000 })).toBe(true);
+    expect(closeDirectModelCallForRun(first.path, "run-live-provider", "agent_end_error", new Date("2026-08-18T13:00:01.000Z"))).toBe(true);
+    expect(dueDirectRecovery(first.path, new Date("2026-08-18T13:00:02.000Z"))).toMatchObject({ ticket_id: first.ticketId });
+
+    const second = fixture();
+    expect(recordDirectModelCallStarted(second.path, { runId: "run-live-provider", callId: "call-order-2", now: new Date("2026-08-18T13:00:00.000Z"), timeoutMs: 60_000 })).toBe(true);
+    let db = new DatabaseSync(second.path);
+    db.prepare("UPDATE cnx_direct_model_call SET state='recovering',recovery_started_at=?,updated_at=? WHERE ticket_id=?").run("2026-08-18T13:01:00.000Z", "2026-08-18T13:01:00.000Z", second.ticketId);
+    db.close();
+    expect(closeDirectModelCallForRun(second.path, "run-live-provider", "agent_end_error", new Date("2026-08-18T13:01:01.000Z"))).toBe(false);
+    db = new DatabaseSync(second.path, { readOnly: true });
+    expect((db.prepare("SELECT state FROM cnx_direct_model_call WHERE ticket_id=?").get(second.ticketId) as any).state).toBe("recovering");
+    db.close();
+
+    const third = fixture();
+    expect(recordDirectModelCallStarted(third.path, { runId: "run-live-provider", callId: "call-order-3", now: new Date("2026-08-18T13:00:00.000Z"), timeoutMs: 60_000 })).toBe(true);
+    expect(recordDirectModelCallEnded(third.path, { runId: "run-live-provider", callId: "call-order-3", outcome: "ok", durationMs: 10, now: new Date("2026-08-18T13:00:01.000Z") })).toBe(true);
+    expect(closeDirectModelCallForRun(third.path, "run-live-provider", "agent_end_ok", new Date("2026-08-18T13:00:02.000Z"))).toBe(false);
+  });
   it("keeps recovery blocked while Host owns classification, then releases it after Host marks the call interrupted", () => {
     const { path, ticketId } = fixture();
     recordDirectModelCallStarted(path, {

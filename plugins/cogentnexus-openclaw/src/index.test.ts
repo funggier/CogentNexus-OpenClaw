@@ -412,6 +412,10 @@ describe("cogentnexus-openclaw", () => {
         { sessionKey: "agent:main:dashboard:acceptance", runId: "direct-owner-run", workspaceDir: root },
       );
       expect(decision).toEqual({ outcome: "pass" });
+      expect(await hooks.get("before_agent_run")(
+        { prompt, senderIsOwner: true },
+        { sessionKey: "agent:main:dashboard:acceptance", runId: "direct-owner-run", workspaceDir: root },
+      )).toEqual({ outcome: "pass" });
       const db = new DatabaseSync(databasePath);
       try {
         const ticket = db.prepare("SELECT ticket_id,run_id,owner_session_key,prompt,status,workflow_eligible FROM tickets").get() as any;
@@ -441,6 +445,69 @@ describe("cogentnexus-openclaw", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("fails closed on a parsed but unbindable delivery marker", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cogent-invalid-marker-hook-"));
+    try {
+      const hooks = new Map<string, any>();
+      const api: any = {
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: join(root, "tickets.sqlite3"), autoWorkflowCompletion: false },
+        registerTool: () => {}, registerService: () => {}, on: (name: string, callback: any) => hooks.set(name, callback),
+        logger: { warn: () => {}, error: () => {}, info: () => {} }, session: { workflow: {} }, runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const result = await hooks.get("before_agent_run")({ prompt: "[CogentNexus-OpenClaw Delivery: ticket:999999]", senderIsOwner: true }, { sessionKey: "agent:main:dashboard:marker", runId: "marker-run", workspaceDir: root });
+      expect(result).toMatchObject({ outcome: "block", category: "cnxclaw_delivery_integrity" });
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+  it("uses one recovery authority for a Ticketed direct timeout", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cogent-direct-timeout-authority-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any>();
+      const scheduled: any[] = [];
+      const api: any = {
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, autoResume: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {}, registerService: () => {}, on: (name: string, callback: any) => hooks.set(name, callback),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: { unscheduleSessionTurnsByTag: async () => {}, scheduleSessionTurn: async (input: any) => { scheduled.push(input); } } },
+        runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const owner = { sessionKey: "agent:main:dashboard:timeout", runId: "ticket-timeout", workspaceDir: root };
+      expect(await hooks.get("before_agent_run")({ prompt: "ตอบกลับสั้น ๆ", senderIsOwner: true }, owner)).toEqual({ outcome: "pass" });
+      await hooks.get("agent_end")({ runId: owner.runId, success: false, error: "provider timed out", messages: [] }, owner);
+      expect(scheduled.filter((item) => item.tag === "cogent-resume-ticket-timeout")).toHaveLength(0);
+      expect(new TicketStore(databasePath).ready()).toHaveLength(1);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+  it("completes the registered direct lifecycle once after owner-bound delivery", async () => {
+    vi.useFakeTimers();
+    const root = mkdtempSync(join(tmpdir(), "cogent-direct-lifecycle-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any[]>();
+      const api: any = {
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, directDeliverySettleMs: 1000, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {}, registerService: () => {}, on: (name: string, callback: any) => hooks.set(name, [...(hooks.get(name) ?? []), callback]),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: { unscheduleSessionTurnsByTag: async () => {}, scheduleSessionTurn: async () => {} } },
+        runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const owner = { sessionKey: "agent:main:dashboard:lifecycle", runId: "direct-lifecycle", workspaceDir: root };
+      expect(await hooks.get("before_agent_run")?.[0]({ prompt: "ตอบกลับ lifecycle", senderIsOwner: true }, owner)).toEqual({ outcome: "pass" });
+      const sent = { sessionKey: owner.sessionKey, runId: owner.runId, success: true };
+      await hooks.get("message_sent")?.[0](sent, owner);
+      vi.advanceTimersByTime(1000);
+      await hooks.get("agent_end")?.[0]({ runId: owner.runId, success: true, messages: [{ role: "assistant", content: "CNX-LIFECYCLE" }] }, owner);
+      await hooks.get("message_sent")?.[0](sent, owner);
+      const db = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        expect((db.prepare("SELECT status FROM tickets WHERE run_id=?").get(owner.runId) as any).status).toBe("completed");
+        expect((db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=(SELECT ticket_id FROM tickets WHERE run_id=?) ORDER BY event_id").all(owner.runId) as any[]).map((row) => row.event_type)).toEqual(["accepted", "routed", "response_ready", "delivery_confirmed", "completed"]);
+      } finally { db.close(); }
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
   it("compiles, starts, links, heartbeats, and completes an admitted Ticket workflow", () => {
     const root = mkdtempSync(join(tmpdir(),"cogent-ticket-bridge-"));
     try {

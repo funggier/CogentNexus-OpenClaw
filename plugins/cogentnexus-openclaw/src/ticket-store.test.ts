@@ -29,6 +29,18 @@ describe("TicketStore", () => {
     rmSync(root,{recursive:true,force:true});
   });
 
+  it("routes a Ticket exactly once and rejects conflicting reroutes", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-ticket-route-idempotency-")),path=join(root,"tickets.sqlite3"),store=new TicketStore(path);
+    try {
+      const ticket=store.accept({runId:"route-once",ownerSessionKey:"owner",prompt:"durable"});
+      expect(store.route(ticket.ticketId,true)).toBe(true);
+      expect(store.route(ticket.ticketId,true)).toBe(false);
+      expect(() => store.route(ticket.ticketId,false)).toThrow(/conflicting route/i);
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect((db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id").all(ticket.ticketId) as any[]).map(x=>x.event_type)).toEqual(["accepted","routed"]);
+      db.close();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("does not ticket internal continuation and delivery messages", () => {
     expect(ticketIntakeEligible("The previous run was interrupted. Resume automatically")).toBe(false);
     expect(ticketIntakeEligible("[CogentNexus-OpenClaw Delivery: ticket:7]\nDeliver the committed result")).toBe(false);
