@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_REPAIR_TDD_RECOVERY_PREFLIGHT_SEMANTICS`
-Current authorization: `RECOVERY_PREFLIGHT_CORRECTION_AUTHORIZED`
-Task ID: `CNX-20260826-073`
+Execution mode: `TEST_ONLY_TDD_LIVE_APPDATA_ISOLATION`
+Current authorization: `RECOVERY_TEST_ISOLATION_AUTHORIZED`
+Task ID: `CNX-20260826-074`
 Updated: 2026-08-26 18:29 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
@@ -19,62 +19,73 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md`](tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md)
+[`tasks/CNX-20260826-074-isolate-recovery-tests-from-live-appdata.md`](tasks/CNX-20260826-074-isolate-recovery-tests-from-live-appdata.md)
 
-## Task 072 review
+## Task 073 review
 
-Task 072 reported:
+Task 073 reported:
 
-`PASS_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH_VERIFIED`
+`PASS_CLEAN_FRESH_RECOVERY_PREFLIGHT_CORRECTED`
 
-Install source:
+Implementation HEAD:
 
-`9df671670908241486afe2badf8a7f221410c6f8`
+`79b51ed06363f6e8862c491ee0a313ddb412c806`
 
 Report HEAD:
 
-`19d3ae6bf090e58aaf9b45da52fe3ae6f4f7d11a`
+`ba4a04825fb7396617fa0fe17c62f84f5f5e1507`
 
 Independent review decision:
 
-`ACCEPT`
+`REWORK`
 
 Disposition:
 
-`ACCEPT_LIVE_INSTALL_OWNED_RUNTIME_NO_FLASH_WITH_PREFLIGHT_FOLLOWUP`
+`REWORK_FULL_SUITE_LIVE_APPDATA_FIXTURE_COUPLING`
 
 Review commit:
 
-`9811272b8826ade6bf3d12f6091d2fcb8ff044ab`
+`6fc24cc44b66afa8411cafb2c2e31d34c7572dce`
 
-## Accepted Task-072 live state
+## Accepted Task-073 production correction candidate
 
-- one-time Task-066 residue cleanup completed within the exact two authorized roots;
-- one normal fresh install completed from exact accepted source;
-- controller is MANAGED and Gateway/Ollama/plugin/ownership/AGENTS/SQLite health passed;
-- launcher and Supervisor bind to CogentNexus-owned runtime under `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python` with no durable Hermes/Codex/temp dependency;
-- five natural PT1M ticks passed with `NO_FLASH_MULTI_TICK_PROVEN`;
-- no product semantic LLM smoke was performed.
+Preserve unless a new executable test proves otherwise:
 
-## Follow-up defect discovered during independent review
+- markerless clean state returns `CLEAN_FRESH`;
+- markerless partial residue remains fail-closed;
+- incomplete transaction recovery remains bounded;
+- ownership-present remains non-rollback state;
+- installer stops immediately on nonzero recovery-preflight before classification;
+- unknown successful recovery status fail-closes;
+- ordering before classification/transaction begin remains intact.
 
-Task-072's install log emitted a recovery-preflight error even after the pre-marker residue had already been removed.
+## Blocking finding
 
-Root cause in accepted production source:
+The Task-073 full pytest regression gate recorded four failures. They are reproducible test-fixture coupling to the real `%LOCALAPPDATA%\CogentNexus-OpenClaw` root now legitimately present after Task 072. Older temp-workspace recovery tests omit an isolated `app_data` argument and therefore observe live product inventory.
 
-1. `recovery_preflight()` raises whenever there is no marker before distinguishing clean fresh inventory from unmarked partial residue.
-2. `install.ps1` does not explicitly stop when `recovery-preflight` exits nonzero; it proceeds to `classify-install`.
+The production correction is not rejected by this evidence, but Task 073 cannot be accepted while its explicitly required full-suite gate has failures.
 
-This did not invalidate Task-072 runtime/no-flash acceptance, but it is a known installer correctness gap and must be corrected before final release/source parity and semantic acceptance.
+## Current live condition
 
-## Authorized Task 073 operation
+Preserve the accepted Task-072 healthy installation:
 
-Source/tests only. Correct clean-fresh recovery semantics and make installer recovery-preflight errors fail closed before classification/mutation. Preserve unmarked-residue safety, incomplete-transaction recovery, owned-install behavior, fresh transaction ordering, upgrade/legacy isolation, npm 11/12 reproducibility, and all accepted runtime ownership design.
+- MANAGED;
+- CogentNexus-owned foreground/background runtime;
+- no durable Hermes/Codex/temp binding;
+- Supervisor PT1M healthy;
+- no-flash already proven across five natural ticks;
+- Gateway/Ollama/plugin/ownership/AGENTS/SQLite healthy.
+
+## Authorized Task 074 operation
+
+Tests/evidence only. Isolate affected recovery/transaction fixtures from real user application-data by using exact temp `.../CogentNexus-OpenClaw` roots consistently. Restore full pytest to zero failures without weakening production semantics or touching the live installation.
 
 ## Live hard fence
 
-Do not mutate the healthy Task-072 live installation: no install/install-over/uninstall/reset/lifecycle action, Scheduled Task/Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, HermesAgent mutation, merge/tag/release, or semantic LLM smoke.
+No live install/install-over/uninstall/reset/lifecycle action, Scheduled Task/Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, HermesAgent mutation, semantic LLM smoke, merge/tag/release.
 
-## Pre-authorized successor
+## Pre-authorized successors
 
-If Task 073 is independently accepted, Task 074 may perform one supported install-over from the accepted correction onto the current MANAGED installation and re-prove source/live parity, owned runtime, MANAGED health, and >=3 natural PT1M no-flash ticks. Final semantic acceptance moves to Task 075.
+If Task 074 is independently accepted, Task 075 may perform one supported install-over of the accepted Task-073 correction onto the current MANAGED installation and prove source/live parity plus >=3 natural PT1M no-flash ticks.
+
+After Task 075 acceptance, Task 076 may perform the final semantic Ticket -> Ollama -> durable delivery -> response acceptance.
