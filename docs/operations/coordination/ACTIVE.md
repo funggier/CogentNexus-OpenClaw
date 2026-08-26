@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_SEMANTIC_P1_REPAIR_AND_BOUNDED_PROVIDER_DIAGNOSTICS`
-Current authorization: `SEMANTIC_P1_REPAIR_AND_PROVIDER_READINESS_AUTHORIZED`
-Task ID: `CNX-20260826-078`
-Updated: 2026-08-26 22:11 ICT
+Execution mode: `SOURCE_TDD_WORKFLOW_DELIVERY_ATOMICITY_REPAIR`
+Current authorization: `WORKFLOW_DELIVERY_ATOMICITY_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260826-079`
+Updated: 2026-08-26 22:49 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
 
@@ -19,64 +19,68 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md`](tasks/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md)
+[`tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md`](tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md)
 
-## Task 077 review
+## Task 078 report/review
 
-Task 077 final amended report HEAD:
+Task 078 reported:
 
-`b252879bdbc8cba8f187f883f943d9a913199204`
+`PASS_SEMANTIC_P1S_REPAIRED_PROVIDER_READY`
 
-Partial test implementation HEAD:
+Implementation HEAD:
 
-`6867af2cad75cb4ee8e70206d70b0ba5bd5abeea`
+`e25fbd5ab0c2773ee65d98782ecba942cbe36d58`
 
-Independent review decision:
+Final report HEAD reviewed:
 
-`REWORK`
+`b934eea6a9df91e1aa6602730c00c66d995ff62e`
+
+Independent review:
+
+Decision: `REWORK`
 
 Disposition:
 
-`REWORK_UNRESOLVED_SEMANTIC_P1S_AND_PROVIDER_READINESS`
+`REWORK_WORKFLOW_DELIVERY_ATOMICITY_INCOMPLETE`
 
 Review path:
 
-[`reviews/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md`](reviews/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md)
+[`reviews/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md`](reviews/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md)
 
-## Accepted Task-077 findings to preserve
+## Accepted Task-078 evidence to preserve
 
-- `openclaw agent --session-key agent:main:main` is not owner-authenticated merely by choosing that session key; do not broaden arbitrary CLI admission.
-- Dashboard/WebChat is the supported owner-surface candidate for eventual live semantic acceptance.
-- canonical installed v0.9.3 plugin generation/source identity and dynamic hook registration were materially verified.
-- registered-hook owner positive and CLI/subagent negative tests from `6867af2...` are useful and remain part of the candidate source lineage.
-- no new semantic message was sent in Task 077.
+Do not redo unless a regression is independently demonstrated:
 
-## Why Task 078 exists
+- delivery-marker fail-closed owner/run fencing on the registered hook path;
+- repeated Ticket admission/routing idempotency;
+- one Ticket/Host timeout recovery authority for Ticketed direct runs;
+- direct model-call lease/Host interleaving tests and no-production-fix disposition;
+- registered direct lifecycle `accepted -> routed -> response_ready -> delivery_confirmed -> completed` with duplicate convergence and negative owner/CLI/subagent coverage;
+- full plugin/Python/baseline verification reported green;
+- provider disposition `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` from exactly two already-consumed direct Ollama probes (TTFT approximately 7.7 s and 0.2 s).
 
-The comprehensive Task-077 report carried unresolved P1s and independent review confirmed additional direct-path idempotency evidence was missing. Task 078 must close/prove these before any new semantic message:
+No additional provider probe is authorized or required in Task 079.
 
-1. delivery-marker owner/session binding and fail-closed behavior;
-2. repeated `before_agent_run` route/event idempotency;
-3. single timeout/recovery authority for Ticketed direct runs;
-4. direct model-call lease/Host ordering, repairing only if deterministic RED proves a defect;
-5. workflow completion stale/concurrent scheduling idempotency;
-6. coherent direct owner -> Ticket -> response-ready -> owner-bound delivery terminal integration;
-7. exact OpenClaw `2026.7.1-2` / Ollama provider readiness and timeout hierarchy.
+## Why Task 079 exists
 
-The operator explicitly authorized a heavy comprehensive pass.
+Task-078 Gate W is incomplete in three atomicity/crash-recovery areas:
 
-## Provider diagnostic authorization
+1. scheduling-failure rollback still writes a stale notice without atomic re-read and can overwrite a newer `delivered` state;
+2. workflow delivery-run binding is still an unlocked read/write and can race settlement;
+3. the new exclusive `.lock` file has no bounded abandoned-lock recovery and can permanently suppress delivery after process death.
 
-Task 078 may perform at most two inert **direct local Ollama** probes to the already configured `qwen3.5:9b` solely to measure first-token/total timing. These probes bypass OpenClaw/CogentNexus and must not mutate product durable state or configuration.
+Task 079 must RED/GREEN these exact gaps and strengthen repeated/concurrent retry convergence while preserving all accepted Task-078 semantic/provider results.
 
-No OpenClaw owner/user semantic message is authorized.
+## Hard live fence
 
-## Hard live fences
+No OpenClaw semantic/user message, no Dashboard/WebChat live turn, no `openclaw agent` semantic test, no direct Ollama probe, no live Ticket/session/SQLite mutation, no install/install-over/uninstall/reset/cleanup, no provider/model/config/plugin/AGENTS change, no restart/reboot, no merge/tag/release. Source work must use a fresh isolated worktree.
 
-No Dashboard/WebChat semantic turn, no `openclaw agent` semantic/provider probe, no reuse of the Task-076 nonce, no live Ticket/session/SQLite mutation, no install/install-over/uninstall/reset/cleanup, no provider/model/config/plugin/AGENTS change, no diagnostic restart/reboot, no merge/tag/release. Source work must use a fresh isolated worktree.
-
-Accepted live production source remains:
+Accepted live production remains:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-Any accepted Task-078 production source must later pass supported install-over/source-live parity before a new final semantic message is authorized.
+Task-078/079 candidate source is not live until a later supported install-over/source-live parity gate.
+
+## Successor gate
+
+If Task 079 is independently accepted, the next task is supported install-over/source-live parity/health/no-flash using the combined accepted Task-078/079 implementation. It may prepare a fresh authenticated Dashboard/WebChat owner session but must not send the final semantic nonce.
