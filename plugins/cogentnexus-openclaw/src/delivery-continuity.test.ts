@@ -155,6 +155,22 @@ describe("delivery continuity", () => {
       expect(() => readFileSync(`${path}.lock`)).toThrow();
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
+  it("rejects a different workflow delivery run after the first bind", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-workflow-run-fence-"));
+    try {
+      const taskId="WF-RUN-FENCE",dir=join(root,".cogentnexus-openclaw","workflows",taskId);mkdirSync(dir,{recursive:true});
+      const path=join(dir,"completion.json");
+      const notice={schemaVersion:1,taskId,ownerSessionKey:"agent:main:owner",workflowStatus:"completed",stateRevision:1,createdAt:"2026-08-15T00:00:00.000Z",deliveryStatus:"pending"};
+      writeFileSync(path,JSON.stringify(notice),"utf8");
+      const store=new TicketStore(join(root,"tickets.sqlite3"));
+      const target={kind:"workflow" as const,taskId,stateRevision:1};
+      expect(bindDeliveryRun({workspaceDir:root,store,target,runId:"run-a"})).toBe(true);
+      expect(bindDeliveryRun({workspaceDir:root,store,target,runId:"run-a"})).toBe(true);
+      expect(bindDeliveryRun({workspaceDir:root,store,target,runId:"run-b"})).toBe(false);
+      expect(settleDeliveryTarget({workspaceDir:root,store,target,success:true,runId:"run-b"})).toBe(false);
+      expect(settleDeliveryTarget({workspaceDir:root,store,target,success:true,runId:"run-a"})).toBe(true);
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
   it("converges repeated scheduling and permits one retry after rollback", () => {
     const root=mkdtempSync(join(tmpdir(),"cnx-workflow-retry-convergence-"));
     try {
