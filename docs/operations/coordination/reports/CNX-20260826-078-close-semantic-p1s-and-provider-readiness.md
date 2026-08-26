@@ -169,13 +169,25 @@ Sensitive values were not recorded. Effective relevant fields were:
 - `agents.defaults.models` contains `ollama/*` and `ollama/qwen3.5:9b`, but no
   explicit provider-model `requestTimeoutMs` was configured;
 - `models.mode` is `merge`;
-- OpenClaw model list reports `ollama/qwen3.5:9b` as available/configured but
-  `local=false`, so this build follows the 120000ms implicit watchdog path rather
-  than the local-runtime zero-idle-timeout branch;
-- model catalog context window: 200000 tokens;
-- no configured Ollama `num_ctx` equivalent was found in the redacted config;
-- `diagnostics.stuckSessionAbortMs=86400000`;
-- `openclaw config validate` passed;
+- OpenClaw general model list reports `ollama/qwen3.5:9b` as available/configured with
+  `local=false`; however, the provider-specific dynamic catalog command
+  `openclaw models list --provider ollama --all --json` reports the same model as
+  `local=true` with context window 262144. This is a catalog-surface difference,
+  not two different selected models.
+- Installed source resolves runtime locality from the model's resolved `baseUrl`,
+  not from the display flag: `selection-JInn13lc.js:10905-10919`. The Ollama plugin
+  default is `http://127.0.0.1:11434` (`extensions/ollama/index.js:152` and
+  `:875`), so a dynamically resolved local Ollama model follows the local
+  first-event/idle behavior. A static catalog entry without a bound base URL can
+  follow the cloud fallback branch. The CLI status surface does not expose the
+  fully bound runtime model object, so this distinction is recorded rather than
+  silently collapsed.
+- The current config has no explicit provider-model `requestTimeoutMs`; no
+  configured Ollama `timeoutSeconds` was found.
+- No configured Ollama `num_ctx` equivalent was found in the redacted config; the
+  provider-specific dynamic catalog reports context window 262144.
+- `diagnostics.stuckSessionAbortMs=86400000`.
+- `openclaw config validate` passed.
 - Ollama modelfile inspection showed the configured model and generation parameters
   but no request timeout setting.
 
@@ -219,7 +231,8 @@ completed with `done=true`; this is not a semantic acceptance result.
 `PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
 
 The model itself demonstrated first-chunk readiness at 7.7s cold-ish and 0.2s warm,
-inside the effective 120s watchdog. The Task-076 failure is more consistent with the
+inside both plausible OpenClaw first-event watchdog branches (120s cloud fallback and
+300s local-runtime branch). The Task-076 failure is more consistent with the
 CLI/session/provenance surface and a timed-out zero-token session than with a proven
 model inability to produce a first chunk. The next live acceptance must use a fresh
 trusted Dashboard/WebChat owner session; it must not reuse `agent:main:main` or infer
@@ -272,8 +285,9 @@ and returned `52 passed in 4.16s`.
 ## Publication fence and successor
 
 Implementation/test changes are in commit `e25fbd5ab0c2773ee65d98782ecba942cbe36d58`.
-This report is the only publication file. Task 078 itself authorizes no new real
-semantic message. If an independent review accepts
+This catalog-surface correction is a follow-up report-only change and does not alter
+source, tests, provider configuration, or live state. Task 078 itself authorizes no
+new real semantic message. If an independent review accepts
 `PASS_SEMANTIC_P1S_REPAIRED_PROVIDER_READY`, the successor may perform the supported
 install-over/source-live parity/health/no-flash gate and prepare a fresh trusted
 Dashboard owner session. It must still preserve the final semantic nonce until a
