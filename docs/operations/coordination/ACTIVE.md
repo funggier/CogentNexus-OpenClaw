@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TEST_ONLY_TDD_LIVE_APPDATA_ISOLATION`
-Current authorization: `RECOVERY_TEST_ISOLATION_AUTHORIZED`
-Task ID: `CNX-20260826-074`
+Execution mode: `LIVE_SUPPORTED_INSTALL_OVER_SOURCE_PARITY_OWNED_RUNTIME_NO_FLASH`
+Current authorization: `SUPPORTED_INSTALL_OVER_PARITY_ACCEPTANCE_AUTHORIZED`
+Task ID: `CNX-20260826-075`
 Updated: 2026-08-26 18:29 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
@@ -19,73 +19,66 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-074-isolate-recovery-tests-from-live-appdata.md`](tasks/CNX-20260826-074-isolate-recovery-tests-from-live-appdata.md)
+[`tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md`](tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md)
 
-## Task 073 review
+## Task 074 review
 
-Task 073 reported:
+Task 074 reported:
 
-`PASS_CLEAN_FRESH_RECOVERY_PREFLIGHT_CORRECTED`
+`PASS_RECOVERY_TESTS_ISOLATED_FROM_LIVE_APPDATA`
 
-Implementation HEAD:
+Test-only implementation HEAD:
 
-`79b51ed06363f6e8862c491ee0a313ddb412c806`
+`8fc2f4640a761204e9614d2a2fbcfb55cc23d311`
 
 Report HEAD:
 
-`ba4a04825fb7396617fa0fe17c62f84f5f5e1507`
+`545fc3e6f989e8423ba4e94acc3fe9c60b0fa827`
 
 Independent review decision:
 
-`REWORK`
+`ACCEPT`
 
 Disposition:
 
-`REWORK_FULL_SUITE_LIVE_APPDATA_FIXTURE_COUPLING`
+`ACCEPT_RECOVERY_TESTS_ISOLATED_AND_TASK073_PRODUCTION_CORRECTION_RELEASED`
 
 Review commit:
 
-`6fc24cc44b66afa8411cafb2c2e31d34c7572dce`
+`7a28292007b96d972e4aa71bc1f0f31f23d5da11`
 
-## Accepted Task-073 production correction candidate
+## Accepted production source for live install-over
 
-Preserve unless a new executable test proves otherwise:
+`79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-- markerless clean state returns `CLEAN_FRESH`;
-- markerless partial residue remains fail-closed;
-- incomplete transaction recovery remains bounded;
-- ownership-present remains non-rollback state;
-- installer stops immediately on nonzero recovery-preflight before classification;
-- unknown successful recovery status fail-closes;
-- ordering before classification/transaction begin remains intact.
+Task 074 changed tests only and closes the sole full-suite blocker on the Task-073 production correction.
 
-## Blocking finding
+Accepted verification now includes:
 
-The Task-073 full pytest regression gate recorded four failures. They are reproducible test-fixture coupling to the real `%LOCALAPPDATA%\CogentNexus-OpenClaw` root now legitimately present after Task 072. Older temp-workspace recovery tests omit an isolated `app_data` argument and therefore observe live product inventory.
+- recovery semantics/fail-closed installer correction;
+- full pytest `356 passed, 2 skipped, 0 failed` while the real Task-072 live app-data root remains present and unchanged;
+- npm 11/npm 12 gates;
+- exact OpenClaw `2026.7.1-2`, plugin `0.9.3`;
+- upgrade/legacy/fresh transaction regressions.
 
-The production correction is not rejected by this evidence, but Task 073 cannot be accepted while its explicitly required full-suite gate has failures.
+## Current live baseline
 
-## Current live condition
+Preserve the accepted Task-072 healthy MANAGED installation until Task 075 preflight proves it:
 
-Preserve the accepted Task-072 healthy installation:
-
-- MANAGED;
-- CogentNexus-owned foreground/background runtime;
+- CogentNexus-owned runtime;
 - no durable Hermes/Codex/temp binding;
-- Supervisor PT1M healthy;
-- no-flash already proven across five natural ticks;
-- Gateway/Ollama/plugin/ownership/AGENTS/SQLite healthy.
+- Supervisor PT1M;
+- five natural ticks already proved no flash;
+- Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite healthy.
 
-## Authorized Task 074 operation
+## Authorized Task 075 operation
 
-Tests/evidence only. Isolate affected recovery/transaction fixtures from real user application-data by using exact temp `.../CogentNexus-OpenClaw` roots consistently. Restore full pytest to zero failures without weakening production semantics or touching the live installation.
+Exactly one supported install-over from exact production source `79b51ed...`; no uninstall, reset or manual cleanup. Then prove upgrade-path/source-live parity, canonical plugin generation/ownership, owned runtime, final MANAGED health and at least three natural PT1M no-flash ticks.
 
-## Live hard fence
+## Hard fences
 
-No live install/install-over/uninstall/reset/lifecycle action, Scheduled Task/Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, HermesAgent mutation, semantic LLM smoke, merge/tag/release.
+No uninstall/reset/manual cleanup, no reboot, no provider/model/OpenClaw change, no source edits, no HermesAgent mutation, no semantic product LLM smoke, no merge/tag/release. Never repeat a completed install-over after interruption; inspect actual live state first.
 
-## Pre-authorized successors
+## Pre-authorized successor
 
-If Task 074 is independently accepted, Task 075 may perform one supported install-over of the accepted Task-073 correction onto the current MANAGED installation and prove source/live parity plus >=3 natural PT1M no-flash ticks.
-
-After Task 075 acceptance, Task 076 may perform the final semantic Ticket -> Ollama -> durable delivery -> response acceptance.
+If Task 075 is independently accepted, Task 076 may perform the final semantic Ticket -> Ollama -> durable result/delivery -> response acceptance.
