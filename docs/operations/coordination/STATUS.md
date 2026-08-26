@@ -1,24 +1,24 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 18:29 ICT
+**Updated:** 2026-08-26 20:00 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through final live/semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 074 review
+## Task 075 report/review
 
-Task 074 result:
+Task 075 result:
 
-`PASS_RECOVERY_TESTS_ISOLATED_FROM_LIVE_APPDATA`
+`PASS_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
 
-Test-only implementation HEAD:
+Accepted live source:
 
-`8fc2f4640a761204e9614d2a2fbcfb55cc23d311`
+`79b51ed06363f6e8862c491ee0a313ddb412c806`
 
 Report HEAD:
 
-`545fc3e6f989e8423ba4e94acc3fe9c60b0fa827`
+`38a8bfa345ea6bf808870eb4c99efdafa7edf3e2`
 
 Independent review:
 
@@ -26,40 +26,49 @@ Decision `ACCEPT`
 
 Disposition:
 
-`ACCEPT_RECOVERY_TESTS_ISOLATED_AND_TASK073_PRODUCTION_CORRECTION_RELEASED`
+`ACCEPT_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
 
 Review commit:
 
-`7a28292007b96d972e4aa71bc1f0f31f23d5da11`
+`665da6c3df05b98aa1a6e06115db80b7ba0967a0`
 
-### Accepted source and verification
+### Accepted Task-075 evidence
 
-The Task-073 production correction at `79b51ed06363f6e8862c491ee0a313ddb412c806` is now released for live parity acceptance. Task 074 changed only the two affected recovery/wiring test files, isolated their app-data roots under temp product boundaries, and restored the required full suite to `356 passed, 2 skipped, 0 failed` while the real Task-072 application-data root remained present and byte-for-byte unchanged by the tests.
+- baseline was re-proven before the single supported install-over;
+- install-over completed once from exact Task-073 production source;
+- upgrade semantics were used with coherent owned-state preflight and no fresh transaction;
+- 86 installed skill files compared byte-for-byte against source with no differences;
+- exactly one canonical v0.9.3 plugin registration remained after supported generation rollover;
+- runtime/launcher/Scheduled Task remained bound to CogentNexus-owned foreground/background interpreters with no durable Hermes/Codex/temp path;
+- five natural PT1M ticks passed after install-over with `NO_FLASH_MULTI_TICK_PROVEN`;
+- final MANAGED/Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite health passed;
+- no semantic product LLM smoke occurred;
+- publication fence is report-only.
 
-PowerShell syntax, npm 11.16.0, npm 12.0.2, plugin validation/tests, exact OpenClaw `2026.7.1-2`, plugin `0.9.3`, baseline consistency and publication fences passed.
+## Active Task 076
 
-## Current live baseline
-
-Task 072 remains the accepted live installation pending Task-075 re-proof: MANAGED, CogentNexus-owned runtime, no durable Hermes/Codex/temp binding, PT1M Supervisor, five natural no-flash ticks, and healthy Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite state.
-
-## Active Task 075
-
-[`tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md`](tasks/CNX-20260826-075-install-over-source-live-parity-no-flash.md)
+[`tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md`](tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `SUPPORTED_INSTALL_OVER_PARITY_ACCEPTANCE_AUTHORIZED`
+Authorization: `FINAL_SEMANTIC_ACCEPTANCE_AUTHORIZED`
 
-Execution mode: `LIVE_SUPPORTED_INSTALL_OVER_SOURCE_PARITY_OWNED_RUNTIME_NO_FLASH`
+Execution mode: `LIVE_BOUNDED_REAL_USER_MESSAGE_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`
 
-Task 075 may run exactly one normal supported install-over from exact source `79b51ed...` onto the current MANAGED installation. It must prove `OWNERSHIP_PRESENT` preflight + `upgrade` classification, source/live parity, ownership-safe canonical plugin rollover, exact product-owned runtime bindings, final MANAGED health and at least three natural PT1M ticks with `NO_FLASH_MULTI_TICK_PROVEN`.
+Task 076 is the final current-scope gate. It must use exactly one real supported OpenClaw owner-session user message, not a Ticket/database/model shortcut, and prove:
+
+- one Ticket is durably accepted before inference;
+- the request is intentionally direct-lane and no unintended workflow is spawned;
+- the correlated product run uses provider Ollama through OpenClaw;
+- one real final response is delivered to the owner session and contains the unique nonce;
+- the same Ticket records `response_ready`, `delivery_confirmed`, `completed` in order;
+- no duplicate Ticket/delivery side effect occurs;
+- final MANAGED/Gateway/Ollama/plugin/ownership/AGENTS/SQLite health remains good.
 
 ## Hard fences
 
-No uninstall/reset/manual cleanup, no reboot, no provider/model/OpenClaw changes, no source edits, no HermesAgent mutation, no semantic product LLM smoke, no merge/tag/release. A completed install-over must never be repeated after interruption without re-inspection.
+No install/install-over/uninstall/reset/cleanup, no manual Ticket/SQLite edits, no provider/model/config change, no reboot, no duplicate acceptance send, no merge/tag/release. Only the single semantic message and its natural product effects are authorized.
 
-## Final gate after Task 075
+## Completion meaning
 
-Only after independent acceptance of Task 075 may Task 076 execute the final real semantic flow:
-
-`user message -> durable Ticket -> Ollama LLM -> durable result/delivery -> user-visible response`.
+If Task 076 reports and independent review accepts `PASS_FINAL_SEMANTIC_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`, the agreed CogentNexus-OpenClaw v0.9.3 acceptance chain is complete: install/uninstall/install-over correctness, recovery, ownership-safe runtime, no-flash operation, source/live parity, Ticket-first inference and durable final delivery have all been proven on the live system.
