@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_BOUNDED_REAL_USER_MESSAGE_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`
-Current authorization: `FINAL_SEMANTIC_ACCEPTANCE_AUTHORIZED`
-Task ID: `CNX-20260826-076`
-Updated: 2026-08-26 20:00 ICT
+Execution mode: `SOURCE_DIAGNOSTIC_TDD_OWNER_ENTRY_CONTRACT`
+Current authorization: `OWNER_ENTRY_DIAGNOSIS_AND_SOURCE_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260826-077`
+Updated: 2026-08-26 21:35 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,21 +19,17 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md`](tasks/CNX-20260826-076-final-semantic-ticket-ollama-delivery-acceptance.md)
+[`tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md`](tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md)
 
-## Task 075 review
+## Task 076 review
 
-Task 075 reported:
+Task 076 reported:
 
-`PASS_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
-
-Install-over source:
-
-`79b51ed06363f6e8862c491ee0a313ddb412c806`
+`BLOCKED_SEMANTIC_ENTRY_PATH`
 
 Report HEAD:
 
-`38a8bfa345ea6bf808870eb4c99efdafa7edf3e2`
+`4dc5dbba9b5933f6f2ca274cbea0c1eee0fe446d`
 
 Independent review decision:
 
@@ -41,35 +37,31 @@ Independent review decision:
 
 Disposition:
 
-`ACCEPT_INSTALL_OVER_SOURCE_LIVE_PARITY_NO_FLASH`
+`ACCEPT_BLOCKER_SEMANTIC_ENTRY_PATH_OWNER_SIGNAL_COVERAGE`
 
 Review commit:
 
-`665da6c3df05b98aa1a6e06115db80b7ba0967a0`
+`67de33878ef35fe32e584d15bfc86ee0b8354b8b`
 
-## Accepted live state
+## Accepted evidence from Task 076
 
-- supported install-over from exact corrected source completed exactly once;
-- installed skill tree is byte-for-byte source/live parity with `79b51ed...` for the compared production tree;
-- recovery preflight/upgrade path behaved coherently with no fresh transaction;
-- exactly one canonical v0.9.3 plugin generation remains active after supported rollover;
-- launcher and Supervisor remain CogentNexus-owned runtime bound with no durable Hermes/Codex/temp dependency;
-- five post-install-over natural PT1M ticks again proved `NO_FLASH_MULTI_TICK_PROVEN`;
-- final MANAGED/Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite health passed;
-- no product semantic LLM smoke has yet been executed.
+- exactly one Gateway-backed OpenClaw agent/session message was sent and was not resent;
+- run `97b7e136-3258-415b-a595-02792d393ff9` reached `ollama / qwen3.5:9b` before a provider-stage timeout;
+- authoritative Ticket DB remained at zero Tickets/events/outbox rows before and after the run;
+- therefore Ticket-first admission did not happen on the selected `openclaw agent --session-key agent:main:main` surface;
+- post-run MANAGED/Gateway/Ollama/Supervisor/SQLite health remained good;
+- publication fence was report-only.
 
-## Authorized Task 076 operation
+## Why Task 077 exists
 
-Exactly one bounded real owner-session semantic message through a supported OpenClaw user-message surface. Prove the installed plugin commits one Ticket before inference, the normal OpenClaw run uses provider Ollama, the direct Ticket records response-ready and confirmed final delivery, the user-visible response contains the unique nonce, and no duplicate Ticket/delivery side effect occurs.
+Current production admission policy permits `senderIsOwner=false` only for canonical dashboard sessions and intentionally rejects arbitrary CLI sessions with that owner bit. Task 076 selected a CLI-targeted `agent:main:main` session, but current evidence does not yet prove whether that was simply the wrong owner surface or whether CogentNexus lacks coverage for a legitimate owner-entry metadata shape.
 
-Do not use TicketStore/SQLite/manual hook/model shortcuts as the semantic input. Do not resend the acceptance message if slow.
+Task 077 must trace exact OpenClaw 2026.7.1-2 owner-signal semantics without sending another live semantic message. If the current policy is correct, prove the exact supported owner surface for the next acceptance. If a product gap is proven, repair only that gap with TDD and preserve untrusted/subagent fences.
 
 ## Hard fences
 
-No install/install-over/uninstall/reset/cleanup, no manual SQLite mutation, no provider/model/config change, no reboot, no merge/tag/release. Authorized mutation is only the one semantic message and its natural Ticket/session/Ollama/delivery effects.
+No semantic message, no resend of Task-076 nonce, no live install/install-over/uninstall/reset/cleanup, no SQLite/session mutation, no provider/model/config change, no restart/reboot, no merge/tag/release. Source implementation must use a fresh isolated worktree.
 
-## Completion gate
+Accepted live source remains:
 
-If Task 076 reports `PASS_FINAL_SEMANTIC_TICKET_OLLAMA_DELIVERY_ACCEPTANCE`, ChatGPT must independently review the real user-entry path, Ticket-first runtime ordering, correlated Ollama inference, terminal delivery evidence, idempotency accounting, post-run health and report-only publication fence.
-
-Independent acceptance of that result completes the agreed current v0.9.3 OpenClaw acceptance scope.
+`79b51ed06363f6e8862c491ee0a313ddb412c806`
