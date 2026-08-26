@@ -1,20 +1,20 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 21:35 ICT
+**Updated:** 2026-08-26 21:25 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair through final live/semantic acceptance
+**Human authority:** operator authorized definitive repair through final live/semantic acceptance and requested a comprehensive diagnostic pass while Hermes/Codex budget is available
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 075 accepted live baseline
+## Accepted live baseline
 
 Task 075 independently passed supported install-over, source/live parity and no-flash acceptance from source:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-The live product remains MANAGED, Gateway/Ollama healthy, CogentNexus-owned runtime bound, one canonical v0.9.3 plugin active, and no-flash was re-proven over five natural PT1M ticks.
+The live product remains MANAGED with healthy Gateway/Ollama, CogentNexus-owned runtime binding, one canonical v0.9.3 plugin generation, and previously proven no-flash operation.
 
-## Task 076 report/review
+## Task 076 accepted blocker
 
 Task 076 result:
 
@@ -36,47 +36,61 @@ Review commit:
 
 `67de33878ef35fe32e584d15bfc86ee0b8354b8b`
 
-### Accepted Task-076 evidence
+Accepted evidence:
 
-- one real OpenClaw agent/session CLI message was sent exactly once;
-- run `97b7e136-3258-415b-a595-02792d393ff9` reached `ollama/qwen3.5:9b` and later timed out at provider stage;
-- the authoritative Ticket DB contained zero Tickets, zero Ticket events and zero outbox rows both before and after the run;
-- therefore the selected semantic entry reached inference without CogentNexus Ticket-first admission;
-- the provider timeout is secondary and cannot explain the missing pre-inference Ticket;
-- no duplicate semantic send or manual state repair occurred;
-- post-run product health remained good;
-- Task-076 publication was report-only.
+- exactly one real OpenClaw agent/session CLI message was sent;
+- run `97b7e136-3258-415b-a595-02792d393ff9` reached `ollama/qwen3.5:9b` and then timed out at provider stage;
+- Ticket DB contained zero Tickets/events/outbox both before and after;
+- selected CLI surface therefore entered inference without CogentNexus Ticket-first admission;
+- no duplicate send or manual state repair occurred;
+- product health remained good afterward.
 
-Current source policy accepts `senderIsOwner=false` only for canonical dashboard session namespaces and intentionally rejects arbitrary CLI sessions with that bit. The failed `agent:main:main` CLI surface therefore requires contract diagnosis before another live semantic attempt.
+## Active Task 077 — comprehensive semantic-path audit
 
-## Active Task 077
+Base task:
 
 [`tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md`](tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md)
 
+Mandatory addendum:
+
+[`tasks/CNX-20260826-077-comprehensive-semantic-path-audit-addendum.md`](tasks/CNX-20260826-077-comprehensive-semantic-path-audit-addendum.md)
+
 Status: `READY_FOR_HERMES`
 
-Authorization: `OWNER_ENTRY_DIAGNOSIS_AND_SOURCE_REPAIR_AUTHORIZED`
+Authorization: `COMPREHENSIVE_SEMANTIC_PATH_DIAGNOSIS_AND_PROVEN_BLOCKER_REPAIR_AUTHORIZED`
 
-Execution mode: `SOURCE_DIAGNOSTIC_TDD_OWNER_ENTRY_CONTRACT`
+Execution mode: `SOURCE_COMPREHENSIVE_SEMANTIC_PATH_DIAGNOSTIC_TDD`
 
-Task 077 must, without sending any live semantic message:
+Hermes/Codex must execute both Task-077 documents as one contract.
 
-- trace exact OpenClaw 2026.7.1-2 owner-message hook semantics for CLI, dashboard/WebChat and supported session-send paths;
-- determine actual `sessionKey` and `senderIsOwner` provenance and any safer trusted metadata;
-- classify Task 076 as surface-selection mismatch or product admission-coverage defect;
-- if policy is already correct, prove the exact supported owner surface and add/strengthen compatibility evidence as needed;
-- if a product defect is proven, RED/GREEN the smallest least-privilege source repair;
-- exercise a production-facing Ticket-before-inference integration boundary with isolated DB/provider stub;
-- preserve negative coverage for untrusted CLI/channel and subagent paths;
-- inspect the Task-076 Ollama timeout only as a secondary read-only diagnosis;
-- run full regression gates and publish implementation/test commit followed by report-only commit when applicable.
+The comprehensive pass must audit, with exact OpenClaw `2026.7.1-2` evidence:
 
-## Hard fences
+- every relevant real user-entry surface and its owner/auth/session metadata;
+- loaded plugin generation and actual hook registration/runtime selection;
+- every production early-return/bypass between `before_agent_run` and `TicketStore.accept()`;
+- production-facing Ticket-before-provider integration behavior for trusted and untrusted metadata;
+- direct-lane `accepted -> routed -> response_ready -> delivery_confirmed -> completed` behavior and duplicate-hook resistance;
+- provider/Ollama timeout hierarchy and Task-076 timeout attribution;
+- provider-failure, recovery, continuation and idempotency semantics after Ticket admission;
+- security invariants preventing subagent/arbitrary CLI/channel owner impersonation;
+- adjacent P0/P1 blockers likely to invalidate the next live semantic attempt.
 
-Task 077 cannot send or resend semantic messages, mutate live Ticket/session/SQLite state, install/install-over/uninstall/reset/cleanup, change model/provider/config, restart/reboot, merge/tag/release, or implement in the primary workspace.
+Multiple independently proven semantic-path defects may be repaired in the isolated Task-077 worktree only with focused RED/GREEN TDD and least-privilege changes. No unrelated refactor is authorized.
+
+The Task-077 report must include a boundary-by-boundary finding matrix with severity `P0/P1/P2/INFO`. Every P0/P1 must be repaired and verified or explicitly carried into a successor with evidence.
+
+## Hard live fence
+
+No new semantic message, no reuse of Task-076 nonce, no live Ticket/session/SQLite mutation, no install/install-over/uninstall/reset/cleanup, no provider/model/plugin/config/AGENTS change, no diagnostic restart/reboot, no direct Ollama semantic test, no merge/tag/release. Source changes must use a fresh isolated worktree.
 
 ## Successor logic
 
-If Task 077 proves the existing owner-entry policy is correct, the next live task may use one new nonce through the exact proven owner surface.
+Do not authorize another live semantic acceptance merely because the first owner-entry issue is understood.
 
-If Task 077 repairs production owner-entry coverage, that new source must first pass a supported install-over/source-live parity gate before another final semantic message is authorized.
+A successor live message is permitted only after independent review confirms:
+
+1. exact supported owner surface proven from OpenClaw source/runtime;
+2. executable production-facing Ticket commit-before-provider proof;
+3. direct terminal delivery path sufficiently covered;
+4. no unresolved P0/P1 semantic blocker, including provider-timeout risk likely to make the next run fail;
+5. if source changed, supported install-over/source-live parity completed before the next semantic message.
