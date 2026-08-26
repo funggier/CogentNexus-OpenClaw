@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_BOUNDED_RESIDUE_CLEANUP_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH`
-Current authorization: `BOUNDED_RESIDUE_CLEANUP_AND_FRESH_INSTALL_LIVE_ACCEPTANCE_AUTHORIZED`
-Task ID: `CNX-20260826-072`
-Updated: 2026-08-26 17:21 ICT
+Execution mode: `SOURCE_REPAIR_TDD_RECOVERY_PREFLIGHT_SEMANTICS`
+Current authorization: `RECOVERY_PREFLIGHT_CORRECTION_AUTHORIZED`
+Task ID: `CNX-20260826-073`
+Updated: 2026-08-26 18:29 ICT
 Owner: ChatGPT
 Executor: Hermes after the operator's continuation signal
 
@@ -19,25 +19,21 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-072-bounded-cleanup-fresh-install-owned-runtime-live-acceptance.md`](tasks/CNX-20260826-072-bounded-cleanup-fresh-install-owned-runtime-live-acceptance.md)
+[`tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md`](tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md)
 
-## Task 071 review
+## Task 072 review
 
-Task 071 reported:
+Task 072 reported:
 
-`PASS_UPGRADE_LEGACY_MODE_ISOLATION_PROVEN`
+`PASS_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH_VERIFIED`
 
-Production candidate HEAD:
+Install source:
 
 `9df671670908241486afe2badf8a7f221410c6f8`
 
-Test-only implementation HEAD:
-
-`7a55980e662b50f2d2979eb77a3ac1f89da7912f`
-
 Report HEAD:
 
-`d1c8382690d1e06e60ef335e26ba19cdde9152df`
+`19d3ae6bf090e58aaf9b45da52fe3ae6f4f7d11a`
 
 Independent review decision:
 
@@ -45,70 +41,40 @@ Independent review decision:
 
 Disposition:
 
-`ACCEPT_UPGRADE_LEGACY_MODE_ISOLATION_PROVEN`
+`ACCEPT_LIVE_INSTALL_OWNED_RUNTIME_NO_FLASH_WITH_PREFLIGHT_FOLLOWUP`
 
 Review commit:
 
-`3943fb9988c44fecf407b5cb2375bc9adcaf5746`
+`9811272b8826ade6bf3d12f6091d2fcb8ff044ab`
 
-## Accepted source for live install
+## Accepted Task-072 live state
 
-Task 072 MUST install exact production commit:
+- one-time Task-066 residue cleanup completed within the exact two authorized roots;
+- one normal fresh install completed from exact accepted source;
+- controller is MANAGED and Gateway/Ollama/plugin/ownership/AGENTS/SQLite health passed;
+- launcher and Supervisor bind to CogentNexus-owned runtime under `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python` with no durable Hermes/Codex/temp dependency;
+- five natural PT1M ticks passed with `NO_FLASH_MULTI_TICK_PROVEN`;
+- no product semantic LLM smoke was performed.
 
-`9df671670908241486afe2badf8a7f221410c6f8`
+## Follow-up defect discovered during independent review
 
-Task-071 commits after this point are tests/report only.
+Task-072's install log emitted a recovery-preflight error even after the pre-marker residue had already been removed.
 
-Accepted source properties include:
+Root cause in accepted production source:
 
-- reproducible npm 11/npm 12 lock with OpenClaw exactly `2026.7.1-2`;
-- fresh transaction begin/record/commit/recovery contract;
-- exact application-data authority and record-time path rejection;
-- attempt-scoped supported plugin inverse;
-- shared-parent deletion safety;
-- fresh caught-failure rollback coverage;
-- restored upgrade/legacy reachability and non-fresh rollback isolation;
-- CogentNexus-owned runtime authority design from Tasks 063-065.
+1. `recovery_preflight()` raises whenever there is no marker before distinguishing clean fresh inventory from unmarked partial residue.
+2. `install.ps1` does not explicitly stop when `recovery-preflight` exits nonzero; it proceeds to `classify-install`.
 
-## Current live baseline to re-prove
+This did not invalidate Task-072 runtime/no-flash acceptance, but it is a known installer correctness gap and must be corrected before final release/source parity and semantic acceptance.
 
-Task 066 accepted blocker ended with:
+## Authorized Task 073 operation
 
-- no Supervisor task;
-- no launcher/plugin registration;
-- AGENTS managed block absent;
-- native OpenClaw Gateway healthy;
-- Ollama healthy with four models;
-- no ownership manifest;
-- exactly two unowned failed-install residue roots:
-  - `<workspace>\.cogentnexus-openclaw`
-  - `<workspace>\skills\cogentnexus-openclaw`
+Source/tests only. Correct clean-fresh recovery semantics and make installer recovery-preflight errors fail closed before classification/mutation. Preserve unmarked-residue safety, incomplete-transaction recovery, owned-install behavior, fresh transaction ordering, upgrade/legacy isolation, npm 11/12 reproducibility, and all accepted runtime ownership design.
 
-Task 072 must re-prove this live state before any deletion.
+## Live hard fence
 
-## Authorized Task 072 operation
-
-1. Re-prove exact Task-066 residue and preservation baselines.
-2. Delete exactly those two residue roots once, only after attribution/safety proof.
-3. Perform one normal fresh install from exact `9df6716...` with no skip/link shortcuts.
-4. Prove launcher and Scheduled Task bind to `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python\Scripts\python.exe/pythonw.exe`, with no Hermes/Codex/temp durable path.
-5. Observe at least three natural PT1M supervisor ticks and prove no causal conhost/console-python trampoline.
-6. Finish final non-semantic MANAGED/Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite health acceptance.
-
-## Live hard fences
-
-- Do not uninstall again.
-- Do not repeat a completed cleanup/install after session interruption; inspect live state first.
-- No reboot/power cycle.
-- No source edits.
-- No provider/model changes or Ollama pulls/removals.
-- No broad cleanup outside the two proven residue roots.
-- No HermesAgent mutation.
-- No merge/tag/release.
-- No real user-message/LLM semantic smoke in Task 072.
+Do not mutate the healthy Task-072 live installation: no install/install-over/uninstall/reset/lifecycle action, Scheduled Task/Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, HermesAgent mutation, merge/tag/release, or semantic LLM smoke.
 
 ## Pre-authorized successor
 
-If Task 072 is independently accepted, Task 073 may perform the separate bounded semantic flow:
-
-`user message -> durable Ticket -> Ollama LLM -> durable result/delivery -> user-visible response`.
+If Task 073 is independently accepted, Task 074 may perform one supported install-over from the accepted correction onto the current MANAGED installation and re-prove source/live parity, owned runtime, MANAGED health, and >=3 natural PT1M no-flash ticks. Final semantic acceptance moves to Task 075.
