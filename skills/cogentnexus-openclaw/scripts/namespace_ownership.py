@@ -333,6 +333,11 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
         # coherent installed state: a committed/retired marker authorizes nothing
         return {"status": "OWNERSHIP_PRESENT", "inventory": inventory}
     if payload is None:
+        # CNX-20260826-073 R1/R2: distinguish a truly clean markerless fresh
+        # state (a successful preflight outcome) from unmarked partial residue
+        # (fail-closed). Neither is adopted, deleted, or mutated here.
+        if not inventory["new"]:
+            return {"status": "CLEAN_FRESH", "inventory": inventory}
         raise RuntimeError(
             "no valid incomplete install transaction marker; "
             "unowned partial installation residue must not be adopted or deleted"

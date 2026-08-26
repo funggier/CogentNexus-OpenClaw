@@ -101,15 +101,22 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
-# CNX-20260825-067 D2: before classification, recover any incomplete
-# fresh-install transaction left by a previously failed/crashed install.
-# Fail-closed: without a valid incomplete marker, unowned residue is refused.
-$recoveryJson = (& python $ownershipScript recovery-preflight --workspace $Workspace --app-data $applicationDataRoot | Out-String)
-if ($LASTEXITCODE -eq 0) {
-    $recovery = $recoveryJson | ConvertFrom-Json
-    if ($recovery.status -eq "RECOVERED_FRESH") {
-        Write-Host "Recovered incomplete fresh-install transaction; workspace returned to coherent fresh state."
-    }
+# CNX-20260825-067 D2 / CNX-20260826-073 R5: before classification, recover
+# any incomplete fresh-install transaction left by a previously failed/crashed
+# install. Fail-closed: a nonzero preflight stops the installer BEFORE
+# classify-install; an unrecognized successful status also fails closed.
+# Accepted successful statuses: CLEAN_FRESH, RECOVERED_FRESH, OWNERSHIP_PRESENT.
+$recoveryJson = (& python $ownershipScript recovery-preflight --workspace $Workspace --app-data $applicationDataRoot 2>&1 | Out-String)
+$recoveryExit = $LASTEXITCODE
+if ($recoveryExit -ne 0) {
+    throw "Recovery preflight failed (exit $recoveryExit); refusing to proceed to classification: $recoveryJson"
+}
+$recovery = $recoveryJson | ConvertFrom-Json
+if ($recovery.status -notin @("CLEAN_FRESH", "RECOVERED_FRESH", "OWNERSHIP_PRESENT")) {
+    throw "Recovery preflight returned unrecognized successful status '$($recovery.status)'; failing closed."
+}
+if ($recovery.status -eq "RECOVERED_FRESH") {
+    Write-Host "Recovered incomplete fresh-install transaction; workspace returned to coherent fresh state."
 }
 
 # Inventory every legacy/new filesystem surface before the first mutation.
