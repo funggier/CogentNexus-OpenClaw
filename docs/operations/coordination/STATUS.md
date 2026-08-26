@@ -1,24 +1,24 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 05:57 ICT
+**Updated:** 2026-08-26 11:24 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through clean reinstall/live acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 068 review
+## Task 069 review
 
-Task 068 result:
+Task 069 result:
 
-`PASS_PRODUCTION_INSTALLER_TRANSACTION_WIRED`
+`PASS_FRESH_TRANSACTION_FAILURE_COVERAGE_CLOSED`
 
 Implementation HEAD:
 
-`2a0ca9fd9abda07765e3da222f7fc4d7730d3d30`
+`7f48bb803fe3ca46b7a786e50abe8df22da857fc`
 
 Report HEAD:
 
-`3fc596a394fa2167d6c50e1672294c355120e809`
+`fee1a44b5e2212e3b21f627c57e943eb3154878c`
 
 Independent review:
 
@@ -26,49 +26,46 @@ Decision `REWORK`
 
 Disposition:
 
-`REWORK_CAUGHT_FAILURE_AND_APPLICATION_DATA_TRANSACTION_GAPS`
+`REWORK_NONFRESH_INSTALL_MODE_ABORT_REGRESSION`
 
 Review commit:
 
-`ad914838420028b4170cab9fc1e6d466dc7d444f`
+`a9112161391a2696733f1c09d1721e8611ab843a`
 
-### Accepted Task 068 evidence
+### Accepted Task 069 evidence
 
-- production fresh transaction begin is now fresh-only, after classification and before first fresh workspace mutation;
-- transaction commit is after ownership create + exact verify;
-- shared parent deletion bug was corrected: `<workspace>\skills` survives rollback/recovery;
-- Task 067 D1 lock/package correction remains accepted under npm 11.16.0 and npm 12.0.2;
+- fresh pre-commit failures are now conceptually consolidated into one caught recovery boundary;
+- exact application-data product-root authority and `applicationDataPreexisting` preservation are implemented;
+- unsafe transaction paths are rejected at record time;
+- fresh plugin registration has an attempt-scoped supported inverse;
+- managed AGENTS policy application moved after transaction commit;
+- shared-parent deletion protections remain intact;
+- reported full verification was `337 passed, 2 skipped` plus npm 11/npm 12 reproducibility;
 - implementation/report publication fence is correct.
 
-### Blocking findings
+### Blocking regression
 
-B1 — caught-failure coverage:
+Production `scripts/install.ps1` now intentionally throws `__UPGRADE_PASSTHROUGH__` whenever `$isFreshTransaction` is false. Its catch then throws `Non-fresh install cannot use the fresh transaction failure boundary.`
 
-`Invoke-FreshTransactionRollback` is invoked only on ownership manifest creation/verification failure. Earlier caught failures after transaction begin, including validation, host init, npm/plugin work and runtime provisioning, can still exit without same-run bounded rollback. The P3 test only checks helper existence and does not inject a production-path failure.
+This means coherent upgrade and legacy installs do not merely bypass fresh rollback; they abort before the existing install-over/migration body executes.
 
-B2 — application-data authority mismatch:
-
-Fresh production installer records `%LOCALAPPDATA%\CogentNexus-OpenClaw` when newly created, but `_validate_marker_boundary()` does not allow the exact application-data root in `createdPaths`. A legitimate transaction can therefore poison itself and later be rejected by rollback/recovery.
-
-B3 — pre-commit external effects:
-
-Any plugin/config/AGENTS effect created before ownership commit must either be safely reordered post-commit or have an exact supported inverse proven by fresh preflight; filesystem deletion alone must not leave a rerun dead end.
+Task 069 tests did not exercise non-fresh installer reachability, so the regression passed the suite.
 
 ## Current live baseline
 
 Machine remains in accepted Task-066 native state: no CNX Supervisor task, launcher or plugin registration; Gateway/Ollama healthy; Task-066 partial unowned residue remains intentionally untouched; AGENTS managed block absent.
 
-## Active Task 069
+## Active Task 070
 
-[`tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md`](tasks/CNX-20260826-069-close-fresh-transaction-failure-coverage.md)
+[`tasks/CNX-20260826-070-restore-nonfresh-installer-mode-isolation.md`](tasks/CNX-20260826-070-restore-nonfresh-installer-mode-isolation.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `FRESH_TRANSACTION_FAILURE_COVERAGE_REWORK_AUTHORIZED`
+Authorization: `INSTALLER_MODE_ISOLATION_REWORK_AUTHORIZED`
 
-Execution mode: `SOURCE_REWORK_TDD_FRESH_TRANSACTION_FAILURE_COVERAGE`
+Execution mode: `SOURCE_REWORK_TDD_INSTALLER_MODE_ISOLATION`
 
-Task 069 must establish a production-wide fresh pre-commit caught-failure boundary, make application-data transaction validation exact and consistent, reject unsafe record paths immediately, and leave no product external effect that makes a supported rerun dead-end.
+Task 070 must restore normal upgrade/legacy execution, keep fresh rollback scoped only to fresh transactions, prove non-fresh failures never call fresh rollback, and preserve all accepted npm/transaction/application-data/shared-parent protections.
 
 ## Live hard fence
 
@@ -76,6 +73,6 @@ No live residue cleanup, install/install-over/uninstall/reset/lifecycle action, 
 
 ## Next gate
 
-If Task 069 reports `PASS_FRESH_TRANSACTION_FAILURE_COVERAGE_CLOSED`, ChatGPT must independently review F1-F8, production failure boundary, application-data safety, external-effect recovery/reordering, npm 11/12 regressions, full tests and report-only publication fence.
+If Task 070 reports `PASS_INSTALLER_MODE_ISOLATION_RESTORED`, ChatGPT independently reviews mode reachability, fresh/non-fresh failure isolation, full tests, npm regressions and report-only publication fence.
 
-Only after acceptance may Task 070 perform the one-time bounded cleanup of the exact Task-066 residue and complete fresh installation, owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks and final MANAGED health acceptance.
+Only after acceptance may Task 071 perform the one-time bounded cleanup of the exact Task-066 residue and complete fresh installation, owned-runtime/no-Hermes binding, at least three natural PT1M no-flash ticks and final MANAGED health acceptance.
