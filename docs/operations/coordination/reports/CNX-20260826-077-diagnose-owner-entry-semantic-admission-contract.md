@@ -112,10 +112,25 @@ Counts in Task 077:
 
 The Task-076 semantic send and nonce were not reused.
 
+## Post-publication audit correction
+
+A subsequent independent source audit (read-only, with no live mutation) identified four additional P1 candidates that were not represented in the first publication. They are recorded here rather than silently omitted:
+
+1. **Delivery-marker owner binding:** `src/index.ts:731-738` returns `pass` after a marker parse even when `bindDeliveryRun()` fails; `src/delivery-continuity.ts:88-100` does not bind the current session identity to the ticket outbox owner or workflow completion owner. A forged/stale marker could therefore be treated as an internal delivery turn. This needs a focused RED test for wrong-session ticket/workflow markers and a least-privilege owner-session binding fix.
+2. **Timeout recovery double path:** `src/index.ts:853-888` schedules generic `cogent-resume-*` recovery before `finalizeDirectRun()` can promote the same Ticket to direct recovery. The timeout predicate is `src/index.ts:355-357`. A focused `agent_end(timeout)` integration test is required before changing ordering/suppression.
+3. **Provider-call lease close race:** `src/v091-direct-model-call-lease.ts:320-326` can close an active lease from `agent_end` while Host timeout classification has not yet claimed it. The actual timeout-ordering race is not covered by the current model-call fence tests. This requires a focused RED test and an explicit Host-classification/lease-state boundary.
+4. **Workflow completion rescheduling:** `src/delivery-continuity.ts:128-140` unconditionally rewrites a notice to pending and increments attempts; `src/index.ts:247-269` calls it before scheduling. A stale/concurrent caller can resurrect an already-delivered completion notice. This needs atomic/CAS-style state protection and repeated/concurrent delivery tests.
+
+These four findings are **not repaired in Task 077**. No safe source-only patch was applied without the required focused RED/GREEN proof, and the live fence forbids using a semantic run to validate them. They are explicitly carried into the successor repair/acceptance gate. Consequently, no successor live semantic message is authorized until independent review accepts repairs/tests for these P1s, the provider-timeout P1 below, and the exact owner surface.
+
 ## P0/P1 disposition and successor gate
 
 - **P0:** none found.
-- **P1 owner-entry coverage:** repaired at the registered production hook boundary with focused tests; no production policy broadening was made.
+- **P1 owner-entry coverage:** registered-hook coverage repaired with focused tests; no production policy broadening was made.
+- **P1 delivery-marker ownership:** carried into successor repair gate; current fail-closed authorization is not sufficiently proven for forged/stale markers.
+- **P1 timeout recovery double path:** carried into successor repair gate pending focused ordering test and least-privilege suppression/finalization fix.
+- **P1 provider lease close race:** carried into successor repair gate pending timeout-ordering proof.
+- **P1 workflow completion rescheduling:** carried into successor repair gate pending atomic idempotency proof.
 - **P1 provider timeout:** explicitly carried forward. The Task-076 Ollama no-token idle watchdog remains capable of making a future semantic attempt fail after entry is corrected. No safe source-only change or live timeout/provider mutation was authorized in Task 077. The successor must first prove the effective timeout/model path and obtain a separately authorized configuration/provider remedy or choose a proven bounded provider path.
 
-This report does not authorize a new live semantic message. Independent review remains required before successor authorization.
+This report does not authorize a new live semantic message. Independent review remains required before any successor repair or live acceptance authorization.
