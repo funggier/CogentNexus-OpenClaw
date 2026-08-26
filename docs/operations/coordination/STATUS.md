@@ -6,9 +6,15 @@
 **Human authority:** operator authorized definitive repair through final live/semantic acceptance and approved heavy comprehensive work while Hermes/Codex budget is available
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Accepted semantic/delivery source lineage
+## Accepted semantic/delivery lineage
 
-Tasks 078/079/080 remain accepted candidate behavior covering owner/session delivery security, admission/routing idempotency, one timeout recovery authority, direct model-call lease ordering, direct lifecycle convergence, workflow delivery atomicity, crash-safe completion-lock publication, and exact workflow/Ticket delivery-run fencing.
+Tasks 078/079/080 remain accepted candidate behavior covering owner/session delivery security, admission/routing idempotency, single timeout recovery authority, direct model-call lease ordering, direct lifecycle convergence, workflow delivery atomicity, crash-safe completion-lock publication, and exact workflow/Ticket delivery-run fencing.
+
+Task 082 independently repaired and proved the Windows/npm 11/npm 12 `npm pack --json` installer boundary.
+
+Last accepted source before the current rollover-attestation repair:
+
+`df412ed10522d79a722e1b48d681e7553cb79ae2`
 
 Provider readiness remains:
 
@@ -16,104 +22,111 @@ Provider readiness remains:
 
 No additional direct Ollama probe is authorized.
 
-## Task 081 accepted blocker
+## Task 083 result
 
-Task 081 attempted exactly one supported live install-over from the then-current semantic candidate and stopped after nonzero exit.
+Task 083 attempted one supported live recovery install-over from exact source `df412ed10522d79a722e1b48d681e7553cb79ae2`.
 
-Accepted disposition:
+Reported result:
 
-`ACCEPT_BLOCKER_SUPPORTED_INSTALL_OVER_NPM_PACK_PARSER`
+`BLOCKED_SUPPORTED_RECOVERY_INSTALL_OVER`
 
-The failure occurred after supported PASSTHROUGH/native handoff and skill copy but before plugin rollover and final MANAGED restoration.
+Report HEAD:
 
-## Task 082 acceptance
+`1b5238bc3d7e8611e5fe305a969fad45735b142a`
 
-Task 082 repaired the `npm pack --json` installer boundary source-only.
+Independent review:
 
-Implementation:
-
-`df412ed10522d79a722e1b48d681e7553cb79ae2`
-
-Report:
-
-`34057308f75cb7334c83e253b3077358d05918fd`
-
-Independent decision:
-
-`ACCEPT`
+Decision: `ACCEPT`
 
 Disposition:
 
-`ACCEPT_NPM_PACK_INSTALLER_BOUNDARY_REPAIRED`
+`ACCEPT_BLOCKER_SAME_VERSION_ROLLOVER_ATTESTATION_GAP`
 
-Accepted evidence:
+Publication fence: report-only, one commit from execution HEAD `58533e25bb23f00606bccf236193e5c2d1a17f86`.
 
-- Windows PowerShell 5.1 reproduced the old parser failure against captured npm-12 keyed-object output;
-- npm 11 emitted a one-item array;
-- npm 12 emitted a one-entry package-keyed object;
-- one production resolver now normalizes both shapes and rejects malformed/multiple/unsafe/missing artifacts;
-- exact artifact existence/path is verified before `openclaw plugins install`;
-- npm 11/npm 12 plugin tests and validation passed;
-- full Python reported `362 passed, 2 skipped, 4 subtests passed`;
-- live partial state was preserved read-only.
+## Task 083 failure boundary
 
-## Current partial live state
+The Task-082 npm-pack repair worked live: the installer successfully packed, resolved and installed the exact candidate artifact.
 
-Expected state entering Task 083:
+The next ownership-safe generation rollover then failed closed with:
 
-- ownership verification passes;
-- `recovery-preflight = OWNERSHIP_PRESENT`;
-- classification `upgrade`;
-- controller `passthrough`, generation 13;
-- startup policy disabled;
-- Supervisor Scheduled Task absent;
-- AGENTS managed block absent;
-- prior canonical `cogentnexus-openclaw@0.9.3` generation registered but disabled;
-- launcher remains on product-owned runtime;
-- SQLite integrity `ok`, zero Tickets/outbox;
-- Gateway remains healthy/present;
-- Ollama remains healthy with the accepted four-model set.
+`replacement payload conflicts with the manifest-owned same-version payload`
 
-This is not a MANAGED acceptance state.
+Current rollover source intentionally requires the active replacement fingerprint to equal the manifest-owned prior fingerprint. Existing tests intentionally reject a conflicting same-version payload.
 
-## Active Task 083
+That invariant is now incomplete for development install-over because accepted Tasks 078–082 changed source while retaining plugin version `0.9.3`.
 
-[`tasks/CNX-20260827-083-recover-partial-install-and-live-parity.md`](tasks/CNX-20260827-083-recover-partial-install-and-live-parity.md)
+The required replacement policy is not “accept any same-version payload.” It is:
+
+`accept a changed same-version replacement only when it equals the exact expected source-candidate fingerprint and all existing ownership/inventory/plan/apply fences also pass`.
+
+## Current live partial state
+
+Task 083 stopped without retry or manual repair.
+
+Current accepted state:
+
+- controller PASSTHROUGH, generation 13;
+- startup disabled;
+- Supervisor absent;
+- AGENTS managed markers absent;
+- ownership manifest still identifies the prior generation;
+- old generation `g-5593cbcfff5b35d5` present;
+- newer Task-083 generation `g-7257c4555ca8ad21` present and registered disabled;
+- both identify v0.9.3 but have different fingerprints;
+- Gateway healthy / dashboard HTTP `200`;
+- Ollama healthy with accepted four models;
+- SQLite integrity `ok`, Tickets `0`, outbox `0`;
+- no semantic/provider work created by Task 083.
+
+Generic unique plugin resolution is now intentionally ambiguous. Do not manually delete a generation or edit the manifest.
+
+## Active Task 084
+
+[`tasks/CNX-20260827-084-repair-same-version-rollover-attestation-and-pending-recovery.md`](tasks/CNX-20260827-084-repair-same-version-rollover-attestation-and-pending-recovery.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `ONE_SUPPORTED_RECOVERY_INSTALL_OVER_AUTHORIZED`
+Authorization: `ATTESTED_ROLLOVER_SOURCE_REPAIR_AUTHORIZED`
 
-Execution mode: `LIVE_SUPPORTED_PARTIAL_INSTALL_RECOVERY_AND_PARITY`
+Execution mode: `SOURCE_TDD_ATTESTED_ROLLOVER_AND_PENDING_RECOVERY`
 
-Exact recovery source:
+Task 084 is source/test-only and must:
 
-`df412ed10522d79a722e1b48d681e7553cb79ae2`
+- prove the newer live Task-083 generation fingerprint equals the exact accepted source plugin fingerprint;
+- preserve plugin runtime/package payload files unchanged;
+- RED-prove the current same-version changed-payload policy gap;
+- add a production source-plugin fingerprint interface;
+- bind expected replacement fingerprint into rollover plan/apply;
+- preserve rejection of unattested/wrong replacements;
+- add an explicit attested installer classification for the exact pending-rollover topology while generic two-candidate resolution remains strict;
+- make recovery complete the already-installed pending rollover before any new plugin install;
+- skip redundant plugin generation creation when the canonical generation is already source-exact;
+- preserve all existing atomic retirement/rollback/inventory/manifest/tree/hash fences;
+- rerun full ownership/install/recovery, semantic/delivery, npm 11/npm 12, Python, PowerShell and baseline regressions.
 
-Task 083 must:
+## Plugin payload preservation requirement
 
-- re-prove the expected partial state and `upgrade` classification;
-- run candidate source/npm-pack preflight in isolation;
-- invoke exactly one supported normal install-over with no uninstall/reset/manual cleanup;
-- prove live skill/plugin parity against exact recovery source;
-- restore MANAGED/startup/Supervisor/AGENTS through installer-supported behavior;
-- prove product-owned runtime/launcher/task bindings;
-- prove ownership/Gateway/Ollama/SQLite/unrelated-config health;
-- observe at least five natural PT1M Supervisor ticks and classify no-flash;
-- prove Dashboard/WebChat authenticated owner-surface readiness without sending a semantic prompt.
+Task 084 may not change:
 
-## Hard semantic fence
+`plugins/cogentnexus-openclaw/**`
 
-Task 083 sends zero semantic messages and zero provider probes.
+The current newer live generation must remain source-exact for the later supported recovery.
 
-No Dashboard/WebChat chat send, `chat.send`, `openclaw agent`, `sessions_send`, channel message, synthetic Ticket mutation, direct Ollama probe, model/provider/timeout change, uninstall/reset/manual repair, reboot, merge, tag or release.
+## Hard live fence
 
-The recovery installer may be invoked only once. A nonzero result must be captured and reported, not retried automatically.
+No live install/install-over/uninstall/reset/cleanup or plugin generation mutation is authorized in Task 084. No controller/startup/Supervisor/AGENTS/ownership/runtime/config repair, no live Ticket/session/SQLite mutation, no Dashboard/WebChat or CLI semantic message, no direct Ollama probe, no provider/model/timeout change, no restart/reboot, merge, tag or release.
+
+Read-only live state/fingerprint inspection is allowed.
 
 ## Successor logic
 
-Only after independent acceptance of `PASS_RECOVERY_LIVE_PARITY_NO_FLASH_OWNER_SURFACE_READY` may the final semantic acceptance task send exactly one fresh authenticated Dashboard/WebChat owner message.
+If Task 084 is independently accepted, the next live recovery task will use the exact corrected source and one supported installer invocation to:
 
-That final task must prove:
+- attest and complete the current pending rollover without manual deletion or a third semantic generation;
+- restore MANAGED/startup/Supervisor/AGENTS;
+- prove source/live plugin+skill parity and ownership/runtime/Gateway/Ollama/SQLite health;
+- observe at least five natural PT1M ticks with no-flash evidence;
+- prove Dashboard/WebChat authenticated owner-surface readiness without sending a semantic prompt.
 
-`owner message -> Ticket accepted before provider -> Ollama inference -> response_ready -> exact owner/run delivery -> delivery_confirmed -> completed -> visible nonce response`.
+Only after that live recovery passes independent review may the final semantic task send exactly one fresh authenticated Dashboard/WebChat owner message.
