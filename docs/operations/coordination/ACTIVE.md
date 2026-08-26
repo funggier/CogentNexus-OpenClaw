@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_CRASH_SAFE_DELIVERY_FENCING`
-Current authorization: `CRASH_SAFE_DELIVERY_FENCING_REPAIR_AUTHORIZED`
-Task ID: `CNX-20260826-080`
-Updated: 2026-08-26 23:20 ICT
+Execution mode: `LIVE_SUPPORTED_INSTALL_OVER_SEMANTIC_CANDIDATE_PARITY`
+Current authorization: `ONE_SUPPORTED_INSTALL_OVER_AND_LIVE_PARITY_AUTHORIZED`
+Task ID: `CNX-20260826-081`
+Updated: 2026-08-26 23:56 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
 
@@ -19,73 +19,92 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md`](tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md)
+[`tasks/CNX-20260826-081-install-over-semantic-candidate-live-parity.md`](tasks/CNX-20260826-081-install-over-semantic-candidate-live-parity.md)
 
-## Task 079 report/review
+## Task 080 acceptance
 
-Task 079 reported:
+Task 080 reported:
 
-`PASS_WORKFLOW_DELIVERY_ATOMICITY_CLOSED`
+`PASS_CRASH_SAFE_DELIVERY_FENCING_CLOSED`
 
-Implementation/test HEADs:
+Implementation HEAD:
 
-- `3c5c637d7299435bd1fef614d399f9a7017cb358`
-- `ef22d03ae2b2cc68da76640c2108944d01bc9524`
+`70d02e76233ca1084da445d488f88b628455f4aa`
 
 Report HEAD:
 
-`a5228f65cf5da0b40831703d49e234ae585d5fde`
+`1798bfd4bb2ef69fb579b151f5d0423f0fc196f8`
 
 Independent review:
 
-Decision: `REWORK`
+Decision: `ACCEPT`
 
 Disposition:
 
-`REWORK_CRASH_SAFE_LOCK_PUBLICATION_AND_EXACT_RUN_FENCING`
+`ACCEPT_CRASH_SAFE_DELIVERY_FENCING_CLOSED`
 
 Review path:
 
-[`reviews/CNX-20260826-079-finish-workflow-delivery-atomicity.md`](reviews/CNX-20260826-079-finish-workflow-delivery-atomicity.md)
+[`reviews/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md`](reviews/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md)
 
-## Accepted Task-078/079 candidate evidence to preserve
+## Accepted semantic candidate
 
-Do not redo unless a focused regression proves otherwise:
+The exact production candidate authorized for the live parity gate is:
 
-- owner/session-bound delivery-marker fail-closed behavior;
-- repeated owner Ticket admission/routing idempotency;
-- one Ticket/Host timeout-recovery authority;
-- direct model-call lease/Host ordering coverage with no production lease fix required;
-- direct semantic lifecycle `accepted -> routed -> response_ready -> delivery_confirmed -> completed` and negative owner/CLI/subagent coverage;
-- provider disposition `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` from the two already-consumed Task-078 direct Ollama probes;
-- stale workflow schedule-failure rollback CAS;
-- workflow scheduling/binding/settlement serialization;
-- same-run bind idempotency and different-bound-run rejection;
-- repeated scheduling/rollback/retry convergence;
-- complete well-formed dead-PID lock recovery and live-PID non-steal behavior;
-- full npm/Python/baseline verification reported green.
+`70d02e76233ca1084da445d488f88b628455f4aa`
 
-No further Ollama probe is authorized or required.
+It carries the accepted Task-078/079/080 behavior:
 
-## Why Task 080 exists
+- owner/session-bound internal delivery-marker fail-closed behavior;
+- Ticket admission/routing idempotency;
+- one Ticket/Host timeout recovery authority;
+- direct model-call lease ordering/fencing;
+- registered direct semantic lifecycle and duplicate convergence;
+- crash-safe workflow completion scheduling/binding/settlement;
+- atomic complete-record canonical completion-lock publication;
+- exact workflow and Ticket outbox delivery-run settlement fencing;
+- owner/CLI/subagent negative security coverage;
+- provider disposition `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` from the two already-consumed Task-078 direct Ollama probes.
 
-Independent review found two remaining fail-closed gaps:
+No additional provider probe is required or authorized.
 
-1. current completion lock creates the canonical `.lock` file before writing complete owner metadata. A process death in that tiny acquisition window can leave an empty/partial canonical lock; `readCompletionLock()` then cannot classify it and every future acquisition returns without recovery, violating the crash-liveness invariant;
-2. workflow and Ticket settlement with a supplied run id can still accept an unbound durable record. Workflow settlement rejects only a different existing run, and Ticket outbox SQL currently allows `delivery_run_id IS NULL OR delivery_run_id=?`. Durable settlement must require the exact prior run binding when a run identity is supplied.
+## Current live baseline before Task 081
 
-Task 080 must RED/GREEN only these final delivery-fencing gaps, preserve all accepted predecessor behavior, and rerun the complete semantic/recovery/security regression gates.
-
-## Hard live fence
-
-No OpenClaw semantic/user message, no Dashboard/WebChat live turn, no `openclaw agent` semantic test, no direct Ollama probe, no live Ticket/session/SQLite mutation, no install/install-over/uninstall/reset/cleanup, no provider/model/config/plugin/AGENTS change, no restart/reboot, no merge/tag/release. Source work must use a fresh isolated worktree.
-
-Accepted live production remains:
+Accepted live production remains Task-075 source:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-Task-078/079/080 candidate source remains non-live until supported install-over parity is independently authorized and accepted.
+It is MANAGED with previously accepted Gateway/Ollama health, product-owned Supervisor runtime, one canonical v0.9.3 plugin generation, ownership verification and no-flash behavior.
+
+Task 076's timed-out CLI-targeted session is historical and must not be reused. The final semantic owner surface is Dashboard/WebChat, not `openclaw agent --session-key agent:main:main`.
+
+## Task 081 live authorization
+
+Task 081 may perform exactly one normal supported install-over from the exact candidate source and installer-supported ownership-safe lifecycle actions inherent to that install-over.
+
+It must prove:
+
+- pre-install baseline has not drifted unexpectedly;
+- recovery preflight/ownership is existing/non-fresh and classification is `upgrade`;
+- exactly one supported normal `scripts/install.ps1 -Workspace C:\Users\CDQ-P\.openclaw\workspace` install-over succeeds;
+- no fresh transaction is started;
+- live canonical plugin package is byte/tree-equivalent to the accepted candidate artifact;
+- one canonical plugin generation wins runtime resolution;
+- ownership/runtime/launcher/Scheduled Task/AGENTS/SQLite state remains correct;
+- at least five natural PT1M Supervisor ticks remain no-flash;
+- MANAGED/Gateway/Ollama/plugin health remains good;
+- a fresh authenticated Dashboard/WebChat owner surface is proven/prepared without sending a prompt.
+
+## Absolute semantic fence
+
+Task 081 must send **zero** semantic/user messages.
+
+No Dashboard/WebChat chat message, no `chat.send`, no CLI semantic run, no `sessions_send`, no channel send, no direct Ollama probe, no synthetic Ticket creation, no model/provider/timeout change, no uninstall/reset/clean reinstall, no reboot, merge, tag or release.
+
+If a fresh Dashboard session can only be created by the first user message, do not fabricate it; record that the final semantic task must create it on first send through the proven owner surface.
 
 ## Successor gate
 
-If Task 080 passes independent review, the next task is supported install-over/source-live parity/health/no-flash using the combined accepted Task-078/079/080 implementation. That live task may prepare/verify a fresh authenticated Dashboard/WebChat owner session but must not send the final semantic nonce.
+Only after Task 081 independently passes may a separate final semantic task authorize exactly one fresh Dashboard/WebChat owner message and prove:
+
+`owner message -> Ticket accepted before provider -> Ollama inference -> response_ready -> exact owner/run delivery -> delivery_confirmed -> completed -> visible response`.
