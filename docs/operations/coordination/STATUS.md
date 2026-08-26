@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 22:49 ICT
+**Updated:** 2026-08-26 23:20 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through final live/semantic acceptance and approved heavy comprehensive source work while Hermes/Codex budget is available
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
@@ -12,70 +12,74 @@ Task 075 remains the accepted live baseline source:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-The live product remains MANAGED with previously accepted Gateway/Ollama health, CogentNexus-owned runtime, one canonical v0.9.3 plugin generation and no-flash operation. Task-078 source has not been installed live.
+The live product remains MANAGED with previously accepted Gateway/Ollama health, CogentNexus-owned runtime, one canonical v0.9.3 plugin generation and no-flash operation. Task-078/079 source has not been installed live.
 
-## Task 076 / owner-entry lineage
+## Semantic/provider lineage preserved
 
-Task 076's single CLI-targeted semantic run is retired. It proved that `openclaw agent --session-key agent:main:main` does not itself confer owner trust and reached Ollama without a CogentNexus Ticket. Dashboard/WebChat remains the required future authenticated owner surface.
+Task 076's single CLI-targeted semantic run is retired and its nonce must not be reused. It established that CLI session-key targeting is not an authenticated owner surface. Dashboard/WebChat remains the required future trusted owner surface.
 
-## Task 078 result and independent review
+Task 078 materially repaired/proved:
 
-Task 078 implementation:
+- delivery marker owner/session fail-closed behavior;
+- repeated admission/routing idempotency;
+- one Ticket/Host timeout recovery authority;
+- direct model-call lease ordering;
+- direct registered lifecycle and duplicate convergence;
+- owner/CLI/subagent negative security behavior;
+- provider readiness `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` using exactly two bounded direct Ollama probes already consumed.
 
-`e25fbd5ab0c2773ee65d98782ecba942cbe36d58`
+Task 079 materially repaired:
 
-Final report HEAD reviewed:
+- stale schedule-failure rollback CAS;
+- workflow bind/schedule/settle serialization;
+- repeated scheduling/retry convergence;
+- well-formed dead-PID lock recovery and live-lock non-steal behavior.
 
-`b934eea6a9df91e1aa6602730c00c66d995ff62e`
+## Task 079 independent review
 
-Reported token:
+Task 079 implementation/test HEADs:
 
-`PASS_SEMANTIC_P1S_REPAIRED_PROVIDER_READY`
+- `3c5c637d7299435bd1fef614d399f9a7017cb358`
+- `ef22d03ae2b2cc68da76640c2108944d01bc9524`
 
-Independent review:
+Report HEAD:
 
-Decision: `REWORK`
+`a5228f65cf5da0b40831703d49e234ae585d5fde`
+
+Independent decision:
+
+`REWORK`
 
 Disposition:
 
-`REWORK_WORKFLOW_DELIVERY_ATOMICITY_INCOMPLETE`
+`REWORK_CRASH_SAFE_LOCK_PUBLICATION_AND_EXACT_RUN_FENCING`
 
-Accepted Task-078 results preserved:
+The remaining gaps are narrow but still affect crash-safe durable delivery:
 
-- delivery marker owner/run fail-closed hardening;
-- repeated admission/routing idempotency;
-- one Ticket/Host timeout recovery authority;
-- direct model-call lease ordering matrix with no source defect proven;
-- coherent registered direct semantic lifecycle and duplicate convergence;
-- negative owner/CLI/subagent security coverage;
-- full npm 11/12, Python and baseline verification reported green;
-- provider readiness accepted as `PROVIDER_READY_WITH_FRESH_OWNER_SESSION` after exactly two bounded direct Ollama probes with first stream chunks around 7.7 s and 0.2 s.
+1. canonical completion lock is created before complete owner metadata is written; a process death between these operations can leave an unparsable product lock that later acquisitions will never recover;
+2. workflow settlement with a supplied run id accepts the state when no `deliveryRunId` has ever been bound;
+3. Ticket outbox settlement has the analogous `(delivery_run_id IS NULL OR delivery_run_id=?)` run fence.
 
-Task 078 is not accepted complete because Gate W still violates its own atomicity contract:
+## Active Task 080
 
-1. `markWorkflowDeliveryScheduleFailed()` can write stale pending state over a newer delivered completion;
-2. workflow `bindDeliveryRun()` performs an unlocked read/write and can race settlement;
-3. the exclusive completion `.lock` can be orphaned by process death and block future delivery indefinitely.
-
-## Active Task 079
-
-[`tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md`](tasks/CNX-20260826-079-finish-workflow-delivery-atomicity.md)
+[`tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md`](tasks/CNX-20260826-080-close-crash-safe-lock-and-exact-delivery-run-fencing.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `WORKFLOW_DELIVERY_ATOMICITY_REPAIR_AUTHORIZED`
+Authorization: `CRASH_SAFE_DELIVERY_FENCING_REPAIR_AUTHORIZED`
 
-Execution mode: `SOURCE_TDD_WORKFLOW_DELIVERY_ATOMICITY_REPAIR`
+Execution mode: `SOURCE_TDD_CRASH_SAFE_DELIVERY_FENCING`
 
-Task 079 is a narrow source-only RED/GREEN pass for:
+Task 080 must use strict RED/GREEN TDD to:
 
-- stale schedule-failure rollback versus newer terminal state;
-- workflow bind/settle serialization;
-- bounded abandoned-lock/crash recovery;
-- repeated/concurrent scheduling and retry convergence;
-- preservation of all accepted Task-078 direct semantic/security/recovery tests.
+- eliminate the malformed canonical-lock publication crash window with an atomic complete-record create-if-absent protocol;
+- preserve live-lock safety and valid dead-owner recovery;
+- require exact prior `deliveryRunId` binding for workflow settlement when a run id is supplied;
+- require exact prior run binding for Ticket outbox run-bound success/failure settlement;
+- preserve all accepted Task-078/079 security/recovery/idempotency behavior;
+- rerun npm 11/12, plugin validate/tests, full Python and baseline gates.
 
-No additional provider diagnostic is required.
+No additional provider probe is authorized.
 
 ## Hard live fence
 
@@ -83,4 +87,4 @@ No OpenClaw semantic message, Dashboard/WebChat live turn, CLI semantic test, di
 
 ## Successor logic
 
-If Task 079 passes independent review, the combined Task-078/079 production candidate must first go through a supported install-over/source-live parity/health/no-flash gate. That gate may prepare a fresh authenticated Dashboard/WebChat owner session, but the final semantic nonce remains unconsumed until a separate final live acceptance task explicitly authorizes one message.
+If Task 080 passes independent review, the combined Task-078/079/080 candidate must first undergo supported install-over/source-live parity/health/no-flash acceptance. That live parity gate may prepare a fresh authenticated Dashboard/WebChat owner session but cannot consume the final semantic nonce. A separate final semantic task will authorize exactly one real owner message afterward.
