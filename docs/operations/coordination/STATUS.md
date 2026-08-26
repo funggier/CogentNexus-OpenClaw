@@ -1,28 +1,24 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-26 17:21 ICT
+**Updated:** 2026-08-26 18:29 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair through clean reinstall/live acceptance
+**Human authority:** operator authorized definitive repair through final live/semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Task 071 review
+## Task 072 review
 
-Task 071 result:
+Task 072 result:
 
-`PASS_UPGRADE_LEGACY_MODE_ISOLATION_PROVEN`
+`PASS_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH_VERIFIED`
 
-Production candidate HEAD:
+Install source:
 
 `9df671670908241486afe2badf8a7f221410c6f8`
 
-Test-only implementation HEAD:
-
-`7a55980e662b50f2d2979eb77a3ac1f89da7912f`
-
 Report HEAD:
 
-`d1c8382690d1e06e60ef335e26ba19cdde9152df`
+`19d3ae6bf090e58aaf9b45da52fe3ae6f4f7d11a`
 
 Independent review:
 
@@ -30,65 +26,52 @@ Decision `ACCEPT`
 
 Disposition:
 
-`ACCEPT_UPGRADE_LEGACY_MODE_ISOLATION_PROVEN`
+`ACCEPT_LIVE_INSTALL_OWNED_RUNTIME_NO_FLASH_WITH_PREFLIGHT_FOLLOWUP`
 
 Review commit:
 
-`3943fb9988c44fecf407b5cb2375bc9adcaf5746`
+`9811272b8826ade6bf3d12f6091d2fcb8ff044ab`
 
-### Accepted Task-071 evidence
+### Accepted live milestone
 
-- coherent upgrade fixture uses production `build_manifest`, `write_manifest`, `verify_manifest`, and `classify_install` and returns `upgrade` without creating a fresh marker;
-- valid legacy fixture satisfies production `prove_legacy_ownership` with three identities and production `classify_install` returns `legacy` without a fresh marker;
-- upgrade and legacy executable harnesses derive freshness from production classification and prove ordinary non-fresh failure propagation without fresh rollback/plugin inverse;
-- fresh caught-failure rollback regression remains green;
-- report records full pytest `347 passed, 2 skipped`, PowerShell syntax clean, npm 11/npm 12 install/validate/test gates passing, exact OpenClaw `2026.7.1-2`, plugin `0.9.3`, baseline consistency PASS;
-- publication fence is test-only implementation followed by report-only publication.
+- bounded Task-066 residue cleanup completed exactly once per authorized root;
+- fresh install completed once from exact accepted source;
+- durable launcher/Scheduled Task use CogentNexus-owned foreground/background interpreters under `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python`;
+- no durable Hermes/Codex/temp binding;
+- five natural PT1M ticks passed with no causal conhost/console-python trampoline: `NO_FLASH_MULTI_TICK_PROVEN`;
+- final MANAGED/Gateway/Ollama/plugin/config/ownership/AGENTS/SQLite health passed;
+- semantic product smoke remained prohibited and was not run;
+- report publication fence is report-only.
 
-## Accepted production source
+## Independent installer finding
 
-The exact source for the live successor is:
+The Task-072 fresh-install log's markerless recovery-preflight error was not evidence of the old Task-066 residue at that phase; the bounded cleanup had already removed it.
 
-`9df671670908241486afe2badf8a7f221410c6f8`
+Source inspection shows:
 
-No Task-071 production change was required.
+- `recovery_preflight()` raises on every markerless/no-ownership state before distinguishing empty clean inventory from unmarked partial residue;
+- `install.ps1` invokes recovery preflight but does not fail when that native command exits nonzero, then continues to classification.
 
-## Current live baseline
+The final installed state is valid, so Task 072 remains accepted. This is nevertheless a known installer correctness issue that must be fixed before final source/live parity and semantic acceptance.
 
-Task 066's supported uninstall already removed the old Hermes-bound supervisor/runtime installation. The machine was left in native OpenClaw operation with no CNX task/launcher/plugin registration and with exactly two unowned partial failed-install workspace roots predating the new transaction marker. Those roots have remained intentionally untouched through Tasks 067-071.
+## Active Task 073
 
-## Active Task 072
-
-[`tasks/CNX-20260826-072-bounded-cleanup-fresh-install-owned-runtime-live-acceptance.md`](tasks/CNX-20260826-072-bounded-cleanup-fresh-install-owned-runtime-live-acceptance.md)
+[`tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md`](tasks/CNX-20260826-073-correct-clean-fresh-recovery-preflight.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `BOUNDED_RESIDUE_CLEANUP_AND_FRESH_INSTALL_LIVE_ACCEPTANCE_AUTHORIZED`
+Authorization: `RECOVERY_PREFLIGHT_CORRECTION_AUTHORIZED`
 
-Execution mode: `LIVE_BOUNDED_RESIDUE_CLEANUP_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH`
+Execution mode: `SOURCE_REPAIR_TDD_RECOVERY_PREFLIGHT_SEMANTICS`
 
-Task 072 must:
+Task 073 must make clean markerless fresh preflight return explicit success, retain fail-closed unmarked partial behavior, preserve valid incomplete recovery/owned-install behavior, and make any genuine recovery-preflight nonzero/unknown status stop `install.ps1` before classification or mutation.
 
-- re-prove the exact Task-066 live baseline and two residue roots before mutation;
-- perform one-time deletion of exactly those two roots only;
-- fresh-install exact accepted source `9df6716...` through the normal Windows installer;
-- prove the new fresh transaction contract is used and completes coherently;
-- prove durable launcher/Scheduled Task runtime authority is `%LOCALAPPDATA%\CogentNexus-OpenClaw\runtime\python\Scripts\python.exe/pythonw.exe`, with no Hermes/Codex/temp binding;
-- observe at least three natural PT1M ticks and prove no causal conhost/console-python trampoline;
-- finish MANAGED/OpenClaw/Ollama/plugin/config/ownership/AGENTS/SQLite health acceptance;
-- perform no product semantic user-message/LLM smoke.
+## Live preservation boundary
 
-## Disruptive-action boundary
+The current Task-072 installation is healthy and must not be mutated during Task 073. No install/install-over/uninstall/reset/lifecycle command, Scheduled Task/Gateway/Ollama/plugin/config/AGENTS/SQLite mutation, process termination, reboot, HermesAgent mutation, merge/tag/release, or semantic LLM smoke.
 
-Task 072 is authorized for exactly:
+## Next gates
 
-- deletion once of each proven Task-066 residue root;
-- one normal fresh install and its installer-required lifecycle effects.
+If Task 073 reports `PASS_CLEAN_FRESH_RECOVERY_PREFLIGHT_CORRECTED`, ChatGPT independently reviews RED/GREEN evidence, clean-vs-unmarked state separation, installer fail-closed behavior, regressions, npm gates, and publication fence.
 
-Do not uninstall again, reboot, mutate HermesAgent, change providers/models, broaden cleanup, or repeat completed effects after interruption.
-
-## Next gate
-
-If Task 072 reports `PASS_FRESH_INSTALL_OWNED_RUNTIME_NO_FLASH_VERIFIED`, ChatGPT must independently review residue attribution/cleanup, exact source/install transaction, owned-runtime bindings, three-plus natural PT1M process chains, flash classification, final MANAGED health, unrelated-state preservation, semantic-smoke prohibition, and report-only publication fence.
-
-Only after acceptance may Task 073 perform the separate semantic Ticket -> Ollama LLM -> result/delivery acceptance.
+After acceptance, Task 074 may perform one supported install-over from the corrected source onto the current MANAGED installation and re-prove source/live parity, owned runtime/MANAGED health, and >=3 natural PT1M no-flash ticks. Final semantic Ticket -> Ollama -> durable delivery acceptance is reserved for Task 075.
