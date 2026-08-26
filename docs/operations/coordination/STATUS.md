@@ -3,115 +3,117 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair through final live/semantic acceptance and approved heavy comprehensive source work while Hermes/Codex budget is available
+**Human authority:** operator authorized definitive repair through final live/semantic acceptance and approved heavy comprehensive work while Hermes/Codex budget is available
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Accepted semantic source lineage
+## Accepted semantic/delivery source lineage
 
-Task 078/079/080 semantic and delivery hardening remains accepted candidate behavior.
-
-Last accepted production candidate before the new installer-boundary repair:
-
-`70d02e76233ca1084da445d488f88b628455f4aa`
-
-Task 080 remains independently accepted as:
-
-`ACCEPT_CRASH_SAFE_DELIVERY_FENCING_CLOSED`
+Tasks 078/079/080 remain accepted candidate behavior covering owner/session delivery security, admission/routing idempotency, one timeout recovery authority, direct model-call lease ordering, direct lifecycle convergence, workflow delivery atomicity, crash-safe completion-lock publication, and exact workflow/Ticket delivery-run fencing.
 
 Provider readiness remains:
 
 `PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
 
-No further direct Ollama probe is authorized or required.
+No additional direct Ollama probe is authorized.
 
-## Task 081 result
+## Task 081 accepted blocker
 
-Task 081 attempted the required live install-over from exact candidate `70d02e76233ca1084da445d488f88b628455f4aa`.
+Task 081 attempted exactly one supported live install-over from the then-current semantic candidate and stopped after nonzero exit.
 
-Reported result:
-
-`BLOCKED_SUPPORTED_INSTALL_OVER`
-
-Report HEAD:
-
-`ade320d2c32dde1143c2e8dc4ffbf8f3580e44a1`
-
-Independent review:
-
-Decision: `ACCEPT`
-
-Disposition:
+Accepted disposition:
 
 `ACCEPT_BLOCKER_SUPPORTED_INSTALL_OVER_NPM_PACK_PARSER`
 
-Publication fence was report-only.
+The failure occurred after supported PASSTHROUGH/native handoff and skill copy but before plugin rollover and final MANAGED restoration.
 
-The installer was invoked exactly once and was not retried after nonzero exit.
+## Task 082 acceptance
 
-## Task 081 failure boundary
+Task 082 repaired the `npm pack --json` installer boundary source-only.
 
-The supported installer successfully reached PASSTHROUGH/native handoff, copied and validated the candidate skill, bootstrapped Ticket DB/package checks, then failed while resolving the result of:
+Implementation:
 
-`npm pack --json`
+`df412ed10522d79a722e1b48d681e7553cb79ae2`
 
-with:
+Report:
 
-`npm pack did not return exactly one package artifact`
+`34057308f75cb7334c83e253b3077358d05918fd`
 
-The repository's existing `verify-package-contents.mjs` already documents and handles npm-shape compatibility that the installer parser does not: npm 11 array output versus npm >=12 single-entry object keyed by package name.
+Independent decision:
 
-Task 081 did not preserve the exact raw pack stdout/npm version at the failing command, so the successor must reproduce that evidence before editing production rather than assuming the exact runtime shape.
+`ACCEPT`
 
-## Current live partial state
+Disposition:
 
-The failed supported install-over left a bounded partial state that must not be manually normalized before source repair:
+`ACCEPT_NPM_PACK_INSTALLER_BOUNDARY_REPAIRED`
 
-- Gateway healthy, dashboard HTTP `200`;
-- Ollama healthy, accepted four models unchanged;
-- SQLite integrity `ok`, zero Tickets/outbox;
-- copied candidate skill tree matches accepted source where measured;
-- ownership manifest still verifies;
-- controller `passthrough`;
+Accepted evidence:
+
+- Windows PowerShell 5.1 reproduced the old parser failure against captured npm-12 keyed-object output;
+- npm 11 emitted a one-item array;
+- npm 12 emitted a one-entry package-keyed object;
+- one production resolver now normalizes both shapes and rejects malformed/multiple/unsafe/missing artifacts;
+- exact artifact existence/path is verified before `openclaw plugins install`;
+- npm 11/npm 12 plugin tests and validation passed;
+- full Python reported `362 passed, 2 skipped, 4 subtests passed`;
+- live partial state was preserved read-only.
+
+## Current partial live state
+
+Expected state entering Task 083:
+
+- ownership verification passes;
+- `recovery-preflight = OWNERSHIP_PRESENT`;
+- classification `upgrade`;
+- controller `passthrough`, generation 13;
 - startup policy disabled;
 - Supervisor Scheduled Task absent;
 - AGENTS managed block absent;
-- previous canonical plugin generation remains registered but disabled;
-- launcher remains present on previously owned runtime.
+- prior canonical `cogentnexus-openclaw@0.9.3` generation registered but disabled;
+- launcher remains on product-owned runtime;
+- SQLite integrity `ok`, zero Tickets/outbox;
+- Gateway remains healthy/present;
+- Ollama remains healthy with the accepted four-model set.
 
-This is not MANAGED acceptance and no no-flash or Dashboard semantic readiness claim is made from this state.
+This is not a MANAGED acceptance state.
 
-## Active Task 082
+## Active Task 083
 
-[`tasks/CNX-20260827-082-repair-npm-pack-installer-boundary.md`](tasks/CNX-20260827-082-repair-npm-pack-installer-boundary.md)
+[`tasks/CNX-20260827-083-recover-partial-install-and-live-parity.md`](tasks/CNX-20260827-083-recover-partial-install-and-live-parity.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `NPM_PACK_INSTALLER_BOUNDARY_REPAIR_AUTHORIZED`
+Authorization: `ONE_SUPPORTED_RECOVERY_INSTALL_OVER_AUTHORIZED`
 
-Execution mode: `SOURCE_TDD_NPM_PACK_INSTALLER_BOUNDARY_REPAIR`
+Execution mode: `LIVE_SUPPORTED_PARTIAL_INSTALL_RECOVERY_AND_PARITY`
 
-Task 082 is source/test-only and must:
+Exact recovery source:
 
-- capture exact current Windows PowerShell/Node/npm toolchain and raw `npm pack --json` shape in isolation;
-- RED-prove the production parser incompatibility;
-- normalize accepted npm 11/npm 12 shapes through one deterministic artifact contract;
-- reject malformed/multiple/unsafe artifact metadata fail-closed;
-- exercise the production helper/parser through Windows PowerShell 5.1;
-- prove the exact generated artifact is selected and exists;
-- preserve installer lifecycle/transaction/upgrade ordering;
-- rerun npm 11/npm 12 plugin tests+validation, full Python, installer/recovery and semantic/delivery regression gates;
-- leave the live partial state untouched.
+`df412ed10522d79a722e1b48d681e7553cb79ae2`
 
-## Hard live fence
+Task 083 must:
 
-No live install/install-over/uninstall/reset/cleanup or manual restoration is authorized in Task 082. No controller/plugin/startup/Supervisor/AGENTS/config/ownership/runtime repair, no live Ticket/session/SQLite mutation, no Dashboard/WebChat semantic message, no CLI semantic run, no direct Ollama probe, no provider/model/timeout change, no reboot, merge, tag or release.
+- re-prove the expected partial state and `upgrade` classification;
+- run candidate source/npm-pack preflight in isolation;
+- invoke exactly one supported normal install-over with no uninstall/reset/manual cleanup;
+- prove live skill/plugin parity against exact recovery source;
+- restore MANAGED/startup/Supervisor/AGENTS through installer-supported behavior;
+- prove product-owned runtime/launcher/task bindings;
+- prove ownership/Gateway/Ollama/SQLite/unrelated-config health;
+- observe at least five natural PT1M Supervisor ticks and classify no-flash;
+- prove Dashboard/WebChat authenticated owner-surface readiness without sending a semantic prompt.
+
+## Hard semantic fence
+
+Task 083 sends zero semantic messages and zero provider probes.
+
+No Dashboard/WebChat chat send, `chat.send`, `openclaw agent`, `sessions_send`, channel message, synthetic Ticket mutation, direct Ollama probe, model/provider/timeout change, uninstall/reset/manual repair, reboot, merge, tag or release.
+
+The recovery installer may be invoked only once. A nonzero result must be captured and reported, not retried automatically.
 
 ## Successor logic
 
-If Task 082 is independently accepted, the next live task will perform exactly one supported normal install-over from the corrected source onto the current partial PASSTHROUGH installation, with no uninstall/reset/manual cleanup.
+Only after independent acceptance of `PASS_RECOVERY_LIVE_PARITY_NO_FLASH_OWNER_SURFACE_READY` may the final semantic acceptance task send exactly one fresh authenticated Dashboard/WebChat owner message.
 
-That live recovery must restore MANAGED/startup/Supervisor/AGENTS through installer-supported behavior, prove source/live parity, ownership/runtime/Gateway/Ollama/SQLite health, and observe at least five natural PT1M ticks with no-flash evidence.
+That final task must prove:
 
-Only after that live recovery is independently accepted may the final semantic task send exactly one fresh authenticated Dashboard/WebChat owner message and prove:
-
-`owner message -> Ticket accepted before provider -> Ollama inference -> response_ready -> exact owner/run delivery -> delivery_confirmed -> completed -> visible response`.
+`owner message -> Ticket accepted before provider -> Ollama inference -> response_ready -> exact owner/run delivery -> delivery_confirmed -> completed -> visible nonce response`.
