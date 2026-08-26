@@ -93,23 +93,25 @@ def test_p7_production_crash_rerun_recovery(tmp_path: Path):
     """Crash after recorded artifacts exist -> production recovery-preflight -> fresh."""
     ws = tmp_path / "workspace"
     (ws / "skills").mkdir(parents=True)
+    app_data = tmp_path / "appdata-local" / "CogentNexus-OpenClaw"
     snippet = f"""
 $ErrorActionPreference = 'Stop'
 $ws = '{ws.as_posix()}'
+$appData = '{app_data.as_posix()}'
 $ownership = '{(REPO / "skills" / "cogentnexus-openclaw" / "scripts" / "namespace_ownership.py").as_posix()}'
-& python $ownership transaction-begin --workspace $ws | Out-Null
+& python $ownership transaction-begin --workspace $ws --app-data $appData | Out-Null
 if ($LASTEXITCODE -ne 0) {{ throw 'begin failed' }}
 # simulate installer-created artifacts with production recording order
 New-Item -ItemType Directory -Force -Path (Join-Path $ws '.cogentnexus-openclaw/host') | Out-Null
 Set-Content (Join-Path $ws '.cogentnexus-openclaw/host/controller.json') '{{}}'
-& python $ownership transaction-record --workspace $ws --path (Join-Path $ws '.cogentnexus-openclaw/host') | Out-Null
-& python $ownership transaction-record --workspace $ws --path (Join-Path $ws '.cogentnexus-openclaw') | Out-Null
+& python $ownership transaction-record --workspace $ws --app-data $appData --path (Join-Path $ws '.cogentnexus-openclaw/host') | Out-Null
+& python $ownership transaction-record --workspace $ws --app-data $appData --path (Join-Path $ws '.cogentnexus-openclaw') | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $ws 'skills/cogentnexus-openclaw') | Out-Null
-& python $ownership transaction-record --workspace $ws --path (Join-Path $ws 'skills/cogentnexus-openclaw') | Out-Null
+& python $ownership transaction-record --workspace $ws --app-data $appData --path (Join-Path $ws 'skills/cogentnexus-openclaw') | Out-Null
 # hard crash: no caught rollback. Rerun installer recovery surface:
-$json = & python $ownership recovery-preflight --workspace $ws | ConvertFrom-Json
+$json = & python $ownership recovery-preflight --workspace $ws --app-data $appData | ConvertFrom-Json
 if ($json.status -ne 'RECOVERED_FRESH') {{ throw "expected RECOVERED_FRESH got $($json.status)" }}
-$class = & python $ownership classify-install --workspace $ws | ConvertFrom-Json
+$class = & python $ownership classify-install --workspace $ws --app-data $appData | ConvertFrom-Json
 if ($class.mode -ne 'fresh') {{ throw "expected fresh got $($class.mode)" }}
 if ((Test-Path (Join-Path $ws 'skills/cogentnexus-openclaw'))) {{ throw 'skill residue survived' }}
 if (-not (Test-Path (Join-Path $ws 'skills'))) {{ throw 'shared parent skills deleted' }}

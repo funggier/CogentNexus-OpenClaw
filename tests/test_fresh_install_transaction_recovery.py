@@ -29,11 +29,14 @@ recovery_preflight = namespace_ownership.recovery_preflight
 rollback_transaction = namespace_ownership.rollback_transaction
 
 
-def _make_residue(workspace: Path, *, recorded: bool = True) -> None:
+def _make_residue(workspace: Path, *, recorded: bool = True, app_data: Path | None = None) -> None:
     """Recreate the exact Task-066 partial residue shape.
 
     Mirrors the production installer: each residue-capable creation is
     recorded in the active transaction marker via record_transaction_path.
+    CNX-20260826-074 I2: the caller-supplied isolated application-data root
+    flows through all production inventory/transaction surfaces so tests are
+    independent of the live machine's installed product.
     """
     record_transaction_path = namespace_ownership.record_transaction_path
     paths = expected_paths(workspace)
@@ -44,9 +47,15 @@ def _make_residue(workspace: Path, *, recorded: bool = True) -> None:
     skill.parent.mkdir(parents=True, exist_ok=True)
     skill.write_text("# CogentNexus-OpenClaw\n", encoding="utf-8")
     if recorded:
-        record_transaction_path(workspace, paths["stateRoot"] / "host")
-        record_transaction_path(workspace, paths["stateRoot"])
-        record_transaction_path(workspace, paths["skillPath"])
+        kw = {"app_data": app_data} if app_data is not None else {}
+        record_transaction_path(workspace, paths["stateRoot"] / "host", **kw)
+        record_transaction_path(workspace, paths["stateRoot"], **kw)
+        record_transaction_path(workspace, paths["skillPath"], **kw)
+
+
+def _isolated_app_root(tmp_path: Path) -> Path:
+    """Exact isolated application-data product root for a temp workspace."""
+    return tmp_path / "appdata-local" / "CogentNexus-OpenClaw"
 
 
 # R1 — fresh transaction begins before residue-capable mutation
@@ -74,12 +83,13 @@ def test_r1_transaction_begin_writes_marker(tmp_path: Path):
 def test_r1b_marker_written_before_artifact_creation(tmp_path: Path):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
-    assert classify_install(workspace)["mode"] == "fresh"
-    handle = begin_fresh_transaction(workspace)
+    app_data = _isolated_app_root(tmp_path)
+    assert classify_install(workspace, app_data=app_data)["mode"] == "fresh"
+    handle = begin_fresh_transaction(workspace, app_data=app_data)
     # simulate the first residue-capable mutation AFTER the marker exists
-    _make_residue(workspace)
+    _make_residue(workspace, app_data=app_data)
     ci = namespace_ownership.current_inventory
-    assert ci(workspace)["new"], "residue shape must make new inventory non-empty"
+    assert ci(workspace, app_data=app_data)["new"], "residue shape must make new inventory non-empty"
     assert load_transaction_marker(workspace) is not None
 
 
@@ -87,14 +97,15 @@ def test_r1b_marker_written_before_artifact_creation(tmp_path: Path):
 def test_r2_incomplete_transaction_recovery_restores_fresh(tmp_path: Path):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
-    begin_fresh_transaction(workspace)
-    _make_residue(workspace)
+    app_data = _isolated_app_root(tmp_path)
+    begin_fresh_transaction(workspace, app_data=app_data)
+    _make_residue(workspace, app_data=app_data)
     # no ownership.json -> classify dead-ends on the manifest check
     with pytest.raises(RuntimeError):
-        classify_install(workspace)
-    result = recovery_preflight(workspace)
+        classify_install(workspace, app_data=app_data)
+    result = recovery_preflight(workspace, app_data=app_data)
     assert result["status"] == "RECOVERED_FRESH"
-    assert classify_install(workspace)["mode"] == "fresh"
+    assert classify_install(workspace, app_data=app_data)["mode"] == "fresh"
     assert not (workspace / ".cogentnexus-openclaw" / "host" / "controller.json").exists()
     assert not (workspace / "skills" / "cogentnexus-openclaw").exists()
 
@@ -103,13 +114,18 @@ def test_r2_incomplete_transaction_recovery_restores_fresh(tmp_path: Path):
 def test_r3_rollback_removes_only_created_paths(tmp_path: Path):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
+    app_data = _isolated_app_root(tmp_path)
     unrelated = workspace / "USER.md"
     unrelated.write_text("unrelated", encoding="utf-8")
-    begin_fresh_transaction(workspace)
-    _make_residue(workspace)
-    result_rb = rollback_transaction(workspace, archive=False)
-    assert namespace_ownership.current_inventory(workspace)["new"] == [], f"inventory after rollback: {namespace_ownership.current_inventory(workspace)} rb={result_rb}"
-    assert classify_install(workspace)["mode"] == "fresh"
+    begin_fresh_transaction(workspace, app_data=app_data)
+    _make_residue(workspace, app_data=app_data)
+
+    def inv():
+        return namespace_ownership.current_inventory(workspace, app_data=app_data)
+
+    result_rb = rollback_transaction(workspace, archive=False, app_data=app_data)
+    assert inv()["new"] == [], f"inventory after rollback: {inv()} rb={result_rb}"
+    assert classify_install(workspace, app_data=app_data)["mode"] == "fresh"
     assert unrelated.read_text(encoding="utf-8") == "unrelated"
 
 
