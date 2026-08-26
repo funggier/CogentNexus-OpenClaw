@@ -121,9 +121,40 @@ if ($recovery.status -eq "RECOVERED_FRESH") {
 }
 
 # Inventory every legacy/new filesystem surface before the first mutation.
-$classificationJson = (& python $ownershipScript classify-install --workspace $Workspace --app-data $applicationDataRoot | Out-String)
-if ($LASTEXITCODE -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }
+# classify-install --workspace is intentionally read-only and precedes mutation.
+$expectedPluginFingerprint = $null
+$pluginPrepared = $false
+$classificationInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-plugin-inventory-" + [guid]::NewGuid().ToString("N") + ".json")
+if (-not $SkipPlugin) {
+    Push-Location $pluginDir
+    try {
+        npm ci
+        if ($LASTEXITCODE -ne 0) { throw "candidate npm ci failed before classification" }
+        npm run plugin:validate
+        if ($LASTEXITCODE -ne 0) { throw "candidate plugin validation failed before classification" }
+        $pluginPrepared = $true
+    }
+    finally { Pop-Location }
+    $fingerprintJson = (& python $ownershipScript plugin-fingerprint --plugin-root $pluginDir --version $version | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "Candidate source plugin fingerprint could not be proven; refusing mutation: $fingerprintJson" }
+    $expectedPluginFingerprint = [string](($fingerprintJson | ConvertFrom-Json).fingerprint)
+    if ($expectedPluginFingerprint -notmatch '^[0-9a-fA-F]{64}$') { throw "Candidate source plugin fingerprint is invalid; refusing mutation." }
+}
+$preInstallInventoryJson = (& openclaw plugins list --json | Out-String)
+if ($LASTEXITCODE -ne 0) { throw "Could not prove current plugin registration inventory before installation." }
+[IO.File]::WriteAllText($classificationInventoryPath, $preInstallInventoryJson, (New-Object Text.UTF8Encoding($false)))
+$classificationArgs = @("classify-install", "--workspace", $Workspace, "--app-data", $applicationDataRoot)
+if ($expectedPluginFingerprint) {
+    $classificationArgs += @("--plugin-inventory-json", $classificationInventoryPath, "--expected-replacement-fingerprint", $expectedPluginFingerprint)
+}
+$classificationJson = (& python $ownershipScript @classificationArgs | Out-String)
+$classificationExit = $LASTEXITCODE
+Remove-Item -LiteralPath $classificationInventoryPath -Force -ErrorAction SilentlyContinue
+if ($classificationExit -ne 0) { throw "Installation ownership is partial, mixed, ambiguous, or unproven; refusing mutation." }
 $classification = $classificationJson | ConvertFrom-Json
+$pendingRollover = [bool]$classification.pendingRollover
+$pluginAlreadyExact = [bool]$classification.pluginAlreadyExact
+
 if ($classification.mode -eq "legacy") { $migrationSource = "legacy-cogentnexus-pre-v0.9.3" }
 if ($LinkPlugin) {
     throw "-LinkPlugin is incompatible with ownership-safe managed installation; linked and npm-managed roots must not be mixed."
@@ -271,13 +302,15 @@ if (-not $SkipAgentsPolicy) {
     # pre-commit installation can no longer leave a managed AGENTS block.
 }
 
-if (-not $SkipPlugin) {
+if (-not $SkipPlugin -and -not $pendingRollover -and -not $pluginAlreadyExact) {
     Push-Location $pluginDir
     try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
-        npm run plugin:validate
-        if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
+        if (-not $pluginPrepared) {
+            npm ci
+            if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+            npm run plugin:validate
+            if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
+        }
 
         node .\scripts\bootstrap-ticket-db.mjs --workspace $Workspace
         if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
@@ -323,6 +356,7 @@ if (-not $SkipPlugin) {
     finally { Pop-Location }
 
     if ($classification.mode -eq "upgrade") {
+        if (-not $pluginAlreadyExact) {
         $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
         New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
         $rolloverId = [guid]::NewGuid().ToString("N")
@@ -337,7 +371,7 @@ if (-not $SkipPlugin) {
                 $rolloverInventory,
                 (New-Object System.Text.UTF8Encoding($false))
             )
-            $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--plan" $rolloverPlanPath | Out-String)
+            $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--expected-replacement-fingerprint" $expectedPluginFingerprint "--plan" $rolloverPlanPath | Out-String)
             if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover plan was rejected" }
             $rolloverPlanSha256 = [string](($rolloverPlanOutput | ConvertFrom-Json).planSha256)
             if ([string]::IsNullOrWhiteSpace($rolloverPlanSha256)) { throw "plugin generation rollover plan hash was not observed" }
@@ -354,6 +388,7 @@ if (-not $SkipPlugin) {
         }
         finally {
             Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
+        }
         }
     }
 }

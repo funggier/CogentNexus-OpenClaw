@@ -397,3 +397,95 @@ def test_plan_apply_cli_round_trip_requires_and_returns_review_hash(tmp_path: Pa
     )
     assert applied.returncode == 0, applied.stderr
     assert json.loads(applied.stdout)["status"] == "ROLLOVER_APPLIED_PASSTHROUGH"
+
+
+def test_source_attested_changed_payload_is_authorized_and_bound_into_plan(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    plan = ownership.build_plugin_rollover_plan(
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"], plugin_inventory=paths["inventory"],
+        expected_replacement_fingerprint=expected, backup_token="attested-test",
+    )
+    assert plan["replacementFingerprint"] == expected
+    assert plan["expectedReplacementFingerprint"] == expected
+    assert plan["replacementAuthorization"] == "candidate-source-fingerprint"
+
+
+def test_wrong_source_attestation_rejects_without_retirement(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    before = (paths["old_project"] / "package.json").read_bytes()
+    with pytest.raises(RuntimeError, match="attestation"):
+        ownership.build_plugin_rollover_plan(
+            root=paths["root"], workspace=paths["workspace"],
+            application_data=paths["app_data"], plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint="0" * 64, backup_token="wrong-test",
+        )
+    assert paths["old_project"].is_dir()
+    assert (paths["old_project"] / "package.json").read_bytes() == before
+
+
+def test_attested_pending_rollover_classification_accepts_exact_two_generation_topology(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    result = ownership.classify_install(
+        paths["workspace"], app_data=paths["app_data"],
+        plugin_inventory=paths["inventory"],
+        expected_replacement_fingerprint=expected,
+    )
+    assert result["mode"] == "upgrade"
+    assert result["pendingRollover"] is True
+    assert result["pluginAlreadyExact"] is False
+    assert Path(result["manifestPluginPath"]) == paths["old_plugin"].resolve()
+    assert Path(result["replacementPluginPath"]) == paths["new_plugin"].resolve()
+    assert result["expectedReplacementFingerprint"] == expected
+
+
+def test_unattested_pending_rollover_classification_remains_ambiguous(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    with pytest.raises(RuntimeError, match="ambiguous"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+        )
+
+
+def test_rollover_plan_cli_requires_source_attestation_for_changed_payload(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    inventory_path = tmp_path / "inventory.json"
+    plan_path = tmp_path / "plan.json"
+    inventory_path.write_text(json.dumps(paths["inventory"]), encoding="utf-8")
+    result = subprocess.run([
+        sys.executable, str(SCRIPT), "rollover-plan",
+        "--root", str(paths["root"]), "--workspace", str(paths["workspace"]),
+        "--app-data", str(paths["app_data"]), "--inventory-json", str(inventory_path),
+        "--plan", str(plan_path), "--expected-replacement-fingerprint", "0" * 64,
+    ], text=True, capture_output=True, check=False)
+    assert result.returncode != 0
+    assert "attestation" in (result.stderr + result.stdout).lower()
+
+
+def test_attested_changed_payload_applies_and_binds_source_fingerprint(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    plan_path = tmp_path / "attested-plan.json"
+    written = ownership.write_plugin_rollover_plan(
+        plan_path,
+        ownership.build_plugin_rollover_plan(
+            root=paths["root"], workspace=paths["workspace"],
+            application_data=paths["app_data"], plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint=expected, backup_token="attested-apply",
+        ),
+    )
+    result = ownership.apply_plugin_rollover_plan(
+        plan_path=plan_path, expected_plan_sha256=written["planSha256"],
+        plugin_inventory=paths["inventory"],
+    )
+    assert result["status"] == "ROLLOVER_APPLIED_PASSTHROUGH"
+    assert paths["old_project"].exists() is False
+    assert Path(result["pluginPath"]) == paths["new_plugin"].resolve()

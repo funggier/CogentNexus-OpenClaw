@@ -40,7 +40,8 @@ ROLLOVER_PLAN_FIELDS = {
     "retiredWrapperProofSha256", "replacementWrapperProofSha256",
     "retiredProjectTreeSha256", "replacementProjectTreeSha256",
     "inventorySha256", "activeRegistration", "activeRegistrationSha256",
-    "manifestBeforeSha256", "manifestAfter", "createdAt",
+    "manifestBeforeSha256", "manifestAfter", "expectedReplacementFingerprint",
+    "replacementAuthorization", "createdAt",
 }
 
 
@@ -384,6 +385,14 @@ def _plugin_payload(root: Path, *, expected_version: str = INSTALLED_VERSION) ->
     return {"root": root.resolve(strict=False), "fingerprint": digest.hexdigest(), "version": expected_version}
 
 
+def plugin_fingerprint(plugin_root: Path, *, expected_version: str = INSTALLED_VERSION) -> dict[str, Any]:
+    payload = _plugin_payload(plugin_root.resolve(strict=False), expected_version=expected_version)
+    if payload is None:
+        raise RuntimeError("source plugin payload is incomplete or has the wrong id/package/version")
+    return {"root": _canonical(payload["root"]), "version": payload["version"],
+            "fingerprint": payload["fingerprint"]}
+
+
 def plugin_candidate_roots(openclaw_state: Path) -> list[Path]:
     roots = [openclaw_state / "extensions" / PRODUCT_ID]
     projects = openclaw_state / "npm" / "projects"
@@ -717,7 +726,8 @@ def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: 
 
 
 def _exact_rollover_state(*, root: Path, workspace: Path,
-                          plugin_inventory: dict[str, Any]) -> dict[str, Any]:
+                          plugin_inventory: dict[str, Any],
+                          expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
     manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
@@ -738,7 +748,10 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
     if _canonical(replacement["root"]) == _canonical(retired_root):
         raise RuntimeError("OpenClaw still registers the manifest-owned prior generation as active")
     if replacement["fingerprint"] != retired["fingerprint"]:
-        raise RuntimeError("replacement payload conflicts with the manifest-owned same-version payload")
+        if not isinstance(expected_replacement_fingerprint, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
+            raise RuntimeError("replacement payload conflicts with the manifest-owned same-version payload; source attestation is required")
+        if replacement["fingerprint"].lower() != expected_replacement_fingerprint.lower():
+            raise RuntimeError("replacement payload does not match the expected source attestation")
     retired_project = _npm_project_for_plugin(retired_root, paths["openclawState"])
     replacement_project = _npm_project_for_plugin(replacement["root"], paths["openclawState"])
     if _canonical(retired_project) == _canonical(replacement_project):
@@ -759,12 +772,14 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
 
 def build_plugin_rollover_plan(*, root: Path, workspace: Path, application_data: Path,
                                plugin_inventory: dict[str, Any],
+                               expected_replacement_fingerprint: str | None = None,
                                backup_token: str | None = None) -> dict[str, Any]:
     root = root.resolve(strict=False)
     workspace = workspace.resolve(strict=False)
     application_data = application_data.resolve(strict=False)
     state = _exact_rollover_state(
         root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(
         application_data, state["paths"]["openclawState"]
@@ -811,6 +826,11 @@ def build_plugin_rollover_plan(*, root: Path, workspace: Path, application_data:
         "activeRegistrationSha256": state["replacement"]["registrationSha256"],
         "manifestBeforeSha256": _sha256_file(manifest_target),
         "manifestAfter": manifest_after,
+        "expectedReplacementFingerprint": expected_replacement_fingerprint or state["replacement"]["fingerprint"],
+        "replacementAuthorization": (
+            "candidate-source-fingerprint" if state["replacement"]["fingerprint"] != state["retired"]["fingerprint"]
+            else "equivalent-generation"
+        ),
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -874,8 +894,10 @@ def apply_plugin_rollover_plan(*, plan_path: Path, expected_plan_sha256: str,
         raise RuntimeError(
             "OpenClaw plugin inventory changed after rollover plan review; refusing retirement"
         )
+    expected_replacement_fingerprint = plan.get("expectedReplacementFingerprint")
     state = _exact_rollover_state(
         root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     exact_bindings = {
         "retiredPluginPath": _canonical(state["retired"]["root"]),
@@ -967,9 +989,48 @@ def current_inventory(workspace: Path, *, app_data: Path | None = None) -> dict[
     }
 
 
-def classify_install(workspace: Path, *, app_data: Path | None = None) -> dict[str, Any]:
+def classify_install(workspace: Path, *, app_data: Path | None = None,
+                     plugin_inventory: dict[str, Any] | None = None,
+                     expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     inventory = current_inventory(workspace, app_data=app_data)
     paths = expected_paths(workspace)
+    has_product_registration = (
+        isinstance(plugin_inventory, dict)
+        and any(isinstance(item, dict) and item.get("id") == PRODUCT_ID
+                for item in plugin_inventory.get("plugins", []))
+    )
+    if (plugin_inventory is not None or expected_replacement_fingerprint is not None) and (
+        has_product_registration or inventory["new"]
+    ):
+        if plugin_inventory is None or not isinstance(expected_replacement_fingerprint, str):
+            raise RuntimeError("attested classification requires inventory and source fingerprint; ambiguous pending state")
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
+            raise RuntimeError("expected source fingerprint is invalid")
+        attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False)
+        candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
+                      if (payload := _plugin_payload(candidate)) is not None]
+        if len(candidates) == 1 and _canonical(candidates[0]["root"]) == attested_manifest["pluginPath"]:
+            if candidates[0]["fingerprint"].lower() != expected_replacement_fingerprint.lower():
+                raise RuntimeError("manifest-owned plugin does not match the expected source attestation")
+            return {
+                "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": True,
+                "manifestPluginPath": _canonical(candidates[0]["root"]),
+                "replacementPluginPath": _canonical(candidates[0]["root"]),
+                "expectedReplacementFingerprint": expected_replacement_fingerprint,
+                **inventory,
+            }
+        state = _exact_rollover_state(
+            root=paths["stateRoot"], workspace=workspace,
+            plugin_inventory=plugin_inventory,
+            expected_replacement_fingerprint=expected_replacement_fingerprint,
+        )
+        return {
+            "mode": "upgrade", "pendingRollover": True, "pluginAlreadyExact": False,
+            "manifestPluginPath": _canonical(state["retired"]["root"]),
+            "replacementPluginPath": _canonical(state["replacement"]["root"]),
+            "expectedReplacementFingerprint": expected_replacement_fingerprint,
+            **inventory,
+        }
     if inventory["legacy"] and inventory["new"]:
         raise RuntimeError(f"mixed legacy/new namespace is ambiguous; refusing mutation: {inventory}")
     if inventory["new"]:
@@ -1025,13 +1086,18 @@ def main() -> int:
     verify.add_argument("--root", type=Path, required=True); verify.add_argument("--workspace", type=Path, required=True)
     inventory = sub.add_parser("classify-install")
     inventory.add_argument("--workspace", type=Path, required=True); inventory.add_argument("--app-data", type=Path)
+    inventory.add_argument("--plugin-inventory-json", type=Path)
+    inventory.add_argument("--expected-replacement-fingerprint")
     resolver = sub.add_parser("resolve-plugin")
     resolver.add_argument("--openclaw-state", type=Path, required=True); resolver.add_argument("--version", default=INSTALLED_VERSION)
+    fingerprint = sub.add_parser("plugin-fingerprint")
+    fingerprint.add_argument("--plugin-root", type=Path, required=True); fingerprint.add_argument("--version", default=INSTALLED_VERSION)
     rollover_plan = sub.add_parser("rollover-plan")
     rollover_plan.add_argument("--root", type=Path, required=True)
     rollover_plan.add_argument("--workspace", type=Path, required=True)
     rollover_plan.add_argument("--app-data", type=Path, required=True)
     rollover_plan.add_argument("--inventory-json", type=Path, required=True)
+    rollover_plan.add_argument("--expected-replacement-fingerprint")
     rollover_plan.add_argument("--plan", type=Path, required=True)
     rollover_apply = sub.add_parser("rollover-apply")
     rollover_apply.add_argument("--plan", type=Path, required=True)
@@ -1059,15 +1125,25 @@ def main() -> int:
     if args.command == "verify":
         result = verify_manifest(args.root, workspace=args.workspace)
     elif args.command == "classify-install":
-        result = classify_install(args.workspace, app_data=args.app_data)
+        plugin_inventory = None
+        if args.plugin_inventory_json:
+            plugin_inventory = json.loads(args.plugin_inventory_json.read_text(encoding="utf-8"))
+        result = classify_install(
+            args.workspace, app_data=args.app_data,
+            plugin_inventory=plugin_inventory,
+            expected_replacement_fingerprint=args.expected_replacement_fingerprint,
+        )
     elif args.command == "resolve-plugin":
         payload = resolve_installed_plugin(args.openclaw_state, expected_version=args.version)
         result = {"root": str(payload["root"]), "version": payload["version"], "fingerprint": payload["fingerprint"]}
+    elif args.command == "plugin-fingerprint":
+        result = plugin_fingerprint(args.plugin_root, expected_version=args.version)
     elif args.command == "rollover-plan":
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         plan = build_plugin_rollover_plan(
             root=args.root, workspace=args.workspace, application_data=args.app_data,
             plugin_inventory=plugin_inventory,
+            expected_replacement_fingerprint=args.expected_replacement_fingerprint,
         )
         result = {**write_plugin_rollover_plan(args.plan, plan), "plan": plan}
     elif args.command == "rollover-apply":
