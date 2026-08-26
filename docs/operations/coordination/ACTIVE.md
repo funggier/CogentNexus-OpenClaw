@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_COMPREHENSIVE_SEMANTIC_PATH_DIAGNOSTIC_TDD`
-Current authorization: `COMPREHENSIVE_SEMANTIC_PATH_DIAGNOSIS_AND_PROVEN_BLOCKER_REPAIR_AUTHORIZED`
-Task ID: `CNX-20260826-077`
-Updated: 2026-08-26 21:25 ICT
+Execution mode: `SOURCE_TDD_SEMANTIC_P1_REPAIR_AND_BOUNDED_PROVIDER_DIAGNOSTICS`
+Current authorization: `SEMANTIC_P1_REPAIR_AND_PROVIDER_READINESS_AUTHORIZED`
+Task ID: `CNX-20260826-078`
+Updated: 2026-08-26 22:11 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
 
@@ -19,67 +19,64 @@ Only:
 
 ## Active task
 
-Base task:
+[`tasks/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md`](tasks/CNX-20260826-078-close-semantic-p1s-and-provider-readiness.md)
 
-[`tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md`](tasks/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md)
+## Task 077 review
 
-Mandatory comprehensive addendum:
+Task 077 final amended report HEAD:
 
-[`tasks/CNX-20260826-077-comprehensive-semantic-path-audit-addendum.md`](tasks/CNX-20260826-077-comprehensive-semantic-path-audit-addendum.md)
+`b252879bdbc8cba8f187f883f943d9a913199204`
 
-Hermes/Codex must read and execute both as one Task-077 contract. The addendum extends the base task and is authoritative wherever it requests broader semantic-path evidence or source-only repair of independently proven semantic blockers.
+Partial test implementation HEAD:
 
-## Task 076 accepted blocker
-
-Task 076 reported:
-
-`BLOCKED_SEMANTIC_ENTRY_PATH`
-
-Report HEAD:
-
-`4dc5dbba9b5933f6f2ca274cbea0c1eee0fe446d`
+`6867af2cad75cb4ee8e70206d70b0ba5bd5abeea`
 
 Independent review decision:
 
-`ACCEPT`
+`REWORK`
 
 Disposition:
 
-`ACCEPT_BLOCKER_SEMANTIC_ENTRY_PATH_OWNER_SIGNAL_COVERAGE`
+`REWORK_UNRESOLVED_SEMANTIC_P1S_AND_PROVIDER_READINESS`
 
-Review commit:
+Review path:
 
-`67de33878ef35fe32e584d15bfc86ee0b8354b8b`
+[`reviews/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md`](reviews/CNX-20260826-077-diagnose-owner-entry-semantic-admission-contract.md)
 
-Accepted Task-076 facts:
+## Accepted Task-077 findings to preserve
 
-- exactly one Gateway-backed OpenClaw agent/session message was sent and was not resent;
-- run `97b7e136-3258-415b-a595-02792d393ff9` reached `ollama / qwen3.5:9b` before provider-stage timeout;
-- authoritative Ticket DB stayed at zero Tickets/events/outbox rows;
-- the selected `openclaw agent --session-key agent:main:main` surface therefore reached inference without CogentNexus Ticket-first admission;
-- post-run MANAGED/Gateway/Ollama/Supervisor/SQLite health remained good;
-- publication fence was report-only.
+- `openclaw agent --session-key agent:main:main` is not owner-authenticated merely by choosing that session key; do not broaden arbitrary CLI admission.
+- Dashboard/WebChat is the supported owner-surface candidate for eventual live semantic acceptance.
+- canonical installed v0.9.3 plugin generation/source identity and dynamic hook registration were materially verified.
+- registered-hook owner positive and CLI/subagent negative tests from `6867af2...` are useful and remain part of the candidate source lineage.
+- no new semantic message was sent in Task 077.
 
-## Comprehensive Task-077 objective
+## Why Task 078 exists
 
-Do not stop after finding only why `senderIsOwner` failed. Audit the complete semantic chain before another live message is authorized:
+The comprehensive Task-077 report carried unresolved P1s and independent review confirmed additional direct-path idempotency evidence was missing. Task 078 must close/prove these before any new semantic message:
 
-`owner surface -> OpenClaw identity/transport -> loaded plugin/hooks -> before_agent_run -> Ticket accept -> direct routing -> provider/Ollama -> response_ready -> delivery confirmation -> completed -> failure recovery/idempotency`.
+1. delivery-marker owner/session binding and fail-closed behavior;
+2. repeated `before_agent_run` route/event idempotency;
+3. single timeout/recovery authority for Ticketed direct runs;
+4. direct model-call lease/Host ordering, repairing only if deterministic RED proves a defect;
+5. workflow completion stale/concurrent scheduling idempotency;
+6. coherent direct owner -> Ticket -> response-ready -> owner-bound delivery terminal integration;
+7. exact OpenClaw `2026.7.1-2` / Ollama provider readiness and timeout hierarchy.
 
-The audit must include exact OpenClaw `2026.7.1-2` entry-surface semantics, loaded plugin/hook reality, all Ticket-admission bypasses, production-facing owner/Ticket integration tests, direct-lane terminal delivery tests, provider-timeout hierarchy, failure/recovery behavior, and security invariants.
+The operator explicitly authorized a heavy comprehensive pass.
 
-Multiple independently proven semantic-path blockers may be repaired source-only with strict RED/GREEN TDD, provided changes remain least-privilege and within the semantic path. Every P0/P1 finding must be repaired or explicitly carried forward with evidence.
+## Provider diagnostic authorization
 
-## Hard live fence
+Task 078 may perform at most two inert **direct local Ollama** probes to the already configured `qwen3.5:9b` solely to measure first-token/total timing. These probes bypass OpenClaw/CogentNexus and must not mutate product durable state or configuration.
 
-No new semantic message and no reuse of the Task-076 nonce. No live install/install-over/uninstall/reset/cleanup, no Ticket/session/SQLite mutation, no provider/model/config/plugin/AGENTS change, no diagnostic restart/reboot, no direct Ollama semantic test, no merge/tag/release. Source work must use a fresh isolated worktree.
+No OpenClaw owner/user semantic message is authorized.
 
-Accepted live source remains:
+## Hard live fences
+
+No Dashboard/WebChat semantic turn, no `openclaw agent` semantic/provider probe, no reuse of the Task-076 nonce, no live Ticket/session/SQLite mutation, no install/install-over/uninstall/reset/cleanup, no provider/model/config/plugin/AGENTS change, no diagnostic restart/reboot, no merge/tag/release. Source work must use a fresh isolated worktree.
+
+Accepted live production source remains:
 
 `79b51ed06363f6e8862c491ee0a313ddb412c806`
 
-## Completion gate
-
-Task 077 must publish the existing report path with the comprehensive finding matrix and full verification required by both base task and addendum.
-
-Do not open another live semantic acceptance task until independent review confirms an exact owner surface, Ticket-before-provider executable proof, sufficient direct-delivery coverage, and no unresolved P0/P1 semantic blocker. If source changes, a supported install-over/source-live parity gate must occur before any new semantic message.
+Any accepted Task-078 production source must later pass supported install-over/source-live parity before a new final semantic message is authorized.
