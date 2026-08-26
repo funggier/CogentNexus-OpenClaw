@@ -24,6 +24,7 @@ $cogentNexusOpenClawRoot = Join-Path $Workspace ".cogentnexus-openclaw"
 $controllerPath = Join-Path $cogentNexusOpenClawRoot "host\controller.json"
 $existingLauncher = Join-Path $Workspace "cnxclaw.cmd"
 $ownershipScript = Join-Path $sourceSkill "scripts\namespace_ownership.py"
+$artifactResolver = Join-Path $repoRoot "scripts\resolve-npm-pack-artifact.ps1"
 $legacyRoot = Join-Path $Workspace ".cogent"
 $legacyControllerPath = Join-Path $legacyRoot "host\controller.json"
 $legacyLauncher = Join-Path $Workspace "cnx.cmd"
@@ -298,15 +299,11 @@ if (-not $SkipPlugin) {
 
         $packOutput = (& npm pack --json | Out-String)
         if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
-        try { $packed = $packOutput | ConvertFrom-Json }
-        catch { throw "npm pack returned invalid JSON: $($_.Exception.Message)" }
-        $packedItems = @($packed)
-        if ($packedItems.Count -ne 1 -or -not $packedItems[0].filename) {
-            throw "npm pack did not return exactly one package artifact"
-        }
-        $packagePath = Join-Path $pluginDir ([string]$packedItems[0].filename)
-        if (-not (Test-Path -LiteralPath $packagePath)) { throw "npm pack artifact not found: $packagePath" }
+        $packagePath = $null
         try {
+            . $artifactResolver
+            $packedArtifact = Resolve-NpmPackArtifact -PackJson $packOutput -PluginDir $pluginDir
+            $packagePath = [string]$packedArtifact.path
             openclaw plugins install ("npm-pack:" + $packagePath) --force
             if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
             # CNX-20260826-069 B3: mark the external effect this fresh attempt
@@ -314,7 +311,11 @@ if (-not $SkipPlugin) {
             # supported inverse (plugins uninstall) if a later step fails.
             if ($isFreshTransaction) { $script:FreshPluginInstalled = $true }
         }
-        finally { Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue }
+        finally {
+            if ($packagePath -and (Test-Path -LiteralPath $packagePath)) {
+                Remove-Item -LiteralPath $packagePath -Force -ErrorAction SilentlyContinue
+            }
+        }
 
         openclaw plugins disable cogentnexus-openclaw
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
