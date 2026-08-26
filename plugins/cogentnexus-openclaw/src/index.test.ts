@@ -393,6 +393,54 @@ describe("cogentnexus-openclaw", () => {
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
+  it("admits a direct owner turn at the registered hook before provider continuation", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cogent-direct-owner-hook-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any>();
+      const api: any = {
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {}, registerService: () => {},
+        on: (name: string, callback: any) => hooks.set(name, callback),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: {} }, runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const prompt = "ตอบกลับข้อความนี้เพียงว่า CNX-DIRECT-HOOK";
+      const decision = await hooks.get("before_agent_run")(
+        { prompt, senderIsOwner: true },
+        { sessionKey: "agent:main:dashboard:acceptance", runId: "direct-owner-run", workspaceDir: root },
+      );
+      expect(decision).toEqual({ outcome: "pass" });
+      const db = new DatabaseSync(databasePath);
+      try {
+        const ticket = db.prepare("SELECT ticket_id,run_id,owner_session_key,prompt,status,workflow_eligible FROM tickets").get() as any;
+        expect(ticket).toMatchObject({ run_id: "direct-owner-run", owner_session_key: "agent:main:dashboard:acceptance", prompt, status: "accepted", workflow_eligible: 0 });
+        expect(ticket.ticket_id).toMatch(/^CNXT-/);
+        expect(db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id").all(ticket.ticket_id).map((row: any) => row.event_type)).toEqual(["accepted", "routed"]);
+      } finally { db.close(); }
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("rejects untrusted CLI and subagent metadata at the registered hook", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cogent-untrusted-owner-hook-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any>();
+      const api: any = {
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {}, registerService: () => {}, on: (name: string, callback: any) => hooks.set(name, callback),
+        logger: { warn: () => {}, error: () => {}, info: () => {} }, session: { workflow: {} }, runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const hook = hooks.get("before_agent_run");
+      for (const [sessionKey, runId] of [["agent:main:cli:acceptance", "untrusted-cli"], ["agent:main:subagent:acceptance", "subagent-run"]]) {
+        expect(await hook({ prompt: `CNX-NEGATIVE-${runId}`, senderIsOwner: false }, { sessionKey, runId, workspaceDir: root })).toEqual({ outcome: "pass" });
+      }
+      expect(new TicketStore(databasePath).snapshot()).toMatchObject({ tickets: {}, pendingOutbox: 0 });
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it("compiles, starts, links, heartbeats, and completes an admitted Ticket workflow", () => {
     const root = mkdtempSync(join(tmpdir(),"cogent-ticket-bridge-"));
     try {
