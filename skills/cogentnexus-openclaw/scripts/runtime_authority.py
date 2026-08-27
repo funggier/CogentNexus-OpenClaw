@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CogentNexus-OpenClaw owned-runtime authority.
+r"""CogentNexus-OpenClaw owned-runtime authority.
 
 Establishes one stable, product-owned Python runtime under the CogentNexus-OpenClaw
 application-data boundary so durable launcher/startup execution never depends
