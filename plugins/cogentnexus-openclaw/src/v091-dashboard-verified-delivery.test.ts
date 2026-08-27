@@ -300,6 +300,48 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("preserves predecessor guard order and never evaluates queued counts for non-final or already-owned callbacks", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-order-"));
+    try {
+      const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
+      let handler: any;
+      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      const store = new TicketStore(path); const sessionKey = "agent:main:dashboard:order";
+      sessionAuthority(path, sessionKey);
+      const ticket = store.accept({ runId: "order-run-secret", ownerSessionKey: sessionKey, prompt: "order-prompt-secret" });
+      store.route(ticket.ticketId, false);
+      let countCalls = 0;
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => { countCalls += 1; if (countCalls > 1) throw new Error("must-not-run-twice"); return { final: 1 }; }, waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "order-run-secret" }, { dispatcher });
+      expect(callbacks[0]({ text: "delta-secret" }, { kind: "delta" })).toMatchObject({ text: "delta-secret" });
+      expect(countCalls).toBe(0);
+      const first = callbacks[0]({ text: "first-secret" }, { kind: "final" });
+      expect(first.text).toContain("first-secret");
+      expect(countCalls).toBe(1);
+      expect(() => callbacks[0]({ text: "second-secret" }, { kind: "final" })).not.toThrow();
+      expect(countCalls).toBe(1);
+      expect(logs.some((line) => line.includes('reason":"already-owned'))).toBe(true);
+      expect(logs.join("\\n")).not.toMatch(/order-run-secret|delta-secret|first-secret|second-secret/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("bounds unexpected callback kinds before logging", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-kind-"));
+    try {
+      const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
+      let handler: any;
+      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => { throw new Error("unexpected-counts"); }, waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "kind-run-secret" }, { dispatcher });
+      callbacks[0]({ text: "kind-response-secret" }, { kind: "x".repeat(5000) });
+      const entry = logs.find((line) => line.includes('callback-entry')) ?? "";
+      const parsed = JSON.parse(entry.slice(entry.indexOf("{") ));
+      expect(parsed.kind).toBe("other");
+      expect(entry).not.toContain("x".repeat(100));
+      expect(entry).not.toContain("kind-run-secret");
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it("does not claim durable replay ownership for non-Dashboard Direct tickets", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-external-delivery-"));
     try {

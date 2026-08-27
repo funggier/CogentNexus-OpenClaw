@@ -25,8 +25,18 @@ function correlationDigest(event: unknown, context: unknown) {
 }
 
 function exceptionCategory(error: unknown) {
-  if (error && typeof error === "object" && typeof (error as any).code === "string") return String((error as any).code).slice(0, 40);
-  return error instanceof Error && error.name ? error.name.slice(0, 40) : "unknown";
+  // Keep telemetry categorical: provider/SQLite error codes and messages can carry
+  // paths, identifiers, or payload data and must never reach the runtime logger.
+  if (error instanceof Error && error.name === "SqliteError") return "sqlite";
+  if (error instanceof Error && error.name === "Error") return "error";
+  return "unknown";
+}
+
+function callbackKindCategory(kind: unknown) {
+  if (kind === "final") return "final";
+  if (kind === "delta") return "delta";
+  if (typeof kind === "string") return "other";
+  return "unknown";
 }
 
 export type DashboardVerifiedDeliveryConfig = {
@@ -378,22 +388,34 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
 
     ctx.dispatcher.appendBeforeDeliver((payload: any, info: any) => {
-      const finalCount = Number(ctx.dispatcher.getQueuedCounts?.().final ?? 1);
-      const hasText = typeof payload?.text === "string" && payload.text.trim().length > 0;
-      const hasMedia = Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0));
-      observeDelivery(api.logger, "callback-entry", {
-        kind: typeof info?.kind === "string" ? info.kind : "unknown",
-        finalCount, hasText, hasMedia, alreadyOwned: owned,
-        correlation: correlationDigest(event, ctx),
-      });
+      // Preserve the predecessor's short-circuit order: non-final and already-owned
+      // callbacks must not evaluate dispatcher counts or downstream staging work.
       if (info?.kind !== "final") {
+        observeDelivery(api.logger, "callback-entry", {
+          kind: callbackKindCategory(info?.kind), hasText: typeof payload?.text === "string" && payload.text.trim().length > 0,
+          hasMedia: Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0)), alreadyOwned: owned,
+          correlation: correlationDigest(event, ctx),
+        });
         observeDelivery(api.logger, "filter-skip", { reason: "not-final" });
         return payload;
       }
       if (owned) {
+        observeDelivery(api.logger, "callback-entry", {
+          kind: "final", hasText: typeof payload?.text === "string" && payload.text.trim().length > 0,
+          hasMedia: Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0)), alreadyOwned: true,
+          correlation: correlationDigest(event, ctx),
+        });
         observeDelivery(api.logger, "filter-skip", { reason: "already-owned" });
         return payload;
       }
+      const finalCount = Number(ctx.dispatcher.getQueuedCounts?.().final ?? 1);
+      const hasText = typeof payload?.text === "string" && payload.text.trim().length > 0;
+      const hasMedia = Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0));
+      observeDelivery(api.logger, "callback-entry", {
+        kind: "final",
+        finalCount, hasText, hasMedia, alreadyOwned: owned,
+        correlation: correlationDigest(event, ctx),
+      });
       if (!hasText) {
         observeDelivery(api.logger, "filter-skip", { reason: "empty-text" });
         return payload;
