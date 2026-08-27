@@ -1,59 +1,43 @@
 # ติดตั้ง CogentNexus-OpenClaw v0.9.3 บน Windows
 
-คู่มือนี้อ้างอิง Recovery Core ที่ผ่าน acceptance แล้ว โดย compatibility ที่ยืนยันคือ OpenClaw `2026.7.1-2` หากอัปเกรด OpenClaw เป็นรุ่นใหม่กว่านี้ ควรทดสอบ compatibility ก่อนถือว่ารับประกัน recovery boundary เดิม
+CogentNexus-OpenClaw v0.9.3 ตอนนี้ยังเป็น **development candidate** โดย compatibility baseline ที่ยืนยันคือ OpenClaw `2026.7.1-2` และ managed provider ของ v0.9.3 คือ **Ollama only**
 
-v0.9.2 เก็บ Recovery Core ของ v0.9.1 ไว้ และเพิ่ม provider-neutral lifecycle สำหรับ Ollama/LM Studio พร้อม `cnxclaw check ...` แบบ read-only
+ตอนนี้ยังไม่มี GitHub Release v0.9.3 ที่เผยแพร่แล้ว คู่มือนี้จึงใช้สำหรับ source/development candidate ที่ผ่านการตรวจสอบเท่านั้น จนกว่าจะผ่าน repository stabilization, freeze exact candidate, real-Windows acceptance และ human release review
 
 ## สิ่งที่ต้องมี
 
-- Windows + PowerShell 5.1 ขึ้นไป
-- OpenClaw ที่ใช้งานได้อยู่แล้ว
+- Windows 10/11 หรือ Windows Server พร้อม PowerShell 5.1 ขึ้นไป
+- OpenClaw ที่ใช้งานได้
+- OpenClaw `2026.7.1-2` สำหรับ compatibility baseline ที่ยืนยันในปัจจุบัน
+- Ollama
 - Python 3.11+ และ PyYAML
 - Node.js + npm
-- local provider อย่างน้อยหนึ่งตัวถ้าต้องการให้ CNXCLAW ควบคุม local inference:
-  - Ollama หรือ
-  - LM Studio ที่มี `lms` CLI
 
-Ollama และ LM Studio สามารถติดตั้งอยู่เครื่องเดียวกันได้ตามปกติ เพราะใช้ loopback port คนละตัว (`11434` และ `1234`)
+LM Studio เป็นส่วนของ provider layer ใน historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3
 
-## แนะนำ: ติดตั้งจาก GitHub Release
+## ติดตั้งจาก development candidate
 
-1. ดาวน์โหลด `cogentnexus-openclaw-v0.9.3.zip` และ `SHA256SUMS.txt` จาก GitHub Release v0.9.3
-2. ตรวจ SHA256 ให้ตรงก่อนแตกไฟล์
-3. แตกไฟล์ไว้ในโฟลเดอร์ source ปกติ ไม่ต้องวางทับ extension ที่กำลังใช้งาน
-4. เปิด PowerShell ในโฟลเดอร์ที่แตกไฟล์
-5. เลือก provider ที่ต้องการให้ CNXCLAW supervise:
+สำหรับงาน acceptance ต้องใช้ candidate ที่ระบุตัวตนแน่นอนแล้วเท่านั้น จาก checkout หรือ archive ของ candidate:
 
 ```powershell
+python -m pip install "PyYAML>=6.0,<7"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\scripts\install.ps1 -Provider ollama
 ```
 
-หรือ:
+ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน installer จาก source/archive
 
-```powershell
-.\scripts\install.ps1 -Provider lmstudio
-```
+ก่อน final real-machine acceptance ต้องบันทึก exact commit SHA, payload-v2 fingerprint, payload file count, archive SHA256 และ GitHub Actions evidence ให้ครบก่อน ห้ามแก้ worktree หลัง freeze แล้วถือว่าเป็น candidate เดิม
 
-ถ้าในเครื่องมี supported provider เพียงตัวเดียว สามารถไม่ระบุ `-Provider` ได้ แต่ถ้ามีทั้ง Ollama และ LM Studio ใน fresh CNXCLAW state จะต้องเลือกให้ชัดเจน
+## การติดตั้งจาก Release ในอนาคต
 
-การตั้ง ExecutionPolicy แบบ `Process` มีผลเฉพาะหน้าต่าง PowerShell ปัจจุบัน ไม่ได้แก้ policy ถาวรของเครื่อง
+เมื่อ v0.9.3 ถูกเผยแพร่จริงแล้ว คู่มือ release จึงค่อยอ้าง archive และ checksum ของ release ที่มีอยู่จริงได้ ระหว่างนี้อย่าสมมติว่า v0.9.3 release asset มีอยู่แล้ว
 
 ## สิ่งที่ installer ทำ
 
-Installer จะตรวจ dependency, stage/validate skill, สร้าง Host state เริ่มต้นใน PASSTHROUGH, validate/install Bridge plugin, สร้าง `cnxclaw.cmd`, ทำ provider preflight และ transactional enable ไป MANAGED หลัง provider + Gateway ผ่านการตรวจแล้ว
+Installer จะ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง `cnxclaw.cmd`, ตรวจ provider/Gateway preflight และเข้า MANAGED mode เฉพาะเมื่อ verification ที่ต้องการผ่านแล้ว
 
-ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งใหม่ให้ทำจาก CogentNexus-OpenClaw Release ที่แตกไฟล์แล้ว
-
-## กรณีใช้ LM Studio
-
-LM Studio ต้องมี `lms` CLI เพื่อให้ CogentNexus-OpenClaw สามารถ start/stop server แบบ deterministic ได้ โดย default server ใช้ port `1234`
-
-การเลือก provider ใน CogentNexus-OpenClaw **ไม่แอบเปลี่ยนโมเดลใน OpenClaw** ให้เอง ต้องตั้งค่า model route ของ LM Studio ใน OpenClaw ให้เรียบร้อยก่อน แล้วจึงให้ CNXCLAW supervise backend ด้วย:
-
-```powershell
-.\cnxclaw.cmd start --provider lmstudio
-```
+operator-facing provider target ของ v0.9.3 คือ Ollama
 
 ## ตรวจหลังติดตั้งแบบ Pre-flight
 
@@ -61,32 +45,30 @@ LM Studio ต้องมี `lms` CLI เพื่อให้ CogentNexus-Open
 cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd status
 .\cnxclaw.cmd check system
+.\cnxclaw.cmd check provider
+.\cnxclaw.cmd check provider ollama
 ```
 
-หากต้องการตรวจสมมุติว่าเปลี่ยนไปใช้ LM Studio โดยยังไม่เปลี่ยน provider ที่จำไว้:
+managed state ที่พร้อมควรมีอย่างน้อย:
 
-```powershell
-.\cnxclaw.cmd check system --provider lmstudio
-```
+- controller mode = `managed`
+- managed provider = Ollama
+- Ollama ติดตั้งและ reachable
+- Gateway healthy
+- CogentNexus-OpenClaw plugin enabled/loaded
+- Ticket database อ่านได้และ integrity ผ่าน
+- ไม่มี recovery/outbox backlog ที่ไม่คาดคิดในระบบที่ idle
 
-`check system` จะตรวจ CNXCLAW state/config, OpenClaw, provider, model route, Gateway, Ticket DB, recovery/delivery และ resource headroom แล้วสรุปเป็น:
-
-- `READY`
-- `READY_WITH_WARNINGS`
-- `NOT_READY`
-- `INDETERMINATE`
-
-ทุกคำสั่งใต้ `check` เป็น **read-only** และต้องไม่ start/restart process, ไม่แก้ config, ไม่เปลี่ยน selected provider และไม่ repair DB
+ทุกคำสั่งใต้ `check` ต้องเป็น **read-only** และห้ามแก้ lifecycle/config/Ticket state
 
 ## คำสั่งใช้งานประจำ
 
 ```powershell
-.\cnxclaw.cmd provider list
 .\cnxclaw.cmd status
+.\cnxclaw.cmd provider list
 .\cnxclaw.cmd check system
 .\cnxclaw.cmd start
 .\cnxclaw.cmd start --provider ollama
-.\cnxclaw.cmd start --provider lmstudio
 .\cnxclaw.cmd stop
 .\cnxclaw.cmd restart
 .\cnxclaw.cmd restart --provider ollama
@@ -98,36 +80,22 @@ cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd enable
 ```
 
-เมื่อ `start --provider ...` สำเร็จ CNXCLAW จะจำ provider ตัวนั้นแบบ durable ครั้งถัดไปใช้ `start` หรือ `restart` เปล่า ๆ จะใช้ provider ล่าสุดที่ยืนยันสำเร็จ
-
-จำความแตกต่างไว้ว่า:
-
 - `disable` = คืน OpenClaw ไป native/PASSTHROUGH
-- `stop` = ตั้งใจหยุด CNXCLAW ใน MAINTENANCE โดยยังเก็บ durable state
+- `stop` = deliberate MAINTENANCE โดยเก็บ durable state
 
-ทั้งสองกรณีไม่ลืม selected provider
-
-## Reset ให้เหมือนเพิ่งติดตั้งใหม่
-
-ถ้ามี supported provider เพียงตัวเดียว:
+## Reset ให้เหมือน fresh install
 
 ```powershell
 .\cnxclaw.cmd reset
 ```
 
-ถ้ามีทั้ง Ollama และ LM Studio จะต้องเลือก provider ใหม่สำหรับ fresh state:
+หรือระบุ Ollama อย่างชัดเจนเมื่อ interface รองรับ:
 
 ```powershell
 .\cnxclaw.cmd reset --provider ollama
-# หรือ
-.\cnxclaw.cmd reset --provider lmstudio
 ```
 
-`reset` เป็นคำสั่งทำลายข้อมูลและจะทำงานต่อเมื่อผู้ใช้พิมพ์ `y` ยืนยันเท่านั้น หากกด Enter หรือพิมพ์ค่าอื่นจะยกเลิกโดยไม่เปลี่ยนแปลงระบบ
-
-เมื่อยืนยันแล้ว ระบบจะคืน OpenClaw ไป PASSTHROUGH ก่อน จากนั้นล้าง Ticket, recovery/delivery state, runtime/session/workflow state, diagnostics และค่าปรับของ CogentNexus-OpenClaw แล้วสร้าง fresh state จาก **release เวอร์ชันที่ติดตั้งอยู่เดิม** ก่อน transactional enable กลับไป MANAGED
-
-ไฟล์โปรแกรมและเวอร์ชัน CogentNexus-OpenClaw ที่ติดตั้งอยู่จะไม่ถูกเปลี่ยน และจะไม่ลบข้อมูล OpenClaw, Ollama หรือ LM Studio หากการสร้างใหม่ล้มเหลว CogentNexus-OpenClaw ต้องไม่อ้าง MANAGED authority จากสถานะที่สร้างไม่ครบ
+`reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบต้องล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
 
 ## ถอน CogentNexus-OpenClaw ออกทั้งหมด
 
@@ -135,16 +103,20 @@ cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd uninstall
 ```
 
-`uninstall` เป็นคำสั่งทำลายข้อมูลและจะทำงานต่อเมื่อผู้ใช้พิมพ์ `y` ยืนยันเท่านั้น
+`uninstall` เป็น destructive operation และต้องพิมพ์ `y` ยืนยัน ระบบต้องคืน native/PASSTHROUGH อย่างปลอดภัยแล้วลบเฉพาะ CogentNexus-OpenClaw-owned surfaces โดยรักษา OpenClaw, Ollama, user data และ namespace อื่นไว้
 
-ระบบจะคืน CogentNexus-OpenClaw ไป PASSTHROUGH/native OpenClaw ก่อน, ปิด startup/supervisor integration, ถอน OpenClaw Bridge, ตรวจว่า native Gateway healthy แล้วจึงลบ `.cogentnexus-openclaw`, skill ของ CogentNexus-OpenClaw, plugin residue และ `cnxclaw.cmd`
+## ขอบเขต acceptance
 
-OpenClaw, Ollama และ LM Studio จะไม่ถูกถอน
+ระหว่าง repository stabilization **ห้าม** uninstall/install/reset/restart live target และห้ามส่ง Dashboard semantic acceptance message ใหม่
 
-## ขอบเขตที่ยืนยันแล้ว
+หลัง repository candidate ถูก freeze แล้วเท่านั้นจึงเปิด bounded real-Windows task สำหรับ:
 
-Recovery Core ที่ commit `eadb89099637d24f96e265a500d66c577aa939a3` ผ่าน Test A v16 แบบ live บน Windows/OpenClaw/Ollama แล้ว
+1. clean uninstall
+2. fresh install exact frozen candidate
+3. install-over/reset/uninstall/reinstall lifecycle tests
+4. runtime readiness + installed fingerprint parity
+5. final Dashboard semantic/durable-delivery acceptance หนึ่งครั้ง
 
-LM Studio lifecycle support อยู่ใน v0.9.2 และผ่าน repository validation/unit tests แต่ยังควรทำ live acceptance บนเครื่องจริงก่อนอ้าง operational confidence ระดับเดียวกับ Ollama baseline
+Recovery Core checkpoint `eadb89099637d24f96e265a500d66c577aa939a3` เป็น historical technical evidence ที่ผ่าน live Test A v16 บน Windows/OpenClaw/Ollama แล้ว แต่ไม่ใช่ final v0.9.3 release acceptance โดยตัวมันเอง
 
 ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md) และ [CHECK_SYSTEM.md](CHECK_SYSTEM.md)
