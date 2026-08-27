@@ -156,13 +156,12 @@ jobs:
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
           test -s docs/releases/v0.9.3.md
-      - name: Build and validate plugin payload
+      - name: Install plugin dependencies
         working-directory: plugins/cogentnexus-openclaw
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci
-          npm run plugin:validate
+        run: npm ci
+      - name: Validate built plugin payload
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm run plugin:validate
       - name: Build and verify release archives without publishing
         shell: bash
         run: |
