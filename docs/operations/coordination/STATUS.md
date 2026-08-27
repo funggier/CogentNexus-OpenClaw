@@ -1,9 +1,9 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
+**State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved state-gated bounded retries for low-impact transient failures and authorized continuation through final authenticated fresh-session semantic acceptance
+**Human authority:** operator approved state-gated bounded retries and the bounded Task-100 foreground/input readiness design; continuation remains authorized through final authenticated semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -20,79 +20,69 @@ Accepted plugin fingerprint:
 
 Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-## Task 098 accepted readiness
-
-Task 098 report:
-
-`bd068ca94e10525bd0a0743b6c1916cb56de78a0`
-
-Independent disposition:
-
-`ACCEPT_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
-
-Readiness token:
-
-`DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
-
-Task 098 established an authenticated fresh/empty Dashboard readiness target with zero semantic/provider effect.
-
 ## Task 099 result and review
 
 Task 099 report:
 
 `d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac`
 
-Reported result:
-
-`BLOCKED_FINAL_PREFLIGHT_OR_FRESH_TARGET_IDENTITY`
-
-Independent decision:
-
-`ACCEPT`
-
-Disposition:
+Independent disposition:
 
 `ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
 
-Task 099 recorded exact target:
+Exact authenticated fresh target established by Task 099:
 
 `agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
 
-The target was authenticated and fresh/empty, but the exact OpenClaw Firefox window could not be verified as the foreground OS input target. A different Firefox window/process was foreground. The executor stopped before typing/sending.
+Task 099 stopped before any semantic send because the exact OpenClaw Firefox window could not be proven foreground while another Firefox window/process was foreground. Semantic send count remained 0; no Ticket/route/provider/durable-delivery/outbox effect was created. Its generated nonce is retired.
 
-Task-099 semantic send count was `0`. No Task-099 Ticket, route, provider inference, durable assistant delivery, visible semantic reply or outbox settlement occurred.
+This is an OS/UI foreground-targeting blocker, not evidence of a semantic-pipeline regression. Task 092 previously proved the real Dashboard send/Ticket/provider/visible-reply path; Task 093 repaired the later durable-staging defect and Task 096 installed that repair live.
 
-The generated Task-099 nonce is retired and must not be reused.
+## Active Task 100
 
-## Why this is not a semantic-pipeline regression
+[`tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`](tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md)
 
-Task 092 previously completed the Dashboard user-send portion: fresh Dashboard session, exactly one semantic message, exactly one Ticket, accepted/routed before one `ollama/qwen3.5:9b` inference, and an exact visible nonce response.
+Execution mode:
 
-Task 092 failed later at durable delivery completion. Task 093 repaired durable Dashboard final-payload staging and Task 096 installed/accepted that repaired source live.
+`READ_ONLY_DASHBOARD_FOREGROUND_INPUT_TARGET_READINESS`
 
-Task 099 did not reach the semantic path at all. Its blocker is OS/UI window foreground targeting before send.
+Authorization:
 
-## Pending Task 100 bounded design
+`TASK099_ACCEPTED_BOUNDED_FOREGROUND_READINESS_APPROVED`
 
-Before another final semantic attempt, prove input-target readiness with zero semantic send:
+Task 100 sends zero semantic content and generates no nonce.
 
-- correlate the exact Firefox OpenClaw Dashboard window to the authenticated target session;
-- prove target session remains empty/staged and semantically untouched;
-- acquire/verify the exact OpenClaw window as foreground HWND;
-- prove the intended Dashboard composer is selected/focusable and empty without typing semantic test content;
-- allow at most one low-impact focus/activation retry under retry policy v1, only after grace + fresh evidence prove attempt 1 had no effect;
-- ambiguous foreground/input state stops the task before nonce generation;
-- no product/runtime/SQLite/session cleanup/provider mutation.
+It must uniquely correlate the exact Firefox OpenClaw Dashboard top-level window/HWND to the accepted target session, acquire that exact HWND as the actual Windows foreground input window, and prove the intended Dashboard composer can be focused/selected while remaining empty.
 
-Only independent acceptance of this input-target readiness may authorize a new single-attempt semantic nonce/send.
+Required readiness token:
 
-## Retry policy v1 remains authoritative
+`DASHBOARD_FOREGROUND_COMPOSER_READY_NO_SEND`
+
+Required PASS token:
+
+`PASS_DASHBOARD_FOREGROUND_INPUT_TARGET_READY_NO_SEND`
+
+## Retry policy v1
 
 - read-only operations: maximum 3 attempts total;
-- low-impact state-changing session/focus actions: maximum 2 attempts total after state-gated proof;
-- ambiguous/partial/delayed mutation is not retryable;
+- low-impact focus/window-activation operations: maximum 2 attempts total;
+- attempt 2 requires at least 3 seconds grace and fresh evidence proving attempt 1 did not already take effect;
+- if attempt 1 appears late, treat it as success and do not retry;
+- ambiguous/partial/delayed state is not retryable;
 - semantic sends/provider inference/install/reset/destructive effects remain single-attempt unless separately proven idempotent and explicitly authorized.
 
-## Hard fence pending design approval
+## Hard fence
 
-No Task 100 implementation/run, new semantic nonce/send, CLI/channel substitute, direct provider probe, install/reset/repair/cleanup, session deletion, SQLite/controller/startup/Supervisor/AGENTS/config/runtime mutation, Task-092 rewrite, restart/reboot, merge/tag/release or force push is authorized until the operator approves the bounded Task-100 design.
+Task 100 performs no semantic send, provider/Ollama inference, install/reset/repair/cleanup, session cleanup, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, prior-evidence rewrite, restart/reboot, merge/tag/release or force push.
+
+Credential values must not be read, copied, printed, logged, requested or re-entered by the executor.
+
+## Successor logic
+
+Only independent acceptance of:
+
+`PASS_DASHBOARD_FOREGROUND_INPUT_TARGET_READY_NO_SEND`
+
+may authorize a new final authenticated semantic task.
+
+That successor must re-verify the exact target session + exact foreground OpenClaw HWND + empty focused composer before nonce generation, then send one brand-new nonce exactly once. It must prove one Ticket accepted/routed before one correlated Ollama inference, durable final-payload staging before native delivery, one exact visible reply, exact `response_ready -> delivery_confirmed -> completed`, no duplicate effect, and post-completion New Session continuity using state-gated retry only for session-management actions.
