@@ -1,66 +1,85 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
+**State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized continuation through definitive live repair and final authenticated fresh-session semantic acceptance, and proposed limited retries for low-impact transient failures
+**Human authority:** operator approved state-gated bounded retries for simple/transient low-impact failures and authorized continuation through final authenticated fresh-session semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
 
-Task 096 live deployment remains accepted with exact installed source:
+Task 096 live deployment remains accepted.
+
+Exact installed source:
 
 `32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
 
-Accepted final plugin fingerprint:
+Accepted plugin fingerprint:
 
 `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Accepted live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, startup/Supervisor/Gateway/SQLite/Ollama health, preserved Task-092 retired evidence and `NO_FLASH_MULTI_TICK_REPROVEN`.
+Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence, and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-## Task 097 result and independent review
+## Task 097 result
 
-Task 097 report:
+Report:
 
 `41a119b686daa4fc64b8f8481329a1be78462641`
 
-Reported result:
-
-`BLOCKED_FRESH_SESSION_ENTRY_FAILURE`
-
-Independent decision:
-
-`ACCEPT`
-
-Disposition:
+Independent disposition:
 
 `ACCEPT_BLOCKER_STATE_UNVERIFIED_UI_RETRY_DUPLICATED_FRESH_SESSION_ENTRY`
 
-The Dashboard/control surface was authenticated and visibly ready. No semantic/provider activity occurred and live state remained healthy.
+Authenticated Dashboard readiness and live health were present, but the first New Session click returned `unverifiable` while still in flight. Immediate re-issue caused two empty Dashboard sessions. No semantic send, provider inference or Ticket/outbox mutation occurred.
 
-The failure was a UI event race: the first New Session action returned `unverifiable`, was still in flight, and a foreground re-issue caused two new empty Dashboard sessions to materialize. The one-transition readiness contract therefore could not issue `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`.
+This establishes a coordination rule: `unverifiable` is not equivalent to `not executed`.
 
-The two empty Task-097 sessions remain untouched evidence.
+## Operator-approved retry policy v1
 
-## Pending bounded retry policy
+Default from Task 098 onward:
 
-The operator proposed allowing bounded retries for simple errors that do not produce harmful side effects.
+- read-only operations: maximum 3 attempts total;
+- low-impact state-changing actions: maximum 2 attempts total;
+- retry a state-changing action only after a bounded grace period and fresh state verification prove the first attempt had no effect;
+- if the first effect appears during verification, count it as success and do not retry;
+- ambiguous, partial or delayed mutation blocks retry;
+- semantic sends, provider inference, install/uninstall/reset, destructive cleanup and other high-impact non-idempotent effects remain single-attempt unless a future task explicitly proves idempotency and authorizes bounded retry;
+- every retry records attempt number, failure/unverifiable reason, grace interval, fresh pre-retry state and eligibility evidence.
 
-Recommended policy:
+For New Session, Task 098 requires at least 5 seconds of grace plus fresh session/UI inspection before a second attempt can be eligible.
 
-- read-only calls: maximum 3 attempts total;
-- low-impact state-changing actions: maximum 2 attempts total, but retry only after a bounded wait and fresh state verification prove the first attempt had no effect;
-- if the first action's effect appears during verification, count it as success and do not re-issue;
-- ambiguous or partial mutation blocks retry;
-- semantic sends, provider inference, install/uninstall/reset, destructive cleanup and other non-idempotent external effects remain single-attempt unless the specific task first proves idempotency and explicitly authorizes retry;
-- every retry records attempt/reason/grace interval/pre-retry state and eligibility evidence.
+## Active Task 098
 
-This policy directly addresses Task 097: `unverifiable` is not equivalent to `not executed`.
+[`tasks/CNX-20260827-098-state-gated-fresh-session-readiness.md`](tasks/CNX-20260827-098-state-gated-fresh-session-readiness.md)
 
-## Hard fence pending approval
+Execution mode:
 
-No Task 098, New Session retry, semantic nonce/send, direct provider/Ollama call, install/reset/cleanup, session cleanup, SQLite/controller/startup/Supervisor/AGENTS/config/runtime mutation or Task-092 rewrite is authorized until the operator approves the retry-policy design.
+`READ_ONLY_AUTHENTICATED_DASHBOARD_STATE_GATED_FRESH_SESSION_READINESS`
+
+Authorization:
+
+`TASK097_ACCEPTED_STATE_GATED_RETRY_POLICY_APPROVED`
+
+Task 098 first inspects the existing two Task-097-created empty sessions. If the currently selected one can be proven fresh, empty, owner-authenticated, distinct from Main/Task-092 and free of semantic/provider effects, it becomes the readiness target without another New Session action.
+
+Only if no unique readiness target can be established may Task 098 invoke New Session under the approved state-gated retry policy.
+
+Required tokens:
+
+`DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
+
+`PASS_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
+
+## Hard fence
+
+Task 098 sends zero semantic messages and generates no semantic nonce.
+
+No direct provider/Ollama inference, install/reset/repair/cleanup, duplicate-session deletion, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
+
+Credential values remain private and must not be read, copied, logged, requested or re-entered by the executor.
 
 ## Successor logic
 
-After approval, publish a narrow fresh-session readiness successor using state-gated bounded retry semantics. Only independent PASS of one clean authenticated fresh staged session with zero semantic/provider effect may authorize the final one-message semantic acceptance.
+Only independent acceptance of Task 098 PASS may authorize the final authenticated semantic acceptance.
+
+That final task keeps the semantic action single-attempt: exactly one brand-new nonce and one user send, no resend. It must prove fresh Dashboard session identity, Ticket acceptance/routing before Ollama, durable final-payload staging before native delivery, one exact visible reply, exact delivery settlement through `delivery_confirmed` to `completed`, and then another New Session transition with zero additional semantic/provider effect. State-gated retry may apply only to eligible low-impact/read-only surrounding operations.
