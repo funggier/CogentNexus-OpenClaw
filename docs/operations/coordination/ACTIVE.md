@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
-Execution mode: `DASHBOARD_FOREGROUND_INPUT_TARGET_READINESS_PENDING_APPROVAL`
-Current authorization: `NO_NEW_SEMANTIC_SEND_AUTHORIZED`
-Task ID: `PENDING_CNX-20260827-100`
+Status: `READY_FOR_HERMES`
+Execution mode: `READ_ONLY_DASHBOARD_FOREGROUND_INPUT_TARGET_READINESS`
+Current authorization: `TASK099_ACCEPTED_BOUNDED_FOREGROUND_READINESS_APPROVED`
+Task ID: `CNX-20260827-100`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator design approval
+Executor: Hermes/Codex after operator continuation
 
 ## Authoritative coordination files
 
@@ -17,72 +17,77 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 099 independent review
+## Operator approval
+
+The operator explicitly approved the bounded Task-100 design after Task 099 review.
+
+## Task 099 accepted blocker
 
 Task 099 report:
 
 `d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac`
 
-Independent decision:
-
-`ACCEPT`
-
-Disposition:
+Independent disposition:
 
 `ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
 
-Review:
-
-[`reviews/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md`](reviews/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md)
-
-Publication fence is valid: execution `44c343bc86df8020393f19ce971dff723e4384b5` -> report `d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac` is one report-only commit.
-
-## What Task 099 established
-
-Task 099 successfully identified the exact authenticated fresh/empty Dashboard target before send:
+Task 099 proved exact fresh target:
 
 `agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
 
-The accepted MANAGED generation 24 / exact plugin fingerprint / healthy durable baseline remained intact.
+It stopped before semantic send because a different Firefox window/process remained foreground. Semantic send count was `0`; no Task-099 Ticket/provider/delivery effect occurred. Task-099 nonce is retired.
 
-A fresh Task-099 nonce was generated, but the exact OpenClaw Firefox window could not be proven to be the foreground input target. A separate Firefox window/process was foreground. The executor therefore correctly refused to type/send into an unverifiable composer.
+## Active Task 100
 
-Semantic send count remained `0`; no Ticket, route, provider inference, durable payload, visible semantic reply, or outbox settlement was created by Task 099.
+[`tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`](tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md)
 
-The Task-099 nonce is retired and must not be reused.
+Task 100 is readiness-only and sends zero semantic content.
 
-## Important historical comparison
+It must prove:
 
-Task 092 previously proved the authenticated Dashboard semantic path itself can execute: one fresh Dashboard session, one semantic send, one Ticket, Ticket-before-provider ordering, one `ollama/qwen3.5:9b` inference, and one exact visible nonce response.
+- exact target session still exists, authenticated and empty/staged;
+- exact Firefox/OpenClaw Dashboard top-level HWND is uniquely correlated to that target session;
+- exact Dashboard HWND becomes the actual Windows foreground input window;
+- intended chat composer can be focused/selected while still empty and without typing;
+- no Ticket/provider/semantic side effect occurs;
+- accepted MANAGED generation 24, exact plugin fingerprint, Gateway and SQLite health remain unchanged.
 
-Task 092 failed later at durable delivery completion. That defect was repaired by Task 093 and the repaired source was installed and accepted live in Task 096.
+Required readiness token:
 
-Task 099 failed earlier than that path, at OS/UI foreground targeting. It is therefore not evidence of a semantic-pipeline or Task-093 regression.
+`DASHBOARD_FOREGROUND_COMPOSER_READY_NO_SEND`
 
-## Pending bounded Task-100 design
+Required PASS token:
 
-Proposed successor is readiness-only and sends zero semantic content.
+`PASS_DASHBOARD_FOREGROUND_INPUT_TARGET_READY_NO_SEND`
 
-It should:
+## Retry policy v1
 
-1. enumerate/correlate the exact Firefox OpenClaw Dashboard window to the authenticated target session without reading credentials;
-2. verify the exact target session remains empty/staged and semantically untouched;
-3. acquire the exact OpenClaw window as the actual foreground HWND before composer interaction;
-4. verify the intended Dashboard composer is focusable/selected and empty without typing semantic test content;
-5. use retry policy v1 only for low-impact focus/activation operations: at most two attempts, with a grace interval and fresh foreground/window/session verification before attempt 2;
-6. if another window remains foreground, target identity is ambiguous, or any input action is unverifiable, stop with zero nonce/send;
-7. make no product/runtime/SQLite/session cleanup mutation and no provider call.
+Read-only operations: maximum 3 attempts total.
 
-Only independent PASS of this input-target readiness may authorize a new final semantic task with a brand-new nonce and exactly one send.
+Low-impact focus/window-activation actions: maximum 2 attempts total. A second attempt requires at least 3 seconds grace plus fresh foreground/window/session evidence proving attempt 1 did not already take effect.
 
-## Hard fence pending approval
+If attempt 1 takes effect late, count it as success and do not retry. Ambiguous/partial state blocks retry.
 
-Until the operator approves this bounded design:
+Semantic send remains unauthorized in Task 100.
 
-- do not create/run Task 100;
-- do not generate another semantic nonce;
-- do not send or retry Task-099 semantic content;
-- do not use CLI/channel/provider substitutes;
-- do not install/reset/repair/cleanup;
-- do not delete/normalize Dashboard sessions;
-- do not mutate controller/startup/Supervisor/AGENTS/config/runtime/SQLite or retired evidence.
+## Accepted live baseline
+
+Exact installed source:
+
+`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
+
+Exact plugin fingerprint:
+
+`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
+
+Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, accepted startup/Supervisor/Gateway/SQLite/Ollama health and `NO_FLASH_MULTI_TICK_REPROVEN`.
+
+## Hard fence
+
+No semantic nonce/send, CLI/channel substitute, direct provider/Ollama call, install/reset/repair/cleanup, session deletion/normalization, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092/Task-099 evidence rewrite, restart/reboot, merge/tag/release or force push is authorized.
+
+Credential values remain private and must not be read, copied, printed, logged, requested or re-entered by the executor.
+
+## Successor gate
+
+Only independent acceptance of Task 100 PASS may authorize a new final semantic task with a brand-new nonce and exactly one Dashboard send. The semantic send remains single-attempt; state-gated retry applies only to eligible surrounding low-impact/read-only operations.
