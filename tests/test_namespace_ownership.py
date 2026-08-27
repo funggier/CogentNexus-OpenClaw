@@ -1,6 +1,8 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
 
 import pytest
 
@@ -24,10 +26,55 @@ def write_plugin(root: Path, *, marker="same", version="0.9.3") -> Path:
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(json.dumps({"id": ownership.PRODUCT_ID, "version": version}), encoding="utf-8")
-    (root / "package.json").write_text(json.dumps({"name": ownership.PLUGIN_PACKAGE, "version": version}), encoding="utf-8")
+    (root / "package.json").write_text(json.dumps({
+        "name": ownership.PLUGIN_PACKAGE,
+        "version": version,
+        "files": ["dist", "scripts/bootstrap-ticket-db.mjs", "openclaw.plugin.json", "README.md"],
+    }), encoding="utf-8")
+    (root / "README.md").write_text("package readme", encoding="utf-8")
     (root / "scripts/bootstrap-ticket-db.mjs").write_text(marker, encoding="utf-8")
     (root / "dist/ticket-store.js").write_text(marker, encoding="utf-8")
     return root
+
+
+def test_complete_payload_is_root_independent_and_excludes_source_cache(tmp_path: Path):
+    first = write_plugin(tmp_path / "one")
+    (first / "dist" / "runtime.js").write_text("runtime", encoding="utf-8")
+    (first / "src").mkdir()
+    (first / "src" / "development.ts").write_text("source-only", encoding="utf-8")
+    (first / "node_modules").mkdir()
+    (first / "node_modules" / "cache.js").write_text("cache", encoding="utf-8")
+    second = tmp_path / "two"
+    shutil.copytree(first, second)
+    expected = ownership.plugin_fingerprint(first)["fingerprint"]
+    assert ownership.plugin_fingerprint(second)["fingerprint"] == expected
+    (second / "src" / "development.ts").write_text("changed-source", encoding="utf-8")
+    (second / "node_modules" / "cache.js").write_text("changed-cache", encoding="utf-8")
+    assert ownership.plugin_fingerprint(second)["fingerprint"] == expected
+
+
+@pytest.mark.parametrize("files", [["../dist"], ["/absolute"], ["dist/*.js"], ["missing.txt"]])
+def test_package_payload_contract_rejects_unsafe_or_missing_entries(tmp_path: Path, files):
+    plugin = write_plugin(tmp_path / "plugin")
+    package = json.loads((plugin / "package.json").read_text(encoding="utf-8"))
+    package["files"] = files
+    (plugin / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="incomplete|wrong id/package|payload|unsafe|missing"):
+        ownership.plugin_fingerprint(plugin)
+
+
+def test_package_payload_rejects_symlink_indirection(tmp_path: Path):
+    plugin = write_plugin(tmp_path / "plugin")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "escape.js").write_text("escape", encoding="utf-8")
+    link = plugin / "dist" / "escape.js"
+    try:
+        os.symlink(outside / "escape.js", link)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+    with pytest.raises(RuntimeError, match="incomplete|wrong id/package|symlink|payload"):
+        ownership.plugin_fingerprint(plugin)
 
 
 def complete_install(tmp_path: Path, migration_source=None):

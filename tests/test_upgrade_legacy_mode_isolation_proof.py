@@ -57,7 +57,12 @@ def _make_upgrade_fixture(tmp_path: Path) -> tuple[Path, Path]:
     (plugin_root / "openclaw.plugin.json").write_text(
         json.dumps({"id": PRODUCT_ID, "version": INSTALLED_VERSION}), encoding="utf-8")
     (plugin_root / "package.json").write_text(
-        json.dumps({"name": PLUGIN_PACKAGE, "version": INSTALLED_VERSION}), encoding="utf-8")
+        json.dumps({
+            "name": PLUGIN_PACKAGE,
+            "version": INSTALLED_VERSION,
+            "files": ["dist", "scripts/bootstrap-ticket-db.mjs", "openclaw.plugin.json", "README.md"],
+        }), encoding="utf-8")
+    (plugin_root / "README.md").write_text("package readme", encoding="utf-8")
     (plugin_root / "scripts").mkdir()
     (plugin_root / "scripts" / "bootstrap-ticket-db.mjs").write_text("// db\n", encoding="utf-8")
     (plugin_root / "dist" / "ticket-store.js").write_text("// store\n", encoding="utf-8")

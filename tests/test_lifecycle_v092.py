@@ -28,9 +28,14 @@ def write_payload(root: Path, version: str, bootstrap_text: str = "console.log('
         json.dumps({"id": "cogentnexus-openclaw", "version": version}), encoding="utf-8"
     )
     (root / "package.json").write_text(
-        json.dumps({"name": "openclaw-plugin-cogentnexus-openclaw", "version": version}),
+        json.dumps({
+            "name": "openclaw-plugin-cogentnexus-openclaw",
+            "version": version,
+            "files": ["dist", "scripts/bootstrap-ticket-db.mjs", "openclaw.plugin.json", "README.md"],
+        }),
         encoding="utf-8",
     )
+    (root / "README.md").write_text("package readme", encoding="utf-8")
     bootstrap = root / "scripts" / "bootstrap-ticket-db.mjs"
     bootstrap.write_text(bootstrap_text, encoding="utf-8")
     (root / "dist" / "ticket-store.js").write_text(ticket_text, encoding="utf-8")

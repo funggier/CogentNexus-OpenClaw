@@ -364,25 +364,87 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
     return {"status": "RECOVERED_FRESH", "inventory": current_inventory(workspace, app_data=app_data)}
 
 
+def _package_payload_files(root: Path, package: dict[str, Any]) -> list[tuple[str, Path]]:
+    """Enumerate the exact safe regular files owned by npm's package contract."""
+    declared = package.get("files")
+    if not isinstance(declared, list) or not declared or any(not isinstance(item, str) for item in declared):
+        raise RuntimeError("plugin package.json.files must be a non-empty list of strings")
+
+    root = root.resolve(strict=False)
+    result: dict[str, Path] = {}
+
+    def safe_relative(raw: str) -> tuple[str, Path]:
+        normalized = raw.replace("\\", "/").strip()
+        if (not normalized or "\0" in normalized or normalized.startswith("/")
+                or re.match(r"^[A-Za-z]:", normalized)):
+            raise RuntimeError(f"unsafe plugin package path: {raw!r}")
+        parts = normalized.split("/")
+        if any(part in {"", ".", ".."} for part in parts):
+            raise RuntimeError(f"unsafe plugin package path: {raw!r}")
+        candidate = root.joinpath(*parts)
+        if not _contained(candidate, root):
+            raise RuntimeError(f"plugin package path escapes root: {raw!r}")
+        return "/".join(parts), candidate
+
+    def add_file(relative: str, path: Path) -> None:
+        try:
+            stat = path.lstat()
+        except OSError as error:
+            raise RuntimeError(f"missing plugin package payload: {relative}") from error
+        if not path.is_file() or os.path.islink(path) or not os.stat(path, follow_symlinks=False).st_mode & 0o170000 == 0o100000:
+            raise RuntimeError(f"plugin package payload is not a regular file: {relative}")
+        result.setdefault(relative, path)
+
+    def expand(relative: str, path: Path) -> None:
+        try:
+            stat = path.lstat()
+        except OSError as error:
+            raise RuntimeError(f"missing declared plugin package path: {relative}") from error
+        if os.path.islink(path):
+            raise RuntimeError(f"symlink plugin package path is not attestable: {relative}")
+        if path.is_file():
+            add_file(relative, path)
+            return
+        if not path.is_dir():
+            raise RuntimeError(f"unsupported plugin package path: {relative}")
+        with os.scandir(path) as iterator:
+            children = sorted(iterator, key=lambda item: item.name)
+        for child in children:
+            child_relative = f"{relative}/{child.name}"
+            expand(child_relative, Path(child.path))
+
+    add_file("package.json", root / "package.json")
+    for raw in declared:
+        relative, path = safe_relative(raw)
+        expand(relative, path)
+    return [(relative, result[relative]) for relative in sorted(result)]
+
+
 def _plugin_payload(root: Path, *, expected_version: str = INSTALLED_VERSION) -> dict[str, Any] | None:
-    files = [root / "openclaw.plugin.json", root / "package.json",
-             root / "scripts" / "bootstrap-ticket-db.mjs", root / "dist" / "ticket-store.js"]
-    if not all(path.is_file() for path in files):
-        return None
+    package_path = root / "package.json"
+    manifest_path = root / "openclaw.plugin.json"
     try:
-        manifest = json.loads(files[0].read_text(encoding="utf-8"))
-        package = json.loads(files[1].read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        package = json.loads(package_path.read_text(encoding="utf-8"))
+        files = _package_payload_files(root, package)
+    except (OSError, json.JSONDecodeError, RuntimeError):
         return None
     if manifest.get("id") != PRODUCT_ID or manifest.get("version") != expected_version:
         return None
     if package.get("name") != PLUGIN_PACKAGE or package.get("version") != expected_version:
         return None
-    digest = hashlib.sha256()
-    for path in files:
+    digest = hashlib.sha256(b"cogentnexus-openclaw-plugin-payload-v2\0")
+    for relative, path in files:
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
         digest.update(path.read_bytes())
         digest.update(b"\0")
-    return {"root": root.resolve(strict=False), "fingerprint": digest.hexdigest(), "version": expected_version}
+    return {
+        "root": root.resolve(strict=False),
+        "fingerprint": digest.hexdigest(),
+        "version": expected_version,
+        "files": [relative for relative, _ in files],
+    }
 
 
 def plugin_fingerprint(plugin_root: Path, *, expected_version: str = INSTALLED_VERSION) -> dict[str, Any]:

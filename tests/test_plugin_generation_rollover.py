@@ -22,11 +22,33 @@ def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.3") ->
         json.dumps({"id": ownership.PRODUCT_ID, "version": version}), encoding="utf-8"
     )
     (root / "package.json").write_text(
-        json.dumps({"name": ownership.PLUGIN_PACKAGE, "version": version}), encoding="utf-8"
+        json.dumps({
+            "name": ownership.PLUGIN_PACKAGE,
+            "version": version,
+            "files": ["dist", "scripts/bootstrap-ticket-db.mjs", "openclaw.plugin.json", "README.md"],
+        }), encoding="utf-8"
     )
+    (root / "README.md").write_text("package readme", encoding="utf-8")
     (root / "scripts/bootstrap-ticket-db.mjs").write_text(marker, encoding="utf-8")
     (root / "dist/ticket-store.js").write_text(marker, encoding="utf-8")
     return root
+
+
+def test_installable_runtime_change_changes_fingerprint(tmp_path: Path):
+    plugin = write_plugin(tmp_path / "plugin")
+    baseline = ownership.plugin_fingerprint(plugin)["fingerprint"]
+    (plugin / "dist" / "v091-dashboard-verified-delivery.js").write_text("runtime-v1", encoding="utf-8")
+    changed = ownership.plugin_fingerprint(plugin)["fingerprint"]
+    assert changed != baseline
+
+
+def test_installable_runtime_path_change_changes_fingerprint(tmp_path: Path):
+    plugin = write_plugin(tmp_path / "plugin")
+    (plugin / "dist" / "v091-dashboard-verified-delivery.js").write_text("runtime", encoding="utf-8")
+    baseline = ownership.plugin_fingerprint(plugin)["fingerprint"]
+    (plugin / "dist" / "v091-dashboard-verified-delivery.js").rename(plugin / "dist" / "renamed-runtime.js")
+    changed = ownership.plugin_fingerprint(plugin)["fingerprint"]
+    assert changed != baseline
 
 
 def write_generation(openclaw_state: Path, name: str, *, marker: str = "same") -> tuple[Path, Path]:
