@@ -25,7 +25,7 @@ def save_policy(root,value):
     q.write_text(json.dumps({"schemaVersion":1,"policy":value,"updatedAt":datetime.now(timezone.utc).isoformat()},indent=2),encoding="utf-8")
     os.replace(q,p)
 def python_background():
-    """Return ONLY the validated CogentNexus-owned background interpreter.
+    """Return ONLY the validated CogentNexus-OpenClaw-owned background interpreter.
 
     Fail-closed contract (Task CNX-20260825-064 B3): if the owned runtime is
     missing or corrupt, raise — never fall back to registration-time
