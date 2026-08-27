@@ -6,6 +6,8 @@ Current development line: **v0.9.3**.
 Validated OpenClaw baseline: `2026.7.1-2`.  
 Current managed provider at the product/CLI boundary: **Ollama only**.
 
+The package peer range `>=2026.5.17` expresses package-install compatibility only. It does not extend the operational guarantee: v0.9.3 runtime behavior is validated and guaranteed only against the OpenClaw `2026.7.1-2` baseline unless a separate compatibility test explicitly proves another runtime version.
+
 The Bridge preserves recovery and delivery invariants; provider lifecycle selection is owned by the external v0.9.3 Host/CLI facade.
 
 ## Recovery wiring
