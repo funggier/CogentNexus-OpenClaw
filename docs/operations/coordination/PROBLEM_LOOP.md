@@ -8,9 +8,9 @@ Stop an unsafe or unauthorized action, but continue the coordination loop throug
 
 A `BLOCKED`, `FAIL`, or partial result is useful evidence. It is not permission to improvise, repeat side effects, or abandon the project without an explicit reviewed disposition.
 
-## Required Codex problem report
+## Required Hermes/Codex problem report
 
-When an authorized task starts but cannot complete, Codex must publish the matching report whenever repository publication is still possible.
+When an authorized task starts but cannot complete, Hermes/Codex must publish the matching report whenever repository publication is still possible.
 
 The report must include:
 
@@ -27,7 +27,7 @@ The report must include:
 - `Human decision required: YES|NO`, with the exact decision if `YES`;
 - duplicate-execution and external-side-effect accounting.
 
-Codex must not convert a recommendation into authority. It stops after publishing the report.
+The executor must not convert a recommendation into authority. It stops after publishing the report.
 
 ## Required ChatGPT response
 
@@ -75,7 +75,7 @@ No-op watch cycles may remain silent. Meaningful reports, reviews, blockers, fix
 
 ## Durable conversation
 
-GitHub coordination records are the primary Codex–ChatGPT conversation:
+GitHub coordination records are the primary Hermes/Codex–ChatGPT conversation:
 
 `task → report → review → next task or human decision`
 
