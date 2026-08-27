@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
-Execution mode: `SOURCE_AND_READ_ONLY_LIVE_DASHBOARD_STAGING_DIAGNOSIS_PENDING_APPROVAL`
-Current authorization: `NO_NEW_SEMANTIC_SEND_AUTHORIZED`
-Task ID: `PENDING_CNX-20260827-103`
+Status: `READY_FOR_HERMES`
+Execution mode: `SOURCE_AND_READ_ONLY_LIVE_DASHBOARD_STAGING_DIAGNOSIS`
+Current authorization: `OPERATOR_APPROVED_DIAGNOSIS_ONLY_NO_SEMANTIC_RESEND`
+Task ID: `CNX-20260827-103`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator design approval
+Executor: Hermes/Codex after operator continuation
 
 ## Authoritative coordination files
 
@@ -17,42 +17,23 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 102 independent review
+## Operator approval
+
+The operator explicitly approved the bounded Task-103 diagnosis design after Task 102 reproduced the live durable-staging blocker.
+
+No operator action is expected during Task 103. If a diagnostic step unexpectedly requires manual focus/click/authentication/send/restart or another operator mutation, the executor must stop before that step and report the exact required operator action.
+
+## Task 102 accepted blocker
 
 Task 102 report:
 
 `4d23875f4c402cf47109439ebd6b6b5eb72e131b`
 
-Independent decision:
-
-`ACCEPT`
-
-Disposition:
+Independent disposition:
 
 `ACCEPT_BLOCKER_LIVE_DURABLE_PAYLOAD_STAGING_REPRODUCED_AFTER_REPAIR`
 
-Review:
-
-[`reviews/CNX-20260827-102-reestablish-dashboard-target-and-final-semantic-acceptance.md`](reviews/CNX-20260827-102-reestablish-dashboard-target-and-final-semantic-acceptance.md)
-
-Publication fence is valid: execution `9b9cb77b77f3e4e57887c4ffa87a0cd273e4ef55` -> report `4d23875f4c402cf47109439ebd6b6b5eb72e131b` is one report-only commit.
-
-## What Task 102 proved
-
-The real Dashboard input path is now known and reproducible with bounded operator assistance:
-
-1. open the authenticated Firefox Dashboard and freshly correlate exact HWND/session/composer;
-2. prove the Firefox HWND is foreground;
-3. operator manually clicks the already-verified `Message Assistant` composer once with the real mouse;
-4. re-verify foreground/session/composer;
-5. only then use foreground keystrokes;
-6. visually verify exact text before any authorized Send.
-
-Task 102 earned:
-
-`DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN`
-
-The one semantic Send created exactly one Ticket and one expected provider call and visibly rendered the exact nonce once. It then stopped correctly because durable staging did not occur:
+Task 102 removed the Dashboard input ambiguity and proved the operator-assisted input method. Its one semantic Send produced exactly one new Ticket, one expected `ollama/qwen3.5:9b` Direct inference and one visible exact nonce reply, but durable staging remained absent:
 
 - Ticket `CNXT-415b82d9-5553-4bd2-996a-54f57163f7e4`;
 - `response_ready_at` present;
@@ -61,23 +42,30 @@ The one semantic Send created exactly one Ticket and one expected provider call 
 - no `delivery_confirmed`;
 - no `completed`.
 
-No resend or duplicate semantic effect occurred.
+Task-102 semantic artifacts are retired. Do not resend, replay, repair or clean them.
 
-## Pending Task 103 bounded diagnosis design
+## Active Task 103
 
-The next task is diagnosis-only: no product fix and no semantic resend.
+[`tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`](tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md)
 
-It should establish the exact live boundary among:
+Goal: identify the first exact failing boundary that allows visible Dashboard delivery without creating the durable `cnx_assistant_delivery` staging row.
 
-- verified-delivery installer not active in the loaded runtime;
-- `reply_dispatch` not emitted on the real Dashboard delivery path;
-- emitted event/context lacks the run/dispatcher shape modeled by tests;
-- hook receives the event but payload/session/cardinality/correlation checks skip staging;
-- staging is attempted but errors before durable commit.
+Task 103 must diagnose, not fix, the boundary among:
 
-Required evidence should include source/dist/release-entry parity, actual active plugin entry/wiring, read-only Task-102 run/log correlation, and a production-shaped source-only reproduction using the real release registration path rather than calling the installer directly.
+- installed/source/dist/runtime payload mismatch;
+- verified-delivery installer not registered;
+- real Dashboard path bypassing `reply_dispatch`;
+- real `reply_dispatch` event/context shape differing from the unit-test mock;
+- final-payload/cardinality/session/correlation filter skipping staging;
+- staging function/write failing before durable commit.
 
-No operator action is required during this diagnosis-only task.
+Required evidence includes:
+
+- repository source -> build/dist -> packed payload -> installed live plugin -> active release-entry parity;
+- exact OpenClaw `2026.7.1-2 (0790d9f)` hook/runtime/type contract;
+- read-only correlation against the preserved Task-102 run/log window;
+- a production-shaped source-only/disposable reproduction through the real release registration boundary where safely possible;
+- explicit H1-H6 disposition and one root-cause token or `BLOCKED_ROOT_CAUSE_NOT_YET_ISOLATED`.
 
 ## Accepted live baseline
 
@@ -89,20 +77,25 @@ Exact installed plugin fingerprint:
 
 `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Live baseline remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
+Expected live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
 
-## Hard fence pending approval
+## Hard fence
 
-Until Task 103 is approved:
+Task 103 authorizes read-only live/runtime/source inspection and disposable isolated diagnostic harnesses only.
 
-- no new semantic nonce or Send;
-- do not reuse Task-102 nonce;
-- no provider probe;
-- no install/reset/cleanup;
-- no product-source fix;
-- no SQLite/history mutation;
-- no session normalization;
-- no credential access/re-entry;
-- no restart/reboot/tag/release/force push.
+It does **not** authorize:
 
-If a later live retest requires operator help, coordination must explicitly tell the operator when to open/keep Firefox foreground, when to click the exact composer once, and when/if to perform the single authorized Send.
+- a new semantic nonce or Dashboard Send;
+- sent sentinel or Task-102 replay;
+- direct provider probe;
+- synthetic live Ticket;
+- live SQLite/config/runtime mutation;
+- maintained product-source/test fix;
+- install/install-over/uninstall/reset/cleanup;
+- session cleanup/normalization;
+- model/provider/timeout change;
+- Gateway/Supervisor restart or reboot;
+- credential/token/password access or re-entry;
+- merge/tag/release/force push.
+
+After root cause is proven, Task 103 must report a minimal successor repair design and stop. Implementation requires a separate approved task.
