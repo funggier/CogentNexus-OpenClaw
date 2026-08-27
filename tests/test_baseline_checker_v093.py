@@ -40,6 +40,10 @@ def _rewrite_json_version(path: Path, version: str) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def test_checker_accepts_good_current_tree(tmp_path):
+    assert _run_checker(_copy_tree(tmp_path)) == 0
+
+
 def test_checker_rejects_bridge_metadata_that_disagrees_with_root_version(tmp_path):
     tree = _copy_tree(tmp_path)
     plugin = tree / "plugins" / "cogentnexus-openclaw"
@@ -58,6 +62,39 @@ def test_checker_rejects_current_lmstudio_provider_command_drift(tmp_path):
         + "\nCurrent command regression: `.\\cnxclaw.cmd start --provider lmstudio`\n",
         encoding="utf-8",
     )
+
+    assert _run_checker(tree) == 1
+
+
+def test_checker_rejects_non_ollama_v093_provider_facade(tmp_path):
+    tree = _copy_tree(tmp_path)
+    provider = tree / "skills" / "cogentnexus-openclaw" / "scripts" / "provider_v093.py"
+    text = provider.read_text(encoding="utf-8")
+    marker = 'SUPPORTED_PROVIDERS = ("ollama",)'
+    assert marker in text
+    provider.write_text(text.replace(marker, 'SUPPORTED_PROVIDERS = ("ollama", "lmstudio")', 1), encoding="utf-8")
+
+    assert _run_checker(tree) == 1
+
+
+def test_checker_rejects_stale_generic_launcher_in_current_docs(tmp_path):
+    tree = _copy_tree(tmp_path)
+    readme = tree / "README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8") + "\nCurrent namespace regression: `.\\cnx.cmd status`\n",
+        encoding="utf-8",
+    )
+
+    assert _run_checker(tree) == 1
+
+
+def test_checker_rejects_missing_verified_delivery_registration(tmp_path):
+    tree = _copy_tree(tmp_path)
+    entry = tree / "plugins" / "cogentnexus-openclaw" / "src" / "v091-release-entry.ts"
+    text = entry.read_text(encoding="utf-8")
+    marker = "installV091DashboardVerifiedDelivery(api, config);"
+    assert marker in text
+    entry.write_text(text.replace(marker, "// verified delivery registration removed by fixture", 1), encoding="utf-8")
 
     assert _run_checker(tree) == 1
 
