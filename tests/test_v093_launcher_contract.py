@@ -34,8 +34,8 @@ def test_v093_facade_rejects_lmstudio_before_legacy_backend_execution():
     )
     assert result.returncode == 2
     combined = f"{result.stdout}\n{result.stderr}".lower()
-    assert "ollama" in combined
-    assert "lmstudio" in combined
+    assert "unsupported provider" in combined
+    assert "only 'ollama' is supported" in combined
 
 
 def test_validate_checks_current_v093_facade_not_legacy_provider_surface():
