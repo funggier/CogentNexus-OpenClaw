@@ -1,105 +1,99 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved the complete installable-payload fingerprint design and remains authority for definitive repair through final fresh-session semantic acceptance
+**Human authority:** operator remains authority for definitive repair through final authenticated fresh-session semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted baseline
 
 Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086, 089, 090 and 091 remains in force.
 
-Task 090 live recovery remains accepted: MANAGED, one canonical loaded plugin, accepted source/live parity, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
+Task 090 live recovery remains accepted: MANAGED, one canonical loaded plugin, accepted parity, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
 
-Task 091 authenticated Dashboard/WebChat owner surface remains accepted without secret disclosure.
+Task 091 owner-authenticated Dashboard/WebChat surface remains accepted without secret disclosure.
 
-Task 092 remains an accepted semantic blocker: first fresh-session creation, Ticket-before-provider ordering, one correlated Ollama inference and one visible nonce passed; durable payload staging did not.
+Task 092 remains an accepted semantic blocker: fresh-session creation, Ticket-before-provider ordering, one correlated Ollama inference and one visible nonce passed; durable payload staging did not. Its semantic artifacts remain retired.
 
-Task-092 semantic artifacts remain retired evidence.
-
-## Task 093 result
-
-Implementation:
+Task 093 preserved candidate repair:
 
 `a924157ecdedef1d4f166d5762529b0d59536fc9`
 
+It separates process-global TicketStore patch lifetime from per-runtime `reply_dispatch` registration and remains the intended Dashboard durable-staging fix.
+
+## Task 094 result and review
+
+Implementation:
+
+`3313930064123867ad760908a77b498f3bad029a`
+
 Report:
 
-`62fdd69d2a4a27566c0e986171b949347cf0df68`
+`0902c3c50fb1a46adfa9b8df86495fa521d01719`
 
 Reported result:
 
-`PASS_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIRED`
+`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
 
-Independent disposition:
+Independent decision:
 
-`REWORK_PLUGIN_FINGERPRINT_DOES_NOT_ATTEST_RUNTIME_PAYLOAD`
+`REWORK`
 
-The Task-093 staging repair remains the preserved candidate fix. Exact OpenClaw loader review supports its per-registration API lifetime model.
+Disposition:
 
-## Why Task 093 cannot be installed yet
+`REWORK_WINDOWS_REPARSE_POINT_INDIRECTION_NOT_REJECTED`
 
-Production plugin fingerprinting is only a four-file sample. It does not bind most installed runtime code.
+Review:
 
-The Task-093 runtime change compiles into `dist/v091-dashboard-verified-delivery.js`, but the reported fingerprint remained identical to the pre-fix live plugin because that file is outside the current fingerprint domain.
+`docs/operations/coordination/reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`
 
-`classify-install` uses the fingerprint to decide `pluginAlreadyExact`. Therefore the old live plugin can be incorrectly classified as exact and the supported installer can skip the Task-093 package installation.
+Publication fence is valid.
 
-## Operator-approved Task 094 design
+## Preserved Task-094 attestation work
 
-The next task uses `package.json` as the installable package contract and fingerprints the complete package-owned payload rather than the repository or a hardcoded runtime-file sample.
+The v2 algorithm materially closes the original four-file fingerprint blind spot:
 
-Canonical v2 fingerprint requirements:
+- package-owned files come from `package.json.files`, plus `package.json`;
+- all declared runtime directories are recursively enumerated;
+- normalized relative paths and exact bytes are hashed under a versioned domain;
+- absolute installation roots are excluded;
+- current npm11/npm12 packed set was reported 176/176 exact;
+- current pre-Task093 installed payload and Task093+094 candidate were reported distinct under v2.
 
-- include `package.json` plus every safe regular file selected by `package.json.files`;
-- recursively cover all shipped `dist/**` runtime code;
-- cover shipped manifest/bootstrap/README metadata;
-- sort normalized relative POSIX-style paths;
-- hash versioned domain separator + relative path + NUL + exact bytes + NUL;
-- never include absolute installation root;
-- reject traversal, unsafe/symlink path indirection, missing declared content or unsupported package-file patterns;
-- exclude development-only source/tests/node_modules/cache/tarball content not selected by the package contract.
+This design remains preserved.
 
-Actual npm 11 and npm 12 packed file path sets must be proven equivalent to the canonical fingerprint payload set. Tarball container bytes are not the attestation authority.
+## Current blocker
 
-## Active Task 094
+Task 094 required rejection of `symlinks/reparse-style path indirection` but production currently checks only `os.path.islink(path)` during package enumeration.
 
-[`tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
+On Windows, a directory junction/reparse point is a distinct indirection form and is not guaranteed to satisfy the symbolic-link check. Such a path can be traversed by directory APIs and would violate the package-owned attestation boundary.
 
-Execution mode:
+The regression suite proves a symlink case but does not prove a real Windows junction/reparse case.
 
-`SOURCE_TDD_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION`
+No live install-over is authorized until this Windows path-indirection boundary is closed.
 
-Authorization:
+## Pending Task 095 design
 
-`TASK093_DEPLOYMENT_ATTESTATION_REPAIR_AUTHORIZED`
+A narrow source-only correction is proposed:
 
-Task 094 must RED the current blind spot before production edits, then preserve the complete classifier/lifecycle/rollover truth tables under the new v2 fingerprint.
-
-Required deployment proof includes:
-
-- Task-093 candidate v2 fingerprint differs from current pre-fix live payload;
-- changed single-generation state => `pluginAlreadyExact=false`, install+rollover;
-- exact state => no install/no rollover;
-- pending two-generation state => rollover-only;
-- same-version rollover source attestation and atomicity/security remain intact;
-- npm 11/npm 12 package behavior remains compatible.
+- add one exact path-indirection check;
+- reject symlinks and Windows reparse-point/junction entries before traversal;
+- apply it to declared entries and every recursive child;
+- leave fingerprint v2 framing/package contract unchanged;
+- mandatory Windows junction/reparse RED then GREEN;
+- rerun npm11/npm12 equivalence, classifier/action truth tables, rollover plan/apply security/atomicity, Task-089 installer boundary, Task-093 staging and full suites.
 
 ## Hard fence
 
-Task 094 performs no live mutation and sends zero semantic/provider messages.
+Until explicit operator approval of this bounded design:
 
-Only read-only inspection/fingerprinting of the current installed plugin root is allowed for attestation evidence.
-
-No install/reset/repair, generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite change, provider/model/timeout change, reboot, merge, tag or release is authorized.
+- no Task-095 source implementation;
+- no live install/reset/repair or generation mutation;
+- no semantic message/provider probe;
+- no controller/startup/Supervisor/AGENTS/config/runtime/SQLite change;
+- no Task-092 state rewrite.
 
 ## Successor logic
 
-Only independent acceptance of:
-
-`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
-
-may authorize a one-shot supported live install-over of the exact accepted Task-093+094 source.
-
-That live installation task must restore and prove MANAGED/source parity/health with zero semantic sends. Only after its independent acceptance may a new final authenticated fresh-session semantic attempt be authorized.
+After operator approval, Task 095 may be published source-only. Only independent acceptance of that Windows reparse-point hardening may release a one-shot supported live install-over. Only after live parity/MANAGED health are accepted may one new final authenticated fresh-session semantic attempt be authorized.
