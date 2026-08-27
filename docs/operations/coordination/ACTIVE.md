@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION`
-Current authorization: `TASK093_DEPLOYMENT_ATTESTATION_REPAIR_AUTHORIZED`
-Task ID: `CNX-20260827-094`
+Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
+Execution mode: `SOURCE_TDD_WINDOWS_REPARSE_ATTESTATION_REPAIR_PENDING_APPROVAL`
+Current authorization: `NO_LIVE_OR_SEMANTIC_SUCCESSOR_AUTHORIZED`
+Task ID: `PENDING_CNX-20260827-095`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator continuation
+Executor: Hermes/Codex after operator approval and task publication
 
 ## Authoritative coordination files
 
@@ -17,84 +17,77 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Active task
+## Task 094 review
 
-[`tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
+Task 094 implementation:
 
-## Operator-approved bounded design
+`3313930064123867ad760908a77b498f3bad029a`
 
-The operator approved replacing the current four-file sample fingerprint with a deterministic fingerprint over the complete installable plugin payload.
+Task 094 report:
 
-The fingerprint authority is the package-owned content selected by `package.json.files`, plus `package.json` itself, expanded safely and deterministically.
+`0902c3c50fb1a46adfa9b8df86495fa521d01719`
 
-Required digest domain:
+Independent decision:
 
-- complete shipped `dist/**` runtime;
-- shipped manifest/bootstrap/README and other declared package files;
-- normalized sorted relative paths plus exact file bytes;
-- no absolute root path;
-- explicit versioned fingerprint domain separator;
-- fail closed on unsafe path traversal, symlink/path indirection, missing declared entries or unsupported package-file contract.
+`REWORK`
 
-Development-only `src/**`, tests, `node_modules/**`, caches and transient tarballs are not fingerprinted unless they are explicitly part of the shipped package contract.
+Disposition:
 
-## Task 093 review carried forward
+`REWORK_WINDOWS_REPARSE_POINT_INDIRECTION_NOT_REJECTED`
 
-Task 093 implementation:
+Review:
 
-`a924157ecdedef1d4f166d5762529b0d59536fc9`
+[`reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
 
-Task 093 report:
+Publication fence is accepted: execution `41ba7815...` -> implementation `33139300...` is one source/test commit and implementation -> report `0902c3c5...` is one report-only commit.
 
-`62fdd69d2a4a27566c0e986171b949347cf0df68`
+## Preserved Task-094 work
 
-Independent disposition:
+The complete installable-payload v2 fingerprint design remains the intended solution:
 
-`REWORK_PLUGIN_FINGERPRINT_DOES_NOT_ATTEST_RUNTIME_PAYLOAD`
+- `package.json.files` + `package.json` authority;
+- all shipped `dist/**` runtime files covered;
+- normalized relative paths + exact bytes + versioned SHA-256 domain;
+- absolute roots excluded;
+- npm11/npm12 current packed set reported 176/176 exact;
+- pre-Task093 live payload and Task093+094 candidate reported as distinct under v2;
+- Task-093 Dashboard staging repair remains preserved.
 
-The Dashboard durable-staging source fix itself remains preserved and is not the current rework target.
+Do not revert or redesign the v2 fingerprint without a new focused blocker.
 
-## Blocking deployment-attestation defect
+## Blocking Windows path-indirection gap
 
-Current `namespace_ownership.py::_plugin_payload()` hashes only four files and omits most shipped runtime files, including `dist/v091-dashboard-verified-delivery.js` changed by Task 093.
+The Task-094 contract required rejection of symlinks and reparse-style path indirection.
 
-Task 093 therefore produced the same legacy fingerprint as the currently installed pre-fix package even though runtime behavior differs.
+Current production enumeration checks `os.path.islink(path)` but does not explicitly reject Windows junction/reparse-point entries. A directory junction beneath a declared package directory can therefore be traversed by normal directory APIs even though it is filesystem indirection.
 
-Because `classify-install` uses this fingerprint to decide `pluginAlreadyExact`, a live successor could skip installing the Task-093 fix.
+The existing tests prove symlink rejection but not a real Windows junction/reparse case.
 
-## Task 094 mandatory proof
+Because Windows is the live deployment target and this is an ownership/attestation boundary, no live install-over is authorized yet.
 
-Task 094 must RED first against the production helper and prove that changing only a non-ticket-store shipped runtime file currently leaves the fingerprint unchanged.
+## Pending bounded design
 
-After GREEN it must prove:
+The proposed successor is a narrow source-only TDD correction:
 
-1. any shipped runtime content/path add/remove/rename changes the v2 fingerprint;
-2. the same installable payload copied to another absolute root hashes identically;
-3. actual npm11/npm12 packed file sets are covered by the fingerprint file set;
-4. unsafe/missing/ambiguous package paths fail closed;
-5. Task-093 candidate and current pre-fix live payload differ under the new v2 fingerprint;
-6. changed single-generation classification returns `pluginAlreadyExact=false` and production actions `installPlugin=true`, `rolloverPlugin=true`;
-7. exact payload returns no-install/no-rollover;
-8. two-generation pending rollover remains rollover-only with exact expected-source attestation;
-9. all Task-084/085/086 rollover security/atomicity and Task-089 installer action boundaries remain green;
-10. Task-093 Dashboard staging tests remain green.
+1. add one production path-indirection predicate;
+2. reject symlinks plus Windows reparse-point/junction entries before traversal using `lstat`/Windows file attributes or an equally exact supported API;
+3. apply the predicate to declared entries and recursively discovered children;
+4. never follow a junction merely because its target is within the plugin root;
+5. preserve the v2 fingerprint domain and package contract unchanged;
+6. mandatory Windows RED with an actual junction/reparse fixture, then GREEN;
+7. retain npm11/npm12 equivalence, classifier truth tables, rollover security/atomicity and Task-093 Dashboard staging regressions.
 
-## Hard live/semantic fence
+## Hard fence
 
-Task 094 is source/test-only.
+Until operator approval:
 
-Read-only fingerprinting of the installed plugin root is allowed for candidate-vs-live attestation evidence.
+- do not create/run Task 095 implementation;
+- no install/install-over/uninstall/reset/cleanup;
+- no plugin-generation mutation;
+- no semantic message/provider probe;
+- no Task-092 record repair;
+- no controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation.
 
-No install/install-over/uninstall/reset/cleanup, plugin-generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite edit, semantic message, provider probe, model/timeout change, reboot, merge, tag or release is authorized.
+## Successor logic
 
-Task-092 semantic artifacts remain retired evidence and must not be repaired or reused.
-
-## Successor gate
-
-Only independent acceptance of:
-
-`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
-
-may authorize a one-shot supported live install-over of the exact Task-093+094 source.
-
-That future live task sends zero semantic messages. A new final authenticated fresh-session semantic attempt remains forbidden until the updated source is installed and live parity/MANAGED health are independently accepted.
+After explicit operator approval, publish Task 095 for source-only Windows reparse-point hardening. Only independent acceptance of that correction may authorize the one-shot supported live install-over of the exact Task-093+094+095 source.
