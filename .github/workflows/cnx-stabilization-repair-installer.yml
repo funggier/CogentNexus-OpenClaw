@@ -38,13 +38,20 @@ jobs:
           PY
           rm .github/workflows/cnx-stabilization-repair-installer.yml
           git diff --check
-      - name: Verify namespace and installer transaction proofs
+      - name: Verify namespace and cross-platform structural transaction proofs
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install -r requirements-dev.txt
           python scripts/check_namespace_isolation.py
-          python -m pytest -q tests/test_fresh_transaction_failure_coverage.py tests/test_installer_mode_isolation.py
+          python -m pytest -q \
+            tests/test_fresh_transaction_failure_coverage.py::test_f6c_structural_commit_only_inside_try_after_verify \
+            tests/test_fresh_transaction_failure_coverage.py::test_f1_structural_single_boundary_wraps_begin_to_commit \
+            tests/test_fresh_transaction_failure_coverage.py::test_f1b_structural_no_bare_precommit_throw_escapes_boundary \
+            tests/test_fresh_transaction_failure_coverage.py::test_f2_structural_plugin_inverse_and_policy_order \
+            tests/test_fresh_transaction_failure_coverage.py::test_f8_structural_post_commit_effects_outside_boundary \
+            tests/test_installer_mode_isolation.py::test_m1_structural_no_synthetic_nonfresh_abort \
+            tests/test_installer_mode_isolation.py::test_m2b_production_catch_has_no_sentinel_branch
       - name: Publish exact repair and retire temporary workflow
         shell: bash
         run: |
