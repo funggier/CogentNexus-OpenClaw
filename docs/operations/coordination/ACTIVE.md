@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_SUPPORTED_ATTESTED_PENDING_ROLLOVER_RECOVERY`
-Current authorization: `ONE_SUPPORTED_PENDING_RECOVERY_INSTALL_OVER_AUTHORIZED`
-Task ID: `CNX-20260827-087`
+Execution mode: `SOURCE_TDD_POWERSHELL_ACTION_RESOLVER_BOUNDARY_REPAIR`
+Current authorization: `TASK087_ACTION_RESOLVER_BOUNDARY_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260827-088`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,21 +19,17 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md`](tasks/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md)
+[`tasks/CNX-20260827-088-repair-action-resolver-parameter-splatting-boundary.md`](tasks/CNX-20260827-088-repair-action-resolver-parameter-splatting-boundary.md)
 
-## Task 086 acceptance
+## Task 087 accepted blocker
 
-Task 086 reported:
+Task 087 reported:
 
-`PASS_PENDING_ROLLOVER_PRODUCTION_GATE_REPAIRED`
-
-Implementation HEAD:
-
-`71f48c1a134ee9b2646b4cc7f077abe9cae59ebb`
+`BLOCKED_SUPPORTED_PENDING_RECOVERY_INSTALL_OVER`
 
 Report HEAD:
 
-`1430d0a23ee2c477fdb5c2015f262c9df09c83df`
+`88917b48b812e86a8e7dafb1c70b6cf04f98e91f`
 
 Independent review:
 
@@ -41,96 +37,81 @@ Decision: `ACCEPT`
 
 Disposition:
 
-`ACCEPT_PENDING_ROLLOVER_PRODUCTION_GATE_REPAIRED`
+`ACCEPT_BLOCKER_ACTION_RESOLVER_PARAMETER_SPLATTING_BOUNDARY`
 
 Review path:
 
-[`reviews/CNX-20260827-086-fix-production-pending-rollover-gate-nesting.md`](reviews/CNX-20260827-086-fix-production-pending-rollover-gate-nesting.md)
+[`reviews/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md`](reviews/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md)
 
-Publication fence is accepted: one implementation commit from execution HEAD `08a53963820bd27f8418e66d5a574b12e87bd9f7`, followed by one report-only commit. No file under `plugins/cogentnexus-openclaw/**` changed.
+Publication fence is accepted: Task 087 is one report-only commit from execution HEAD `e55414f690046f4562aaae148b1c4d0339756d38` and contains no product source changes.
 
-## Accepted source for live recovery
+## Task 087 live evidence preserved
 
-Use exactly:
+The one authorized supported installer invocation was executed exactly once and was not retried.
 
-`71f48c1a134ee9b2646b4cc7f077abe9cae59ebb`
-
-Accepted behavior now includes:
-
-- Task-078/079/080 semantic/delivery/security fixes;
-- Task-082 npm-pack parser repair;
-- source-derived plugin fingerprint attestation;
-- expected replacement fingerprint bound through rollover plan/apply;
-- ordinary changed-source upgrade vs already-exact classification;
-- explicit expected-source equality for all attested pending replacements;
-- production lifecycle truth table;
-- independent production install vs rollover gates;
-- AST regression proving rollover is not nested under `installPlugin` and precedes strict `resolve-plugin`.
-
-Provider readiness remains:
-
-`PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
-
-No additional direct Ollama probe is authorized.
-
-## Accepted current live baseline
-
-The Task-083 two-generation partial topology remains the required pre-mutation baseline:
+Pre-mutation evidence passed:
 
 - controller PASSTHROUGH generation 13;
-- startup disabled;
-- Supervisor absent;
-- AGENTS managed markers absent;
-- ownership manifest -> prior generation `g-5593cbcfff5b35d5`;
-- prior fingerprint `7e9189f8...`;
-- active/registered disabled source-exact replacement -> `g-7257c4555ca8ad21`;
-- replacement/source fingerprint `8fd911e3...`;
-- exactly two canonical CogentNexus managed npm generations;
-- Gateway/Ollama healthy from accepted evidence;
-- SQLite integrity accepted, Tickets/outbox zero.
-
-Do not manually normalize this topology.
-
-## Task 087 authorization
-
-Task 087 may invoke exactly one supported normal install-over from exact source `71f48c1a...`.
-
-Before mutation it must re-prove:
-
-- ownership/recovery state;
-- exact old/new generation paths;
-- exact full fingerprints;
-- replacement fingerprint == exact source fingerprint;
+- exactly two canonical generations;
+- manifest -> prior `g-5593cbcfff5b35d5`;
+- active disabled replacement -> `g-7257c4555ca8ad21`;
+- replacement fingerprint equals exact source fingerprint;
 - attested classification = `upgrade + pendingRollover=true + pluginAlreadyExact=false`;
-- lifecycle actions = `installPlugin=false + rolloverPlugin=true`.
+- direct lifecycle decision = `installPlugin=false + rolloverPlugin=true`;
+- Gateway healthy;
+- no semantic/provider run active.
 
-During the one installer invocation it must prove the pending path executes no `npm pack`, no artifact installation and no `openclaw plugins install`, creates no third generation, and completes rollover-plan/apply against the already-installed replacement.
+The installer then failed before rollover at the action-resolver call boundary with:
 
-After rollover it must prove:
+`Cannot validate argument on parameter 'Mode': argument "-Mode" is not in fresh,legacy,upgrade`.
 
-1. canonical generation count converges 2 -> 1;
-2. surviving generation is the Task-083 source-exact replacement;
-3. source/live plugin and skill parity against exact `71f48c1a...`;
-4. MANAGED/startup/Supervisor/AGENTS restoration;
-5. owned runtime/launcher/Supervisor bindings;
-6. ownership/Gateway/Ollama/SQLite/unrelated-config health;
-7. five natural PT1M ticks with `NO_FLASH_MULTI_TICK_PROVEN`;
-8. `DASHBOARD_OWNER_SURFACE_READY` read-only proof.
+After failure:
 
-## Hard semantic and mutation fence
+- no retry occurred;
+- canonical generation count remains 2;
+- no third generation was created;
+- manifest/controller remained unchanged;
+- AGENTS remains absent and Supervisor absent;
+- zero semantic messages and zero provider probes were generated.
 
-Task 087 sends zero semantic messages and zero provider probes.
+## Exact root cause
 
-No Dashboard/WebChat send, `chat.send`, `openclaw agent`, `sessions_send`, channel message, synthetic Ticket mutation, direct Ollama probe, model/provider/timeout change, uninstall/reset/manual plugin cleanup, manual rollover, reboot, merge, tag or release.
+Accepted source `71f48c1a134ee9b2646b4cc7f077abe9cae59ebb` constructs `$actionArgs` as an array containing strings such as `"-Mode"` and then array-splats it into the PowerShell resolver.
 
-The supported installer may be invoked only once. A nonzero result must be captured and reported, not retried.
+Array splatting passes positional values; it does not reinterpret `"-Mode"` as named-parameter syntax. The resolver therefore receives the literal string `-Mode` as the value of its positional `Mode` parameter and its ValidateSet rejects it.
+
+This is the only current blocker carried into Task 088. The Task-084/085/086 attestation, classification, lifecycle truth table and independent rollover gate remain preserved.
+
+## Current live state remains read-only
+
+The Task-083/087 two-generation PASSTHROUGH topology remains the accepted baseline. Do not manually normalize it.
+
+No live install/install-over/uninstall/reset/cleanup or manual rollover is authorized in Task 088.
+
+## Task 088 requirements
+
+Task 088 is source/test-only and must:
+
+1. RED-reproduce the exact PowerShell 5.1 array-splat failure against the production resolver.
+2. Prove the resolver itself works with correct named parameters.
+3. Replace the installer caller with a PowerShell-5.1-safe named-parameter mechanism, preferably hashtable splatting.
+4. Exercise fresh, legacy, ordinary upgrade, pending recovery, already-exact, SkipPlugin and impossible pending+exact rows through the corrected boundary.
+5. Add production-boundary/AST coverage proving the installer no longer uses a string-token array for resolver arguments.
+6. Preserve Task-086 sibling install/rollover gates and ordering before strict `resolve-plugin`.
+7. Preserve all ownership/security/atomicity/npm-pack/semantic regressions.
+8. Keep zero diff under `plugins/cogentnexus-openclaw/**`.
+9. Run full Python/npm11/npm12/PowerShell/installer/baseline gates.
+
+## Hard live and semantic fence
+
+Task 088 sends zero semantic messages and performs zero provider probes.
+
+No live installer, generation mutation, ownership/controller/startup/Supervisor/AGENTS/config/runtime/SQLite/session mutation, Dashboard/WebChat/CLI send, direct Ollama call, provider/model/timeout change, restart/reboot, merge, tag or release.
 
 ## Successor gate
 
 Only an independently accepted:
 
-`PASS_LIVE_ATTESTED_PENDING_RECOVERY_PARITY_NO_FLASH_OWNER_SURFACE_READY`
+`PASS_ACTION_RESOLVER_PARAMETER_BOUNDARY_REPAIRED`
 
-may authorize the final semantic acceptance task.
-
-That final task may send exactly one fresh authenticated Dashboard/WebChat owner message and must prove Ticket-before-provider ordering, correlated Ollama inference, response-ready, exact owner/run delivery confirmation, completed state and exactly one visible nonce response. The Task-076 nonce remains permanently retired.
+may authorize another single supported live recovery attempt against the preserved two-generation topology.
