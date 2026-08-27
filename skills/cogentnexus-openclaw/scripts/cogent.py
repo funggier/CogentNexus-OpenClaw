@@ -54,12 +54,21 @@ def ledger_records(path):
 @contextmanager
 def writer_lock(path,timeout=10):
     path.parent.mkdir(parents=True,exist_ok=True); deadline=time.monotonic()+timeout
+    absent_permission_retries=0
     while True:
         try:
             fd=os.open(path,os.O_CREAT|os.O_EXCL|os.O_WRONLY)
             os.write(fd,json.dumps({"pid":os.getpid(),"createdAt":now()}).encode()); os.close(fd); break
         except (FileExistsError,PermissionError) as exc:
-            if isinstance(exc,PermissionError) and not path.exists(): raise
+            if isinstance(exc,PermissionError):
+                if not path.exists():
+                    if absent_permission_retries>=3: raise
+                    absent_permission_retries+=1
+                    time.sleep(0.01)
+                    continue
+                absent_permission_retries=0
+            else:
+                absent_permission_retries=0
             try:
                 if time.time()-path.stat().st_mtime>30:
                     try: path.unlink()
