@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `READ_ONLY_AUTHENTICATED_DASHBOARD_FRESH_SESSION_READINESS`
-Current authorization: `TASK096_POST_REPORT_OWNER_READINESS_PROOF_AUTHORIZED`
-Task ID: `CNX-20260827-097`
+Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
+Execution mode: `COORDINATION_BOUNDED_STATE_GATED_RETRY_POLICY_PENDING_APPROVAL`
+Current authorization: `NO_FINAL_SEMANTIC_SUCCESSOR_AUTHORIZED`
+Task ID: `PENDING_CNX-20260827-098`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator continuation
+Executor: Hermes/Codex after operator approval and successor publication
 
 ## Authoritative coordination files
 
@@ -17,59 +17,67 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 096 reviewed
+## Task 097 result
 
-Task 096 report:
+Report:
 
-`d397396fd5d688d84c16d90e8be622e1f59b1411`
+`41a119b686daa4fc64b8f8481329a1be78462641`
 
-Independent decision: `ACCEPT`
+Reported result:
+
+`BLOCKED_FRESH_SESSION_ENTRY_FAILURE`
+
+Independent decision:
+
+`ACCEPT`
 
 Disposition:
 
-`ACCEPT_BLOCKER_OWNER_SURFACE_READINESS_SNAPSHOT_ONLY`
+`ACCEPT_BLOCKER_STATE_UNVERIFIED_UI_RETRY_DUPLICATED_FRESH_SESSION_ENTRY`
 
 Review:
 
-[`reviews/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md`](reviews/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md)
+[`reviews/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md`](reviews/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md)
 
-The live deployment portion is accepted: exact source `32212a4331e1f32b5a130bd30d271d4cbc56f6c1` was installed by one supported invocation, final candidate fingerprint is exact, deployment returned to MANAGED generation 24, health/parity passed and `NO_FLASH_MULTI_TICK_REPROVEN` was recorded.
+Publication fence is valid: execution `f3a6bb9783d508a2b7d57162728018b7955d4b81` -> report `41a119b686daa4fc64b8f8481329a1be78462641` is one report-only commit.
 
-The Task-096 report blocker reflects only the browser state at the time the task ended.
+## What Task 097 proved
 
-## Post-report operator observation
+The Dashboard/control surface was authenticated and visibly ready before the New Session action. Live MANAGED generation 24, exact plugin fingerprint, SQLite integrity, Ticket/outbox/event counts and retired Task-092 evidence remained stable.
 
-After Task 096 had already completed and published its report, the operator manually entered the OpenClaw token and reported that the Dashboard is now accessible.
+No semantic message or provider inference occurred.
 
-This is new evidence and must not be retroactively inserted into Task 096.
+The blocker was an input-correlation race: the first background New Session click returned `unverifiable` but was delayed rather than absent. A foreground re-issue then caused two new Dashboard sessions to materialize. The strict one-transition Task-097 acceptance criterion therefore was not met.
 
-No executor is authorized to read, print, copy, persist, request or re-enter the token.
+The two empty sessions are evidence and must not be cleaned up merely to normalize the run.
 
-## Active Task 097
+## Pending bounded retry-policy design
 
-[`tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md`](tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md)
+The operator proposed allowing limited retries when the first error is simple and non-impacting.
 
-Task 097 is read-only/readiness-only.
+Recommended state-gated policy:
 
-It must prove:
+1. read-only operations: up to 2 retries (3 attempts total) when no mutation is possible;
+2. state-changing low-impact operations: at most 1 retry (2 attempts total), but only after a bounded grace period and fresh state verification prove attempt 1 produced no effect;
+3. if attempt 1's effect appears during verification, treat it as completed and do not retry;
+4. ambiguous or partially mutated state is not retryable;
+5. semantic sends/provider inference/install/uninstall/reset/destructive cleanup and other externally visible non-idempotent effects remain single-attempt unless a task-specific idempotency proof explicitly authorizes retry;
+6. every retry records attempt number, failure reason, wait/grace interval, fresh pre-retry state and retry-eligibility proof.
 
-- current authenticated Dashboard/WebChat connection is correlated to owner/operator control scope;
-- a read-only control RPC succeeds;
-- actual New Chat can enter a fresh staged empty state without stale/unknown-parent or fallback behavior;
-- no semantic message is sent;
-- no new Ticket/outbox/provider activity occurs;
-- live MANAGED/source/SQLite/Gateway health remains unchanged.
+The final semantic send itself remains one-message/one-nonce only under the current acceptance design.
 
-Required token:
+## Hard fence while awaiting approval
 
-`DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
+Until the operator approves this retry-policy design:
 
-## Hard fence
+- do not create/run Task 098;
+- do not retry New Session;
+- do not send a semantic message or generate a nonce;
+- do not call provider/Ollama directly;
+- do not install/reset/repair/cleanup;
+- do not delete or normalize Task-097 empty sessions;
+- do not mutate controller/startup/Supervisor/AGENTS/config/runtime/SQLite or retired Task-092 evidence.
 
-No semantic send, semantic nonce, direct provider/Ollama call, install/reset/repair, plugin generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, restart/reboot, merge/tag/release or force push is authorized.
+## Successor logic
 
-The already authenticated browser state may be inspected and the New Chat control may be entered once without sending content.
-
-## Successor gate
-
-Only independent acceptance of Task 097 PASS may authorize the final one-message authenticated fresh-session semantic acceptance.
+After explicit approval, publish a narrow readiness successor using the state-gated retry policy. It should first observe current Dashboard/session state, then establish one fresh staged session without semantic send. Only independent PASS may release the final authenticated one-message fresh-session semantic acceptance.
