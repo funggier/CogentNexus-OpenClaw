@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_ONE_SHOT_SUPPORTED_INSTALL_TASK093_095_SOURCE`
-Current authorization: `TASK095_ACCEPTED_ONE_SHOT_LIVE_INSTALL_AUTHORIZED`
-Task ID: `CNX-20260827-096`
+Execution mode: `READ_ONLY_AUTHENTICATED_DASHBOARD_FRESH_SESSION_READINESS`
+Current authorization: `TASK096_POST_REPORT_OWNER_READINESS_PROOF_AUTHORIZED`
+Task ID: `CNX-20260827-097`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -17,87 +17,59 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Active task
+## Task 096 reviewed
 
-[`tasks/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md`](tasks/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md)
+Task 096 report:
 
-## Task 095 accepted
-
-Implementation:
-
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
-
-Report:
-
-`1e66f8f563b9809cb823fdcd6ea69987a49861ad`
+`d397396fd5d688d84c16d90e8be622e1f59b1411`
 
 Independent decision: `ACCEPT`
 
 Disposition:
 
-`ACCEPT_WINDOWS_REPARSE_POINT_PAYLOAD_ATTESTATION_REPAIRED`
+`ACCEPT_BLOCKER_OWNER_SURFACE_READINESS_SNAPSHOT_ONLY`
 
 Review:
 
-[`reviews/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md`](reviews/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md)
+[`reviews/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md`](reviews/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md)
 
-Publication fence is accepted. Task 095 closes the Windows junction/reparse-point gap while preserving Task-094 v2 fingerprint semantics and the Task-093 Dashboard durable-staging repair.
+The live deployment portion is accepted: exact source `32212a4331e1f32b5a130bd30d271d4cbc56f6c1` was installed by one supported invocation, final candidate fingerprint is exact, deployment returned to MANAGED generation 24, health/parity passed and `NO_FLASH_MULTI_TICK_REPROVEN` was recorded.
 
-## Exact deploy source
+The Task-096 report blocker reflects only the browser state at the time the task ended.
 
-Task 096 must deploy exactly:
+## Post-report operator observation
 
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
+After Task 096 had already completed and published its report, the operator manually entered the OpenClaw token and reported that the Dashboard is now accessible.
 
-Do not deploy a report/review/coordination HEAD.
+This is new evidence and must not be retroactively inserted into Task 096.
 
-Task-095 reported candidate v2 fingerprint:
+No executor is authorized to read, print, copy, persist, request or re-enter the token.
 
-`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
+## Active Task 097
 
-Recompute it before mutation rather than trusting old evidence.
+[`tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md`](tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md)
 
-## Task 096 one-shot contract
+Task 097 is read-only/readiness-only.
 
-Exactly one supported normal install-over is authorized.
+It must prove:
 
-Before mutation Task 096 must prove with the real production classifier and action boundary:
+- current authenticated Dashboard/WebChat connection is correlated to owner/operator control scope;
+- a read-only control RPC succeeds;
+- actual New Chat can enter a fresh staged empty state without stale/unknown-parent or fallback behavior;
+- no semantic message is sent;
+- no new Ticket/outbox/provider activity occurs;
+- live MANAGED/source/SQLite/Gateway health remains unchanged.
 
-- one coherent currently installed generation;
-- live pre-Task093 payload v2 fingerprint differs from candidate;
-- `mode=upgrade`;
-- `pendingRollover=false`;
-- `pluginAlreadyExact=false`;
-- `installPlugin=true`;
-- `rolloverPlugin=true`.
+Required token:
 
-The one supported installer must then prove actual npm-pack package installation and ownership-safe rollover, converge to exactly one candidate-exact generation, restore MANAGED/startup/Supervisor/AGENTS/ownership/source parity and preserve unrelated OpenClaw/Ollama state.
+`DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
 
-Task 092 retired semantic Ticket/run/session/transcript evidence must remain unchanged. Do not assume Ticket count is zero; snapshot and prove Task 096 creates no new semantic rows.
+## Hard fence
 
-## Hard live/semantic fence
+No semantic send, semantic nonce, direct provider/Ollama call, install/reset/repair, plugin generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, restart/reboot, merge/tag/release or force push is authorized.
 
-Authorized live effect: exactly one normal supported install-over from the exact implementation SHA.
-
-No retry, manual plugin lifecycle repair, manual generation deletion/move, ownership rewrite, reset/uninstall/cleanup, SQLite mutation, Task-092 repair, provider/model/timeout change, reboot, merge/tag/release or force push.
-
-Task 096 sends zero semantic messages and performs zero direct Ollama/provider inference/probes.
-
-## Required post-install gates
-
-For PASS Task 096 must prove:
-
-- real package install happened; not an already-exact no-op;
-- final one-generation source/live v2 parity;
-- MANAGED/startup/Supervisor/AGENTS/ownership/Gateway/SQLite/Ollama health;
-- Task-092 retired evidence unchanged and no new semantic/provider activity;
-- at least five natural PT1M ticks with `NO_FLASH_MULTI_TICK_REPROVEN`;
-- authenticated Dashboard owner/control readiness with no send, token `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`.
+The already authenticated browser state may be inspected and the New Chat control may be entered once without sending content.
 
 ## Successor gate
 
-Only independent acceptance of:
-
-`PASS_REPAIRED_STAGING_LIVE_INSTALLED_PARITY_READY`
-
-may authorize one new final authenticated fresh-session semantic attempt. That future task must use one brand-new nonce once, prove a genuinely fresh session, Ticket-before-provider ordering, durable payload staging, delivery settlement to `completed`, and a second New Session transition with no additional semantic/provider effect.
+Only independent acceptance of Task 097 PASS may authorize the final one-message authenticated fresh-session semantic acceptance.
