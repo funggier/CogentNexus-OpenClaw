@@ -1,6 +1,13 @@
-# CogentNexus-OpenClaw v0.9.1 Operational Baseline
+# CogentNexus-OpenClaw Recovery Architecture Baseline
 
-This document is the canonical architecture and invariant baseline for the current v0.9.1 release. Historical release notes describe earlier states and must not override this file or `docs/CURRENT_STATE.md`.
+This document records the accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current release identity.
+
+Current development line: **v0.9.3**.  
+Current managed provider: **Ollama only**.  
+Validated OpenClaw baseline: `2026.7.1-2`.  
+Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.
+
+See `docs/CURRENT_STATE.md` for current development/release/acceptance status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
 
 ## Purpose
 
@@ -31,10 +38,10 @@ OpenClaw native restart continuation is suppressed only when the exact continuat
 Ticket accepted
   -> original model call
   -> Host confirms eligible pre-response interruption
-  -> Host records timeout/recovery authority
+  -> Host records recovery authority
   -> runtime/provider quiesce/restart as required
   -> Direct Recovery claims same session/generation
-  -> embedded inference on original provider/model
+  -> inference on original provider/model
   -> response_ready committed once
   -> direct_result durable once
   -> delivery confirmed
@@ -43,17 +50,17 @@ Ticket accepted
 
 ### Single-owner rule
 
-When CNXCLAW owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. The **v099 compatibility fence** consumes only the exact native restart dispatch proved to belong to the durable CNX-owned recovery.
+When CNXCLAW owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. Compatibility fencing consumes only the exact native restart dispatch proved to belong to durable CNX-owned recovery.
 
 ### SQLite BUSY rule
 
-Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use a busy timeout and the revocation watcher tolerates transient BUSY conditions. A BUSY read must not reject the watcher and race a still-running inference against `retry()`.
+Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use a busy timeout and the revocation watcher tolerates transient BUSY conditions. A BUSY read must not race a still-running inference against a replacement attempt.
 
 ### Response/delivery rule
 
 `response_ready` is immutable once committed. Delivery transport may retry delivery of a durable result; it must not regenerate inference merely because delivery is uncertain.
 
-CogentNexus-OpenClaw therefore provides an **exactly-once-ish durable delivery boundary**, not a universal guarantee that arbitrary external side effects happen exactly once.
+CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery boundary, not a universal guarantee that arbitrary external side effects happen exactly once.
 
 ## Operating modes
 
@@ -63,7 +70,7 @@ CogentNexus-OpenClaw therefore provides an **exactly-once-ish durable delivery b
 
 OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
 
-The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so disable/PASSTHROUGH can remove active integration without destroying the registered policy source.
+The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Policy registration is distinct from whether MANAGED integration is currently applied.
 
 ## Host and supervisor
 
@@ -79,4 +86,4 @@ Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
 Accepted live Test A v16: one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
 
-See `docs/CURRENT_STATE.md` for supported/deferred boundaries and `docs/CONTINUITY_TESTS.th.md` for acceptance interpretation.
+This checkpoint remains evidence for the Recovery Core; it does not make v0.9.3 a published or fully accepted release. v0.9.3 must pass its repository gates and separate exact-candidate real-Windows acceptance.
