@@ -48,24 +48,29 @@ def test_release_checks_out_and_verifies_the_exact_candidate_sha():
         for step in checkout_steps
     ), "release checkout must be pinned to workflow_dispatch candidate_sha"
 
+    source = WORKFLOW.read_text(encoding="utf-8")
     scripts = _all_run_scripts(workflow)
-    assert "candidate_sha" in scripts
-    assert "GITHUB_SHA" in scripts or "git rev-parse HEAD" in scripts
+    assert "inputs.candidate_sha" in source
+    assert "CANDIDATE_SHA" in scripts
+    assert "git rev-parse HEAD" in scripts
     assert "[0-9a-f]{40}" in scripts or "40" in scripts, "candidate SHA must be exact, not a branch name"
 
 
 def test_release_version_and_candidate_metadata_are_fail_closed_before_publish():
     workflow = _workflow()
+    source = WORKFLOW.read_text(encoding="utf-8")
     scripts = _all_run_scripts(workflow)
 
+    assert "inputs.version" in source
+    assert "inputs.candidate_sha" in source
+    assert "REQUESTED_VERSION" in scripts
+    assert "CANDIDATE_SHA" in scripts
     for marker in (
-        "inputs.version",
         "VERSION",
         "package.json",
         "openclaw.plugin.json",
         "package-lock.json",
         "docs/releases/",
-        "candidate_sha",
     ):
         assert marker in scripts, f"release verification is missing {marker}"
 
@@ -77,6 +82,6 @@ def test_release_keeps_duplicate_fence_and_only_publishes_from_dispatch_candidat
     assert 'gh release view "$tag"' in scripts, "duplicate-release refusal fence must remain"
     assert "gh release create" in scripts
     assert "--target" in scripts
-    assert "candidate_sha" in scripts
+    assert "CANDIDATE_SHA" in scripts
     assert "GITHUB_REF_TYPE" not in scripts
     assert "GITHUB_REF_NAME#release/" not in scripts
