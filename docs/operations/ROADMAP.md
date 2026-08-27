@@ -1,73 +1,77 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-08-22
+**Updated:** 2026-08-28
 
-This roadmap is directional, not contractual. Items may move, split, merge, or be abandoned when better evidence or architecture appears.
+This roadmap is directional, not contractual. Items may move, split, merge, or be abandoned when better evidence or architecture appears. Movement is evidence-driven: a phase advances because its gate passes, not merely because code was written.
 
-## Short term — close the process-recovery reality layer
+## Short term — finish v0.9.3 repository stabilization and freeze the exact candidate
 
-### 1. Gateway durable convergence
+### 1. Phase I — living documentation cleanup
 
-**Goal:** determine whether durable recovery state returns to `READY` naturally after a hard-killed Gateway has already returned healthy.
+Keep current operational guidance aligned with the repository that will become the candidate:
 
-Success criteria:
+- `docs/operations/STATUS.md`, `ROADMAP.md`, and `DECISIONS.md` reflect the current stabilization phase;
+- clean-reinstall documentation matches the implementation-owned external backup boundary;
+- current user command examples are checked programmatically against the v0.9.3 facade/delegated CLI surface where practical;
+- historical release notes, completed coordination reports, and retained evidence remain historical and are not rewritten as current guidance.
 
-- exact Gateway PID is validated before kill;
-- replacement Gateway PID appears;
-- no process-tree kill;
-- no operator `cnxclaw start` during observation;
-- `cnxclaw check recovery --json` is polled read-only;
-- result clearly classifies natural convergence vs stuck durable marker.
+### 2. Phase J — security and repository hygiene
 
-### 2. Full process-level Recovery Reality suite
+Before candidate freeze:
 
-Once Gateway convergence semantics are correct, prove these in sequence:
+- scan tracked files for accidental credentials/secrets and classify test placeholders separately;
+- audit ignored/generated artifacts so runtime databases, logs, caches, local credentials, and unintended build residue are not tracked;
+- run the current npm production dependency audit and perform an appropriate Python dependency review;
+- review OpenClaw compatibility metadata against the actual validated guarantee of `2026.7.1-2` instead of silently promising a broader range than evidence supports.
 
-- Gateway hard crash → automatic runtime recovery;
-- Ollama hard crash → provider incident/recovery behavior;
-- `cnxclaw stop` → intentional stopped state with no automatic recovery;
-- `cnxclaw start` → verified return to MANAGED running state.
+Do not perform broad dependency upgrades merely to make audit output quieter during stabilization. Any change must have a concrete compatibility or security reason and its own verification evidence.
 
-Success means every scenario produces durable evidence and the suite exits cleanly without using the harness to make recovery decisions for CogentNexus-OpenClaw.
+### 3. Phase K — final repository audit and exact-candidate freeze
 
-### 3. Freeze a process-level v0.9.3 candidate
+Freeze one exact v0.9.3 candidate only after all repository gates are green.
 
-Before moving upward into Ticket continuity:
+Required identity/evidence includes:
 
-- CI green for the exact candidate head;
-- Windows live evidence reviewed;
-- safety invariants preserved;
-- no unresolved state-transition ambiguity;
-- v0.9.2 Golden Baseline remains untouched.
+- exact source commit SHA;
+- package version;
+- payload-v2 fingerprint;
+- payload file count;
+- archive SHA256 values;
+- GitHub Actions matrix/package proof for that exact source;
+- final review that current docs, release workflow policy, namespace isolation, and compatibility metadata all describe the same candidate.
 
+After freeze, no source modification may be treated as the same candidate. Any source change creates a new candidate identity and requires re-verification.
 
-### 4. Prove the v1.0.0 real-machine consumer lifecycle
+### 4. Bounded real-Windows acceptance of the frozen candidate
 
-After the process-level candidate is accepted, exercise the exact release candidate on the real Windows target through the consumer-facing path.
+Only after Phase K freezes the exact candidate, exercise the real Windows target through a separately authorized task.
 
-Required sequence and evidence gates:
+Required lifecycle sequence remains:
 
-1. record the candidate source commit, version, release artifact URL/path, and SHA256;
-2. install from the actual release/consumer path and verify MANAGED/Ollama/Gateway readiness;
-3. install the same candidate over an existing CogentNexus-OpenClaw deployment and verify safe, idempotent convergence without first uninstalling;
-4. run the documented `cnxclaw reset` flow, answer its explicit `y` confirmation, and verify CogentNexus-OpenClaw state returns to the documented fresh-install baseline;
-5. run `cnxclaw uninstall`, answer its explicit `y` confirmation, and verify CogentNexus-OpenClaw-owned tasks, launchers, plugin/package state, and managed artifacts are cleanly removed;
-6. verify external OpenClaw and Ollama installations and user data remain intact;
-7. reinstall from the same actual release/consumer path after uninstall;
-8. verify post-reinstall MANAGED/Ollama state, Gateway on 127.0.0.1:18789, Ollama on 127.0.0.1:11434, and recovery verdict `READY`;
-9. require all applicable CI to be green for the exact artifact/source head and review every Windows evidence file and hash.
+1. record the frozen candidate identity and archive checksums before mutation;
+2. install the exact candidate and verify MANAGED/Ollama/Gateway readiness;
+3. install the same candidate over an existing CogentNexus-OpenClaw deployment and verify safe convergence;
+4. run the documented `cnxclaw reset` flow with explicit `y` confirmation and verify fresh-state reconstruction;
+5. run `cnxclaw uninstall` with explicit `y` confirmation and verify only CogentNexus-OpenClaw-owned surfaces are removed;
+6. verify external OpenClaw, Ollama, models/data, and unrelated namespaces remain intact;
+7. reinstall the same frozen candidate after uninstall;
+8. verify post-reinstall MANAGED/Ollama state, Gateway on `127.0.0.1:18789`, Ollama on `127.0.0.1:11434`, and recovery readiness;
+9. perform the final bounded Dashboard semantic/durable-delivery acceptance probe only after lifecycle readiness is proven;
+10. retain commands, exit codes, artifact hashes, runtime evidence, and duplicate-execution fences for every disruptive phase.
 
-Every destructive or state-changing phase must have a duplicate-execution fence. A completed phase may not be repeated merely because the watcher runs again.
+A completed disruptive phase must never be repeated simply because a watcher or coordination loop runs again.
 
-### 5. Prepare v1.0.0 for final review
+### 5. Explicit human release review and publication decision
 
-When process recovery, install-over-existing, reset, clean uninstall, reinstall, post-reinstall readiness, artifact provenance, and CI are all accepted:
+Repository stabilization and live acceptance do not automatically publish a release.
 
-- update version/release notes and consumer installation documentation for `v1.0.0`;
-- keep PR #24 Draft until its documented acceptance gates are complete;
-- prepare the exact release candidate and PR for final human review;
-- do not merge, tag, or publish automatically from the coordination loop.
+After the frozen candidate and real-Windows evidence are accepted:
 
+- review version/release notes and consumer installation guidance;
+- review the exact source/artifact identity intended for publication;
+- update or replace the older Draft PR path as appropriate for the accepted candidate;
+- merge/tag/publish only as a separate explicit human-controlled action;
+- never publish because a development or `release/v*` branch was merely pushed.
 
 ## Medium term — prove work continuity, not only process recovery
 
@@ -170,18 +174,20 @@ As CogentNexus-OpenClaw expands, preserve the same invariant recursively:
 - each layer should be able to prove what it owns, what it completed, and what remains incomplete;
 - coordination scale must not weaken durable evidence or duplicate-effect safety.
 
-## Non-goals for the current phase
+## Non-goals for the current repository-stabilization phase
 
-These may become future work, but should not distract from current recovery proof:
+These may become future work, but should not distract from the exact v0.9.3 candidate boundary:
 
 - reintroducing multi-provider complexity into v0.9.3;
-- optimizing cosmetic internals of the frozen v0.9.2 core;
+- rewriting the frozen v0.9.2 historical release;
 - treating timeouts/cooldowns as recovery authority;
 - claiming arbitrary exactly-once external effects without reconciliation evidence;
-- expanding platform/version support before the current Windows/Ollama continuity boundary is understood.
+- broadening supported OpenClaw versions without corresponding evidence;
+- starting live install/reset/uninstall/restart/semantic acceptance before Phase K freezes the candidate;
+- publishing a release automatically from branch activity.
 
 ## Roadmap movement rule
 
 Move an item forward because its **evidence gate passed**, not because code was written.
 
-When evidence reveals a new blocker, it is acceptable for the roadmap to move backward, split a milestone, or introduce a diagnostic phase. That is considered progress when it reduces uncertainty about the real system.
+When evidence reveals a new blocker, it is acceptable for the roadmap to move backward, split a milestone, or introduce a diagnostic phase. That is progress when it reduces uncertainty about the real system.
