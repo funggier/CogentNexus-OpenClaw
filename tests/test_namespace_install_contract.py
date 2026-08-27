@@ -44,7 +44,7 @@ def test_windows_installer_applies_verified_rollover_before_single_candidate_res
     resolve = source.index(" resolve-plugin --openclaw-state", apply)
     assert install < inventory < plan < apply < resolve
     plugin_guard = source.index("if (-not $SkipPlugin) {")
-    upgrade_guard = source.index('if ($classification.mode -eq "upgrade") {', install)
+    upgrade_guard = source.index('if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {', install)
     assert plugin_guard < install < upgrade_guard < plan
     assert "-LinkPlugin is incompatible with ownership-safe managed installation" in source
     assert source.count("openclaw plugins list --json", install, apply) == 2

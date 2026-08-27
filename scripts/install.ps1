@@ -365,9 +365,9 @@ if ($actions.installPlugin) {
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
     }
     finally { Pop-Location }
+}
 
-    if ($classification.mode -eq "upgrade") {
-        if ($actions.rolloverPlugin) {
+if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {
         $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
         New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
         $rolloverId = [guid]::NewGuid().ToString("N")
@@ -400,8 +400,6 @@ if ($actions.installPlugin) {
         finally {
             Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
         }
-        }
-    }
 }
 
 $launcher = Join-Path $Workspace "cnxclaw.cmd"

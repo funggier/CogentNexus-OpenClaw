@@ -14,6 +14,7 @@ exercise the extracted production helper functions from the same file.
 """
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -87,6 +88,25 @@ def _run_ps1_snippet(snippet: str) -> subprocess.CompletedProcess:
         )
     finally:
         ps1.unlink(missing_ok=True)
+
+
+def test_p8_production_ast_proves_independent_lifecycle_gates_and_order():
+    helper = REPO / "scripts" / "analyze-installer-lifecycle-ast.ps1"
+    result = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(helper),
+         "-Installer", str(REPO / "scripts" / "install.ps1")],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = json.loads(result.stdout)
+    rollover = [r for r in rows if "rollover-plan" in r["command"] or "rollover-apply" in r["command"]]
+    installs = [r for r in rows if "plugins install" in r["command"] or "npm pack" in r["command"]]
+    resolves = [r for r in rows if " resolve-plugin --" in r["command"]]
+    assert rollover and installs and resolves
+    assert all(any("rolloverPlugin" in a for a in r["ancestors"]) for r in rollover)
+    assert all(not any("installPlugin" in a for a in r["ancestors"]) for r in rollover)
+    assert all(any("installPlugin" in a for a in r["ancestors"]) for r in installs)
+    assert max(r["start"] for r in rollover) < min(r["start"] for r in resolves)
 
 
 def test_p7_production_crash_rerun_recovery(tmp_path: Path):
