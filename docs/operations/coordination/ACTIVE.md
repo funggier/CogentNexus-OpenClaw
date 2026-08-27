@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_SUPPORTED_PENDING_ROLLOVER_RECOVERY_RETRY`
-Current authorization: `ONE_SUPPORTED_PENDING_RECOVERY_RETRY_AFTER_PUBLISHED_FIX_AUTHORIZED`
-Task ID: `CNX-20260827-090`
+Execution mode: `LIVE_READ_ONLY_CONTROL_UI_OWNER_AUTH_PROOF`
+Current authorization: `BOUNDED_LOCAL_CONTROL_UI_AUTH_AND_PAIRING_PROOF_AUTHORIZED`
+Task ID: `CNX-20260827-091`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,21 +19,13 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md`](tasks/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md)
+[`tasks/CNX-20260827-091-prove-dashboard-owner-surface-without-secret-disclosure.md`](tasks/CNX-20260827-091-prove-dashboard-owner-surface-without-secret-disclosure.md)
 
-## Task 089 acceptance
+## Task 090 accepted blocker
 
-Task 089 reported:
+Task 090 report:
 
-`PASS_ACTION_RESOLVER_BOUNDARY_PUBLISHED_SAFE`
-
-Implementation HEAD:
-
-`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
-
-Report HEAD:
-
-`ebd6df825f6b84e68edd2ba24869333154be48c6`
+`c2d6f2586b32ebec6a57ebb487d924a3ec3101a4`
 
 Independent review:
 
@@ -41,121 +33,89 @@ Decision: `ACCEPT`
 
 Disposition:
 
-`ACCEPT_ACTION_RESOLVER_BOUNDARY_PUBLISHED_SAFE`
+`ACCEPT_BLOCKER_OWNER_SURFACE_READINESS_AFTER_LIVE_RECOVERY_PASS`
 
-Review path:
+Review:
 
-[`reviews/CNX-20260827-089-recover-and-publish-task088-implementation.md`](reviews/CNX-20260827-089-recover-and-publish-task088-implementation.md)
+[`reviews/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md`](reviews/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md)
 
-Publication fence is accepted:
+Publication fence is accepted: execution `482223de...` -> report `c2d6f258...` is exactly one report-only commit.
 
-- execution `25d6c673...` -> implementation `d6daf8f9...`: exactly `scripts/install.ps1` + focused test;
-- implementation -> report: exactly one report-only commit;
-- implementation is repository-resolvable and in direct ancestry;
-- no plugin payload source changed.
+## Accepted live state from Task 090
 
-## Accepted action-resolver repair
+The live recovery portion is complete and accepted:
 
-Production `scripts/install.ps1` now uses PowerShell-5.1-safe named hashtable splatting for the lifecycle resolver:
+- exact installed source `d6daf8f93fcd5578f267b2017c6cc82e5de20095`;
+- controller MANAGED, generation 18;
+- startup enabled;
+- Supervisor Ready;
+- AGENTS managed block restored;
+- canonical plugin generations converged `2 -> 1`;
+- surviving generation is existing source-exact `g-7257c4555ca8ad21`;
+- no third generation was created;
+- plugin loaded/enabled `0.9.3` and fingerprint matches exact source;
+- normalized skill parity `86/86`;
+- ownership verification passed;
+- product-owned runtime/launcher/Supervisor restored;
+- Gateway healthy on `127.0.0.1:18789`;
+- Ollama accepted four-model inventory preserved;
+- SQLite integrity `ok`, Tickets/outbox zero;
+- exactly one supported installer invocation, retry count zero;
+- zero semantic messages/provider probes;
+- `NO_FLASH_MULTI_TICK_PROVEN` from five natural PT1M observations.
 
-```powershell
-$actionArgs = @{
-    Mode = [string]$classification.mode
-}
-if ($pendingRollover) { $actionArgs.PendingRollover = $true }
-if ($pluginAlreadyExact) { $actionArgs.PluginAlreadyExact = $true }
-if ($SkipPlugin) { $actionArgs.SkipPlugin = $true }
-$actionsJson = (& $actionResolver @actionArgs | Out-String)
-```
+Do not reinstall, reset or manually normalize this accepted state.
 
-The Task-087 literal `"-Mode"` array-splat failure is removed from accepted source.
+## Remaining blocker
 
-Task-086 production control flow remains:
+Task 090 could load the Control UI page but could not prove an authenticated owner/admin WebSocket connection without handling the Gateway shared credential.
 
-- package install under `installPlugin`;
-- rollover independently under `rolloverPlugin`;
-- rollover not nested under `installPlugin`;
-- rollover before strict `resolve-plugin`.
+Therefore `DASHBOARD_OWNER_SURFACE_READY` remains unproven.
 
-## Current live baseline
+This does not invalidate live recovery/parity/no-flash acceptance.
 
-Preserve the Task-087 fail-closed topology until Task 090 mutates it through the one authorized supported installer invocation:
+## Task 091 requirements
 
-- controller PASSTHROUGH generation 13;
-- startup disabled;
-- Supervisor absent;
-- AGENTS managed markers absent;
-- ownership manifest -> prior `g-5593cbcfff5b35d5`;
-- prior fingerprint `7e9189f8...`;
-- active disabled source-exact replacement -> `g-7257c4555ca8ad21`;
-- replacement/source fingerprint `8fd911e3...`;
-- exactly two canonical generations;
-- no third generation;
-- Gateway healthy from accepted evidence;
-- SQLite integrity accepted, Tickets/outbox zero;
-- no semantic/provider activity.
+Task 091 must inspect exact installed OpenClaw `2026.7.1-2` before choosing the owner-auth path. It must not assume newer documentation behavior.
 
-Do not manually normalize this topology.
+It must prove a real localhost Dashboard/WebChat Control UI connection authenticated with the installed supported operator/admin authority while disclosing zero shared-secret material.
 
-## Task 090 requirements
+Priority:
 
-Use exact source:
+1. reuse an already-paired localhost Control UI device if valid;
+2. otherwise use the exact installed build's supported local owner-handoff/pairing mechanism if it can operate without exposing reusable credentials;
+3. if a fresh pairing is required, approve only one exactly correlated localhost Control UI request with expected role/scopes;
+4. if only shared-secret entry is possible, an ephemeral local in-memory handoff is allowed only if the value is never printed, persisted, placed in captured command lines/clipboard/report, and the actual Control UI identity/scopes are independently proven;
+5. otherwise fail closed.
 
-`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
+Required readiness proof:
 
-Before mutation re-prove:
+- actual Control UI/WebChat client identity;
+- authenticated Gateway connection, not HTTP reachability only;
+- effective operator/admin role/scopes matching installed owner derivation;
+- at least one read-only RPC succeeds;
+- zero `chat.send`, semantic content, provider inference, Ticket/outbox mutation;
+- future fresh Dashboard session behavior identified without sending.
 
-- exact two-generation topology;
-- replacement fingerprint == exact source fingerprint;
-- `mode=upgrade`;
-- `pendingRollover=true`;
-- `pluginAlreadyExact=false`;
-- `installPlugin=false`;
-- `rolloverPlugin=true`;
-- named action-resolver boundary no longer reproduces `Mode="-Mode"`.
+Accepted readiness tokens:
 
-Exactly one supported installer invocation is authorized. Retry count must remain zero.
+- `DASHBOARD_OWNER_SURFACE_READY`, or
+- `DASHBOARD_OWNER_SURFACE_READY_FIRST_SEND_CREATES_SESSION` only when admin/owner authentication is independently proven and the installed UI creates a session only on first send.
 
-The pending path must prove:
+## Secret fence
 
-- no `npm pack`;
-- no artifact selection/install;
-- no `openclaw plugins install`;
-- no third generation;
-- reviewed rollover-plan/apply retires prior generation;
-- canonical generations converge `2 -> 1`;
-- surviving generation is the existing source-exact replacement.
+Never print/log/copy/report the Gateway token/password. Do not run `openclaw gateway auth-token --show`. Do not store a credential-bearing URL. Do not publish a hash of the secret.
 
-After successful rollover the supported installer must restore:
+## Semantic/product fence
 
-- MANAGED;
-- startup;
-- Supervisor;
-- AGENTS managed block;
-- exact ownership/runtime bindings;
-- source/live plugin+skill parity;
-- Gateway/Ollama/SQLite health.
+No Dashboard/WebChat composer send, `chat.send`, `chat.inject`, `openclaw agent`, `sessions_send`, channel send, synthetic Ticket, direct Ollama call, final nonce, provider/model/timeout change, install/install-over/uninstall/reset/cleanup, CNX repair, SQLite edit, reboot, merge/tag/release.
 
-Then observe at least five natural PT1M ticks and require:
-
-`NO_FLASH_MULTI_TICK_PROVEN`
-
-Finally prove read-only:
-
-`DASHBOARD_OWNER_SURFACE_READY`
-
-without sending any semantic message.
-
-## Hard semantic/mutation fence
-
-Outside the one supported installer invocation: no uninstall/reset/manual cleanup/manual rollover/manual plugin mutation, no manual controller/startup/Supervisor/AGENTS/ownership/config/runtime repair, no SQLite/Ticket/session mutation, no Dashboard/WebChat send, `chat.send`, `openclaw agent`, `sessions_send`, channel send, direct Ollama probe, provider/model/timeout change, restart/reboot, merge/tag/release.
-
-Any nonzero installer result must stop the task without retry.
+A single supported device approval is authorized only when exactly correlated to the fresh localhost Control UI request. Prefer no pairing mutation when an existing valid device is available.
 
 ## Successor gate
 
 Only independent acceptance of:
 
-`PASS_LIVE_PENDING_RECOVERY_PARITY_NO_FLASH_OWNER_SURFACE_READY`
+`PASS_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
 
 may authorize the final one-message authenticated Dashboard/WebChat semantic acceptance task.
