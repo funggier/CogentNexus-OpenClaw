@@ -7,6 +7,10 @@ description: "Durable Host-managed recovery, lifecycle control, and verified exe
 
 CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
 
+Current development line: **v0.9.3**.  
+Current managed provider: **Ollama only**.  
+Validated OpenClaw baseline: `2026.7.1-2`.
+
 Keep private reasoning private. Expose useful status, evidence, decisions, and results.
 
 ## Authority order
@@ -33,6 +37,10 @@ For a committed Direct turn interrupted before durable response, the external Ho
 A transient SQLite BUSY read during authority polling is not durable revocation and must not create a competing retry while embedded inference is still running.
 
 When durable CNXCLAW ownership exists, consume only the exact OpenClaw native restart continuation that belongs to the same session/generation/original prompt. Ordinary user messages and unreadable durable state fail open to native behavior.
+
+## Provider boundary
+
+v0.9.3 manages Ollama only. Historical v0.9.2 compatibility modules may remain in-tree for migration/native-restore behavior, but current v0.9.3 operator paths must not advertise or select LM Studio.
 
 ## Operating modes
 
@@ -81,13 +89,17 @@ Load references lazily and only when the selected lane/unit needs them:
 ## Validation
 
 ```sh
+python scripts/check_namespace_isolation.py
+python scripts/check_baseline_consistency.py
 python skills/cogentnexus-openclaw/scripts/validate.py --workspace-singleton
 python skills/cogentnexus-openclaw/scripts/workflow.py self-test
 python skills/cogentnexus-openclaw/scripts/cogent.py self-test
 python skills/cogentnexus-openclaw/scripts/runtime.py self-test
-python -m unittest discover -s tests -v
+python -m pytest -q
 ```
 
-## Current accepted checkpoint
+## Accepted historical checkpoint vs current candidate
 
-Recovery Core: `eadb89099637d24f96e265a500d66c577aa939a3`, validated on OpenClaw `2026.7.1-2`. See root `docs/CURRENT_STATE.md` for accepted/deferred boundaries.
+Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`, validated on OpenClaw `2026.7.1-2`.
+
+That checkpoint is historical technical evidence. The current line is v0.9.3 and requires its own repository stabilization and exact-candidate real-machine acceptance before release promotion. See root `docs/CURRENT_STATE.md` for accepted/deferred boundaries.
