@@ -1,9 +1,9 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
+**State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator remains authority for definitive repair through final authenticated fresh-session semantic acceptance
+**Human authority:** operator approved bounded Windows reparse-point hardening and remains authority for definitive repair through final authenticated fresh-session semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted baseline
@@ -12,88 +12,66 @@ Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086, 089, 0
 
 Task 090 live recovery remains accepted: MANAGED, one canonical loaded plugin, accepted parity, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
 
-Task 091 owner-authenticated Dashboard/WebChat surface remains accepted without secret disclosure.
+Task 091 authenticated Dashboard/WebChat owner surface remains accepted without secret disclosure.
 
 Task 092 remains an accepted semantic blocker: fresh-session creation, Ticket-before-provider ordering, one correlated Ollama inference and one visible nonce passed; durable payload staging did not. Its semantic artifacts remain retired.
 
-Task 093 preserved candidate repair:
+Task 093 preserved staging repair:
 
 `a924157ecdedef1d4f166d5762529b0d59536fc9`
 
-It separates process-global TicketStore patch lifetime from per-runtime `reply_dispatch` registration and remains the intended Dashboard durable-staging fix.
-
-## Task 094 result and review
-
-Implementation:
+Task 094 preserved complete-payload attestation implementation:
 
 `3313930064123867ad760908a77b498f3bad029a`
 
-Report:
+Task 094 report:
 
 `0902c3c50fb1a46adfa9b8df86495fa521d01719`
 
-Reported result:
-
-`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
-
-Independent decision:
-
-`REWORK`
-
-Disposition:
+Independent Task-094 disposition:
 
 `REWORK_WINDOWS_REPARSE_POINT_INDIRECTION_NOT_REJECTED`
 
-Review:
+## What Task 094 established and preserves
 
-`docs/operations/coordination/reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`
+The v2 plugin fingerprint replaces the old four-file sample with the complete installable payload selected by `package.json.files` plus `package.json`. It covers all shipped `dist/**` runtime files, hashes normalized relative paths plus exact bytes under a versioned domain, excludes absolute roots and development-only unshipped content, and reported exact npm11/npm12 packed-set equivalence.
 
-Publication fence is valid.
+The pre-Task093 live payload and Task093+094 candidate were reported distinct under v2, so the original deployment-attestation blind spot is materially addressed.
 
-## Preserved Task-094 attestation work
+## Remaining blocker
 
-The v2 algorithm materially closes the original four-file fingerprint blind spot:
+Windows directory junctions/reparse points are not proven rejected by Task-094 source. The current enumerator checks symbolic-link status but can still encounter Windows reparse-style filesystem indirection that ordinary directory traversal may follow.
 
-- package-owned files come from `package.json.files`, plus `package.json`;
-- all declared runtime directories are recursively enumerated;
-- normalized relative paths and exact bytes are hashed under a versioned domain;
-- absolute installation roots are excluded;
-- current npm11/npm12 packed set was reported 176/176 exact;
-- current pre-Task093 installed payload and Task093+094 candidate were reported distinct under v2.
+Because this boundary defines which physical package-owned bytes are attested on the live Windows host, no live install-over is authorized until the reparse-point case is proven fail-closed.
 
-This design remains preserved.
+## Active Task 095
 
-## Current blocker
+[`tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md`](tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md)
 
-Task 094 required rejection of `symlinks/reparse-style path indirection` but production currently checks only `os.path.islink(path)` during package enumeration.
+Status: `READY_FOR_HERMES`
 
-On Windows, a directory junction/reparse point is a distinct indirection form and is not guaranteed to satisfy the symbolic-link check. Such a path can be traversed by directory APIs and would violate the package-owned attestation boundary.
+Execution mode:
 
-The regression suite proves a symlink case but does not prove a real Windows junction/reparse case.
+`SOURCE_TDD_WINDOWS_REPARSE_POINT_ATTESTATION_REPAIR`
 
-No live install-over is authorized until this Windows path-indirection boundary is closed.
+Authorization:
 
-## Pending Task 095 design
+`TASK094_WINDOWS_REPARSE_BOUNDARY_REPAIR_AUTHORIZED`
 
-A narrow source-only correction is proposed:
+Task 095 must create a real Windows junction/reparse RED against the production helper, then minimally reject symlinks and any Windows reparse-point entry before traversal. The same check must cover declared entries and recursive children.
 
-- add one exact path-indirection check;
-- reject symlinks and Windows reparse-point/junction entries before traversal;
-- apply it to declared entries and every recursive child;
-- leave fingerprint v2 framing/package contract unchanged;
-- mandatory Windows junction/reparse RED then GREEN;
-- rerun npm11/npm12 equivalence, classifier/action truth tables, rollover plan/apply security/atomicity, Task-089 installer boundary, Task-093 staging and full suites.
+Task 095 must leave the v2 fingerprint domain/package contract unchanged and re-run npm11/npm12 equivalence, classifier/action truth tables, rollover plan/apply security/atomicity, Task-089 installer boundaries, Task-093 staging tests and full suites.
 
 ## Hard fence
 
-Until explicit operator approval of this bounded design:
+Task 095 performs no live mutation and sends zero semantic/provider messages.
 
-- no Task-095 source implementation;
-- no live install/reset/repair or generation mutation;
-- no semantic message/provider probe;
-- no controller/startup/Supervisor/AGENTS/config/runtime/SQLite change;
-- no Task-092 state rewrite.
+No install/reset/repair, generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite change, provider/model/timeout change, Task-092 rewrite, reboot, merge, tag or release is authorized.
 
 ## Successor logic
 
-After operator approval, Task 095 may be published source-only. Only independent acceptance of that Windows reparse-point hardening may release a one-shot supported live install-over. Only after live parity/MANAGED health are accepted may one new final authenticated fresh-session semantic attempt be authorized.
+Only independent acceptance of:
+
+`PASS_WINDOWS_REPARSE_POINT_PAYLOAD_ATTESTATION_REPAIRED`
+
+may release a one-shot supported live install-over of the exact accepted Task-093+094+095 source. That live task sends zero semantic messages and must restore/prove MANAGED source parity and health. Only after its independent acceptance may one new final authenticated fresh-session semantic attempt be authorized; the Task-092 fresh-session hard gate remains in force.
