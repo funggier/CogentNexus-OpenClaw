@@ -1,10 +1,10 @@
-# CNX-20260827-102 — Re-establish Dashboard Target and Final Semantic Acceptance
+# CNX-20260827-102 — Open Fresh Dashboard Target and Final Semantic Acceptance
 
 Status: `READY_FOR_HERMES`
 
-Execution mode: `LIVE_TARGET_LIFECYCLE_REESTABLISHMENT_INPUT_DIAGNOSIS_AND_FINAL_SEMANTIC_ACCEPTANCE`
+Execution mode: `LIVE_OPEN_FRESH_FIREFOX_TARGET_INPUT_DIAGNOSIS_AND_FINAL_SEMANTIC_ACCEPTANCE`
 
-Current authorization: `TASK101_ACCEPTED_OPERATOR_REQUESTED_NEW_ATTEMPT`
+Current authorization: `OPERATOR_DIRECTED_OPEN_FIREFOX_IF_ABSENT_AND_RETRY_FINAL_ACCEPTANCE`
 
 Owner: ChatGPT
 
@@ -12,74 +12,39 @@ Executor: Hermes/Codex after operator continuation
 
 ## Goal
 
-Run the final Dashboard semantic acceptance again, but first fix the new Task-101 blocker by establishing a live, durable, freshly correlated Firefox/OpenClaw Dashboard target window before attempting any input method.
+Run the final Dashboard semantic acceptance again. The Task-101 observation that no Firefox/OpenClaw window existed is now clarified by the operator: **Firefox simply was not open at that time.** This is not evidence that Firefox window lifecycle itself is broken.
 
-Task 102 must not stop merely because a launch process exits or a prior automation window id becomes stale. It must distinguish:
+Therefore Task 102 must not stop when no Firefox window is found. If Firefox/OpenClaw is absent, **open Firefox immediately to the non-secret local OpenClaw Dashboard route using the existing authenticated user profile**, wait for the page/window to appear, then rediscover the actual live HWND/PID/session/composer from fresh state before any input.
 
-- browser process launch;
-- the actual top-level Firefox window that receives the request;
-- live OS HWND/PID identity;
-- OpenClaw Dashboard/session identity;
-- exact `Message Assistant` composer identity.
+After a live target is established, test the bounded input methods, report which method works or why each fails, and if one method is proven, continue the original final semantic acceptance in the same task.
 
-Only after all target layers are freshly correlated may Task 102 test input and eventually perform one final semantic Send.
-
-The operator explicitly requested a new attempt and previously authorized iterative diagnosis: if a bounded method fails, identify the exact boundary, form an evidence-based next hypothesis, test the next pre-authorized bounded method, and report which method worked or why none worked.
-
-## Accepted predecessor
+## Operator correction to Task 101 interpretation
 
 Task 101 report:
 
 `d06b1397e032749e5b348d5d1054dc1784d67519`
 
-Task 101 independent disposition:
+Task 101 semantic send count was `0`; no sentinel/input method was attempted and no Ticket/provider/delivery effect occurred.
 
-`ACCEPT_BLOCKER_TARGET_WINDOW_LIFECYCLE_NOT_ESTABLISHED`
+The fresh inventory contained no Firefox/OpenClaw window because Firefox was not open. Treat this as an **environment precondition**, not a Firefox lifecycle defect.
 
-Task 101 semantic send count was `0`.
+Do not reuse stale Task-100 PID/HWND values. After opening Firefox, rediscover the actual live browser window from current OS/UI state.
 
-No Task-101 sentinel, Ticket, route, provider inference, outbox, assistant delivery or semantic lifecycle effect occurred.
-
-Task 101 failed before input testing because fresh automation/window inventory contained no Firefox/OpenClaw target. A previously observed window id was stale.
-
-Accepted root-cause boundary:
-
-`DASHBOARD_TARGET_WINDOW_LIFECYCLE_NOT_ESTABLISHED`
-
-Historical positive control remains Task 092: a real authenticated Dashboard send once produced one Ticket, Ticket-before-provider ordering, one `ollama/qwen3.5:9b` call and one exact visible nonce. Task 093 repaired the later durable payload-staging boundary; Task 096 installed that repaired source live.
-
----
-
-# Key operational correction
-
-**Do not equate the PID/process handle returned by launching Firefox with the resulting browser window identity.**
-
-Firefox may forward a `-new-window` request into an existing Firefox process and the launcher process may exit. Therefore every launch/bootstrap attempt must be followed by fresh OS-level window rediscovery.
-
-Use current process/window state, not stale ids:
-
-- enumerate `firefox.exe` processes;
-- enumerate visible top-level windows with `EnumWindows`/equivalent;
-- obtain HWND, PID, title/class and visibility;
-- correlate the actual OpenClaw window through UIA/accessibility and non-secret Dashboard/session state;
-- then discover the current `Message Assistant` composer under that exact window.
-
-Automation-driver window ids are supporting evidence only; they are not durable identity.
+Historical positive control remains Task 092: one real Dashboard Send created one Ticket, accepted/routed before one `ollama/qwen3.5:9b` inference and one exact visible nonce. Task 093 repaired the later durable staging boundary; Task 096 installed/accepted that source live.
 
 ---
 
 # Absolute safety fence
 
-Before final semantic Send, only low-impact target/bootstrap/input experiments are allowed.
+Before the one final semantic Send, only low-impact browser/bootstrap/input experiments are allowed.
 
 Allowed:
 
 - read-only controller/Gateway/SQLite/session/device/log/process/window/UIA/accessibility inspection;
+- opening Firefox to the non-secret local OpenClaw Dashboard route using the already-authenticated profile;
 - ephemeral PowerShell/Python/.NET/Win32/UIA helpers outside maintained product source;
-- launching or opening one dedicated Firefox Dashboard window using the existing authenticated user profile and a non-secret local Dashboard URL/session route;
-- one bounded bootstrap retry if fresh evidence proves the first launch/window attempt produced no usable conflicting target;
-- UIA/accessibility direct composer edit;
-- deterministic Win32 foreground/input-thread handoff;
+- UI Automation / Accessibility direct edit of the exact composer;
+- deterministic Win32 foreground/input-thread handoff against the freshly correlated target HWND;
 - non-sent sentinel drafts and clearing them;
 - read-only durable-state polling after the one semantic Send.
 
@@ -91,7 +56,7 @@ Forbidden:
 - more than one final semantic Send;
 - historical nonce reuse;
 - CLI/channel owner substitutes (`openclaw agent`, `chat.inject`, `sessions_send`, channel sends);
-- direct Ollama/provider probes;
+- direct provider/Ollama probes;
 - synthetic/manual Ticket creation;
 - install/install-over/uninstall/reset/cleanup;
 - maintained product-source/runtime/config/controller/startup/Supervisor/AGENTS/SQLite mutation;
@@ -100,7 +65,7 @@ Forbidden:
 - restart/reboot;
 - merge/tag/release/force push.
 
-If a non-sent sentinel is accidentally sent or produces a semantic Ticket/provider effect, stop, correlate that effect and do not perform the final semantic Send.
+If any non-sent sentinel is accidentally sent or creates a Ticket/provider effect, stop, correlate it, and do not perform the final semantic Send.
 
 ---
 
@@ -108,38 +73,17 @@ If a non-sent sentinel is accidentally sent or produces a semantic Ticket/provid
 
 Read-only operations: maximum `3` attempts per operation when useful.
 
-## Target bootstrap
+Firefox/dashboard bootstrap: maximum `2` attempts total. Attempt 2 is allowed only after a grace period and fresh process/window/UI evidence prove attempt 1 did not already produce a usable Dashboard target. If the first target appears late, use it and do not open another.
 
-Maximum `2` bootstrap attempts total.
+Each low-impact input method family: one normal sentinel attempt plus at most one state-gated retry after fresh evidence proves no conflicting/late effect. Ambiguous partial mutation blocks retry.
 
-Attempt 2 is allowed only after:
-
-1. at least 3 seconds grace;
-2. fresh Firefox process enumeration;
-3. fresh OS top-level window enumeration;
-4. proof attempt 1 did not leave a usable or conflicting OpenClaw Dashboard target.
-
-If attempt 1's window appears late, use it and do not launch again.
-
-If multiple candidate OpenClaw windows appear, stop bootstrap and disambiguate by session/UI state rather than opening more windows.
-
-## Each input method family
-
-- one normal sentinel attempt;
-- at most one state-gated retry for that same method family;
-- retry only after grace plus fresh UI/session/durable evidence prove no conflicting/late effect;
-- late success means success/no retry;
-- ambiguous partial mutation blocks retry.
-
-Failure of one method family may advance to the next distinct pre-authorized method only after the composer is empty and durable semantic state is unchanged.
-
-Final semantic Send remains exactly one attempt for Task 102. No resend exists.
+The final semantic Send remains exactly one attempt for Task 102. No resend exists.
 
 ---
 
 # Phase A — durable/live baseline
 
-Before launching or selecting a target:
+Before opening or selecting Firefox:
 
 1. Record coordination execution HEAD.
 2. Verify Task 101 report/review are ancestors and publication fence is valid.
@@ -147,11 +91,11 @@ Before launching or selecting a target:
 4. Verify controller remains MANAGED generation `24`.
 5. Verify accepted plugin fingerprint remains:
    `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`.
-6. Verify Gateway healthy, Supervisor healthy/recent and SQLite integrity `ok`.
+6. Verify Gateway/Supervisor healthy and SQLite integrity `ok`.
 7. Snapshot Ticket/event/outbox/direct-model-call/assistant-delivery/direct-recovery/workflow counts/tables that exist.
 8. Prove no active semantic/provider operation attributable to this task.
 9. Enumerate current Dashboard sessions read-only.
-10. Prefer existing fresh/empty Dashboard session `agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311` if it still exists and remains empty/staged. If it is no longer suitable, select another authenticated empty Dashboard session only if exact identity/freshness can be proven without semantic mutation. Do not fabricate or reuse a non-empty historical semantic session.
+10. Prefer existing fresh/empty session `agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311` if it still exists and remains empty/staged. If unsuitable, use another authenticated empty Dashboard session only if exact freshness/identity is proven.
 
 If no safe fresh Dashboard session can be proven:
 
@@ -159,66 +103,59 @@ If no safe fresh Dashboard session can be proven:
 
 ---
 
-# Phase B — establish a live target window
+# Phase B — open Firefox if absent, then correlate the live target
 
-## B1. Pre-launch OS inventory
+## B1. Fresh inventory
 
-Independently of the UI driver:
+Enumerate current `firefox.exe` processes and visible top-level windows.
 
-- enumerate all current `firefox.exe` processes;
-- enumerate visible top-level windows;
-- record HWND/PID/title/class/visibility;
-- record current foreground HWND;
-- identify whether any existing window already shows OpenClaw Control.
+If a live OpenClaw Dashboard Firefox window already exists and can be correlated to the Phase-A session, use it.
 
-If an existing live OpenClaw window can be uniquely correlated to the Phase-A target session, use it and do not launch another.
+**If no Firefox/OpenClaw window exists, open Firefox immediately. Do not treat absence as a blocker.**
 
-## B2. Dedicated-window bootstrap if needed
+## B2. Open fresh Firefox Dashboard window
 
-Open one dedicated Firefox window to the non-secret local OpenClaw Dashboard/session route using the already authenticated user profile.
+Open Firefox to the non-secret local OpenClaw Dashboard/session route using the existing authenticated Firefox profile.
 
-Important:
+Do not read or re-enter credentials. If the authenticated profile is not usable without credential re-entry, stop with:
 
-- do **not** assume the process returned by the launch command owns the resulting window;
-- do not depend on a prior automation `window_id`;
-- wait at least 2 seconds, then rediscover from live OS windows;
-- if the launcher exits but a new/existing Firefox process/window contains OpenClaw, that is valid and should be correlated rather than treated as launch failure.
+`BLOCKED_DASHBOARD_AUTH_REENTRY_REQUIRED`
 
-If no live OpenClaw window appears, capture:
+After opening:
 
-- launch exit/result;
-- Firefox process before/after delta;
-- top-level window before/after delta;
-- whether Firefox reused an existing process;
-- any non-secret OS/UI error.
+1. wait at least 2 seconds;
+2. rediscover current Firefox processes and top-level windows;
+3. find the actual `OpenClaw Control — Mozilla Firefox` window (or current equivalent title/class);
+4. record fresh HWND/PID/title/class/visibility;
+5. obtain fresh UIA/accessibility tree;
+6. correlate exact Dashboard session state;
+7. locate current `Message Assistant` composer;
+8. prove composer empty/staged.
 
-A second bootstrap attempt is allowed only under the state-gated rule above.
+Do not rely on the PID returned by a launch command or on a prior automation `window_id`; they are supporting evidence only.
 
 ## B3. Stability proof
 
 Before any sentinel:
 
-1. identify exact current OpenClaw HWND/PID/title/class;
-2. wait at least 3 seconds;
-3. enumerate again;
-4. prove the same window still exists (`IsWindow`/equivalent) and is visible;
-5. prove current UIA/accessibility tree is obtainable under that exact window;
-6. prove exact target Dashboard session is selected;
-7. locate the current `Message Assistant` composer and prove it is empty.
+1. wait at least 3 seconds after target correlation;
+2. enumerate again;
+3. prove the same current HWND remains valid/visible;
+4. prove UIA/accessibility tree is still obtainable;
+5. prove selected Dashboard session remains exact and fresh;
+6. prove `Message Assistant` composer remains empty.
 
 Required target token:
 
-`DASHBOARD_LIVE_TARGET_REESTABLISHED`
+`DASHBOARD_LIVE_TARGET_READY`
 
-If the window vanishes between rediscoveries:
+If the newly opened Firefox window disappears unexpectedly after having been successfully correlated, report the exact evidence and stop with:
 
-`BLOCKED_DASHBOARD_TARGET_WINDOW_LIFECYCLE`
-
-The report must state the observed process/window lifetime behavior and the tested hypothesis.
+`BLOCKED_DASHBOARD_TARGET_WINDOW_DISAPPEARED`
 
 ---
 
-# Phase C — input method diagnosis ladder
+# Phase C — input method diagnosis and results
 
 The report must contain a section named exactly:
 
@@ -226,32 +163,32 @@ The report must contain a section named exactly:
 
 For every method attempted, record:
 
-- target HWND/PID/session/composer correlation;
+- current HWND/PID/session/composer correlation;
 - method-specific capability/probe;
 - sentinel attempt count;
 - grace/retry decision;
-- whether draft appeared in exact composer;
+- whether the draft appeared in the exact composer;
 - whether clearing succeeded;
 - Ticket/provider/durable before/after counts;
 - exact failure boundary if failed;
-- next hypothesis and why it is safe.
+- next tested hypothesis/fix and its outcome.
 
 Use a unique non-secret sentinel per method. Never Send it.
 
 ## Method 1 — UI Automation / Accessibility direct edit
 
-Inspect the exact `Message Assistant` element for writable automation/accessibility interfaces, including Value/Edit/Text/Legacy patterns or equivalent.
+Inspect the exact `Message Assistant` element for writable Value/Edit/Text/Legacy or equivalent patterns.
 
 If a supported direct-edit interface exists:
 
-1. set a unique sentinel through that exact element without global keyboard input;
-2. re-read UIA/accessibility and visual state;
-3. prove the sentinel exists only in that exact composer;
-4. clear through the same safe interface;
+1. set a unique sentinel directly through that exact element without global keyboard input;
+2. re-read UIA/accessibility/visual state;
+3. prove sentinel exists in the exact composer;
+4. clear through the same interface;
 5. prove composer empty;
 6. prove no Ticket/provider effect.
 
-If direct edit is unsupported, record exactly which patterns are exposed and the failure/return code rather than treating that as generic focus failure.
+If unsupported, record the exposed patterns and exact error/return boundary.
 
 ## Method 2 — deterministic Win32 foreground/input handoff
 
@@ -259,8 +196,8 @@ If Method 1 cannot write:
 
 1. fresh-rediscover exact target HWND/PID;
 2. record current foreground HWND/thread;
-3. use a bounded supported handoff such as ShowWindow/BringWindowToTop/AttachThreadInput/SetForegroundWindow as appropriate;
-4. **before any global keystroke**, require `GetForegroundWindow == exact target HWND`;
+3. use bounded ShowWindow/BringWindowToTop/AttachThreadInput/SetForegroundWindow or equivalent as appropriate;
+4. **before any global keystroke, require `GetForegroundWindow == exact target HWND`;**
 5. focus the exact composer from fresh UIA/location evidence;
 6. type one unique non-sent sentinel;
 7. verify sentinel in exact composer;
@@ -270,25 +207,21 @@ If Method 1 cannot write:
 
 Never type if foreground equality is not proven.
 
-## Method 3 — controlled natural-focus positive control
+## Method 3 — freshly opened Firefox natural-focus positive control
 
-If Methods 1 and 2 fail but target bootstrap can safely create another dedicated window under retry limits:
+If Methods 1 and 2 fail, and the current Firefox window can safely be closed/reopened only if doing so does not require credential re-entry or affect semantic state, reproduce the historical positive-control condition with a fresh dedicated Firefox window.
 
-- reproduce the historical positive-control condition where a newly opened dedicated Firefox window naturally owns foreground;
-- immediately rediscover its actual HWND rather than trusting launcher PID;
-- require exact session/composer correlation and foreground equality before typing;
-- use a unique non-sent sentinel;
-- verify, clear and prove zero semantic/provider effect.
+Immediately rediscover its actual HWND, session and composer. Require exact foreground equality before typing. Use one unique non-sent sentinel, verify it, clear it and prove zero semantic/provider effect.
 
-Do not use timing alone as proof. The window must be positively identified.
+Do not use timing alone as proof.
 
 ## Input success
 
-If any method passes, report:
+If any method passes, the report must include:
 
 `Known-working Dashboard input method`
 
-and issue token:
+and token:
 
 `DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN`
 
@@ -306,15 +239,15 @@ Do not generate a semantic nonce.
 
 Only after `DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN` and a clean composer/durable baseline:
 
-1. re-verify exact current HWND/PID/session/composer with the proven method;
-2. generate a brand-new nonce:
+1. re-verify current HWND/PID/session/composer using the proven method;
+2. generate brand-new nonce:
    `CNXSEM6-<UTC compact timestamp>-<random uppercase/hex suffix>`;
 3. verify nonce absent from current sessions/logs/Tickets;
 4. enter exactly:
    `ตอบกลับข้อความนี้เพียงว่า <NEW_NONCE>`
    using the proven input method;
-5. re-read the exact composer and prove the full prompt exactly before Send;
-6. Send exactly once through the authenticated Dashboard UI;
+5. re-read exact composer and prove the full prompt before Send;
+6. Send exactly once through authenticated Dashboard UI;
 7. record send timestamp and non-secret correlation metadata;
 8. no resend under any result.
 
@@ -324,19 +257,11 @@ Semantic send count must remain exactly `1` for Task 102.
 
 # Phase E — Ticket before provider
 
-Require exactly one new Ticket for the one message.
-
-Prove durable ordering:
+Require exactly one new Ticket and durable ordering:
 
 `accepted -> routed -> provider start`
 
-Require:
-
-- one Ticket;
-- one accepted event;
-- one route event;
-- accepted/routed timestamps before correlated provider inference;
-- no duplicate Ticket/route.
+Require one accepted event, one route event, both before correlated provider inference, and no duplicate Ticket/route.
 
 Blockers:
 
@@ -346,15 +271,13 @@ Blockers:
 
 ---
 
-# Phase F — exactly one correlated provider inference
+# Phase F — one correlated provider inference
 
 Expected provider/model:
 
 `ollama/qwen3.5:9b`
 
-Require exactly one correlated normal provider call.
-
-The historical Task-092 call was slow. If the provider call remains actively correlated/running, observe read-only for up to `25 minutes` before calling it failed. Do not resend, change model or change timeout.
+Require exactly one correlated normal provider call. If actively correlated/running, observe read-only for up to `25 minutes` before declaring failure. Do not resend or change model/timeout.
 
 Blocker:
 
@@ -364,11 +287,11 @@ Blocker:
 
 # Phase G — durable payload staging
 
-Require exactly one assistant-delivery payload for the exact session/run/Ticket and prove:
+Require exactly one assistant-delivery payload for the exact session/run/Ticket:
 
 - non-empty final payload;
 - normalized text exactly equals nonce;
-- durable staging occurs before or at native delivery boundary;
+- durable staging before or at native delivery boundary;
 - no competing staged payload;
 - no fail-closed regenerated replacement.
 
@@ -382,7 +305,7 @@ Blocker:
 
 Require:
 
-- exactly one visible Dashboard assistant reply equal to nonce;
+- exactly one visible Dashboard reply equal to nonce;
 - exactly one `response_ready`;
 - exactly one `delivery_confirmed`;
 - non-null `delivery_confirmed_at`;
@@ -410,36 +333,17 @@ Execute only after Ticket `completed`.
 
 Use New Session once with state-gated retry allowed only for this low-impact session-management action.
 
-Prove:
-
-- new staged empty state;
-- no stale/unknown-parent/fallback error;
-- no second semantic Send;
-- no additional Ticket/provider effect.
+Prove fresh staged empty state, no stale/unknown-parent/fallback error, no second semantic Send and no additional Ticket/provider effect.
 
 ---
 
-# Final health and preservation
+# Final health and publication
 
-Verify:
-
-- MANAGED generation `24`;
-- accepted plugin fingerprint unchanged;
-- Gateway/Supervisor healthy;
-- SQLite integrity `ok`;
-- no product/config/install mutation;
-- historical evidence preserved;
-- no secret disclosure.
+Verify MANAGED generation `24`, accepted plugin fingerprint unchanged, Gateway/Supervisor healthy, SQLite integrity `ok`, no product/config/install mutation, historical evidence preserved and no secret disclosure.
 
 Required final success token:
 
 `PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
-
----
-
-# Publication fence
-
-No product-source commit is expected.
 
 Publish exactly one report-only commit:
 
@@ -447,11 +351,11 @@ Publish exactly one report-only commit:
 
 The report must include:
 
-- `Target lifecycle diagnosis and results`
+- `Firefox/bootstrap diagnosis and results`
 - `Input method diagnosis and results`
 - `Known-working Dashboard input method` if one method passes
 - exact semantic result if Phase D is reached
 - which method worked, or exact reason none worked
-- each tested fix/hypothesis and result
+- each tested hypothesis/fix and result.
 
 Only independent review of the report/publication fence may claim final semantic acceptance.
