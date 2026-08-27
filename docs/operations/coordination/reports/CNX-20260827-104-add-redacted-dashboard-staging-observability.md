@@ -4,126 +4,123 @@
 
 `PASS_REDACTED_DASHBOARD_STAGING_OBSERVABILITY_READY_FOR_LIVE_INSTALL`
 
-Task 104 was completed within the approved source/test/build/package observability scope. The implementation adds behavior-neutral, secret-safe diagnostics around the verified Dashboard delivery boundary. No live install, semantic Send, provider call, live SQLite/config/runtime mutation, restart, credential access, or delivery-logic repair was performed.
+Task 104 rework completed within the approved source/test/build/package observability scope. The callback evaluation order was restored to the predecessor's short-circuit behavior, unexpected callback kinds are reduced to safe categories, and redacted diagnostics remain covered by focused tests. No live install, semantic Send, provider call, live SQLite/config/runtime mutation, restart, credential access, or delivery-logic repair was performed.
 
-The implementation commit is ready for independent review and a separately gated install-over task. After this report is published, stop as required by the Task-104 publication fence.
+Stop now for independent review. A separately gated install-over task is required before any live diagnostic retest.
 
 ## Authorization and preflight
 
-- Execution coordination HEAD after fresh sync: `123fe71aff8283dd8d2300ce8047a254e519e130`.
-- Task-103 accepted predecessor is present and was verified as an ancestor: `6e271242318db90b6ad1d27cca35971e40a065e4`.
-- Working tree was clean before Task-104 source work.
-- Task-104 report was absent before publication.
-- Active gate was `READY_FOR_HERMES` with authorization `OPERA...ALL` and execution mode `SOURCE_TDD_REDACTED_DASHBOARD_STAGING_OBSERVABILITY`.
-- Live state was not changed. The accepted installed source/fingerprint baseline was not installed over.
+- Coordination branch: `agent/v0.9.3-recovery-reality-tests`.
+- Fresh synchronization from `origin/agent/v0.9.3-recovery-reality-tests` reached coordination HEAD `524e171` before source work.
+- Active gate: `READY_FOR_HERMES`; Task ID `CNX-20260827-104`.
+- Review disposition: `REWORK_BEHAVIOR_NEUTRALITY_AND_OBSERVABILITY_COVERAGE`.
+- Accepted live baseline was not touched: installed source `32212a4331e1f32b5a130bd30d271d4cbc56f6c1`, fingerprint `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`, expected MANAGED generation 24.
+- Work was performed in the isolated coordination clone under `%LOCALAPPDATA%\\Temp`; no live OpenClaw state was used.
 
 ## TDD evidence
 
 ### RED
 
-Focused command, run before production implementation:
+After adding the two rework-focused tests, before changing production code:
 
 ```text
-cd plugins/cogentnexus-openclaw
-PATH='C:/Program Files/nodejs':$PATH npm test -- --run src/v091-dashboard-verified-delivery.test.ts
+npm test -- --run src/v091-dashboard-verified-delivery.test.ts
 ```
 
-Observed expected RED result:
+Observed RED:
 
-- Test file: `1 failed` with `6 tests | 4 failed | 2 passed`.
-- The four new failures were the intended missing-observability assertions:
-  - registration/capability diagnostics;
-  - deterministic filter diagnostics;
-  - stage-attempt/stage-staged diagnostics;
-  - second runtime registration diagnostics.
-- Existing semantic tests passed.
-- An initial disposable test setup produced one unhandled cleanup error because `waitForIdle` was not stubbed; this was corrected in test setup only, and the focused RED rerun then failed cleanly with the same four expected assertion failures and no unhandled error.
+- 10 tests collected;
+- 8 passed, 2 failed;
+- both failures were the intended rework assertions: `getQueuedCounts` was evaluated for a non-final/owned-sensitive path, and an unexpected long `info.kind` was not safely bounded before logging.
 
-No production observability code existed when RED was first observed.
+No syntax or setup failure caused the RED result.
 
 ### GREEN
 
-After the minimum implementation and test setup correction:
+After the minimum source correction:
 
 ```text
-PATH='C:/Program Files/nodejs':$PATH npm test -- --run src/v091-dashboard-verified-delivery.test.ts
+npm test -- --run src/v091-dashboard-verified-delivery.test.ts
 ```
 
-Result:
+Observed GREEN:
 
-- `1 passed (1)` test file;
-- `8 passed (8)` tests;
-- no unhandled errors.
+- 1 test file passed;
+- 10 tests passed;
+- exit code 0.
 
-The focused tests cover registration, missing run/dispatcher/callback capability, all deterministic filter reasons, successful staging, non-staged outcome, exception telemetry, duplicate runtime registration, and secret leakage assertions.
+The focused suite covers registration/capability diagnostics, deterministic filter reasons, successful and non-staged staging, exception telemetry, duplicate registration, secret-leak assertions, predecessor guard order, already-owned behavior, and bounded unexpected callback kinds.
 
 ## Implementation
 
 Implementation commit:
 
-`32a6f0a10a98ae52d1a284ee933748f43184b344`
+`fca61704174a7b7bb46598a86992900fb3c83cce`
 
-Parent:
+Parent implementation/rework base:
 
-`123fe71aff8283dd8d2300ce8047a254e519e130`
+`524e171`
 
-Maintained changed files:
+Changed files:
 
 - `plugins/cogentnexus-openclaw/src/v091-dashboard-verified-delivery.ts`
 - `plugins/cogentnexus-openclaw/src/v091-dashboard-verified-delivery.test.ts`
 
-Generated `dist/` is repository-ignored (`.gitignore:19`) and was rebuilt/validated locally; no ignored generated file was committed.
+The source change is limited to the approved verified-delivery observability boundary:
 
-The implementation is behavior-neutral:
+1. `info.kind !== "final"` is checked before `getQueuedCounts()` and downstream work.
+2. `owned` is checked before `getQueuedCounts()` and downstream work.
+3. Non-final kinds are logged as the bounded categories `final`, `delta`, `other`, or `unknown`; unexpected long/synthetic strings are never logged raw.
+4. Exception telemetry is categorical (`sqlite`, `error`, or `unknown`) and never forwards error codes/messages.
+5. The already-owned second callback returns its payload unchanged, emits `already-owned`, and does not create a duplicate durable row.
 
-- existing `reply_dispatch` registration and priority are preserved;
-- existing run/session correlation rules are preserved;
-- existing callback order and `appendBeforeDeliver` behavior are preserved;
-- existing final-kind, text, media and final-count decisions are preserved;
-- existing staging call, transaction behavior, marker construction, waiter, settlement and recovery behavior are preserved;
-- existing successful staging log was made non-identifying by removing the raw Ticket ID from that log message.
+No transaction behavior was altered. Transaction begin/commit phase telemetry was not added because the staging function is a synchronous transaction boundary with several existing early commits and adding callbacks around individual transaction statements would require changing that behavior or introducing a new diagnostics interface. Existing `stage-attempt`, `stage-staged`, `stage-not-staged`, and `stage-exception` observations distinguish the externally relevant stage outcome without modifying transaction semantics.
 
 ## Diagnostic taxonomy
 
-All diagnostics use the stable prefix:
+Stable prefix:
 
 `CogentNexus-OpenClaw delivery-observe`
 
-Structured events now cover:
+Events and safe fields:
 
-| Boundary | Event/reason | Fields |
+| Boundary | Event/reason | Safe fields |
 | --- | --- | --- |
-| hook registration | `hook-registered` | registration count, capability boolean |
-| handler entry | `handler-entry` | event/context run-ID presence, dispatcher/callback capability booleans, truncated digest |
-| handler capability skip | `handler-skip` | `missing-run-correlation`, `missing-dispatcher`, or `missing-append-before-deliver` |
+| runtime hook registration | `hook-registered` | registration count, capability boolean |
+| handler entry | `handler-entry` | run-ID presence booleans, capability booleans, truncated SHA-256 digest |
+| handler capability skip | `handler-skip` | `missing-run-correlation`, `missing-dispatcher`, `missing-append-before-deliver` |
 | callback registration | `callback-registered` | callback capability boolean |
-| callback entry | `callback-entry` | bounded kind, final count, text/media/owned booleans, truncated digest |
-| filter decision | `filter-skip` | `not-final`, `already-owned`, `empty-text`, `media-present`, or `final-count-not-one` |
+| callback entry | `callback-entry` | bounded kind, final count only after predecessor guards, text/media/owned booleans, truncated digest |
+| filter decision | `filter-skip` | `not-final`, `already-owned`, `empty-text`, `media-present`, `final-count-not-one` |
 | stage start | `stage-attempt` | truncated digest and text-present boolean |
-| non-staged return | `stage-not-staged` | existing stage reason only |
+| non-staged return | `stage-not-staged` | existing stage reason enum |
 | staged return | `stage-staged` | truncated digest and owner generation |
-| staging exception | `stage-exception` | safe category and bounded exception name/code |
+| staging exception | `stage-exception` | categorical exception class and normalized category |
 
-Raw prompt text, response text, nonce content, raw run/session IDs, idempotency keys, delivery markers, credentials, tokens, passwords and provider payloads are not emitted by the new diagnostics.
+Raw prompt, response, run/session identifiers, nonce content, idempotency keys, markers, credentials, tokens, passwords, provider payloads, paths, and raw exception messages are not emitted by the new diagnostics.
 
-## Full regression and build evidence
+## Regression and package evidence
 
-Full plugin test command:
+Focused:
 
 ```text
-PATH='C:/Program Files/nodejs':$PATH npm test -- --run
+npm test -- --run src/v091-dashboard-verified-delivery.test.ts
 ```
 
-Result:
+Result: `10 passed (10)`, exit code 0.
 
-- `49 passed (49)` test files;
-- `263 passed (263)` tests;
-- exit code `0`.
-
-Package validation command:
+Full plugin suite:
 
 ```text
-PATH='C:/Program Files/nodejs':$PATH npm run plugin:validate
+npm test -- --run
+```
+
+Result: `49 passed (49) test files`, `265 passed (265) tests`, exit code 0.
+
+Build/package validation:
+
+```text
+npm run plugin:validate
 ```
 
 Result:
@@ -132,48 +129,62 @@ Result:
 - mixed-plugin artifact verification passed (`45` config properties, `5` tools);
 - ticket DB bootstrap passed (`9` required tables plus v0.9.5 registration fence);
 - package contents verification passed;
-- package: `openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz`;
 - packed file count: `176`.
+
+The repository Python regression attempt was not runnable because the Hermes Python environment has no `pytest` module. No installer or Python implementation files were changed; package validation and the complete plugin test suite passed.
 
 ## Production-shaped release-path harness
 
-A disposable harness outside the repository loaded the real `dist/v091-release-entry.js`, registered the full release entry against a temporary managed controller and temporary SQLite state, captured all hooks, invoked the real release-registered reply hooks, and exercised a modeled successful final text-only Dashboard callback.
+A disposable external Node harness loaded the rebuilt `dist/v091-release-entry.js`, created a temporary MANAGED Host controller at generation 24, initialized temporary SQLite state, registered the real release entry, captured registered hooks, invoked the real release-registered `reply_dispatch` hooks, and drove a modeled successful final text-only Dashboard callback.
 
-Verified output:
+Harness result:
 
-- `replyHookCount: 3` across compatibility layers;
-- `beforeDeliverCount: 2`;
-- `deliveryCount: 1` exactly;
-- captured diagnostics included `hook-registered`, `handler-entry`, `callback-registered`, `callback-entry`, `stage-attempt`, and `stage-staged`;
-- native payload behavior remained present, with the verified handler returning the delivery marker payload;
-- no raw `HARNESS_FINAL`, `harness-run`, or synthetic secret values appeared in captured diagnostics;
-- harness assertions and exit code were `0`.
+```json
+{
+  "replyHookCount": 3,
+  "beforeDeliverCount": 2,
+  "deliveryCount": 1,
+  "hasStageAttempt": true,
+  "hasStageStaged": true,
+  "leaks": [],
+  "returnedMarkerPayload": true
+}
+```
 
-The harness used only temporary state and did not access or mutate live SQLite/runtime state.
+Exit code was 0. The harness used only temporary state and did not access or mutate live SQLite/runtime state.
 
 ## Fingerprint and package safety
 
-The accepted payload-v2 helper was used directly from:
+The accepted Task-094/095 payload-v2 helper was run directly:
 
-`skills/cogentnexus-openclaw/scripts/namespace_ownership.py`
+```text
+python skills/cogentnexus-openclaw/scripts/namespace_ownership.py plugin-fingerprint --plugin-root plugins/cogentnexus-openclaw --version 0.9.3
+```
 
-Computed installable payload:
+Final rebuilt payload:
 
 - version: `0.9.3`;
-- file count: `176`;
-- payload-v2 fingerprint: `17005dc88364e2cd24ee0af58e4f690cdb5af03dda1fb840d2048fee3ee2429a`;
-- `package.json.files` set validated;
-- path/reparse safety verification: PASS.
+- installable file count: `176`;
+- payload-v2 fingerprint: `92175edc4d5b52782bfaf40ec8ee6180293342e6c651657dece2a9598e92f2cb`;
+- `package.json.files` and package contents: PASS;
+- reparse/path safety through the accepted fingerprint helper: PASS.
 
-This is a new installable payload and is not the currently installed live fingerprint. Task 104 did not install it.
+This fingerprint is not the currently installed live fingerprint. It was not installed.
 
-## Secret-safety evidence
+## Secret-safety and semantic-equivalence evidence
 
-Focused tests supplied synthetic response, prompt, run-ID, session and media values, then asserted captured diagnostics contained none of those raw values. The release-path harness independently asserted absence of synthetic final text and raw run correlation. Diagnostics contained only bounded booleans, enums/counts, safe category/name fields, and a fixed-length one-way correlation digest.
+Focused tests and the release-path harness supplied synthetic response text, prompt text, run IDs, session values, media values, and exception conditions. Captured diagnostics contained none of the raw synthetic secrets. The bounded-kind test supplied a 5,000-character synthetic kind and verified the logged value was `other`, not the input string.
+
+The predecessor-sensitive test verified:
+
+- non-final callback: `getQueuedCounts` call count remains zero and payload is returned unchanged;
+- first final callback: queued count is evaluated once and staging proceeds;
+- already-owned second final callback: queued count is not re-evaluated, `already-owned` is emitted, and the payload is returned unchanged;
+- existing staging semantics remain one durable row.
 
 ## Zero-live-mutation proof
 
-Task-104 mutation counts:
+Task-104 rework mutation counts:
 
 - Dashboard semantic Send: `0`;
 - provider/model call: `0`;
@@ -182,17 +193,15 @@ Task-104 mutation counts:
 - Gateway/Supervisor restart or reboot: `0`;
 - credential/token/password access or re-entry: `0`;
 - session cleanup/normalization: `0`;
-- source mutation outside isolated coordination clone: `0`;
-- semantic delivery behavior repair: `0`.
-
-Only the isolated repository source/test files were changed, followed by local build/test/package generation and a separate report-only publication.
+- source changes outside the isolated coordination clone: `0`;
+- semantic delivery repair outside observability: `0`.
 
 ## Exact successor recommendation
 
-1. Independent ChatGPT review of implementation commit `32a6f0a10a98ae52d1a284ee933748f43184b344` and report evidence.
-2. If independently accepted, create a separately gated bounded install-over task for the computed payload fingerprint.
-3. After install acceptance and fresh live-state verification, perform one operator-assisted single semantic Dashboard diagnostic retest only; do not send before the next task explicitly authorizes it.
+1. Independent ChatGPT review of implementation commit `fca61704174a7b7bb46598a86992900fb3c83cce` and this report.
+2. If independently accepted, create one separately gated bounded install-over task using fingerprint `92175edc4d5b52782bfaf40ec8ee6180293342e6c651657dece2a9598e92f2cb`.
+3. After install acceptance and fresh live-state verification, perform one operator-assisted single semantic Dashboard diagnostic retest only when explicitly authorized by the successor task.
 
 ## Publication fence
 
-This report is the only file added after the implementation commit. The final implementation-to-report delta is report-only. After remote report/blob and HEAD verification, stop and await independent review.
+This report is to be the only file added after implementation commit `fca61704174a7b7bb46598a86992900fb3c83cce`. The final implementation-to-report delta must be report-only. Verify repository status and ancestry, push the report to `agent/v0.9.3-recovery-reality-tests`, then stop for independent review.
