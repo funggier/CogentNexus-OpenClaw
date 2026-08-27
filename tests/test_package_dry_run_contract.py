@@ -64,3 +64,35 @@ def test_package_dry_run_proves_required_payload_in_stage_and_both_archives():
     assert "tar -tzf" in script
     assert "unzip -Z1" in script or "zipinfo -1" in script
     assert "grep -F" in script or "comm " in script or "diff " in script
+
+
+def test_package_dry_run_records_exact_candidate_provenance_and_uploads_proof():
+    steps = _package_steps()
+    script = "\n".join(str(step.get("run", "")) for step in steps)
+
+    plugin_validate = _index_of_run("npm run plugin:validate")
+    identity = _index_of_run("plugin_payload_identity.py")
+    stage = _index_of_run("rsync -a")
+    assert plugin_validate < identity < stage
+
+    for marker in (
+        "PACKAGE_IDENTITY.json",
+        "GITHUB_SHA",
+        "sourceCommit",
+        "packageVersion",
+        "payloadV2Fingerprint",
+        "payloadFileCount",
+        "archiveSha256",
+        "SHA256SUMS.txt",
+    ):
+        assert marker in script, f"package provenance is missing semantic marker: {marker}"
+
+    uploads = [
+        step for step in steps
+        if str(step.get("uses", "")).startswith("actions/upload-artifact@")
+    ]
+    assert uploads, "package-dry-run must retain the exact package proof as an Actions artifact"
+    assert any(
+        "release" in str(step.get("with", {}).get("path", "")).lower()
+        for step in uploads
+    ), "package proof upload must include the release/provenance directory"
