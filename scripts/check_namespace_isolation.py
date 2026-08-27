@@ -13,7 +13,8 @@ MIGRATION_PATHS = {
     "scripts/install.ps1", "scripts/install.sh",
     "skills/cogentnexus-openclaw/scripts/namespace_ownership.py",
     "tests/test_namespace_ownership.py", "tests/test_namespace_install_contract.py",
-    "tests/test_namespace_lint.py", "docs/releases/v0.9.3.md",
+    "tests/test_namespace_lint.py", "tests/test_upgrade_legacy_mode_isolation_proof.py",
+    "docs/releases/v0.9.3.md",
     "docs/V093_RECOVERY_REALITY_TESTS.md",
     "scripts/test-v093-gateway-convergence-windows.ps1",
     "scripts/test-v093-ollama-recovery-windows-v2.ps1",
@@ -42,6 +43,11 @@ def migration_literal_allowed(relative: str, line: str) -> bool:
         return False
     if relative.startswith("docs/") or relative.startswith("scripts/test-v093-") or relative.startswith("tests/test_namespace_"):
         return True
+    if relative == "tests/test_upgrade_legacy_mode_isolation_proof.py":
+        lowered = line.lower()
+        return any(marker in lowered for marker in (
+            "legacy", ".cogent", "skills/cogentnexus", "cnx.cmd",
+        ))
     lowered = line.lower()
     legacy_literals = (
         "cogentnexus-rotation", "openclaw-plugin-cogentnexus-rotation",
