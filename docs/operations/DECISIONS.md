@@ -6,6 +6,63 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-012 — Explicit OpenClaw security exception and non-frozen real-Windows acceptance
+
+**Date:** 2026-08-28  
+**State:** Active / explicit operator exception
+
+### Decision
+
+For the v0.9.3 stabilization line, retain OpenClaw `2026.7.1-2` as the validated operational baseline and explicitly accept the known upstream high-severity dependency findings in the published OpenClaw dependency graph for the purpose of completing bounded real-Windows acceptance.
+
+This exception does **not** claim that the upstream findings are remediated. In particular, the accepted risk includes the known OpenClaw `2026.7.1-2` shrinkwrap findings involving `brace-expansion` (`GHSA-mh99-v99m-4gvg`) and `fast-uri` (`GHSA-v2hh-gcrm-f6hx`). CogentNexus production-dependency validation continues to require `npm audit --omit=dev` to pass; the exception exists because the full development/install graph reaches OpenClaw's externally published pinned dependency graph.
+
+The operator explicitly authorizes the project to proceed to real-Windows acceptance **without freezing the version/candidate first**. This is a deliberate exception to the previous stabilization ordering that required Phase K candidate freeze before live-machine work.
+
+### Non-frozen provenance rule
+
+Not freezing the version does not permit ambiguous live evidence.
+
+Every real-Windows acceptance execution must pin and record:
+
+- the exact CogentNexus source commit tested;
+- version metadata;
+- payload-v2 fingerprint and file count;
+- archive SHA256 used for installation when applicable;
+- OpenClaw baseline `2026.7.1-2`;
+- commands, exit codes, and durable evidence paths.
+
+The development branch may continue to move, but acceptance evidence applies only to the exact pinned snapshot/artifact that produced it. Any later source or package-affecting change requires new qualification before that newer build can inherit the acceptance claim.
+
+### Authorized live scope
+
+After the pinned snapshot has fresh repository/package proof, a bounded real-Windows acceptance task may perform the lifecycle work required by D-010, including clean uninstall, fresh reinstall from the exact candidate artifact/consumer path, install-over where required, reset confirmation testing, Gateway/provider lifecycle and recovery tests, durable Ticket/Workflow/Delivery verification, and the final Dashboard durable-delivery acceptance scenario.
+
+The task must preserve externally owned OpenClaw and Ollama installations/data unless a separately proven CogentNexus-owned artifact is explicitly in scope. Exact-PID and recovery safety invariants remain in force.
+
+### Boundaries that remain unchanged
+
+This exception does not authorize:
+
+- rebaselining OpenClaw away from `2026.7.1-2`;
+- silently patching or overriding OpenClaw's foundational dependency graph;
+- claiming the accepted upstream vulnerabilities are fixed;
+- rewriting the frozen v0.9.2 historical baseline;
+- force push;
+- merge, tag, or GitHub Release publication.
+
+Release publication remains a separate explicit human action under D-011.
+
+### Why
+
+The CogentNexus repository stabilization gates through Phase J are green, while the remaining high-severity findings originate from the externally published OpenClaw stable baseline rather than from CogentNexus choosing an older top-level dependency graph. Rebaselining to a different OpenClaw runtime would introduce a separate host-compatibility qualification problem. The operator chose to preserve the already-qualified OpenClaw baseline, accept the known upstream risk explicitly, avoid candidate freeze, and complete real-Windows behavioral acceptance first.
+
+### Follow-up
+
+Continue monitoring the OpenClaw stable channel for authoritative remediation. A future supported stable fix can be evaluated as a separate OpenClaw rebaseline/compatibility task rather than silently altering this v0.9.3 acceptance baseline.
+
+---
+
 ## D-011 — Release publication requires an explicit exact-candidate human action
 
 **Date:** 2026-08-28  
