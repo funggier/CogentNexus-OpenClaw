@@ -8,6 +8,7 @@ import { isDashboardSession, sessionAuthority } from "./v090.js";
 import { pulseManagedWorkers } from "./v091-final-entry.js";
 
 const PATCH = Symbol.for("cogentnexus-openclaw.v091.dashboard-verified-delivery");
+const REGISTERED_APIS = new WeakSet<object>();
 
 export type DashboardVerifiedDeliveryConfig = {
   cogentNexusOpenClawRoot?: string;
@@ -274,8 +275,10 @@ function kickHostDelivery(workspace: string, cfg: DashboardVerifiedDeliveryConfi
 /** Supersede the v0.9 Dashboard no-receipt bypass only at the v0.9.1 release boundary. */
 export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVerifiedDeliveryConfig = {}) {
   const prototype = TicketStore.prototype as any;
-  if (prototype[PATCH]) return;
-  Object.defineProperty(prototype, PATCH, { value: true });
+  const needsPrototypePatch = !prototype[PATCH];
+  if (needsPrototypePatch) Object.defineProperty(prototype, PATCH, { value: true });
+
+  if (needsPrototypePatch) {
 
   const finalize = TicketStore.prototype.finalizeDirectRun;
   const confirm = TicketStore.prototype.confirmDirectDelivery;
@@ -324,6 +327,10 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     return recover.call(this, { ...input, now });
   };
 
+  }
+
+  if (typeof api !== "object" || api === null || REGISTERED_APIS.has(api)) return;
+  REGISTERED_APIS.add(api);
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
     const runId = typeof event?.runId === "string" ? event.runId
       : typeof ctx?.runId === "string" ? ctx.runId : undefined;

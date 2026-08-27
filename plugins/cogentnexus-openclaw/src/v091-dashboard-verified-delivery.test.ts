@@ -43,6 +43,18 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       // available. The event itself may not carry runId, so exercise the registered hook
       // exactly that way instead of calling the staging helper directly.
       expect(replyDispatch).toBeTypeOf("function");
+
+      // A legitimate second plugin registration in the same Node process must
+      // receive its own runtime hook even though TicketStore was already patched.
+      let secondReplyDispatch: ((event: any, ctx: any) => void) | undefined;
+      installV091DashboardVerifiedDelivery({
+        on: (name: string, handler: (event: any, ctx: any) => void) => {
+          if (name === "reply_dispatch") secondReplyDispatch = handler;
+        },
+        logger: {},
+      }, { workspaceDir: root, ticketDatabasePath: path });
+      expect(secondReplyDispatch).toBeTypeOf("function");
+
       let beforeDeliver: ((payload: any, info: any) => any) | undefined;
       const dispatcher = {
         appendBeforeDeliver(handler: (payload: any, info: any) => any) {
