@@ -1,6 +1,6 @@
 """CNX-20260826-068 P5 — exact-root deletion boundary.
 
-Rollback/recovery must never walk upward past the exact CogentNexus-owned
+Rollback/recovery must never walk upward past the exact CogentNexus-OpenClaw-owned
 roots. A preexisting shared `<workspace>\\skills` directory must survive.
 """
 from __future__ import annotations
@@ -40,7 +40,6 @@ def test_p5_shared_skills_parent_survives_rollback(tmp_path: Path):
     (sibling / "keep.txt").write_text("keep", encoding="utf-8")
     marker = workspace / ".cogentnexus-openclaw" / namespace_ownership.TRANSACTION_NAME
     marker.parent.mkdir(parents=True, exist_ok=True)
-    # begin via production surface then create residue
     namespace_ownership.begin_fresh_transaction(workspace)
     _residue(workspace)
     result = namespace_ownership.rollback_transaction(workspace, archive=False)
