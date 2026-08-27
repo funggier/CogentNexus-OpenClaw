@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator authorized definitive repair through final live/semantic acceptance and requires fresh-session behavior in final acceptance
@@ -8,108 +8,89 @@
 
 ## Accepted baseline
 
-Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086 and 089 remains in force.
+Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086, 089, 090 and 091 remains in force.
 
-Task 090 completed supported live recovery and remains accepted:
+Task 090 live recovery remains accepted: MANAGED, single canonical loaded plugin, source/live parity at that accepted source, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
 
-- plugin generations converged `2 -> 1` without a third generation;
-- controller MANAGED;
-- startup/Supervisor/AGENTS restored;
-- source/live parity accepted;
-- Gateway/Ollama/SQLite healthy;
-- `NO_FLASH_MULTI_TICK_PROVEN`.
+Task 091 authenticated Dashboard/WebChat owner surface remains accepted without secret disclosure.
 
-Task 091 independently accepted the authenticated Dashboard/WebChat owner surface without secret disclosure:
+## Task 092 accepted blocker
 
-`ACCEPT_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
-
-## Task 092 result
-
-Report HEAD:
-
-`0939c8b0659f0254c754dd7bbf44dc422648c4da`
-
-Reported result:
-
-`BLOCKED_RESPONSE_DELIVERY_COMPLETION`
-
-Independent decision:
-
-`ACCEPT`
-
-Disposition:
+Task 092 proved the first fresh-session path, Ticket-before-provider ordering, one correlated Ollama inference and one visible exact nonce, but durable delivery did not converge because no `cnx_assistant_delivery` row was staged. Independent disposition remains:
 
 `ACCEPT_BLOCKER_DASHBOARD_DURABLE_PAYLOAD_STAGING`
 
-Review:
+Task-092 semantic artifacts are retired evidence and are not to be repaired or reused.
 
-`docs/operations/coordination/reviews/CNX-20260827-092-final-fresh-session-semantic-acceptance.md`
+## Task 093 result and independent review
 
-Publication fence is accepted: Task 092 is one report-only commit from execution HEAD `e1c970d39fead1bae43509ab720731f0229533c0`.
+Implementation:
 
-## What Task 092 proved
+`a924157ecdedef1d4f166d5762529b0d59536fc9`
 
-The first fresh-session path passed materially:
+Report:
 
-- New chat entered a clean staged Dashboard state;
-- session `agent:main:dashboard:76932fbc-9df2-4415-9020-b6c1d7228505` was fresh;
-- no stale/unknown/missing-parent failure;
-- no fallback to prior Main Session;
-- exactly one semantic send;
-- exactly one Ticket/run;
-- Ticket `accepted` and `routed` before correlated provider start;
-- one `ollama/qwen3.5:9b` Direct model call;
-- exact nonce visibly rendered once.
+`62fdd69d2a4a27566c0e986171b949347cf0df68`
 
-Therefore first fresh-session creation and parent resolution are not the current blocker.
-
-The post-completion second New Session check remains outstanding because the Ticket never reached `completed`.
-
-## Current delivery blocker
-
-Task 092 reached `response_ready` but not durable delivery completion:
-
-- durable Direct-result staging row count was zero;
-- `delivery_confirmed_at` remained null;
-- Ticket failed closed as unverifiable rather than regenerating output;
-- no duplicate semantic/provider effect occurred.
-
-The source contract expects the exact Dashboard Direct final text to be durably staged before native visibility. That staging ownership was missing in the live WebChat path.
-
-Strong candidate H1: `installV091DashboardVerifiedDelivery()` uses one prototype `PATCH` guard for both prototype monkey-patching and runtime `reply_dispatch` hook registration. A later legitimate plugin registration in the same process could therefore keep patched TicketStore behavior but lose the staging hook.
-
-Task 093 must prove or falsify that candidate against exact installed OpenClaw `2026.7.1-2` plugin/hook lifetime before source edits. If false, it must inspect the actual WebChat `reply_dispatch` shape and every staging-handler early-return condition.
-
-## Active Task 093
-
-[`tasks/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md`](tasks/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md)
-
-Status: `READY_FOR_HERMES`
-
-Authorization:
-
-`TASK092_DASHBOARD_DELIVERY_STAGING_DIAGNOSIS_AND_REPAIR_AUTHORIZED`
-
-Execution mode:
-
-`SOURCE_TDD_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIR`
-
-Task 093 is source/test-only plus read-only installed-source/log/DB inspection. It must establish one exact root cause, reproduce it with a production-implementation RED, apply one minimal fix, and run the full regression matrix.
-
-## Hard fence
-
-Task 093 sends zero semantic messages and performs zero provider calls/probes.
-
-No live install/reset/repair, plugin-generation mutation, controller/startup/Supervisor/AGENTS/ownership/runtime/config change, provider/model/timeout change or SQLite rewrite is authorized.
-
-Task-092 semantic artifacts are retired and retained as evidence.
-
-## Successor logic
-
-Only independent acceptance of:
+Reported result:
 
 `PASS_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIRED`
 
-may authorize a supported live install-over of the repaired source.
+Independent decision:
 
-Only after that updated source is installed and live parity/MANAGED health are accepted may a new final fresh-session semantic attempt be authorized.
+`REWORK`
+
+Disposition:
+
+`REWORK_PLUGIN_FINGERPRINT_DOES_NOT_ATTEST_RUNTIME_PAYLOAD`
+
+Review:
+
+`docs/operations/coordination/reviews/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md`
+
+Publication fence is valid: execution -> implementation is one source/test commit and implementation -> report is one report-only commit.
+
+## Preserved Task-093 source repair
+
+The root cause is credible: one process-global prototype marker previously suppressed a legitimate later runtime `reply_dispatch` registration. Exact upstream OpenClaw `0790d9f` creates a fresh plugin API and a fresh guarded registration proxy per registration callback, so separating prototype lifetime from per-runtime hook lifetime is consistent with the real host lifecycle.
+
+The Task-093 Dashboard staging source/test commit remains the candidate repair.
+
+## New blocking attestation finding
+
+Production plugin fingerprinting is too narrow.
+
+`namespace_ownership.py::_plugin_payload()` hashes only four files:
+
+- `openclaw.plugin.json`;
+- `package.json`;
+- `scripts/bootstrap-ticket-db.mjs`;
+- `dist/ticket-store.js`.
+
+It does not bind the rest of the installed runtime package. Task 093 changed code that compiles into `dist/v091-dashboard-verified-delivery.js`, yet its recorded fingerprint remained identical to the currently installed pre-fix plugin.
+
+Because `classify-install` uses this fingerprint for `pluginAlreadyExact`, a live successor could incorrectly skip installing the Task-093 repair.
+
+No live install successor is authorized until this fingerprint authority is repaired.
+
+## Pending bounded repair design
+
+The proposed next task is source-only TDD and will make plugin fingerprinting deterministic over the complete installable payload rather than a four-file sample.
+
+The intended fingerprint domain is package-owned runtime content: sorted normalized relative path + file bytes for `package.json`, package manifest/metadata, shipped bootstrap/README files and all `dist/**` runtime files. Development-only `src/**`, tests, `node_modules/**` and transient npm artifacts remain excluded. Unsafe symlinks/path escapes must fail closed.
+
+Required proof includes:
+
+- changing Task-093 runtime JS changes the fingerprint;
+- exact copied/installed payload hashes identically;
+- changed-payload classification becomes `pluginAlreadyExact=false` and actions become install+rollover;
+- exact payload remains no-install/no-rollover;
+- all same-version rollover plan/apply and npm compatibility gates remain green.
+
+## Hard fence while awaiting approval
+
+No Task-094 implementation, live install/reset/repair, generation mutation, semantic message, direct provider probe, model/config/runtime change or Task-092 state rewrite is authorized.
+
+## Successor logic
+
+After explicit operator approval of the bounded design, Task 094 may be published for source-only TDD fingerprint repair. Only independent acceptance of that repair may authorize installing the Task-093 staging fix live and then rerunning final fresh-session semantic acceptance.
