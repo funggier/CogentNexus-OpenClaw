@@ -3,7 +3,7 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized bounded diagnosis/repair of the Dashboard input-focus boundary and continuation through final authenticated semantic acceptance once a reproducible method is proven
+**Human authority:** operator requested a new attempt and previously authorized bounded diagnosis/fix/testing of Dashboard target/input boundaries through final authenticated semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -20,53 +20,76 @@ Accepted plugin fingerprint:
 
 Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-## Task 100 result and review
+## Task 101 result and review
 
-Task 100 report:
+Task 101 report:
 
-`8ad8377750f72fcee69c78fa26a199233f997b5f`
+`d06b1397e032749e5b348d5d1054dc1784d67519`
 
 Independent decision: `ACCEPT`
 
 Disposition:
 
-`ACCEPT_BLOCKER_WINDOWS_FOREGROUND_INPUT_OWNERSHIP`
+`ACCEPT_BLOCKER_TARGET_WINDOW_LIFECYCLE_NOT_ESTABLISHED`
 
-Task 100 publication is one report-only commit from execution `0ac2655418cee76c7de8058f77cd22c29cf931cd`.
+Task 101 publication is exactly one report-only commit from execution `ef4e71628c4b4906f0a26ed4f6673241bb9999bc`.
 
-Task 100 correctly correlated the target session, Firefox window and accessibility composer but could not safely type the sentinel because the exact Firefox/OpenClaw window did not own Windows foreground input focus. Both sentinel attempts left the composer empty and produced no Ticket/provider/delivery effect.
+Task 101 performed zero sentinel/input attempts and zero semantic Sends. Fresh inventory contained no Firefox/OpenClaw target window; a prior automation window id was stale. Therefore the UIA/Win32 input ladder never started.
 
-Root-cause class:
+Accepted root-cause boundary:
 
-`WINDOWS_FOREGROUND_INPUT_OWNERSHIP_NOT_DETERMINISTIC`
+`DASHBOARD_TARGET_WINDOW_LIFECYCLE_NOT_ESTABLISHED`
 
-The operator clarified that the earlier successful manual/Codex test occurred while a newly opened Firefox window still naturally owned focus. This explains why the same click/keyboard sequence was timing-dependent.
+## Active Task 102
 
-## Active Task 101
-
-[`tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md`](tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md)
+[`tasks/CNX-20260827-102-reestablish-dashboard-target-and-final-semantic-acceptance.md`](tasks/CNX-20260827-102-reestablish-dashboard-target-and-final-semantic-acceptance.md)
 
 Execution mode:
 
-`LIVE_BOUNDED_INPUT_ROOT_CAUSE_AND_FINAL_SEMANTIC_ACCEPTANCE`
+`LIVE_TARGET_LIFECYCLE_REESTABLISHMENT_INPUT_DIAGNOSIS_AND_FINAL_SEMANTIC_ACCEPTANCE`
 
 Authorization:
 
-`TASK100_ACCEPTED_OPERATOR_AUTHORIZED_BOUNDED_INPUT_REPAIR_AND_TEST`
+`TASK101_ACCEPTED_OPERATOR_REQUESTED_NEW_ATTEMPT`
 
-Task 101 must test a bounded method ladder and must report which method works or, for each failure, the exact problem and next tested fix:
+## Target lifecycle correction
 
-1. UI Automation / Accessibility direct-edit of the exact `Message Assistant` composer without global keyboard focus;
-2. deterministic Win32 foreground/input-thread handoff, requiring fresh target HWND and exact foreground equality before keystrokes;
-3. one controlled dedicated Firefox window as a positive-control fallback reproducing the earlier natural-focus condition, still requiring foreground verification.
+Task 102 must establish the browser target independently of stale automation identifiers and launcher process assumptions.
 
-Each method may use a unique non-sent sentinel and one state-gated retry. A failed method may advance to the next only after the composer is verified empty and durable semantic state unchanged.
+A Firefox launch may route a `-new-window` request into an existing process and the launching process may terminate. Therefore after any launch/bootstrap Task 102 must rediscover the real top-level browser window from current OS state:
 
-The report must contain:
+- current Firefox processes;
+- visible top-level HWNDs;
+- current PID/title/class/visibility;
+- fresh UIA/accessibility tree;
+- exact Dashboard session state;
+- current `Message Assistant` composer.
+
+The exact target must survive a second fresh rediscovery after a stability wait before any sentinel is typed.
+
+Target bootstrap is limited to two state-gated attempts total. Late target appearance means success/no relaunch. Multiple candidates must be disambiguated rather than multiplied.
+
+Required target token:
+
+`DASHBOARD_LIVE_TARGET_REESTABLISHED`
+
+## Input diagnosis after target is live
+
+Authorized method ladder:
+
+1. focus-independent UIA/accessibility direct edit;
+2. deterministic Win32 foreground/input-thread handoff with exact foreground equality before keyboard input;
+3. controlled natural-focus dedicated Firefox positive control if still safely eligible.
+
+Each method must report its exact capability/failure boundary, tested hypothesis/fix and outcome. Each uses a unique non-sent sentinel and at most one state-gated retry. Moving to another method requires empty composer and unchanged durable semantic state.
+
+Required report sections:
+
+`Target lifecycle diagnosis and results`
 
 `Input method diagnosis and results`
 
-For a passing method it must additionally contain:
+For a passing method:
 
 `Known-working Dashboard input method`
 
@@ -74,25 +97,25 @@ Required input proof token:
 
 `DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN`
 
-If all bounded methods fail:
+If all safe methods fail:
 
 `BLOCKED_ALL_BOUNDED_DASHBOARD_INPUT_METHODS`
 
 ## Final semantic contract
 
-After and only after an input method is proven:
+After and only after input proof and clean baseline:
 
-- create one new `CNXSEM5-...` nonce;
-- put the exact complete prompt in the verified composer with the same proven method;
+- generate one brand-new `CNXSEM6-...` nonce;
+- put and verify the exact complete prompt in the proven composer;
 - Send exactly once, no resend;
-- exactly one new Ticket and route before provider;
-- exactly one correlated `ollama/qwen3.5:9b` call;
-- an active correlated provider call may be observed read-only for up to 25 minutes without changing timeout/model or resending;
-- exact durable final payload staging must precede/meet native delivery boundary;
-- exactly one visible nonce;
-- exact lifecycle `response_ready -> delivery_confirmed -> completed`;
-- no duplicate semantic effect;
-- post-completion New Session continuity with zero additional semantic/provider effect.
+- require exactly one Ticket and one route before provider;
+- require exactly one correlated `ollama/qwen3.5:9b` inference;
+- an actively correlated provider call may be observed read-only for up to 25 minutes;
+- require exact durable final payload staging before/at native delivery;
+- require exactly one visible nonce;
+- require `response_ready -> delivery_confirmed -> completed`;
+- reject duplicate semantic effects;
+- after completion only, prove New Session continuity with zero additional semantic/provider effect.
 
 Required final PASS token:
 
@@ -100,9 +123,11 @@ Required final PASS token:
 
 ## Retry policy
 
-Read-only operations may use up to 3 attempts where useful.
+Read-only operations may use up to 3 attempts when useful.
 
-Within each low-impact pre-send method family: maximum 2 attempts total, with a grace interval and fresh proof before attempt 2. A late effect is success/no retry; ambiguous partial effect blocks retry.
+Target bootstrap: maximum 2 attempts total with grace and fresh process/window evidence before attempt 2.
+
+Within each low-impact input-method family: maximum 2 attempts total with grace + fresh UI/session/durable proof before attempt 2.
 
 Final semantic Send is single-attempt for the entire task.
 
@@ -110,6 +135,4 @@ Final semantic Send is single-attempt for the entire task.
 
 No sent sentinel, historical nonce reuse, second final semantic Send, CLI/channel owner substitute, direct provider probe, synthetic Ticket, install/reset/repair/cleanup, maintained product-source change, product/runtime/config/SQLite mutation, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
 
-Ephemeral UIA/Win32 helpers outside the repo are allowed for this operational test and must not expose secrets or be committed as product code.
-
-Credential values remain private and must not be read, copied, printed, logged, requested or re-entered by the executor.
+Ephemeral UIA/Win32 helpers outside maintained product source are allowed. Credentials remain private and must not be read, copied, printed, logged, requested or re-entered.
