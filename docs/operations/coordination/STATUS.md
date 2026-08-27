@@ -1,28 +1,24 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
+**State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair through final live/semantic acceptance and requires fresh-session behavior in final acceptance
+**Human authority:** operator approved the complete installable-payload fingerprint design and remains authority for definitive repair through final fresh-session semantic acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted baseline
 
 Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086, 089, 090 and 091 remains in force.
 
-Task 090 live recovery remains accepted: MANAGED, single canonical loaded plugin, source/live parity at that accepted source, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
+Task 090 live recovery remains accepted: MANAGED, one canonical loaded plugin, accepted source/live parity, Gateway/Ollama/SQLite healthy and `NO_FLASH_MULTI_TICK_PROVEN`.
 
 Task 091 authenticated Dashboard/WebChat owner surface remains accepted without secret disclosure.
 
-## Task 092 accepted blocker
+Task 092 remains an accepted semantic blocker: first fresh-session creation, Ticket-before-provider ordering, one correlated Ollama inference and one visible nonce passed; durable payload staging did not.
 
-Task 092 proved the first fresh-session path, Ticket-before-provider ordering, one correlated Ollama inference and one visible exact nonce, but durable delivery did not converge because no `cnx_assistant_delivery` row was staged. Independent disposition remains:
+Task-092 semantic artifacts remain retired evidence.
 
-`ACCEPT_BLOCKER_DASHBOARD_DURABLE_PAYLOAD_STAGING`
-
-Task-092 semantic artifacts are retired evidence and are not to be repaired or reused.
-
-## Task 093 result and independent review
+## Task 093 result
 
 Implementation:
 
@@ -36,61 +32,74 @@ Reported result:
 
 `PASS_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIRED`
 
-Independent decision:
-
-`REWORK`
-
-Disposition:
+Independent disposition:
 
 `REWORK_PLUGIN_FINGERPRINT_DOES_NOT_ATTEST_RUNTIME_PAYLOAD`
 
-Review:
+The Task-093 staging repair remains the preserved candidate fix. Exact OpenClaw loader review supports its per-registration API lifetime model.
 
-`docs/operations/coordination/reviews/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md`
+## Why Task 093 cannot be installed yet
 
-Publication fence is valid: execution -> implementation is one source/test commit and implementation -> report is one report-only commit.
+Production plugin fingerprinting is only a four-file sample. It does not bind most installed runtime code.
 
-## Preserved Task-093 source repair
+The Task-093 runtime change compiles into `dist/v091-dashboard-verified-delivery.js`, but the reported fingerprint remained identical to the pre-fix live plugin because that file is outside the current fingerprint domain.
 
-The root cause is credible: one process-global prototype marker previously suppressed a legitimate later runtime `reply_dispatch` registration. Exact upstream OpenClaw `0790d9f` creates a fresh plugin API and a fresh guarded registration proxy per registration callback, so separating prototype lifetime from per-runtime hook lifetime is consistent with the real host lifecycle.
+`classify-install` uses the fingerprint to decide `pluginAlreadyExact`. Therefore the old live plugin can be incorrectly classified as exact and the supported installer can skip the Task-093 package installation.
 
-The Task-093 Dashboard staging source/test commit remains the candidate repair.
+## Operator-approved Task 094 design
 
-## New blocking attestation finding
+The next task uses `package.json` as the installable package contract and fingerprints the complete package-owned payload rather than the repository or a hardcoded runtime-file sample.
 
-Production plugin fingerprinting is too narrow.
+Canonical v2 fingerprint requirements:
 
-`namespace_ownership.py::_plugin_payload()` hashes only four files:
+- include `package.json` plus every safe regular file selected by `package.json.files`;
+- recursively cover all shipped `dist/**` runtime code;
+- cover shipped manifest/bootstrap/README metadata;
+- sort normalized relative POSIX-style paths;
+- hash versioned domain separator + relative path + NUL + exact bytes + NUL;
+- never include absolute installation root;
+- reject traversal, unsafe/symlink path indirection, missing declared content or unsupported package-file patterns;
+- exclude development-only source/tests/node_modules/cache/tarball content not selected by the package contract.
 
-- `openclaw.plugin.json`;
-- `package.json`;
-- `scripts/bootstrap-ticket-db.mjs`;
-- `dist/ticket-store.js`.
+Actual npm 11 and npm 12 packed file path sets must be proven equivalent to the canonical fingerprint payload set. Tarball container bytes are not the attestation authority.
 
-It does not bind the rest of the installed runtime package. Task 093 changed code that compiles into `dist/v091-dashboard-verified-delivery.js`, yet its recorded fingerprint remained identical to the currently installed pre-fix plugin.
+## Active Task 094
 
-Because `classify-install` uses this fingerprint for `pluginAlreadyExact`, a live successor could incorrectly skip installing the Task-093 repair.
+[`tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
 
-No live install successor is authorized until this fingerprint authority is repaired.
+Execution mode:
 
-## Pending bounded repair design
+`SOURCE_TDD_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION`
 
-The proposed next task is source-only TDD and will make plugin fingerprinting deterministic over the complete installable payload rather than a four-file sample.
+Authorization:
 
-The intended fingerprint domain is package-owned runtime content: sorted normalized relative path + file bytes for `package.json`, package manifest/metadata, shipped bootstrap/README files and all `dist/**` runtime files. Development-only `src/**`, tests, `node_modules/**` and transient npm artifacts remain excluded. Unsafe symlinks/path escapes must fail closed.
+`TASK093_DEPLOYMENT_ATTESTATION_REPAIR_AUTHORIZED`
 
-Required proof includes:
+Task 094 must RED the current blind spot before production edits, then preserve the complete classifier/lifecycle/rollover truth tables under the new v2 fingerprint.
 
-- changing Task-093 runtime JS changes the fingerprint;
-- exact copied/installed payload hashes identically;
-- changed-payload classification becomes `pluginAlreadyExact=false` and actions become install+rollover;
-- exact payload remains no-install/no-rollover;
-- all same-version rollover plan/apply and npm compatibility gates remain green.
+Required deployment proof includes:
 
-## Hard fence while awaiting approval
+- Task-093 candidate v2 fingerprint differs from current pre-fix live payload;
+- changed single-generation state => `pluginAlreadyExact=false`, install+rollover;
+- exact state => no install/no rollover;
+- pending two-generation state => rollover-only;
+- same-version rollover source attestation and atomicity/security remain intact;
+- npm 11/npm 12 package behavior remains compatible.
 
-No Task-094 implementation, live install/reset/repair, generation mutation, semantic message, direct provider probe, model/config/runtime change or Task-092 state rewrite is authorized.
+## Hard fence
+
+Task 094 performs no live mutation and sends zero semantic/provider messages.
+
+Only read-only inspection/fingerprinting of the current installed plugin root is allowed for attestation evidence.
+
+No install/reset/repair, generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite change, provider/model/timeout change, reboot, merge, tag or release is authorized.
 
 ## Successor logic
 
-After explicit operator approval of the bounded design, Task 094 may be published for source-only TDD fingerprint repair. Only independent acceptance of that repair may authorize installing the Task-093 staging fix live and then rerunning final fresh-session semantic acceptance.
+Only independent acceptance of:
+
+`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
+
+may authorize a one-shot supported live install-over of the exact accepted Task-093+094 source.
+
+That live installation task must restore and prove MANAGED/source parity/health with zero semantic sends. Only after its independent acceptance may a new final authenticated fresh-session semantic attempt be authorized.
