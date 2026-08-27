@@ -3,7 +3,7 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved state-gated bounded retries, confirmed a currently known-working Dashboard input method, and authorized Task 100 to continue through final authenticated semantic acceptance in the same task
+**Human authority:** operator authorized bounded diagnosis/repair of the Dashboard input-focus boundary and continuation through final authenticated semantic acceptance once a reproducible method is proven
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -20,94 +20,96 @@ Accepted plugin fingerprint:
 
 Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-## Task 099 result
+## Task 100 result and review
 
-Task 099 report:
+Task 100 report:
 
-`d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac`
+`8ad8377750f72fcee69c78fa26a199233f997b5f`
 
-Independent disposition:
+Independent decision: `ACCEPT`
 
-`ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
+Disposition:
 
-Exact target:
+`ACCEPT_BLOCKER_WINDOWS_FOREGROUND_INPUT_OWNERSHIP`
 
-`agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
+Task 100 publication is one report-only commit from execution `0ac2655418cee76c7de8058f77cd22c29cf931cd`.
 
-Task 099 sent zero semantic messages. Its nonce is retired.
+Task 100 correctly correlated the target session, Firefox window and accessibility composer but could not safely type the sentinel because the exact Firefox/OpenClaw window did not own Windows foreground input focus. Both sentinel attempts left the composer empty and produced no Ticket/provider/delivery effect.
 
-The blocker was OS/UI input targeting before send, not a semantic-pipeline regression. Task 092 previously proved Dashboard send -> Ticket -> one Ollama inference -> exact visible reply; Task 093 repaired the later durable staging boundary and Task 096 installed that source live.
+Root-cause class:
 
-## New operator evidence
+`WINDOWS_FOREGROUND_INPUT_OWNERSHIP_NOT_DETERMINISTIC`
 
-The operator has now tested until Codex can type into the actual OpenClaw Dashboard composer and reports that Codex knows the working interaction method.
+The operator clarified that the earlier successful manual/Codex test occurred while a newly opened Firefox window still naturally owned focus. This explains why the same click/keyboard sequence was timing-dependent.
 
-The operator further approved continuing the original semantic acceptance immediately rather than ending Task 100 after readiness proof.
+## Active Task 101
 
-## Active Task 100
-
-[`tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`](tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md)
+[`tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md`](tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md)
 
 Execution mode:
 
-`LIVE_KNOWN_WORKING_DASHBOARD_INPUT_AND_FINAL_SEMANTIC_ACCEPTANCE`
+`LIVE_BOUNDED_INPUT_ROOT_CAUSE_AND_FINAL_SEMANTIC_ACCEPTANCE`
 
 Authorization:
 
-`OPERATOR_APPROVED_KNOWN_WORKING_INPUT_REPRODUCTION_AND_FINAL_SEMANTIC_CONTINUATION`
+`TASK100_ACCEPTED_OPERATOR_AUTHORIZED_BOUNDED_INPUT_REPAIR_AND_TEST`
 
-Task 100 must first reproduce the method that actually works now and publish it under:
+Task 101 must test a bounded method ladder and must report which method works or, for each failure, the exact problem and next tested fix:
+
+1. UI Automation / Accessibility direct-edit of the exact `Message Assistant` composer without global keyboard focus;
+2. deterministic Win32 foreground/input-thread handoff, requiring fresh target HWND and exact foreground equality before keystrokes;
+3. one controlled dedicated Firefox window as a positive-control fallback reproducing the earlier natural-focus condition, still requiring foreground verification.
+
+Each method may use a unique non-sent sentinel and one state-gated retry. A failed method may advance to the next only after the composer is verified empty and durable semantic state unchanged.
+
+The report must contain:
+
+`Input method diagnosis and results`
+
+For a passing method it must additionally contain:
 
 `Known-working Dashboard input method`
 
-The report must record the real non-secret interaction sequence, targeting/focus method, waits/retries if any, proof that keystrokes reach the intended composer, and how the composer is returned to an empty state.
+Required input proof token:
 
-Task 100 may use a non-sent local sentinel `CNXINPUT-READY` to prove input targeting, provided it is never sent and is cleared completely before semantic nonce generation.
+`DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN`
 
-If an existing non-sent test draft is present, do not expose its contents; prove zero Ticket/provider effect, clear it, and re-verify empty composer. If a prior test was actually sent, stop and correlate that semantic effect instead of sending again.
+If all bounded methods fail:
 
-## Final semantic contract inside Task 100
+`BLOCKED_ALL_BOUNDED_DASHBOARD_INPUT_METHODS`
 
-After input-method proof and clean baseline:
+## Final semantic contract
 
-- generate one brand-new `CNXSEM4-...` nonce;
-- send exactly one semantic Dashboard message;
-- no resend exists;
-- require exactly one new Ticket and route before provider;
-- require exactly one `ollama/qwen3.5:9b` inference;
-- require durable final payload staging before native delivery;
-- require exactly one visible nonce;
-- require exact lifecycle `response_ready -> delivery_confirmed -> completed`;
-- reject duplicate Ticket/route/provider/outbox/reply/promotion effects;
-- after durable completion only, prove New Session continuity with zero additional semantic/provider effect.
+After and only after an input method is proven:
 
-Required method token:
+- create one new `CNXSEM5-...` nonce;
+- put the exact complete prompt in the verified composer with the same proven method;
+- Send exactly once, no resend;
+- exactly one new Ticket and route before provider;
+- exactly one correlated `ollama/qwen3.5:9b` call;
+- an active correlated provider call may be observed read-only for up to 25 minutes without changing timeout/model or resending;
+- exact durable final payload staging must precede/meet native delivery boundary;
+- exactly one visible nonce;
+- exact lifecycle `response_ready -> delivery_confirmed -> completed`;
+- no duplicate semantic effect;
+- post-completion New Session continuity with zero additional semantic/provider effect.
 
-`DASHBOARD_KNOWN_WORKING_INPUT_METHOD_PROVEN`
-
-Required final success token:
+Required final PASS token:
 
 `PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
 
-## Retry policy v1
+## Retry policy
 
-- read-only operations: maximum 3 attempts total;
-- low-impact focus/click/activation/non-sent typing/clearing: maximum 2 attempts total after grace + fresh state proof;
-- if attempt 1 appears late, treat it as success and do not retry;
-- ambiguous/partial state is not retryable;
-- semantic Send remains one attempt only;
-- post-completion New Session may use state-gated retry for session management only.
+Read-only operations may use up to 3 attempts where useful.
+
+Within each low-impact pre-send method family: maximum 2 attempts total, with a grace interval and fresh proof before attempt 2. A late effect is success/no retry; ambiguous partial effect blocks retry.
+
+Final semantic Send is single-attempt for the entire task.
 
 ## Hard fence
 
-No second semantic send, Task-099 nonce reuse, CLI/channel substitute, direct provider/Ollama probe, synthetic Ticket creation, install/reset/repair/cleanup, session normalization, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, prior-evidence rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
+No sent sentinel, historical nonce reuse, second final semantic Send, CLI/channel owner substitute, direct provider probe, synthetic Ticket, install/reset/repair/cleanup, maintained product-source change, product/runtime/config/SQLite mutation, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
 
-Credential values must not be read, copied, printed, logged, requested or re-entered by the executor.
+Ephemeral UIA/Win32 helpers outside the repo are allowed for this operational test and must not expose secrets or be committed as product code.
 
-## Publication and final gate
-
-Task 100 publishes exactly one report-only commit at:
-
-`docs/operations/coordination/reports/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`
-
-Only independent review of that report and publication fence may close final OpenClaw semantic acceptance. A visible correct reply without durable staging, delivery confirmation and terminal completion remains a failure.
+Credential values remain private and must not be read, copied, printed, logged, requested or re-entered by the executor.
