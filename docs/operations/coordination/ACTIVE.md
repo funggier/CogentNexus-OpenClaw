@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_AND_READ_ONLY_LIVE_DASHBOARD_STAGING_DIAGNOSIS`
-Current authorization: `OPERATOR_APPROVED_DIAGNOSIS_ONLY_NO_SEMANTIC_RESEND`
-Task ID: `CNX-20260827-103`
+Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
+Execution mode: `REDACTED_LIVE_HOOK_OBSERVABILITY_PENDING_APPROVAL`
+Current authorization: `NO_NEW_SEMANTIC_SEND_OR_PRODUCT_IMPLEMENTATION_AUTHORIZED`
+Task ID: `PENDING_CNX-20260827-104`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator continuation
+Executor: Hermes/Codex after operator design approval
 
 ## Authoritative coordination files
 
@@ -17,85 +17,106 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Operator approval
+## Task 103 independent review
 
-The operator explicitly approved the bounded Task-103 diagnosis design after Task 102 reproduced the live durable-staging blocker.
+Task 103 report:
 
-No operator action is expected during Task 103. If a diagnostic step unexpectedly requires manual focus/click/authentication/send/restart or another operator mutation, the executor must stop before that step and report the exact required operator action.
+`6e271242318db90b6ad1d27cca35971e40a065e4`
 
-## Task 102 accepted blocker
+Decision:
 
-Task 102 report:
+`ACCEPT`
 
-`4d23875f4c402cf47109439ebd6b6b5eb72e131b`
+Disposition:
 
-Independent disposition:
+`ACCEPT_BLOCKER_LIVE_HOOK_BOUNDARY_REQUIRES_REDACTED_OBSERVABILITY`
 
-`ACCEPT_BLOCKER_LIVE_DURABLE_PAYLOAD_STAGING_REPRODUCED_AFTER_REPAIR`
+Review:
 
-Task 102 removed the Dashboard input ambiguity and proved the operator-assisted input method. Its one semantic Send produced exactly one new Ticket, one expected `ollama/qwen3.5:9b` Direct inference and one visible exact nonce reply, but durable staging remained absent:
+[`reviews/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`](reviews/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md)
 
-- Ticket `CNXT-415b82d9-5553-4bd2-996a-54f57163f7e4`;
-- `response_ready_at` present;
-- `delivery_confirmed_at = null`;
-- `cnx_assistant_delivery = 0`;
-- no `delivery_confirmed`;
-- no `completed`.
+Independent publication-fence verification confirms execution `7c1a1aa722a22a726cd67f7dafc3a4c5b55b7c61` -> report `6e271242318db90b6ad1d27cca35971e40a065e4` is exactly one report-only commit.
 
-Task-102 semantic artifacts are retired. Do not resend, replay, repair or clean them.
+## What Task 103 proved
 
-## Active Task 103
+H1 and H2 are eliminated:
 
-[`tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`](tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md)
+- repository source, dist, package manifest and installed live runtime were byte/content consistent at the active plugin boundary;
+- the active v0.9.1 release entry registers the verified-delivery installer;
+- a disposable production-shaped release-registration harness captures the verified `reply_dispatch` handler and can create one durable `cnx_assistant_delivery` row with the modeled callback shape.
 
-Goal: identify the first exact failing boundary that allows visible Dashboard delivery without creating the durable `cnx_assistant_delivery` staging row.
+The exact OpenClaw 2026.7.1-2 runtime/type contract statically provides `reply_dispatch`, run correlation, dispatcher access and `appendBeforeDeliver`.
 
-Task 103 must diagnose, not fix, the boundary among:
+The remaining live Task-102 evidence cannot safely choose among H3/H4/H5/H6 because no guaranteed live telemetry captured:
 
-- installed/source/dist/runtime payload mismatch;
-- verified-delivery installer not registered;
-- real Dashboard path bypassing `reply_dispatch`;
-- real `reply_dispatch` event/context shape differing from the unit-test mock;
-- final-payload/cardinality/session/correlation filter skipping staging;
-- staging function/write failing before durable commit.
+- verified handler entry;
+- append-before-deliver callback entry;
+- actual live filter inputs/reason;
+- stage return reason;
+- staging exception/transaction outcome.
 
-Required evidence includes:
+Therefore Task 103 correctly reported:
 
-- repository source -> build/dist -> packed payload -> installed live plugin -> active release-entry parity;
-- exact OpenClaw `2026.7.1-2 (0790d9f)` hook/runtime/type contract;
-- read-only correlation against the preserved Task-102 run/log window;
-- a production-shaped source-only/disposable reproduction through the real release registration boundary where safely possible;
-- explicit H1-H6 disposition and one root-cause token or `BLOCKED_ROOT_CAUSE_NOT_YET_ISOLATED`.
+`BLOCKED_ROOT_CAUSE_NOT_YET_ISOLATED`
 
-## Accepted live baseline
+No delivery-logic fix is authorized yet.
 
-Exact installed source:
+## Pending Task 104 bounded design
 
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
+Classification: bounded observability change to the existing verified Dashboard delivery path.
 
-Exact installed plugin fingerprint:
+Proposed behavior:
 
-`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
+1. add narrowly scoped redacted diagnostics around `installV091DashboardVerifiedDelivery` / `reply_dispatch` / `appendBeforeDeliver` / `stageDashboardDirectResult`;
+2. record only booleans, enumerated reasons, counts, exception class/name and stable hashed correlation IDs;
+3. never record prompt text, assistant payload text, nonce content, credentials, tokens, provider payloads or secret values;
+4. distinguish at minimum:
+   - handler registered/entered;
+   - run correlation present/missing;
+   - dispatcher and `appendBeforeDeliver` availability;
+   - before-deliver callback entry;
+   - `info.kind`;
+   - queued final count;
+   - text-present/media-present booleans;
+   - explicit filter skip reason;
+   - stage entered;
+   - stage non-staged reason;
+   - transaction begin/commit outcome;
+   - exception class/name;
+5. observability must not alter routing, eligibility, staging text/marker, settlement, retry/fail-closed behavior, provider/model selection or timing semantics;
+6. TDD/source tests must prove redaction and every diagnostic branch through the real release-registration path;
+7. build/dist/package fingerprint impact must be reported before any install-over;
+8. Task 104 itself should implement and verify source observability only. A live semantic retest remains a successor gate unless the operator separately approves combining installation/retest.
 
-Expected live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
+Suggested Task-104 result token:
 
-## Hard fence
+`PASS_REDACTED_DASHBOARD_DELIVERY_OBSERVABILITY_READY`
 
-Task 103 authorizes read-only live/runtime/source inspection and disposable isolated diagnostic harnesses only.
+## Operator assistance
 
-It does **not** authorize:
+No operator action is required while the Task-104 source observability change is developed/tested.
 
-- a new semantic nonce or Dashboard Send;
-- sent sentinel or Task-102 replay;
-- direct provider probe;
-- synthetic live Ticket;
-- live SQLite/config/runtime mutation;
-- maintained product-source/test fix;
-- install/install-over/uninstall/reset/cleanup;
-- session cleanup/normalization;
-- model/provider/timeout change;
-- Gateway/Supervisor restart or reboot;
-- credential/token/password access or re-entry;
-- merge/tag/release/force push.
+A later live semantic retest will likely require the already-proven manual handoff:
 
-After root cause is proven, Task 103 must report a minimal successor repair design and stop. Implementation requires a separate approved task.
+- keep/open the authenticated Firefox Dashboard;
+- wait until Codex identifies the exact target composer;
+- manually click the exact `Message Assistant` composer once when instructed;
+- avoid clicking elsewhere until Codex re-verifies foreground/input ownership;
+- perform no Send unless explicitly instructed for the one authorized semantic attempt.
+
+Coordination must notify the operator immediately before any such manual step.
+
+## Hard fence pending approval
+
+Until the operator approves the bounded Task-104 design:
+
+- do not create/run Task 104 implementation;
+- no product-source/test edits;
+- no new semantic nonce or Dashboard Send;
+- do not reuse Task-102 semantic artifacts;
+- no provider probe;
+- no install/install-over/uninstall/reset/cleanup;
+- no live SQLite/config/runtime mutation;
+- no restart/reboot;
+- no credential/token/password access or re-entry;
+- no merge/tag/release/force push.
