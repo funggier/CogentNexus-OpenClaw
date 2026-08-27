@@ -135,6 +135,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
@@ -162,6 +165,27 @@ jobs:
       - name: Validate built plugin payload
         working-directory: plugins/cogentnexus-openclaw
         run: npm run plugin:validate
+      - name: Compute payload-v2 identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/release"
+          mkdir -p "$out"
+          python skills/cogentnexus-openclaw/scripts/plugin_payload_identity.py \
+            --plugin-root plugins/cogentnexus-openclaw \
+            --version 0.9.3 > "$out/PAYLOAD_IDENTITY.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          target = Path(os.environ["RUNNER_TEMP"]) / "release" / "PAYLOAD_IDENTITY.json"
+          payload = json.loads(target.read_text(encoding="utf-8"))
+          assert payload["version"] == "0.9.3"
+          assert isinstance(payload["fileCount"], int) and payload["fileCount"] > 0
+          assert isinstance(payload["fingerprint"], str) and len(payload["fingerprint"]) == 64
+          print(json.dumps(payload, sort_keys=True))
+          PY
       - name: Build and verify release archives without publishing
         shell: bash
         run: |
@@ -195,3 +219,63 @@ jobs:
           test -s "$out/$name.tar.gz"
           test -s "$out/$name.zip"
           test -s "$out/SHA256SUMS.txt"
+      - name: Record exact package provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          out = Path(os.environ["RUNNER_TEMP"]) / "release"
+          identity = json.loads((out / "PAYLOAD_IDENTITY.json").read_text(encoding="utf-8"))
+          source_sha = os.environ["GITHUB_SHA"]
+          package_version = Path("VERSION").read_text(encoding="utf-8").strip()
+          if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+              raise SystemExit("GITHUB_SHA is not an exact 40-hex source commit")
+          if package_version != "0.9.3" or identity.get("version") != package_version:
+              raise SystemExit("package provenance version mismatch")
+          fingerprint = identity.get("fingerprint")
+          file_count = identity.get("fileCount")
+          if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+              raise SystemExit("payload-v2 fingerprint is not an exact SHA256")
+          if not isinstance(file_count, int) or file_count <= 0:
+              raise SystemExit("payload file count is invalid")
+
+          archive_sha256 = {}
+          for line in (out / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
+              digest, filename = line.split(maxsplit=1)
+              filename = filename.lstrip("*")
+              if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                  raise SystemExit(f"invalid archive SHA256 for {filename}")
+              archive_sha256[filename] = digest
+          expected = {
+              "cogentnexus-openclaw-v0.9.3.tar.gz",
+              "cogentnexus-openclaw-v0.9.3.zip",
+          }
+          if set(archive_sha256) != expected:
+              raise SystemExit("archive SHA256 set is incomplete")
+
+          provenance = {
+              "sourceCommit": source_sha,
+              "packageVersion": package_version,
+              "payloadV2Fingerprint": fingerprint,
+              "payloadFileCount": file_count,
+              "archiveSha256": {
+                  name: archive_sha256[name] for name in sorted(archive_sha256)
+              },
+          }
+          target = out / "PACKAGE_IDENTITY.json"
+          target.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(target.read_text(encoding="utf-8"), end="")
+          PY
+          test -s "$RUNNER_TEMP/release/PACKAGE_IDENTITY.json"
+      - name: Retain package proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: cogentnexus-openclaw-v0.9.3-package-proof-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 14
