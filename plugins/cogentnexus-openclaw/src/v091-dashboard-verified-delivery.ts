@@ -9,6 +9,25 @@ import { pulseManagedWorkers } from "./v091-final-entry.js";
 
 const PATCH = Symbol.for("cogentnexus-openclaw.v091.dashboard-verified-delivery");
 const REGISTERED_APIS = new WeakSet<object>();
+let OBSERVATION_REGISTRATION_COUNT = 0;
+
+type DeliveryObservationLogger = { info?: (message: string) => void };
+
+function observeDelivery(logger: DeliveryObservationLogger | undefined, event: string, fields: Record<string, unknown> = {}) {
+  try { logger?.info?.(`CogentNexus-OpenClaw delivery-observe ${JSON.stringify({ event, ...fields })}`); } catch {}
+}
+
+function correlationDigest(event: unknown, context: unknown) {
+  const runId = typeof (event as any)?.runId === "string" ? (event as any).runId
+    : typeof (context as any)?.runId === "string" ? (context as any).runId : "";
+  const sessionKey = typeof (event as any)?.sessionKey === "string" ? (event as any).sessionKey : "";
+  return runId || sessionKey ? createHash("sha256").update(`${runId}\\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
+}
+
+function exceptionCategory(error: unknown) {
+  if (error && typeof error === "object" && typeof (error as any).code === "string") return String((error as any).code).slice(0, 40);
+  return error instanceof Error && error.name ? error.name.slice(0, 40) : "unknown";
+}
 
 export type DashboardVerifiedDeliveryConfig = {
   cogentNexusOpenClawRoot?: string;
@@ -332,29 +351,79 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
   if (typeof api !== "object" || api === null || REGISTERED_APIS.has(api)) return;
   REGISTERED_APIS.add(api);
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
-    const runId = typeof event?.runId === "string" ? event.runId
-      : typeof ctx?.runId === "string" ? ctx.runId : undefined;
-    if (!runId || typeof ctx?.dispatcher?.appendBeforeDeliver !== "function") return;
+    const hasEventRunId = typeof event?.runId === "string";
+    const hasContextRunId = typeof ctx?.runId === "string";
+    const hasDispatcher = Boolean(ctx?.dispatcher);
+    const hasAppendBeforeDeliver = typeof ctx?.dispatcher?.appendBeforeDeliver === "function";
+    const runId = hasEventRunId ? event.runId : hasContextRunId ? ctx.runId : undefined;
+    observeDelivery(api.logger, "handler-entry", {
+      hasEventRunId, hasContextRunId, hasDispatcher, hasAppendBeforeDeliver,
+      correlation: correlationDigest(event, ctx),
+    });
+    if (!runId) {
+      observeDelivery(api.logger, "handler-skip", { reason: "missing-run-correlation" });
+      return;
+    }
+    if (!hasDispatcher) {
+      observeDelivery(api.logger, "handler-skip", { reason: "missing-dispatcher" });
+      return;
+    }
+    if (!hasAppendBeforeDeliver) {
+      observeDelivery(api.logger, "handler-skip", { reason: "missing-append-before-deliver" });
+      return;
+    }
     let owned = false;
     let waiterStarted = false;
     const workspace = resolve(cfg.workspaceDir ?? process.cwd());
     const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
 
     ctx.dispatcher.appendBeforeDeliver((payload: any, info: any) => {
-      if (info?.kind !== "final" || owned) return payload;
-      const text = typeof payload?.text === "string" ? payload.text.trim() : "";
       const finalCount = Number(ctx.dispatcher.getQueuedCounts?.().final ?? 1);
+      const hasText = typeof payload?.text === "string" && payload.text.trim().length > 0;
       const hasMedia = Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0));
-      // Exact replay currently owns only the normal one-text-final Dashboard case. Rich or
-      // multi-final replies remain on OpenClaw's native receipt-confirmed path rather than
-      // pretending a partial payload is durably replayable.
-      if (!text || hasMedia || finalCount !== 1) return payload;
+      observeDelivery(api.logger, "callback-entry", {
+        kind: typeof info?.kind === "string" ? info.kind : "unknown",
+        finalCount, hasText, hasMedia, alreadyOwned: owned,
+        correlation: correlationDigest(event, ctx),
+      });
+      if (info?.kind !== "final") {
+        observeDelivery(api.logger, "filter-skip", { reason: "not-final" });
+        return payload;
+      }
+      if (owned) {
+        observeDelivery(api.logger, "filter-skip", { reason: "already-owned" });
+        return payload;
+      }
+      if (!hasText) {
+        observeDelivery(api.logger, "filter-skip", { reason: "empty-text" });
+        return payload;
+      }
+      if (hasMedia) {
+        observeDelivery(api.logger, "filter-skip", { reason: "media-present" });
+        return payload;
+      }
+      if (finalCount !== 1) {
+        observeDelivery(api.logger, "filter-skip", { reason: "final-count-not-one" });
+        return payload;
+      }
 
-      const staged = stageDashboardDirectResult(path, { runId, text });
-      if (!staged.staged) return payload;
+      const text = payload.text.trim();
+      observeDelivery(api.logger, "stage-attempt", { correlation: correlationDigest(event, ctx), hasText: true });
+      let staged: ReturnType<typeof stageDashboardDirectResult>;
+      try {
+        staged = stageDashboardDirectResult(path, { runId, text });
+      } catch (error) {
+        observeDelivery(api.logger, "stage-exception", { category: "stage", exception: exceptionCategory(error) });
+        throw error;
+      }
+      if (!staged.staged) {
+        observeDelivery(api.logger, "stage-not-staged", { reason: staged.reason ?? "unknown" });
+        return payload;
+      }
+      observeDelivery(api.logger, "stage-staged", { correlation: correlationDigest(event, ctx), ownerGeneration: staged.ownerGeneration ?? null });
       owned = true;
       pulseManagedWorkers(); // arm the 30s durable-delivery retry deadline before transport
-      api.logger?.info?.(`CogentNexus-OpenClaw durably staged Dashboard Direct result ${staged.ticketId} before native delivery`);
+      api.logger?.info?.("CogentNexus-OpenClaw durably staged Dashboard Direct result before native delivery");
 
       if (!waiterStarted) {
         waiterStarted = true;
@@ -381,5 +450,8 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
       }
       return { ...payload, text: staged.nativeText };
     });
+    observeDelivery(api.logger, "callback-registered", { hasAppendBeforeDeliver: true });
   }, { priority: 600 });
+  OBSERVATION_REGISTRATION_COUNT += 1;
+  observeDelivery(api.logger, "hook-registered", { registrationCount: OBSERVATION_REGISTRATION_COUNT, hasReplyDispatch: true });
 }

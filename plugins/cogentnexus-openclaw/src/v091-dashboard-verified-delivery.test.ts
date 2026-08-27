@@ -182,6 +182,124 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     }
   });
 
+  it("emits redacted registration and capability diagnostics", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-entry-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const logs: string[] = [];
+      const handlers: any[] = [];
+      installV091DashboardVerifiedDelivery({
+        on: (name: string, handler: any) => { if (name === "reply_dispatch") handlers.push(handler); },
+        logger: { info: (message: string) => logs.push(String(message)) },
+      }, { workspaceDir: root, ticketDatabasePath: path });
+      expect(logs.some((line) => line.includes('event":"hook-registered'))).toBe(true);
+      expect(handlers).toHaveLength(1);
+      handlers[0]({}, { dispatcher: {} });
+      expect(logs.some((line) => line.includes('reason":"missing-run-correlation'))).toBe(true);
+      handlers[0]({ runId: "raw-run-secret" }, { dispatcher: {} });
+      expect(logs.some((line) => line.includes('reason":"missing-append-before-deliver'))).toBe(true);
+      expect(logs.join("\\n")).not.toContain("raw-run-secret");
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("emits deterministic redacted filter diagnostics for final callbacks", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-filter-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const logs: string[] = [];
+      let handler: any;
+      installV091DashboardVerifiedDelivery({
+        on: (_name: string, registered: any) => { handler = registered; },
+        logger: { info: (message: string) => logs.push(String(message)) },
+      }, { workspaceDir: root, ticketDatabasePath: path });
+      const callbacks: any[] = [];
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 2 }), waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "filter-run-secret" }, { dispatcher });
+      callbacks[0]({ text: "response-secret" }, { kind: "final" });
+      expect(logs.some((line) => line.includes('reason":"final-count-not-one'))).toBe(true);
+      expect(logs.join("\\n")).not.toContain("filter-run-secret");
+      expect(logs.join("\\n")).not.toContain("response-secret");
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("emits stage attempt and staged diagnostics without changing staging semantics", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-stage-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const store = new TicketStore(path);
+      const sessionKey = "agent:main:dashboard:observe";
+      sessionAuthority(path, sessionKey);
+      const ticket = store.accept({ runId: "stage-run-secret", ownerSessionKey: sessionKey, prompt: "prompt-secret" });
+      store.route(ticket.ticketId, false);
+      const logs: string[] = [];
+      let handler: any;
+      installV091DashboardVerifiedDelivery({
+        on: (_name: string, registered: any) => { handler = registered; },
+        logger: { info: (message: string) => logs.push(String(message)) },
+      }, { workspaceDir: root, ticketDatabasePath: path });
+      const callbacks: any[] = [];
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "stage-run-secret" }, { dispatcher });
+      const output = callbacks[0]({ text: "response-secret" }, { kind: "final" });
+      expect(output.text).toContain("response-secret");
+      expect(logs.some((line) => line.includes('event":"stage-attempt'))).toBe(true);
+      expect(logs.some((line) => line.includes('event":"stage-staged'))).toBe(true);
+      expect(logs.join("\\n")).not.toContain("stage-run-secret");
+      expect(logs.join("\\n")).not.toContain("response-secret");
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("keeps a second runtime API registration observable and independently hooked", () => {
+    const logs: string[] = [];
+    const hooks: any[] = [];
+    const api = (logger: any) => ({
+      on: (name: string, handler: any) => { if (name === "reply_dispatch") hooks.push(handler); },
+      logger,
+    });
+    installV091DashboardVerifiedDelivery(api({ info: (message: string) => logs.push(String(message)) }));
+    installV091DashboardVerifiedDelivery(api({ info: (message: string) => logs.push(String(message)) }));
+    expect(hooks).toHaveLength(2);
+    expect(logs.filter((line) => line.includes('event":"hook-registered')).length).toBe(2);
+  });
+
+  it("emits every deterministic filter reason without leaking callback data", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-reasons-"));
+    try {
+      const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
+      let handler: any;
+      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "reasons-run-secret" }, { dispatcher });
+      callbacks[0]({}, { kind: "delta" }); callbacks[0]({}, { kind: "final" });
+      callbacks[0]({ text: "media-secret", mediaUrl: "https://example.invalid/media" }, { kind: "final" });
+      const multi: any[] = []; const multiDispatcher = { appendBeforeDeliver: (fn: any) => multi.push(fn), getQueuedCounts: () => ({ final: 2 }), waitForIdle: () => new Promise<void>(() => {}) };
+      let second: any; installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { second = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      second({ runId: "multi-run-secret" }, { dispatcher: multiDispatcher }); multi[0]({ text: "multi-secret" }, { kind: "final" });
+      for (const reason of ["not-final", "empty-text", "media-present", "final-count-not-one"]) expect(logs.some((line) => line.includes(`reason\":\"${reason}`))).toBe(true);
+      expect(logs.join("\\n")).not.toMatch(/reasons-run-secret|multi-run-secret|media-secret|multi-secret/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("emits non-staged and exception diagnostics with safe categories", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-errors-"));
+    try {
+      const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
+      let handler: any; installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) };
+      handler({ runId: "missing-ticket-secret" }, { dispatcher }); callbacks[0]({ text: "not-staged-secret" }, { kind: "final" });
+      expect(logs.some((line) => line.includes('reason\":\"not-dashboard-direct'))).toBe(true);
+      const store = new TicketStore(path); const sessionKey = "agent:main:dashboard:exception"; sessionAuthority(path, sessionKey);
+      const ticket = store.accept({ runId: "exception-run-secret", ownerSessionKey: sessionKey, prompt: "exception-prompt-secret" }); store.route(ticket.ticketId, false);
+      stageDashboardDirectResult(path, { runId: "exception-run-secret", text: "old-response-secret" });
+      const exceptionCallbacks: any[] = []; let exceptionHandler: any;
+      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { exceptionHandler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      exceptionHandler({ runId: "exception-run-secret" }, { dispatcher: { appendBeforeDeliver: (fn: any) => exceptionCallbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) } });
+      expect(() => exceptionCallbacks[0]({ text: "new-response-secret" }, { kind: "final" })).toThrow();
+      expect(logs.some((line) => line.includes('event\":\"stage-exception'))).toBe(true);
+      expect(logs.join("\\n")).not.toMatch(/exception-run-secret|exception-prompt-secret|old-response-secret|new-response-secret/);
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
   it("does not claim durable replay ownership for non-Dashboard Direct tickets", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-external-delivery-"));
     try {
