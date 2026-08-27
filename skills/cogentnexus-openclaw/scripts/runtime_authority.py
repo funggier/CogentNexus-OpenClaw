@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """CogentNexus-OpenClaw owned-runtime authority.
 
-Establishes one stable, product-owned Python runtime under the CogentNexus
+Establishes one stable, product-owned Python runtime under the CogentNexus-OpenClaw
 application-data boundary so durable launcher/startup execution never depends
 on an ambient PATH Python or a registration-time executor venv.
 
 Contract (Task CNX-20260825-064):
 - ``app_data_root(env)`` derives the exact product root from the LOCALAPPDATA
-  base: ``<LOCALAPPDATA>\\CogentNexus-OpenClaw``.
+  base: ``<LOCALAPPDATA>\CogentNexus-OpenClaw``.
 - ``runtime_root_from_application_data(root)`` accepts an ALREADY-EXACT product
-  root and appends only ``runtime\\python``. The two forms must never be mixed;
+  root and appends only ``runtime\python``. The two forms must never be mixed;
   no API/CLI argument ambiguously means both.
 - The system/base Python remains an installation prerequisite; this module
   provisions a product-owned virtual environment from a verified non-venv base
@@ -41,11 +41,11 @@ def creation_flags() -> int:
 
 
 def app_data_root(env: dict[str, str] | None = None) -> Path:
-    """Derive the exact CogentNexus product root from a LOCALAPPDATA base."""
+    """Derive the exact CogentNexus-OpenClaw product root from a LOCALAPPDATA base."""
     values = env if env is not None else dict(os.environ)
     local = values.get("LOCALAPPDATA")
     if not local:
-        raise RuntimeProvisioningError("LOCALAPPDATA is not set; cannot resolve CogentNexus application-data boundary")
+        raise RuntimeProvisioningError("LOCALAPPDATA is not set; cannot resolve CogentNexus-OpenClaw application-data boundary")
     return Path(local) / PRODUCT_DIR_NAME
 
 
@@ -168,7 +168,6 @@ def validate_runtime(manifest: dict[str, Any] | None, application_data_root: Pat
             resolved = interp.resolve()
         except Exception:
             return False
-        # ancestry check: <app-root>/runtime/python/<Scripts>/<exe>
         try:
             resolved.relative_to(expected_runtime.resolve())
         except ValueError:
@@ -197,9 +196,6 @@ def ensure_runtime(
     exact_app_root = root.parents[1]
     existing = provisioned_manifest(exact_app_root)
     if not force and validate_runtime(existing, exact_app_root):
-        # Reuse requires capability proof of BOTH interpreters, not file
-        # existence alone (Task CNX-20260825-065 B6): a broken pythonw.exe
-        # must never be accepted as healthy merely because the file exists.
         _probe_foreground(Path(existing["foregroundInterpreter"]))
         _probe_background(Path(existing["backgroundInterpreter"]), sentinel_dir=root.parent)
         return existing
@@ -212,7 +208,7 @@ def ensure_runtime(
     )
     if create.returncode != 0:
         raise RuntimeProvisioningError(
-            f"failed to provision CogentNexus-owned runtime at {root}: {create.stderr.strip()[:400]}"
+            f"failed to provision CogentNexus-OpenClaw-owned runtime at {root}: {create.stderr.strip()[:400]}"
         )
 
     foreground, background = _interpreter_paths(root)
@@ -246,7 +242,7 @@ def require_background_interpreter(application_data_root: Path | str | None = No
     manifest = provisioned_manifest(application_data_root or app_data_root())
     if not validate_runtime(manifest, application_data_root or app_data_root()):
         raise RuntimeProvisioningError(
-            "CogentNexus-owned runtime is missing or invalid; run the installer to provision it"
+            "CogentNexus-OpenClaw-owned runtime is missing or invalid; run the installer to provision it"
         )
     return Path(manifest["backgroundInterpreter"])
 
@@ -256,7 +252,7 @@ def require_foreground_interpreter(application_data_root: Path | str | None = No
     manifest = provisioned_manifest(application_data_root or app_data_root())
     if not validate_runtime(manifest, application_data_root or app_data_root()):
         raise RuntimeProvisioningError(
-            "CogentNexus-owned runtime is missing or invalid; run the installer to provision it"
+            "CogentNexus-OpenClaw-owned runtime is missing or invalid; run the installer to provision it"
         )
     return Path(manifest["foregroundInterpreter"])
 
@@ -264,11 +260,11 @@ def require_foreground_interpreter(application_data_root: Path | str | None = No
 def _cli(argv: list[str]) -> int:
     import argparse
 
-    parser = argparse.ArgumentParser(description="CogentNexus owned-runtime authority")
+    parser = argparse.ArgumentParser(description="CogentNexus-OpenClaw owned-runtime authority")
     sub = parser.add_subparsers(dest="command", required=True)
     ensure = sub.add_parser("ensure-runtime", help="provision/verify the owned runtime")
     ensure.add_argument("--application-data-root", default=None,
-                        help="EXACT CogentNexus product application-data root")
+                        help="EXACT CogentNexus-OpenClaw product application-data root")
     ensure.add_argument("--force", action="store_true")
     show = sub.add_parser("show", help="print current runtime manifest as JSON")
     show.add_argument("--application-data-root", default=None)
