@@ -1,20 +1,61 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
-    branches:
-      - "release/v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact release version without the v prefix (for example 0.9.3)"
+        required: true
+        type: string
+      candidate_sha:
+        description: "Exact 40-hex candidate commit already proven by CI"
+        required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
 
 jobs:
   package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      candidate_sha: ${{ steps.release.outputs.candidate_sha }}
     steps:
+      - name: Validate release request
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "candidate_sha must be an exact lowercase 40-hex commit SHA" >&2
+            exit 1
+          fi
+          if [[ ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must be an exact X.Y.Z release version" >&2
+            exit 1
+          fi
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify checked out candidate identity
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          actual_sha=$(git rev-parse HEAD)
+          test "$actual_sha" = "$CANDIDATE_SHA"
       - name: Verify CogentNexus-OpenClaw namespace isolation
         run: python scripts/check_namespace_isolation.py
       - uses: actions/setup-python@v6
@@ -44,15 +85,20 @@ jobs:
           skills/cogentnexus-openclaw/scripts/checks.py
           skills/cogentnexus-openclaw/scripts/checks_v092.py
           skills/cogentnexus-openclaw/scripts/cnxclaw.py
+          skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py
+          skills/cogentnexus-openclaw/scripts/provider_v093.py
           skills/cogentnexus-openclaw/scripts/openclaw_route_v092.py
           skills/cogentnexus-openclaw/scripts/openclaw_runtime_boundary_v092.py
+          skills/cogentnexus-openclaw/scripts/provider_events_v092.py
           skills/cogentnexus-openclaw/scripts/provider_recovery_v092.py
           skills/cogentnexus-openclaw/scripts/host_provider_v092.py
           skills/cogentnexus-openclaw/scripts/host_v092.py
           skills/cogentnexus-openclaw/scripts/host_control_v092.py
           skills/cogentnexus-openclaw/scripts/startup_v092.py
           skills/cogentnexus-openclaw/scripts/lifecycle_v092.py
-      - run: python -m unittest discover -s tests -v
+          skills/cogentnexus-openclaw/scripts/namespace_ownership.py
+          skills/cogentnexus-openclaw/scripts/plugin_payload_identity.py
+      - run: python -m pytest -q
       - name: Test plugin path migration helper
         shell: bash
         run: |
@@ -69,59 +115,106 @@ jobs:
         working-directory: plugins/cogentnexus-openclaw
       - run: npm run plugin:validate
         working-directory: plugins/cogentnexus-openclaw
-      - name: Resolve release tag
-        id: release
+      - name: Verify exact release metadata
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            tag="$GITHUB_REF_NAME"
-          else
-            tag="${GITHUB_REF_NAME#release/}"
-          fi
-          [[ "$tag" == v* ]]
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - name: Verify CogentNexus-OpenClaw release metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          expected="${{ steps.release.outputs.tag }}"
-          expected="${expected#v}"
           version_file=$(tr -d '\r\n' < VERSION)
           package_version=$(node -p "require('./plugins/cogentnexus-openclaw/package.json').version")
           manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-openclaw/openclaw.plugin.json')).version")
           lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
           lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
-          test "$expected" = "$version_file"
-          test "$package_version" = "$manifest_version"
-          test "$package_version" = "$lock_version"
-          test "$package_version" = "$lock_root_version"
+          test "$REQUESTED_VERSION" = "$version_file"
+          test "$REQUESTED_VERSION" = "$package_version"
+          test "$REQUESTED_VERSION" = "$manifest_version"
+          test "$REQUESTED_VERSION" = "$lock_version"
+          test "$REQUESTED_VERSION" = "$lock_root_version"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
           test -s docs/BASELINE.md
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
-          test -s "docs/releases/v${expected}.md"
-      - name: Build release archives
+          test -s "docs/releases/v${REQUESTED_VERSION}.md"
+      - name: Resolve exact release identity
+        id: release
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
         run: |
           set -euo pipefail
-          tag="${{ steps.release.outputs.tag }}"
+          echo "tag=v${REQUESTED_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "candidate_sha=${CANDIDATE_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Build and verify release archives
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v${REQUESTED_VERSION}"
           name="cogentnexus-openclaw-$tag"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
+          required=(
+            "plugins/cogentnexus-openclaw/dist/v091-release-entry.js"
+            "plugins/cogentnexus-openclaw/scripts/bootstrap-ticket-db.mjs"
+            "plugins/cogentnexus-openclaw/openclaw.plugin.json"
+            "plugins/cogentnexus-openclaw/README.md"
+            "plugins/cogentnexus-openclaw/package.json"
+          )
           mkdir -p "$stage" "$out"
           rsync -a --exclude '.git/' --exclude '.cogentnexus-openclaw/' --exclude 'node_modules/' ./ "$stage/"
+          for rel in "${required[@]}"; do
+            test -f "$stage/$rel"
+          done
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
           (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          (cd "$out" && sha256sum -c SHA256SUMS.txt)
+          tar -tzf "$out/$name.tar.gz" > "$out/tar-contents.txt"
+          unzip -Z1 "$out/$name.zip" > "$out/zip-contents.txt"
+          for rel in "${required[@]}"; do
+            grep -Fx "$name/$rel" "$out/tar-contents.txt"
+            grep -Fx "$name/$rel" "$out/zip-contents.txt"
+          done
+          cp "docs/releases/$tag.md" "$out/RELEASE_NOTES.md"
+          test -s "$out/RELEASE_NOTES.md"
+      - name: Stage validated release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets-${{ inputs.version }}-${{ inputs.candidate_sha }}
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release assets
+        uses: actions/download-artifact@v5
+        with:
+          name: release-assets-${{ inputs.version }}-${{ inputs.candidate_sha }}
+          path: ${{ runner.temp }}/release
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.package.outputs.tag }}
+          CANDIDATE_SHA: ${{ needs.package.outputs.candidate_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          tag="${{ steps.release.outputs.tag }}"
+          tag="$TAG"
           name="cogentnexus-openclaw-$tag"
-          notes="docs/releases/$tag.md"
+          notes="$RUNNER_TEMP/release/RELEASE_NOTES.md"
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Validated candidate SHA output is malformed; refusing publication." >&2
+            exit 1
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists; refusing duplicate publication."
             exit 1
@@ -131,8 +224,10 @@ jobs:
             "$RUNNER_TEMP/release/$name.zip"
             "$RUNNER_TEMP/release/SHA256SUMS.txt"
           )
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            gh release create "$tag" "${common[@]}" --verify-tag --notes-file "$notes" --title "CogentNexus-OpenClaw $tag"
-          else
-            gh release create "$tag" "${common[@]}" --target "$GITHUB_SHA" --notes-file "$notes" --title "CogentNexus-OpenClaw $tag"
-          fi
+          for asset in "${common[@]}" "$notes"; do
+            test -s "$asset"
+          done
+          gh release create "$tag" "${common[@]}" \
+            --target "$CANDIDATE_SHA" \
+            --notes-file "$notes" \
+            --title "CogentNexus-OpenClaw $tag"
