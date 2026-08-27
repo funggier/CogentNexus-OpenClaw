@@ -29,8 +29,8 @@ jobs:
           from pathlib import Path
           path = Path("scripts/install.ps1")
           data = path.read_bytes()
-          old = b"# Fresh install is allowed only when no CogentNexus-owned runtime is present."
-          new = b"# Fresh install is allowed only when no CogentNexus-OpenClaw-owned runtime is present."
+          old = b'if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }'
+          new = b'if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw-owned runtime provisioning failed; refusing to install." }'
           if data.count(old) != 1:
               raise SystemExit(f"expected exactly one namespace wording target, found {data.count(old)}")
           path.write_bytes(data.replace(old, new))
