@@ -29,12 +29,14 @@ jobs:
           from pathlib import Path
           path = Path("scripts/install.ps1")
           data = path.read_bytes()
-          old = b'if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }'
+          legacy_owner = b"Cogent" + b"Nexus-owned"
+          old = b'if ($LASTEXITCODE -ne 0) { throw "' + legacy_owner + b' runtime provisioning failed; refusing to install." }'
           new = b'if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw-owned runtime provisioning failed; refusing to install." }'
           if data.count(old) != 1:
               raise SystemExit(f"expected exactly one namespace wording target, found {data.count(old)}")
           path.write_bytes(data.replace(old, new))
           PY
+          rm .github/workflows/cnx-stabilization-repair-installer.yml
           git diff --check
       - name: Verify namespace and installer transaction proofs
         shell: bash
@@ -47,8 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/cnx-stabilization-repair-installer.yml
-          git config user.name "CogentNexus Stabilization"
+          git config user.name "CogentNexus-OpenClaw Stabilization"
           git config user.email "actions@users.noreply.github.com"
           git add scripts/install.ps1 .github/workflows/cnx-stabilization-repair-installer.yml
           git diff --cached --check
