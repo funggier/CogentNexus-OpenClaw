@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_WINDOWS_REPARSE_POINT_ATTESTATION_REPAIR`
-Current authorization: `TASK094_WINDOWS_REPARSE_BOUNDARY_REPAIR_AUTHORIZED`
-Task ID: `CNX-20260827-095`
+Execution mode: `LIVE_ONE_SHOT_SUPPORTED_INSTALL_TASK093_095_SOURCE`
+Current authorization: `TASK095_ACCEPTED_ONE_SHOT_LIVE_INSTALL_AUTHORIZED`
+Task ID: `CNX-20260827-096`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,83 +19,85 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md`](tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md)
+[`tasks/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md`](tasks/CNX-20260827-096-live-install-repaired-staging-and-restore-parity.md)
 
-## Operator approval
+## Task 095 accepted
 
-The operator approved the bounded Windows reparse-point hardening design after Task 094 independent review.
+Implementation:
 
-## Task 094 review carried forward
+`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
 
-Task 094 implementation:
+Report:
 
-`3313930064123867ad760908a77b498f3bad029a`
+`1e66f8f563b9809cb823fdcd6ea69987a49861ad`
 
-Task 094 report:
-
-`0902c3c50fb1a46adfa9b8df86495fa521d01719`
-
-Independent decision:
-
-`REWORK`
+Independent decision: `ACCEPT`
 
 Disposition:
 
-`REWORK_WINDOWS_REPARSE_POINT_INDIRECTION_NOT_REJECTED`
+`ACCEPT_WINDOWS_REPARSE_POINT_PAYLOAD_ATTESTATION_REPAIRED`
 
 Review:
 
-[`reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
+[`reviews/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md`](reviews/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md)
 
-Task-094 publication fence remains accepted.
+Publication fence is accepted. Task 095 closes the Windows junction/reparse-point gap while preserving Task-094 v2 fingerprint semantics and the Task-093 Dashboard durable-staging repair.
 
-## Preserved implementation
+## Exact deploy source
 
-Do not redesign the Task-094 complete installable-payload v2 fingerprint. Preserve:
+Task 096 must deploy exactly:
 
-- `package.json.files` + `package.json` authority;
-- all shipped `dist/**` runtime coverage;
-- normalized relative path + exact bytes under the existing v2 SHA-256 domain;
-- root-location independence;
-- npm11/npm12 packed-set equivalence;
-- classifier/rollover integration;
-- Task-093 Dashboard durable-staging repair.
+`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
 
-## Task 095 exact target
+Do not deploy a report/review/coordination HEAD.
 
-Current v2 enumeration rejects `os.path.islink(path)` but does not prove rejection of all Windows junction/reparse-point forms.
+Task-095 reported candidate v2 fingerprint:
 
-Task 095 must RED a real Windows junction/reparse fixture before production edits, then apply one minimal filesystem-indirection predicate that rejects symlinks and Windows reparse points before any file/directory traversal.
+`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-The check must apply to both declared package entries and recursively discovered children. It must not follow/allow a junction merely because the resolved target is inside the package root.
+Recompute it before mutation rather than trusting old evidence.
 
-## Required preservation proofs
+## Task 096 one-shot contract
 
-Task 095 must retain:
+Exactly one supported normal install-over is authorized.
 
-- fingerprint v2 algorithm/framing unchanged;
-- ordinary package root-copy fingerprint equality;
-- runtime byte/path sensitivity;
-- npm11/npm12 package-set equivalence;
-- changed/exact/pending classifier/action truth tables;
-- Task-084/085/086 rollover security/atomicity;
-- Task-089 PowerShell action/AST boundaries;
-- Task-093 Dashboard staging regressions.
+Before mutation Task 096 must prove with the real production classifier and action boundary:
+
+- one coherent currently installed generation;
+- live pre-Task093 payload v2 fingerprint differs from candidate;
+- `mode=upgrade`;
+- `pendingRollover=false`;
+- `pluginAlreadyExact=false`;
+- `installPlugin=true`;
+- `rolloverPlugin=true`.
+
+The one supported installer must then prove actual npm-pack package installation and ownership-safe rollover, converge to exactly one candidate-exact generation, restore MANAGED/startup/Supervisor/AGENTS/ownership/source parity and preserve unrelated OpenClaw/Ollama state.
+
+Task 092 retired semantic Ticket/run/session/transcript evidence must remain unchanged. Do not assume Ticket count is zero; snapshot and prove Task 096 creates no new semantic rows.
 
 ## Hard live/semantic fence
 
-Task 095 is source/test-only.
+Authorized live effect: exactly one normal supported install-over from the exact implementation SHA.
 
-No install/install-over/uninstall/reset/cleanup, plugin-generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, semantic message, provider probe, model/timeout change, Task-092 record repair, restart/reboot, merge/tag/release is authorized.
+No retry, manual plugin lifecycle repair, manual generation deletion/move, ownership rewrite, reset/uninstall/cleanup, SQLite mutation, Task-092 repair, provider/model/timeout change, reboot, merge/tag/release or force push.
 
-Task-092 semantic artifacts remain retired evidence.
+Task 096 sends zero semantic messages and performs zero direct Ollama/provider inference/probes.
+
+## Required post-install gates
+
+For PASS Task 096 must prove:
+
+- real package install happened; not an already-exact no-op;
+- final one-generation source/live v2 parity;
+- MANAGED/startup/Supervisor/AGENTS/ownership/Gateway/SQLite/Ollama health;
+- Task-092 retired evidence unchanged and no new semantic/provider activity;
+- at least five natural PT1M ticks with `NO_FLASH_MULTI_TICK_REPROVEN`;
+- authenticated Dashboard owner/control readiness with no send, token `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`.
 
 ## Successor gate
 
 Only independent acceptance of:
 
-`PASS_WINDOWS_REPARSE_POINT_PAYLOAD_ATTESTATION_REPAIRED`
+`PASS_REPAIRED_STAGING_LIVE_INSTALLED_PARITY_READY`
 
-may authorize one supported live install-over of the exact Task-093+094+095 source.
-
-That future live task sends zero semantic messages. Only after live MANAGED/source parity/health are independently accepted may one new final authenticated fresh-session semantic attempt be authorized.
+may authorize one new final authenticated fresh-session semantic attempt. That future task must use one brand-new nonce once, prove a genuinely fresh session, Ticket-before-provider ordering, durable payload staging, delivery settlement to `completed`, and a second New Session transition with no additional semantic/provider effect.
