@@ -156,6 +156,13 @@ jobs:
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
           test -s docs/releases/v0.9.3.md
+      - name: Build and validate plugin payload
+        working-directory: plugins/cogentnexus-openclaw
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run plugin:validate
       - name: Build and verify release archives without publishing
         shell: bash
         run: |
@@ -163,13 +170,28 @@ jobs:
           name="cogentnexus-openclaw-v0.9.3"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
+          required=(
+            "plugins/cogentnexus-openclaw/dist/v091-release-entry.js"
+            "plugins/cogentnexus-openclaw/scripts/bootstrap-ticket-db.mjs"
+            "plugins/cogentnexus-openclaw/openclaw.plugin.json"
+            "plugins/cogentnexus-openclaw/README.md"
+            "plugins/cogentnexus-openclaw/package.json"
+          )
           mkdir -p "$stage" "$out"
           rsync -a --exclude '.git/' --exclude '.cogentnexus-openclaw/' --exclude 'node_modules/' ./ "$stage/"
+          for rel in "${required[@]}"; do
+            test -f "$stage/$rel"
+          done
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
           (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
           (cd "$out" && sha256sum -c SHA256SUMS.txt)
-          tar -tzf "$out/$name.tar.gz" >/dev/null
+          tar -tzf "$out/$name.tar.gz" > "$out/tar-contents.txt"
+          unzip -Z1 "$out/$name.zip" > "$out/zip-contents.txt"
+          for rel in "${required[@]}"; do
+            grep -Fx "$name/$rel" "$out/tar-contents.txt"
+            grep -Fx "$name/$rel" "$out/zip-contents.txt"
+          done
           unzip -tq "$out/$name.zip"
           test -s "$out/$name.tar.gz"
           test -s "$out/$name.zip"
