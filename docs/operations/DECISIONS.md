@@ -6,6 +6,39 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
+## D-011 — Release publication requires an explicit exact-candidate human action
+
+**Date:** 2026-08-28  
+**State:** Active
+
+### Decision
+
+GitHub Release publication is a separate manual action and must not be reachable merely because a development, tag, or `release/v*` branch is pushed.
+
+The release workflow uses explicit `workflow_dispatch` inputs for the requested version and exact candidate SHA. It must fail closed unless the checked-out candidate SHA and release metadata agree with those inputs.
+
+Candidate validation/build executes with read-only repository contents permission and without persisted checkout credentials. The separate publish job receives write permission only after the validated release proof artifact is produced.
+
+### Required fences
+
+- validate candidate SHA shape before checkout;
+- checkout and verify the exact requested candidate SHA;
+- require requested version, `VERSION`, package version, manifest version, lock version, and release notes to agree;
+- preserve a duplicate-release fence using `gh release view` before `gh release create`;
+- publish assets only from the previously validated package job;
+- target the exact requested candidate SHA;
+- never treat branch push CI/package proof as authorization to publish.
+
+### Why
+
+The previous release workflow accepted both tag pushes and `release/v*` branch pushes, so ordinary branch activity could reach `gh release create`. That collapsed candidate preparation and public publication into the same automation boundary.
+
+### Safety consequence
+
+Repository stabilization may inspect and test the release workflow but must not dispatch it. Merge, tag, and release publication remain explicit human-controlled decisions after the exact candidate and required acceptance evidence are reviewed.
+
+---
+
 ## D-010 — v1.0.0 requires real-Windows lifecycle acceptance
 
 **Date:** 2026-08-22  
