@@ -1,92 +1,100 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**As of:** 2026-08-21  
-**Core version:** 0.9.3
-**OpenClaw Bridge package:** 0.9.3
+**Development line:** v0.9.3  
+**Core version:** 0.9.3  
+**OpenClaw Bridge package:** 0.9.3  
+**Validated OpenClaw:** `2026.7.1-2`  
+**Managed provider:** **Ollama only**  
 **Accepted Recovery Core:** `eadb89099637d24f96e265a500d66c577aa939a3`  
-**Validated OpenClaw:** `2026.7.1-2`
+**Published historical release:** v0.9.2  
+**v0.9.3 publication state:** development candidate; not yet a GitHub Release
 
 ## Classification
 
-CogentNexus-OpenClaw v0.9.3 is **operationally usable for general single-node managed use** on the validated Windows/OpenClaw/Ollama stack once release installation gates pass. The accepted Recovery Core remains the authority for Ticket admission, Direct recovery, durable-result ownership, and delivery.
+CogentNexus-OpenClaw v0.9.3 is the current development line. Its operator-facing managed provider surface is **Ollama only**. The accepted Recovery Core remains the historical technical checkpoint for Ticket admission, Direct recovery, durable-result ownership, and delivery behavior, while current v0.9.3 source, tests, packaging, and documentation are being stabilized as one candidate before real-machine acceptance.
 
-v0.9.2 adds provider-neutral local lifecycle support, durable selected-provider/transition state, LM Studio adapters, and read-only system pre-flight checks without rewriting the accepted Recovery Core.
+The v0.9.2 provider-neutral Ollama/LM Studio implementation remains frozen historical evidence and compatibility code. It is not the current v0.9.3 managed-provider contract.
 
-LM Studio lifecycle support is implemented and repository-tested, but has not yet received the same target-machine live acceptance as Ollama. Treat that as a provider-specific acceptance boundary, not as a change to the Core recovery guarantees.
+## Current capability boundary
 
-## Accepted capability boundary
-
-| Capability | State |
+| Capability | v0.9.3 state |
 | --- | --- |
-| Ticket-first durable admission | Accepted |
-| Fresh-install base + managed runtime DB bootstrap before MANAGED | Implemented / release-gated |
-| DIRECT lane without forced workflow promotion | Accepted |
-| Host-owned managed recovery authority | Accepted |
-| Gateway/provider stop/restart recovery path (Ollama baseline) | Accepted |
-| Original provider/model recovery provenance | Accepted |
-| Native OpenClaw restart ownership fence | Accepted |
-| Recursive recovery intake suppression | Accepted |
-| Same-session duplicate Ticket suppression | Accepted |
-| Transient SQLite BUSY authority-read tolerance | Accepted |
-| Single recovery inference attempt in Test A v16 | Accepted |
-| Response-ready immutability | Accepted |
-| One durable direct result | Accepted |
-| Delivery confirmation / exactly-once-ish CNXCLAW delivery | Accepted |
-| PASSTHROUGH design / native OpenClaw compatibility mode | Implemented |
-| MAINTENANCE deliberate-stop semantics | Implemented |
-| Durable selected provider (`ollama` / `lmstudio`) | Implemented / release-gated |
-| Interrupted provider-transition resume marker | Implemented / unit-tested |
-| LM Studio discovery/start/stop/readiness adapter | Implemented / unit-tested; live acceptance pending |
-| Provider-neutral Direct-stall lifecycle translation | Implemented / unit-tested; Ollama live Core remains accepted baseline |
-| `cnxclaw check system` aircraft-style pre-flight | Implemented / read-only invariant tested |
-| Component checks under `cnxclaw check ...` | Implemented |
+| Ticket-first durable admission | Accepted Recovery Core / current validation |
+| DIRECT lane without forced workflow promotion | Accepted Recovery Core / current validation |
+| Host-owned managed recovery authority | Accepted Recovery Core / current validation |
+| Gateway/Ollama lifecycle and recovery path | Current managed contract |
+| Managed provider | **Ollama only** |
+| Validated OpenClaw | `2026.7.1-2` |
+| Original provider/model recovery provenance | Accepted / current validation |
+| Native OpenClaw restart ownership fence | Accepted / current validation |
+| Recursive recovery intake suppression | Accepted / current validation |
+| Same-session duplicate Ticket suppression | Accepted / current validation |
+| Transient SQLite BUSY authority-read tolerance | Accepted / current validation |
+| Response-ready immutability | Accepted / current validation |
+| Durable direct result and delivery confirmation | Accepted / current validation |
+| PASSTHROUGH / native OpenClaw compatibility mode | Implemented / repository-gated |
+| MAINTENANCE deliberate-stop semantics | Implemented / repository-gated |
+| Read-only `cnxclaw check ...` | Implemented / repository-gated |
 | Real power-loss/cold-boot acceptance | Deferred |
-| Newer OpenClaw version compatibility | Deferred |
+| Newer OpenClaw compatibility | Deferred |
 | High-concurrency/long-soak hardening | Not fully accepted |
-| Disk-full / DB corruption recovery | Not production-hardened |
+| Disk-full / DB-corruption recovery | Not production-hardened |
 | Exactly-once arbitrary external side effects | Requires adapter idempotency/verification |
 
 ## Provider state semantics
 
-A successful `start --provider <name>` commits `selectedProvider` only after provider + Gateway verification. `start`/`restart` without a provider reuse the last successfully selected provider.
+Current v0.9.3 lifecycle operations target Ollama. Explicit `--provider ollama` remains accepted, and provider-bearing lifecycle operations without an explicit provider are normalized to Ollama by the v0.9.3 facade.
 
-A provider switch writes `providerTransition` before lifecycle mutation. If the process or machine dies before selection commit, the next start resumes the transition target instead of silently falling back.
-
-`stop`, `disable`, restart and reboot preserve the selected provider. `reset` returns to fresh provider-selection semantics; when both Ollama and LM Studio are installed, reset requires an explicit provider choice.
+Historical v0.9.2 selected-provider/transition state can remain relevant during migration and native restoration. That compatibility requirement does not re-open LM Studio as a current v0.9.3 managed provider.
 
 ## System-check semantics
 
-`cnxclaw check ...` is observational only. It does not start/restart processes, mutate provider selection, repair runtime state, rewrite config, mutate the Ticket DB, or execute model inference.
+`cnxclaw check ...` is observational only. It does not start/restart processes, mutate provider state, repair runtime state, rewrite OpenClaw configuration, mutate the Ticket DB, or execute model inference.
 
-`check system` reports `READY`, `READY_WITH_WARNINGS`, `NOT_READY`, or `INDETERMINATE` and uses stable exit codes 0/1/2/3.
+Current examples:
 
-## Test A v16 evidence summary
+```powershell
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd check provider
+.\cnxclaw.cmd check provider ollama
+```
 
-The accepted live recovery scenario demonstrated:
+`check system` reports `READY`, `READY_WITH_WARNINGS`, `NOT_READY`, or `INDETERMINATE` with stable exit codes 0/1/2/3.
+
+## Accepted Recovery Core evidence
+
+The accepted live Test A v16 checkpoint demonstrated:
 
 1. one original durable Ticket for the exact user prompt;
-2. `workflow_eligible=0` with no generic workflow promotion;
-3. Host timeout authority committed before recovery;
-4. recovery on the original `ollama/qwen3.5:9b` route;
-5. one Direct Recovery attempt and no retry event;
+2. no generic workflow promotion for the tested Direct path;
+3. Host recovery authority committed before recovery;
+4. recovery on the original Ollama/model route;
+5. one Direct Recovery attempt and no competing native-restart inference;
 6. no SQLite lock error escaping the authority watcher;
 7. no recursive self-intake or same-session extra Ticket;
-8. native restart suppression only for the exact durable CNX-owned continuation;
-9. one `response_ready`, one `direct_result`, one confirmed delivery;
-10. clean post-recovery session/temp state.
+8. one response-ready boundary, one durable result, and confirmed delivery.
 
-v0.9.2 intentionally layers provider selection/preflight above this accepted behavior. It does not reopen the Ticket/result/delivery classifier.
+That checkpoint is historical technical evidence. It is not by itself the final v0.9.3 release acceptance.
+
+## Repository stabilization boundary
+
+Before the real Windows machine is touched, v0.9.3 must have coherent source/tests/docs/CI/package/release policy and a frozen exact candidate containing:
+
+- exact commit SHA;
+- version;
+- plugin payload-v2 fingerprint;
+- payload file count;
+- archive SHA256;
+- GitHub Actions evidence.
+
+If source changes after freeze, the candidate identity changes and a new candidate cycle is required.
 
 ## Operational interpretation
 
-For ordinary conversation, research, coding assistance, file/tool work, and other reversible or verifiable tasks, this baseline can be used normally with CNXCLAW MANAGED mode after installation and `cnxclaw check system` report an acceptable readiness state.
+Current repository work must not be interpreted as permission to mutate the live Windows CNXCLAW installation. Clean uninstall, fresh reinstall, install-over, reset, runtime acceptance, and the final Dashboard semantic/durable-delivery probe belong to the separate live acceptance phase after the repository candidate is frozen.
 
 For irreversible external effects, do not infer exactly-once execution solely from a completed CNXCLAW Ticket. External systems should expose idempotency keys, receipts, read-after-write verification, or another durable reconciliation mechanism.
 
-## Frozen-core rule
+## Historical boundary
 
-Do not modify the accepted Recovery Core merely for cleanup or refactoring. Change it only when new failure evidence, a compatibility requirement, or an explicit feature requirement justifies reopening the boundary.
-
-## Deferred acceptance
-
-LM Studio live acceptance, power-loss/cold-boot testing, and OpenClaw-version migration testing are intentionally deferred. Their absence is a known scope boundary, not evidence that the accepted Test A recovery path failed.
+v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may preserve LM Studio and older provider-neutral behavior when that is what actually occurred. Living v0.9.3 operator documentation must not present those historical capabilities as current managed behavior.
