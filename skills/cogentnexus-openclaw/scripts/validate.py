@@ -14,7 +14,7 @@ EXPECTED = [
     "references/context-continuity.md", "references/scheduler-adapters.md", "references/startup-policy.md",
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
     "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/startup.py", "scripts/workflow.py", "scripts/validate_templates.py",
-    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnxclaw.py",
+    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnxclaw.py", "scripts/provider_v093.py", "scripts/cnxclaw_v093.py",
     "scripts/openclaw_route_v092.py", "scripts/openclaw_runtime_boundary_v092.py", "scripts/provider_recovery_v092.py",
     "scripts/host_provider_v092.py", "scripts/host_v092.py", "scripts/host_control_v092.py", "scripts/startup_v092.py", "scripts/lifecycle_v092.py",
     "assets/task-state-template.json", "assets/execution-manifest-template.md", "assets/lesson-template.md",
@@ -28,7 +28,7 @@ EXPECTED = [
 PYTHON_FILES = [
     "scripts/task_state.py", "scripts/cogent.py", "scripts/artifact_manifest.py",
     "scripts/capability_registry.py", "scripts/recovery_controller.py", "scripts/runtime.py", "scripts/startup.py", "scripts/workflow.py", "scripts/validate_templates.py",
-    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnxclaw.py",
+    "scripts/provider.py", "scripts/checks.py", "scripts/checks_v092.py", "scripts/cnxclaw.py", "scripts/provider_v093.py", "scripts/cnxclaw_v093.py",
     "scripts/openclaw_route_v092.py", "scripts/openclaw_runtime_boundary_v092.py", "scripts/provider_recovery_v092.py",
     "scripts/host_provider_v092.py", "scripts/host_v092.py", "scripts/host_control_v092.py", "scripts/startup_v092.py", "scripts/lifecycle_v092.py"
 ]
@@ -104,7 +104,7 @@ def main():
     runtime_cli = subprocess.run([sys.executable, str(ROOT / "scripts" / "runtime.py"), "--help"], capture_output=True, text=True)
     workflow = subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow.py"), "--help"], capture_output=True, text=True)
     startup = subprocess.run([sys.executable, str(ROOT / "scripts" / "startup.py"), "--help"], capture_output=True, text=True)
-    cnx = subprocess.run([sys.executable, str(ROOT / "scripts" / "cnxclaw.py"), "--help"], capture_output=True, text=True)
+    cnx = subprocess.run([sys.executable, str(ROOT / "scripts" / "cnxclaw_v093.py"), "--help"], capture_output=True, text=True)
     if phase2.returncode or not all(word in phase2.stdout for word in ("state", "run", "probe", "verify", "ledger", "recover", "capability", "policy")):
         raise SystemExit("Phase 1-2 CLI validation failed")
     if runtime_cli.returncode or not all(word in runtime_cli.stdout for word in ("supervisor", "concurrency", "context", "scheduler")):
@@ -113,8 +113,8 @@ def main():
         raise SystemExit("Workflow CLI validation failed")
     if startup.returncode or not all(word in startup.stdout for word in ("status", "enable", "disable", "ensure")):
         raise SystemExit("Startup CLI validation failed")
-    if cnx.returncode or not all(word in cnx.stdout for word in ("check system", "provider list", "--provider ollama|lmstudio", "reset", "uninstall")):
-        raise SystemExit("v0.9.2 CNXCLAW CLI validation failed")
+    if cnx.returncode or not all(word in cnx.stdout for word in ("check system", "provider list", "Ollama-only", "--provider ollama", "reset", "uninstall")):
+        raise SystemExit("v0.9.3 CNXCLAW CLI validation failed")
     run_workflow_self_test()
     templates = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_templates.py")], capture_output=True, text=True)
     if templates.returncode:
