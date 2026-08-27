@@ -21,7 +21,7 @@ function correlationDigest(event: unknown, context: unknown) {
   const runId = typeof (event as any)?.runId === "string" ? (event as any).runId
     : typeof (context as any)?.runId === "string" ? (context as any).runId : "";
   const sessionKey = typeof (event as any)?.sessionKey === "string" ? (event as any).sessionKey : "";
-  return runId || sessionKey ? createHash("sha256").update(`${runId}\\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
+  return runId || sessionKey ? createHash("sha256").update(`${runId}\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
 }
 
 function exceptionCategory(error: unknown) {
@@ -389,11 +389,10 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
 
     ctx.dispatcher.appendBeforeDeliver((payload: any, info: any) => {
       // Preserve the predecessor's short-circuit order: non-final and already-owned
-      // callbacks must not evaluate dispatcher counts or downstream staging work.
+      // callbacks must not evaluate payload fields, dispatcher counts, or staging work.
       if (info?.kind !== "final") {
         observeDelivery(api.logger, "callback-entry", {
-          kind: callbackKindCategory(info?.kind), hasText: typeof payload?.text === "string" && payload.text.trim().length > 0,
-          hasMedia: Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0)), alreadyOwned: owned,
+          kind: callbackKindCategory(info?.kind), alreadyOwned: owned,
           correlation: correlationDigest(event, ctx),
         });
         observeDelivery(api.logger, "filter-skip", { reason: "not-final" });
@@ -401,22 +400,24 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
       }
       if (owned) {
         observeDelivery(api.logger, "callback-entry", {
-          kind: "final", hasText: typeof payload?.text === "string" && payload.text.trim().length > 0,
-          hasMedia: Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0)), alreadyOwned: true,
+          kind: "final", alreadyOwned: true,
           correlation: correlationDigest(event, ctx),
         });
         observeDelivery(api.logger, "filter-skip", { reason: "already-owned" });
         return payload;
       }
+      // Preserve the predecessor's exact semantic evaluation order, including the
+      // original two payload.text property reads in this expression.
+      const text = typeof payload?.text === "string" ? payload.text.trim() : "";
       const finalCount = Number(ctx.dispatcher.getQueuedCounts?.().final ?? 1);
-      const hasText = typeof payload?.text === "string" && payload.text.trim().length > 0;
       const hasMedia = Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0));
+      const hasText = text.length > 0;
       observeDelivery(api.logger, "callback-entry", {
         kind: "final",
         finalCount, hasText, hasMedia, alreadyOwned: owned,
         correlation: correlationDigest(event, ctx),
       });
-      if (!hasText) {
+      if (!text) {
         observeDelivery(api.logger, "filter-skip", { reason: "empty-text" });
         return payload;
       }
@@ -429,7 +430,6 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
         return payload;
       }
 
-      const text = payload.text.trim();
       observeDelivery(api.logger, "stage-attempt", { correlation: correlationDigest(event, ctx), hasText: true });
       let staged: ReturnType<typeof stageDashboardDirectResult>;
       try {
