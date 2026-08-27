@@ -6,8 +6,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "namespace_ownership.py"
-SPEC = importlib.util.spec_from_file_location("namespace_ownership_payload_identity", SCRIPT)
+OWNERSHIP_SCRIPT = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "namespace_ownership.py"
+IDENTITY_SCRIPT = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "plugin_payload_identity.py"
+SPEC = importlib.util.spec_from_file_location("namespace_ownership_payload_identity", OWNERSHIP_SCRIPT)
 assert SPEC and SPEC.loader
 ownership = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ownership)
@@ -31,23 +32,13 @@ def _write_plugin(root: Path) -> Path:
     return root
 
 
-def test_plugin_payload_identity_reuses_payload_v2_fingerprint_and_exact_file_count(tmp_path: Path):
+def test_payload_identity_helper_reuses_payload_v2_fingerprint_and_exact_file_count(tmp_path: Path):
     plugin = _write_plugin(tmp_path / "plugin")
-    identity = ownership.plugin_payload_identity(plugin)
     existing = ownership.plugin_fingerprint(plugin)
-
-    assert identity["version"] == ownership.INSTALLED_VERSION
-    assert identity["fingerprint"] == existing["fingerprint"]
-    assert identity["fileCount"] == 5
-
-
-def test_plugin_payload_identity_cli_is_machine_readable(tmp_path: Path):
-    plugin = _write_plugin(tmp_path / "plugin")
     result = subprocess.run(
         [
             sys.executable,
-            str(SCRIPT),
-            "plugin-payload-identity",
+            str(IDENTITY_SCRIPT),
             "--plugin-root",
             str(plugin),
             "--version",
@@ -58,7 +49,8 @@ def test_plugin_payload_identity_cli_is_machine_readable(tmp_path: Path):
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-    payload = json.loads(result.stdout)
-    assert payload["version"] == ownership.INSTALLED_VERSION
-    assert payload["fileCount"] == 5
-    assert len(payload["fingerprint"]) == 64
+    identity = json.loads(result.stdout)
+    assert identity["version"] == ownership.INSTALLED_VERSION
+    assert identity["fingerprint"] == existing["fingerprint"]
+    assert identity["fileCount"] == 5
+    assert len(identity["fingerprint"]) == 64
