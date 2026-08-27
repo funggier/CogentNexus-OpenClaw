@@ -3,105 +3,62 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved the bounded Task-104 redacted observability implementation and directed full execution within scope
+**Human authority:** operator approved full Task-104 observability work; independent review returned bounded rework within that same approved scope
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Accepted live baseline
+## Task 104 review state
 
-Currently installed source:
+Implementation:
 
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
-
-Currently installed plugin fingerprint:
-
-`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
-
-Expected live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
-
-## Task 103 accepted result
+`32a6f0a10a98ae52d1a284ee933748f43184b344`
 
 Report:
 
-`6e271242318db90b6ad1d27cca35971e40a065e4`
+`32f1d0424ed0dbebe653a77158a9653d5d07e0c2`
 
-Independent disposition:
+Independent decision:
 
-`ACCEPT_BLOCKER_LIVE_HOOK_BOUNDARY_REQUIRES_REDACTED_OBSERVABILITY`
+`REWORK_BEHAVIOR_NEUTRALITY_AND_OBSERVABILITY_COVERAGE`
 
-Task 103 proved source/dist/package/installed runtime parity, active release registration, and exact OpenClaw 2026.7.1-2 static hook compatibility. A production-shaped disposable harness stages successfully with the modeled callback shape.
+The implementation/report publication fence is valid, but live install is not accepted yet.
 
-The preserved live run lacks guaranteed telemetry to distinguish handler non-entry, context/capability mismatch, filter rejection, stage non-staged result or pre-commit exception. A behavior-neutral observability implementation is therefore the next bounded step.
+### Blocking review finding
 
-## Active Task 104
+The predecessor callback checked `info.kind !== "final" || owned` before evaluating queued final count. Task-104 instrumentation moved `dispatcher.getQueuedCounts()` ahead of that guard.
 
-[`tasks/CNX-20260827-104-add-redacted-dashboard-staging-observability.md`](tasks/CNX-20260827-104-add-redacted-dashboard-staging-observability.md)
+That can introduce a call/exception/side effect on non-final or already-owned callbacks where the predecessor returned immediately. It therefore violates the approved behavior-neutral observability contract.
 
-Execution mode:
+### Required bounded rework
 
-`SOURCE_TDD_REDACTED_DASHBOARD_STAGING_OBSERVABILITY`
+Task 104 remains active. Hermes/Codex must:
 
-Authorization:
+- restore predecessor evaluation order;
+- TDD-prove non-final and already-owned paths do not evaluate `getQueuedCounts` or downstream staging work;
+- explicitly cover `already-owned` diagnostics and duplicate-row prevention;
+- bound unexpected `info.kind` values before logging;
+- add transaction phase telemetry where practical without semantic change, or explicitly prove/document why it cannot be added safely;
+- rerun focused/full tests, build/package validation, release-path harness and secret-safety checks;
+- recompute the final payload-v2 fingerprint and packed file count;
+- publish revised Task-104 evidence and stop for independent review again.
 
-`OPERATOR_APPROVED_BOUNDED_OBSERVABILITY_IMPLEMENTATION_NO_LIVE_INSTALL`
+## Live baseline
 
-Task 104 must add narrowly scoped diagnostics covering:
+Currently installed source remains:
 
-- verified API hook registration;
-- `reply_dispatch` handler entry;
-- run-correlation presence;
-- dispatcher / `appendBeforeDeliver` availability;
-- before-deliver callback registration and invocation;
-- final kind, final count, text/media booleans;
-- deterministic early-return/filter reason;
-- stage attempt;
-- staged/non-staged reason;
-- safe staging exception category;
-- transaction outcome where practical without behavioral change.
+`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
 
-Production logs must not contain prompt/response text, nonce content, raw run/session IDs, credentials, tokens, passwords, provider payloads, idempotency keys or delivery markers.
+Currently installed fingerprint remains:
 
-## Mandatory verification
+`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Task 104 uses strict TDD RED -> GREEN and must provide:
-
-- focused RED evidence on the current implementation;
-- minimal GREEN implementation;
-- focused and full plugin regression results;
-- build/typecheck/lint results;
-- behavior-equivalence tests;
-- explicit secret-leak tests;
-- production-shaped real release-registration harness evidence;
-- complete installable-payload v2 fingerprint and file count with path/reparse safety verification.
-
-Preferred result token:
-
-`PASS_REDACTED_DASHBOARD_STAGING_OBSERVABILITY_READY_FOR_LIVE_INSTALL`
+Expected live state remains MANAGED generation 24. No Task-104 live install has been accepted or performed by coordination.
 
 ## Operator assistance
 
-No manual operator action is expected during Task 104.
+No operator action is expected during this source-level rework.
 
-If source work unexpectedly reaches a point requiring live install, restart, authentication, Dashboard focus/click or semantic Send, Hermes/Codex must stop before that action and report exactly what the operator needs to do.
-
-A later live semantic diagnostic retest, after independent review and install acceptance, will likely use the proven operator-assisted procedure: open/keep the authenticated Firefox Dashboard, allow Codex to identify the exact composer, manually click `Message Assistant` once when explicitly instructed, then avoid changing focus until Codex re-verifies the input target. A semantic Send remains single-attempt and separately gated.
+A later live diagnostic retest remains separately gated and will explicitly tell the operator when to keep/open the authenticated Firefox Dashboard, when to manually click the exact `Message Assistant` composer once, and whether/when the one semantic Send is authorized.
 
 ## Hard fence
 
-Task 104 does not authorize:
-
-- live install/install-over/uninstall/reset/cleanup;
-- new semantic nonce/Send or sent sentinel;
-- provider probe;
-- live SQLite/config/runtime mutation;
-- session cleanup;
-- Gateway/Supervisor restart or reboot;
-- model/provider/timeout change;
-- credential access/re-entry;
-- behavioral delivery fix outside observability;
-- merge/tag/release/force push.
-
-Report path:
-
-`docs/operations/coordination/reports/CNX-20260827-104-add-redacted-dashboard-staging-observability.md`
-
-After report publication, independent ChatGPT review is required before any live deployment.
+No live install/install-over/uninstall/reset/cleanup, semantic Send/sentinel, provider probe, live SQLite/config/runtime mutation, session cleanup, restart/reboot, model/provider/timeout change, credential access/re-entry, unrelated delivery fix, merge/tag/release or force push is authorized during Task-104 rework.
