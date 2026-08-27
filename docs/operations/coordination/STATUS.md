@@ -3,7 +3,7 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved state-gated bounded retries and the bounded Task-100 foreground/input readiness design; continuation remains authorized through final authenticated semantic acceptance
+**Human authority:** operator approved state-gated bounded retries, confirmed a currently known-working Dashboard input method, and authorized Task 100 to continue through final authenticated semantic acceptance in the same task
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -20,7 +20,7 @@ Accepted plugin fingerprint:
 
 Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-## Task 099 result and review
+## Task 099 result
 
 Task 099 report:
 
@@ -30,13 +30,19 @@ Independent disposition:
 
 `ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
 
-Exact authenticated fresh target established by Task 099:
+Exact target:
 
 `agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
 
-Task 099 stopped before any semantic send because the exact OpenClaw Firefox window could not be proven foreground while another Firefox window/process was foreground. Semantic send count remained 0; no Ticket/route/provider/durable-delivery/outbox effect was created. Its generated nonce is retired.
+Task 099 sent zero semantic messages. Its nonce is retired.
 
-This is an OS/UI foreground-targeting blocker, not evidence of a semantic-pipeline regression. Task 092 previously proved the real Dashboard send/Ticket/provider/visible-reply path; Task 093 repaired the later durable-staging defect and Task 096 installed that repair live.
+The blocker was OS/UI input targeting before send, not a semantic-pipeline regression. Task 092 previously proved Dashboard send -> Ticket -> one Ollama inference -> exact visible reply; Task 093 repaired the later durable staging boundary and Task 096 installed that source live.
+
+## New operator evidence
+
+The operator has now tested until Codex can type into the actual OpenClaw Dashboard composer and reports that Codex knows the working interaction method.
+
+The operator further approved continuing the original semantic acceptance immediately rather than ending Task 100 after readiness proof.
 
 ## Active Task 100
 
@@ -44,45 +50,64 @@ This is an OS/UI foreground-targeting blocker, not evidence of a semantic-pipeli
 
 Execution mode:
 
-`READ_ONLY_DASHBOARD_FOREGROUND_INPUT_TARGET_READINESS`
+`LIVE_KNOWN_WORKING_DASHBOARD_INPUT_AND_FINAL_SEMANTIC_ACCEPTANCE`
 
 Authorization:
 
-`TASK099_ACCEPTED_BOUNDED_FOREGROUND_READINESS_APPROVED`
+`OPERATOR_APPROVED_KNOWN_WORKING_INPUT_REPRODUCTION_AND_FINAL_SEMANTIC_CONTINUATION`
 
-Task 100 sends zero semantic content and generates no nonce.
+Task 100 must first reproduce the method that actually works now and publish it under:
 
-It must uniquely correlate the exact Firefox OpenClaw Dashboard top-level window/HWND to the accepted target session, acquire that exact HWND as the actual Windows foreground input window, and prove the intended Dashboard composer can be focused/selected while remaining empty.
+`Known-working Dashboard input method`
 
-Required readiness token:
+The report must record the real non-secret interaction sequence, targeting/focus method, waits/retries if any, proof that keystrokes reach the intended composer, and how the composer is returned to an empty state.
 
-`DASHBOARD_FOREGROUND_COMPOSER_READY_NO_SEND`
+Task 100 may use a non-sent local sentinel `CNXINPUT-READY` to prove input targeting, provided it is never sent and is cleared completely before semantic nonce generation.
 
-Required PASS token:
+If an existing non-sent test draft is present, do not expose its contents; prove zero Ticket/provider effect, clear it, and re-verify empty composer. If a prior test was actually sent, stop and correlate that semantic effect instead of sending again.
 
-`PASS_DASHBOARD_FOREGROUND_INPUT_TARGET_READY_NO_SEND`
+## Final semantic contract inside Task 100
+
+After input-method proof and clean baseline:
+
+- generate one brand-new `CNXSEM4-...` nonce;
+- send exactly one semantic Dashboard message;
+- no resend exists;
+- require exactly one new Ticket and route before provider;
+- require exactly one `ollama/qwen3.5:9b` inference;
+- require durable final payload staging before native delivery;
+- require exactly one visible nonce;
+- require exact lifecycle `response_ready -> delivery_confirmed -> completed`;
+- reject duplicate Ticket/route/provider/outbox/reply/promotion effects;
+- after durable completion only, prove New Session continuity with zero additional semantic/provider effect.
+
+Required method token:
+
+`DASHBOARD_KNOWN_WORKING_INPUT_METHOD_PROVEN`
+
+Required final success token:
+
+`PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
 
 ## Retry policy v1
 
 - read-only operations: maximum 3 attempts total;
-- low-impact focus/window-activation operations: maximum 2 attempts total;
-- attempt 2 requires at least 3 seconds grace and fresh evidence proving attempt 1 did not already take effect;
+- low-impact focus/click/activation/non-sent typing/clearing: maximum 2 attempts total after grace + fresh state proof;
 - if attempt 1 appears late, treat it as success and do not retry;
-- ambiguous/partial/delayed state is not retryable;
-- semantic sends/provider inference/install/reset/destructive effects remain single-attempt unless separately proven idempotent and explicitly authorized.
+- ambiguous/partial state is not retryable;
+- semantic Send remains one attempt only;
+- post-completion New Session may use state-gated retry for session management only.
 
 ## Hard fence
 
-Task 100 performs no semantic send, provider/Ollama inference, install/reset/repair/cleanup, session cleanup, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, prior-evidence rewrite, restart/reboot, merge/tag/release or force push.
+No second semantic send, Task-099 nonce reuse, CLI/channel substitute, direct provider/Ollama probe, synthetic Ticket creation, install/reset/repair/cleanup, session normalization, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, prior-evidence rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
 
 Credential values must not be read, copied, printed, logged, requested or re-entered by the executor.
 
-## Successor logic
+## Publication and final gate
 
-Only independent acceptance of:
+Task 100 publishes exactly one report-only commit at:
 
-`PASS_DASHBOARD_FOREGROUND_INPUT_TARGET_READY_NO_SEND`
+`docs/operations/coordination/reports/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`
 
-may authorize a new final authenticated semantic task.
-
-That successor must re-verify the exact target session + exact foreground OpenClaw HWND + empty focused composer before nonce generation, then send one brand-new nonce exactly once. It must prove one Ticket accepted/routed before one correlated Ollama inference, durable final-payload staging before native delivery, one exact visible reply, exact `response_ready -> delivery_confirmed -> completed`, no duplicate effect, and post-completion New Session continuity using state-gated retry only for session-management actions.
+Only independent review of that report and publication fence may close final OpenClaw semantic acceptance. A visible correct reply without durable staging, delivery confirmation and terminal completion remains a failure.
