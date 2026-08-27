@@ -99,7 +99,11 @@ class TestExactProductRootContract(TempAppDataTestCase):
             "foregroundInterpreter": str(evil / "runtime" / "python" / "Scripts" / "python.exe"),
             "backgroundInterpreter": str(evil / "runtime" / "python" / "Scripts" / "pythonw.exe"),
         }
-        self.assertFalse(runtime_authority.validate_runtime(bad_manifest))
+        self.assertFalse(
+            runtime_authority.validate_runtime(
+                bad_manifest, self.local_base / "CogentNexus-OpenClaw"
+            )
+        )
 
 
 @unittest.skipUnless(IS_WINDOWS, "real provisioning integration is Windows-specific")
@@ -271,6 +275,7 @@ class TestUninstallResetInstallOverBoundary(TempAppDataTestCase):
         }
         self.assertFalse(runtime_authority.validate_runtime(bad, app_root))
 
+    @unittest.skipUnless(IS_WINDOWS, "runtime recreation integration is Windows-specific")
     def test_install_over_validates_then_recreates_missing_runtime(self):
         app_root = self.local_base / "CogentNexus-OpenClaw"
         m1 = runtime_authority.ensure_runtime(application_data_root=app_root)
