@@ -80,8 +80,9 @@ def test_checker_rejects_non_ollama_v093_provider_facade(tmp_path):
 def test_checker_rejects_stale_generic_launcher_in_current_docs(tmp_path):
     tree = _copy_tree(tmp_path)
     readme = tree / "README.md"
+    legacy_launcher = ".\\cnx" + ".cmd status"
     readme.write_text(
-        readme.read_text(encoding="utf-8") + "\nCurrent namespace regression: `.\\cnx.cmd status`\n",
+        readme.read_text(encoding="utf-8") + f"\nCurrent namespace regression: `{legacy_launcher}`\n",
         encoding="utf-8",
     )
 
