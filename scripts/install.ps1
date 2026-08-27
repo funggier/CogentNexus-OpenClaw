@@ -182,20 +182,8 @@ if ($classification.mode -eq "fresh") {
     }
 }
 
-# CNX-20260826-068: production fresh-install transaction.
-# Begin ONLY for fresh mode, after classification, before the first
-# residue-capable mutation. The marker itself is the authorized first
-# fresh mutation (it may create the CNX state root).
 $isFreshTransaction = $false
 $script:FreshPluginInstalled = $false
-# CNX-20260826-069 B1/B3: one production fresh-transaction failure boundary.
-# Every caught failure after successful transaction-begin and before successful
-# transaction-commit routes through this helper, which performs all safe bounded
-# recovery for effects created by THIS fresh attempt before rethrowing the
-# original error. Supported OpenClaw surfaces are used for external effects:
-# the plugin inverse applies only because fresh preflight proved no plugin was
-# registered before this attempt ($script:FreshPluginInstalled is set only
-# after a successful plugins install in this same attempt).
 function Invoke-FreshTransactionRollback {
     param(
         [string]$WorkspacePath,
@@ -229,15 +217,7 @@ if ($classification.mode -eq "fresh") {
     Write-Host "Fresh-install transaction started; created owned paths will be recorded for bounded recovery."
 }
 
-# CNX-20260826-069 B1 / CNX-20260826-070: single production caught-failure
-# boundary. The try body is SHARED by fresh/upgrade/legacy modes; only the
-# catch branches on $isFreshTransaction. Non-fresh failures propagate through
-# the normal error path without any fresh rollback.
 try {
-
-# A v0.9.2 deployment may still be MANAGED by LM Studio.  Always use the old
-# launcher first so it restores native OpenClaw before v0.9.3 replaces files.
-# The new installation then enters MANAGED with Ollama only.
 Enter-NativeInstallBoundary
 
 if ($migrationSource) {
@@ -272,15 +252,13 @@ if ($migrationSource) {
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetSkill) | Out-Null
 if (Test-Path $targetSkill) {
     New-Item -ItemType Directory -Force -Path $backupRoot | Out-Null
-  $backup = Join-Path $backupRoot "cogentnexus-openclaw-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    $backup = Join-Path $backupRoot "cogentnexus-openclaw-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     Copy-Item -Recurse -Force -LiteralPath $targetSkill -Destination $backup
     Write-Host "Backed up existing skill to $backup"
 }
 
 if (Test-Path $stagedSkill) { Remove-Item -Recurse -Force -LiteralPath $stagedSkill }
 if ($isFreshTransaction) {
-    # Record owned paths BEFORE/at creation so a crash cannot leave an
-    # unrecorded fresh artifact. Recording is bounded to exact CNX roots.
     & python $ownershipScript transaction-record --workspace $Workspace --path $targetSkill | Out-Null
     & python $ownershipScript transaction-record --workspace $Workspace --path $cogentNexusOpenClawRoot | Out-Null
     if (-not (Test-Path $applicationDataRoot)) {
@@ -308,8 +286,6 @@ if ($SkipGatewayRestart) {
 }
 
 if (-not $SkipAgentsPolicy) {
-    # moved below transaction-commit (CNX-20260826-069 B3): a failed
-    # pre-commit installation can no longer leave a managed AGENTS block.
 }
 
 if (-not $SkipPlugin) {
@@ -352,9 +328,6 @@ if ($actions.installPlugin) {
             $packagePath = [string]$packedArtifact.path
             openclaw plugins install ("npm-pack:" + $packagePath) --force
             if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
-            # CNX-20260826-069 B3: mark the external effect this fresh attempt
-            # created so the single failure boundary can apply its exact
-            # supported inverse (plugins uninstall) if a later step fails.
             if ($isFreshTransaction) { $script:FreshPluginInstalled = $true }
         }
         finally {
@@ -370,53 +343,49 @@ if ($actions.installPlugin) {
 }
 
 if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {
-        $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
-        New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
-        $rolloverId = [guid]::NewGuid().ToString("N")
-        $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
-        $rolloverApplyInventoryPath = Join-Path $rolloverStaging "plugin-inventory-apply-$rolloverId.json"
-        $rolloverPlanPath = Join-Path $rolloverStaging "plugin-rollover-plan-$rolloverId.json"
-        try {
-            $rolloverInventory = (& openclaw plugins list --json | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
-            [System.IO.File]::WriteAllText(
-                $rolloverInventoryPath,
-                $rolloverInventory,
-                (New-Object System.Text.UTF8Encoding($false))
-            )
-            $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--expected-replacement-fingerprint" $expectedPluginFingerprint "--plan" $rolloverPlanPath | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover plan was rejected" }
-            $rolloverPlanSha256 = [string](($rolloverPlanOutput | ConvertFrom-Json).planSha256)
-            if ([string]::IsNullOrWhiteSpace($rolloverPlanSha256)) { throw "plugin generation rollover plan hash was not observed" }
-            $rolloverApplyInventory = (& openclaw plugins list --json | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not re-prove active canonical plugin registration immediately before rollover apply" }
-            [System.IO.File]::WriteAllText(
-                $rolloverApplyInventoryPath,
-                $rolloverApplyInventory,
-                (New-Object System.Text.UTF8Encoding($false))
-            )
-            & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-apply" "--plan" $rolloverPlanPath "--plan-sha256" $rolloverPlanSha256 "--inventory-json" $rolloverApplyInventoryPath | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover apply failed" }
-            Write-Host "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
-        }
-        finally {
-            Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
-        }
+    $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
+    New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
+    $rolloverId = [guid]::NewGuid().ToString("N")
+    $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
+    $rolloverApplyInventoryPath = Join-Path $rolloverStaging "plugin-inventory-apply-$rolloverId.json"
+    $rolloverPlanPath = Join-Path $rolloverStaging "plugin-rollover-plan-$rolloverId.json"
+    try {
+        $rolloverInventory = (& openclaw plugins list --json | Out-String)
+        if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
+        [System.IO.File]::WriteAllText(
+            $rolloverInventoryPath,
+            $rolloverInventory,
+            (New-Object System.Text.UTF8Encoding($false))
+        )
+        $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--expected-replacement-fingerprint" $expectedPluginFingerprint "--plan" $rolloverPlanPath | Out-String)
+        if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover plan was rejected" }
+        $rolloverPlanSha256 = [string](($rolloverPlanOutput | ConvertFrom-Json).planSha256)
+        if ([string]::IsNullOrWhiteSpace($rolloverPlanSha256)) { throw "plugin generation rollover plan hash was not observed" }
+        $rolloverApplyInventory = (& openclaw plugins list --json | Out-String)
+        if ($LASTEXITCODE -ne 0) { throw "could not re-prove active canonical plugin registration immediately before rollover apply" }
+        [System.IO.File]::WriteAllText(
+            $rolloverApplyInventoryPath,
+            $rolloverApplyInventory,
+            (New-Object System.Text.UTF8Encoding($false))
+        )
+        & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-apply" "--plan" $rolloverPlanPath "--plan-sha256" $rolloverPlanSha256 "--inventory-json" $rolloverApplyInventoryPath | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover apply failed" }
+        Write-Host "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
+    }
+    finally {
+        Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 $launcher = Join-Path $Workspace "cnxclaw.cmd"
 $cliEscaped = $cliScript.Replace('"','""')
 $rootEscaped = $cogentNexusOpenClawRoot.Replace('"','""')
-# One explicit runtime-authority script resolution (Task CNX-20260825-065 B5).
 $runtimeAuthorityScript = Join-Path $targetSkill "scripts\runtime_authority.py"
 if (-not (Test-Path -LiteralPath $runtimeAuthorityScript)) {
     throw "Runtime authority script not found: $runtimeAuthorityScript"
 }
-# Unconditional ensure/validate on every install/install-over (B6): a stale
-# runtime with a missing manifest or broken interpreter must be repaired or
-# fail closed BEFORE any durable launcher/task definition is written.
 $runtimeManifestJson = (& python $runtimeAuthorityScript ensure-runtime --application-data-root "$applicationDataRoot" | Out-String)
-if ($LASTEXITCODE -ne 0) { throw "CogentNexus-owned runtime provisioning failed; refusing to install." }
+if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw-owned runtime provisioning failed; refusing to install." }
 $runtimeManifest = $runtimeManifestJson | ConvertFrom-Json
 $ownedPython = [string]$runtimeManifest.foregroundInterpreter
 $ownedPythonw = [string]$runtimeManifest.backgroundInterpreter
@@ -440,15 +409,11 @@ if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing M
 & $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
 if ($isFreshTransaction) {
-    # CNX-20260826-068: commit only AFTER ownership create + exact verify.
     & python $ownershipScript transaction-commit --workspace $Workspace | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "Fresh-install transaction commit failed after ownership verification." }
     Write-Host "Fresh-install transaction committed; recovery marker retired."
 }
 } catch {
-    # CNX-20260826-069 B1 / CNX-20260826-070: only a fresh transaction rolls
-    # back. Upgrade/legacy failures propagate through the normal error path
-    # with no fresh rollback and no plugin inverse.
     if ($isFreshTransaction) {
         Invoke-FreshTransactionRollback -WorkspacePath $Workspace -OriginalError $_.Exception.Message
     }
