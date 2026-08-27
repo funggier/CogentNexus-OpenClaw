@@ -3,6 +3,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 
 import pytest
 
@@ -74,6 +76,28 @@ def test_package_payload_rejects_symlink_indirection(tmp_path: Path):
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation unavailable")
     with pytest.raises(RuntimeError, match="incomplete|wrong id/package|symlink|payload"):
+        ownership.plugin_fingerprint(plugin)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows junction regression")
+def test_package_payload_rejects_real_windows_directory_junction(tmp_path: Path):
+    plugin = write_plugin(tmp_path / "plugin")
+    package = json.loads((plugin / "package.json").read_text(encoding="utf-8"))
+    package["files"] = ["dist"]
+    (plugin / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "escape.js").write_text("outside", encoding="utf-8")
+    junction = plugin / "dist" / "junction"
+    result = subprocess.run(
+        ["cmd.exe", "/c", "mklink", "/J", str(junction), str(outside)],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        pytest.skip(f"junction creation unavailable: {result.stdout} {result.stderr}")
+    assert junction.is_dir()
+    assert not junction.is_symlink()
+    with pytest.raises(RuntimeError, match="incomplete|wrong id/package|reparse|payload"):
         ownership.plugin_fingerprint(plugin)
 
 

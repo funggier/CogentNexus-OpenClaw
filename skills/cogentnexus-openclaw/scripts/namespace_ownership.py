@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import stat as stat_module
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -364,6 +365,24 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
     return {"status": "RECOVERED_FRESH", "inventory": current_inventory(workspace, app_data=app_data)}
 
 
+def _filesystem_metadata(path: Path, relative: str):
+    """Read non-following metadata and reject every filesystem indirection."""
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        raise RuntimeError(f"missing plugin package payload: {relative}") from error
+    if os.path.islink(path):
+        raise RuntimeError(f"symlink plugin package path is not attestable: {relative}")
+    if os.name == "nt":
+        attributes = getattr(metadata, "st_file_attributes", None)
+        reparse_flag = getattr(stat_module, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+        if attributes is None:
+            raise RuntimeError(f"plugin package reparse metadata unavailable: {relative}")
+        if attributes & reparse_flag:
+            raise RuntimeError(f"reparse-point plugin package path is not attestable: {relative}")
+    return metadata
+
+
 def _package_payload_files(root: Path, package: dict[str, Any]) -> list[tuple[str, Path]]:
     """Enumerate the exact safe regular files owned by npm's package contract."""
     declared = package.get("files")
@@ -387,25 +406,17 @@ def _package_payload_files(root: Path, package: dict[str, Any]) -> list[tuple[st
         return "/".join(parts), candidate
 
     def add_file(relative: str, path: Path) -> None:
-        try:
-            stat = path.lstat()
-        except OSError as error:
-            raise RuntimeError(f"missing plugin package payload: {relative}") from error
-        if not path.is_file() or os.path.islink(path) or not os.stat(path, follow_symlinks=False).st_mode & 0o170000 == 0o100000:
+        metadata = _filesystem_metadata(path, relative)
+        if not stat_module.S_ISREG(metadata.st_mode):
             raise RuntimeError(f"plugin package payload is not a regular file: {relative}")
         result.setdefault(relative, path)
 
     def expand(relative: str, path: Path) -> None:
-        try:
-            stat = path.lstat()
-        except OSError as error:
-            raise RuntimeError(f"missing declared plugin package path: {relative}") from error
-        if os.path.islink(path):
-            raise RuntimeError(f"symlink plugin package path is not attestable: {relative}")
-        if path.is_file():
+        metadata = _filesystem_metadata(path, relative)
+        if stat_module.S_ISREG(metadata.st_mode):
             add_file(relative, path)
             return
-        if not path.is_dir():
+        if not stat_module.S_ISDIR(metadata.st_mode):
             raise RuntimeError(f"unsupported plugin package path: {relative}")
         with os.scandir(path) as iterator:
             children = sorted(iterator, key=lambda item: item.name)
