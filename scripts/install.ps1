@@ -156,10 +156,12 @@ $classification = $classificationJson | ConvertFrom-Json
 $pendingRollover = [bool]$classification.pendingRollover
 $pluginAlreadyExact = [bool]$classification.pluginAlreadyExact
 
-$actionArgs = @("-Mode", [string]$classification.mode)
-if ($pendingRollover) { $actionArgs += "-PendingRollover" }
-if ($pluginAlreadyExact) { $actionArgs += "-PluginAlreadyExact" }
-if ($SkipPlugin) { $actionArgs += "-SkipPlugin" }
+$actionArgs = @{
+    Mode = [string]$classification.mode
+}
+if ($pendingRollover) { $actionArgs.PendingRollover = $true }
+if ($pluginAlreadyExact) { $actionArgs.PluginAlreadyExact = $true }
+if ($SkipPlugin) { $actionArgs.SkipPlugin = $true }
 $actionsJson = (& $actionResolver @actionArgs | Out-String)
 $actions = $actionsJson | ConvertFrom-Json
 

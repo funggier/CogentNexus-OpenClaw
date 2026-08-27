@@ -109,6 +109,22 @@ def test_p8_production_ast_proves_independent_lifecycle_gates_and_order():
     assert max(r["start"] for r in rollover) < min(r["start"] for r in resolves)
 
 
+
+def test_p9_action_resolver_caller_uses_named_hashtable_splatting():
+    source = INSTALL_PS1
+    start = source.index("$actionArgs = @{")
+    end = source.index("$actions = $actionsJson | ConvertFrom-Json", start)
+    block = source[start:end]
+    assert "Mode = [string]$classification.mode" in block
+    assert ".PendingRollover = $true" in block
+    assert ".PluginAlreadyExact = $true" in block
+    assert ".SkipPlugin = $true" in block
+    assert "@(\"-Mode\"" not in block
+    assert "\"-Mode\"" not in block
+    assert "& $actionResolver @actionArgs" in block
+
+
+
 def test_p7_production_crash_rerun_recovery(tmp_path: Path):
     """Crash after recorded artifacts exist -> production recovery-preflight -> fresh."""
     ws = tmp_path / "workspace"
