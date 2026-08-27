@@ -18,111 +18,134 @@ Provider readiness remains:
 
 No additional direct Ollama probe is authorized.
 
-## Task 083 live blocker baseline
+## Accepted live blocker baseline from Task 083
 
-Task 083 made one supported live recovery attempt and stopped fail-closed, leaving the accepted two-generation PASSTHROUGH topology:
+The current live installation remains the bounded two-generation PASSTHROUGH topology created by Task 083:
 
 - controller PASSTHROUGH generation 13;
-- manifest-owned prior `g-5593cbcfff5b35d5`;
-- active disabled source-exact replacement `g-7257c4555ca8ad21`;
+- ownership manifest points to prior generation `g-5593cbcfff5b35d5`;
+- prior fingerprint `7e9189f8...`;
+- active disabled source-exact replacement is `g-7257c4555ca8ad21`;
+- replacement/source fingerprint `8fd911e3...`;
 - startup disabled;
 - Supervisor absent;
 - AGENTS managed markers absent;
 - Gateway/Ollama healthy from accepted evidence;
 - SQLite integrity accepted, Tickets/outbox zero.
 
-Do not manually normalize this state.
+Do not manually normalize, delete or rewrite this topology.
 
-## Task 084 preserved attestation repair
+## Task 084/085 repair lineage
+
+Task 084 established the source-attestation and rollover plan/apply primitives but was reworked for classification/control-flow gaps.
+
+Task 085 corrected:
+
+- ordinary changed-source vs already-exact classification;
+- explicit expected-source equality for every attested replacement;
+- lifecycle action truth table.
+
+Task 085 remained REWORK only because the production rollover block was still nested under `installPlugin`.
+
+## Task 086 acceptance
 
 Implementation:
 
-`0847a260d6f689f364bb096bd7857bb1dd4d58e1`
-
-Task 084 introduced sound source-attestation primitives, expected-fingerprint plan/apply binding and pending classification foundations, but was REWORK because classification and production lifecycle behavior were incomplete.
-
-## Task 085 result and independent review
-
-Implementation:
-
-`6b5c9d56a48d4affe67c2bb718898378edee6e8a`
+`71f48c1a134ee9b2646b4cc7f077abe9cae59ebb`
 
 Report:
 
-`d8951eb1b724fc60236e458a78da0cef2926868d`
+`1430d0a23ee2c477fdb5c2015f262c9df09c83df`
 
 Reported token:
 
-`PASS_ATTESTED_CLASSIFICATION_AND_PENDING_ROLLOVER_CONTROL_FLOW_REPAIRED`
+`PASS_PENDING_ROLLOVER_PRODUCTION_GATE_REPAIRED`
 
 Independent decision:
 
-`REWORK`
+`ACCEPT`
 
 Disposition:
 
-`REWORK_PENDING_ROLLOVER_STILL_NESTED_UNDER_INSTALL_GATE`
+`ACCEPT_PENDING_ROLLOVER_PRODUCTION_GATE_REPAIRED`
 
-Publication fence is valid and no plugin payload source changed.
+Review:
 
-## Task-085 evidence accepted
+`docs/operations/coordination/reviews/CNX-20260827-086-fix-production-pending-rollover-gate-nesting.md`
 
-- single old generation different from expected source now classifies as normal upgrade (`pending=false`, `exact=false`);
-- already-source-exact generation classifies `exact=true`;
-- explicit expected source fingerprint is enforced against the active replacement regardless of retired/replacement equivalence;
-- the lifecycle action helper correctly returns:
-  - fresh/legacy -> install only;
-  - ordinary upgrade -> install + rollover;
-  - pending recovery -> rollover only;
-  - already exact -> neither;
-- generic ambiguous resolution remains strict;
-- Task-084 plan/apply, atomicity and rollback fences remain intact;
-- live state was not mutated.
+Publication fence is accepted: one implementation commit then one report-only commit; no plugin payload source changed.
 
-## Remaining blocker
+Independent source review confirms production `scripts/install.ps1` now has sibling lifecycle gates:
 
-The production `scripts/install.ps1` still places the rollover block inside the outer:
+- package creation/installation remains beneath `$actions.installPlugin`;
+- upgrade rollover is controlled independently by `$actions.rolloverPlugin`;
+- rollover occurs before later strict `resolve-plugin` / ownership publication.
 
-`if ($actions.installPlugin)`
+The new PowerShell AST regression analyzes the actual production script and proves rollover commands have a `rolloverPlugin` ancestor but no `installPlugin` ancestor.
 
-Consequently pending recovery has the correct helper tuple `install=false, rollover=true` but the actual rollover remains unreachable.
+Fresh executor verification reported:
 
-The existing tests prove the helper truth table but do not prove production caller nesting.
+- Python `373 passed, 2 skipped, 4 subtests passed`;
+- npm 11 plugin suite `49 files, 257 tests passed` plus validation/package/bootstrap gates;
+- npm 12 plugin suite `49 files, 257 tests passed` plus validation/package/bootstrap gates;
+- PowerShell 5.1 syntax/AST regression passed;
+- baseline and `git diff --check` passed;
+- plugin payload diff zero.
 
-## Active Task 086
+## Active Task 087
 
-[`tasks/CNX-20260827-086-fix-production-pending-rollover-gate-nesting.md`](tasks/CNX-20260827-086-fix-production-pending-rollover-gate-nesting.md)
+[`tasks/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md`](tasks/CNX-20260827-087-live-attested-pending-rollover-recovery-and-parity.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `TASK085_NESTING_REWORK_AUTHORIZED`
+Authorization: `ONE_SUPPORTED_PENDING_RECOVERY_INSTALL_OVER_AUTHORIZED`
 
-Execution mode: `SOURCE_TDD_PRODUCTION_ROLLOVER_GATE_REPAIR`
+Execution mode: `LIVE_SUPPORTED_ATTESTED_PENDING_ROLLOVER_RECOVERY`
 
-Task 086 must:
+Exact source:
 
-- RED-prove the real production nesting against Task-085 implementation;
-- add PowerShell 5.1 AST/control-flow coverage of `scripts/install.ps1` itself;
-- keep package installation controlled by `installPlugin`;
-- make upgrade rollover an independent sibling controlled by `rolloverPlugin`;
-- prove pending recovery reaches rollover without package installation;
-- prove ordinary upgrade install -> rollover ordering;
-- prove already-exact reaches neither;
-- prove rollover precedes strict unique `resolve-plugin` and ownership publication;
-- preserve all attestation/classification/security/atomicity behavior;
-- preserve zero diff under `plugins/cogentnexus-openclaw/**`;
-- rerun full Python/npm11/npm12/PowerShell/installer/semantic/baseline gates.
+`71f48c1a134ee9b2646b4cc7f077abe9cae59ebb`
 
-## Hard live fence
+Task 087 must re-prove the exact Task-083 two-generation topology and explicit source attestation before mutation.
 
-Task 086 is source/test-only. No live install/install-over/uninstall/reset/cleanup, generation mutation, ownership/controller/startup/Supervisor/AGENTS/config/runtime/SQLite/session mutation, Dashboard/WebChat/CLI semantic message, direct Ollama probe, provider/model/timeout change, restart/reboot, merge, tag or release.
+Required pre-install decision:
 
-## Successor logic
+- `mode=upgrade`;
+- `pendingRollover=true`;
+- `pluginAlreadyExact=false`;
+- `installPlugin=false`;
+- `rolloverPlugin=true`.
 
-Only after independent acceptance of:
+The one supported installer invocation must:
 
-`PASS_PENDING_ROLLOVER_PRODUCTION_GATE_REPAIRED`
+- execute no `npm pack`/artifact install/`openclaw plugins install` on this pending path;
+- create no third generation;
+- complete the attested rollover against the existing source-exact replacement;
+- converge canonical generations 2 -> 1;
+- restore MANAGED/startup/Supervisor/AGENTS through supported behavior only;
+- prove exact source/live skill and plugin parity;
+- prove ownership/runtime/Gateway/Ollama/SQLite health;
+- observe five natural PT1M ticks with `NO_FLASH_MULTI_TICK_PROVEN`;
+- prove `DASHBOARD_OWNER_SURFACE_READY` read-only.
 
-may one supported live recovery install-over be authorized against the existing Task-083 two-generation state.
+## Hard semantic fence
 
-That live task must complete the pending attested rollover without package installation or a third generation, restore MANAGED/startup/Supervisor/AGENTS, prove exact source/live parity and owned runtime health, observe five natural PT1M no-flash ticks, and prove Dashboard/WebChat owner-surface readiness without sending a semantic message.
+Task 087 sends zero semantic messages and zero provider probes.
+
+No Dashboard/WebChat send, `chat.send`, `openclaw agent`, `sessions_send`, channel message, direct Ollama call, provider/model/timeout change, synthetic Ticket mutation, uninstall/reset/manual cleanup/manual rollover, reboot, merge, tag or release.
+
+The installer may be invoked exactly once. Any nonzero result must stop the task without retry.
+
+## Final semantic successor
+
+Only independent acceptance of:
+
+`PASS_LIVE_ATTESTED_PENDING_RECOVERY_PARITY_NO_FLASH_OWNER_SURFACE_READY`
+
+may authorize one fresh authenticated Dashboard/WebChat owner message for final semantic acceptance.
+
+That final message must prove:
+
+`owner message -> Ticket accepted before provider -> correlated Ollama inference -> response_ready -> exact owner/run delivery_confirmed -> completed -> exactly one visible nonce response`.
+
+The Task-076 nonce remains permanently retired.
