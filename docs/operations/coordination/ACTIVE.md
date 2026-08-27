@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
-Execution mode: `SOURCE_TDD_WINDOWS_REPARSE_ATTESTATION_REPAIR_PENDING_APPROVAL`
-Current authorization: `NO_LIVE_OR_SEMANTIC_SUCCESSOR_AUTHORIZED`
-Task ID: `PENDING_CNX-20260827-095`
+Status: `READY_FOR_HERMES`
+Execution mode: `SOURCE_TDD_WINDOWS_REPARSE_POINT_ATTESTATION_REPAIR`
+Current authorization: `TASK094_WINDOWS_REPARSE_BOUNDARY_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260827-095`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator approval and task publication
+Executor: Hermes/Codex after operator continuation
 
 ## Authoritative coordination files
 
@@ -17,7 +17,15 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 094 review
+## Active task
+
+[`tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md`](tasks/CNX-20260827-095-repair-windows-reparse-point-payload-attestation.md)
+
+## Operator approval
+
+The operator approved the bounded Windows reparse-point hardening design after Task 094 independent review.
+
+## Task 094 review carried forward
 
 Task 094 implementation:
 
@@ -39,55 +47,55 @@ Review:
 
 [`reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](reviews/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
 
-Publication fence is accepted: execution `41ba7815...` -> implementation `33139300...` is one source/test commit and implementation -> report `0902c3c5...` is one report-only commit.
+Task-094 publication fence remains accepted.
 
-## Preserved Task-094 work
+## Preserved implementation
 
-The complete installable-payload v2 fingerprint design remains the intended solution:
+Do not redesign the Task-094 complete installable-payload v2 fingerprint. Preserve:
 
 - `package.json.files` + `package.json` authority;
-- all shipped `dist/**` runtime files covered;
-- normalized relative paths + exact bytes + versioned SHA-256 domain;
-- absolute roots excluded;
-- npm11/npm12 current packed set reported 176/176 exact;
-- pre-Task093 live payload and Task093+094 candidate reported as distinct under v2;
-- Task-093 Dashboard staging repair remains preserved.
+- all shipped `dist/**` runtime coverage;
+- normalized relative path + exact bytes under the existing v2 SHA-256 domain;
+- root-location independence;
+- npm11/npm12 packed-set equivalence;
+- classifier/rollover integration;
+- Task-093 Dashboard durable-staging repair.
 
-Do not revert or redesign the v2 fingerprint without a new focused blocker.
+## Task 095 exact target
 
-## Blocking Windows path-indirection gap
+Current v2 enumeration rejects `os.path.islink(path)` but does not prove rejection of all Windows junction/reparse-point forms.
 
-The Task-094 contract required rejection of symlinks and reparse-style path indirection.
+Task 095 must RED a real Windows junction/reparse fixture before production edits, then apply one minimal filesystem-indirection predicate that rejects symlinks and Windows reparse points before any file/directory traversal.
 
-Current production enumeration checks `os.path.islink(path)` but does not explicitly reject Windows junction/reparse-point entries. A directory junction beneath a declared package directory can therefore be traversed by normal directory APIs even though it is filesystem indirection.
+The check must apply to both declared package entries and recursively discovered children. It must not follow/allow a junction merely because the resolved target is inside the package root.
 
-The existing tests prove symlink rejection but not a real Windows junction/reparse case.
+## Required preservation proofs
 
-Because Windows is the live deployment target and this is an ownership/attestation boundary, no live install-over is authorized yet.
+Task 095 must retain:
 
-## Pending bounded design
+- fingerprint v2 algorithm/framing unchanged;
+- ordinary package root-copy fingerprint equality;
+- runtime byte/path sensitivity;
+- npm11/npm12 package-set equivalence;
+- changed/exact/pending classifier/action truth tables;
+- Task-084/085/086 rollover security/atomicity;
+- Task-089 PowerShell action/AST boundaries;
+- Task-093 Dashboard staging regressions.
 
-The proposed successor is a narrow source-only TDD correction:
+## Hard live/semantic fence
 
-1. add one production path-indirection predicate;
-2. reject symlinks plus Windows reparse-point/junction entries before traversal using `lstat`/Windows file attributes or an equally exact supported API;
-3. apply the predicate to declared entries and recursively discovered children;
-4. never follow a junction merely because its target is within the plugin root;
-5. preserve the v2 fingerprint domain and package contract unchanged;
-6. mandatory Windows RED with an actual junction/reparse fixture, then GREEN;
-7. retain npm11/npm12 equivalence, classifier truth tables, rollover security/atomicity and Task-093 Dashboard staging regressions.
+Task 095 is source/test-only.
 
-## Hard fence
+No install/install-over/uninstall/reset/cleanup, plugin-generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, semantic message, provider probe, model/timeout change, Task-092 record repair, restart/reboot, merge/tag/release is authorized.
 
-Until operator approval:
+Task-092 semantic artifacts remain retired evidence.
 
-- do not create/run Task 095 implementation;
-- no install/install-over/uninstall/reset/cleanup;
-- no plugin-generation mutation;
-- no semantic message/provider probe;
-- no Task-092 record repair;
-- no controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation.
+## Successor gate
 
-## Successor logic
+Only independent acceptance of:
 
-After explicit operator approval, publish Task 095 for source-only Windows reparse-point hardening. Only independent acceptance of that correction may authorize the one-shot supported live install-over of the exact Task-093+094+095 source.
+`PASS_WINDOWS_REPARSE_POINT_PAYLOAD_ATTESTATION_REPAIRED`
+
+may authorize one supported live install-over of the exact Task-093+094+095 source.
+
+That future live task sends zero semantic messages. Only after live MANAGED/source parity/health are independently accepted may one new final authenticated fresh-session semantic attempt be authorized.
