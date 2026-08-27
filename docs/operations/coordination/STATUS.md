@@ -3,49 +3,35 @@
 **State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized definitive repair through final live/semantic acceptance and explicitly required fresh-session behavior to be included in final acceptance
+**Human authority:** operator authorized definitive repair through final live/semantic acceptance and requires fresh-session behavior in final acceptance
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
-## Accepted source/live lineage
+## Accepted baseline
 
-Tasks 078/079/080 remain accepted for semantic admission/delivery/security behavior.
+Accepted source/live lineage through Tasks 078/079/080, 082, 084/085/086 and 089 remains in force.
 
-Task 082 remains accepted for Windows/npm 11/npm 12 `npm pack --json` handling.
+Task 090 completed supported live recovery and remains accepted:
 
-Tasks 084/085/086 remain accepted for source-attested same-version rollover, classification truth table and independent install/rollover control flow.
-
-Task 089 published and independently accepted the PowerShell 5.1 named action-resolver caller repair at:
-
-`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
-
-Task 090 then completed supported live recovery:
-
-- one supported installer invocation, retry zero;
-- pending lifecycle used rollover-only path;
 - plugin generations converged `2 -> 1` without a third generation;
-- surviving generation is the existing source-exact `g-7257c4555ca8ad21`;
 - controller MANAGED;
 - startup/Supervisor/AGENTS restored;
-- source/live plugin+skill parity accepted;
-- ownership/runtime/launcher bindings accepted;
+- source/live parity accepted;
 - Gateway/Ollama/SQLite healthy;
-- `NO_FLASH_MULTI_TICK_PROVEN` from five natural PT1M observations.
+- `NO_FLASH_MULTI_TICK_PROVEN`.
 
-Provider readiness remains:
+Task 091 independently accepted the authenticated Dashboard/WebChat owner surface without secret disclosure:
 
-`PROVIDER_READY_WITH_FRESH_OWNER_SESSION`
+`ACCEPT_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
 
-No separate/direct Ollama probe is authorized in final semantic acceptance.
+## Task 092 result
 
-## Task 091 result and independent review
+Report HEAD:
 
-Task 091 report:
-
-`7390ae46dd61686e8d704f93043ead7fe7b9ca1e`
+`0939c8b0659f0254c754dd7bbf44dc422648c4da`
 
 Reported result:
 
-`PASS_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
+`BLOCKED_RESPONSE_DELIVERY_COMPLETION`
 
 Independent decision:
 
@@ -53,92 +39,77 @@ Independent decision:
 
 Disposition:
 
-`ACCEPT_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
+`ACCEPT_BLOCKER_DASHBOARD_DURABLE_PAYLOAD_STAGING`
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260827-091-prove-dashboard-owner-surface-without-secret-disclosure.md`
+`docs/operations/coordination/reviews/CNX-20260827-092-final-fresh-session-semantic-acceptance.md`
 
-Publication fence is valid: execution `4f707b14...` -> report `7390ae46...` is exactly one report-only commit.
+Publication fence is accepted: Task 092 is one report-only commit from execution HEAD `e1c970d39fead1bae43509ab720731f0229533c0`.
 
-## Accepted Dashboard/WebChat owner proof
+## What Task 092 proved
 
-Exact installed OpenClaw `2026.7.1-2` owner surface is now proven:
+The first fresh-session path passed materially:
 
-- actual localhost `openclaw-control-ui` client;
-- mode `webchat`;
-- role `operator`;
-- effective scopes include `operator.admin`, `operator.read`, `operator.write`, `operator.approvals`, `operator.pairing`;
-- authenticated Gateway connection proven by successful read-only `sessions.list` RPC;
-- existing paired Firefox profile reused;
-- pending pairing requests zero;
-- secret disclosure accounting zero.
+- New chat entered a clean staged Dashboard state;
+- session `agent:main:dashboard:76932fbc-9df2-4415-9020-b6c1d7228505` was fresh;
+- no stale/unknown/missing-parent failure;
+- no fallback to prior Main Session;
+- exactly one semantic send;
+- exactly one Ticket/run;
+- Ticket `accepted` and `routed` before correlated provider start;
+- one `ollama/qwen3.5:9b` Direct model call;
+- exact nonce visibly rendered once.
 
-Accepted token:
+Therefore first fresh-session creation and parent resolution are not the current blocker.
 
-`DASHBOARD_OWNER_SURFACE_READY`
+The post-completion second New Session check remains outstanding because the Ticket never reached `completed`.
 
-Installed behavior also establishes that a fresh Dashboard/WebChat session is materialized on the first non-command send:
+## Current delivery blocker
 
-`DASHBOARD_OWNER_SURFACE_READY_FIRST_SEND_CREATES_SESSION`
+Task 092 reached `response_ready` but not durable delivery completion:
 
-This token does not itself prove end-to-end fresh-session operation.
+- durable Direct-result staging row count was zero;
+- `delivery_confirmed_at` remained null;
+- Ticket failed closed as unverifiable rather than regenerating output;
+- no duplicate semantic/provider effect occurred.
 
-## Operator-requested fresh-session acceptance gate
+The source contract expects the exact Dashboard Direct final text to be durably staged before native visibility. That staging ownership was missing in the live WebChat path.
 
-Final acceptance must explicitly exercise a real fresh Dashboard session because prior testing exposed new-session edge cases around parent/session identity and post-response Ticket lifecycle convergence.
+Strong candidate H1: `installV091DashboardVerifiedDelivery()` uses one prototype `PATCH` guard for both prototype monkey-patching and runtime `reply_dispatch` hook registration. A later legitimate plugin registration in the same process could therefore keep patched TicketStore behavior but lose the staging hook.
 
-Success therefore requires more than a correct visible reply.
+Task 093 must prove or falsify that candidate against exact installed OpenClaw `2026.7.1-2` plugin/hook lifetime before source edits. If false, it must inspect the actual WebChat `reply_dispatch` shape and every staging-handler early-return condition.
 
-The final task must prove:
+## Active Task 093
 
-- real Control UI New Session enters a clean staged state before send;
-- no unknown/stale/missing parent or fallback to old semantic session;
-- first non-command send materializes a genuinely new session ID/key;
-- new session contains no inherited semantic transcript;
-- one Ticket accepted/routed before provider inference;
-- one correlated Ollama inference;
-- one visible exact nonce;
-- lifecycle reaches `response_ready`, exact owner/run `delivery_confirmed`, then `completed`;
-- no duplicate route/provider/recovery/outbox effect;
-- after completion, New Session can be invoked again without sending and again reaches a clean staged state with zero new Ticket/provider side effect.
-
-## Active Task 092
-
-[`tasks/CNX-20260827-092-final-fresh-session-semantic-acceptance.md`](tasks/CNX-20260827-092-final-fresh-session-semantic-acceptance.md)
+[`tasks/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md`](tasks/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md)
 
 Status: `READY_FOR_HERMES`
 
 Authorization:
 
-`ONE_FRESH_DASHBOARD_SESSION_ONE_SEMANTIC_MESSAGE_AUTHORIZED`
+`TASK092_DASHBOARD_DELIVERY_STAGING_DIAGNOSIS_AND_REPAIR_AUTHORIZED`
 
 Execution mode:
 
-`LIVE_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTANCE`
+`SOURCE_TDD_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIR`
 
-## Hard final fence
+Task 093 is source/test-only plus read-only installed-source/log/DB inspection. It must establish one exact root cause, reproduce it with a production-implementation RED, apply one minimal fix, and run the full regression matrix.
 
-Exactly one semantic message may be sent, only through the authenticated Dashboard/WebChat owner surface.
+## Hard fence
 
-Generate the new nonce only after the first New Session staged-state gate passes.
+Task 093 sends zero semantic messages and performs zero provider calls/probes.
 
-Exact message form:
+No live install/reset/repair, plugin-generation mutation, controller/startup/Supervisor/AGENTS/ownership/runtime/config change, provider/model/timeout change or SQLite rewrite is authorized.
 
-`ตอบกลับข้อความนี้เพียงว่า <NEW_NONCE>`
+Task-092 semantic artifacts are retired and retained as evidence.
 
-No resend/retry after failure/timeout. No second semantic validation message.
-
-Do not use `openclaw agent`, CLI owner-looking session keys, `chat.inject`, `sessions_send`, channel send, direct Ollama probe or synthetic Ticket mutation.
-
-Do not change provider/model/timeouts or product installation/runtime/configuration during Task 092.
-
-Task-076 nonce `CNXSEM-20260826T212900Z-7F3A` and session `f829224b-064f-4bb4-a845-2955be2a2c7f` remain permanently retired.
-
-## Final success meaning
+## Successor logic
 
 Only independent acceptance of:
 
-`PASS_FINAL_FRESH_SESSION_SEMANTIC_TICKET_OLLAMA_DELIVERY_ACCEPTED`
+`PASS_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIRED`
 
-means CogentNexus-OpenClaw v0.9.3 has completed final semantic acceptance, including authenticated owner entry, real fresh-session use, Ticket-before-provider ordering, correlated Ollama inference, durable delivery completion, visible response and repeatable New Session readiness.
+may authorize a supported live install-over of the repaired source.
+
+Only after that updated source is installed and live parity/MANAGED health are accepted may a new final fresh-session semantic attempt be authorized.
