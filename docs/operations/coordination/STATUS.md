@@ -12,7 +12,11 @@ Tasks 078/079/080 remain accepted candidate behavior covering owner/session deli
 
 Task 082 remains accepted for the Windows/npm 11/npm 12 `npm pack --json` installer boundary.
 
-Task 084/085/086 remain the accepted attested same-version rollover/classification/control-flow lineage.
+Task 084/085/086 established the accepted source-attested same-version rollover, classification truth table and independent install/rollover control flow.
+
+Task 089 published and independently accepted the PowerShell 5.1 named action-resolver caller boundary at:
+
+`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
 
 Provider readiness remains:
 
@@ -20,47 +24,15 @@ Provider readiness remains:
 
 No additional direct Ollama probe is authorized.
 
-## Task 087 live blocker baseline
+## Task 090 result and independent review
 
-Task 087 used one supported live recovery attempt and stopped fail-closed at the action-resolver parameter boundary. It was not retried.
+Task 090 report:
 
-Accepted live topology remains:
+`c2d6f2586b32ebec6a57ebb487d924a3ec3101a4`
 
-- controller PASSTHROUGH generation 13;
-- startup disabled;
-- Supervisor absent;
-- AGENTS managed markers absent;
-- ownership manifest -> prior `g-5593cbcfff5b35d5`;
-- active disabled source-exact replacement -> `g-7257c4555ca8ad21`;
-- exactly two canonical generations;
-- no third generation;
-- Gateway healthy from accepted evidence;
-- SQLite integrity accepted, Tickets/outbox zero;
-- no semantic/provider activity.
+Reported result:
 
-## Task 088 publication failure
-
-Task 088 correctly understood and tested the PowerShell array-splat defect but failed publication: its report landed without its implementation in repository ancestry.
-
-Independent disposition:
-
-`REWORK_EVIDENCE_PUBLICATION_UNSAFE`
-
-No live successor was authorized from Task 088.
-
-## Task 089 acceptance
-
-Implementation:
-
-`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
-
-Report:
-
-`ebd6df825f6b84e68edd2ba24869333154be48c6`
-
-Reported token:
-
-`PASS_ACTION_RESOLVER_BOUNDARY_PUBLISHED_SAFE`
+`BLOCKED_OWNER_SURFACE_READINESS`
 
 Independent decision:
 
@@ -68,101 +40,93 @@ Independent decision:
 
 Disposition:
 
-`ACCEPT_ACTION_RESOLVER_BOUNDARY_PUBLISHED_SAFE`
+`ACCEPT_BLOCKER_OWNER_SURFACE_READINESS_AFTER_LIVE_RECOVERY_PASS`
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260827-089-recover-and-publish-task088-implementation.md`
+`docs/operations/coordination/reviews/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md`
 
-Fresh repository verification confirms:
+Publication fence is valid: Task 090 is exactly one report-only commit from execution HEAD `482223de8a3b6e77d47cc85679832d291a5fb78d`.
 
-- execution `25d6c673...` -> implementation `d6daf8f9...` is one commit changing exactly `scripts/install.ps1` and `tests/test_installer_transaction_wiring.py`;
-- implementation -> report is one report-only commit;
-- implementation is repository-resolvable and in direct ancestry;
-- plugin payload source diff is zero.
+## Accepted Task-090 live recovery
 
-## Accepted Task-089 source behavior
+The supported one-shot recovery succeeded:
 
-Production action-resolver invocation now uses PowerShell 5.1-safe named hashtable splatting.
+- installer invocation count 1;
+- retry count 0;
+- pending lifecycle `installPlugin=false`, `rolloverPlugin=true`;
+- no pending-path npm pack/artifact install/OpenClaw plugin install;
+- no third generation;
+- canonical plugin generations converged `2 -> 1`;
+- surviving generation is the pre-existing source-exact `g-7257c4555ca8ad21`;
+- controller MANAGED generation 18;
+- startup enabled;
+- Supervisor Ready;
+- AGENTS managed block restored;
+- one loaded/enabled v0.9.3 plugin with source-exact fingerprint;
+- skill parity `86/86` normalized files;
+- ownership/runtime/launcher/Supervisor bindings accepted;
+- Gateway healthy;
+- Ollama accepted four-model inventory unchanged;
+- SQLite integrity `ok`, Tickets/outbox zero;
+- semantic messages 0;
+- provider probes 0.
 
-The literal string-token array form that caused Task 087 to bind `Mode="-Mode"` is absent from accepted source.
+Five natural PT1M observations passed and the accepted token is:
 
-Preserved Task-086 invariants remain:
+`NO_FLASH_MULTI_TICK_PROVEN`
 
-- package install is controlled by `installPlugin`;
-- rollover is independently controlled by `rolloverPlugin`;
-- rollover is not nested under `installPlugin`;
-- rollover occurs before strict `resolve-plugin`.
+## Remaining blocker
 
-Executor fresh verification reported:
+HTTP Dashboard reachability is proven, but authenticated Control UI/WebChat owner scope is not.
 
-- focused boundary/lifecycle: `42 passed`;
-- Python `374 passed, 2 skipped, 4 subtests passed`;
-- npm 11 plugin suite `49 files, 257 tests passed` plus validation/package/bootstrap gates;
-- npm 12 plugin suite `49 files, 257 tests passed` plus validation/package/bootstrap gates;
-- PowerShell 5.1 syntax/AST regression, baseline and `git diff --check` passed.
+Task 090 correctly refused to read/copy/enter/log the Gateway token/password solely to satisfy evidence.
 
-## Active Task 090
+The final semantic message remains unauthorized until actual owner/admin Control UI authentication is independently proven without secret disclosure.
 
-[`tasks/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md`](tasks/CNX-20260827-090-live-pending-rollover-recovery-retry-after-published-boundary-fix.md)
+## Active Task 091
+
+[`tasks/CNX-20260827-091-prove-dashboard-owner-surface-without-secret-disclosure.md`](tasks/CNX-20260827-091-prove-dashboard-owner-surface-without-secret-disclosure.md)
 
 Status: `READY_FOR_HERMES`
 
-Authorization: `ONE_SUPPORTED_PENDING_RECOVERY_RETRY_AFTER_PUBLISHED_FIX_AUTHORIZED`
+Authorization: `BOUNDED_LOCAL_CONTROL_UI_AUTH_AND_PAIRING_PROOF_AUTHORIZED`
 
-Execution mode: `LIVE_SUPPORTED_PENDING_ROLLOVER_RECOVERY_RETRY`
+Execution mode: `LIVE_READ_ONLY_CONTROL_UI_OWNER_AUTH_PROOF`
 
-Exact source:
+Task 091 must:
 
-`d6daf8f93fcd5578f267b2017c6cc82e5de20095`
+- preserve current accepted MANAGED live state;
+- inspect exact installed OpenClaw `2026.7.1-2` dashboard/auth/pairing/source contract before choosing a path;
+- avoid reliance on newer online docs as exact-version evidence;
+- authenticate the real localhost Control UI/WebChat client without publishing the Gateway shared secret;
+- prefer an existing paired browser/device;
+- otherwise use a proven supported owner handoff/pairing mechanism;
+- allow at most one exactly correlated fresh localhost Control UI device approval if required;
+- prove actual authenticated client identity and effective owner/admin scope from device/Gateway/read-only metadata;
+- prove a read-only RPC succeeds;
+- identify fresh-session behavior without `chat.send`;
+- keep Tickets/outbox/provider activity at zero;
+- keep secret disclosure accounting at zero.
 
-Task 090 must re-prove the preserved Task-087 two-generation topology before mutation and require:
+## Hard secret fence
 
-- replacement fingerprint == exact source fingerprint;
-- `mode=upgrade`;
-- `pendingRollover=true`;
-- `pluginAlreadyExact=false`;
-- `installPlugin=false`;
-- `rolloverPlugin=true`;
-- production named caller no longer reproduces the Task-087 parameter error.
+Do not print, log, copy into evidence, commit, hash for publication or expose the Gateway token/password. Do not use `openclaw gateway auth-token --show`. Do not save credential-bearing URLs.
 
-Exactly one supported normal installer invocation is authorized. Nonzero exit means stop without retry.
+## Hard semantic/product fence
 
-For the pending path it must prove:
+No Dashboard/WebChat send, `chat.send`, `chat.inject`, `openclaw agent`, `sessions_send`, channel send, final nonce, direct Ollama call, synthetic Ticket mutation, provider/model/timeout change, install/install-over/uninstall/reset/cleanup, CNX live repair, SQLite edit, reboot, merge, tag or release.
 
-- no `npm pack`/artifact install/`openclaw plugins install`;
-- no third generation;
-- reviewed rollover-plan/apply uses exact expected source fingerprint and fresh inventory;
-- old generation is retired;
-- canonical generations converge 2 -> 1;
-- existing source-exact replacement survives as the unique canonical generation.
-
-After successful installer completion it must prove:
-
-- MANAGED/startup/Supervisor/AGENTS restoration;
-- exact source/live skill and plugin parity;
-- product-owned runtime/launcher/Supervisor bindings;
-- ownership/Gateway/Ollama/SQLite health;
-- exact accepted four-model inventory unchanged;
-- five natural PT1M ticks with `NO_FLASH_MULTI_TICK_PROVEN`;
-- read-only `DASHBOARD_OWNER_SURFACE_READY` with zero semantic messages.
-
-## Hard semantic and mutation fence
-
-No Dashboard/WebChat send, `chat.send`, `openclaw agent`, `sessions_send`, channel message, final nonce, direct Ollama call, synthetic Ticket mutation, provider/model/timeout change, uninstall/reset/manual cleanup/manual rollover, reboot, merge, tag or release.
-
-Outside installer-supported behavior, do not manually repair controller/startup/Supervisor/AGENTS/ownership/config/runtime/plugin state.
-
-## Final semantic successor
+## Successor logic
 
 Only independent acceptance of:
 
-`PASS_LIVE_PENDING_RECOVERY_PARITY_NO_FLASH_OWNER_SURFACE_READY`
+`PASS_DASHBOARD_OWNER_SURFACE_READY_NO_SECRET_DISCLOSURE`
 
 may authorize exactly one fresh authenticated Dashboard/WebChat owner message for final semantic acceptance.
 
-That final message must prove:
+The final semantic task must generate a new one-time nonce only at execution time and prove:
 
-`owner message -> durable Ticket accepted before correlated provider inference -> exactly one route -> response_ready -> exact owner/run delivery_confirmed -> completed -> exactly one visible nonce response`.
+`authenticated owner message -> durable Ticket accepted/routed before correlated provider inference -> response_ready -> exact owner/run delivery_confirmed -> completed -> exactly one visible nonce response`.
 
-The Task-076 nonce/session remain permanently retired.
+Task-076 nonce/session remain permanently retired.
