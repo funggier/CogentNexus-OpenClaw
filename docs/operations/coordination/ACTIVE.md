@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `AWAITING_OPERATOR_DESIGN_APPROVAL`
-Execution mode: `SOURCE_TDD_FULL_PLUGIN_PAYLOAD_FINGERPRINT_REPAIR_PENDING_APPROVAL`
-Current authorization: `NO_LIVE_OR_SEMANTIC_SUCCESSOR_AUTHORIZED`
-Task ID: `PENDING_CNX-20260827-094`
+Status: `READY_FOR_HERMES`
+Execution mode: `SOURCE_TDD_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION`
+Current authorization: `TASK093_DEPLOYMENT_ATTESTATION_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260827-094`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator approval and task publication
+Executor: Hermes/Codex after operator continuation
 
 ## Authoritative coordination files
 
@@ -17,90 +17,84 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 093 review
+## Active task
 
-Task 093 reported:
+[`tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md`](tasks/CNX-20260827-094-repair-complete-installable-plugin-payload-fingerprint.md)
 
-`PASS_DASHBOARD_DURABLE_PAYLOAD_STAGING_REPAIRED`
+## Operator-approved bounded design
 
-Implementation:
+The operator approved replacing the current four-file sample fingerprint with a deterministic fingerprint over the complete installable plugin payload.
+
+The fingerprint authority is the package-owned content selected by `package.json.files`, plus `package.json` itself, expanded safely and deterministically.
+
+Required digest domain:
+
+- complete shipped `dist/**` runtime;
+- shipped manifest/bootstrap/README and other declared package files;
+- normalized sorted relative paths plus exact file bytes;
+- no absolute root path;
+- explicit versioned fingerprint domain separator;
+- fail closed on unsafe path traversal, symlink/path indirection, missing declared entries or unsupported package-file contract.
+
+Development-only `src/**`, tests, `node_modules/**`, caches and transient tarballs are not fingerprinted unless they are explicitly part of the shipped package contract.
+
+## Task 093 review carried forward
+
+Task 093 implementation:
 
 `a924157ecdedef1d4f166d5762529b0d59536fc9`
 
-Report:
+Task 093 report:
 
 `62fdd69d2a4a27566c0e986171b949347cf0df68`
 
-Independent decision:
-
-`REWORK`
-
-Disposition:
+Independent disposition:
 
 `REWORK_PLUGIN_FINGERPRINT_DOES_NOT_ATTEST_RUNTIME_PAYLOAD`
 
-Review:
-
-[`reviews/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md`](reviews/CNX-20260827-093-repair-dashboard-durable-payload-staging-boundary.md)
-
-## What remains valid from Task 093
-
-The Dashboard durable-staging root cause and minimal source fix are preserved.
-
-Exact OpenClaw `2026.7.1-2` loader review supports the registration-lifetime fix: each plugin registration callback receives a fresh guarded API proxy, while `TicketStore.prototype` remains process-global. Separating prototype patch idempotence from per-runtime `reply_dispatch` hook registration is therefore consistent with the real host lifecycle.
-
-The Task-093 implementation/test commit remains the candidate staging repair and should not be reverted or broadened without a focused RED.
+The Dashboard durable-staging source fix itself remains preserved and is not the current rework target.
 
 ## Blocking deployment-attestation defect
 
-Production `namespace_ownership.py::_plugin_payload()` fingerprints only:
+Current `namespace_ownership.py::_plugin_payload()` hashes only four files and omits most shipped runtime files, including `dist/v091-dashboard-verified-delivery.js` changed by Task 093.
 
-- `openclaw.plugin.json`;
-- `package.json`;
-- `scripts/bootstrap-ticket-db.mjs`;
-- `dist/ticket-store.js`.
+Task 093 therefore produced the same legacy fingerprint as the currently installed pre-fix package even though runtime behavior differs.
 
-It does not fingerprint the rest of the shipped runtime, including `dist/v091-dashboard-verified-delivery.js` changed by Task 093.
+Because `classify-install` uses this fingerprint to decide `pluginAlreadyExact`, a live successor could skip installing the Task-093 fix.
 
-Task 093 therefore reported the same fingerprint as the old live plugin even though runtime behavior changed.
+## Task 094 mandatory proof
 
-This can cause `classify-install` to return `pluginAlreadyExact=true` for the old live runtime and skip package installation, leaving the Task-093 fix unapplied.
+Task 094 must RED first against the production helper and prove that changing only a non-ticket-store shipped runtime file currently leaves the fingerprint unchanged.
 
-## Pending bounded design
+After GREEN it must prove:
 
-Before any live install-over, the next source-only TDD task must replace the four-file sample fingerprint with a deterministic fingerprint over the complete installable plugin payload.
+1. any shipped runtime content/path add/remove/rename changes the v2 fingerprint;
+2. the same installable payload copied to another absolute root hashes identically;
+3. actual npm11/npm12 packed file sets are covered by the fingerprint file set;
+4. unsafe/missing/ambiguous package paths fail closed;
+5. Task-093 candidate and current pre-fix live payload differ under the new v2 fingerprint;
+6. changed single-generation classification returns `pluginAlreadyExact=false` and production actions `installPlugin=true`, `rolloverPlugin=true`;
+7. exact payload returns no-install/no-rollover;
+8. two-generation pending rollover remains rollover-only with exact expected-source attestation;
+9. all Task-084/085/086 rollover security/atomicity and Task-089 installer action boundaries remain green;
+10. Task-093 Dashboard staging tests remain green.
 
-Proposed scope:
+## Hard live/semantic fence
 
-- `skills/cogentnexus-openclaw/scripts/namespace_ownership.py` fingerprint helper;
-- focused ownership/classification tests only as needed;
-- no Dashboard staging behavior change;
-- no live installation or semantic send.
+Task 094 is source/test-only.
 
-Required invariants:
+Read-only fingerprinting of the installed plugin root is allowed for candidate-vs-live attestation evidence.
 
-1. hash package-owned runtime files, including all `dist/**`, package/manifest/bootstrap metadata and other files actually shipped;
-2. include normalized relative paths + bytes in sorted order;
-3. exclude `src/**`, tests, `node_modules/**` and transient npm artifacts that are not installed;
-4. reject symlinks/path escape/unsafe payload entries;
-5. changing `dist/v091-dashboard-verified-delivery.js` changes fingerprint;
-6. exact copied/installed package payload produces the same fingerprint;
-7. Task-093 candidate differs from current pre-fix live payload;
-8. changed-payload single-generation classification yields `pluginAlreadyExact=false`, then lifecycle actions `installPlugin=true`, `rolloverPlugin=true`;
-9. already-exact payload remains `false/false` actions;
-10. preserve Task-084/085/086 rollover attestation, plan/apply tree fences, Task-089 installer boundary and npm 11/npm 12 package behavior.
+No install/install-over/uninstall/reset/cleanup, plugin-generation mutation, controller/startup/Supervisor/AGENTS/config/runtime/SQLite edit, semantic message, provider probe, model/timeout change, reboot, merge, tag or release is authorized.
 
-## Hard fence
+Task-092 semantic artifacts remain retired evidence and must not be repaired or reused.
 
-Until the operator approves this bounded design:
+## Successor gate
 
-- do not create/run Task 094 implementation;
-- no install/install-over/uninstall/reset/cleanup;
-- no plugin-generation mutation;
-- no semantic message/provider probe;
-- no Task-092 record repair;
-- no live controller/startup/Supervisor/AGENTS/config/runtime mutation.
+Only independent acceptance of:
 
-## Successor logic
+`PASS_COMPLETE_INSTALLABLE_PLUGIN_PAYLOAD_ATTESTATION_REPAIRED`
 
-After explicit operator approval, publish the source-only Task 094 contract for full installable-payload fingerprint attestation. Only independent acceptance of that repair can release a live install-over of the Task-093 staging fix.
+may authorize a one-shot supported live install-over of the exact Task-093+094 source.
+
+That future live task sends zero semantic messages. A new final authenticated fresh-session semantic attempt remains forbidden until the updated source is installed and live parity/MANAGED health are independently accepted.
