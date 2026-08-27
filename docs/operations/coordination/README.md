@@ -1,193 +1,152 @@
 # CogentNexus Coordination Layer
 
-This directory is the GitHub-based handoff surface between ChatGPT, Codex, and the human operator.
+This directory is the GitHub-based handoff surface between ChatGPT, **Hermes/Codex**, and the human operator.
 
-It is intentionally simple, reviewable, and durable. GitHub is the shared source of coordination truth; local execution remains on the operator's machine through Codex or other explicitly authorized tools.
+GitHub is the durable coordination source of truth. Local execution remains on the operator's machine through the exact executor and permissions authorized by the active task.
 
-## Purpose
+## Canonical current contract
 
-Use this layer when ChatGPT designs or reviews work but cannot directly execute on the local Windows machine, while Codex can execute locally and can read/write the repository.
+- Repository: `funggier/CogentNexus-OpenClaw`
+- Current stabilization branch: `agent/v0.9.3-full-stabilization`
+- READY gate: `READY_FOR_HERMES`
+- Executor role: `Hermes/Codex`
+- Manual trigger: `ต่อ`
+- ChatGPT owns tasks, reviews, `ACTIVE.md`, and `STATUS.md`
+- Hermes/Codex owns matching execution reports
+- Human operator remains final authority
 
-The intended loop is:
+The READY gate names the handoff state; it does not require that only the Hermes implementation can execute. An explicitly authorized Hermes or Codex executor may execute the exact READY task.
+
+## Intended loop
 
 ```text
 Human talks primarily with ChatGPT
         ↓
 ChatGPT publishes/reviews task in GitHub
         ↓
-ACTIVE.md = READY_FOR_CODEX
+ACTIVE.md = READY_FOR_HERMES
         ↓
-Human sends Codex: ต่อ
+Human sends authorized executor: ต่อ
         ↓
-Codex syncs GitHub and executes active task
+Hermes/Codex synchronizes GitHub and executes exact active task
         ↓
-Codex pushes execution report/evidence references
+Executor pushes matching execution report/evidence references
         ↓
-Human tells ChatGPT that Codex has returned, or simply asks to continue
-        ↓
-ChatGPT reads GitHub report, reviews evidence, and publishes next task
+ChatGPT reads report, reviews evidence, and publishes next disposition
         ↓
 repeat
 ```
 
-The human is a **trigger**, not a courier for task details. Full task specifications and execution reports live in GitHub.
+The human is a trigger, not a courier for task details. Full task specifications and execution reports live in GitHub.
 
 ## Optional continuous watch loop
 
-For repeated work, Codex may use the Scheduled-task mode defined in [`WATCH_MODE.md`](WATCH_MODE.md).
+For repeated work, an authorized executor may use the Scheduled-task mode defined in [`WATCH_MODE.md`](WATCH_MODE.md).
 
 ```text
 ChatGPT publishes ACTIVE task with Execution mode: AUTO
         ↓
-Codex Scheduled task detects it on the next poll
+Scheduled Hermes/Codex task detects it on the next poll
         ↓
-Codex validates and executes the exact task
+Executor validates and executes the exact task
         ↓
-Codex pushes the matching report and stops that run
+Executor pushes the matching report and stops that run
         ↓
 ChatGPT reviews and publishes the next authorized task
 ```
 
-This removes the repeated `ต่อ` relay. It does not allow Codex to invent tasks, bypass safety gates, or repeat a completed task.
-
-Manual `ต่อ` remains supported. Continuous local execution requires a confirmed enabled Scheduled task, the Windows machine powered on, and the ChatGPT desktop app running.
+Manual `ต่อ` remains supported. Continuous execution never bypasses task-specific safety gates, invents tasks, or repeats completed side effects.
 
 ## Ownership model
-
-To reduce merge conflicts, each side owns different files.
 
 - **ChatGPT owns**
   - `ACTIVE.md`
   - `STATUS.md`
   - `tasks/*.md`
   - `reviews/*.md`
-- **Codex owns**
+- **Hermes/Codex owns**
   - `reports/*.md`
 - **Human operator** may intervene anywhere and is the final authority.
 
-Codex should not rewrite task specifications merely to reflect progress. Progress and results belong in the matching report file.
-
+The executor should not rewrite task specifications merely to reflect progress. Progress/results belong in the matching report.
 
 ## Diagnosis, fix, and proof ownership
 
 The default technical-role split is:
 
-- **ChatGPT leads cause and fix**: inspect durable evidence and source, form the narrow root-cause hypothesis, design the remediation, define safety gates, and publish an exact task or patch specification.
-- **Codex leads proof and validation**: execute the narrowly specified diagnostic or change on the operator's machine, capture commands and evidence, test the proposed fix, and report contradictions or remaining uncertainty.
-- Codex should not be given open-ended root-cause discovery or fix design when ChatGPT can derive and specify them from available source and evidence.
-- ChatGPT may explicitly delegate cause analysis, implementation, or fix design to Codex only when ChatGPT lacks required machine access/capability, or when the task states why local execution knowledge is essential.
-- Contrary machine evidence overrides ChatGPT's hypothesis. Codex records the contradiction without improvising a broader change; ChatGPT then revises the cause, fix, or next proof task.
-- For a suspected source defect, the task should name the relevant path/function, causal mechanism, proposed remedy or decision boundary, and the exact evidence required for acceptance.
+- **ChatGPT leads cause/fix specification** when repository evidence is sufficient: inspect durable evidence/source, establish the narrow root cause, define remediation and safety gates, and publish an exact task/patch specification.
+- **Hermes/Codex leads execution proof**: execute the authorized diagnostic/change, capture commands/evidence, validate the proposed fix, and report contradictions or remaining uncertainty.
+- ChatGPT may explicitly delegate deeper local diagnosis or implementation when machine access/capability is essential.
+- Contrary machine evidence overrides a hypothesis. The executor records the contradiction without broadening authority; ChatGPT revises the task/disposition.
 
-This role split changes who leads the work, not the evidence standard or the human operator's final authority.
+This role split changes who leads work, not the evidence standard or human authority.
 
 ## Task identity
 
-Every task has a stable ID:
-
-```text
-CNX-YYYYMMDD-NNN
-```
-
-Example:
+Every task has a stable ID such as:
 
 ```text
 CNX-20260822-001
 ```
 
-The same ID must be used across:
-
-```text
-tasks/CNX-20260822-001-*.md
-reports/CNX-20260822-001-*.md
-reviews/CNX-20260822-001-*.md
-```
+The same ID is used across `tasks/`, `reports/`, and `reviews/`.
 
 ## Handoff state model
 
-The coordination state is descriptive, not runtime recovery authority.
-
-Normal handoff states are:
-
 ```text
-READY_FOR_CODEX
-    ↓ human signal: ต่อ
-CODEX_EXECUTING
+READY_FOR_HERMES
+    ↓ manual signal: ต่อ OR authorized AUTO pickup
+EXECUTING
     ↓ report pushed
 REPORT_READY
     ↓ ChatGPT review
 CHATGPT_REVIEWING
     ↓
-READY_FOR_CODEX | CLOSED | BLOCKED
+READY_FOR_HERMES | CLOSED | BLOCKED
 ```
 
-`ACTIVE.md` is the single pointer to the current handoff state and task.
+`ACTIVE.md` is the single pointer to the current handoff state/task.
 
-Codex must **not** repeat a task whose report already records completion merely because the operator sends `ต่อ` again. If `ACTIVE.md` is not `READY_FOR_CODEX`, Codex should synchronize, report the state, and stop unless the active task explicitly authorizes another action.
+The executor must not repeat a task whose report already records completion. If `ACTIVE.md` is not `READY_FOR_HERMES`, synchronize, report/read status as appropriate, and stop unless the active task explicitly authorizes another action.
 
 ## Minimal human signals
 
 See [`SIGNALS.md`](SIGNALS.md).
 
-The normal execution trigger is now only:
-
-```text
-ต่อ
-```
-
-Codex interprets that as: synchronize from GitHub, read the current coordination records, execute the currently authorized task exactly, push the required report, and stop.
+`ต่อ` means: synchronize current GitHub coordination truth, read the active task/report/safety gates, execute only the exact authorized READY task, publish its report, and stop for review.
 
 `สถานะ` is read-only coordination status. `หยุด` means do not begin a new coordination task.
 
-## Problem resolution and communication
+## Problem resolution
 
 See [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md).
 
-A safe execution stop must not become a silent dead end. Codex publishes the matching problem report; ChatGPT reviews it, classifies the blocker, and either opens the narrowest safe diagnostic/fix/replacement task or sets an exact human-decision gate. Meaningful blockers and dispositions are reported to the human operator.
-
+A safe stop must not become a silent dead end. The executor publishes the matching problem report; ChatGPT reviews it, classifies the blocker, and selects the narrowest safe next disposition or an exact human-decision gate.
 
 ## Progress communication contract
 
-During a running Codex task, progress reporting is part of the execution contract:
+During a running task:
 
-- announce the objective and current phase when execution begins;
-- while work is actively running, publish a meaningful progress update at least approximately every 3 minutes;
-- report immediately after preflight, before an authorized mutation, after mutation, after verification, and when a blocker is found;
-- report actions, evidence, outcomes, and the next phase without exposing private reasoning;
-- a progress update is not a pause point: in `AUTO` mode Codex continues immediately unless a safety, authority, permission, or required-information gate blocks execution;
-- finish with actions taken, evidence, side effects, remaining unproven items, and the durable next state.
-
-Avoid empty timer messages. If a phase completes sooner, report its milestone rather than waiting for the interval.
+- announce objective/current phase at execution start;
+- provide meaningful progress at milestones and before/after authorized mutations;
+- report blockers immediately;
+- expose actions/evidence/outcomes, not private reasoning;
+- in AUTO mode continue unless a safety/authority/permission/required-information gate blocks execution;
+- finish with actions taken, evidence, side effects, remaining unproven items, and durable next state.
 
 ## Evidence rule
 
-A report must distinguish:
+A report must distinguish what was executed, what was observed, what evidence/commit records the result, and what remains unproven. Do not convert assumptions into PASS.
 
-- what command or action was actually executed;
-- what was observed;
-- what evidence file or Git commit records the result;
-- what remains unproven.
-
-Do not convert assumptions into PASS.
-
-For disruptive tests, Codex must preserve the safety invariants defined by the task. If the requested preconditions are not satisfied, report `BLOCKED` rather than improvising a dangerous workaround.
+For disruptive tests, preserve the task's safety invariants. If required preconditions are not satisfied, report `BLOCKED` rather than improvising.
 
 ## Source and revision rule
 
-Tasks may name an exact commit, an exact code ancestor, or a branch requirement.
-
-When a task says that a commit must be an ancestor, Codex should verify it before execution, for example:
-
-```powershell
-git merge-base --is-ancestor <required-sha> HEAD
-if ($LASTEXITCODE -ne 0) { throw 'Required code baseline is not present in HEAD.' }
-```
-
-This allows later documentation-only coordination commits without invalidating the code baseline being tested.
+Tasks may name an exact commit, ancestor requirement, or branch requirement. Verify exact revision constraints before execution. A documentation-only coordination commit must not silently redefine the implementation candidate being tested.
 
 ## Report contract
 
-A Codex report should include at minimum:
+An executor report should include at minimum:
 
 ```text
 Task ID
@@ -203,11 +162,9 @@ Unproven or blocked items
 Recommended next step
 ```
 
-The report should be concise but exact enough that ChatGPT can review it without relying on hidden local state.
-
 ## Review contract
 
-ChatGPT review files should record one of:
+ChatGPT review files record one of:
 
 ```text
 ACCEPT
@@ -216,23 +173,14 @@ BLOCKED
 SUPERSEDED
 ```
 
-A review should explain why and, when needed, point to the next Task ID.
+ChatGPT explains why and points to the next Task ID/disposition when needed.
 
-## Standing Codex rule
+## Standing executor rule
 
-Once Codex has been told to use this coordination layer, later operator messages such as `ต่อ` should not require the full bootstrap prompt again.
+For every `ต่อ`, Hermes/Codex must re-read GitHub rather than relying on stale conversational memory. Current `ACTIVE.md`, task file, report state, and task-specific safety gates determine what may execute.
 
-For every `ต่อ`, Codex must re-read GitHub rather than relying on stale conversational memory. The current `ACTIVE.md`, task file, report state, and task-specific safety gates are the authority for what to execute next.
+After publishing the matching report, the executor stops. It does not invent the next task.
 
-Codex stops after publishing the report. It does not autonomously invent the next task; ChatGPT reviews and publishes the next authorized task through GitHub.
+## Relationship to `docs/operations`
 
-## Relationship to the rest of `docs/operations`
-
-This directory is the execution/handoff layer only.
-
-- `../STATUS.md` describes where the project is now.
-- `../ROADMAP.md` describes short-, medium-, and long-term direction.
-- `../WORKLOG.md` records major project progress.
-- `../DECISIONS.md` records architectural and process decisions.
-
-Coordination records may be temporary or superseded. Accepted technical truth must still be grounded in code, tests, evidence, and release/acceptance documentation.
+This directory is the execution/handoff layer only. Living status/roadmap/decisions remain under `docs/operations/`; historical task/report/review evidence remains historical. Accepted technical truth is grounded in code, tests, evidence, and release/acceptance gates.
