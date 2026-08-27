@@ -1,16 +1,14 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized continuation through definitive live repair and final authenticated fresh-session semantic acceptance
+**Human authority:** operator authorized continuation through definitive live repair and final authenticated fresh-session semantic acceptance, and proposed limited retries for low-impact transient failures
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
 
-Task 096 live deployment is independently accepted with a snapshot-only owner-readiness blocker.
-
-Exact installed source:
+Task 096 live deployment remains accepted with exact installed source:
 
 `32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
 
@@ -18,69 +16,51 @@ Accepted final plugin fingerprint:
 
 `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Accepted live state:
+Accepted live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, startup/Supervisor/Gateway/SQLite/Ollama health, preserved Task-092 retired evidence and `NO_FLASH_MULTI_TICK_REPROVEN`.
 
-- one supported install-over, exit 0, no retry;
-- real npm-pack installation and ownership-safe rollover;
-- one canonical candidate-exact plugin generation;
-- MANAGED controller generation 24;
-- startup/Supervisor/Gateway/SQLite/Ollama health;
-- Task-092 retired semantic evidence preserved;
-- zero Task-096 semantic/provider activity;
-- `NO_FLASH_MULTI_TICK_REPROVEN`.
+## Task 097 result and independent review
 
-Task 096 report:
+Task 097 report:
 
-`d397396fd5d688d84c16d90e8be622e1f59b1411`
+`41a119b686daa4fc64b8f8481329a1be78462641`
 
-Independent disposition:
+Reported result:
 
-`ACCEPT_BLOCKER_OWNER_SURFACE_READINESS_SNAPSHOT_ONLY`
+`BLOCKED_FRESH_SESSION_ENTRY_FAILURE`
 
-## Why the readiness blocker is now a separate task
+Independent decision:
 
-Task 096 ended and published while the browser still showed a failed Gateway connection. After the task had ended, the operator manually entered the OpenClaw token and reported that the Dashboard became accessible.
+`ACCEPT`
 
-That observation is post-report evidence. The Task-096 report remains immutable historical evidence and is not rewritten.
+Disposition:
 
-No executor is authorized to expose or request the token value.
+`ACCEPT_BLOCKER_STATE_UNVERIFIED_UI_RETRY_DUPLICATED_FRESH_SESSION_ENTRY`
 
-## Active Task 097
+The Dashboard/control surface was authenticated and visibly ready. No semantic/provider activity occurred and live state remained healthy.
 
-[`tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md`](tasks/CNX-20260827-097-prove-post-task-dashboard-owner-fresh-session-readiness.md)
+The failure was a UI event race: the first New Session action returned `unverifiable`, was still in flight, and a foreground re-issue caused two new empty Dashboard sessions to materialize. The one-transition readiness contract therefore could not issue `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`.
 
-Execution mode:
+The two empty Task-097 sessions remain untouched evidence.
 
-`READ_ONLY_AUTHENTICATED_DASHBOARD_FRESH_SESSION_READINESS`
+## Pending bounded retry policy
 
-Authorization:
+The operator proposed allowing bounded retries for simple errors that do not produce harmful side effects.
 
-`TASK096_POST_REPORT_OWNER_READINESS_PROOF_AUTHORIZED`
+Recommended policy:
 
-Task 097 must independently prove the current authenticated Dashboard/WebChat connection has owner/operator control scope and that a supported read-only RPC works.
+- read-only calls: maximum 3 attempts total;
+- low-impact state-changing actions: maximum 2 attempts total, but retry only after a bounded wait and fresh state verification prove the first attempt had no effect;
+- if the first action's effect appears during verification, count it as success and do not re-issue;
+- ambiguous or partial mutation blocks retry;
+- semantic sends, provider inference, install/uninstall/reset, destructive cleanup and other non-idempotent external effects remain single-attempt unless the specific task first proves idempotency and explicitly authorizes retry;
+- every retry records attempt/reason/grace interval/pre-retry state and eligibility evidence.
 
-It must then use the actual New Chat control once, without sending any message, and prove the UI enters a fresh staged empty-chat state without stale/unknown-parent errors or fallback to an old session.
+This policy directly addresses Task 097: `unverifiable` is not equivalent to `not executed`.
 
-Before/after Ticket/outbox/provider snapshots must remain unchanged.
+## Hard fence pending approval
 
-Required PASS token:
-
-`PASS_DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
-
-Required readiness evidence token:
-
-`DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
-
-## Hard fence
-
-Task 097 sends zero semantic messages and generates no semantic nonce.
-
-No direct Ollama/provider call, install/reset/repair, plugin generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
-
-The already authenticated browser state may be inspected. The token/password itself must never be read, printed, copied, logged, persisted, requested or re-entered by the executor.
+No Task 098, New Session retry, semantic nonce/send, direct provider/Ollama call, install/reset/cleanup, session cleanup, SQLite/controller/startup/Supervisor/AGENTS/config/runtime mutation or Task-092 rewrite is authorized until the operator approves the retry-policy design.
 
 ## Successor logic
 
-Only independent acceptance of Task 097 PASS may authorize one final authenticated fresh-session semantic attempt.
-
-That final task must use a brand-new nonce exactly once through the authenticated Dashboard/WebChat owner surface, prove a genuinely fresh session after first send, prove Ticket acceptance/routing before Ollama, prove durable final-payload staging before native delivery, prove one exact visible reply, settle delivery through `delivery_confirmed` to `completed`, and then prove New Chat can be entered again without another send, stale-parent failure or additional provider effect.
+After approval, publish a narrow fresh-session readiness successor using state-gated bounded retry semantics. Only independent PASS of one clean authenticated fresh staged session with zero semantic/provider effect may authorize the final one-message semantic acceptance.
