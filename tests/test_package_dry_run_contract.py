@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import yaml
@@ -6,6 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
 PLUGIN_DIR = "plugins/cogentnexus-openclaw"
+PLUGIN_ROOT = ROOT / PLUGIN_DIR
 REQUIRED_ARCHIVE_PAYLOAD = (
     f"{PLUGIN_DIR}/dist/v091-release-entry.js",
     f"{PLUGIN_DIR}/scripts/bootstrap-ticket-db.mjs",
@@ -96,3 +98,16 @@ def test_package_dry_run_records_exact_candidate_provenance_and_uploads_proof():
         "release" in str(step.get("with", {}).get("path", "")).lower()
         for step in uploads
     ), "package proof upload must include the release/provenance directory"
+
+
+def test_openclaw_peer_range_is_documented_as_package_install_compatibility_only():
+    package = json.loads((PLUGIN_ROOT / "package.json").read_text(encoding="utf-8"))
+    peer_range = package["peerDependencies"]["openclaw"]
+    validated_baseline = package["devDependencies"]["openclaw"]
+    readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
+    lowered = readme.lower()
+
+    assert f"`{peer_range}`" in readme
+    assert "package-install compatibility" in lowered
+    assert f"Validated OpenClaw baseline: `{validated_baseline}`" in readme
+    assert "does not extend the operational guarantee" in lowered
