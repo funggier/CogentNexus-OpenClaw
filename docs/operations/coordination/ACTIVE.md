@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `READ_ONLY_AUTHENTICATED_DASHBOARD_STATE_GATED_FRESH_SESSION_READINESS`
-Current authorization: `TASK097_ACCEPTED_STATE_GATED_RETRY_POLICY_APPROVED`
-Task ID: `CNX-20260827-098`
+Execution mode: `LIVE_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTANCE`
+Current authorization: `TASK098_ACCEPTED_ONE_FRESH_DASHBOARD_SESSION_ONE_SEMANTIC_MESSAGE_AUTHORIZED`
+Task ID: `CNX-20260827-099`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,52 +19,65 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260827-098-state-gated-fresh-session-readiness.md`](tasks/CNX-20260827-098-state-gated-fresh-session-readiness.md)
+[`tasks/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md`](tasks/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md)
 
-## Task 097 accepted blocker
+## Task 098 accepted
 
-Task 097 report:
+Task 098 report:
 
-`41a119b686daa4fc64b8f8481329a1be78462641`
+`bd068ca94e10525bd0a0743b6c1916cb56de78a0`
 
 Independent disposition:
 
-`ACCEPT_BLOCKER_STATE_UNVERIFIED_UI_RETRY_DUPLICATED_FRESH_SESSION_ENTRY`
+`ACCEPT_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
 
-The authenticated Dashboard/control surface and live health were sound. The failure was an input-correlation race: a delayed first New Session click returned `unverifiable`, then an immediate re-issue caused two empty Dashboard sessions to materialize. No semantic/provider/Ticket/outbox effect occurred.
+Review:
 
-The two empty sessions remain untouched evidence; do not delete them merely to normalize session count.
+[`reviews/CNX-20260827-098-state-gated-fresh-session-readiness.md`](reviews/CNX-20260827-098-state-gated-fresh-session-readiness.md)
 
-## Operator-approved retry policy v1
+Publication fence is valid: execution `2902e3e5720d621767925b36bc83691b103f2ec2` -> report `bd068ca94e10525bd0a0743b6c1916cb56de78a0` is one report-only commit.
 
-From Task 098 forward:
+Task 098 used the preferred no-extra-action path: one of the Task-097-created empty Dashboard sessions was already selected, authenticated, distinct from Main/Task-092, empty/staged and associated with zero Ticket/outbox/provider effect. No New Session action or retry was needed.
 
-1. read-only operations may use up to 3 attempts total;
-2. low-impact state-changing operations may use at most 2 attempts total;
-3. before a second state-changing attempt, wait a bounded grace interval and prove from fresh state that attempt 1 produced no effect;
-4. if attempt 1's effect appears during verification, treat it as completed and do not re-issue;
-5. ambiguous/partial/delayed mutation is not retryable;
-6. semantic send/provider inference/install/uninstall/reset/destructive cleanup and other high-impact non-idempotent effects remain single-attempt unless a later task explicitly proves idempotency and authorizes retry;
-7. each retry must record attempt, reason, grace interval, fresh state and eligibility evidence;
-8. `unverifiable` means state unknown, not `not executed`.
-
-For New Session in Task 098, an `unverifiable` first action requires at least a 5-second wait and fresh session/UI verification before retry eligibility can be decided.
-
-## Task 098 preferred path
-
-Task 098 must first inspect the current authenticated Dashboard/session inventory.
-
-If one currently selected Task-097-created empty Dashboard session can be proven fresh, empty, distinct from Main/Task-092 and associated with zero Ticket/outbox/provider effect, use it as the readiness target and do **not** create another session.
-
-Only if current state cannot establish a unique fresh target may Task 098 use New Session under the state-gated bounded retry policy.
-
-Required readiness token:
+Readiness token:
 
 `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
 
-Required PASS token:
+## Final Task 099 semantic contract
 
-`PASS_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
+Exactly one semantic user message is authorized through the authenticated selected Dashboard target.
+
+Before nonce generation, Task 099 must re-snapshot the **exact selected Dashboard session ID/key** and prove it is still fresh/empty, distinct from Main/Task-092/Task-076, owner-authenticated and free of stale/fallback state.
+
+If exact target identity is ambiguous, stop before nonce/send.
+
+Only after that preflight generate one new `CNXSEM3-...` nonce and send exactly:
+
+`ตอบกลับข้อความนี้เพียงว่า <NEW_NONCE>`
+
+Semantic send count must remain exactly 1. No resend/retry under any result.
+
+Required end-to-end proof:
+
+- one fresh Dashboard session;
+- exactly one Ticket;
+- Ticket accepted and routed before correlated Ollama inference;
+- exactly one correlated `ollama/qwen3.5:9b` inference;
+- exact final assistant payload durably staged before native delivery;
+- exactly one visible nonce reply;
+- `response_ready -> delivery_confirmed -> completed` for the exact Ticket/run/session;
+- no duplicate Ticket/route/provider/outbox/reply/promotion effect;
+- after completion, New Session continuity with zero additional semantic/provider effect.
+
+## Retry policy v1
+
+Read-only operations may use up to 3 attempts total.
+
+Low-impact state-changing session-management operations may use at most 2 attempts total, with attempt 2 allowed only after at least a bounded grace period and fresh state proving attempt 1 had no effect.
+
+If attempt 1 appears late, treat it as completed and do not retry. Ambiguous/partial effects are not retryable.
+
+The semantic message itself remains single-attempt.
 
 ## Accepted live baseline
 
@@ -76,22 +89,18 @@ Installed plugin fingerprint:
 
 `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN` from Task 096.
+Live state remains MANAGED generation 24 with one candidate-exact canonical plugin generation, healthy startup/Supervisor/Gateway/SQLite/Ollama, preserved Task-092 retired evidence and accepted `NO_FLASH_MULTI_TICK_REPROVEN`.
 
 ## Hard fence
 
-Task 098 is readiness-only.
+No second semantic message, CLI owner substitute, direct Ollama/provider probe, install/reset/repair/cleanup, session deletion/normalization, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
 
-No semantic send/nonce, provider/Ollama inference, install/reset/repair/cleanup, session deletion, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, Task-092 rewrite, restart/reboot, merge/tag/release or force push is authorized.
+Credential values must remain private and must not be read, copied, logged, requested or re-entered by the executor.
 
-The token/password value must never be read, printed, copied, logged, requested or re-entered by the executor.
+## Required success token
 
-## Successor gate
+`PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
 
-Only independent acceptance of:
+## Final gate
 
-`PASS_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
-
-may authorize the final authenticated one-message semantic acceptance.
-
-The final semantic send remains exactly one new nonce and one user send with no resend. State-gated retry may apply only to low-impact/read-only surrounding operations such as session-management verification.
+Only independent acceptance of a valid Task-099 report and report-only publication fence may close final OpenClaw semantic acceptance. A visible correct reply by itself is insufficient.
