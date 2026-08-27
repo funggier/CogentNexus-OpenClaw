@@ -21,7 +21,7 @@ function correlationDigest(event: unknown, context: unknown) {
   const runId = typeof (event as any)?.runId === "string" ? (event as any).runId
     : typeof (context as any)?.runId === "string" ? (context as any).runId : "";
   const sessionKey = typeof (event as any)?.sessionKey === "string" ? (event as any).sessionKey : "";
-  return runId || sessionKey ? createHash("sha256").update(`${runId}\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
+  return runId || sessionKey ? createHash("sha256").update(`${runId}\\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
 }
 
 function exceptionCategory(error: unknown) {
