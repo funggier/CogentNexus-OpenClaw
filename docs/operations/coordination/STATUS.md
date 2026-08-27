@@ -1,9 +1,9 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
+**State:** `READY_FOR_HERMES`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator authorized continuation and requested explicit instructions whenever manual operator help is required
+**Human authority:** operator approved the bounded diagnosis-only successor and requested explicit instructions whenever manual operator help is required
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -16,9 +16,9 @@ Accepted installed plugin fingerprint:
 
 `df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
 
-Live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
+Expected live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
 
-## Task 102 result
+## Task 102 accepted result
 
 Report:
 
@@ -28,11 +28,9 @@ Independent disposition:
 
 `ACCEPT_BLOCKER_LIVE_DURABLE_PAYLOAD_STAGING_REPRODUCED_AFTER_REPAIR`
 
-Task 102 removed the Firefox/input ambiguity. The reproducible operator-assisted method is now known: freshly correlate the authenticated Firefox Dashboard/session/composer, prove foreground equality, have the operator click the exact verified `Message Assistant` composer once with the real mouse, re-verify target/foreground, then use foreground keystrokes. Automation must not click again after the operator's focus handoff.
+Task 102 proved the real Dashboard input method and completed one bounded semantic attempt. Exactly one Ticket and one expected `ollama/qwen3.5:9b` Direct call were produced and the exact nonce rendered visibly once. No duplicate semantic/provider effect occurred.
 
-The final Task-102 semantic Send was single-attempt and produced exactly one Ticket, one expected `ollama/qwen3.5:9b` direct call and one visible exact nonce reply. No duplicate semantic effect occurred.
-
-Durable delivery still failed before staging:
+Durable delivery still stopped before staging:
 
 - Ticket `CNXT-415b82d9-5553-4bd2-996a-54f57163f7e4` remained accepted;
 - `response_ready_at` present;
@@ -40,34 +38,51 @@ Durable delivery still failed before staging:
 - `cnx_assistant_delivery = 0`;
 - no `delivery_confirmed`/`completed`.
 
-Therefore final semantic acceptance remains open.
+Task-102 semantic artifacts are retired evidence and must not be reused.
 
-## Source-context observation
+## Active Task 103
 
-Installed source contains `installV091DashboardVerifiedDelivery()` and the active `v091-release-entry.ts` calls it after legacy registration. The verified-delivery implementation expects a real `reply_dispatch` callback with a correlated run id and `ctx.dispatcher.appendBeforeDeliver`, and its existing production-shaped unit test simulates exactly that shape.
+[`tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`](tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md)
 
-Task 102 proves that the real OpenClaw 2026.7.1-2 Dashboard path can visibly deliver the answer while creating zero staging rows. The next task must therefore diagnose live hook registration/emission/context/filter/write behavior before another product fix or semantic Send.
-
-## Pending Task 103 design
-
-Proposed execution mode:
+Execution mode:
 
 `SOURCE_AND_READ_ONLY_LIVE_DASHBOARD_STAGING_DIAGNOSIS`
 
-No semantic Send and no product fix.
+Authorization:
 
-It should determine exactly one failing boundary among:
+`OPERATOR_APPROVED_DIAGNOSIS_ONLY_NO_SEMANTIC_RESEND`
 
-1. verified-delivery installer not active in the loaded runtime;
-2. `reply_dispatch` not emitted for the real Dashboard final delivery;
-3. emitted callback context differs from test assumptions (`runId`, dispatcher, hook lifecycle);
-4. hook runs but rejects the payload/session/cardinality/correlation before staging;
-5. stage write is attempted but errors before commit.
+Task 103 is diagnosis-only. It must identify the first failing boundary among:
 
-Evidence should cover source/dist/release-entry parity, actual loaded plugin entry/wiring, read-only Task-102 logs/run correlation, and a source-only reproduction through the real release registration path rather than direct installer invocation.
+1. source/build/dist/installed runtime mismatch;
+2. verified-delivery installer not active in the loaded runtime;
+3. real Dashboard delivery bypassing `reply_dispatch`;
+4. real `reply_dispatch` event/context contract differing from test assumptions;
+5. hook filter/session/cardinality/correlation rejecting the final payload;
+6. staging attempt failing before durable SQLite commit.
 
-No operator action is needed for this diagnosis. A later live semantic retest may again require a manual composer click and single Send; coordination will give exact instructions at that point.
+Required evidence:
 
-## Hard fence pending approval
+- exact repository source -> dist -> package -> installed plugin -> active entry parity;
+- exact OpenClaw `2026.7.1-2 (0790d9f)` hook/type/runtime contract, not only mocks;
+- read-only Task-102 log/run correlation;
+- production-shaped disposable reproduction through the real release registration boundary where safely possible;
+- boundary table and explicit H1-H6 disposition;
+- one exact root-cause token or `BLOCKED_ROOT_CAUSE_NOT_YET_ISOLATED`;
+- minimal successor repair design only, with no implementation in Task 103.
 
-No new semantic nonce/Send, Task-102 nonce reuse, provider probe, source fix, install/reset/cleanup, runtime/config/SQLite/history mutation, credential access, restart/reboot, merge/tag/release or force push is authorized until the bounded Task-103 diagnosis design is approved.
+## Operator assistance
+
+No operator action is expected during Task 103.
+
+If an unexpected step would require manual focus/click/authentication/send/restart or any operator mutation, Hermes/Codex must stop before it and report exactly what the operator needs to do. The executor must not improvise around that boundary.
+
+## Hard fence
+
+No new semantic nonce/Send, sent sentinel, Task-102 replay, provider probe, synthetic live Ticket, live SQLite/config/runtime mutation, maintained product-source/test fix, install/reset/cleanup, session cleanup, model/provider/timeout change, restart/reboot, credential access, merge/tag/release or force push is authorized.
+
+Read-only live/runtime/source inspection and disposable isolated diagnostic harnesses are authorized.
+
+Task 103 report path:
+
+`docs/operations/coordination/reports/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`
