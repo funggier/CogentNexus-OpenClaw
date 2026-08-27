@@ -45,14 +45,15 @@ def test_validate_checks_current_v093_facade_not_legacy_provider_surface():
     assert "v0.9.2 CNXCLAW CLI validation failed" not in source
 
 
-def test_lifecycle_template_routes_to_v093_facade():
+def test_released_lifecycle_template_preserves_v092_compatibility_backend():
     text = LIFECYCLE_TEMPLATE.read_text(encoding="utf-8")
-    assert "cnxclaw_v093.py" in text
-    assert "scripts\\cnxclaw.py" not in text
+    assert "scripts\\cnxclaw.py" in text
+    assert "cnxclaw_v093.py" not in text
 
 
-def test_lifecycle_template_readme_describes_current_v093_facade():
+def test_lifecycle_readme_separates_compatibility_template_from_current_v093_launcher():
     text = LIFECYCLE_README.read_text(encoding="utf-8")
+    assert "v0.9.2" in text
+    assert "compatibility" in text.lower()
     assert "v0.9.3" in text
     assert "cnxclaw_v093.py" in text
-    assert "v0.9.1 lifecycle template" not in text
