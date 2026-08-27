@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
 **Human authority:** operator approved state-gated bounded retries for low-impact transient failures and authorized continuation through final authenticated fresh-session semantic acceptance
@@ -30,62 +30,69 @@ Independent disposition:
 
 `ACCEPT_STATE_GATED_DASHBOARD_FRESH_SESSION_READY_NO_SEND`
 
-Task 098 publication fence is valid and report-only.
-
-The authenticated Dashboard already had one selected Task-097-created empty session that was proven fresh/staged, distinct from Main and Task-092 history, with `Ready to chat`, no stale/unknown-parent/fallback error and zero Ticket/outbox/event/provider change. No New Session action or retry was needed.
-
 Readiness token:
 
 `DASHBOARD_OWNER_FRESH_SESSION_READY_NO_SEND`
 
-The Task-098 report did not publish the target session ID/key in full, so the final task must re-snapshot and record the exact selected session identity before nonce generation. Ambiguous target identity blocks the semantic send.
+Task 098 established an authenticated fresh/empty Dashboard readiness target with zero semantic/provider effect.
 
-## Retry policy v1
+## Task 099 result and review
+
+Task 099 report:
+
+`d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac`
+
+Reported result:
+
+`BLOCKED_FINAL_PREFLIGHT_OR_FRESH_TARGET_IDENTITY`
+
+Independent decision:
+
+`ACCEPT`
+
+Disposition:
+
+`ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
+
+Task 099 recorded exact target:
+
+`agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
+
+The target was authenticated and fresh/empty, but the exact OpenClaw Firefox window could not be verified as the foreground OS input target. A different Firefox window/process was foreground. The executor stopped before typing/sending.
+
+Task-099 semantic send count was `0`. No Task-099 Ticket, route, provider inference, durable assistant delivery, visible semantic reply or outbox settlement occurred.
+
+The generated Task-099 nonce is retired and must not be reused.
+
+## Why this is not a semantic-pipeline regression
+
+Task 092 previously completed the Dashboard user-send portion: fresh Dashboard session, exactly one semantic message, exactly one Ticket, accepted/routed before one `ollama/qwen3.5:9b` inference, and an exact visible nonce response.
+
+Task 092 failed later at durable delivery completion. Task 093 repaired durable Dashboard final-payload staging and Task 096 installed/accepted that repaired source live.
+
+Task 099 did not reach the semantic path at all. Its blocker is OS/UI window foreground targeting before send.
+
+## Pending Task 100 bounded design
+
+Before another final semantic attempt, prove input-target readiness with zero semantic send:
+
+- correlate the exact Firefox OpenClaw Dashboard window to the authenticated target session;
+- prove target session remains empty/staged and semantically untouched;
+- acquire/verify the exact OpenClaw window as foreground HWND;
+- prove the intended Dashboard composer is selected/focusable and empty without typing semantic test content;
+- allow at most one low-impact focus/activation retry under retry policy v1, only after grace + fresh evidence prove attempt 1 had no effect;
+- ambiguous foreground/input state stops the task before nonce generation;
+- no product/runtime/SQLite/session cleanup/provider mutation.
+
+Only independent acceptance of this input-target readiness may authorize a new single-attempt semantic nonce/send.
+
+## Retry policy v1 remains authoritative
 
 - read-only operations: maximum 3 attempts total;
-- low-impact state-changing session-management actions: maximum 2 attempts total;
-- retry only after a bounded grace period and fresh evidence prove attempt 1 had no effect;
-- if attempt 1 effect appears during verification, count it as success and do not retry;
+- low-impact state-changing session/focus actions: maximum 2 attempts total after state-gated proof;
 - ambiguous/partial/delayed mutation is not retryable;
-- semantic sends, provider inference, install/uninstall/reset/destructive cleanup and other high-impact non-idempotent effects remain single-attempt unless a future task explicitly proves idempotency and authorizes retry.
+- semantic sends/provider inference/install/reset/destructive effects remain single-attempt unless separately proven idempotent and explicitly authorized.
 
-## Active Task 099
+## Hard fence pending design approval
 
-[`tasks/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md`](tasks/CNX-20260827-099-final-authenticated-fresh-session-semantic-acceptance.md)
-
-Execution mode:
-
-`LIVE_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTANCE`
-
-Authorization:
-
-`TASK098_ACCEPTED_ONE_FRESH_DASHBOARD_SESSION_ONE_SEMANTIC_MESSAGE_AUTHORIZED`
-
-Before semantic send, Task 099 must prove exact selected Dashboard session ID/key, fresh empty transcript, authenticated owner/control state, healthy MANAGED generation 24, exact plugin fingerprint and unchanged durable baseline.
-
-Then exactly one brand-new nonce and one Dashboard user message are authorized. No resend exists.
-
-Required final proof:
-
-- exactly one new Ticket;
-- accepted/routed before correlated Ollama inference;
-- exactly one `ollama/qwen3.5:9b` inference;
-- exact assistant final payload durably staged before native delivery;
-- exactly one visible nonce;
-- exact lifecycle `response_ready -> delivery_confirmed -> completed`;
-- no duplicate Ticket/route/provider/outbox/reply/promotion effect;
-- post-completion New Session continuity with zero additional semantic/provider effect, using state-gated retry only if eligible.
-
-## Hard fence
-
-No second semantic send, CLI owner substitute, direct provider/Ollama probe, install/reset/repair/cleanup, session cleanup, SQLite/controller/startup/Supervisor/AGENTS/config/runtime mutation, Task-092 rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
-
-Credential values remain private and must not be read, copied, logged, requested or re-entered by the executor.
-
-## Required success token
-
-`PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
-
-## Final gate
-
-Only independent acceptance of Task 099 with a valid report-only publication fence may close final OpenClaw semantic acceptance. A visible correct reply alone is insufficient.
+No Task 100 implementation/run, new semantic nonce/send, CLI/channel substitute, direct provider probe, install/reset/repair/cleanup, session deletion, SQLite/controller/startup/Supervisor/AGENTS/config/runtime mutation, Task-092 rewrite, restart/reboot, merge/tag/release or force push is authorized until the operator approves the bounded Task-100 design.
