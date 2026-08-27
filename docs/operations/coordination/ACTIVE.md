@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_KNOWN_WORKING_DASHBOARD_INPUT_AND_FINAL_SEMANTIC_ACCEPTANCE`
-Current authorization: `OPERATOR_APPROVED_KNOWN_WORKING_INPUT_REPRODUCTION_AND_FINAL_SEMANTIC_CONTINUATION`
-Task ID: `CNX-20260827-100`
+Execution mode: `LIVE_BOUNDED_INPUT_ROOT_CAUSE_AND_FINAL_SEMANTIC_ACCEPTANCE`
+Current authorization: `TASK100_ACCEPTED_OPERATOR_AUTHORIZED_BOUNDED_INPUT_REPAIR_AND_TEST`
+Task ID: `CNX-20260827-101`
 Updated: 2026-08-27 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -17,74 +17,76 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Operator-approved Task 100 expansion
+## Task 100 reviewed
 
-The operator reported that current testing has reached a known-working Dashboard input method: Codex can now type into the real OpenClaw composer and understands the interaction sequence.
+Task 100 report:
 
-The operator explicitly approved expanding Task 100 so it no longer stops at readiness-only. Task 100 must first reproduce and document the working input method, then continue the existing final semantic acceptance in the same task.
+`8ad8377750f72fcee69c78fa26a199233f997b5f`
 
-## Task 099 accepted blocker carried forward
+Independent decision: `ACCEPT`
 
-Task 099 report:
+Disposition:
 
-`d5fde8d5f1e5968a1ae5ce11f4017a15d9884dac`
+`ACCEPT_BLOCKER_WINDOWS_FOREGROUND_INPUT_OWNERSHIP`
 
-Independent disposition:
+Review:
 
-`ACCEPT_BLOCKER_DASHBOARD_WINDOW_FOREGROUND_TARGETING_BEFORE_SEND`
+[`reviews/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`](reviews/CNX-20260827-100-dashboard-foreground-input-target-readiness.md)
 
-Exact target established by Task 099:
+Publication fence is valid: execution `0ac2655418cee76c7de8058f77cd22c29cf931cd` -> report `8ad8377750f72fcee69c78fa26a199233f997b5f` is one report-only commit.
 
-`agent:main:dashboard:89992501-1b33-46cf-85f7-eb0c1ef4d311`
+Task 100 proved the target session/window/composer identity but could not safely deliver keyboard input because the exact Firefox/OpenClaw window was not the verified Windows foreground input owner. Semantic send count remained 0 and no new Ticket/provider/delivery effect occurred.
 
-Task 099 semantic send count was `0`; no Ticket/provider/delivery effect occurred and its nonce is retired.
+Accepted root-cause class:
 
-## Active Task 100
+`WINDOWS_FOREGROUND_INPUT_OWNERSHIP_NOT_DETERMINISTIC`
 
-[`tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`](tasks/CNX-20260827-100-dashboard-foreground-input-target-readiness.md)
+## Active Task 101
 
-Task 100 now has two consecutive obligations:
+[`tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md`](tasks/CNX-20260827-101-focus-independent-dashboard-input-and-final-semantic-acceptance.md)
 
-1. reproduce the known-working Dashboard input method and record it under `Known-working Dashboard input method` without exposing secrets;
-2. once the composer is clean/empty and durable baseline unchanged, continue final semantic acceptance immediately in the same task.
+Task 101 must diagnose and test the input boundary rather than stop at the first focus failure.
 
-A non-sent `CNXINPUT-READY` sentinel may be used to prove composer targeting, then must be cleared before nonce generation. No Send may occur during the sentinel proof.
+Pre-authorized method ladder:
 
-If a non-sent operator/Codex test draft is already present, do not publish its text. Prove it caused no durable semantic/provider effect, clear it, and verify the composer is empty. If any test content was actually sent, stop and correlate that effect rather than creating another send.
+1. focus-independent UI Automation / Accessibility direct edit of the exact `Message Assistant` composer;
+2. deterministic Win32 foreground/input-thread handoff with exact `GetForegroundWindow == target HWND` proof before any global keystroke;
+3. controlled dedicated-new-Firefox-window positive-control fallback reproducing the earlier successful natural-focus condition, again requiring exact foreground proof before typing.
 
-## Final semantic contract
+Each method uses a unique non-sent sentinel first, may have at most one state-gated retry inside the same method family, must clear the composer, and must prove zero Ticket/provider effect before moving on.
 
-Only after the input method is reproduced and the exact target/composer is clean:
+If a method fails, Task 101 must report the exact boundary, evidence-based hypothesis/fix and result of the next bounded method. It must include:
 
-- generate one new `CNXSEM4-...` nonce;
-- send exactly one Dashboard message;
+`Input method diagnosis and results`
+
+If one method passes, it must additionally include:
+
+`Known-working Dashboard input method`
+
+and issue:
+
+`DASHBOARD_INPUT_METHOD_REPRODUCIBLY_PROVEN`
+
+## Final semantic continuation
+
+Only after one input method is proven and the composer/durable baseline are clean:
+
+- generate one new `CNXSEM5-...` nonce;
+- enter the full prompt using the proven method;
+- verify the full prompt in the exact composer;
+- Send exactly once;
 - no resend under any result;
-- prove exactly one Ticket accepted/routed before one `ollama/qwen3.5:9b` inference;
-- prove exact durable final payload staging before native delivery;
+- prove exactly one Ticket accepted/routed before one correlated `ollama/qwen3.5:9b` inference;
+- allow read-only observation of an active correlated provider call for up to 25 minutes because the historical positive-control call was slow;
+- prove durable Task-093 final-payload staging before native delivery;
 - prove exactly one visible nonce;
 - prove `response_ready -> delivery_confirmed -> completed` for the exact Ticket/run/session;
-- prove no duplicate Ticket/route/provider/outbox/reply/promotion effect;
+- reject duplicate Ticket/route/provider/staging/outbox/reply/promotion effects;
 - after completed only, prove New Session continuity with zero additional semantic/provider effect.
 
-Required method token:
-
-`DASHBOARD_KNOWN_WORKING_INPUT_METHOD_PROVEN`
-
-Required final success token:
+Required final PASS token:
 
 `PASS_FINAL_AUTHENTICATED_FRESH_SESSION_SEMANTIC_ACCEPTED`
-
-## Retry policy v1
-
-Read-only operations: maximum 3 attempts total.
-
-Low-impact pre-send UI operations such as focus/click/activation/non-sent typing/clearing: maximum 2 attempts total, with grace + fresh state required before attempt 2.
-
-If attempt 1 takes effect late, do not retry. Ambiguous/partial state blocks retry.
-
-Semantic Send remains exactly one attempt.
-
-Post-completion New Session may use state-gated retry policy for session-management only.
 
 ## Accepted live baseline
 
@@ -100,18 +102,8 @@ Live baseline remains MANAGED generation 24 with accepted startup/Supervisor/Gat
 
 ## Hard fence
 
-No second semantic send, Task-099 nonce reuse, CLI/channel owner substitute, direct provider/Ollama probe, synthetic Ticket, install/reset/repair/cleanup, session normalization, plugin-generation/controller/startup/Supervisor/AGENTS/config/runtime/SQLite mutation, prior-evidence rewrite, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
+No sent sentinel, second final semantic Send, historical nonce reuse, CLI/channel substitute, direct provider probe, synthetic Ticket, install/reset/repair/cleanup, product/runtime/config/SQLite mutation, session normalization, provider/model/timeout change, restart/reboot, merge/tag/release or force push is authorized.
 
-Credential values remain private and must not be read, copied, printed, logged, requested or re-entered by the executor.
+Ephemeral UIA/Win32 diagnostic helpers outside product source are allowed; do not commit them as maintained product code.
 
-## Publication requirement
-
-Task 100 publishes one report-only commit at:
-
-`docs/operations/coordination/reports/CNX-20260827-100-dashboard-foreground-input-target-readiness.md`
-
-The report must document the current working Dashboard input sequence so later executions do not have to rediscover it.
-
-## Final gate
-
-Only independent acceptance of the Task-100 report may close final semantic acceptance. Visible UI success alone is insufficient; durable staging, delivery confirmation and terminal completion are mandatory.
+Credentials remain private and must not be read, copied, printed, logged, requested or re-entered by the executor.
