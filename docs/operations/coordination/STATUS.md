@@ -1,9 +1,9 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `AWAITING_OPERATOR_DESIGN_APPROVAL`
 **Updated:** 2026-08-27 ICT
 **Transport:** GitHub repository history
-**Human authority:** operator approved the bounded diagnosis-only successor and requested explicit instructions whenever manual operator help is required
+**Human authority:** Task 103 diagnosis accepted; bounded Task-104 redacted observability design awaiting explicit operator approval
 **Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
 
 ## Accepted live baseline
@@ -18,71 +18,59 @@ Accepted installed plugin fingerprint:
 
 Expected live state remains MANAGED generation 24 with accepted startup/Supervisor/Gateway/SQLite/Ollama health.
 
-## Task 102 accepted result
+## Task 103 accepted blocker
 
 Report:
 
-`4d23875f4c402cf47109439ebd6b6b5eb72e131b`
+`6e271242318db90b6ad1d27cca35971e40a065e4`
 
 Independent disposition:
 
-`ACCEPT_BLOCKER_LIVE_DURABLE_PAYLOAD_STAGING_REPRODUCED_AFTER_REPAIR`
+`ACCEPT_BLOCKER_LIVE_HOOK_BOUNDARY_REQUIRES_REDACTED_OBSERVABILITY`
 
-Task 102 proved the real Dashboard input method and completed one bounded semantic attempt. Exactly one Ticket and one expected `ollama/qwen3.5:9b` Direct call were produced and the exact nonce rendered visibly once. No duplicate semantic/provider effect occurred.
+Publication fence is valid: execution `7c1a1aa722a22a726cd67f7dafc3a4c5b55b7c61` -> report `6e271242318db90b6ad1d27cca35971e40a065e4` is exactly one report-only commit.
 
-Durable delivery still stopped before staging:
+Task 103 eliminated source/dist/installed-runtime mismatch and verified-delivery release-registration failure. A production-shaped disposable release-registration harness can stage a durable Dashboard delivery under the modeled OpenClaw callback contract.
 
-- Ticket `CNXT-415b82d9-5553-4bd2-996a-54f57163f7e4` remained accepted;
-- `response_ready_at` present;
-- `delivery_confirmed_at = null`;
-- `cnx_assistant_delivery = 0`;
-- no `delivery_confirmed`/`completed`.
+The preserved Task-102 live trace does not contain guaranteed telemetry for handler entry, append-before-deliver entry, actual filter values/reason, stage return reason, or pre-commit exception. Therefore H3/H4/H5/H6 remain distinguishable only with new bounded observability and no product behavior fix is yet justified.
 
-Task-102 semantic artifacts are retired evidence and must not be reused.
+## Pending Task 104 design
 
-## Active Task 103
+Classification:
 
-[`tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`](tasks/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md)
+`BOUNDED_REDACTED_DASHBOARD_DELIVERY_OBSERVABILITY`
 
-Execution mode:
+Proposed scope:
 
-`SOURCE_AND_READ_ONLY_LIVE_DASHBOARD_STAGING_DIAGNOSIS`
+- instrument only the existing verified Dashboard delivery hook/staging boundary;
+- log/record stable hashed correlation identifiers, booleans, counts, enumerated reasons and exception class/name only;
+- never record prompt/assistant payload text, nonce content, credentials, tokens or provider payloads;
+- expose handler registration/entry, run correlation presence, dispatcher capability, before-deliver callback entry, final kind/count/text/media presence, explicit filter reason, stage entry/result reason, transaction outcome and exception class;
+- preserve all routing/staging/delivery/retry/model/provider/fail-closed behavior unchanged;
+- add TDD/source tests including redaction and real release-registration-path coverage;
+- report build/dist/package fingerprint impact before any install-over;
+- Task 104 source work only; live semantic retest remains separately gated.
 
-Authorization:
+Suggested success token:
 
-`OPERATOR_APPROVED_DIAGNOSIS_ONLY_NO_SEMANTIC_RESEND`
-
-Task 103 is diagnosis-only. It must identify the first failing boundary among:
-
-1. source/build/dist/installed runtime mismatch;
-2. verified-delivery installer not active in the loaded runtime;
-3. real Dashboard delivery bypassing `reply_dispatch`;
-4. real `reply_dispatch` event/context contract differing from test assumptions;
-5. hook filter/session/cardinality/correlation rejecting the final payload;
-6. staging attempt failing before durable SQLite commit.
-
-Required evidence:
-
-- exact repository source -> dist -> package -> installed plugin -> active entry parity;
-- exact OpenClaw `2026.7.1-2 (0790d9f)` hook/type/runtime contract, not only mocks;
-- read-only Task-102 log/run correlation;
-- production-shaped disposable reproduction through the real release registration boundary where safely possible;
-- boundary table and explicit H1-H6 disposition;
-- one exact root-cause token or `BLOCKED_ROOT_CAUSE_NOT_YET_ISOLATED`;
-- minimal successor repair design only, with no implementation in Task 103.
+`PASS_REDACTED_DASHBOARD_DELIVERY_OBSERVABILITY_READY`
 
 ## Operator assistance
 
-No operator action is expected during Task 103.
+No manual operator action is expected during Task-104 source development/testing.
 
-If an unexpected step would require manual focus/click/authentication/send/restart or any operator mutation, Hermes/Codex must stop before it and report exactly what the operator needs to do. The executor must not improvise around that boundary.
+A later live retest may require the known Task-102 procedure: authenticated Firefox Dashboard open, exact composer identified, operator manually clicks `Message Assistant` once when explicitly instructed, then avoids changing focus while Codex re-verifies input ownership. No semantic Send occurs without a separate explicit authorization.
 
-## Hard fence
+## Hard fence pending approval
 
-No new semantic nonce/Send, sent sentinel, Task-102 replay, provider probe, synthetic live Ticket, live SQLite/config/runtime mutation, maintained product-source/test fix, install/reset/cleanup, session cleanup, model/provider/timeout change, restart/reboot, credential access, merge/tag/release or force push is authorized.
+Until explicit Task-104 design approval:
 
-Read-only live/runtime/source inspection and disposable isolated diagnostic harnesses are authorized.
-
-Task 103 report path:
-
-`docs/operations/coordination/reports/CNX-20260827-103-diagnose-live-dashboard-staging-boundary.md`
+- no Task-104 implementation/product-source/test edit;
+- no new semantic nonce/Send;
+- no reuse of Task-102 artifacts;
+- no provider probe;
+- no install/reset/cleanup;
+- no live SQLite/config/runtime mutation;
+- no restart/reboot;
+- no credential access/re-entry;
+- no merge/tag/release/force push.
