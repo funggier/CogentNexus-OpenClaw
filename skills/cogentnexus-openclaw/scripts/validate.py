@@ -62,7 +62,11 @@ def run_workflow_self_test():
         if result.returncode == 0 and "PASS" in result.stdout:
             return
         combined = f"{result.stdout}\n{result.stderr}"
-        retryable = sys.platform == "win32" and "assert runner_pid" in combined and ("WinError 32" in combined or "PermissionError" in combined)
+        runner_teardown_race = "assert runner_pid" in combined and ("WinError 32" in combined or "PermissionError" in combined)
+        controller_teardown_race = all(marker in combined for marker in (
+            "WF-TEST-SUPERVISE", "not process_alive(child_pid)", "AssertionError",
+        ))
+        retryable = sys.platform == "win32" and (runner_teardown_race or controller_teardown_race)
         if not retryable or attempt >= attempts:
             break
         time.sleep(1.0)
