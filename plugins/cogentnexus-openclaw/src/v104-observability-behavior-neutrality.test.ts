@@ -112,7 +112,7 @@ describe("Task 104 behavior-neutral Dashboard observability", () => {
         mediaUrls: { enumerable: true, get: () => { order.push("mediaUrls"); return undefined; } },
       });
       callback!(payload, { kind: "final" });
-      expect(order.slice(0, 4)).toEqual(["text", "queued-final-count", "mediaUrl", "mediaUrls"]);
+      expect(order.slice(0, 5)).toEqual(["text", "text", "queued-final-count", "mediaUrl", "mediaUrls"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
