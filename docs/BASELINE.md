@@ -70,7 +70,7 @@ CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery bou
 
 OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
 
-The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Policy registration is distinct from whether MANAGED integration is currently applied.
+The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
 
 ## Host and supervisor
 
