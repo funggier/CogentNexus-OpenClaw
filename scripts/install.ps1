@@ -350,8 +350,8 @@ if ($actions.installPlugin) {
             . $artifactResolver
             $packedArtifact = Resolve-NpmPackArtifact -PackJson $packOutput -PluginDir $pluginDir
             $packagePath = [string]$packedArtifact.path
-            openclaw plugins install ("npm-pack:" + $packagePath) --force
-            if ($LASTEXITCODE -ne 0) { throw "plugin installation from npm-pack artifact failed" }
+            openclaw plugins install $packagePath --force
+            if ($LASTEXITCODE -ne 0) { throw "plugin installation from local package archive failed" }
             # CNX-20260826-069 B3: mark the external effect this fresh attempt
             # created so the single failure boundary can apply its exact
             # supported inverse (plugins uninstall) if a later step fails.
