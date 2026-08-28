@@ -6,7 +6,7 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 ---
 
-## D-012 — Explicit OpenClaw security exception with continuing development
+## D-012 — Explicit OpenClaw security exception and acceptance snapshots without development freeze
 
 **Date:** 2026-08-28  
 **State:** Active / explicit operator exception
@@ -15,38 +15,30 @@ A decision may be revised later. When that happens, preserve the old entry and a
 
 For the v0.9.3 stabilization line, retain OpenClaw `2026.7.1-2` as the validated operational baseline and explicitly accept the known upstream high-severity dependency findings in the published OpenClaw dependency graph for the purpose of completing bounded real-Windows acceptance.
 
-This exception does **not** claim that the upstream findings are remediated. In particular, the accepted risk includes the known OpenClaw `2026.7.1-2` shrinkwrap findings involving `brace-expansion` (`GHSA-mh99-v99m-4gvg`) and `fast-uri` (`GHSA-v2hh-gcrm-f6hx`). CogentNexus production-dependency validation continues to require `npm audit --omit=dev` to pass; the exception exists because the full development/install graph reaches OpenClaw's externally published pinned dependency graph.
+This exception does **not** claim that the upstream findings are remediated. In particular, the accepted risk includes the known OpenClaw `2026.7.1-2` shrinkwrap findings involving `brace-expansion` (`GHSA-mh99-v99m-4gvg`) and `fast-uri` (`GHSA-v2hh-gcrm-f6hx`). CogentNexus-OpenClaw production-dependency validation continues to require `npm audit --omit=dev` to pass; the exception exists because the full development/install graph reaches OpenClaw's externally published pinned dependency graph.
 
-The operator does **not** require the v0.9.3 development branch or version line to stop moving after acceptance. Development may continue normally.
+The operator explicitly authorizes ongoing development after acceptance work. The v0.9.3 development line does not become immutable merely because an acceptance snapshot is selected or tested.
 
-### Acceptance snapshot rule
+This is **not** permission to test an ambiguous moving branch. Each real-Windows acceptance run must pin one exact source/artifact snapshot. Phase K therefore establishes the provenance of the snapshot being tested; it does not prohibit subsequent development commits after that snapshot has been accepted.
 
-Continuing development does not permit ambiguous live evidence.
+### Acceptance-snapshot provenance rule
 
-Before a real-Windows acceptance execution, select one exact acceptance snapshot and record:
+Every real-Windows acceptance execution must pin and record:
 
-- the exact CogentNexus source commit tested;
+- the exact CogentNexus-OpenClaw source commit tested;
 - version metadata;
 - payload-v2 fingerprint and file count;
 - archive SHA256 used for installation when applicable;
 - OpenClaw baseline `2026.7.1-2`;
 - commands, exit codes, and durable evidence paths.
 
-For acceptance purposes, the exact commit/artifact snapshot is treated as immutable evidence even though the branch and v0.9.3 development line may continue to advance afterward. No permanent branch stop, release tag, or version freeze is implied.
-
-Acceptance evidence applies only to the exact snapshot/artifact that produced it. A later source or package-affecting change requires qualification of that newer snapshot before it can inherit the acceptance claim.
-
-### Phase K interpretation
-
-The Phase K exact-candidate requirement remains a provenance gate, not a requirement to halt ongoing development.
-
-Phase K is satisfied by identifying and proving the exact acceptance snapshot before live-machine work. The branch may subsequently advance, but the tested snapshot remains identifiable by commit and artifact hashes. Release publication remains separately gated.
+The development branch may continue to move before or after an acceptance run, but acceptance evidence applies only to the exact pinned snapshot/artifact that produced it. Any later source or package-affecting change does not retroactively invalidate the older snapshot's evidence, but the newer build must receive the qualification appropriate to its changed surface before inheriting an acceptance claim.
 
 ### Authorized live scope
 
-After the selected snapshot has fresh repository/package proof, a bounded real-Windows acceptance task may perform the lifecycle work required by D-010, including clean uninstall, fresh reinstall from the exact candidate artifact/consumer path, install-over where required, reset confirmation testing, Gateway/provider lifecycle and recovery tests, durable Ticket/Workflow/Delivery verification, and the final Dashboard durable-delivery acceptance scenario.
+After the pinned snapshot has fresh repository/package proof, a bounded real-Windows acceptance task may perform the lifecycle work required by D-010, including clean uninstall, fresh reinstall from the exact candidate artifact/consumer path, install-over where required, reset confirmation testing, Gateway/provider lifecycle and recovery tests, durable Ticket/Workflow/Delivery verification, and the final Dashboard durable-delivery acceptance scenario.
 
-The task must preserve externally owned OpenClaw and Ollama installations/data unless a separately proven CogentNexus-owned artifact is explicitly in scope. Exact-PID and recovery safety invariants remain in force.
+The task must preserve externally owned OpenClaw and Ollama installations/data unless a separately proven CogentNexus-OpenClaw-owned artifact is explicitly in scope. Exact-PID and recovery safety invariants remain in force.
 
 ### Boundaries that remain unchanged
 
@@ -63,9 +55,9 @@ Release publication remains a separate explicit human action under D-011.
 
 ### Why
 
-The CogentNexus repository stabilization gates through Phase J are green, while the remaining high-severity findings originate from the externally published OpenClaw stable baseline rather than from CogentNexus choosing an older top-level dependency graph. Rebaselining to a different OpenClaw runtime would introduce a separate host-compatibility qualification problem.
+The CogentNexus-OpenClaw repository stabilization gates through Phase J are green, while the remaining high-severity findings originate from the externally published OpenClaw stable baseline rather than from CogentNexus-OpenClaw choosing an older top-level dependency graph. Rebaselining to a different OpenClaw runtime would introduce a separate host-compatibility qualification problem.
 
-The operator chose to preserve the already-qualified OpenClaw baseline, explicitly accept the known upstream risk, complete real-Windows behavioral acceptance against an exact proven snapshot, and continue development afterward rather than treating acceptance as a permanent stop on the v0.9.3 development line.
+The operator chose to preserve the already-qualified OpenClaw baseline, explicitly accept the known upstream risk, complete real-Windows behavioral acceptance against an exact snapshot, and then remain free to continue development instead of treating that snapshot as the permanent end of v0.9.3 development.
 
 ### Follow-up
 
