@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TEST_SEMANTIC_GATE`
-Current authorization: `CNX-20260828-115_INTERRUPTED_REENTRY_SEMANTIC_MATRIX_HARDENING`
-Task ID: `CNX-20260828-115`
+Execution mode: `LIVE_WINDOWS_ACCEPTANCE`
+Current authorization: `CNX-20260828-116_V093_REAL_WINDOWS_LIFECYCLE_ACCEPTANCE_FINAL_CANDIDATE`
+Task ID: `CNX-20260828-116`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,58 +19,56 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`](tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md)
+[`tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`](tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md)
 
-Task 115 is a **tests-first semantic matrix fidelity gate**. The accepted Task-113 production behavior is preserved unless corrected boundary-specific tests expose a genuine source defect.
+Task 116 is the **read-only-first real-Windows lifecycle acceptance** for the exact independently reviewed v0.9.3 candidate.
 
-## Task 114 closure
+## Frozen candidate
 
-Task-114 report:
+- Source: `47b069daed90f54feae2c9eb26f38c438493f3c8`
+- Artifact: `9687249771`
+- Outer SHA256: `c009450560176ce89c8a5a6ef65aec5ce9f821e75053617d56de212cf6093fdf`
+- Inner ZIP SHA256: `8771869962babe591c6ba4431b8f4737b716f2258cfcfc6fd45eec4f582b2fc5`
+- tar.gz SHA256: `057cc016becd91ba4baf49a3c59152ce9ff467ff0a30b758e8e460e43f6ee2c5`
+- Payload count: `178`
+- Payload fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+- Recovery harness blob: `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`
 
-`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
+## Task 115 closure
+
+Report:
+
+`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-114-interrupted-reentry-direct-matrix-validation-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening-review.md`
 
 Review verdict:
 
-`SOURCE BEHAVIOR ACCEPTED; LIVE GATE BLOCKED — MATRIX FIDELITY / SEMANTIC ASSERTION DEFECTS`
+`ACCEPTED PASS — SEMANTIC MATRIX COMPLETE; EXACT CANDIDATE MAY ADVANCE TO A SEPARATE READ-ONLY-FIRST REAL-WINDOWS LIFECYCLE TASK`
 
-Accepted Task-114 reproducibility facts include exact candidate `83e8452de116bf6204be884e4cddf9f3b92b90da`, all three exact-SHA workflows successful, and artifact `9686448746` independently hash-verified. No Task-114 production edit occurred.
+## Required Task-116 sequence
 
-Independent reviewer execution against the exact packaged candidate also confirmed that real legacy residues (`cnx.cmd`, `.cogent`, and `extensions/cogentnexus-rotation`) are rejected by the current production source with `mixed legacy state`, and valid direct/managed re-entry returns all expected result/path bindings. The remaining defect is durable regression-test fidelity, not a demonstrated production defect.
+`fresh provenance -> fresh read-only machine reconciliation/classification -> preserve external evidence -> install-over once -> reset y once -> uninstall y once -> fresh reinstall same artifact once -> stop/start/restart once each -> recovery reality harness once -> final read-only snapshot -> report -> independent review`
 
-## Required Task-115 method
+Mutation is forbidden until Phase 0 proves current live state coherent. Stop on first non-zero/ambiguity; do not replay or manually normalize.
 
-`fresh reconcile -> TESTS-ONLY semantic fixture/assertion correction -> run corrected matrix -> (all GREEN: no production edit; genuine RED: minimal separate repair) -> targeted/full validation -> exact same-source CI/package proof -> report -> independent review`
+## Preserved external dependencies
 
-Task 115 must use real exact payloads for outside/noncanonical storage cases, real legacy filesystem/extension residue for mixed namespace, boundary-specific error assertions, and classification non-mutation checks.
+- OpenClaw must remain exactly `2026.7.1-2`.
+- Ollama remains the selected provider and must not be updated/reinstalled/reconfigured.
+- No provider/model changes.
+- No credentials/secrets access or re-entry.
 
-## Preserved live boundary
+## Dashboard fence
 
-Task 107 remains the last authoritative live-machine evidence. No later task has authorized real Windows lifecycle mutation. Any future live acceptance must begin with a fresh read-only machine preflight.
-
-## Hard fence
-
-Task 115 does **not** authorize:
-
-- real Windows install-over/reset/uninstall/reinstall/lifecycle/recovery;
-- Task-107 replay or manual normalization;
-- Dashboard semantic nonce/message/Send;
-- OpenClaw/Ollama update/reinstall/uninstall/stop/rebaseline;
-- provider/model/timeout changes;
-- live SQLite/config/session mutation;
-- credential/token/password access or re-entry;
-- LM Studio management;
-- process-tree kills or reboot;
-- merge/tag/GitHub Release/force push;
-- weakening namespace/wrapper/manifest/payload/product-evidence/ownership/final verification.
+No Dashboard semantic nonce/message/Send is authorized in Task 116. That remains a separate final acceptance task after lifecycle success.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
 
-After publishing the report, stop for independent ChatGPT review. Do not create or execute a live-Windows acceptance task.
+Then stop for independent ChatGPT review. Do not create or execute the final Dashboard semantic-delivery task.
