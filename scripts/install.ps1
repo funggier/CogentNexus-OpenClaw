@@ -1,8 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
-    [ValidateSet("ollama")]
-    [string]$Provider = "ollama",
+
     [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
@@ -82,9 +81,8 @@ function Enter-NativeInstallBoundary {
     Write-Host "Pre-install native handoff: PASS"
 }
 
-Write-Host "Installing CogentNexus-OpenClaw v$version (Ollama-only)"
+Write-Host "Installing CogentNexus-OpenClaw v$version"
 Write-Host "Workspace: $Workspace"
-Write-Host "Provider: ollama"
 
 if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
     throw "-SkipPlugin and -SkipAgentsPolicy are staging-only options. Use them with -SkipGatewayRestart; transactional MANAGED enable requires the bridge and managed policy."
@@ -92,7 +90,7 @@ if (($SkipPlugin -or $SkipAgentsPolicy) -and -not $SkipGatewayRestart) {
 
 Require-Command python
 Require-Command openclaw
-Require-Command ollama
+
 if (-not $SkipPlugin) {
     Require-Command node
     Require-Command npm
@@ -443,13 +441,13 @@ if (-not $SkipAgentsPolicy) {
 }
 
 if (-not $SkipGatewayRestart) {
-    & $ownedPython $cliScript --root $cogentNexusOpenClawRoot enable --provider ollama
-    if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw Host enable failed for Ollama" }
+    & $ownedPython $cliScript --root $cogentNexusOpenClawRoot enable
+    if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw Host enable failed" }
 }
 else {
     Write-Host "Skipped Host enable because -SkipGatewayRestart was requested."
     Write-Host "CogentNexus-OpenClaw remains PASSTHROUGH with its plugin disabled."
-    Write-Host "Run .\cnxclaw.cmd enable when ready; v0.9.3 will use Ollama."
+    Write-Host "Run .\cnxclaw.cmd enable when ready."
 }
 
 openclaw gateway status
@@ -496,5 +494,5 @@ if ($migrationSource) {
     Write-Host "Removed legacy aliases after the new namespace passed validation."
 }
 
-Write-Host "CogentNexus-OpenClaw v$version installation completed successfully (Ollama-only)."
+Write-Host "CogentNexus-OpenClaw v$version installation completed successfully."
 Write-Host "Control it with: $launcher status|check|provider|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall"

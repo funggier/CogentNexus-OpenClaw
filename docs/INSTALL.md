@@ -22,7 +22,7 @@ Use only a reviewed/frozen candidate when performing acceptance work. From the c
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\scripts\install.ps1 -Provider ollama
+.\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
 There is intentionally no `cnxclaw.cmd install` command. Installation is performed from the source/archive installation entry point.

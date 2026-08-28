@@ -8,7 +8,7 @@ The released v0.9.2 remains immutable. Its historical LM Studio compatibility co
 
 ## Operational consequences
 
-- `install.ps1` and `install.sh` default to Ollama and reject other providers.
+- `install.ps1` is provider-neutral; runtime policy selects the managed provider.
 - `cnxclaw_v093.py` forces provider-bearing lifecycle transitions to Ollama.
 - `provider_v093.py` exposes only Ollama.
 - LM Studio installations are left untouched on user machines.

@@ -25,7 +25,7 @@ def test_windows_installer_orders_proof_handoff_manifest_and_enable():
     mutation = source.index("Copy-Item -Recurse -Force -LiteralPath $sourceSkill")
     manifest = source.index('"scripts\\namespace_ownership.py"), "create"')
     verify = source.index('"scripts\\namespace_ownership.py") verify --root')
-    enable = source.index("enable --provider ollama")
+    enable = source.index("enable\n")
     skip_preflight = source.index("preflight-skip-plugin")
     assert proof < skip_preflight < handoff < mutation < manifest < verify < enable
     assert source.count("& $handoffLauncher disable") == 1

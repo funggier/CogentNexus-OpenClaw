@@ -22,7 +22,7 @@ LM Studio เป็นส่วนของ provider layer ใน historical v0.
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
-.\scripts\install.ps1 -Provider ollama
+.\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
 ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน installer จาก source/archive

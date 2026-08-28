@@ -53,7 +53,7 @@ With `-InstallRelease`, the harness exercises the real public `v0.9.2` release b
 3. download `cogentnexus-v0.9.2.zip` and `SHA256SUMS.txt`;
 4. verify ZIP SHA256;
 5. extract the archive;
-6. run the released installer explicitly with `-Provider ollama`;
+6. run the released installer with the provider-neutral command `-Workspace "$HOME\.openclaw\workspace"`;
 7. verify MANAGED + Ollama before injecting failures.
 
 This deliberately requires no existing `~\.openclaw\workspace\cnxclaw.cmd`.

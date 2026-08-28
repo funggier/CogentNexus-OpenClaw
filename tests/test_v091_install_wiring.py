@@ -17,7 +17,7 @@ class V091InstallWiringTests(unittest.TestCase):
         # the accepted v0.9.2 orchestration backend underneath the facade.
         self.assertIn("scripts\\cnxclaw_v093.py", ps)
         self.assertIn("scripts/cnxclaw_v093.py", sh)
-        self.assertIn('[ValidateSet("ollama")]', ps)
+        self.assertNotIn('$Provider', ps)
         self.assertIn('PROVIDER="ollama"', sh)
 
         cnx_v093 = (ROOT / "skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py").read_text(encoding="utf-8")
