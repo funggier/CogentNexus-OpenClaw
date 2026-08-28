@@ -580,3 +580,44 @@ def test_attested_changed_payload_applies_and_binds_source_fingerprint(tmp_path:
     assert result["status"] == "ROLLOVER_APPLIED_PASSTHROUGH"
     assert paths["old_project"].exists() is False
     assert Path(result["pluginPath"]) == paths["new_plugin"].resolve()
+
+
+def test_rollover_transaction_survives_external_replacement_of_old_generation(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    transaction = ownership.prepare_plugin_rollover_transaction(
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"], expected_replacement_fingerprint=expected,
+        backup_token="transaction-boundary",
+    )
+
+    shutil.rmtree(paths["old_project"])
+    result = ownership.finalize_plugin_rollover_transaction(
+        transaction=transaction, plugin_inventory=paths["inventory"],
+    )
+
+    assert result["status"] == "ROLLOVER_APPLIED_PASSTHROUGH"
+    assert Path(result["pluginPath"]) == paths["new_plugin"].resolve()
+    assert Path(result["backupPath"]).is_dir()
+    manifest = ownership.verify_manifest(paths["root"], workspace=paths["workspace"])
+    assert Path(manifest["pluginPath"]) == paths["new_plugin"].resolve()
+
+
+def test_rollover_transaction_rejects_unexpected_replacement_without_commit(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    transaction = ownership.prepare_plugin_rollover_transaction(
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"],
+        expected_replacement_fingerprint="0" * 64,
+        backup_token="transaction-mismatch",
+    )
+    manifest_before = (paths["root"] / ownership.MANIFEST_NAME).read_bytes()
+    shutil.rmtree(paths["old_project"])
+
+    with pytest.raises(RuntimeError, match="replacement|attestation"):
+        ownership.finalize_plugin_rollover_transaction(
+            transaction=transaction, plugin_inventory=paths["inventory"],
+        )
+
+    assert (paths["root"] / ownership.MANIFEST_NAME).read_bytes() == manifest_before
