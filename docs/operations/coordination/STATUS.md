@@ -1,105 +1,100 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE_CONTINUATION`  
-**Updated:** 2026-08-28 ICT  
+**Execution mode:** `READONLY_POST_INSTALL_ATTESTATION`  
+**Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 122 authorizes read-only recovery of post-install proof, then only the still-unconsumed lifecycle phases  
+**Human authority:** operator authorized continued stabilization; Task 123 authorizes deterministic read-only post-install attestation only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md`](tasks/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md)
+[`tasks/CNX-20260829-123-post-install-deterministic-readonly-attestation.md`](tasks/CNX-20260829-123-post-install-deterministic-readonly-attestation.md)
 
 Task ID:
 
-`CNX-20260828-122`
+`CNX-20260829-123`
 
-## Task 121 independent review
+## Task 122 independent review
 
-Task-121 report:
+Task-122 report:
 
-`docs/operations/coordination/reports/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry.md`
+`docs/operations/coordination/reports/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation-review.md`
 
 Verdict:
 
-`ACCEPTED INCOMPLETE — INSTALL-OVER SUCCEEDED ONCE; POST-INSTALL VERIFICATION HARNESS FAILED; PRODUCT FAILURE NOT PROVEN; INSTALL-OVER IS CONSUMED AND MUST NOT BE REPLAYED`
+`ACCEPTED BLOCKED — NO NEW MUTATION; THE BLOCK IS A VERIFICATION-CONTRACT/ARGUMENT-FORWARDING DEFECT, NOT A PROVEN PRODUCT FAILURE`
 
-Task 121 established:
+Task 122 established no new product failure and consumed no new lifecycle phase. Its read-only verification was blocked by acceptance-harness semantics:
 
-- exact candidate provenance remained valid;
-- production-equivalent attested ownership classification passed;
-- install-over executed once and returned exit code `0`;
-- installer reported `CogentNexus-OpenClaw v0.9.3 installation completed successfully.`;
-- the executor-created post-install probe wrapper then entered interactive Python/OpenClaw/Ollama surfaces in non-TTY execution and failed to complete required read-only verification;
-- no later disruptive lifecycle phase executed.
+- the candidate's Ollama-only runtime facade was incorrectly compared against provider-neutral installer responsibility;
+- CNX help, OpenClaw TUI, and Ollama UI behavior form a consistent pattern of ineffective/lost command arguments from the generalized probe wrapper.
 
-## Consumed attempt ledger
+The exact candidate itself intentionally documents an Ollama-only v0.9.3 runtime facade. Provider-neutral installation does not imply multi-provider runtime support.
 
-Consumed and prohibited from replay:
+## Fixed live boundary
 
-- install-over: **1 / 1**.
+The only consumed destructive operation remains Task-121 install-over:
 
-Not yet consumed:
+- install-over: **1 / 1 consumed; exit 0; forbidden to replay**.
 
-- reset: `0 / 1`;
-- uninstall: `0 / 1`;
-- fresh reinstall after uninstall: `0 / 1`;
-- stop: `0 / 1`;
-- start: `0 / 1`;
-- restart: `0 / 1`;
-- recovery harness: `0 / 1`.
+Still unconsumed but not authorized during Task 123:
 
-## Task 122 verification-recovery gate
+- reset `0 / 1`;
+- uninstall `0 / 1`;
+- fresh reinstall after uninstall `0 / 1`;
+- stop `0 / 1`;
+- start `0 / 1`;
+- restart `0 / 1`;
+- recovery harness `0 / 1`.
 
-Before any new mutation, prove the current post-install state using explicit non-interactive read-only commands only.
+## Exact candidate
 
-Never invoke bare `python`, `openclaw`, or `ollama`.
+- source SHA: `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
+- artifact ID: `9691451156`;
+- artifact digest: `sha256:9db9290e14646575586a42160b79cfea691e35f3a0ca7d294f7f941dcae0c87a`;
+- ZIP SHA256: `8e06b186e425170a22bfce06fa3505a7cdac3b097d4bfdc4ccc4d810d502cac1`;
+- tar.gz SHA256: `6a14cb665ca6148ce2912970df62027533aef34fb0c871a2e542d1b149e94f31`;
+- payload/plugin fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
 
-Required evidence includes:
+## Task 123 deterministic read-only gate
 
-- installed CNX status/check-system/provider check;
-- explicit ownership verification using the resolved installed `namespace_ownership.py` path;
-- `openclaw --version`, `openclaw plugins list --json`, `openclaw gateway status`;
-- `ollama --version`, `ollama list`, `ollama ps`;
-- SQLite integrity through explicit `python -c` or a known read-only checker;
-- plugin/root uniqueness, ownership/legacy inventory, service/task state, and residue inventory.
+Task 123 must not reuse the Task-121/122 generalized probe wrapper or `Start-Process` command serialization.
 
-If the installed state cannot be proven coherent, Task 122 stops without mutation.
+Use direct call-operator invocations with separate argument strings and deterministic proof surfaces:
 
-## Authorized remaining sequence
+- CNX JSON status/provider/recovery commands;
+- explicit installed Python + ownership-script verify/fingerprint;
+- critical installed-vs-candidate hashes;
+- OpenClaw installed `package.json` version, direct Node entrypoint where useful, plugin/config attribution, and Gateway listener/process identity;
+- Ollama loopback REST API and listener proof, not the desktop executable UI;
+- SQLite `PRAGMA integrity_check`;
+- service/namespace/residue classification.
 
-Only after the read-only gate passes:
+Ollama-only runtime text is expected and not a failure by itself.
 
-`reset y -> uninstall y -> fresh reinstall exact same artifact -> stop -> start -> restart -> recovery harness -> final read-only snapshot`
+## Prohibited during Task 123
 
-The fresh reinstall is allowed only after the successful uninstall and is distinct from the consumed install-over.
-
-## Prohibited during Task 122
-
-- replaying Task-121 install-over;
-- candidate/artifact substitution;
-- source/live ad-hoc repair;
+- install/install-over;
+- reset/uninstall/reinstall;
+- enable/disable/start/stop/restart;
+- disruptive recovery harness;
+- plugin/provider/runtime/config mutation;
 - manual cleanup/normalization;
-- replaying completed phases;
-- OpenClaw changes/rebaseline;
-- provider runtime/config/model/endpoint/timeout changes;
-- unrelated plugin/workspace mutation;
-- credential/secret access;
 - Dashboard semantic Send;
-- reboot/process-tree kill;
+- reboot/process kill;
 - merge/tag/release/force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md`
+`docs/operations/coordination/reports/CNX-20260829-123-post-install-deterministic-readonly-attestation.md`
 
-After publishing, stop for independent ChatGPT review. Do not automatically open or execute the final Dashboard durable-delivery task.
+After publishing, stop for independent ChatGPT review. Do not automatically open or execute the lifecycle continuation task.
