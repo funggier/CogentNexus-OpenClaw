@@ -921,7 +921,17 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("final ownership manifest does not bind the replacement plugin")
     except Exception as error:
         retired_project = Path(transaction["retiredProjectRoot"])
+        retired_exact = False
         if retired_project.exists():
+            try:
+                retired_exact = (
+                    _project_tree_sha256(retired_project) == transaction["retiredProjectTreeSha256"]
+                    and _plugin_payload(Path(transaction["retiredPluginPath"]))["fingerprint"].lower()
+                    == transaction["retiredFingerprint"].lower()
+                )
+            except (OSError, KeyError, TypeError):
+                retired_exact = False
+        if retired_exact:
             _write_bytes_atomic(manifest_target, json.dumps(transaction["manifestBefore"], ensure_ascii=False, indent=2).encode("utf-8") + b"\n")
         else:
             try:
