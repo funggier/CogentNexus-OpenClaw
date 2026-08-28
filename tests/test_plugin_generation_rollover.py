@@ -183,6 +183,66 @@ def test_interrupted_rollover_reentry_rejects_foreign_shared_wrapper(tmp_path: P
         )
 
 
+def _add_conflicting_product_wrapper(paths: dict[str, Path | dict]) -> None:
+    wrapper = paths["openclaw_state"] / "npm" / "projects" / "user-shared-wrapper"
+    wrapper.mkdir(parents=True)
+    (wrapper / "package.json").write_text(json.dumps({
+        "private": True,
+        "dependencies": {
+            ownership.PLUGIN_PACKAGE: "file:plugin.tgz",
+            "unrelated-user-package": "1.0.0",
+        },
+    }), encoding="utf-8")
+
+
+def _direct_reentry_layout(tmp_path: Path) -> dict[str, Path | dict]:
+    paths = rollover_layout(tmp_path)
+    paths["old_project"].rename(tmp_path / "retired-generation-removed")
+    direct = paths["openclaw_state"] / "extensions" / ownership.PRODUCT_ID
+    shutil.copytree(paths["new_plugin"], direct)
+    shutil.rmtree(paths["new_project"])
+    paths["inventory"]["plugins"][0]["rootDir"] = str(direct)
+    paths["new_plugin"] = direct
+    return paths
+
+
+def test_interrupted_reentry_accepts_exact_direct_extension_without_conflict(tmp_path: Path):
+    paths = _direct_reentry_layout(tmp_path)
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    result = ownership.classify_install(
+        paths["workspace"], app_data=paths["app_data"],
+        plugin_inventory=paths["inventory"],
+        expected_replacement_fingerprint=expected,
+    )
+    assert result["interruptedRolloverReentry"] is True
+
+
+def test_interrupted_reentry_rejects_direct_with_separate_conflicting_wrapper(tmp_path: Path):
+    paths = _direct_reentry_layout(tmp_path)
+    _add_conflicting_product_wrapper(paths)
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    assert any(item.startswith("npmWrapper:user-shared-wrapper=") for item in ownership.current_inventory(paths["workspace"])["new"])
+    with pytest.raises(RuntimeError, match="conflicting|ambiguous|wrapper|evidence"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint=expected,
+        )
+
+
+def test_interrupted_reentry_rejects_managed_with_separate_conflicting_wrapper(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    paths["old_project"].rename(tmp_path / "retired-generation-removed")
+    _add_conflicting_product_wrapper(paths)
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    with pytest.raises(RuntimeError, match="conflicting|ambiguous|wrapper|evidence"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint=expected,
+        )
+
+
 def test_interrupted_rollover_reentry_rejects_mismatched_candidate(tmp_path: Path):
     paths = rollover_layout(tmp_path)
     paths["old_project"].rename(tmp_path / "retired-generation-removed")
