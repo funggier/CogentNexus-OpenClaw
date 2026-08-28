@@ -166,6 +166,23 @@ def test_interrupted_rollover_reentry_classifies_exact_active_replacement(tmp_pa
     assert Path(result["manifestPluginPath"]) == paths["old_plugin"].resolve()
 
 
+def test_interrupted_rollover_reentry_rejects_foreign_shared_wrapper(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    paths["old_project"].rename(tmp_path / "retired-generation-removed")
+    package_path = paths["new_project"] / "package.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    package["dependencies"]["foreign-user-package"] = "file:foreign.tgz"
+    package_path.write_text(json.dumps(package), encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+
+    with pytest.raises(RuntimeError, match="wrapper|ownership|dependency"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint=expected,
+        )
+
+
 def test_interrupted_rollover_reentry_rejects_mismatched_candidate(tmp_path: Path):
     paths = rollover_layout(tmp_path)
     paths["old_project"].rename(tmp_path / "retired-generation-removed")
