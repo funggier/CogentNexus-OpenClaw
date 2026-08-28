@@ -1,103 +1,91 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TEST_SEMANTIC_GATE`  
+**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 115 authorizes repository test/source/CI work only under the semantic matrix gate  
+**Human authority:** operator authorized continued stabilization; Task 116 authorizes the exact read-only-first live lifecycle sequence defined in its task file  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`](tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md)
+[`tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`](tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md)
 
 Task ID:
 
-`CNX-20260828-115`
+`CNX-20260828-116`
 
-## Task 114 independent review
+## Repository/source gate accepted
 
-Task-114 report:
+Task-115 report:
 
-`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
+`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
 
-Review:
+Task-115 independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-114-interrupted-reentry-direct-matrix-validation-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening-review.md`
 
 Verdict:
 
-`SOURCE BEHAVIOR ACCEPTED; LIVE GATE BLOCKED — MATRIX FIDELITY / SEMANTIC ASSERTION DEFECTS`
+`ACCEPTED PASS — SEMANTIC MATRIX COMPLETE; EXACT CANDIDATE MAY ADVANCE TO A SEPARATE READ-ONLY-FIRST REAL-WINDOWS LIFECYCLE TASK`
 
-## Accepted Task-114 evidence
+## Frozen Task-116 candidate
 
-- tests-only candidate `83e8452de116bf6204be884e4cddf9f3b92b90da`;
-- no Task-114 production source change;
-- Validate `33173131342` success;
-- Windows Installer Pack Smoke `33173131369` success;
-- PS5.1 Acceptance Smoke `33173131410` success;
-- artifact `9686448746` bound to exact candidate;
-- independent outer SHA256 `8706b146b021832c8b167c82dd27f145ad52c2735980f6f0eb39f03d379ce053`;
-- inner ZIP SHA256 `dfcff2d27a1fe0bcac7417f609afa3e5e3254588f0ce1fe22d274c1410ab6349`;
-- tar.gz SHA256 `9746eb6f9b61f9dd99b7e6e1eb9d2ecad2f49619f7cdacff964bd51257617ceb`;
-- source identity `83e8452de116bf6204be884e4cddf9f3b92b90da`, version `0.9.3`, payload `178`, fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
+- source `47b069daed90f54feae2c9eb26f38c438493f3c8`;
+- artifact `9687249771`;
+- artifact outer SHA256 `c009450560176ce89c8a5a6ef65aec5ce9f821e75053617d56de212cf6093fdf`;
+- inner ZIP SHA256 `8771869962babe591c6ba4431b8f4737b716f2258cfcfc6fd45eec4f582b2fc5`;
+- tar.gz SHA256 `057cc016becd91ba4baf49a3c59152ce9ff467ff0a30b758e8e460e43f6ee2c5`;
+- version `0.9.3`;
+- payload count `178`;
+- payload fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
+- recovery harness Git blob `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`.
 
-Independent reviewer execution on the exact packaged candidate additionally proved current production rejects real legacy residues (`cnx.cmd`, `.cogent`, legacy `cogentnexus-rotation` extension) with `mixed legacy state`, and valid managed/direct re-entry returns exact mode/pending/pluginAlreadyExact/interrupted/path bindings.
+Exact same-source CI on the frozen candidate:
 
-## Why Task 114 is not live-authorized
+- Validate `33175145162` success;
+- Windows Installer Pack Smoke `33175145179` success;
+- PS5.1 Acceptance Smoke `33175145178` success.
 
-The Task-114 matrix is too permissive as durable regression evidence:
+## Authorized live sequence
 
-- its `mixed_namespace` fixture does not create production-recognized legacy residue;
-- outside-state and noncanonical cases point registration at nonexistent payload paths rather than exact payloads at invalid boundaries;
-- negative cases accept any `RuntimeError` instead of asserting the violated semantic boundary;
-- rejection cases do not prove classification non-mutation;
-- positive direct/managed full result/path contracts were not committed as explicit Task-114 matrix assertions.
+Task 116 is explicitly read-only first:
 
-These are test-fidelity defects, not evidence that the accepted Task-113 production repair is wrong.
+1. fresh GitHub/source/artifact provenance;
+2. external evidence root;
+3. read-only current Windows/OpenClaw/Ollama/CNX/Gateway/provider/recovery/delivery/resources/SQLite/Supervisor capture;
+4. read-only ownership/product inventory and exact `classify-install` using real OpenClaw plugin inventory;
+5. **only if coherent**, preserve pre-mutation evidence;
+6. install-over exact artifact once;
+7. `cnxclaw reset` once with normal `y` confirmation;
+8. `cnxclaw uninstall` once with normal `y` confirmation;
+9. fresh reinstall from the same artifact once;
+10. stop/start/restart once each;
+11. reviewed v0.9.3 Ollama recovery-reality harness once;
+12. final read-only acceptance snapshot;
+13. report and stop.
 
-## Authorized Task-115 sequence
+Stop immediately at first non-zero, ownership ambiguity, contradictory evidence, or unexpected external dependency mutation. No destructive command replay and no manual cleanup/normalization.
 
-`reconcile -> TESTS-ONLY semantic fixture/assertion correction -> corrected matrix -> if all GREEN keep production unchanged; if genuine RED make minimal separate repair -> targeted/full validation -> exact same-source CI/package proof -> report`
+## External dependency fence
 
-Task 115 must correct the regression suite using:
+- OpenClaw must remain exactly `2026.7.1-2`; no update/downgrade/reinstall/uninstall.
+- Ollama remains selected; no update/reinstall/provider/model change.
+- No LM Studio management.
+- No credential/token/password access or re-entry.
+- No manual SQLite/config/manifest/plugin repair.
+- No reboot or generic process-tree kill outside the exact recovery harness.
 
-- real legacy namespace/filesystem/extension residue;
-- real exact payload outside OpenClaw state;
-- real exact payload inside OpenClaw state at a noncanonical storage shape;
-- boundary-specific exception assertions;
-- pre/post non-mutation snapshots/sentinels;
-- explicit positive direct and managed six-field/path contracts;
-- exact altered-retired-path no-reentry assertion;
-- unrelated npm false-positive guard.
+## Dashboard fence
 
-## Preserved live boundary
-
-Task 107 remains the last authoritative live-machine evidence. No task after Task 107 has authorized or performed real Windows lifecycle mutation. Any future live acceptance must re-prove the machine read-only before mutation.
-
-## Hard fence
-
-Task 115 does **not** authorize:
-
-- real Windows install-over/reset/uninstall/reinstall/lifecycle/recovery;
-- replay or manual normalization of Task 107;
-- Dashboard semantic Send;
-- OpenClaw/Ollama update, reinstall, uninstall, stop, or rebaseline;
-- provider/model/timeout changes;
-- live SQLite/config/session mutation;
-- credentials/tokens/password access or re-entry;
-- LM Studio management;
-- process-tree kills;
-- reboot;
-- merge/tag/GitHub Release/force push;
-- weakening namespace, wrapper, manifest, payload, product-evidence, ownership, or final verification.
+No Dashboard semantic Send is authorized in Task 116. A final durable-delivery semantic test may be opened only after Task 116 reports PASS and independent review accepts the live lifecycle evidence.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
 
-After publishing the report, stop for independent ChatGPT review. No real-Windows lifecycle acceptance is authorized until that review accepts an exact candidate.
+After publishing, stop for independent ChatGPT review. Do not open the Dashboard semantic-delivery task.
