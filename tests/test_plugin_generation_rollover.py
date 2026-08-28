@@ -147,6 +147,50 @@ def build_plan(paths: dict[str, Path | dict], *, token: str = "reviewed-test") -
     )
 
 
+def test_interrupted_rollover_reentry_classifies_exact_active_replacement(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    paths["old_project"].rename(tmp_path / "retired-generation-removed")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+
+    result = ownership.classify_install(
+        paths["workspace"], app_data=paths["app_data"],
+        plugin_inventory=paths["inventory"],
+        expected_replacement_fingerprint=expected,
+    )
+
+    assert result["mode"] == "upgrade"
+    assert result["pendingRollover"] is False
+    assert result["pluginAlreadyExact"] is True
+    assert result["interruptedRolloverReentry"] is True
+    assert Path(result["replacementPluginPath"]) == paths["new_plugin"].resolve()
+    assert Path(result["manifestPluginPath"]) == paths["old_plugin"].resolve()
+
+
+def test_interrupted_rollover_reentry_rejects_mismatched_candidate(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    paths["old_project"].rename(tmp_path / "retired-generation-removed")
+
+    with pytest.raises(RuntimeError, match="fingerprint|attestation"):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint="0" * 64,
+        )
+
+
+def test_interrupted_rollover_reentry_rejects_altered_retired_path(tmp_path: Path):
+    paths = rollover_layout(tmp_path)
+    (paths["old_plugin"] / "dist" / "ticket-store.js").unlink()
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+
+    with pytest.raises(RuntimeError):
+        ownership.classify_install(
+            paths["workspace"], app_data=paths["app_data"],
+            plugin_inventory=paths["inventory"],
+            expected_replacement_fingerprint=expected,
+        )
+
+
 def test_task054_two_roots_are_ambiguous_but_plan_binds_old_and_active_new(tmp_path: Path):
     paths = rollover_layout(tmp_path)
     with pytest.raises(RuntimeError, match="ambiguous"):
