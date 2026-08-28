@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_ACCEPTANCE`
-Current authorization: `CNX-20260828-116_V093_REAL_WINDOWS_LIFECYCLE_ACCEPTANCE_FINAL_CANDIDATE`
-Task ID: `CNX-20260828-116`
+Execution mode: `SOURCE_TDD_REPAIR`
+Current authorization: `CNX-20260828-117_INSTALLER_PROVIDER_BINDING_ORIGIN_REPAIR`
+Task ID: `CNX-20260828-117`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,56 +19,74 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`](tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md)
+[`tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md`](tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md)
 
-Task 116 is the **read-only-first real-Windows lifecycle acceptance** for the exact independently reviewed v0.9.3 candidate.
+Task 117 is a **source-only root-cause/TDD repair** for the Windows installer Provider binding failure exposed by Task 116.
 
-## Frozen candidate
+## Task 116 closure
 
-- Source: `47b069daed90f54feae2c9eb26f38c438493f3c8`
-- Artifact: `9687249771`
-- Outer SHA256: `c009450560176ce89c8a5a6ef65aec5ce9f821e75053617d56de212cf6093fdf`
-- Inner ZIP SHA256: `8771869962babe591c6ba4431b8f4737b716f2258cfcfc6fd45eec4f582b2fc5`
-- tar.gz SHA256: `057cc016becd91ba4baf49a3c59152ce9ff467ff0a30b758e8e460e43f6ee2c5`
-- Payload count: `178`
-- Payload fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
-- Recovery harness blob: `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`
+Task-116 report:
 
-## Task 115 closure
-
-Report:
-
-`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate-review.md`
 
 Review verdict:
 
-`ACCEPTED PASS — SEMANTIC MATRIX COMPLETE; EXACT CANDIDATE MAY ADVANCE TO A SEPARATE READ-ONLY-FIRST REAL-WINDOWS LIFECYCLE TASK`
+`ACCEPTED FAIL — CLEAN PRE-BODY PARAMETER-BINDING FAILURE; SUCCESSOR DIAGNOSIS/REPAIR REQUIRED`
 
-## Required Task-116 sequence
+Task 116 Phase 0 passed and proved the live machine coherent. Its only mutation attempt failed during PowerShell parameter binding before the installer body executed because `Provider` received `3D Objects` instead of the allowed Ollama value. The executor stopped correctly; no reset/uninstall/reinstall/lifecycle/recovery or Dashboard semantic Send occurred.
 
-`fresh provenance -> fresh read-only machine reconciliation/classification -> preserve external evidence -> install-over once -> reset y once -> uninstall y once -> fresh reinstall same artifact once -> stop/start/restart once each -> recovery reality harness once -> final read-only snapshot -> report -> independent review`
+## Key Task-117 diagnostic invariant
 
-Mutation is forbidden until Phase 0 proves current live state coherent. Stop on first non-zero/ambiguity; do not replay or manually normalize.
+Frozen Task-116 `scripts/install.ps1` declares a `Provider` parameter defaulting to `ollama`, but `$Provider` is otherwise unused. v0.9.3 is already Ollama-only.
 
-## Preserved external dependencies
+Task 117 must trace `3D Objects` to its exact caller/binding origin before production repair. A test that only passes `-Provider "3D Objects"` explicitly is not sufficient RED evidence for the unexpected Task-116 path.
 
-- OpenClaw must remain exactly `2026.7.1-2`.
-- Ollama remains the selected provider and must not be updated/reinstalled/reconfigured.
-- No provider/model changes.
-- No credentials/secrets access or re-entry.
+Required method:
 
-## Dashboard fence
+`fresh reconcile -> read-only preserved Task-116 invocation evidence -> trace exact bad-value data flow -> TESTS-ONLY semantic RED -> minimal root-cause repair -> GREEN -> targeted/full validation -> exact same-SHA CI/package proof -> report -> independent review`
 
-No Dashboard semantic nonce/message/Send is authorized in Task 116. That remains a separate final acceptance task after lifecycle success.
+If root-cause evidence proves the unnecessary Provider parameter surface participates in the failure, removing that dead provider-selection input is the preferred Ollama-only design. If a repository caller/helper is the actual source, repair the caller instead. Do not invent multi-provider resolution logic.
+
+## Preserved live boundary
+
+Task 116 is the latest authoritative live-machine evidence:
+
+- CNX passthrough, generation 25;
+- OpenClaw exactly `2026.7.1-2`;
+- selected provider Ollama, healthy;
+- Gateway healthy;
+- SQLite integrity `ok`;
+- exact interrupted-reentry classification proven;
+- post-failure state coherent;
+- no lifecycle phase beyond the failed pre-body install-over binding was executed.
+
+Task 117 must not mutate that live state.
+
+## Hard fence
+
+Task 117 does **not** authorize:
+
+- live install-over/reset/uninstall/reinstall/lifecycle/recovery;
+- Task-116 destructive command replay;
+- manual cleanup/normalization of live residue;
+- OpenClaw/Ollama changes;
+- provider/model changes;
+- live SQLite/config/session/manifest/plugin mutation;
+- credentials/secrets access;
+- Dashboard semantic Send;
+- reboot/process-tree kill;
+- merge/tag/release/force push.
+
+Read-only inspection of preserved Task-116 evidence and isolated non-mutating Windows diagnostic reproduction is authorized.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
+`docs/operations/coordination/reports/CNX-20260828-117-installer-provider-binding-origin-repair.md`
 
-Then stop for independent ChatGPT review. Do not create or execute the final Dashboard semantic-delivery task.
+Then stop for independent ChatGPT review. Do not create or execute a new real-Windows lifecycle retry task.
