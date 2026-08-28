@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TEST_MATRIX_GATE`
-Current authorization: `CNX-20260828-114_INTERRUPTED_REENTRY_DIRECT_MATRIX_VALIDATION`
-Task ID: `CNX-20260828-114`
+Execution mode: `TEST_SEMANTIC_GATE`
+Current authorization: `CNX-20260828-115_INTERRUPTED_REENTRY_SEMANTIC_MATRIX_HARDENING`
+Task ID: `CNX-20260828-115`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,63 +19,58 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`](tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md)
+[`tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`](tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md)
 
-Task 114 is a **validation-first test-matrix gate** for the interrupted-rollover re-entry shortcut.
+Task 115 is a **tests-first semantic matrix fidelity gate**. The accepted Task-113 production behavior is preserved unless corrected boundary-specific tests expose a genuine source defect.
 
-## Task 113 closure
+## Task 114 closure
 
-Task-113 report:
+Task-114 report:
 
-`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
+`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-114-interrupted-reentry-direct-matrix-validation-review.md`
 
 Review verdict:
 
-`SOURCE REPAIR ACCEPTED; TASK COMPLETION BLOCKED — REQUIRED DIRECT CLASSIFY_INSTALL MATRIX INCOMPLETE`
+`SOURCE BEHAVIOR ACCEPTED; LIVE GATE BLOCKED — MATRIX FIDELITY / SEMANTIC ASSERTION DEFECTS`
 
-Task-113 source candidate `d8c5f5f5e7936e673a6731f5a8a0f17e7bd39a06` is accepted as source-repair evidence: its direct/managed conflicting-wrapper RED was real, its production fix was separate and narrow, all exact CI workflows passed, and artifact `9685376213` was independently verified.
+Accepted Task-114 reproducibility facts include exact candidate `83e8452de116bf6204be884e4cddf9f3b92b90da`, all three exact-SHA workflows successful, and artifact `9686448746` independently hash-verified. No Task-114 production edit occurred.
 
-It is not yet live-authorized because the Task-113 test-only commit did not contain the complete direct `classify_install(...)` matrix that the task explicitly required before production editing.
+Independent reviewer execution against the exact packaged candidate also confirmed that real legacy residues (`cnx.cmd`, `.cogent`, and `extensions/cogentnexus-rotation`) are rejected by the current production source with `mixed legacy state`, and valid direct/managed re-entry returns all expected result/path bindings. The remaining defect is durable regression-test fidelity, not a demonstrated production defect.
 
-## Task-114 method
+## Required Task-115 method
 
-Task 114 must first commit the complete direct matrix as tests only.
+`fresh reconcile -> TESTS-ONLY semantic fixture/assertion correction -> run corrected matrix -> (all GREEN: no production edit; genuine RED: minimal separate repair) -> targeted/full validation -> exact same-source CI/package proof -> report -> independent review`
 
-- If the entire matrix is GREEN on current production, do not edit production source.
-- If a matrix case exposes a real defect, preserve that tests-only commit as RED evidence and only then make a separate minimal production repair.
-- Never manufacture retroactive RED provenance.
-
-After matrix/targeted/full validation, require exact same-source Validate, Windows Installer Pack Smoke, PS5.1 Acceptance Smoke, and a new package-proof artifact before publishing the Task-114 report.
+Task 115 must use real exact payloads for outside/noncanonical storage cases, real legacy filesystem/extension residue for mixed namespace, boundary-specific error assertions, and classification non-mutation checks.
 
 ## Preserved live boundary
 
-No task after Task 107 has authorized live machine mutation. Task 107 remains the last authoritative live evidence. Any later Windows acceptance must first re-prove the current machine state read-only rather than assume historical residue still exists.
+Task 107 remains the last authoritative live-machine evidence. No later task has authorized real Windows lifecycle mutation. Any future live acceptance must begin with a fresh read-only machine preflight.
 
 ## Hard fence
 
-Task 114 does **not** authorize:
+Task 115 does **not** authorize:
 
-- any real-Windows lifecycle mutation;
-- install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
+- real Windows install-over/reset/uninstall/reinstall/lifecycle/recovery;
 - Task-107 replay or manual normalization;
 - Dashboard semantic nonce/message/Send;
 - OpenClaw/Ollama update/reinstall/uninstall/stop/rebaseline;
 - provider/model/timeout changes;
 - live SQLite/config/session mutation;
-- credentials/secrets access or re-entry;
+- credential/token/password access or re-entry;
 - LM Studio management;
 - process-tree kills or reboot;
 - merge/tag/GitHub Release/force push;
-- weakening namespace/wrapper/manifest/payload/ownership/product-evidence verification.
+- weakening namespace/wrapper/manifest/payload/product-evidence/ownership/final verification.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
+`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
 
 After publishing the report, stop for independent ChatGPT review. Do not create or execute a live-Windows acceptance task.
