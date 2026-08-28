@@ -1,85 +1,109 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `DOCS_TEST_CONTRACT_REPAIR`  
+**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 119 authorizes documentation/test/CI/package alignment only  
+**Human authority:** operator authorized continued stabilization; Task 120 authorizes one bounded real-Windows lifecycle acceptance against the exact accepted candidate  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-119-installer-documentation-authority-alignment.md`](tasks/CNX-20260828-119-installer-documentation-authority-alignment.md)
+[`tasks/CNX-20260828-120-v093-real-windows-lifecycle-acceptance-provider-neutral-candidate.md`](tasks/CNX-20260828-120-v093-real-windows-lifecycle-acceptance-provider-neutral-candidate.md)
 
 Task ID:
 
-`CNX-20260828-119`
+`CNX-20260828-120`
 
-## Task 118 independent review
+## Task 119 independent review
 
-Task-118 report:
+Task-119 report:
 
-`docs/operations/coordination/reports/CNX-20260828-118-posix-installer-provider-neutrality-alignment.md`
+`docs/operations/coordination/reports/CNX-20260828-119-installer-documentation-authority-alignment.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-118-posix-installer-provider-neutrality-alignment-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-119-installer-documentation-authority-alignment-review.md`
 
 Verdict:
 
-`REJECTED FOR CANDIDATE ADVANCEMENT — CODE REPAIR ACCEPTED; CANONICAL INSTALL DOCUMENTATION/AUTHORITY REMAINS INCONSISTENT`
+`ACCEPTED PASS — CANONICAL INSTALL CONTRACT ALIGNED; EXACT CANDIDATE MAY ADVANCE TO A NEW READ-ONLY-FIRST REAL-WINDOWS LIFECYCLE ACCEPTANCE TASK`
 
-Task 118 successfully removed provider policy from the POSIX installer. Together with Task 117, both current installer entry points are now provider-neutral and delegate provider policy to runtime/configuration layers.
+Tasks 117–119 now establish one coherent installer boundary:
 
-The review found the remaining blocker in current documentation/test authority rather than installer implementation:
+- PowerShell installer is provider-neutral;
+- POSIX installer is provider-neutral;
+- no installer provider parameter/default/validation;
+- no provider executable prerequisite merely for installation;
+- generic lifecycle handoff from installer;
+- canonical Windows/POSIX install documentation matches implementation;
+- runtime/provider readiness remains a separate runtime concern.
 
-- canonical install docs still list Ollama as a general install requirement;
-- installer behavior text still claims provider preflight;
-- canonical POSIX source-install command is absent from user-facing install guidance;
-- the POSIX install-command regression assertion reads a coordination task document instead of canonical consumer docs.
+## Exact Task-120 candidate
 
-## Task 119 documentation-authority gate
+- source SHA: `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
+- artifact ID: `9691451156`;
+- artifact name: `cogentnexus-openclaw-v0.9.3-package-proof-01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
+- artifact digest: `sha256:9db9290e14646575586a42160b79cfea691e35f3a0ca7d294f7f941dcae0c87a`;
+- package ZIP SHA256: `8e06b186e425170a22bfce06fa3505a7cdac3b097d4bfdc4ccc4d810d502cac1`;
+- package tar.gz SHA256: `6a14cb665ca6148ce2912970df62027533aef34fb0c871a2e542d1b149e94f31`;
+- payload count: `178`;
+- payload fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
 
-Task 119 must make user-facing installation guidance describe the same responsibility boundary as implementation.
+Exact-SHA CI:
 
-Required result:
+- Validate `33185349482` success;
+- Windows Installer Pack Smoke `33185349413` success;
+- PS5.1 Acceptance Smoke `33185349400` success.
 
-- provider-free canonical PowerShell source-install command;
-- provider-free canonical POSIX source-install command;
-- no installer-level `-Provider`/`--provider` guidance;
-- clear separation of installer prerequisites from runtime/provider readiness requirements;
-- no claim that provider selection/provider-specific preflight is installer-owned;
-- accurate current runtime provider support retained in runtime/post-install context;
-- automated tests protect canonical user-facing docs, not coordination task files;
-- no installer source change unless a new implementation defect is demonstrated.
+## Task 120 live gate
 
-Required order:
+First perform exact artifact provenance and a **fresh read-only machine reconciliation/classification**. Task 116 is historical evidence only; do not assume its state is still current.
 
-`fresh reconcile -> TESTS-ONLY canonical-doc RED -> minimal docs/test alignment -> GREEN -> focused/full validation -> exact candidate CI/package proof -> report`
+Only if provenance and current ownership/machine state are coherent may the executor proceed in this exact one-shot order:
 
-## Live mutation fence
+`install-over -> reset y -> uninstall y -> fresh reinstall same artifact -> stop -> start -> restart -> recovery harness -> final read-only snapshot`
 
-Task 119 does not authorize any live lifecycle mutation:
+Canonical install/install-over command:
 
-- no Task-116 install-over replay;
-- no reset/uninstall/reinstall;
-- no live POSIX install;
-- no live stop/start/restart or recovery harness;
-- no manual cleanup/normalization;
-- no OpenClaw/provider-runtime changes;
-- no provider/model/endpoint/timeout changes;
-- no live SQLite/manifest/plugin/session mutation;
-- no credential/secret access;
-- no Dashboard semantic Send.
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
+```
 
-The latest authoritative live-machine boundary remains Task 116 post-failure coherent state.
+No installer `-Provider` argument.
+
+Runtime/provider readiness is evaluated separately. The current runtime recovery harness remains provider-specific where recovery actually owns that behavior.
+
+## Fail-stop rule
+
+Each disruptive phase may execute at most once. On first non-zero exit, ambiguous classification, ownership mismatch, integrity failure, or failed postcondition:
+
+- stop;
+- preserve evidence;
+- do not replay;
+- do not clean/normalize manually;
+- report the exact failure boundary for independent review.
+
+## Prohibited during Task 120
+
+- candidate/artifact substitution;
+- live source repair;
+- replay of completed/failed destructive phases;
+- manual normalization/cleanup to force continuation;
+- OpenClaw changes or rebaseline;
+- provider runtime/config/model/endpoint/timeout changes;
+- unrelated plugin/workspace mutation;
+- credential/secret access;
+- Dashboard semantic Send;
+- reboot/process-tree kill;
+- merge/tag/release/force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-119-installer-documentation-authority-alignment.md`
+`docs/operations/coordination/reports/CNX-20260828-120-v093-real-windows-lifecycle-acceptance-provider-neutral-candidate.md`
 
-After publishing, stop for independent ChatGPT review. A new real-Windows lifecycle retry may be opened only after Task 119 passes independent review on a newly frozen exact candidate.
+After publishing, stop for independent ChatGPT review. Do not create or execute the final Dashboard durable-delivery task automatically.
