@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `SOURCE_ONLY_TDD`
-Current authorization: `CNX-20260828-109_ROLLOVER_FINALIZE_FAILCLOSED_REPAIR`
-Task ID: `CNX-20260828-109`
+Current authorization: `CNX-20260828-110_ROLLOVER_RETIRED_STATE_EXACTNESS_REPAIR`
+Task ID: `CNX-20260828-110`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,82 +19,53 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-109-rollover-finalize-failclosed-repair.md`](tasks/CNX-20260828-109-rollover-finalize-failclosed-repair.md)
+[`tasks/CNX-20260828-110-rollover-retired-state-exactness-repair.md`](tasks/CNX-20260828-110-rollover-retired-state-exactness-repair.md)
 
-Task 109 is a **source-only TDD repair** for the residual post-mutation ownership-finalization failure path found during independent Task-108 review.
+Task 110 is a **source-only TDD repair** for the remaining fail-closed case where the retired project path still exists after external mutation but is no longer the exact pre-mutation owned generation.
 
-## Task 108 closure
+## Task 109 closure
 
-Task 108 report:
+Task 109 report:
 
-`docs/operations/coordination/reports/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-109-rollover-finalize-failclosed-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-108-windows-plugin-rollover-transaction-repair-review.md`
-
-Review commit:
-
-`bd303899b9b8ca9f011923e9d4563926b4ccad8c`
+`docs/operations/coordination/reviews/CNX-20260828-109-rollover-finalize-failclosed-repair-review.md`
 
 Review verdict:
 
-`REJECTED — RESIDUAL FAILURE-PATH SOURCE DEFECT`
+`REJECTED — TDD PROVENANCE FAILURE + RESIDUAL RETIRED-STATE EXACTNESS DEFECT`
 
-Task 108 is closed. Its candidate/artifact are evidence only and are not authorized for live acceptance.
+Task 109 is closed. Candidate `dcca49d43d95a0a34d8d460a4b9ab5ad88d036ce` and artifact `9681526010` are evidence only and are not authorized for live acceptance.
 
-## Confirmed residual defect
+## Required Task-110 invariant
 
-The Task-108 prepare/finalize architecture correctly bridges the normal external mutation boundary, but `finalize_plugin_rollover_transaction` currently restores `manifestBefore` when final replacement-manifest verification raises.
+After external mutation and failed final ownership verification:
 
-Task 107 proved that the preceding external command can already have removed the old generation:
-
-```powershell
-openclaw plugins install $packagePath --force
-```
-
-Therefore the exception path can actively reassert durable ownership of a missing retired generation. That violates the required fail-closed invariant.
+- normal ownership may return to `manifestBefore` only if the retired state is still **exactly** the transaction-proven pre-mutation generation;
+- path existence alone is insufficient;
+- an existing-but-altered/incomplete retired project must remain quarantined/fail-closed;
+- replacement ownership must not be declared successful without final proof;
+- backup/transaction evidence must remain durable.
 
 ## Required execution method
 
 Strict TDD:
 
-`reconcile -> RED post-commit verification failure regression -> minimal failure-state fix -> GREEN targeted -> full validation -> exact same-source CI/package proof -> report`
+`reconcile -> TEST-ONLY RED COMMIT -> verify semantic RED -> minimal production commit -> GREEN targeted -> full validation -> exact same-source CI/package proof -> report`
 
-The RED regression must model:
-
-`valid old ownership -> prepare -> external old-generation removal/replacement -> replacement commit attempt -> injected final verification failure`
-
-The repaired behavior must fail non-zero without restoring a normal manifest that claims the missing retired generation. It must not declare the replacement successfully owned unless final proof succeeds.
-
-## Source boundary
-
-Reviewed production/test candidate:
-
-`dc5e7a87867d03501b80b662e11aeaab833e0280`
-
-Task-108 production fix commit:
-
-`f034cebe5cbe94116c10a81b89c2ef30de6646a8`
-
-`f034cebe... -> dc5e7a87...` differs only by the Task-108 report. The coordination review/task commits after `dc5e7a87...` are documentation-only. Hermes/Codex must still fetch current GitHub state and stop `BLOCKED` on unexplained production drift.
-
-## Historical CI/package evidence
-
-The report-only descendant `dc5e7a87...` later passed all three required workflows and produced artifact `9680707129`, proving the Task-108 code is reproducible. That artifact is **not** the next live candidate because independent source review rejected the residual failure path.
-
-Task 109 must produce a new exact package proof after the failure-path repair.
+The RED commit must be a separate GitHub commit before any Task-110 production edit.
 
 ## Hard fence
 
-Task 109 does **not** authorize:
+Task 110 does **not** authorize:
 
 - any real-Windows lifecycle mutation;
 - install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
-- replay of Task 107;
-- manual cleanup/normalization of live residue;
+- manual live cleanup/normalization;
 - Dashboard semantic nonce/message/Send;
-- OpenClaw or Ollama update/reinstall/uninstall;
+- OpenClaw/Ollama update/reinstall/uninstall/rebaseline;
 - provider/model/timeout changes;
 - live SQLite/config/session mutation;
 - credentials/secrets access or re-entry;
@@ -107,6 +78,6 @@ Task 109 does **not** authorize:
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-109-rollover-finalize-failclosed-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-110-rollover-retired-state-exactness-repair.md`
 
-The report must contain RED evidence, minimal fix, failure-state semantics, GREEN validation, exact source commit, exact Actions run IDs, and the new package-proof identity/hashes. After publishing it, stop for independent ChatGPT review. Do not create the next live acceptance task.
+The report must contain the separate RED commit SHA/evidence, minimal production fix commit, GREEN/full validation, exact candidate, exact workflow run IDs, and new package-proof identity/hashes. After report publication, stop for independent ChatGPT review. Do not create a live acceptance task.
