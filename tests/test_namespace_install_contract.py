@@ -58,7 +58,7 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
     assert "migration-report.json" in source
     assert source.index("classify-install") < source.index('cp -R "$SOURCE_SKILL"')
     assert source.index("preflight-skip-plugin") < source.index('cp -R "$SOURCE_SKILL"')
-    assert source.index(' create --root "$COGENT_ROOT"') < source.index(' verify --root "$COGENT_ROOT"') < source.index('enable --provider ollama')
+    assert source.index(' create --root "$COGENT_ROOT"') < source.index(' verify --root "$COGENT_ROOT"') < source.index(' enable\n')
     assert "plugins.entries.cogentnexus-rotation" in source
     assert "openclaw plugins uninstall cogentnexus-rotation --force" in source
 

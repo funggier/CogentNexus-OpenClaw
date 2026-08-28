@@ -4,23 +4,18 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 WORKSPACE=${OPENCLAW_WORKSPACE:-"$HOME/.openclaw/workspace"}
-PROVIDER="ollama"
 SKIP_PLUGIN=0
 SKIP_GATEWAY_RESTART=0
 LINK_PLUGIN=0
 SKIP_AGENTS_POLICY=0
 VERSION=$(cat "$REPO_ROOT/VERSION" 2>/dev/null || printf 'unknown')
 
-usage() { echo "Usage: $0 [--workspace PATH] [--provider ollama] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
+usage() { echo "Usage: $0 [--workspace PATH] [--skip-plugin] [--skip-gateway-restart] [--skip-agents-policy] [--link-plugin]"; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --workspace) [ "$#" -ge 2 ] || { usage; exit 2; }; WORKSPACE=$2; shift 2 ;;
-    --provider)
-      [ "$#" -ge 2 ] || { usage; exit 2; }
-      PROVIDER=$2
-      case "$PROVIDER" in ollama) ;; *) echo "Unsupported provider in CogentNexus-OpenClaw v0.9.3: $PROVIDER (only ollama is supported)" >&2; exit 2 ;; esac
-      shift 2 ;;
+
     --skip-plugin) SKIP_PLUGIN=1; shift ;;
     --skip-gateway-restart) SKIP_GATEWAY_RESTART=1; shift ;;
     --skip-agents-policy) SKIP_AGENTS_POLICY=1; shift ;;
@@ -30,15 +25,14 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-echo "Installing CogentNexus-OpenClaw v$VERSION (Ollama-only)"
-echo "Provider: ollama"
+echo "Installing CogentNexus-OpenClaw v$VERSION"
 
 if { [ "$SKIP_PLUGIN" -eq 1 ] || [ "$SKIP_AGENTS_POLICY" -eq 1 ]; } && [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   echo "--skip-plugin and --skip-agents-policy are staging-only options. Use them with --skip-gateway-restart." >&2
   exit 2
 fi
 
-for command_name in python openclaw ollama; do
+for command_name in python openclaw; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "Required command not found: $command_name" >&2; exit 1; }
 done
 if [ "$SKIP_PLUGIN" -eq 0 ]; then
@@ -105,8 +99,7 @@ PY
 }
 
 # Upgrade handoff is deliberately performed by the old installed launcher so a
-# v0.9.2 LM Studio-managed deployment restores native OpenClaw before v0.9.3
-# replaces files.  v0.9.3 itself then manages Ollama only.
+# replaces files while preserving the existing runtime policy.
 existing_mode=$(read_existing_mode)
 case "$existing_mode" in
   "") ;;
@@ -231,7 +224,7 @@ python "$@" >/dev/null
 python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
-  python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable --provider ollama
+  python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable
 else
   echo "Skipped Host enable because --skip-gateway-restart was requested."
   echo "CogentNexus-OpenClaw remains PASSTHROUGH; run '$LAUNCHER enable' when ready."
@@ -267,4 +260,4 @@ if [ -n "$MIGRATION_SOURCE" ]; then
   trap - EXIT HUP INT TERM
 fi
 
-echo "CogentNexus-OpenClaw v$VERSION installation completed successfully (Ollama-only)."
+echo "CogentNexus-OpenClaw v$VERSION installation completed successfully."

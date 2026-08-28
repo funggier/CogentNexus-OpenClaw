@@ -104,7 +104,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -RunDisruptive
 ```
 
-No provider argument is needed because v0.9.3 is Ollama-only.
+No provider argument is needed because installation is provider-neutral; runtime policy remains responsible for the selected provider.
 
 ## Next continuity scenarios
 

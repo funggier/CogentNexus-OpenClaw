@@ -13,12 +13,11 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn("host_v091.py", ps)
         self.assertIn("host_v091.py", sh)
 
-        # v0.9.3 narrows the operator/provider surface to Ollama while retaining
-        # the accepted v0.9.2 orchestration backend underneath the facade.
+        # v0.9.3 keeps provider policy in runtime while installers remain neutral.
         self.assertIn("scripts\\cnxclaw_v093.py", ps)
         self.assertIn("scripts/cnxclaw_v093.py", sh)
         self.assertNotIn('$Provider', ps)
-        self.assertIn('PROVIDER="ollama"', sh)
+        self.assertNotIn('PROVIDER="ollama"', sh)
 
         cnx_v093 = (ROOT / "skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py").read_text(encoding="utf-8")
         provider_v093 = (ROOT / "skills/cogentnexus-openclaw/scripts/provider_v093.py").read_text(encoding="utf-8")
