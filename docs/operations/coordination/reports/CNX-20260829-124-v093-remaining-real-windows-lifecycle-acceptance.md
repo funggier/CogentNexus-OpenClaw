@@ -85,7 +85,7 @@ The supported uninstall reported native OpenClaw handoff, provider preservation,
 ### Fresh reinstall — one attempt
 
 - Exact candidate installer: `C:\Users\CDQ-P\AppData\Local\Temp\cnx121-attested-20260828\candidate\cogentnexus-openclaw-v0.9.3\scripts\install.ps1`
-- Command: provider-neutral installer with the exact workspace
+- Exact command: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\CDQ-P\AppData\Local\Temp\cnx121-attested-20260828\candidate\cogentnexus-openclaw-v0.9.3\scripts\install.ps1 -Workspace C:\Users\CDQ-P\.openclaw\workspace`
 - Evidence: `d01-fresh-reinstall.txt`
 - Exit code: `0`
 - Result: installation completed successfully.
