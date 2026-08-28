@@ -1,110 +1,95 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
+**Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 125 authorizes only one new exact recovery-suite execution with the reviewed interactive confirmation contract satisfied  
+**Human authority:** operator authorized continued stabilization; Task 126 authorizes repository/source TDD repair and read-only retained-evidence diagnosis only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`](tasks/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md)
+[`tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`](tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md)
 
 Task ID:
 
-`CNX-20260829-125`
+`CNX-20260829-126`
 
-## Task 124 independent review
+## Task 125 independent review
 
-Task-124 report:
+Task-125 report:
 
-`docs/operations/coordination/reports/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance-review.md`
 
 Verdict:
 
-`ACCEPTED PARTIAL PASS — RESET / UNINSTALL / FRESH REINSTALL / STOP / START / RESTART PASSED ONCE; RECOVERY PRODUCT BEHAVIOR WAS NOT TESTED BECAUSE THE EXACT HARNESS CANCELLED AT ITS UNSATISFIED INTERACTIVE CONFIRMATION GATE.`
+`ACCEPTED FAIL — GATEWAY-CRASH RECOVERY PASSED, BUT PROVIDER-CRASH RECOVERY FAILED TO REACH THE REVIEWED DURABLE-READY CONTRACT WITHIN 420 SECONDS; SOURCE/HARNESS ROOT-CAUSE DIAGNOSIS IS REQUIRED BEFORE ANY REPLAY.`
 
-Task 124 established:
+Task 125 established a valid live failure boundary:
 
-- reset PASS once;
-- uninstall PASS once with OpenClaw/Ollama/Gateway preservation;
-- fresh reinstall of the exact frozen candidate PASS once;
-- stop PASS once;
-- start PASS once;
-- restart PASS once;
-- recovery harness prechecks passed, but the harness cancelled before the first disruptive scenario because its exact source requires `Read-Host 'Type y to continue'` and Task 124 supplied no interactive answer;
-- best-effort harness cleanup restored healthy managed state;
-- no Dashboard semantic Send.
+- true interactive confirmation passed;
+- gateway crash recovery passed;
+- provider crash was injected;
+- the complete durable READY predicate was not observed inside 420 seconds;
+- operator-stop was not reached;
+- harness cleanup returned the machine to healthy managed state;
+- no recovery replay and no Dashboard semantic Send occurred.
 
-The recovery cancellation is an acceptance-invocation defect. No gateway-crash, provider-crash, or operator-stop recovery scenario executed.
+## Consumed live-operation ledger
 
-## Consumed ledger
+Do not replay during Task 126:
 
-Consumed and prohibited from replay:
+- install-over `1 / 1`;
+- reset `1 / 1`;
+- uninstall `1 / 1`;
+- fresh reinstall `1 / 1`;
+- stop `1 / 1`;
+- start `1 / 1`;
+- restart `1 / 1`;
+- Task-125 recovery suite `1 / 1`;
+- gateway-crash `1 / 1 PASS`;
+- provider-crash `1 / 1 FAIL`;
+- operator-stop `0`, not reached.
 
-- Task-121 install-over `1 / 1`;
-- Task-124 reset `1 / 1`;
-- Task-124 uninstall `1 / 1`;
-- Task-124 fresh reinstall `1 / 1`;
-- Task-124 stop `1 / 1`;
-- Task-124 start `1 / 1`;
-- Task-124 restart `1 / 1`.
+## Task 126 diagnosis and TDD contract
 
-Task-124 recovery process invocation is closed. Disruptive scenario executions were all zero. Task 125 is a separate explicit authorization for one new recovery-suite execution only.
+Use retained Task-125 JSON/log evidence read-only. Before any source edit, extract the complete `converge-provider-after` observation series and identify which exact predicate fields remained unsatisfied.
 
-## Exact candidate
+Correlate the observations with the owning provider recovery, incident/circuit, event-adapter, supervisor, host-state, and recovery-verdict logic.
 
-- source SHA `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
-- artifact ID `9691451156`;
-- artifact digest `sha256:9db9290e14646575586a42160b79cfea691e35f3a0ca7d294f7f941dcae0c87a`;
-- payload/plugin fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
-- exact recovery harness blob `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`.
+Then:
 
-## Task 125 execution contract
+1. add a focused RED regression test that reproduces the evidence-derived failure;
+2. apply the smallest responsibility-local source or harness-contract fix at the actual owning layer;
+3. run focused and full test suites/static checks/plugin validation/evaluation/audit;
+4. push an exact repaired candidate;
+5. require exact-SHA CI and package proof;
+6. publish the Task-126 report and stop for ChatGPT review.
 
-Before disruption, perform a fresh deterministic read-only fence and require the current installed state to already be coherent. Do not run lifecycle controls to fix the precondition.
+Do not assume in advance whether the defect is product recovery logic or the reviewed acceptance predicate. Do not simply lengthen the 420-second fuse without evidence.
 
-Then verify a true interactive TTY is available. Execute the exact candidate harness once:
+## Prohibited during Task 126
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-v093-ollama-recovery-windows-v3.ps1 -Scenario all -RunDisruptive
-```
-
-When the exact `Type y to continue:` prompt appears, enter exactly one lowercase `y` and press Enter. Do not send input before the prompt.
-
-Require `explicit-disruptive-confirmation=PASS`, then evaluate baseline, gateway-crash, provider-crash, and operator-stop exactly once each through the harness.
-
-If no true interactive confirmation channel exists, stop `BLOCKED` before invoking the suite. No pipe/stdin workaround, source edit, Read-Host patch, replacement harness, or generalized wrapper is authorized.
-
-## Final proof
-
-After a PASS suite only, capture the Task-123-style deterministic read-only snapshot: exact fingerprint/ownership, CNX READY state, OpenClaw `2026.7.1-2`, unique loaded plugin, Gateway, Ollama REST/models, SQLite `ok`, tasks/services, namespace/residue, and no pending duplicate recovery effect.
-
-## Prohibited during Task 125
-
-- install/install-over;
-- reset/uninstall/reinstall;
-- standalone stop/start/restart outside the exact recovery harness operator-stop scenario;
-- replay of Task-124 phases;
-- source/harness modification or alternate confirmation mechanics;
+- live provider crash/recovery replay;
+- install/install-over/reset/uninstall/reinstall;
+- stop/start/restart;
+- live provider/OpenClaw mutation;
+- process kill/reboot;
 - manual cleanup/normalization;
-- OpenClaw/provider reconfiguration;
 - credential/secret access;
 - Dashboard semantic Send;
-- reboot/generic process-tree kill;
 - merge/tag/release/force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
 
-After publishing, stop for independent ChatGPT review. Do not automatically open or execute the final Dashboard durable-delivery task.
+After publishing, stop for independent ChatGPT review. Do not automatically open a new live Windows acceptance task.
