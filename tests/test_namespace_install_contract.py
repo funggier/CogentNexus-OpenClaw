@@ -38,17 +38,16 @@ def test_windows_installer_orders_proof_handoff_manifest_and_enable():
 def test_windows_installer_applies_verified_rollover_before_single_candidate_resolution():
     source = read("scripts/install.ps1")
     install = source.index('openclaw plugins install $packagePath --force')
-    inventory = source.index("openclaw plugins list --json", install)
-    plan = source.index('"rollover-plan"', inventory)
-    apply = source.index('"rollover-apply"', plan)
-    resolve = source.index(" resolve-plugin --openclaw-state", apply)
-    assert install < inventory < plan < apply < resolve
+    prepare = source.index('"rollover-prepare"')
+    finalize = source.index('"rollover-finalize"')
+    resolve = source.index(" resolve-plugin --openclaw-state", finalize)
+    assert prepare < install < finalize < resolve
     plugin_guard = source.index("if (-not $SkipPlugin) {")
-    upgrade_guard = source.index('if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {', install)
-    assert plugin_guard < install < upgrade_guard < plan
+    upgrade_guard = source.index('if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {')
+    assert plugin_guard < upgrade_guard < prepare < install < finalize
     assert "-LinkPlugin is incompatible with ownership-safe managed installation" in source
-    assert source.count("openclaw plugins list --json", install, apply) == 2
-    assert "$rolloverApplyInventoryPath" in source
+    assert source.count("openclaw plugins list --json", install, finalize) == 1
+    assert "$rolloverTransactionPath" in source
 
 
 def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report():

@@ -20,7 +20,7 @@ function Get-IfAncestors($node) {
 $commands = $ast.FindAll({ param($node)
     if ($node -isnot [System.Management.Automation.Language.CommandAst]) { return $false }
     $text = $node.Extent.Text
-    return ($text -match 'rollover-plan|rollover-apply|resolve-plugin|npm pack|plugins install|plugins disable')
+    return ($text -match 'rollover-plan|rollover-apply|rollover-prepare|rollover-finalize|resolve-plugin|npm pack|plugins install|plugins disable')
 }, $true)
 
 $rows = foreach ($command in $commands) {

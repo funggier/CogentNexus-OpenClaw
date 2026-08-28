@@ -99,14 +99,14 @@ def test_p8_production_ast_proves_independent_lifecycle_gates_and_order():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     rows = json.loads(result.stdout)
-    rollover = [r for r in rows if "rollover-plan" in r["command"] or "rollover-apply" in r["command"]]
+    transaction = [r for r in rows if "rollover-prepare" in r["command"] or "rollover-finalize" in r["command"]]
     installs = [r for r in rows if "plugins install" in r["command"] or "npm pack" in r["command"]]
     resolves = [r for r in rows if " resolve-plugin --" in r["command"]]
-    assert rollover and installs and resolves
-    assert all(any("rolloverPlugin" in a for a in r["ancestors"]) for r in rollover)
-    assert all(not any("installPlugin" in a for a in r["ancestors"]) for r in rollover)
+    assert transaction and installs and resolves
+    assert all(any("rolloverPlugin" in a for a in r["ancestors"]) for r in transaction)
+    assert all(any("installPlugin" in a for a in r["ancestors"]) for r in transaction)
     assert all(any("installPlugin" in a for a in r["ancestors"]) for r in installs)
-    assert max(r["start"] for r in rollover) < min(r["start"] for r in resolves)
+    assert max(r["start"] for r in transaction) < min(r["start"] for r in resolves)
 
 
 

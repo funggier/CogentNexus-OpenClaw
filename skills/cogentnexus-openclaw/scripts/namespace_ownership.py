@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import stat as stat_module
 from datetime import datetime, timezone
 from pathlib import Path
@@ -845,6 +846,86 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
     }
 
 
+def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
+                                        application_data: Path,
+                                        expected_replacement_fingerprint: str,
+                                        backup_token: str) -> dict[str, Any]:
+    """Prove and snapshot the owned generation before OpenClaw mutates it."""
+    root = root.resolve(strict=False)
+    workspace = workspace.resolve(strict=False)
+    application_data = application_data.resolve(strict=False)
+    paths = expected_paths(workspace)
+    mode = _require_passthrough(root)
+    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
+    retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
+    retired_payload = _plugin_payload(retired_root)
+    if retired_payload is None:
+        raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
+        raise RuntimeError("expected source fingerprint is invalid")
+    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(application_data, paths["openclawState"]):
+        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")
+    if not backup_token or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in backup_token):
+        raise RuntimeError("rollover backup token contains unsafe characters")
+    retired_project = _npm_project_for_plugin(retired_root, paths["openclawState"])
+    backup_path = (application_data / "plugin-generation-rollover-backups" /
+                   f"{retired_project.name}-{backup_token}").resolve(strict=False)
+    backup_root = (application_data / "plugin-generation-rollover-backups").resolve(strict=False)
+    if not _contained(backup_path, backup_root) or backup_path == backup_root or backup_path.exists():
+        raise RuntimeError("rollover backup destination is invalid or already exists")
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(retired_project, backup_path)
+    return {
+        "schemaVersion": 1,
+        "operation": "cogentnexus-openclaw-plugin-generation-rollover-transaction",
+        "workspace": _canonical(workspace), "stateRoot": _canonical(root),
+        "openclawState": _canonical(paths["openclawState"]),
+        "applicationData": _canonical(application_data), "controllerMode": mode,
+        "retiredPluginPath": _canonical(retired_root),
+        "retiredProjectRoot": _canonical(retired_project),
+        "backupPath": _canonical(backup_path),
+        "retiredFingerprint": retired_payload["fingerprint"],
+        "retiredProjectTreeSha256": _project_tree_sha256(retired_project),
+        "backupProjectTreeSha256": _project_tree_sha256(backup_path),
+        "manifestBefore": manifest,
+        "manifestBeforeSha256": _sha256_file(manifest_path(root)),
+        "expectedReplacementFingerprint": expected_replacement_fingerprint.lower(),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
+                                         plugin_inventory: dict[str, Any]) -> dict[str, Any]:
+    """Prove the post-install replacement, then commit ownership atomically."""
+    root = Path(transaction["stateRoot"]).resolve(strict=False)
+    workspace = Path(transaction["workspace"]).resolve(strict=False)
+    replacement = _active_registered_plugin(plugin_inventory, Path(transaction["openclawState"]))
+    expected = transaction["expectedReplacementFingerprint"]
+    if replacement["fingerprint"].lower() != expected.lower():
+        raise RuntimeError("replacement payload does not match the expected source attestation")
+    if _canonical(replacement["root"]) == transaction["retiredPluginPath"]:
+        raise RuntimeError("replacement still points to the retired generation")
+    manifest_target = manifest_path(root)
+    if _sha256_file(manifest_target) != transaction["manifestBeforeSha256"]:
+        raise RuntimeError("ownership manifest changed during rollover transaction")
+    backup_path = Path(transaction["backupPath"])
+    if not backup_path.is_dir() or _project_tree_sha256(backup_path) != transaction["backupProjectTreeSha256"]:
+        raise RuntimeError("pre-install owned-generation backup proof failed")
+    manifest_after = dict(transaction["manifestBefore"])
+    manifest_after["pluginPath"] = _canonical(replacement["root"])
+    manifest_after["installedAt"] = datetime.now(timezone.utc).isoformat()
+    try:
+        write_manifest(root, manifest_after)
+        verified = verify_manifest(root, workspace=workspace)
+        if _canonical(Path(verified["pluginPath"])) != _canonical(replacement["root"]):
+            raise RuntimeError("final ownership manifest does not bind the replacement plugin")
+    except Exception:
+        _write_bytes_atomic(manifest_target, json.dumps(transaction["manifestBefore"], ensure_ascii=False, indent=2).encode("utf-8") + b"\\n")
+        raise
+    return {"status": "ROLLOVER_APPLIED_PASSTHROUGH", "backupPath": str(backup_path),
+            "pluginPath": _canonical(replacement["root"])}
+
+
 def build_plugin_rollover_plan(*, root: Path, workspace: Path, application_data: Path,
                                plugin_inventory: dict[str, Any],
                                expected_replacement_fingerprint: str | None = None,
@@ -1173,6 +1254,16 @@ def main() -> int:
     rollover_plan.add_argument("--inventory-json", type=Path, required=True)
     rollover_plan.add_argument("--expected-replacement-fingerprint")
     rollover_plan.add_argument("--plan", type=Path, required=True)
+    rollover_prepare = sub.add_parser("rollover-prepare")
+    rollover_prepare.add_argument("--root", type=Path, required=True)
+    rollover_prepare.add_argument("--workspace", type=Path, required=True)
+    rollover_prepare.add_argument("--app-data", type=Path, required=True)
+    rollover_prepare.add_argument("--expected-replacement-fingerprint", required=True)
+    rollover_prepare.add_argument("--backup-token", required=True)
+    rollover_prepare.add_argument("--transaction", type=Path, required=True)
+    rollover_finalize = sub.add_parser("rollover-finalize")
+    rollover_finalize.add_argument("--transaction", type=Path, required=True)
+    rollover_finalize.add_argument("--inventory-json", type=Path, required=True)
     rollover_apply = sub.add_parser("rollover-apply")
     rollover_apply.add_argument("--plan", type=Path, required=True)
     rollover_apply.add_argument("--plan-sha256", required=True)
@@ -1220,6 +1311,18 @@ def main() -> int:
             expected_replacement_fingerprint=args.expected_replacement_fingerprint,
         )
         result = {**write_plugin_rollover_plan(args.plan, plan), "plan": plan}
+    elif args.command == "rollover-prepare":
+        transaction = prepare_plugin_rollover_transaction(
+            root=args.root, workspace=args.workspace, application_data=args.app_data,
+            expected_replacement_fingerprint=args.expected_replacement_fingerprint,
+            backup_token=args.backup_token,
+        )
+        result = {"transactionPath": str(args.transaction.resolve(strict=False)), "transaction": transaction}
+        _write_bytes_atomic(args.transaction, json.dumps(transaction, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8") + b"\n")
+    elif args.command == "rollover-finalize":
+        transaction = json.loads(args.transaction.read_text(encoding="utf-8"))
+        plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
+        result = finalize_plugin_rollover_transaction(transaction=transaction, plugin_inventory=plugin_inventory)
     elif args.command == "rollover-apply":
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = apply_plugin_rollover_plan(

@@ -343,6 +343,7 @@ if ($actions.installPlugin) {
             if ($LASTEXITCODE -ne 0) { throw "failed to remove an existing linked plugin path" }
         }
 
+        $rolloverTransactionPath = $null
         $packOutput = (& npm pack --json | Out-String)
         if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
         $packagePath = $null
@@ -350,11 +351,17 @@ if ($actions.installPlugin) {
             . $artifactResolver
             $packedArtifact = Resolve-NpmPackArtifact -PackJson $packOutput -PluginDir $pluginDir
             $packagePath = [string]$packedArtifact.path
+            if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {
+                $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
+                New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
+                $rolloverId = [guid]::NewGuid().ToString("N")
+                $rolloverTransactionPath = Join-Path $rolloverStaging "plugin-rollover-transaction-$rolloverId.json"
+                $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath | Out-String)
+                if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover pre-install proof failed" }
+                if (-not (Test-Path -LiteralPath $rolloverTransactionPath)) { throw "rollover transaction proof was not persisted" }
+            }
             openclaw plugins install $packagePath --force
             if ($LASTEXITCODE -ne 0) { throw "plugin installation from local package archive failed" }
-            # CNX-20260826-069 B3: mark the external effect this fresh attempt
-            # created so the single failure boundary can apply its exact
-            # supported inverse (plugins uninstall) if a later step fails.
             if ($isFreshTransaction) { $script:FreshPluginInstalled = $true }
         }
         finally {
@@ -365,44 +372,19 @@ if ($actions.installPlugin) {
 
         openclaw plugins disable cogentnexus-openclaw
         if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
+        if ($rolloverTransactionPath) {
+            $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
+            $rolloverInventory = (& openclaw plugins list --json | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
+            [System.IO.File]::WriteAllText($rolloverInventoryPath, $rolloverInventory, (New-Object System.Text.UTF8Encoding($false)))
+            & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-finalize" "--transaction" $rolloverTransactionPath "--inventory-json" $rolloverInventoryPath | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover finalization failed" }
+        }
     }
     finally { Pop-Location }
 }
 
-if ($classification.mode -eq "upgrade" -and $actions.rolloverPlugin) {
-        $rolloverStaging = Join-Path $cogentNexusOpenClawRoot "install-staging"
-        New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
-        $rolloverId = [guid]::NewGuid().ToString("N")
-        $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
-        $rolloverApplyInventoryPath = Join-Path $rolloverStaging "plugin-inventory-apply-$rolloverId.json"
-        $rolloverPlanPath = Join-Path $rolloverStaging "plugin-rollover-plan-$rolloverId.json"
-        try {
-            $rolloverInventory = (& openclaw plugins list --json | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
-            [System.IO.File]::WriteAllText(
-                $rolloverInventoryPath,
-                $rolloverInventory,
-                (New-Object System.Text.UTF8Encoding($false))
-            )
-            $rolloverPlanOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-plan" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--inventory-json" $rolloverInventoryPath "--expected-replacement-fingerprint" $expectedPluginFingerprint "--plan" $rolloverPlanPath | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover plan was rejected" }
-            $rolloverPlanSha256 = [string](($rolloverPlanOutput | ConvertFrom-Json).planSha256)
-            if ([string]::IsNullOrWhiteSpace($rolloverPlanSha256)) { throw "plugin generation rollover plan hash was not observed" }
-            $rolloverApplyInventory = (& openclaw plugins list --json | Out-String)
-            if ($LASTEXITCODE -ne 0) { throw "could not re-prove active canonical plugin registration immediately before rollover apply" }
-            [System.IO.File]::WriteAllText(
-                $rolloverApplyInventoryPath,
-                $rolloverApplyInventory,
-                (New-Object System.Text.UTF8Encoding($false))
-            )
-            & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-apply" "--plan" $rolloverPlanPath "--plan-sha256" $rolloverPlanSha256 "--inventory-json" $rolloverApplyInventoryPath | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover apply failed" }
-            Write-Host "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
-        }
-        finally {
-            Remove-Item -LiteralPath $rolloverInventoryPath,$rolloverApplyInventoryPath,$rolloverPlanPath -Force -ErrorAction SilentlyContinue
-        }
-}
+
 
 $launcher = Join-Path $Workspace "cnxclaw.cmd"
 $cliEscaped = $cliScript.Replace('"','""')
