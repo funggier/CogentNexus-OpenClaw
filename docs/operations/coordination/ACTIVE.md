@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `MANUAL_REAL_WINDOWS_ACCEPTANCE`
-Current authorization: `CNX-20260828-107_V093_REAL_WINDOWS_LIFECYCLE_ACCEPTANCE_RETRY`
-Task ID: `CNX-20260828-107`
+Execution mode: `SOURCE_ONLY_TDD`
+Current authorization: `CNX-20260828-108_WINDOWS_PLUGIN_ROLLOVER_TRANSACTION_REPAIR`
+Task ID: `CNX-20260828-108`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,88 +19,88 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry.md`](tasks/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry.md)
+[`tasks/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`](tasks/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md)
 
-Task 107 is a new pinned real-Windows lifecycle acceptance attempt after Task 105 exposed the npm 12 installer incompatibility and Task 106 closed the source/test regression.
+Task 108 is a **source-only TDD repair** for the Windows plugin ownership rollover transaction defect exposed by Task 107.
 
-## Accepted source and CI gate
+## Predecessor decision
 
-Exact pinned source:
+Task 107 report:
+
+`docs/operations/coordination/reports/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry.md`
+
+Report commit:
+
+`582acb72dd09d1e3753452afcb5f76aa72929d5d`
+
+Independent review:
+
+`docs/operations/coordination/reviews/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry-review.md`
+
+Review commit:
+
+`b0487da1aacb5cd3663a6e7e6b2f3caed1db1ef0`
+
+Review verdict:
+
+`ACCEPTED FAIL — SOURCE DEFECT CONFIRMED`
+
+Task 107 is closed. It must not be replayed.
+
+## Confirmed repair target
+
+The old npm 12 / `npm-pack:` failure is not the Task 108 defect. Task 107 proved the repaired local archive command reached the real OpenClaw boundary:
+
+```powershell
+openclaw plugins install $packagePath --force
+```
+
+The active defect is the ownership rollover transaction contract around that external mutation. OpenClaw `2026.7.1-2` can remove/replace the old plugin generation during `plugins install --force` before the current post-install `rollover-plan` can validate the old manifest-owned root.
+
+The ownership fail-closed result is correct. Task 108 must bridge the mutation boundary without weakening ownership validation.
+
+## Required execution method
+
+Strict TDD:
+
+`RED regression -> minimal production fix -> GREEN targeted -> full validation -> exact CI/package proof -> report`
+
+The RED regression must model the production semantic boundary where the external install removes/replaces the old generation. A string-order-only test is insufficient.
+
+The repair must preserve the equivalent transaction semantics of:
+
+`pre-install old-state proof -> one external local-.tgz install -> post-install exact replacement proof -> atomic durable ownership commit`
+
+Failure after external mutation remains fail-closed.
+
+## Repository source boundary
+
+The last accepted Task 107 candidate source is:
 
 `b14a711f24b3fd1cd0aaa51ce636c8502ba42404`
 
-Accepted repair ancestry:
-
-- RED installer contract: `e0b6173d2ed888303bae3e31fd023b24e201c167`
-- minimal production fix: `c676c50cb19378541a8223263a609fb7d18ed5a8`
-- npm12 production-shaped regression: `5e41c0c3a8b9da920571b828c9a863f5591af86b`
-- Task-106 test-only repair: `80a48f73d3c525565a15e07ed1ed37a7c4fc4ad3`
-- Task-106 report / pinned package source: `b14a711f24b3fd1cd0aaa51ce636c8502ba42404`
-
-Exact CI runs on the pinned source are all SUCCESS:
-
-- Validate `33149370021`
-- Windows Installer Pack Smoke `33149369983`
-- PS5.1 Acceptance Smoke `33149369996`
-
-Exact package-proof artifact:
-
-- artifact ID `9677072214`
-- name `cogentnexus-openclaw-v0.9.3-package-proof-b14a711f24b3fd1cd0aaa51ce636c8502ba42404`
-- outer SHA256 `b02dc802e2ea71ed18a12071ab570236864cea5c72416b8fae6ac9607f710b76`
-- inner v0.9.3 ZIP SHA256 `3079ea8289d3ed465337b4621cb771eb1971d4ba7d86eb09d94d81875c049e1b`
-- tar.gz SHA256 `5a010879d6effd3ee0ecbc449a6cffb30ecd26e91b90fb08765636c31d6a3b05`
-- payload-v2 file count `178`
-- payload-v2 fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
-
-Do not use the old Task-105 package artifact. It predates the accepted installer fix.
-
-## Preserved live boundary to verify, not assume
-
-Task 105 recorded the Windows machine after its single failed install-over as:
-
-- CogentNexus-OpenClaw: `PASSTHROUGH`
-- generation: `25`
-- Gateway: healthy
-- Ollama: healthy
-- SQLite: healthy
-- Supervisor task absent after supported native handoff
-- reset/uninstall/fresh reinstall/recovery phases: not executed
-- Dashboard semantic Send: not executed
-
-Task 107 must begin with a fresh read-only preflight. If the current machine cannot be reconciled with that recorded boundary, stop `BLOCKED` rather than normalizing it manually.
-
-## Authorized Task-107 sequence
-
-Only after exact provenance and read-only preflight pass:
-
-`install-over -> reset -> uninstall -> fresh reinstall -> stop/start/restart -> disruptive recovery -> report`
-
-Every externally visible/destructive phase is single-attempt. Stop at the first non-zero or ambiguous result. Do not patch product behavior inside the acceptance task.
+The commits from that source through the Task 107 report/review boundary changed coordination documents only. Task 108 must recheck GitHub current state before editing and stop on unexplained production drift.
 
 ## Hard fence
 
-Task 107 does **not** authorize:
+Task 108 does **not** authorize:
 
-- Dashboard semantic nonce/Send or semantic artifact reuse;
-- use of the old Task-105 package for retry;
-- moving-HEAD installation instead of the pinned package;
-- source/product fixes;
-- direct SQLite/config/session mutation;
-- manual residue cleanup/normalization;
+- any real-Windows lifecycle mutation;
+- install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
+- manual cleanup/normalization of live residue;
+- Dashboard semantic nonce/message/Send;
 - OpenClaw or Ollama update/reinstall/uninstall;
-- model/provider/timeout changes;
-- credential/token/password access or re-entry;
+- live SQLite/config/session mutation;
+- credentials or secrets access/re-entry;
 - LM Studio management;
-- process-tree kills;
-- reboot;
+- process-tree kills or reboot;
 - merge/tag/GitHub Release/force push;
-- replaying any failed destructive phase.
+- weakening ownership verification.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry.md`
+`docs/operations/coordination/reports/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`
 
-After the report is pushed, stop for independent ChatGPT review. Do not invent or start the final semantic-delivery task.
+The report must contain RED evidence, minimal fix, GREEN validation, exact source commit, exact Actions run IDs, and the new package-proof identity/hashes. After publishing it, stop for independent ChatGPT review. Do not create a new live acceptance task.
