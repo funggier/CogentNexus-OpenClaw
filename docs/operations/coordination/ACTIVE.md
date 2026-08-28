@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_ONLY_TDD`
-Current authorization: `CNX-20260828-113_INTERRUPTED_REENTRY_CONFLICTING_WRAPPER_MATRIX_CLOSURE`
-Task ID: `CNX-20260828-113`
+Execution mode: `TEST_MATRIX_GATE`
+Current authorization: `CNX-20260828-114_INTERRUPTED_REENTRY_DIRECT_MATRIX_VALIDATION`
+Task ID: `CNX-20260828-114`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,56 +19,49 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`](tasks/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md)
+[`tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`](tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md)
 
-Task 113 is a **source-only TDD repair** for the residual interrupted-rollover re-entry ambiguity where an exact active replacement coexists with separate conflicting CogentNexus wrapper evidence.
+Task 114 is a **validation-first test-matrix gate** for the interrupted-rollover re-entry shortcut.
 
-## Task 112 closure
+## Task 113 closure
 
-Task-112 report:
+Task-113 report:
 
-`docs/operations/coordination/reports/CNX-20260828-112-interrupted-reentry-ownership-proof-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-112-interrupted-reentry-ownership-proof-hardening-review.md`
-
-Review commit:
-
-`ee3f0dca79929ce771add3381d1817766b2ff8f7`
+`docs/operations/coordination/reviews/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure-review.md`
 
 Review verdict:
 
-`REJECTED — RESIDUAL CONFLICTING-WRAPPER RE-ENTRY DEFECT + REQUIRED MATRIX NOT COMMITTED`
+`SOURCE REPAIR ACCEPTED; TASK COMPLETION BLOCKED — REQUIRED DIRECT CLASSIFY_INSTALL MATRIX INCOMPLETE`
 
-Task-112 candidate `023be1a8075c0aa602adda357db9924c170ffb8e` and artifact `9684336683` are historical evidence only and are not live-authorized.
+Task-113 source candidate `d8c5f5f5e7936e673a6731f5a8a0f17e7bd39a06` is accepted as source-repair evidence: its direct/managed conflicting-wrapper RED was real, its production fix was separate and narrow, all exact CI workflows passed, and artifact `9685376213` was independently verified.
 
-## Confirmed Task-113 defect
+It is not yet live-authorized because the Task-113 test-only commit did not contain the complete direct `classify_install(...)` matrix that the task explicitly required before production editing.
 
-Task 112 correctly rejects an active replacement stored inside a foreign/shared wrapper. It still ignores **additional** CogentNexus product-wrapper evidence elsewhere under OpenClaw npm projects if that extra wrapper does not contain a second exact payload.
+## Task-114 method
 
-Independent reviewer reproduction against the exact Task-112 packaged candidate proved:
+Task 114 must first commit the complete direct matrix as tests only.
 
-- valid managed-npm active replacement + separate `npmWrapper:user-shared-wrapper` -> incorrectly accepted re-entry;
-- valid canonical direct-extension active replacement + separate `npmWrapper:user-shared-wrapper` -> incorrectly accepted re-entry.
+- If the entire matrix is GREEN on current production, do not edit production source.
+- If a matrix case exposes a real defect, preserve that tests-only commit as RED evidence and only then make a separate minimal production repair.
+- Never manufacture retroactive RED provenance.
 
-Task 107 recorded the active replacement at the direct canonical extension path, so the direct scenario is production-relevant.
+After matrix/targeted/full validation, require exact same-source Validate, Windows Installer Pack Smoke, PS5.1 Acceptance Smoke, and a new package-proof artifact before publishing the Task-114 report.
 
-## Required method
+## Preserved live boundary
 
-Strict TDD:
-
-`reconcile -> TEST-ONLY DIRECT MATRIX COMMIT -> prove direct+managed conflicting-wrapper RED -> minimal product-evidence proof -> GREEN matrix -> full validation -> exact same-source CI/package proof -> report`
-
-The first implementation commit must be tests only and must include the full direct `classify_install(...)` matrix required by Task 113 before production edits.
+No task after Task 107 has authorized live machine mutation. Task 107 remains the last authoritative live evidence. Any later Windows acceptance must first re-prove the current machine state read-only rather than assume historical residue still exists.
 
 ## Hard fence
 
-Task 113 does **not** authorize:
+Task 114 does **not** authorize:
 
 - any real-Windows lifecycle mutation;
 - install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
-- manual cleanup/normalization of Task-107 residue;
+- Task-107 replay or manual normalization;
 - Dashboard semantic nonce/message/Send;
 - OpenClaw/Ollama update/reinstall/uninstall/stop/rebaseline;
 - provider/model/timeout changes;
@@ -77,12 +70,12 @@ Task 113 does **not** authorize:
 - LM Studio management;
 - process-tree kills or reboot;
 - merge/tag/GitHub Release/force push;
-- weakening wrapper/namespace/manifest/payload/ownership validation.
+- weakening namespace/wrapper/manifest/payload/ownership/product-evidence verification.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
+`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
 
 After publishing the report, stop for independent ChatGPT review. Do not create or execute a live-Windows acceptance task.
