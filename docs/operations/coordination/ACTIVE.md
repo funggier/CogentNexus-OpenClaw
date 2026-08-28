@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `MANUAL`
-Current authorization: `CNX-20260828-105_EXACT_SNAPSHOT_REAL_WINDOWS_LIFECYCLE_ACCEPTANCE`
-Task ID: `CNX-20260828-105`
+Execution mode: `SOURCE_ONLY_TDD`
+Current authorization: `CNX-20260828-106_NPM12_INSTALLER_CONTRACT_REGRESSION_REPAIR_NO_LIVE_MUTATION`
+Task ID: `CNX-20260828-106`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,65 +19,69 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`](tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md)
+[`tasks/CNX-20260828-106-npm12-installer-contract-regression-repair.md`](tasks/CNX-20260828-106-npm12-installer-contract-regression-repair.md)
 
-Task 105 supersedes the stale Task-104 source-only coordination fence. The operator has explicitly accepted the known OpenClaw `2026.7.1-2` upstream dependency risk for this acceptance line and authorized bounded real-Windows lifecycle acceptance.
+Task 106 is a source-only follow-up to the failed Task 105 real-Windows install-over attempt.
 
-## Pinned acceptance snapshot
+## Accepted Task-105 finding
 
-Do not use moving branch HEAD as the runtime candidate.
+Task 105 safely stopped after install-over failed in the OpenClaw `npm-pack:` metadata path on npm `12.0.2`.
 
-- exact source: `c4d37b0005afeffcd183848dfce5476cbe2b85cd`
-- version: `0.9.3`
-- OpenClaw baseline: `2026.7.1-2`
-- managed provider: `Ollama only`
-- payload-v2 file count: `178`
-- payload-v2 fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
-- accepted inner ZIP SHA256: `c6151fac1cc3b5cd37a2d82aa366bb547adff1f885b9d2b33209c83601606133`
-- package-proof Actions artifact ID: `9669312785`
-- Validate run `33128487849`: SUCCESS, package + 6/6 matrix
-- PS5.1 Acceptance Smoke `33128487814`: SUCCESS
-- Windows Installer Pack Smoke `33128487825`: SUCCESS
+The live machine remains intentionally preserved as:
 
-Coordination commits after `c4d37b0...` intentionally advance the branch but do not change the acceptance artifact. Development may continue later; Task 105 evidence applies only to the exact snapshot above.
+- CogentNexus-OpenClaw mode: `PASSTHROUGH`;
+- generation: `25`;
+- Gateway: healthy;
+- Ollama: healthy;
+- SQLite: healthy;
+- later destructive Task-105 phases: not executed;
+- Dashboard semantic Send: not executed.
 
-## Authorized live scope
+No live action is authorized by Task 106.
 
-Task 105 may execute, in order and with stop-on-failure semantics:
+## Accepted source repair ancestry
 
-1. exact provenance/read-only preflight;
-2. install-over of the existing coherent CogentNexus-OpenClaw deployment using the exact CI artifact;
-3. one confirmed `cnxclaw.cmd reset` proof;
-4. one confirmed `cnxclaw.cmd uninstall` proof;
-5. fresh reinstall of the same exact CI artifact;
-6. normal stop/start/restart lifecycle proof;
-7. one full disruptive v3 recovery-harness run with exact-PID safety gates;
-8. report and stop for ChatGPT review.
+- RED contract commit: `e0b6173d2ed888303bae3e31fd023b24e201c167`
+- minimal installer fix: `c676c50cb19378541a8223263a609fb7d18ed5a8`
+- npm12 production-shaped regression: `5e41c0c3a8b9da920571b828c9a863f5591af86b`
 
-The executor must not repeat a failed/completed destructive phase merely to obtain a cleaner result.
+Windows Installer Pack Smoke run `33148715184` on `5e41c0c3...` is SUCCESS, including npm `12.0.2`, keyed-object pack metadata resolution, npm12-safe local archive invocation, and archive inspection.
+
+PS5.1 Acceptance Smoke run `33148715168` on `5e41c0c3...` is SUCCESS.
+
+Validate run `33148715162` reaches pytest but fails only three stale test assertions that still require the superseded executable `npm-pack:` invocation. Observed result: `3 failed, 390 passed, 30 skipped, 4 subtests passed`.
+
+## Task-106 source scope
+
+Hermes/Codex must make the smallest test-only repair to:
+
+- `tests/test_fresh_transaction_failure_coverage.py`
+- `tests/test_namespace_install_contract.py`
+- `tests/test_npm_pack_installer_boundary.py`
+
+The tests must require the current Windows local `.tgz` invocation while preserving existing ordering, rollback-inverse, rollover, artifact-resolution, and cleanup invariants.
+
+Do not modify production source or the npm12 smoke workflow. If the focused tests require a production change, publish `BLOCKED` instead of widening scope.
 
 ## Hard fence
 
-Task 105 does **not** authorize:
+Task 106 does **not** authorize:
 
-- a new Dashboard semantic nonce/Send or semantic artifact reuse;
-- source/product behavior fixes;
-- direct live SQLite edits or arbitrary config/runtime mutations;
-- session cleanup/normalization;
+- live install/install-over/uninstall/reset/cleanup;
+- runtime enable/disable/start/stop/restart;
+- OpenClaw Gateway, Supervisor, or Ollama restart/change;
+- npm/Node/OpenClaw/Ollama version change on the user's machine;
+- live SQLite/config/session/runtime mutation;
+- Dashboard semantic Send;
 - credentials/token/password access or re-entry;
-- model/provider/timeout changes;
-- OpenClaw or Ollama update/reinstall/uninstall/rebaseline;
-- LM Studio management;
-- process-tree kills;
 - reboot;
-- merge, tag, GitHub Release publication, or force push.
-
-If exact provenance, ownership, safety, or required baseline cannot be proven, publish a `BLOCKED`/`FAIL` Task-105 report and stop rather than improvising.
+- production-source redesign;
+- merge/tag/GitHub Release/force push.
 
 ## Completion signal
 
-Hermes/Codex owns only the matching report:
+Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260828-106-npm12-installer-contract-regression-repair.md`
 
-After that report is pushed, stop for independent ChatGPT review. Do not invent the next task.
+After the report is pushed, stop for independent ChatGPT review. Do not invent or start the next live task.
