@@ -1,103 +1,93 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE`  
+**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE_CONTINUATION`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 121 authorizes one bounded real-Windows lifecycle acceptance using production-equivalent attested ownership classification  
+**Human authority:** operator authorized continued stabilization; Task 122 authorizes read-only recovery of post-install proof, then only the still-unconsumed lifecycle phases  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry.md`](tasks/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry.md)
+[`tasks/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md`](tasks/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md)
 
 Task ID:
 
-`CNX-20260828-121`
+`CNX-20260828-122`
 
-## Task 120 independent review
+## Task 121 independent review
 
-Task-120 report:
+Task-121 report:
 
-`docs/operations/coordination/reports/CNX-20260828-120-v093-real-windows-lifecycle-acceptance-provider-neutral-candidate.md`
+`docs/operations/coordination/reports/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-120-v093-real-windows-lifecycle-acceptance-provider-neutral-candidate-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry-review.md`
 
 Verdict:
 
-`ACCEPTED BLOCKED — HARD FENCE WORKED; BLOCK WAS CAUSED BY AN INCOMPLETE ACCEPTANCE-CLASSIFIER INVOCATION, NOT BY A PROVEN LIVE OWNERSHIP FAILURE`
+`ACCEPTED INCOMPLETE — INSTALL-OVER SUCCEEDED ONCE; POST-INSTALL VERIFICATION HARNESS FAILED; PRODUCT FAILURE NOT PROVEN; INSTALL-OVER IS CONSUMED AND MUST NOT BE REPLAYED`
 
-Task 120 stopped before mutation and preserved a coherent machine. The acceptance task had invoked `classify-install` with only workspace/app-data, while the candidate's interrupted-rollover/re-entry contract requires current plugin inventory plus the expected candidate plugin fingerprint for attested classification.
+Task 121 established:
 
-The exact production installer already computes and supplies those values. No production-source change is justified by Task-120 evidence.
+- exact candidate provenance remained valid;
+- production-equivalent attested ownership classification passed;
+- install-over executed once and returned exit code `0`;
+- installer reported `CogentNexus-OpenClaw v0.9.3 installation completed successfully.`;
+- the executor-created post-install probe wrapper then entered interactive Python/OpenClaw/Ollama surfaces in non-TTY execution and failed to complete required read-only verification;
+- no later disruptive lifecycle phase executed.
 
-## Exact Task-121 candidate
+## Consumed attempt ledger
 
-Unchanged exact candidate:
+Consumed and prohibited from replay:
 
-- source SHA `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
-- artifact ID `9691451156`;
-- artifact name `cogentnexus-openclaw-v0.9.3-package-proof-01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
-- artifact digest `sha256:9db9290e14646575586a42160b79cfea691e35f3a0ca7d294f7f941dcae0c87a`;
-- ZIP SHA256 `8e06b186e425170a22bfce06fa3505a7cdac3b097d4bfdc4ccc4d810d502cac1`;
-- tar.gz SHA256 `6a14cb665ca6148ce2912970df62027533aef34fb0c871a2e542d1b149e94f31`;
-- payload count `178`;
-- payload fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
+- install-over: **1 / 1**.
 
-Exact-SHA CI:
+Not yet consumed:
 
-- Validate `33185349482` success;
-- Windows Installer Pack Smoke `33185349413` success;
-- PS5.1 Acceptance Smoke `33185349400` success.
+- reset: `0 / 1`;
+- uninstall: `0 / 1`;
+- fresh reinstall after uninstall: `0 / 1`;
+- stop: `0 / 1`;
+- start: `0 / 1`;
+- restart: `0 / 1`;
+- recovery harness: `0 / 1`.
 
-## Task 121 corrected read-only gate
+## Task 122 verification-recovery gate
 
-Freshly verify provenance and machine state, then reproduce the production-equivalent classifier inputs without mutating live OpenClaw state:
+Before any new mutation, prove the current post-install state using explicit non-interactive read-only commands only.
 
-- prepare only the isolated exact candidate plugin with `npm ci` and `npm run plugin:validate`;
-- compute candidate plugin fingerprint with the candidate ownership script;
-- capture current `openclaw plugins list --json` exactly;
-- call `classify-install` with `--plugin-inventory-json` and `--expected-replacement-fingerprint`;
-- require the returned classification to agree with manifest/filesystem/inventory evidence.
+Never invoke bare `python`, `openclaw`, or `ollama`.
 
-No manual ownership normalization is permitted.
+Required evidence includes:
 
-## Authorized one-shot sequence
+- installed CNX status/check-system/provider check;
+- explicit ownership verification using the resolved installed `namespace_ownership.py` path;
+- `openclaw --version`, `openclaw plugins list --json`, `openclaw gateway status`;
+- `ollama --version`, `ollama list`, `ollama ps`;
+- SQLite integrity through explicit `python -c` or a known read-only checker;
+- plugin/root uniqueness, ownership/legacy inventory, service/task state, and residue inventory.
 
-Only after the attested preflight passes:
+If the installed state cannot be proven coherent, Task 122 stops without mutation.
 
-`install-over -> reset y -> uninstall y -> fresh reinstall same artifact -> stop -> start -> restart -> recovery harness -> final read-only snapshot`
+## Authorized remaining sequence
 
-Task 120 executed none of these disruptive phases, so Task 121 retains one authorized attempt for each.
+Only after the read-only gate passes:
 
-Canonical install/install-over command:
+`reset y -> uninstall y -> fresh reinstall exact same artifact -> stop -> start -> restart -> recovery harness -> final read-only snapshot`
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
-```
+The fresh reinstall is allowed only after the successful uninstall and is distinct from the consumed install-over.
 
-No installer `-Provider` argument.
+## Prohibited during Task 122
 
-## Fail-stop rule
-
-Each disruptive phase may execute at most once. On first non-zero, ambiguous classification, ownership mismatch, integrity failure, or failed postcondition:
-
-- stop;
-- preserve evidence;
-- do not replay;
-- do not manually clean/normalize;
-- publish the exact Task-121 failure boundary.
-
-## Prohibited during Task 121
-
+- replaying Task-121 install-over;
 - candidate/artifact substitution;
 - source/live ad-hoc repair;
-- manual manifest/plugin/state cleanup or normalization;
-- replay of failed/completed disruptive phases;
+- manual cleanup/normalization;
+- replaying completed phases;
 - OpenClaw changes/rebaseline;
 - provider runtime/config/model/endpoint/timeout changes;
 - unrelated plugin/workspace mutation;
@@ -110,6 +100,6 @@ Each disruptive phase may execute at most once. On first non-zero, ambiguous cla
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-121-v093-real-windows-lifecycle-acceptance-attested-reentry.md`
+`docs/operations/coordination/reports/CNX-20260828-122-post-install-verification-recovery-and-lifecycle-continuation.md`
 
-After publishing, stop for independent ChatGPT review. Do not create or execute the final Dashboard durable-delivery task automatically.
+After publishing, stop for independent ChatGPT review. Do not automatically open or execute the final Dashboard durable-delivery task.
