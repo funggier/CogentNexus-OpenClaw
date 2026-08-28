@@ -1164,6 +1164,46 @@ def current_inventory(workspace: Path, *, app_data: Path | None = None) -> dict[
     }
 
 
+def _classify_interrupted_rollover_reentry(
+    *, workspace: Path, app_data: Path | None, inventory: dict[str, list[str]],
+    plugin_inventory: dict[str, Any], expected_replacement_fingerprint: str,
+) -> dict[str, Any]:
+    paths = expected_paths(workspace)
+    manifest = verify_manifest(
+        paths["stateRoot"], workspace=workspace,
+        require_artifacts=False, verify_plugin=False,
+    )
+    _require_passthrough(paths["stateRoot"])
+    retired_path = Path(manifest["pluginPath"]).resolve(strict=False)
+    if retired_path.exists():
+        raise RuntimeError("interrupted rollover re-entry requires the manifest-owned plugin path to be missing")
+    required_non_plugin = [
+        paths["stateRoot"], paths["skillPath"] / "SKILL.md", Path(manifest["launcherPath"]),
+    ]
+    missing = [str(path) for path in required_non_plugin if not path.exists()]
+    if missing:
+        raise RuntimeError(f"interrupted rollover re-entry has incomplete owned artifacts: {missing}")
+    if inventory["legacy"]:
+        raise RuntimeError(f"interrupted rollover re-entry rejects mixed legacy state: {inventory}")
+    active = _active_registered_plugin(plugin_inventory, paths["openclawState"])
+    if active["fingerprint"].lower() != expected_replacement_fingerprint.lower():
+        raise RuntimeError("interrupted rollover replacement fingerprint does not match the candidate attestation")
+    candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
+                  if (payload := _plugin_payload(candidate)) is not None]
+    if len(candidates) != 1 or _canonical(candidates[0]["root"]) != _canonical(active["root"]):
+        raise RuntimeError(
+            f"interrupted rollover re-entry requires exactly one canonical active replacement; observed {len(candidates)}"
+        )
+    return {
+        "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": True,
+        "interruptedRolloverReentry": True,
+        "manifestPluginPath": _canonical(retired_path),
+        "replacementPluginPath": _canonical(active["root"]),
+        "expectedReplacementFingerprint": expected_replacement_fingerprint,
+        **inventory,
+    }
+
+
 def classify_install(workspace: Path, *, app_data: Path | None = None,
                      plugin_inventory: dict[str, Any] | None = None,
                      expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
@@ -1181,6 +1221,17 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
             raise RuntimeError("attested classification requires inventory and source fingerprint; ambiguous pending state")
         if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
             raise RuntimeError("expected source fingerprint is invalid")
+        if manifest_path(paths["stateRoot"]).exists():
+            reentry_manifest = verify_manifest(
+                paths["stateRoot"], workspace=workspace,
+                require_artifacts=False, verify_plugin=False,
+            )
+            if not Path(reentry_manifest["pluginPath"]).exists():
+                return _classify_interrupted_rollover_reentry(
+                    workspace=workspace, app_data=app_data, inventory=inventory,
+                    plugin_inventory=plugin_inventory,
+                    expected_replacement_fingerprint=expected_replacement_fingerprint,
+                )
         attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False)
         candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
                       if (payload := _plugin_payload(candidate)) is not None]

@@ -183,12 +183,13 @@ def test_interrupted_rollover_reentry_rejects_altered_retired_path(tmp_path: Pat
     (paths["old_plugin"] / "dist" / "ticket-store.js").unlink()
     expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
 
-    with pytest.raises(RuntimeError):
-        ownership.classify_install(
-            paths["workspace"], app_data=paths["app_data"],
-            plugin_inventory=paths["inventory"],
-            expected_replacement_fingerprint=expected,
-        )
+    result = ownership.classify_install(
+        paths["workspace"], app_data=paths["app_data"],
+        plugin_inventory=paths["inventory"],
+        expected_replacement_fingerprint=expected,
+    )
+    assert result["pendingRollover"] is True
+    assert result.get("interruptedRolloverReentry", False) is False
 
 
 def test_task054_two_roots_are_ambiguous_but_plan_binds_old_and_active_new(tmp_path: Path):
