@@ -808,3 +808,40 @@ def test_rollover_final_verification_failure_does_not_restore_altered_retired_ma
     assert not manifest_path.exists()
     assert paths["old_project"].exists()
     assert Path(transaction["backupPath"]).is_dir()
+
+
+@pytest.mark.parametrize("case", ["foreign_wrapper", "separate_wrapper", "duplicate_payload", "duplicate_registration", "outside_state", "noncanonical_root", "wrong_id", "wrong_package", "wrong_version", "fingerprint", "controller", "manifest", "skill", "launcher", "mixed_namespace", "altered_retired", "unrelated_npm"])
+def test_task114_complete_direct_classify_install_matrix(tmp_path: Path, case: str):
+    paths = rollover_layout(tmp_path); expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    if case != "altered_retired": paths["old_project"].rename(tmp_path / "retired-generation-removed")
+    inv = json.loads(json.dumps(paths["inventory"]))
+    if case == "foreign_wrapper":
+        p = paths["new_project"] / "package.json"; d = json.loads(p.read_text()); d["dependencies"]["unrelated"] = "1"; p.write_text(json.dumps(d))
+    elif case == "separate_wrapper": _add_conflicting_product_wrapper(paths)
+    elif case == "duplicate_payload": shutil.copytree(paths["new_plugin"], paths["openclaw_state"] / "extensions" / ownership.PRODUCT_ID)
+    elif case == "duplicate_registration": inv["plugins"].append(dict(inv["plugins"][0]))
+    elif case == "outside_state": inv["plugins"][0]["rootDir"] = str(tmp_path / "foreign")
+    elif case == "noncanonical_root": inv["plugins"][0]["rootDir"] = str(paths["openclaw_state"] / "npm" / "projects" / "else" / "node_modules" / ownership.PLUGIN_PACKAGE)
+    elif case == "wrong_id": inv["plugins"][0]["id"] = "wrong"
+    elif case == "wrong_package": inv["plugins"][0]["packageName"] = "wrong"
+    elif case == "wrong_version": inv["plugins"][0]["version"] = "0.9.2"
+    elif case == "fingerprint": expected = "0" * 64
+    elif case == "controller": (paths["root"] / "host" / "controller.json").write_text(json.dumps({"mode": "managed"}))
+    elif case == "manifest": (paths["root"] / ownership.MANIFEST_NAME).write_text("{}")
+    elif case == "skill": (paths["workspace"] / "skills" / ownership.PRODUCT_ID / "SKILL.md").unlink()
+    elif case == "launcher": (paths["workspace"] / "cnxclaw.cmd").unlink()
+    elif case == "mixed_namespace": inv["plugins"].append({"id": ownership.PRODUCT_ID, "rootDir": str(paths["openclaw_state"] / "extensions" / ownership.PRODUCT_ID)})
+    elif case == "altered_retired": (paths["old_project"] / "package.json").write_text("altered")
+    elif case == "unrelated_npm":
+        p = paths["openclaw_state"] / "npm" / "projects" / "unrelated"; p.mkdir(parents=True); (p / "package.json").write_text(json.dumps({"name": "unrelated"}))
+    try:
+        result = ownership.classify_install(paths["workspace"], app_data=paths["app_data"], plugin_inventory=inv, expected_replacement_fingerprint=expected)
+    except RuntimeError:
+        assert case != "unrelated_npm"
+        return
+    if case == "unrelated_npm":
+        assert result["interruptedRolloverReentry"] is True
+    elif case == "altered_retired":
+        assert result.get("interruptedRolloverReentry", False) is False
+    else:
+        pytest.fail("matrix case unexpectedly accepted")
