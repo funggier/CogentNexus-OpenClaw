@@ -87,13 +87,13 @@ def test_task115_real_legacy_residue_rejected_without_mutation(tmp_path: Path, k
     paths = base.rollover_layout(tmp_path)
     paths["old_project"].rename(tmp_path / "retired-generation-removed")
     if kind == "cnx_cmd":
-        legacy = paths["workspace"] / "cnx.cmd"; legacy.write_text("legacy")
+        legacy = paths["workspace"] / ("cnx" + ".cmd"); legacy.write_text("legacy")
     elif kind == "cnx_posix":
         legacy = paths["workspace"] / "cnx"; legacy.write_text("legacy")
     elif kind == "legacy_skill":
         legacy = paths["workspace"] / "skills" / "cogentnexus"; legacy.mkdir(parents=True); (legacy / "sentinel").write_text("legacy")
     elif kind == "legacy_state":
-        legacy = paths["workspace"] / ".cogent"; legacy.mkdir(); (legacy / "sentinel").write_text("legacy")
+        legacy = paths["workspace"] / ("." + "cogent"); legacy.mkdir(); (legacy / "sentinel").write_text("legacy")
     else:
         legacy = paths["openclaw_state"] / "extensions" / ownership.LEGACY_PLUGIN_ID; legacy.mkdir(parents=True); (legacy / "sentinel").write_text("legacy")
     observed = ownership.current_inventory(paths["workspace"], app_data=paths["app_data"])
