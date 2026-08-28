@@ -9,7 +9,6 @@ CogentNexus-OpenClaw v0.9.3 ตอนนี้ยังเป็น **developmen
 - Windows 10/11 หรือ Windows Server พร้อม PowerShell 5.1 ขึ้นไป
 - OpenClaw ที่ใช้งานได้
 - OpenClaw `2026.7.1-2` สำหรับ compatibility baseline ที่ยืนยันในปัจจุบัน
-- Ollama
 - Python 3.11+ และ PyYAML
 - Node.js + npm
 
@@ -25,6 +24,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
+บนระบบ POSIX:
+
+```sh
+python -m pip install 'PyYAML>=6.0,<7'
+./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
+```
+
 ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน installer จาก source/archive
 
 ก่อน final real-machine acceptance ต้องบันทึก exact commit SHA, payload-v2 fingerprint, payload file count, archive SHA256 และ GitHub Actions evidence ให้ครบก่อน ห้ามแก้ worktree หลัง freeze แล้วถือว่าเป็น candidate เดิม
@@ -35,9 +41,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 ## สิ่งที่ installer ทำ
 
-Installer จะ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง `cnxclaw.cmd`, ตรวจ provider/Gateway preflight และเข้า MANAGED mode เฉพาะเมื่อ verification ที่ต้องการผ่านแล้ว
+Installer จะ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเข้า runtime เฉพาะเมื่อ verification ที่เป็นความรับผิดชอบของการติดตั้งผ่านแล้ว โดย installer จะไม่เลือกหรือ preflight provider
 
 operator-facing provider target ของ v0.9.3 คือ Ollama
+
+## Runtime/provider readiness หลังติดตั้ง
+
+runtime/provider target ปัจจุบันของ v0.9.3 คือ Ollama เท่านั้น ส่วนความพร้อมของ executable, endpoint/model และ health check เฉพาะ provider เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
 
 ## ตรวจหลังติดตั้งแบบ Pre-flight
 

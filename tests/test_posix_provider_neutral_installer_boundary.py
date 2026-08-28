@@ -28,5 +28,5 @@ def test_posix_installer_messages_and_handoff_are_provider_neutral():
 
 
 def test_posix_canonical_install_command_is_provider_free():
-    text = (ROOT / "docs/operations/coordination/tasks/CNX-20260828-118-posix-installer-provider-neutrality-alignment.md").read_text(encoding="utf-8")
+    text = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
     assert './scripts/install.sh --workspace "$HOME/.openclaw/workspace"' in text

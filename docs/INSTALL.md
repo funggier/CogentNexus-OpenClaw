@@ -9,7 +9,6 @@ There is no published v0.9.3 GitHub Release yet. Until repository stabilization,
 - Windows 10/11 or Windows Server with PowerShell 5.1+;
 - OpenClaw installed and working;
 - OpenClaw version `2026.7.1-2` for the currently validated compatibility baseline;
-- Ollama installed;
 - Python 3.11+ with PyYAML;
 - Node.js + npm.
 
@@ -25,6 +24,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
+On POSIX systems:
+
+```sh
+python -m pip install 'PyYAML>=6.0,<7'
+./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
+```
+
 There is intentionally no `cnxclaw.cmd install` command. Installation is performed from the source/archive installation entry point.
 
 For final real-machine acceptance, the archive/source identity must already be frozen and recorded with the exact commit SHA, payload-v2 fingerprint, payload file count, archive SHA256, and GitHub Actions evidence. Do not install an ad-hoc modified worktree and call it the same candidate.
@@ -35,9 +41,13 @@ After v0.9.3 is actually published, release installation documentation may point
 
 ## What the installer does
 
-The installer stages and validates the CogentNexus-OpenClaw skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes `cnxclaw.cmd`, performs provider/Gateway preflight, and enables MANAGED mode only after required verification succeeds.
+The installer stages and validates the CogentNexus-OpenClaw skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. It does not select or preflight a provider.
 
 The v0.9.3 operator-facing provider target is Ollama.
+
+## Runtime/provider readiness after installation
+
+The current v0.9.3 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
 
 ## Post-install pre-flight
 
