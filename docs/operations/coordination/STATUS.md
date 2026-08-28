@@ -1,91 +1,92 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE`  
+**Execution mode:** `SOURCE_TDD_REPAIR`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 116 authorizes the exact read-only-first live lifecycle sequence defined in its task file  
+**Human authority:** operator authorized continued stabilization; Task 117 authorizes source/diagnosis/test/CI/package repair only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`](tasks/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md)
+[`tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md`](tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md)
 
 Task ID:
 
-`CNX-20260828-116`
+`CNX-20260828-117`
 
-## Repository/source gate accepted
+## Task 116 accepted failure
 
-Task-115 report:
+Report:
 
-`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
 
-Task-115 independent review:
+Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate-review.md`
 
 Verdict:
 
-`ACCEPTED PASS — SEMANTIC MATRIX COMPLETE; EXACT CANDIDATE MAY ADVANCE TO A SEPARATE READ-ONLY-FIRST REAL-WINDOWS LIFECYCLE TASK`
+`ACCEPTED FAIL — CLEAN PRE-BODY PARAMETER-BINDING FAILURE; SUCCESSOR DIAGNOSIS/REPAIR REQUIRED`
 
-## Frozen Task-116 candidate
+Task 116 freshly proved the real Windows state coherent before mutation:
 
-- source `47b069daed90f54feae2c9eb26f38c438493f3c8`;
-- artifact `9687249771`;
-- artifact outer SHA256 `c009450560176ce89c8a5a6ef65aec5ce9f821e75053617d56de212cf6093fdf`;
-- inner ZIP SHA256 `8771869962babe591c6ba4431b8f4737b716f2258cfcfc6fd45eec4f582b2fc5`;
-- tar.gz SHA256 `057cc016becd91ba4baf49a3c59152ce9ff467ff0a30b758e8e460e43f6ee2c5`;
-- version `0.9.3`;
-- payload count `178`;
-- payload fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
-- recovery harness Git blob `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`.
+- OpenClaw `2026.7.1-2` exact;
+- Ollama selected/healthy;
+- CNX passthrough generation 25;
+- Gateway healthy;
+- SQLite integrity `ok`;
+- exact supported interrupted-reentry classification;
+- no legacy namespace evidence.
 
-Exact same-source CI on the frozen candidate:
+The single authorized install-over then failed during PowerShell parameter binding before installer-body execution:
 
-- Validate `33175145162` success;
-- Windows Installer Pack Smoke `33175145179` success;
-- PS5.1 Acceptance Smoke `33175145178` success.
+```text
+Cannot validate argument on parameter 'Provider'. The argument "3D Objects" does not belong to the set "ollama" specified by the ValidateSet attribute.
+```
 
-## Authorized live sequence
+No replay occurred. Reset, uninstall, fresh reinstall, stop/start/restart, recovery harness, and Dashboard semantic Send were not executed. Post-failure read-only evidence remained coherent.
 
-Task 116 is explicitly read-only first:
+## Task 117 root-cause gate
 
-1. fresh GitHub/source/artifact provenance;
-2. external evidence root;
-3. read-only current Windows/OpenClaw/Ollama/CNX/Gateway/provider/recovery/delivery/resources/SQLite/Supervisor capture;
-4. read-only ownership/product inventory and exact `classify-install` using real OpenClaw plugin inventory;
-5. **only if coherent**, preserve pre-mutation evidence;
-6. install-over exact artifact once;
-7. `cnxclaw reset` once with normal `y` confirmation;
-8. `cnxclaw uninstall` once with normal `y` confirmation;
-9. fresh reinstall from the same artifact once;
-10. stop/start/restart once each;
-11. reviewed v0.9.3 Ollama recovery-reality harness once;
-12. final read-only acceptance snapshot;
-13. report and stop.
+Frozen Task-116 source inspection shows `scripts/install.ps1` exposes:
 
-Stop immediately at first non-zero, ownership ambiguity, contradictory evidence, or unexpected external dependency mutation. No destructive command replay and no manual cleanup/normalization.
+```powershell
+[ValidateSet("ollama")]
+[string]$Provider = "ollama"
+```
 
-## External dependency fence
+but `$Provider` is otherwise unused and v0.9.3 is Ollama-only.
 
-- OpenClaw must remain exactly `2026.7.1-2`; no update/downgrade/reinstall/uninstall.
-- Ollama remains selected; no update/reinstall/provider/model change.
-- No LM Studio management.
-- No credential/token/password access or re-entry.
-- No manual SQLite/config/manifest/plugin repair.
-- No reboot or generic process-tree kill outside the exact recovery harness.
+The exact origin of `3D Objects` must be traced through the actual caller/binding data flow before production repair. The required order is:
 
-## Dashboard fence
+`preserved invocation evidence -> isolated non-mutating reproduction -> TESTS-ONLY RED -> minimal repair -> GREEN -> targeted/full validation -> exact candidate CI/package proof -> report`
 
-No Dashboard semantic Send is authorized in Task 116. A final durable-delivery semantic test may be opened only after Task 116 reports PASS and independent review accepts the live lifecycle evidence.
+A trivial explicit `-Provider "3D Objects"` test does not by itself reproduce the Task-116 unexpected resolution path.
+
+Preferred design invariant: no unnecessary provider-selection input in the Ollama-only installer. Remove the dead Provider surface only if root-cause evidence shows it participates in the real failure; otherwise repair the actual repository caller/helper.
+
+## Live mutation fence
+
+Task 117 does not authorize any live lifecycle mutation. In particular:
+
+- do not replay Task-116 install-over;
+- do not reset/uninstall/reinstall;
+- do not run live stop/start/restart or recovery harness;
+- do not manually clean/normalize residue;
+- do not change OpenClaw/Ollama/provider/model/configuration;
+- do not mutate live SQLite/manifest/plugin/session state;
+- do not access credentials/secrets;
+- do not send Dashboard semantic content.
+
+Read-only inspection of the preserved Task-116 evidence root and isolated Windows diagnostic reproduction is allowed.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
+`docs/operations/coordination/reports/CNX-20260828-117-installer-provider-binding-origin-repair.md`
 
-After publishing, stop for independent ChatGPT review. Do not open the Dashboard semantic-delivery task.
+After publishing, stop for independent ChatGPT review. A new real-Windows lifecycle retry may be opened only after Task 117 passes independent review on an exact repaired candidate.
