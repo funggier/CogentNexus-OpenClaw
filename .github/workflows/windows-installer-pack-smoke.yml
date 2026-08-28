@@ -27,12 +27,15 @@ jobs:
       - name: Build and validate plugin before packing
         working-directory: plugins/cogentnexus-openclaw
         run: npm run plugin:validate
-      - name: Verify installer uses npm-pack instead of copying checkout
+      - name: Verify installer uses npm12-safe local archive path
         shell: powershell
         run: |
           $source = Get-Content scripts/install.ps1 -Raw
-          if (-not $source.Contains('openclaw plugins install ("npm-pack:" + $packagePath) --force')) {
-            throw 'Windows installer is not using the npm-pack install path.'
+          if (-not $source.Contains('openclaw plugins install $packagePath --force')) {
+            throw 'Windows installer is not using the plain local archive install path.'
+          }
+          if ($source.Contains('openclaw plugins install ("npm-pack:" + $packagePath) --force')) {
+            throw 'Windows installer still uses the OpenClaw npm-pack metadata path that is incompatible with npm 12.'
           }
           if ($source.Contains('openclaw plugins install . --force')) {
             throw 'Windows installer still contains the managed checkout-copy install path.'
