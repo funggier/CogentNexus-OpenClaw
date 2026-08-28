@@ -49,9 +49,9 @@ Frozen Task-116 source for diagnosis:
 
 `47b069daed90f54feae2c9eb26f38c438493f3c8`
 
-## Key source observation already independently verified
+## Key source + compatibility observations already independently verified
 
-The frozen `scripts/install.ps1` declares:
+Frozen `scripts/install.ps1` declares:
 
 ```powershell
 [ValidateSet("ollama")]
@@ -60,7 +60,15 @@ The frozen `scripts/install.ps1` declares:
 
 but `$Provider` is otherwise unused by installer behavior. The v0.9.3 installer is already Ollama-only and prints `Provider: ollama` literally.
 
-Therefore the observed `3D Objects` value is not explained by ordinary evaluation of the source default alone. Trace the bad value backward through the actual invocation boundary before changing production code.
+However, `docs/INSTALL.md`, `docs/INSTALL.th.md`, README/recovery guidance, and historical accepted commands still document the public invocation:
+
+```powershell
+.\scripts\install.ps1 -Provider ollama
+```
+
+Therefore `Provider` is a dead **behavioral** input but still a current **compatibility/API** surface. Do not remove it casually. Preserve explicit `-Provider ollama` compatibility unless root-cause evidence plus tests justify an intentional contract change and all current documentation/callers are updated consistently.
+
+The observed `3D Objects` value is not explained by ordinary evaluation of the source default alone. Trace the bad value backward through the actual invocation boundary before changing production code.
 
 ## Phase 0 — fresh repository reconciliation
 
@@ -80,11 +88,11 @@ Use preserved Task-116 evidence and a non-mutating Windows reproduction environm
 
 ### 1A. Inspect preserved invocation evidence
 
-Read-only inspect the Task-116 external evidence root:
+Read-only inspect:
 
 `C:\Users\CDQ-P\AppData\Local\CogentNexus-OpenClaw-Acceptance-Evidence\CNX-20260828-116\20260828-210020`
 
-Locate the exact install-over invocation record and any executor-generated script/wrapper/argument array used for the call.
+Locate the exact install-over invocation record and any executor-generated script/wrapper/argument array.
 
 Capture, if present:
 
@@ -93,15 +101,16 @@ Capture, if present:
 - splatted hashtable/argument-array construction;
 - current directory;
 - caller PowerShell edition/version;
-- whether `-Provider` was present implicitly or explicitly in the actual invocation layer;
+- whether `-Provider` was present explicitly, implicitly, or positionally;
 - any value-resolution command used to derive provider;
-- any prior pipeline whose output could have populated that value.
+- any prior command/pipeline whose output could have populated the value;
+- any extra positional token after named `-Workspace`.
 
-Do not modify the evidence directory or live CNX/OpenClaw/Ollama state.
+Do not modify preserved evidence or live CNX/OpenClaw/Ollama state.
 
 ### 1B. PowerShell binding context
 
-In an isolated/non-mutating reproduction process, record relevant binding state:
+In an isolated/non-mutating Windows process, record relevant binding state:
 
 ```powershell
 $PSVersionTable
@@ -109,19 +118,21 @@ $PSDefaultParameterValues
 (Get-Command .\scripts\install.ps1).Parameters.Keys
 ```
 
-If a caller wrapper exists, instrument the caller boundary to show exactly what arguments enter `install.ps1`.
+Also determine the effective positional-binding behavior of this advanced script and whether an unexpected positional token can bind to `Provider` when `-Provider` is omitted.
 
-Do not expose secrets or unrelated user data.
+This is a hypothesis to test, not an assumed root cause.
 
-### 1C. Trace the bad value to one concrete origin
+If a caller wrapper exists, instrument only the caller boundary to show exactly which arguments enter `install.ps1`.
 
-The diagnosis must name the exact data-flow origin, for example:
+### 1C. Trace one exact data flow
 
-`source value -> caller variable/command -> argument construction/splat -> install.ps1 Provider binding -> ValidateSet failure`
+The diagnosis must name the concrete path, for example:
+
+`source value -> caller variable/command -> argument construction/splat/position -> install.ps1 Provider binding -> ValidateSet failure`
 
 Do not stop at “Provider resolved incorrectly.”
 
-If the preserved Task-116 evidence is insufficient, reproduce the same binding behavior in an isolated Windows test workspace using stubs/fakes for external commands so no live CNX/OpenClaw/Ollama mutation occurs.
+If preserved evidence is insufficient, reproduce the same binding behavior in an isolated Windows test workspace using stubs/fakes for all external commands so no live CNX/OpenClaw/Ollama mutation occurs.
 
 ## Phase 2 — TDD RED
 
@@ -129,58 +140,70 @@ If the preserved Task-116 evidence is insufficient, reproduce the same binding b
 
 The first implementation commit must change tests/diagnostic harnesses only.
 
-The RED must reproduce the real root cause discovered in Phase 1.
+The RED must reproduce the real root cause from Phase 1.
 
 Requirements:
 
-- it must fail on the Task-116 production source/caller;
-- failure must be because the actual bad-value path remains possible;
-- it must not merely invoke `install.ps1 -Provider "3D Objects"` explicitly and call that reproduction complete;
-- it must exercise the real repository caller/binding surface implicated by Phase 1, or a faithful isolated reproduction of the same PowerShell binding mechanism;
+- fail on Task-116 production source/caller;
+- fail because the actual unexpected bad-value path remains possible;
+- do not merely call `install.ps1 -Provider "3D Objects"` explicitly and call that reproduction complete;
+- exercise the real repository caller/binding surface or a faithful isolated reproduction of the same PowerShell mechanism;
 - record exact RED command/output and commit SHA.
 
-If the test is GREEN before production change, it does not prove the Task-116 defect. Correct the test/diagnosis before proceeding.
+If the test is GREEN before production change, fix the test/diagnosis rather than fabricating RED history.
 
 ## Phase 3 — minimal production repair
 
 After legitimate RED only, make one minimal repair at the actual source of the bad value.
 
-### Preferred design invariant
+### Design invariants
 
-v0.9.3 is Ollama-only. The installer should not expose or resolve a provider-selection input that has no behavioral use.
+1. v0.9.3 remains Ollama-only.
+2. No provider auto-detection from filesystem/home-directory/current-location content.
+3. No LM Studio fallback or multi-provider behavior.
+4. Explicit documented `-Provider ollama` should continue to work unless an intentional reviewed compatibility change is proven necessary.
+5. Omitting `-Provider` must deterministically select Ollama and must not let unrelated positional/ambient output become Provider.
 
-Because `$Provider` is currently a dead parameter, **removing the unnecessary `Provider` parameter is preferred if Phase-1 evidence shows that this exposed binding surface participated in the actual failure**.
+If the defect is caller argument construction, fix the caller.
 
-If instead the real defect is a repository caller/helper that erroneously supplies `Provider`, fix that caller at source. Do not retain unnecessary provider auto-detection/resolution logic merely to accommodate a broken caller.
+If the defect is PowerShell positional/ambient binding through the installer parameter surface, harden the parameter contract minimally while preserving explicit `-Provider ollama` compatibility where possible. For example, evaluate named-only/positional-binding hardening only after RED proves that is the actual mechanism.
 
-Do not introduce multi-provider behavior, LM Studio support, provider fallback, or user provider selection.
+Do not add a provider resolver merely to sanitize arbitrary unrelated values into Ollama; reject invalid explicit input and eliminate unintended implicit input instead.
 
-### Required behavior after repair
+### Required post-repair command contracts
 
-The normal Task-116 command shape:
+Both must behave deterministically in isolated non-mutating smoke tests:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
-must have deterministic Ollama-only semantics and must not depend on home-directory listing order, ambient pipeline output, current directory contents, or unrelated PowerShell provider values.
+and the currently documented compatibility form:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace" -Provider ollama
+```
+
+Neither may depend on home-directory listing order, ambient pipeline output, current directory contents, or unrelated PowerShell provider values.
 
 ## Phase 4 — GREEN and focused regression validation
 
-Run the exact RED test and require GREEN.
+Run exact RED -> require GREEN.
 
 Also validate at minimum:
 
-1. PowerShell 5.1 parser/AST syntax for installer;
-2. installer parameter metadata/command-shape test;
-3. exact no-Provider Task-116 invocation shape in isolated non-mutating smoke;
-4. any hostile/ambient binding context that reproduced Task 116 no longer injects an unrelated value;
-5. Ollama-only invariant remains explicit;
-6. plugin lifecycle action resolver tests;
-7. npm12 installer boundary tests;
-8. interrupted-reentry/ownership semantic matrix;
-9. fresh transaction rollback/recovery suites;
-10. package installer contract still contains supported local archive invocation:
+1. PowerShell 5.1 parser/AST syntax;
+2. installer parameter metadata/command-shape behavior;
+3. omitted-Provider Task-116 shape in isolated non-mutating smoke;
+4. explicit `-Provider ollama` compatibility shape;
+5. the exact hostile/ambient/positional condition that reproduced Task 116 no longer injects `3D Objects`;
+6. explicit invalid provider still fails closed rather than silently coercing;
+7. Ollama-only invariant;
+8. plugin lifecycle action resolver;
+9. npm12 installer boundary;
+10. interrupted-reentry/ownership semantic matrix;
+11. fresh transaction rollback/recovery;
+12. package installer still contains:
 
 ```text
 openclaw plugins install $packagePath --force
@@ -215,9 +238,7 @@ Require all three workflows on that exact SHA:
 2. Windows Installer Pack Smoke — success;
 3. PS5.1 Acceptance Smoke — success.
 
-Do not combine statuses from different SHAs.
-
-Require a **new** package-proof artifact. Do not reuse Task-116 artifact `9687249771`.
+Require a **new** package-proof artifact; do not reuse Task-116 artifact `9687249771`.
 
 Independently verify:
 
@@ -227,12 +248,12 @@ Independently verify:
 - `PACKAGE_IDENTITY.json` source/version;
 - `PAYLOAD_IDENTITY.json` payload count/fingerprint;
 - `SHA256SUMS.txt`;
-- packaged installer contains the repaired provider-binding surface/absence as intended;
+- packaged installer has repaired binding behavior and intended compatibility contract;
 - packaged installer still uses `openclaw plugins install $packagePath --force`;
 - Task-113 conflicting-product rejection remains packaged;
-- Task-112 active wrapper proof remains packaged;
-- Task-110 retired exactness proof remains packaged;
-- recovery harness blob remains unchanged unless a separately proven reason requires otherwise.
+- Task-112 active-wrapper proof remains packaged;
+- Task-110 retired exactness remains packaged;
+- recovery harness blob remains unchanged unless separately justified.
 
 ## Phase 7 — report and stop
 
@@ -244,28 +265,25 @@ Report must include:
 
 - exact root cause/data flow producing `3D Objects`;
 - preserved Task-116 evidence used;
-- RED commit and exact failing output;
-- production repair commit and files;
+- RED commit/output;
+- production repair commit/files;
 - GREEN/targeted/full validation;
 - exact candidate SHA;
-- all exact-SHA workflow run IDs/results;
-- new artifact ID and hashes/identity;
-- candidate-to-report diff proving report-only closure;
+- exact-SHA workflow run IDs/results;
+- new artifact ID/hashes/identity;
+- provider compatibility decision and documentation impact;
+- candidate-to-report report-only proof;
 - verdict `PASS`/`FAIL`/`BLOCKED`;
 - remaining live work.
 
-Then stop for independent ChatGPT review.
-
-Do not create or execute a lifecycle retry task automatically.
+Then stop for independent ChatGPT review. Do not create or execute a lifecycle retry task automatically.
 
 ## Hard fence
 
 Task 117 does **not** authorize:
 
-- real Windows install-over against the live workspace;
-- `cnxclaw reset`;
-- `cnxclaw uninstall`;
-- fresh live reinstall;
+- real Windows install-over against live workspace;
+- reset/uninstall/fresh reinstall;
 - live stop/start/restart;
 - recovery-reality disruptive harness;
 - manual cleanup/normalization of Task-107/116 residue;
