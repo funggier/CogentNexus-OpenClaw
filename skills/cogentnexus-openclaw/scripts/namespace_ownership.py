@@ -1194,6 +1194,15 @@ def _classify_interrupted_rollover_reentry(
         raise RuntimeError(
             f"interrupted rollover re-entry requires exactly one canonical active replacement; observed {len(candidates)}"
         )
+    active_root = Path(active["root"])
+    direct_root = (paths["openclawState"] / "extensions" / PRODUCT_ID).resolve(strict=False)
+    if _canonical(active_root) != _canonical(direct_root):
+        try:
+            _npm_project_for_plugin(active_root, paths["openclawState"])
+        except RuntimeError as error:
+            raise RuntimeError(
+                f"interrupted rollover replacement storage ownership is unproven: {active_root}"
+            ) from error
     return {
         "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": True,
         "interruptedRolloverReentry": True,
