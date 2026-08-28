@@ -1,100 +1,110 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_ACCEPTANCE_REMAINING_LIFECYCLE`  
+**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 124 authorizes only the remaining one-shot lifecycle phases beginning at reset  
+**Human authority:** operator authorized continued stabilization; Task 125 authorizes only one new exact recovery-suite execution with the reviewed interactive confirmation contract satisfied  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance.md`](tasks/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance.md)
+[`tasks/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`](tasks/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md)
 
 Task ID:
 
-`CNX-20260829-124`
+`CNX-20260829-125`
 
-## Task 123 independent review
+## Task 124 independent review
 
-Task-123 report:
+Task-124 report:
 
-`docs/operations/coordination/reports/CNX-20260829-123-post-install-deterministic-readonly-attestation.md`
+`docs/operations/coordination/reports/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-123-post-install-deterministic-readonly-attestation-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance-review.md`
 
 Verdict:
 
-`ACCEPTED PASS — CURRENT POST-INSTALL STATE IS COHERENT; REMAINING ONE-SHOT LIFECYCLE MAY ADVANCE FROM RESET WITHOUT REPLAYING INSTALL-OVER.`
+`ACCEPTED PARTIAL PASS — RESET / UNINSTALL / FRESH REINSTALL / STOP / START / RESTART PASSED ONCE; RECOVERY PRODUCT BEHAVIOR WAS NOT TESTED BECAUSE THE EXACT HARNESS CANCELLED AT ITS UNSATISFIED INTERACTIVE CONFIRMATION GATE.`
 
-Task 123 proved the current Task-121-installed machine state with deterministic direct read-only probes:
+Task 124 established:
 
-- CNX managed and recovery READY;
-- installed plugin fingerprint equals the frozen exact candidate;
-- OpenClaw exactly `2026.7.1-2`;
-- one current loaded/enabled CogentNexus-OpenClaw plugin root;
-- Gateway healthy;
-- Ollama REST healthy with four preserved models;
-- SQLite integrity `ok`;
-- no lifecycle mutation and no Dashboard semantic Send.
+- reset PASS once;
+- uninstall PASS once with OpenClaw/Ollama/Gateway preservation;
+- fresh reinstall of the exact frozen candidate PASS once;
+- stop PASS once;
+- start PASS once;
+- restart PASS once;
+- recovery harness prechecks passed, but the harness cancelled before the first disruptive scenario because its exact source requires `Read-Host 'Type y to continue'` and Task 124 supplied no interactive answer;
+- best-effort harness cleanup restored healthy managed state;
+- no Dashboard semantic Send.
 
-The prior PowerShell automatic `$args`/wrapper argument-forwarding problem is executor-harness history, not product evidence. Do not reuse that wrapper pattern.
+The recovery cancellation is an acceptance-invocation defect. No gateway-crash, provider-crash, or operator-stop recovery scenario executed.
+
+## Consumed ledger
+
+Consumed and prohibited from replay:
+
+- Task-121 install-over `1 / 1`;
+- Task-124 reset `1 / 1`;
+- Task-124 uninstall `1 / 1`;
+- Task-124 fresh reinstall `1 / 1`;
+- Task-124 stop `1 / 1`;
+- Task-124 start `1 / 1`;
+- Task-124 restart `1 / 1`.
+
+Task-124 recovery process invocation is closed. Disruptive scenario executions were all zero. Task 125 is a separate explicit authorization for one new recovery-suite execution only.
 
 ## Exact candidate
 
 - source SHA `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
 - artifact ID `9691451156`;
 - artifact digest `sha256:9db9290e14646575586a42160b79cfea691e35f3a0ca7d294f7f941dcae0c87a`;
-- ZIP SHA256 `8e06b186e425170a22bfce06fa3505a7cdac3b097d4bfdc4ccc4d810d502cac1`;
-- tar.gz SHA256 `6a14cb665ca6148ce2912970df62027533aef34fb0c871a2e542d1b149e94f31`;
 - payload/plugin fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
-- payload count `178`.
+- exact recovery harness blob `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`.
 
-## One-shot ledger
+## Task 125 execution contract
 
-Consumed and prohibited from replay:
+Before disruption, perform a fresh deterministic read-only fence and require the current installed state to already be coherent. Do not run lifecycle controls to fix the precondition.
 
-- Task-121 install-over: **1 / 1**.
+Then verify a true interactive TTY is available. Execute the exact candidate harness once:
 
-Authorized once each in Task 124:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test-v093-ollama-recovery-windows-v3.ps1 -Scenario all -RunDisruptive
+```
 
-- reset `0 / 1`;
-- uninstall `0 / 1`;
-- fresh reinstall after successful uninstall `0 / 1`;
-- stop `0 / 1`;
-- start `0 / 1`;
-- restart `0 / 1`;
-- recovery harness `0 / 1`.
+When the exact `Type y to continue:` prompt appears, enter exactly one lowercase `y` and press Enter. Do not send input before the prompt.
 
-## Task 124 sequence
+Require `explicit-disruptive-confirmation=PASS`, then evaluate baseline, gateway-crash, provider-crash, and operator-stop exactly once each through the harness.
 
-`fresh sanity fence -> reset y -> post-reset proof -> uninstall y -> preservation proof -> fresh reinstall same exact artifact -> proof -> stop -> start -> restart -> recovery harness -> final snapshot -> report`
+If no true interactive confirmation channel exists, stop `BLOCKED` before invoking the suite. No pipe/stdin workaround, source edit, Read-Host patch, replacement harness, or generalized wrapper is authorized.
 
-Use Task-123 deterministic direct-probe discipline after every completed phase. Every disruptive phase is at most once; stop on the first non-zero, failed postcondition, ambiguity, or integrity mismatch.
+## Final proof
 
-## Prohibited during Task 124
+After a PASS suite only, capture the Task-123-style deterministic read-only snapshot: exact fingerprint/ownership, CNX READY state, OpenClaw `2026.7.1-2`, unique loaded plugin, Gateway, Ollama REST/models, SQLite `ok`, tasks/services, namespace/residue, and no pending duplicate recovery effect.
 
-- replaying install-over;
-- candidate/artifact substitution;
-- source/live ad-hoc repair;
+## Prohibited during Task 125
+
+- install/install-over;
+- reset/uninstall/reinstall;
+- standalone stop/start/restart outside the exact recovery harness operator-stop scenario;
+- replay of Task-124 phases;
+- source/harness modification or alternate confirmation mechanics;
 - manual cleanup/normalization;
-- replaying completed/failed lifecycle phases;
-- OpenClaw changes/rebaseline;
-- provider runtime/config/model/endpoint/timeout changes;
-- unrelated plugin/workspace mutation;
+- OpenClaw/provider reconfiguration;
 - credential/secret access;
 - Dashboard semantic Send;
-- reboot/generic process-tree kill outside the exact recovery harness contract;
+- reboot/generic process-tree kill;
 - merge/tag/release/force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-124-v093-remaining-real-windows-lifecycle-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`
 
-After publishing, stop for independent ChatGPT review. Do not automatically create or execute the final Dashboard durable-delivery task.
+After publishing, stop for independent ChatGPT review. Do not automatically open or execute the final Dashboard durable-delivery task.
