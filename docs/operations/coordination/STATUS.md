@@ -60,13 +60,19 @@ Frozen Task-116 source inspection shows `scripts/install.ps1` exposes:
 
 but `$Provider` is otherwise unused and v0.9.3 is Ollama-only.
 
-The exact origin of `3D Objects` must be traced through the actual caller/binding data flow before production repair. The required order is:
+Current install documentation still publicly supports:
+
+```powershell
+.\scripts\install.ps1 -Provider ollama
+```
+
+So `Provider` is a dead behavioral input but a current compatibility surface. The exact origin of `3D Objects` must be traced through the actual caller/binding data flow before production repair.
+
+Required order:
 
 `preserved invocation evidence -> isolated non-mutating reproduction -> TESTS-ONLY RED -> minimal repair -> GREEN -> targeted/full validation -> exact candidate CI/package proof -> report`
 
-A trivial explicit `-Provider "3D Objects"` test does not by itself reproduce the Task-116 unexpected resolution path.
-
-Preferred design invariant: no unnecessary provider-selection input in the Ollama-only installer. Remove the dead Provider surface only if root-cause evidence shows it participates in the real failure; otherwise repair the actual repository caller/helper.
+A trivial explicit `-Provider "3D Objects"` test does not reproduce the unexpected Task-116 resolution path. Preserve explicit `-Provider ollama` compatibility unless the root-cause proof and tests justify an intentional contract change. Do not add provider auto-detection, LM Studio fallback, or multi-provider behavior.
 
 ## Live mutation fence
 
