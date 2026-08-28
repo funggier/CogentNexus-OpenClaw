@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `SOURCE_ONLY_TDD`
-Current authorization: `CNX-20260828-108_WINDOWS_PLUGIN_ROLLOVER_TRANSACTION_REPAIR`
-Task ID: `CNX-20260828-108`
+Current authorization: `CNX-20260828-109_ROLLOVER_FINALIZE_FAILCLOSED_REPAIR`
+Task ID: `CNX-20260828-109`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,79 +19,85 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`](tasks/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md)
+[`tasks/CNX-20260828-109-rollover-finalize-failclosed-repair.md`](tasks/CNX-20260828-109-rollover-finalize-failclosed-repair.md)
 
-Task 108 is a **source-only TDD repair** for the Windows plugin ownership rollover transaction defect exposed by Task 107.
+Task 109 is a **source-only TDD repair** for the residual post-mutation ownership-finalization failure path found during independent Task-108 review.
 
-## Predecessor decision
+## Task 108 closure
 
-Task 107 report:
+Task 108 report:
 
-`docs/operations/coordination/reports/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry.md`
-
-Report commit:
-
-`582acb72dd09d1e3753452afcb5f76aa72929d5d`
+`docs/operations/coordination/reports/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-107-v093-real-windows-lifecycle-acceptance-retry-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-108-windows-plugin-rollover-transaction-repair-review.md`
 
 Review commit:
 
-`b0487da1aacb5cd3663a6e7e6b2f3caed1db1ef0`
+`bd303899b9b8ca9f011923e9d4563926b4ccad8c`
 
 Review verdict:
 
-`ACCEPTED FAIL — SOURCE DEFECT CONFIRMED`
+`REJECTED — RESIDUAL FAILURE-PATH SOURCE DEFECT`
 
-Task 107 is closed. It must not be replayed.
+Task 108 is closed. Its candidate/artifact are evidence only and are not authorized for live acceptance.
 
-## Confirmed repair target
+## Confirmed residual defect
 
-The old npm 12 / `npm-pack:` failure is not the Task 108 defect. Task 107 proved the repaired local archive command reached the real OpenClaw boundary:
+The Task-108 prepare/finalize architecture correctly bridges the normal external mutation boundary, but `finalize_plugin_rollover_transaction` currently restores `manifestBefore` when final replacement-manifest verification raises.
+
+Task 107 proved that the preceding external command can already have removed the old generation:
 
 ```powershell
 openclaw plugins install $packagePath --force
 ```
 
-The active defect is the ownership rollover transaction contract around that external mutation. OpenClaw `2026.7.1-2` can remove/replace the old plugin generation during `plugins install --force` before the current post-install `rollover-plan` can validate the old manifest-owned root.
-
-The ownership fail-closed result is correct. Task 108 must bridge the mutation boundary without weakening ownership validation.
+Therefore the exception path can actively reassert durable ownership of a missing retired generation. That violates the required fail-closed invariant.
 
 ## Required execution method
 
 Strict TDD:
 
-`RED regression -> minimal production fix -> GREEN targeted -> full validation -> exact CI/package proof -> report`
+`reconcile -> RED post-commit verification failure regression -> minimal failure-state fix -> GREEN targeted -> full validation -> exact same-source CI/package proof -> report`
 
-The RED regression must model the production semantic boundary where the external install removes/replaces the old generation. A string-order-only test is insufficient.
+The RED regression must model:
 
-The repair must preserve the equivalent transaction semantics of:
+`valid old ownership -> prepare -> external old-generation removal/replacement -> replacement commit attempt -> injected final verification failure`
 
-`pre-install old-state proof -> one external local-.tgz install -> post-install exact replacement proof -> atomic durable ownership commit`
+The repaired behavior must fail non-zero without restoring a normal manifest that claims the missing retired generation. It must not declare the replacement successfully owned unless final proof succeeds.
 
-Failure after external mutation remains fail-closed.
+## Source boundary
 
-## Repository source boundary
+Reviewed production/test candidate:
 
-The last accepted Task 107 candidate source is:
+`dc5e7a87867d03501b80b662e11aeaab833e0280`
 
-`b14a711f24b3fd1cd0aaa51ce636c8502ba42404`
+Task-108 production fix commit:
 
-The commits from that source through the Task 107 report/review boundary changed coordination documents only. Task 108 must recheck GitHub current state before editing and stop on unexplained production drift.
+`f034cebe5cbe94116c10a81b89c2ef30de6646a8`
+
+`f034cebe... -> dc5e7a87...` differs only by the Task-108 report. The coordination review/task commits after `dc5e7a87...` are documentation-only. Hermes/Codex must still fetch current GitHub state and stop `BLOCKED` on unexplained production drift.
+
+## Historical CI/package evidence
+
+The report-only descendant `dc5e7a87...` later passed all three required workflows and produced artifact `9680707129`, proving the Task-108 code is reproducible. That artifact is **not** the next live candidate because independent source review rejected the residual failure path.
+
+Task 109 must produce a new exact package proof after the failure-path repair.
 
 ## Hard fence
 
-Task 108 does **not** authorize:
+Task 109 does **not** authorize:
 
 - any real-Windows lifecycle mutation;
 - install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
+- replay of Task 107;
 - manual cleanup/normalization of live residue;
 - Dashboard semantic nonce/message/Send;
 - OpenClaw or Ollama update/reinstall/uninstall;
+- provider/model/timeout changes;
 - live SQLite/config/session mutation;
-- credentials or secrets access/re-entry;
+- credentials/secrets access or re-entry;
 - LM Studio management;
 - process-tree kills or reboot;
 - merge/tag/GitHub Release/force push;
@@ -101,6 +107,6 @@ Task 108 does **not** authorize:
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-108-windows-plugin-rollover-transaction-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-109-rollover-finalize-failclosed-repair.md`
 
-The report must contain RED evidence, minimal fix, GREEN validation, exact source commit, exact Actions run IDs, and the new package-proof identity/hashes. After publishing it, stop for independent ChatGPT review. Do not create a new live acceptance task.
+The report must contain RED evidence, minimal fix, failure-state semantics, GREEN validation, exact source commit, exact Actions run IDs, and the new package-proof identity/hashes. After publishing it, stop for independent ChatGPT review. Do not create the next live acceptance task.
