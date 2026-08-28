@@ -1,64 +1,71 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
-**Updated:** 2026-08-27 ICT
-**Transport:** GitHub repository history
-**Human authority:** operator approved full Task-104 observability work; independent review returned bounded rework within that same approved scope
-**Execution trigger:** manual Hermes continuation; scheduled execution remains disabled
+**State:** `READY_FOR_HERMES`  
+**Updated:** 2026-08-28 ICT  
+**Transport:** GitHub repository history  
+**Human authority:** operator explicitly authorized the OpenClaw `2026.7.1-2` security exception, acceptance snapshots without a permanent development freeze, and bounded real-Windows lifecycle acceptance  
+**Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
-## Task 104 review state
+## Active work
 
-Implementation:
+Task:
 
-`32a6f0a10a98ae52d1a284ee933748f43184b344`
+[`tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`](tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md)
 
-Report:
+Task ID:
 
-`32f1d0424ed0dbebe653a77158a9653d5d07e0c2`
+`CNX-20260828-105`
 
-Independent decision:
+Execution is authorized only against the exact pinned acceptance snapshot, not the moving branch HEAD.
 
-`REWORK_BEHAVIOR_NEUTRALITY_AND_OBSERVABILITY_COVERAGE`
+## Exact acceptance identity
 
-The implementation/report publication fence is valid, but live install is not accepted yet.
+- source commit: `c4d37b0005afeffcd183848dfce5476cbe2b85cd`
+- CogentNexus-OpenClaw version: `0.9.3`
+- OpenClaw baseline: `2026.7.1-2`
+- managed provider: `Ollama only`
+- payload-v2 file count: `178`
+- payload-v2 fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+- package ZIP SHA256: `c6151fac1cc3b5cd37a2d82aa366bb547adff1f885b9d2b33209c83601606133`
+- package-proof Actions artifact ID: `9669312785`
 
-### Blocking review finding
+Repository/package gates for this snapshot are green:
 
-The predecessor callback checked `info.kind !== "final" || owned` before evaluating queued final count. Task-104 instrumentation moved `dispatcher.getQueuedCounts()` ahead of that guard.
+- Validate run `33128487849`: SUCCESS, package + 6/6 matrix;
+- PS5.1 Acceptance Smoke run `33128487814`: SUCCESS;
+- Windows Installer Pack Smoke run `33128487825`: SUCCESS.
 
-That can introduce a call/exception/side effect on non-final or already-owned callbacks where the predecessor returned immediately. It therefore violates the approved behavior-neutral observability contract.
+Coordination commits after the pinned source SHA are expected and do not alter the runtime candidate. CogentNexus-OpenClaw development is not permanently frozen by this acceptance run.
 
-### Required bounded rework
+## Task-105 live sequence
 
-Task 104 remains active. Hermes/Codex must:
+If preconditions remain valid, Hermes/Codex may execute the bounded sequence once:
 
-- restore predecessor evaluation order;
-- TDD-prove non-final and already-owned paths do not evaluate `getQueuedCounts` or downstream staging work;
-- explicitly cover `already-owned` diagnostics and duplicate-row prevention;
-- bound unexpected `info.kind` values before logging;
-- add transaction phase telemetry where practical without semantic change, or explicitly prove/document why it cannot be added safely;
-- rerun focused/full tests, build/package validation, release-path harness and secret-safety checks;
-- recompute the final payload-v2 fingerprint and packed file count;
-- publish revised Task-104 evidence and stop for independent review again.
+`read-only provenance/preflight -> install-over -> reset -> uninstall -> fresh reinstall -> stop/start/restart -> disruptive recovery harness -> report`
 
-## Live baseline
+All destructive phases are stop-on-failure and no-replay. Exact source/artifact identity and evidence paths must be preserved throughout.
 
-Currently installed source remains:
+## Safety posture
 
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
+- preserve externally owned OpenClaw and Ollama installations/data;
+- do not rebaseline or update OpenClaw;
+- do not update/uninstall/reinstall Ollama;
+- no LM Studio management;
+- no process-tree kills; exact-PID/protected-process gates remain mandatory;
+- no credential/token/password access or re-entry;
+- no direct live SQLite edits or arbitrary config/runtime mutation;
+- no source behavior fix inside this acceptance task;
+- no reboot;
+- no merge/tag/GitHub Release/force push.
 
-Currently installed fingerprint remains:
+## Semantic delivery boundary
 
-`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
+Task 105 does **not** authorize a new Dashboard semantic nonce/Send. Final semantic durable-delivery acceptance remains a separate follow-up only after ChatGPT independently reviews the lifecycle/recovery report.
 
-Expected live state remains MANAGED generation 24. No Task-104 live install has been accepted or performed by coordination.
+## Expected executor output
 
-## Operator assistance
+Hermes/Codex must publish exactly one matching report:
 
-No operator action is expected during this source-level rework.
+`docs/operations/coordination/reports/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`
 
-A later live diagnostic retest remains separately gated and will explicitly tell the operator when to keep/open the authenticated Firefox Dashboard, when to manually click the exact `Message Assistant` composer once, and whether/when the one semantic Send is authorized.
-
-## Hard fence
-
-No live install/install-over/uninstall/reset/cleanup, semantic Send/sentinel, provider probe, live SQLite/config/runtime mutation, session cleanup, restart/reboot, model/provider/timeout change, credential access/re-entry, unrelated delivery fix, merge/tag/release or force push is authorized during Task-104 rework.
+The report must use `PASS`, `FAIL`, or `BLOCKED`, include exact source/artifact provenance, phase-level commands and exit codes, evidence references, preservation assertions, and any residue/ambiguity. After publishing it, stop for ChatGPT review.
