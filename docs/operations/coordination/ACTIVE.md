@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `SOURCE_ONLY_TDD`
-Current authorization: `CNX-20260828-110_ROLLOVER_RETIRED_STATE_EXACTNESS_REPAIR`
-Task ID: `CNX-20260828-110`
+Current authorization: `CNX-20260828-111_INTERRUPTED_ROLLOVER_REENTRY_REPAIR`
+Task ID: `CNX-20260828-111`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,65 +19,67 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-110-rollover-retired-state-exactness-repair.md`](tasks/CNX-20260828-110-rollover-retired-state-exactness-repair.md)
+[`tasks/CNX-20260828-111-interrupted-rollover-reentry-repair.md`](tasks/CNX-20260828-111-interrupted-rollover-reentry-repair.md)
 
-Task 110 is a **source-only TDD repair** for the remaining fail-closed case where the retired project path still exists after external mutation but is no longer the exact pre-mutation owned generation.
+Task 111 is a **source-only TDD repair** for safe re-entry from the preserved Task-107 interrupted plugin-rollover state.
 
-## Task 109 closure
+## Task 110 closure
 
-Task 109 report:
+Task-110 report:
 
-`docs/operations/coordination/reports/CNX-20260828-109-rollover-finalize-failclosed-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-110-rollover-retired-state-exactness-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-109-rollover-finalize-failclosed-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-110-rollover-retired-state-exactness-repair-review.md`
+
+Review commit:
+
+`ad9532fa88dcbc9b23db7abf0e47229794386b17`
 
 Review verdict:
 
-`REJECTED — TDD PROVENANCE FAILURE + RESIDUAL RETIRED-STATE EXACTNESS DEFECT`
+`ACCEPTED PASS — TASK-110 DEFECT REPAIRED; LIVE GATE BLOCKED BY PRE-EXISTING INTERRUPTED-ROLLOVER RE-ENTRY GAP`
 
-Task 109 is closed. Candidate `dcca49d43d95a0a34d8d460a4b9ab5ad88d036ce` and artifact `9681526010` are evidence only and are not authorized for live acceptance.
+Task 110 is closed and accepted for its source-only scope. Candidate `25d229cd496a11af37ea2ff556a0126dfc194377` and artifact `9683127656` remain historical proof only and are not live-authorized because Task 111 changes the required re-entry contract.
 
-## Required Task-110 invariant
+## Task-111 target
 
-After external mutation and failed final ownership verification:
+The last authoritative live machine boundary remains Task 107. Its old external plugin install removed the manifest-owned prior npm generation before ownership rollover failed.
 
-- normal ownership may return to `manifestBefore` only if the retired state is still **exactly** the transaction-proven pre-mutation generation;
-- path existence alone is insufficient;
-- an existing-but-altered/incomplete retired project must remain quarantined/fail-closed;
-- replacement ownership must not be declared successful without final proof;
-- backup/transaction evidence must remain durable.
+Current installer classification still requires the manifest `pluginPath` artifact to exist, while `recovery-preflight` only auto-recovers incomplete fresh-install transactions. Therefore a new live install-over would currently fail closed during pre-mutation classification.
 
-## Required execution method
+Task 111 must add a narrowly proven Task-107-shaped interrupted-rollover re-entry path without generic partial-state adoption.
+
+## Required method
 
 Strict TDD:
 
-`reconcile -> TEST-ONLY RED COMMIT -> verify semantic RED -> minimal production commit -> GREEN targeted -> full validation -> exact same-source CI/package proof -> report`
+`reconcile -> TEST-ONLY RED COMMIT -> verify semantic RED -> minimal production fix -> GREEN targeted -> full validation -> exact same-source CI/package proof -> report`
 
-The RED commit must be a separate GitHub commit before any Task-110 production edit.
+The RED commit must be a separate Git commit before any production edit.
 
 ## Hard fence
 
-Task 110 does **not** authorize:
+Task 111 does **not** authorize:
 
 - any real-Windows lifecycle mutation;
 - install-over/reset/uninstall/reinstall/stop/start/restart/recovery replay;
-- manual live cleanup/normalization;
+- manual cleanup/normalization of Task-107 residue;
 - Dashboard semantic nonce/message/Send;
-- OpenClaw/Ollama update/reinstall/uninstall/rebaseline;
+- OpenClaw/Ollama update/reinstall/uninstall/stop/rebaseline;
 - provider/model/timeout changes;
 - live SQLite/config/session mutation;
 - credentials/secrets access or re-entry;
 - LM Studio management;
 - process-tree kills or reboot;
 - merge/tag/GitHub Release/force push;
-- weakening ownership verification.
+- generic adoption of partial/unowned plugin state.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-110-rollover-retired-state-exactness-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-111-interrupted-rollover-reentry-repair.md`
 
-The report must contain the separate RED commit SHA/evidence, minimal production fix commit, GREEN/full validation, exact candidate, exact workflow run IDs, and new package-proof identity/hashes. After report publication, stop for independent ChatGPT review. Do not create a live acceptance task.
+After publishing the report, stop for independent ChatGPT review. Do not create or execute a live Windows acceptance task.
