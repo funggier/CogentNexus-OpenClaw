@@ -76,8 +76,8 @@ class TestInstallerSourceContract(unittest.TestCase):
                          "ensure-runtime must run unconditionally, not only when python.exe is absent")
 
     def test_t3_post_provision_enable_status_use_owned_python(self):
-        enable_segment = self.source[self.source.index("--provider ollama") - 300:
-                                     self.source.index("--provider ollama") + 100]
+        enable_idx = self.source.index("$cliScript --root $cogentNexusOpenClawRoot enable")
+        enable_segment = self.source[enable_idx - 300:enable_idx + 100]
         self.assertIn("$ownedPython", enable_segment,
                       "MANAGED enable must execute under the owned runtime")
         status_match = re.search(r'& \$ownedPython \$cliScript --root \$cogentNexusOpenClawRoot status', self.source)
