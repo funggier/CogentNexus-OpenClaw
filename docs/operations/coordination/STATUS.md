@@ -1,119 +1,93 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `SOURCE_ONLY_TDD`  
+**Execution mode:** `TEST_MATRIX_GATE`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 113 authorizes source/test/CI repair only  
+**Human authority:** operator authorized continued stabilization; Task 114 authorizes repository test/source/CI work only under the matrix gate  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`](tasks/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md)
+[`tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`](tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md)
 
 Task ID:
 
-`CNX-20260828-113`
+`CNX-20260828-114`
 
-## Task 112 closure
+## Task 113 independent review
 
-Task-112 report:
+Task-113 report:
 
-`docs/operations/coordination/reports/CNX-20260828-112-interrupted-reentry-ownership-proof-hardening.md`
+`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
 
-Task-112 independent review:
+Review:
 
-`docs/operations/coordination/reviews/CNX-20260828-112-interrupted-reentry-ownership-proof-hardening-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure-review.md`
 
-Review commit:
+Verdict:
 
-`ee3f0dca79929ce771add3381d1817766b2ff8f7`
+`SOURCE REPAIR ACCEPTED; TASK COMPLETION BLOCKED — REQUIRED DIRECT CLASSIFY_INSTALL MATRIX INCOMPLETE`
 
-Review verdict:
+## Accepted Task-113 source evidence
 
-`REJECTED — RESIDUAL CONFLICTING-WRAPPER RE-ENTRY DEFECT + REQUIRED MATRIX NOT COMMITTED`
+The actual conflicting-product-evidence defect was repaired with valid TDD provenance:
 
-## Accepted historical facts from Task 112
+- tests-only RED `fe72982c89c10dfd5fbc447c89d6bfc827e68e61`;
+- semantic RED result `2 failed, 5 passed, 33 deselected` for direct/managed active replacement plus a separate conflicting wrapper;
+- production repair `d8c5f5f5e7936e673a6731f5a8a0f17e7bd39a06` directly after RED;
+- production change only in `skills/cogentnexus-openclaw/scripts/namespace_ownership.py`;
+- exact Validate `33170454396` success on attempt 2;
+- exact Windows Installer Pack Smoke `33170454132` success;
+- exact PS5.1 Acceptance Smoke `33170454130` success;
+- artifact `9685376213` bound to exact candidate;
+- independent outer SHA256 `20b0c096061363509045d7c93dad97068a2c3cae084fd2ba54c7e9e9a0b57731`;
+- inner ZIP SHA256 `76b363dbb7ab49137d4335e5c08ee7d381fea06f4ed265743d2482708b151499`;
+- tar.gz SHA256 `32627e56a411092e03b74017741ba714d9f801843205e2bb0a902fe084b616dd`;
+- payload count `178` and fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
+- packaged conflicting-product-evidence rejection, Task-110 retired-tree exactness, and installer local archive contract verified.
 
-Task 112 correctly closed the active-wrapper storage proof defect:
+Candidate `d8c5f5f5...` remains historical source/package evidence and is not live-authorized yet.
 
-- test-only RED `bb8212584b1b7934cc2d9e1d7bc6b5e0303699f2`;
-- production candidate `023be1a8075c0aa602adda357db9924c170ffb8e`;
-- exact Validate run `33167878659` successful on attempt 2;
-- exact Windows Installer Pack Smoke `33167878626` success;
-- exact PS5.1 Acceptance Smoke `33167878630` success;
-- artifact `9684336683` bound to exact candidate;
-- independently verified outer SHA256 `2be47e00db355be28a782096bd1ab866c787b768f8eb0c3ecaa131a3802e91bf`;
-- inner ZIP `2240348a163c356fc7958c04f645b9a1f406db6c842fdbd86b4dd3efdeecc8c5`;
-- tar.gz `b6433b4a6c3d91a6185b3048146243b079b66015d5f7a76564ddf726fc4e81e0`;
-- payload count `178`, fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
-- recovery harness Git blob `80da4a2a23f5b5e936d725dcbd695a631bad1cb6`.
+## Remaining gate
 
-These remain historical reproducibility evidence only; candidate/artifact are not accepted for live Windows use.
+Task 113 explicitly required the same tests-only commit to contain the full direct `classify_install(...)` early-return matrix before production editing. Git history shows that commit added the direct positive and two conflicting-wrapper cases but not the complete required matrix. The report relied on older tests for the rest.
 
-## Confirmed Task-113 defect
+The actual source fix must not be discarded or rewritten merely to manufacture historical provenance. Task 114 instead closes the missing verification honestly.
 
-The current re-entry shortcut proves the one **active** replacement storage boundary but does not prove that all other CogentNexus-specific OpenClaw storage evidence is absent or attributable to it.
+## Authorized Task-114 sequence
 
-Independent production-shaped reviewer tests against exact Task-112 packaged source showed:
+`reconcile -> COMPLETE TEST-ONLY direct matrix commit -> run matrix -> (if all GREEN: no production edit; if genuine RED: minimal separate production repair) -> targeted validation -> full validation -> exact same-source CI/package proof -> report`
 
-- valid managed-npm active replacement alone -> accepted;
-- valid canonical direct active replacement alone -> accepted;
-- active replacement inside foreign/shared wrapper -> rejected;
-- duplicate registration/out-of-bound root/wrong identity or version/wrong mode/bad manifest/missing skill/missing launcher/mixed legacy/second exact payload -> rejected;
-- **valid active replacement + separate foreign/shared `npmWrapper:*` product evidence -> incorrectly accepted**.
-
-The defect reproduces for both managed-npm and canonical-direct active replacement shapes. The direct shape matches Task-107 evidence: OpenClaw installed the replacement to `~\.openclaw\extensions\cogentnexus-openclaw` before the old rollover failed.
-
-## Missing Task-112 contract evidence
-
-Task 112 required its RED commit to add the complete direct `classify_install(...)` negative matrix plus explicit direct-extension success coverage. Git history shows the RED commit added only the active foreign/shared-wrapper case. Existing older rollover tests are not equivalent to direct coverage of the new early-return re-entry surface.
-
-Task 113 must close both the source defect and the missing matrix in one strict TDD sequence.
-
-## Authorized Task-113 sequence
-
-Only source/test/CI work is authorized:
-
-`reconcile -> separate TEST-ONLY direct matrix commit -> direct+managed conflicting-wrapper RED -> minimal exact product-evidence proof -> GREEN -> full validation -> exact Actions/package proof -> report`
-
-For a valid re-entry, all CogentNexus-specific storage evidence must be exactly attributable to:
-
-- the canonical direct extension only; or
-- one exact managed npm child plus its exact proven wrapper only.
-
-Any additional direct/npm-package/npm-wrapper CogentNexus evidence is ambiguous and must fail closed without mutation or cleanup.
+The direct matrix must explicitly cover positive direct/managed shapes plus all rejection boundaries listed in the Task-114 task file, including active/shared wrapper, separate conflict, duplicate payload/registration, out-of-bound/noncanonical roots, wrong identity/version/fingerprint, wrong controller mode, bad manifest, missing skill/launcher, mixed namespace, altered retired path, and unrelated non-CogentNexus npm projects.
 
 ## Preserved live boundary
 
-No live mutation is authorized by Task 113. Task 107 remains the last authoritative machine evidence. A future real-Windows task must re-prove the current machine state read-only before mutation; it must not assume the historical residue still exists.
+Task 107 remains the last authoritative live-machine evidence. No later task has authorized or performed real Windows lifecycle mutation. A future live acceptance must re-prove the machine read-only before mutation.
 
 ## Hard fence
 
-Task 113 does **not** authorize:
+Task 114 does **not** authorize:
 
 - real Windows install-over/reset/uninstall/reinstall/lifecycle/recovery;
-- replay of Task 107;
-- manual cleanup/normalization;
+- replay or manual normalization of Task 107;
 - Dashboard semantic Send;
 - OpenClaw/Ollama update, reinstall, uninstall, stop, or rebaseline;
 - provider/model/timeout changes;
 - live SQLite/config/session mutation;
-- credential/token/password access or re-entry;
+- credentials/tokens/password access or re-entry;
 - LM Studio management;
 - process-tree kills;
 - reboot;
 - merge/tag/GitHub Release/force push;
-- weakening namespace, wrapper, manifest, payload, ownership, or final verification.
+- weakening namespace, wrapper, manifest, payload, product-evidence, ownership, or final verification.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
+`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
 
-The report must include the separate test-only matrix commit, exact RED A/B evidence, complete direct matrix results, minimal production fix, targeted/full validation, exact candidate, exact workflow runs/attempts, and a new package-proof artifact identity/hashes/fingerprint.
-
-After report publication, stop for independent ChatGPT review. No real-Windows lifecycle acceptance is authorized until that review accepts a new exact candidate.
+After publishing the report, stop for independent ChatGPT review. No real-Windows lifecycle acceptance is authorized until that review accepts an exact candidate.
