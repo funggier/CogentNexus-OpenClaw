@@ -919,8 +919,17 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         verified = verify_manifest(root, workspace=workspace)
         if _canonical(Path(verified["pluginPath"])) != _canonical(replacement["root"]):
             raise RuntimeError("final ownership manifest does not bind the replacement plugin")
-    except Exception:
-        _write_bytes_atomic(manifest_target, json.dumps(transaction["manifestBefore"], ensure_ascii=False, indent=2).encode("utf-8") + b"\\n")
+    except Exception as error:
+        retired_project = Path(transaction["retiredProjectRoot"])
+        if retired_project.exists():
+            _write_bytes_atomic(manifest_target, json.dumps(transaction["manifestBefore"], ensure_ascii=False, indent=2).encode("utf-8") + b"\n")
+        else:
+            try:
+                manifest_target.unlink(missing_ok=True)
+            except Exception as cleanup_error:
+                raise RuntimeError(
+                    f"rollover final verification failed and normal ownership could not be quarantined: {cleanup_error}"
+                ) from error
         raise
     return {"status": "ROLLOVER_APPLIED_PASSTHROUGH", "backupPath": str(backup_path),
             "pluginPath": _canonical(replacement["root"])}
