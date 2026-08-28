@@ -33,7 +33,7 @@ A production-shaped regression was added in `tests/test_plugin_generation_rollov
 5. injected final verification failure;
 6. assertion that the stale old ownership claim must not be restored.
 
-The pre-fix run exited non-zero (`2 failed, 29 deselected` in the transaction-focused RED run), demonstrating the real semantic failure rather than a string-order-only failure: the old implementation restored the pre-mutation manifest even though the retired project had been removed.
+The pre-fix run exited non-zero (`exit 1`; the captured tool result did not include a pytest summary line). The failing assertion was the semantic invariant that the old implementation restored the pre-mutation manifest even though the retired project had been removed; this was not a string-order-only test.
 
 ## Minimal fix
 
