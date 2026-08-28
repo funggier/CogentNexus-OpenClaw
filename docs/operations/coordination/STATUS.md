@@ -1,75 +1,85 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TEST_MATRIX_GATE`  
+**Execution mode:** `TEST_SEMANTIC_GATE`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 114 authorizes repository test/source/CI work only under the matrix gate  
+**Human authority:** operator authorized continued stabilization; Task 115 authorizes repository test/source/CI work only under the semantic matrix gate  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`](tasks/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md)
+[`tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`](tasks/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md)
 
 Task ID:
 
-`CNX-20260828-114`
+`CNX-20260828-115`
 
-## Task 113 independent review
+## Task 114 independent review
 
-Task-113 report:
+Task-114 report:
 
-`docs/operations/coordination/reports/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure.md`
+`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260828-113-interrupted-reentry-conflicting-wrapper-matrix-closure-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-114-interrupted-reentry-direct-matrix-validation-review.md`
 
 Verdict:
 
-`SOURCE REPAIR ACCEPTED; TASK COMPLETION BLOCKED — REQUIRED DIRECT CLASSIFY_INSTALL MATRIX INCOMPLETE`
+`SOURCE BEHAVIOR ACCEPTED; LIVE GATE BLOCKED — MATRIX FIDELITY / SEMANTIC ASSERTION DEFECTS`
 
-## Accepted Task-113 source evidence
+## Accepted Task-114 evidence
 
-The actual conflicting-product-evidence defect was repaired with valid TDD provenance:
+- tests-only candidate `83e8452de116bf6204be884e4cddf9f3b92b90da`;
+- no Task-114 production source change;
+- Validate `33173131342` success;
+- Windows Installer Pack Smoke `33173131369` success;
+- PS5.1 Acceptance Smoke `33173131410` success;
+- artifact `9686448746` bound to exact candidate;
+- independent outer SHA256 `8706b146b021832c8b167c82dd27f145ad52c2735980f6f0eb39f03d379ce053`;
+- inner ZIP SHA256 `dfcff2d27a1fe0bcac7417f609afa3e5e3254588f0ce1fe22d274c1410ab6349`;
+- tar.gz SHA256 `9746eb6f9b61f9dd99b7e6e1eb9d2ecad2f49619f7cdacff964bd51257617ceb`;
+- source identity `83e8452de116bf6204be884e4cddf9f3b92b90da`, version `0.9.3`, payload `178`, fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
 
-- tests-only RED `fe72982c89c10dfd5fbc447c89d6bfc827e68e61`;
-- semantic RED result `2 failed, 5 passed, 33 deselected` for direct/managed active replacement plus a separate conflicting wrapper;
-- production repair `d8c5f5f5e7936e673a6731f5a8a0f17e7bd39a06` directly after RED;
-- production change only in `skills/cogentnexus-openclaw/scripts/namespace_ownership.py`;
-- exact Validate `33170454396` success on attempt 2;
-- exact Windows Installer Pack Smoke `33170454132` success;
-- exact PS5.1 Acceptance Smoke `33170454130` success;
-- artifact `9685376213` bound to exact candidate;
-- independent outer SHA256 `20b0c096061363509045d7c93dad97068a2c3cae084fd2ba54c7e9e9a0b57731`;
-- inner ZIP SHA256 `76b363dbb7ab49137d4335e5c08ee7d381fea06f4ed265743d2482708b151499`;
-- tar.gz SHA256 `32627e56a411092e03b74017741ba714d9f801843205e2bb0a902fe084b616dd`;
-- payload count `178` and fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
-- packaged conflicting-product-evidence rejection, Task-110 retired-tree exactness, and installer local archive contract verified.
+Independent reviewer execution on the exact packaged candidate additionally proved current production rejects real legacy residues (`cnx.cmd`, `.cogent`, legacy `cogentnexus-rotation` extension) with `mixed legacy state`, and valid managed/direct re-entry returns exact mode/pending/pluginAlreadyExact/interrupted/path bindings.
 
-Candidate `d8c5f5f5...` remains historical source/package evidence and is not live-authorized yet.
+## Why Task 114 is not live-authorized
 
-## Remaining gate
+The Task-114 matrix is too permissive as durable regression evidence:
 
-Task 113 explicitly required the same tests-only commit to contain the full direct `classify_install(...)` early-return matrix before production editing. Git history shows that commit added the direct positive and two conflicting-wrapper cases but not the complete required matrix. The report relied on older tests for the rest.
+- its `mixed_namespace` fixture does not create production-recognized legacy residue;
+- outside-state and noncanonical cases point registration at nonexistent payload paths rather than exact payloads at invalid boundaries;
+- negative cases accept any `RuntimeError` instead of asserting the violated semantic boundary;
+- rejection cases do not prove classification non-mutation;
+- positive direct/managed full result/path contracts were not committed as explicit Task-114 matrix assertions.
 
-The actual source fix must not be discarded or rewritten merely to manufacture historical provenance. Task 114 instead closes the missing verification honestly.
+These are test-fidelity defects, not evidence that the accepted Task-113 production repair is wrong.
 
-## Authorized Task-114 sequence
+## Authorized Task-115 sequence
 
-`reconcile -> COMPLETE TEST-ONLY direct matrix commit -> run matrix -> (if all GREEN: no production edit; if genuine RED: minimal separate production repair) -> targeted validation -> full validation -> exact same-source CI/package proof -> report`
+`reconcile -> TESTS-ONLY semantic fixture/assertion correction -> corrected matrix -> if all GREEN keep production unchanged; if genuine RED make minimal separate repair -> targeted/full validation -> exact same-source CI/package proof -> report`
 
-The direct matrix must explicitly cover positive direct/managed shapes plus all rejection boundaries listed in the Task-114 task file, including active/shared wrapper, separate conflict, duplicate payload/registration, out-of-bound/noncanonical roots, wrong identity/version/fingerprint, wrong controller mode, bad manifest, missing skill/launcher, mixed namespace, altered retired path, and unrelated non-CogentNexus npm projects.
+Task 115 must correct the regression suite using:
+
+- real legacy namespace/filesystem/extension residue;
+- real exact payload outside OpenClaw state;
+- real exact payload inside OpenClaw state at a noncanonical storage shape;
+- boundary-specific exception assertions;
+- pre/post non-mutation snapshots/sentinels;
+- explicit positive direct and managed six-field/path contracts;
+- exact altered-retired-path no-reentry assertion;
+- unrelated npm false-positive guard.
 
 ## Preserved live boundary
 
-Task 107 remains the last authoritative live-machine evidence. No later task has authorized or performed real Windows lifecycle mutation. A future live acceptance must re-prove the machine read-only before mutation.
+Task 107 remains the last authoritative live-machine evidence. No task after Task 107 has authorized or performed real Windows lifecycle mutation. Any future live acceptance must re-prove the machine read-only before mutation.
 
 ## Hard fence
 
-Task 114 does **not** authorize:
+Task 115 does **not** authorize:
 
 - real Windows install-over/reset/uninstall/reinstall/lifecycle/recovery;
 - replay or manual normalization of Task 107;
@@ -88,6 +98,6 @@ Task 114 does **not** authorize:
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-114-interrupted-reentry-direct-matrix-validation.md`
+`docs/operations/coordination/reports/CNX-20260828-115-interrupted-reentry-semantic-matrix-hardening.md`
 
 After publishing the report, stop for independent ChatGPT review. No real-Windows lifecycle acceptance is authorized until that review accepts an exact candidate.
