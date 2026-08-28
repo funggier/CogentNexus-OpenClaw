@@ -653,3 +653,36 @@ def test_rollover_final_verification_failure_does_not_restore_missing_retired_ma
     assert not manifest_path.exists()
     assert not paths["old_project"].exists()
     assert Path(transaction["backupPath"]).is_dir()
+
+
+def test_rollover_final_verification_failure_does_not_restore_altered_retired_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    paths = rollover_layout(tmp_path)
+    (paths["new_plugin"] / "dist" / "ticket-store.js").write_text("new", encoding="utf-8")
+    expected = ownership._plugin_payload(paths["new_plugin"])["fingerprint"]
+    transaction = ownership.prepare_plugin_rollover_transaction(
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"], expected_replacement_fingerprint=expected,
+        backup_token="altered-retired-state",
+    )
+    retired_payload = paths["old_project"] / "node_modules" / ownership.PLUGIN_PACKAGE / "dist" / "ticket-store.js"
+    retired_payload.unlink()
+    real_verify = ownership.verify_manifest
+
+    def fail_after_replacement_commit(root: Path, *, workspace: Path, **kwargs):
+        manifest = json.loads((root / ownership.MANIFEST_NAME).read_text(encoding="utf-8"))
+        if manifest["pluginPath"] == ownership._canonical(paths["new_plugin"]):
+            raise RuntimeError("injected final verification failure")
+        return real_verify(root, workspace=workspace, **kwargs)
+
+    monkeypatch.setattr(ownership, "verify_manifest", fail_after_replacement_commit)
+    with pytest.raises(RuntimeError, match="injected final verification failure"):
+        ownership.finalize_plugin_rollover_transaction(
+            transaction=transaction, plugin_inventory=paths["inventory"],
+        )
+
+    manifest_path = paths["root"] / ownership.MANIFEST_NAME
+    assert not manifest_path.exists()
+    assert paths["old_project"].exists()
+    assert Path(transaction["backupPath"]).is_dir()
