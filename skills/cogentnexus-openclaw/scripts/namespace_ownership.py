@@ -1196,13 +1196,27 @@ def _classify_interrupted_rollover_reentry(
         )
     active_root = Path(active["root"])
     direct_root = (paths["openclawState"] / "extensions" / PRODUCT_ID).resolve(strict=False)
-    if _canonical(active_root) != _canonical(direct_root):
+    allowed_product_evidence: set[str]
+    if _canonical(active_root) == _canonical(direct_root):
+        allowed_product_evidence = {"directPlugin"}
+    else:
         try:
-            _npm_project_for_plugin(active_root, paths["openclawState"])
+            active_project = _npm_project_for_plugin(active_root, paths["openclawState"])
         except RuntimeError as error:
             raise RuntimeError(
                 f"interrupted rollover replacement storage ownership is unproven: {active_root}"
             ) from error
+        allowed_product_evidence = {
+            f"npmPackage:{active_project.name}",
+            f"npmWrapper:{active_project.name}",
+        }
+    product_evidence = product_plugin_inventory(paths["openclawState"])
+    unexpected_product_evidence = sorted(set(product_evidence) - allowed_product_evidence)
+    if unexpected_product_evidence:
+        raise RuntimeError(
+            "interrupted rollover re-entry rejects conflicting product storage evidence: "
+            f"{unexpected_product_evidence}"
+        )
     return {
         "mode": "upgrade", "pendingRollover": False, "pluginAlreadyExact": True,
         "interruptedRolloverReentry": True,
