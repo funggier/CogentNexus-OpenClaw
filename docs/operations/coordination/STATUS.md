@@ -19,7 +19,7 @@ Task ID:
 
 ## Task 116 accepted failure
 
-Report:
+Task-116 report:
 
 `docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
 
@@ -31,63 +31,50 @@ Verdict:
 
 `ACCEPTED FAIL — CLEAN PRE-BODY PARAMETER-BINDING FAILURE; SUCCESSOR DIAGNOSIS/REPAIR REQUIRED`
 
-Task 116 freshly proved the real Windows state coherent before mutation:
+Task 116 proved the live Windows state coherent and then stopped safely when its single install-over attempt failed before installer-body execution because the installer exposed a Provider parameter and PowerShell bound `3D Objects` to it. No destructive replay or later lifecycle phase occurred.
 
-- OpenClaw `2026.7.1-2` exact;
-- Ollama selected/healthy;
-- CNX passthrough generation 25;
-- Gateway healthy;
-- SQLite integrity `ok`;
-- exact supported interrupted-reentry classification;
-- no legacy namespace evidence.
+## Task 117 responsibility-locality gate
 
-The single authorized install-over then failed during PowerShell parameter binding before installer-body execution:
+Task 117 now adopts the architectural invariant:
 
-```text
-Cannot validate argument on parameter 'Provider'. The argument "3D Objects" does not belong to the set "ollama" specified by the ValidateSet attribute.
-```
+**A subsystem should define only information it actually needs to perform or verify its own responsibility.**
 
-No replay occurred. Reset, uninstall, fresh reinstall, stop/start/restart, recovery harness, and Dashboard semantic Send were not executed. Post-failure read-only evidence remained coherent.
+Provider selection is not installation responsibility. Therefore the target installer boundary is provider-neutral, not Ollama-hardcoded and not multi-provider aware.
 
-## Task 117 root-cause gate
+Required Task-117 outcome:
 
-Frozen Task-116 source inspection shows `scripts/install.ps1` exposes:
+- remove installer `Provider` parameter/ValidateSet/default;
+- no provider auto-detection/inference;
+- no direct provider executable prerequisite merely because runtime uses it;
+- no provider-specific lifecycle argument from installer;
+- no provider-specific installation completion claim;
+- provider-free canonical install command/documentation;
+- provider/runtime policy stays in the layer where it is actually needed;
+- no new provider abstraction/fallback is added to installer.
 
-```powershell
-[ValidateSet("ollama")]
-[string]$Provider = "ollama"
-```
+This design decision does not claim current runtime support for LM Studio or another provider. It only removes unnecessary cross-layer provider coupling from installation.
 
-but `$Provider` is otherwise unused and v0.9.3 is Ollama-only.
-
-Current install documentation still publicly supports:
-
-```powershell
-.\scripts\install.ps1 -Provider ollama
-```
-
-So `Provider` is a dead behavioral input but a current compatibility surface. The exact origin of `3D Objects` must be traced through the actual caller/binding data flow before production repair.
+Task 117 must still inspect preserved Task-116 evidence and trace the origin of `3D Objects` as far as evidence permits. Production repair must follow a tests-only RED that proves current installer violates the provider-neutral boundary.
 
 Required order:
 
-`preserved invocation evidence -> isolated non-mutating reproduction -> TESTS-ONLY RED -> minimal repair -> GREEN -> targeted/full validation -> exact candidate CI/package proof -> report`
-
-A trivial explicit `-Provider "3D Objects"` test does not reproduce the unexpected Task-116 resolution path. Preserve explicit `-Provider ollama` compatibility unless the root-cause proof and tests justify an intentional contract change. Do not add provider auto-detection, LM Studio fallback, or multi-provider behavior.
+`preserved Task-116 evidence -> root-cause trace -> TESTS-ONLY RED -> minimal provider-neutral repair -> GREEN -> targeted/full validation -> exact candidate CI/package proof -> report`
 
 ## Live mutation fence
 
-Task 117 does not authorize any live lifecycle mutation. In particular:
+Task 117 does not authorize any live lifecycle mutation:
 
-- do not replay Task-116 install-over;
-- do not reset/uninstall/reinstall;
-- do not run live stop/start/restart or recovery harness;
-- do not manually clean/normalize residue;
-- do not change OpenClaw/Ollama/provider/model/configuration;
-- do not mutate live SQLite/manifest/plugin/session state;
-- do not access credentials/secrets;
-- do not send Dashboard semantic content.
+- no Task-116 install-over replay;
+- no reset/uninstall/reinstall;
+- no live stop/start/restart or recovery harness;
+- no manual cleanup/normalization;
+- no OpenClaw/provider-runtime changes;
+- no provider/model/endpoint/timeout changes;
+- no live SQLite/manifest/plugin/session mutation;
+- no credential/secret access;
+- no Dashboard semantic Send.
 
-Read-only inspection of the preserved Task-116 evidence root and isolated Windows diagnostic reproduction is allowed.
+Read-only inspection of preserved Task-116 evidence and isolated Windows diagnostic reproduction is allowed.
 
 ## Required output
 
