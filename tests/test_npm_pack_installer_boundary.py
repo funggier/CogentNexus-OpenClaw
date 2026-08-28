@@ -66,7 +66,8 @@ def test_install_wires_single_normalizer_and_exact_artifact(tmp_path: Path):
     assert "resolve-npm-pack-artifact.ps1" in source
     assert "Resolve-NpmPackArtifact" in source
     assert "Test-Path -LiteralPath $packagePath" in source
-    assert 'openclaw plugins install ("npm-pack:" + $packagePath) --force' in source
+    assert 'openclaw plugins install $packagePath --force' in source
+    assert 'openclaw plugins install ("npm-pack:" + $packagePath) --force' not in source
     assert "Remove-Item -LiteralPath $packagePath" in source
 
 

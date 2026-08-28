@@ -258,7 +258,7 @@ def test_f2_structural_plugin_inverse_and_policy_order():
         "FreshPluginInstalled" in INSTALL_PS1_TEXT
     # flag is set only after a successful plugins install in this attempt
     flag_pos = _pos(r"\$script:FreshPluginInstalled\s*=\s*\$true")
-    install_pos = _pos(r"plugins install \(\"npm-pack:\"")
+    install_pos = _pos(r"plugins install \$packagePath --force")
     assert install_pos < flag_pos
     # AGENTS managed policy applies only AFTER ownership commit
     policy_pos = _pos(r"policy apply")

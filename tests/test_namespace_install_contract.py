@@ -37,7 +37,7 @@ def test_windows_installer_orders_proof_handoff_manifest_and_enable():
 
 def test_windows_installer_applies_verified_rollover_before_single_candidate_resolution():
     source = read("scripts/install.ps1")
-    install = source.index('openclaw plugins install ("npm-pack:" + $packagePath) --force')
+    install = source.index('openclaw plugins install $packagePath --force')
     inventory = source.index("openclaw plugins list --json", install)
     plan = source.index('"rollover-plan"', inventory)
     apply = source.index('"rollover-apply"', plan)
