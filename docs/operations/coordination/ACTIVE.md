@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `SOURCE_TDD_REWORK_REDACTED_DASHBOARD_STAGING_OBSERVABILITY`
-Current authorization: `TASK104_OPERATOR_APPROVAL_CONTINUES_FOR_BOUNDED_REWORK_NO_LIVE_INSTALL`
-Task ID: `CNX-20260827-104`
-Updated: 2026-08-27 ICT
+Execution mode: `MANUAL`
+Current authorization: `CNX-20260828-105_EXACT_SNAPSHOT_REAL_WINDOWS_LIFECYCLE_ACCEPTANCE`
+Task ID: `CNX-20260828-105`
+Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
 
@@ -17,93 +17,67 @@ Only:
 
 `docs/operations/STATUS.md` remains narrative and is not a coordination gate.
 
-## Task 104 implementation/report
+## Active task
 
-Implementation:
+[`tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`](tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md)
 
-`32a6f0a10a98ae52d1a284ee933748f43184b344`
+Task 105 supersedes the stale Task-104 source-only coordination fence. The operator has explicitly accepted the known OpenClaw `2026.7.1-2` upstream dependency risk for this acceptance line and authorized bounded real-Windows lifecycle acceptance.
 
-Report:
+## Pinned acceptance snapshot
 
-`32f1d0424ed0dbebe653a77158a9653d5d07e0c2`
+Do not use moving branch HEAD as the runtime candidate.
 
-Independent review:
+- exact source: `c4d37b0005afeffcd183848dfce5476cbe2b85cd`
+- version: `0.9.3`
+- OpenClaw baseline: `2026.7.1-2`
+- managed provider: `Ollama only`
+- payload-v2 file count: `178`
+- payload-v2 fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+- accepted inner ZIP SHA256: `c6151fac1cc3b5cd37a2d82aa366bb547adff1f885b9d2b33209c83601606133`
+- package-proof Actions artifact ID: `9669312785`
+- Validate run `33128487849`: SUCCESS, package + 6/6 matrix
+- PS5.1 Acceptance Smoke `33128487814`: SUCCESS
+- Windows Installer Pack Smoke `33128487825`: SUCCESS
 
-[`reviews/CNX-20260827-104-add-redacted-dashboard-staging-observability.md`](reviews/CNX-20260827-104-add-redacted-dashboard-staging-observability.md)
+Coordination commits after `c4d37b0...` intentionally advance the branch but do not change the acceptance artifact. Development may continue later; Task 105 evidence applies only to the exact snapshot above.
 
-Decision:
+## Authorized live scope
 
-`REWORK`
+Task 105 may execute, in order and with stop-on-failure semantics:
 
-Disposition:
+1. exact provenance/read-only preflight;
+2. install-over of the existing coherent CogentNexus-OpenClaw deployment using the exact CI artifact;
+3. one confirmed `cnxclaw.cmd reset` proof;
+4. one confirmed `cnxclaw.cmd uninstall` proof;
+5. fresh reinstall of the same exact CI artifact;
+6. normal stop/start/restart lifecycle proof;
+7. one full disruptive v3 recovery-harness run with exact-PID safety gates;
+8. report and stop for ChatGPT review.
 
-`REWORK_BEHAVIOR_NEUTRALITY_AND_OBSERVABILITY_COVERAGE`
-
-Publication fence itself is valid: implementation -> report is exactly one report-only commit. The implementation is not authorized for live install yet.
-
-## Primary blocker
-
-Task-104 instrumentation changed semantic evaluation order inside the verified `appendBeforeDeliver` callback.
-
-The predecessor returned immediately for:
-
-`info.kind != final` or `owned == true`
-
-before calling `dispatcher.getQueuedCounts()`.
-
-The reviewed implementation calls `getQueuedCounts()` before those guards. Therefore a non-final/already-owned callback can now execute or throw through a dispatcher method that the predecessor never called. This violates Task-104's behavior-neutral invariant.
-
-## Required rework
-
-Hermes/Codex must keep Task 104 in the same bounded observability scope and use strict RED -> GREEN.
-
-Required fixes/evidence:
-
-1. restore predecessor evaluation order exactly;
-2. add RED/GREEN proving a non-final callback never calls `getQueuedCounts`, including when that method would throw;
-3. add RED/GREEN proving an already-owned second callback never evaluates downstream final-count/media/stage work, returns the second payload unchanged, and creates no duplicate durable row;
-4. explicitly assert the `already-owned` diagnostic branch;
-5. bound `info.kind` diagnostics to a safe enum/category and prove an unexpected long/synthetic kind is never logged raw;
-6. where practical, add behavior-neutral transaction-phase telemetry sufficient to distinguish transaction begun / committed / pre-commit exception; if not practical without altering behavior, document the exact limitation;
-7. rerun focused tests, full plugin tests, `plugin:validate`, production-shaped release-entry harness and secret-leak assertions;
-8. recompute final installable payload-v2 fingerprint/file count after rework.
-
-No source behavior fix outside observability is authorized.
-
-## Accepted predecessor context
-
-Task 103 remains accepted as:
-
-`ACCEPT_BLOCKER_LIVE_HOOK_BOUNDARY_REQUIRES_REDACTED_OBSERVABILITY`
-
-The currently installed live source remains:
-
-`32212a4331e1f32b5a130bd30d271d4cbc56f6c1`
-
-Current installed plugin fingerprint remains:
-
-`df2600da3ae78e1613793b4a7e5d1ebe61f66f71f0903e1d5d2cd5f0d5f4f4b4`
-
-Expected live state remains MANAGED generation 24.
+The executor must not repeat a failed/completed destructive phase merely to obtain a cleaner result.
 
 ## Hard fence
 
-Task-104 rework authorizes isolated source/test/build/package changes only for the approved observability design.
+Task 105 does **not** authorize:
 
-It does **not** authorize:
-
-- live install/install-over/uninstall/reset/cleanup;
-- new Dashboard semantic nonce/Send or sent sentinel;
-- Task-102 semantic artifact reuse;
-- direct provider probe;
-- live SQLite/config/runtime mutation;
+- a new Dashboard semantic nonce/Send or semantic artifact reuse;
+- source/product behavior fixes;
+- direct live SQLite edits or arbitrary config/runtime mutations;
 - session cleanup/normalization;
-- model/provider/timeout change;
-- Gateway/Supervisor restart or reboot;
-- credential/token/password access or re-entry;
-- unrelated delivery behavior repair;
-- merge/tag/release/force push.
+- credentials/token/password access or re-entry;
+- model/provider/timeout changes;
+- OpenClaw or Ollama update/reinstall/uninstall/rebaseline;
+- LM Studio management;
+- process-tree kills;
+- reboot;
+- merge, tag, GitHub Release publication, or force push.
 
-## Re-publication gate
+If exact provenance, ownership, safety, or required baseline cannot be proven, publish a `BLOCKED`/`FAIL` Task-105 report and stop rather than improvising.
 
-After rework, publish a revised Task-104 report with fresh TDD/regression/harness/fingerprint evidence and an implementation -> report publication fence. Stop again for independent ChatGPT review before any live install.
+## Completion signal
+
+Hermes/Codex owns only the matching report:
+
+`docs/operations/coordination/reports/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`
+
+After that report is pushed, stop for independent ChatGPT review. Do not invent the next task.
