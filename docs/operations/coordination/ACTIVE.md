@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `SOURCE_TDD_REPAIR`
-Current authorization: `CNX-20260828-117_INSTALLER_PROVIDER_BINDING_ORIGIN_REPAIR`
-Task ID: `CNX-20260828-117`
+Current authorization: `CNX-20260828-118_POSIX_INSTALLER_PROVIDER_NEUTRALITY_ALIGNMENT`
+Task ID: `CNX-20260828-118`
 Updated: 2026-08-28 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,73 +19,73 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md`](tasks/CNX-20260828-117-installer-provider-binding-origin-repair.md)
+[`tasks/CNX-20260828-118-posix-installer-provider-neutrality-alignment.md`](tasks/CNX-20260828-118-posix-installer-provider-neutrality-alignment.md)
 
-Task 117 is a **source-only root-cause/TDD repair** that converts the installer to a provider-neutral boundary after the Task-116 PowerShell binding failure.
+Task 118 is a **source-only TDD repair** to finish provider-neutral responsibility across the installer subsystem after Task 117 repaired Windows PowerShell but left the POSIX installer provider-coupled.
 
-## Task 116 closure
+## Task 117 closure
 
-Task-116 report:
+Task-117 report:
 
-`docs/operations/coordination/reports/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate.md`
+`docs/operations/coordination/reports/CNX-20260828-117-installer-provider-binding-origin-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260828-116-v093-real-windows-lifecycle-acceptance-final-candidate-review.md`
+`docs/operations/coordination/reviews/CNX-20260828-117-installer-provider-binding-origin-repair-review.md`
 
 Review verdict:
 
-`ACCEPTED FAIL — CLEAN PRE-BODY PARAMETER-BINDING FAILURE; SUCCESSOR DIAGNOSIS/REPAIR REQUIRED`
+`REJECTED FOR CANDIDATE ADVANCEMENT — WINDOWS POWERSHELL REPAIR IS VALID, BUT THE INSTALLER SUBSYSTEM IS NOT YET PROVIDER-NEUTRAL`
 
-Task 116 Phase 0 passed and proved the live machine coherent. Its single install-over attempt failed before installer-body execution because the installer exposed a Provider parameter and PowerShell bound the unrelated value `3D Objects` to it. No reset/uninstall/reinstall/lifecycle/recovery or Dashboard semantic Send occurred.
+Accepted Task-117 work:
 
-## Task-117 architectural invariant
+- `scripts/install.ps1` no longer accepts/defines/validates/defaults provider;
+- PowerShell installer no longer directly requires Ollama merely for installation;
+- PowerShell installer uses generic runtime `enable` handoff;
+- Task-116 `3D Objects` provider-binding surface is removed;
+- Task-117 exact candidate CI was green;
+- no live Task-116 replay occurred.
 
-**Every subsystem defines only data that is genuinely required to perform or verify that subsystem's own responsibility.**
+Blocking finding:
 
-For installation, provider/model/endpoint/timeout/provider executable and provider policy are not installation-owned data. Therefore Task 117 intentionally retires the installer-level `-Provider` API rather than preserving it.
+Current `scripts/install.sh` still contains `PROVIDER="ollama"`, `--provider`, direct Ollama prerequisite, provider-specific output, and `enable --provider ollama`. Current tests explicitly preserve that POSIX coupling.
 
-The repaired installer must be provider-neutral:
+## Architectural invariant
 
-- no `Provider` parameter;
-- no provider ValidateSet/default;
-- no provider auto-detection/inference;
-- no direct provider executable prerequisite merely because runtime uses it;
-- no `--provider ...` lifecycle argument from installer;
-- no provider-specific installation-success claims;
-- canonical install command has no provider argument.
+**Every subsystem defines only data genuinely required to perform or verify that subsystem's own responsibility.**
 
-Provider awareness remains only in runtime/configuration layers where it is actually required. This does not declare LM Studio or any other provider supported by current runtime; it prevents provider policy from leaking into installation.
+Installation does not own provider name/model/endpoint/timeout/provider executable/provider-selection policy. Both current installer entry points must therefore expose the same provider-neutral responsibility boundary.
 
-Task 117 must still inspect preserved Task-116 evidence and trace `3D Objects` as far as evidence allows, then use tests-only RED before production repair.
+This does not broaden runtime provider support. Provider/runtime modules remain provider-aware where provider knowledge is genuinely required.
 
-Required method:
+Required Task-118 method:
 
-`fresh reconcile -> read-only Task-116 evidence/root-cause trace -> TESTS-ONLY provider-neutral RED -> minimal boundary repair -> GREEN -> targeted/full validation -> exact same-SHA CI/package proof -> report -> independent review`
+`fresh reconcile -> TESTS-ONLY POSIX provider-neutral RED -> minimal install.sh boundary repair -> GREEN -> focused/full validation -> exact same-SHA CI/package proof -> report -> independent review`
 
 ## Preserved live boundary
 
-Task 116 is the latest authoritative live-machine evidence:
+Task 116 remains the latest authoritative live-machine evidence:
 
 - CNX passthrough, generation 25;
 - OpenClaw exactly `2026.7.1-2`;
-- current runtime provider healthy;
+- current runtime/provider healthy;
 - Gateway healthy;
 - SQLite integrity `ok`;
-- exact interrupted-reentry classification proven;
-- post-failure state coherent;
-- no lifecycle phase beyond the failed pre-body install-over binding executed.
+- interrupted-reentry classification coherent;
+- no lifecycle phase beyond the failed pre-body Task-116 install-over binding executed.
 
-Task 117 must not mutate that live state.
+Task 118 must not mutate live state.
 
 ## Hard fence
 
-Task 117 does **not** authorize:
+Task 118 does **not** authorize:
 
-- live install-over/reset/uninstall/reinstall/lifecycle/recovery;
-- Task-116 destructive command replay;
-- manual cleanup/normalization of live residue;
-- OpenClaw/provider-runtime changes on the live machine;
+- live install-over/reset/uninstall/reinstall;
+- live POSIX installation;
+- Task-116 destructive replay;
+- live stop/start/restart/recovery harness;
+- manual cleanup/normalization;
+- OpenClaw/provider-runtime changes;
 - provider/model/endpoint/timeout changes;
 - live SQLite/config/session/manifest/plugin mutation;
 - credentials/secrets access;
@@ -93,12 +93,10 @@ Task 117 does **not** authorize:
 - reboot/process-tree kill;
 - merge/tag/release/force push.
 
-Read-only inspection of preserved Task-116 evidence and isolated non-mutating Windows diagnostic reproduction is authorized.
-
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260828-117-installer-provider-binding-origin-repair.md`
+`docs/operations/coordination/reports/CNX-20260828-118-posix-installer-provider-neutrality-alignment.md`
 
-Then stop for independent ChatGPT review. Do not create or execute a new real-Windows lifecycle retry task.
+Then stop for independent ChatGPT review. Do not create or execute a real-Windows lifecycle retry task.
