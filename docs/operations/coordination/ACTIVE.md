@@ -41,15 +41,21 @@ Task 116 Phase 0 passed and proved the live machine coherent. Its only mutation 
 
 ## Key Task-117 diagnostic invariant
 
-Frozen Task-116 `scripts/install.ps1` declares a `Provider` parameter defaulting to `ollama`, but `$Provider` is otherwise unused. v0.9.3 is already Ollama-only.
+Frozen Task-116 `scripts/install.ps1` declares a `Provider` parameter defaulting to `ollama`, but `$Provider` is otherwise unused. v0.9.3 is Ollama-only.
 
-Task 117 must trace `3D Objects` to its exact caller/binding origin before production repair. A test that only passes `-Provider "3D Objects"` explicitly is not sufficient RED evidence for the unexpected Task-116 path.
+However, the current public install documentation still supports:
+
+```powershell
+.\scripts\install.ps1 -Provider ollama
+```
+
+Therefore `Provider` is a dead behavioral input but a live compatibility surface. Task 117 must trace `3D Objects` to its exact caller/binding origin before production repair. A test that only passes `-Provider "3D Objects"` explicitly is not sufficient RED evidence.
 
 Required method:
 
 `fresh reconcile -> read-only preserved Task-116 invocation evidence -> trace exact bad-value data flow -> TESTS-ONLY semantic RED -> minimal root-cause repair -> GREEN -> targeted/full validation -> exact same-SHA CI/package proof -> report -> independent review`
 
-If root-cause evidence proves the unnecessary Provider parameter surface participates in the failure, removing that dead provider-selection input is the preferred Ollama-only design. If a repository caller/helper is the actual source, repair the caller instead. Do not invent multi-provider resolution logic.
+Preserve explicit `-Provider ollama` compatibility unless root-cause evidence and tests justify an intentional contract change. Do not invent provider auto-detection, LM Studio fallback, or multi-provider resolution.
 
 ## Preserved live boundary
 
