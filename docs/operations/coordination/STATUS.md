@@ -3,69 +3,71 @@
 **State:** `READY_FOR_HERMES`  
 **Updated:** 2026-08-28 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator explicitly authorized the OpenClaw `2026.7.1-2` security exception, acceptance snapshots without a permanent development freeze, and bounded real-Windows lifecycle acceptance  
+**Human authority:** operator authorized continued repository repair and use of Hermes/Codex when required; Task 106 is strictly source-only and preserves the live PASSTHROUGH state  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`](tasks/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md)
+[`tasks/CNX-20260828-106-npm12-installer-contract-regression-repair.md`](tasks/CNX-20260828-106-npm12-installer-contract-regression-repair.md)
 
 Task ID:
 
-`CNX-20260828-105`
+`CNX-20260828-106`
 
-Execution is authorized only against the exact pinned acceptance snapshot, not the moving branch HEAD.
+## Why Task 106 exists
 
-## Exact acceptance identity
+Task 105 real-Windows lifecycle acceptance failed during install-over after a safe MANAGED → PASSTHROUGH handoff. The exact OpenClaw error was the npm-pack metadata failure reproduced by the OpenClaw `2026.7.1-2` × npm `12.0.2` contract.
 
-- source commit: `c4d37b0005afeffcd183848dfce5476cbe2b85cd`
-- CogentNexus-OpenClaw version: `0.9.3`
-- OpenClaw baseline: `2026.7.1-2`
-- managed provider: `Ollama only`
-- payload-v2 file count: `178`
-- payload-v2 fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
-- package ZIP SHA256: `c6151fac1cc3b5cd37a2d82aa366bb547adff1f885b9d2b33209c83601606133`
-- package-proof Actions artifact ID: `9669312785`
+The accepted minimal repair changes Windows installation to pass the exact generated `.tgz` archive as a plain local path to OpenClaw, bypassing the incompatible `npm-pack:` metadata probe while retaining OpenClaw's archive extraction, plugin validation, security scan, dependency install, peer link, and managed plugin installation path.
 
-Repository/package gates for this snapshot are green:
+## Current source evidence
 
-- Validate run `33128487849`: SUCCESS, package + 6/6 matrix;
-- PS5.1 Acceptance Smoke run `33128487814`: SUCCESS;
-- Windows Installer Pack Smoke run `33128487825`: SUCCESS.
+Accepted ancestry:
 
-Coordination commits after the pinned source SHA are expected and do not alter the runtime candidate. CogentNexus-OpenClaw development is not permanently frozen by this acceptance run.
+- `e0b6173d2ed888303bae3e31fd023b24e201c167` — RED installer-path contract;
+- `c676c50cb19378541a8223263a609fb7d18ed5a8` — minimal production fix;
+- `5e41c0c3a8b9da920571b828c9a863f5591af86b` — npm12 production-shaped smoke regression.
 
-## Task-105 live sequence
+Evidence on `5e41c0c3...`:
 
-If preconditions remain valid, Hermes/Codex may execute the bounded sequence once:
+- Windows Installer Pack Smoke `33148715184`: SUCCESS, including npm `12.0.2`, keyed-object pack metadata, production resolver, local archive contract, and archive-content inspection;
+- PS5.1 Acceptance Smoke `33148715168`: SUCCESS;
+- Validate `33148715162`: package dry-run SUCCESS, but matrix pytest fails only three stale assertions that still hard-code the removed `npm-pack:` executable invocation;
+- pytest observed: `3 failed, 390 passed, 30 skipped, 4 subtests passed`.
 
-`read-only provenance/preflight -> install-over -> reset -> uninstall -> fresh reinstall -> stop/start/restart -> disruptive recovery harness -> report`
+Task 106 is limited to correcting those stale test expectations without weakening their actual safety/order invariants.
 
-All destructive phases are stop-on-failure and no-replay. Exact source/artifact identity and evidence paths must be preserved throughout.
+## Preserved live state
 
-## Safety posture
+The Windows machine remains intentionally untouched after Task 105 stopped:
 
-- preserve externally owned OpenClaw and Ollama installations/data;
-- do not rebaseline or update OpenClaw;
-- do not update/uninstall/reinstall Ollama;
-- no LM Studio management;
-- no process-tree kills; exact-PID/protected-process gates remain mandatory;
-- no credential/token/password access or re-entry;
-- no direct live SQLite edits or arbitrary config/runtime mutation;
-- no source behavior fix inside this acceptance task;
-- no reboot;
-- no merge/tag/GitHub Release/force push.
+- CogentNexus-OpenClaw: `PASSTHROUGH`, generation `25`;
+- Gateway: healthy;
+- Ollama: healthy;
+- SQLite: healthy;
+- reset/uninstall/fresh reinstall/recovery phases: not executed;
+- Dashboard semantic Send: not executed.
 
-## Semantic delivery boundary
+Task 106 must not alter this state.
 
-Task 105 does **not** authorize a new Dashboard semantic nonce/Send. Final semantic durable-delivery acceptance remains a separate follow-up only after ChatGPT independently reviews the lifecycle/recovery report.
+## Task-106 required output
 
-## Expected executor output
+Hermes/Codex must make the smallest test-only change to:
 
-Hermes/Codex must publish exactly one matching report:
+- `tests/test_fresh_transaction_failure_coverage.py`;
+- `tests/test_namespace_install_contract.py`;
+- `tests/test_npm_pack_installer_boundary.py`.
 
-`docs/operations/coordination/reports/CNX-20260828-105-v093-real-windows-lifecycle-acceptance.md`
+It must run focused pytest, full pytest, namespace isolation, and baseline consistency checks, then publish:
 
-The report must use `PASS`, `FAIL`, or `BLOCKED`, include exact source/artifact provenance, phase-level commands and exit codes, evidence references, preservation assertions, and any residue/ambiguity. After publishing it, stop for ChatGPT review.
+`docs/operations/coordination/reports/CNX-20260828-106-npm12-installer-contract-regression-repair.md`
+
+The report must include exact implementation SHA, changed-file list, verification results, and explicit confirmation that production source/workflow and live runtime were not modified by Task 106.
+
+## Hard fence
+
+No live lifecycle action, runtime mutation, dependency/version change on the user's machine, Dashboard semantic Send, credential access/re-entry, production-source redesign, reboot, merge, tag, GitHub Release, or force push is authorized.
+
+After the report is pushed, stop for independent ChatGPT review.
