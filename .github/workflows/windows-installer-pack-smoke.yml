@@ -21,6 +21,13 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
+      - name: Pin npm 12 production shape
+        shell: powershell
+        run: |
+          npm install --global npm@12.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'failed to install npm 12.0.2' }
+          $npmVersion = (& npm --version | Out-String).Trim()
+          if ($npmVersion -ne '12.0.2') { throw "expected npm 12.0.2, got $npmVersion" }
       - name: Install plugin development dependencies
         working-directory: plugins/cogentnexus-openclaw
         run: npm ci
@@ -40,20 +47,28 @@ jobs:
           if ($source.Contains('openclaw plugins install . --force')) {
             throw 'Windows installer still contains the managed checkout-copy install path.'
           }
-      - name: Build and inspect the exact Windows npm-pack artifact
+      - name: Build and inspect the exact Windows npm 12 pack artifact
         shell: powershell
         working-directory: plugins/cogentnexus-openclaw
         run: |
           $packOutput = (& npm pack --json | Out-String)
           if ($LASTEXITCODE -ne 0) { throw 'npm pack failed' }
+
           $packed = $packOutput | ConvertFrom-Json
-          $items = @($packed)
-          if ($items.Count -ne 1 -or -not $items[0].filename) {
-            throw 'npm pack did not return exactly one package artifact'
+          if ($packed -is [array]) {
+            throw 'npm 12 unexpectedly returned the legacy array-shaped pack metadata'
           }
-          $artifact = Join-Path (Get-Location) ([string]$items[0].filename)
-          if (-not (Test-Path -LiteralPath $artifact)) {
-            throw "npm pack artifact not found: $artifact"
+          $properties = @($packed.PSObject.Properties)
+          if ($properties.Count -ne 1 -or -not $properties[0].Value.filename) {
+            throw 'npm 12 did not return the expected single keyed package metadata object'
+          }
+
+          $repoRoot = (Resolve-Path ..\..).Path
+          . (Join-Path $repoRoot 'scripts\resolve-npm-pack-artifact.ps1')
+          $packedArtifact = Resolve-NpmPackArtifact -PackJson $packOutput -PluginDir (Get-Location).Path
+          $artifact = [string]$packedArtifact.path
+          if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) {
+            throw "resolved npm pack artifact not found: $artifact"
           }
           try {
             $entries = @(
