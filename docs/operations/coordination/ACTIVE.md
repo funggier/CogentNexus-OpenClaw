@@ -1,12 +1,12 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_RUNTIME_LIFECYCLE_TRANSITION_ACCEPTANCE`
-Current authorization: `CNX-20260830-150_RUNTIME_LIFECYCLE_STOP_START_RESTART_DISABLE_ENABLE_ACCEPTANCE`
-Task ID: `CNX-20260830-150`
+Execution mode: `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_SINGLE_ATTEMPT`
+Current authorization: `CNX-20260830-151_FINAL_DASHBOARD_DURABLE_DELIVERY_ACCEPTANCE`
+Task ID: `CNX-20260830-151`
 Updated: 2026-08-30 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex after operator continuation
+Executor: Hermes/Codex with explicit operator manual gates
 
 ## Authoritative coordination files
 
@@ -19,62 +19,58 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative. A stale
 
 ## Active task
 
-[`tasks/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance.md`](tasks/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance.md)
+[`tasks/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`](tasks/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md)
 
-Task 150 is the real-Windows acceptance of the normal operator-facing runtime transition sequence `stop → start → restart → disable → enable` on the accepted fresh installation.
+Task 151 is Phase P of the Full Stabilization and Final Acceptance Plan: the final single-attempt real Firefox Dashboard semantic/durable-delivery acceptance.
 
-## Task-149 disposition
+## Task-150 disposition
 
-Task-149 report:
+Task-150 report:
 
-`docs/operations/coordination/reports/CNX-20260830-149-proven-launcher-product-reset-fresh-state-retry.md`
+`docs/operations/coordination/reports/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-149-proven-launcher-product-reset-fresh-state-retry-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance-review.md`
 
 Review disposition: **ACCEPT**.
 
-Task 149 proved one real `cnxclaw.cmd reset` + one `y`, exit `0`, with changed controller/SQLite file identities proving fresh state recreation while launcher/skill/plugin accepted provenance remained installed and exact. Runtime returned to healthy fresh `MANAGED` Ollama operation with semantic counts `0` and Dashboard Sends `0`.
+Task 150 proved the installed operator runtime sequence `stop → start → restart → disable → enable` exactly once each with correct maintenance/managed/passthrough semantics, real Gateway process boundary, healthy final MANAGED Ollama state, unchanged accepted provenance, SQLite integrity, semantic rows `0`, pending `0`, and Dashboard Sends `0`.
 
 Accepted production implementation remains:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
 
-## Task-150 execution contract
+Expected installed plugin fingerprint remains:
 
-Use the installed launcher with the proven command shape only:
+`12c6d1b5b6ffd938353dd60c5d6190c34a609663369f619ff4fc7cbd176119e0`
 
-`cmd.exe /d /c C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd <command>`
+## Task-151 execution contract
 
-Execute exactly once each, in order:
+This task is single-attempt.
 
-1. `stop`
-2. `start`
-3. `restart`
-4. `disable`
-5. `enable`
+Before semantic input, re-prove fresh GitHub authority, accepted installed provenance, healthy MANAGED Gateway/Ollama/recovery/delivery/SQLite state, zero unexplained active work, exact baseline counts, authenticated Firefox Dashboard, exact fresh/empty target session, empty composer, and freshly rediscovered exact PID/HWND.
 
-Verify the expected state after each command before proceeding. Stop on the first command/state failure; no retry or manual repair.
+Manual gates are mandatory:
 
-Expected high-level states:
+1. operator manually clicks the exact `Message Assistant` composer once with the real mouse;
+2. executor re-verifies focus/session/composer and exact prompt;
+3. only after explicit executor authorization does operator manually activate Send exactly once.
 
-- STOP: `maintenance`, Gateway stopped, Ollama stopped;
-- START: `managed`, Gateway/Ollama running and healthy;
-- RESTART: `managed`, real Gateway process boundary then healthy;
-- DISABLE: `passthrough`, CNX plugin/interception disabled, native OpenClaw healthy;
-- ENABLE: `managed`, CNX plugin/policy/route restored, Gateway/Ollama healthy.
+After the one Send, no second Send/resend/alternate semantic channel is authorized. All further work is observation/read-only.
 
-Across all phases preserve accepted provenance, database integrity, semantic counts and Dashboard semantic Send count `0`.
+PASS requires exactly one Ticket, one direct model call, one visible exact ACK, one durable `cnx_assistant_delivery` direct-result row, native delivery confirmation, Ticket `completed`, no duplicate inference/delivery, telemetry privacy PASS, and final healthy runtime/SQLite/pending `0`.
+
+A visible ACK without the durable row/confirmation/completion is FAIL, matching the Task-137 lesson. Task-138's durable-capture repair is specifically under live acceptance here.
 
 ## Required completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`
 
-Then stop for independent ChatGPT review.
+Then stop for independent ChatGPT review. Phase Q/final acceptance/release publication is not automatic.
 
 ## Hard fence
 
-No Dashboard semantic Send/resend; no reset/uninstall/install/reinstall; no crash/recovery injection; no manual semantic/database mutation; no manual OpenClaw/Ollama/process/task lifecycle; no manual plugin/config/controller/ownership normalization; no lifecycle retry; no unrelated service/process/task mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No second Dashboard Send/resend; no alternate semantic transport; no manual semantic/database mutation; no reset/uninstall/install/reinstall; no runtime lifecycle commands; no crash/recovery injection; no manual plugin/config/controller/ownership/process/service/task normalization; no reboot; no credentials/secrets; no merge/tag/release; no force push.
