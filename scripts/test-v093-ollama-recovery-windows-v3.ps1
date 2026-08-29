@@ -37,6 +37,8 @@ foreach ($item in $Scenario) {
 $Disruptive = @($Expanded | Where-Object { $_ -ne 'baseline' })
 if($ContractSelfTest){$Disruptive=@()}
 if ($Disruptive.Count -gt 0 -and -not $RunDisruptive) { throw "Disruptive scenarios requested without -RunDisruptive: $($Disruptive -join ', ')" }
+$script:CarriedProviderIncident = $null
+$script:LastScenario = $null
 
 function Get-ProcessRecord {
     param([int]$ProcessId)
@@ -146,15 +148,18 @@ function Get-HostState {
     return $StatusDocument.host.state
 }
 function Assert-Baseline {
-    param([string]$Label)
+    param([string]$Label,[object]$ExpectedProviderIncident=$null,[string]$PreviousScenario='')
     $status=Invoke-CnxJson -Name "status-$Label" -CommandArgs @('status')
     $hostState=Get-HostState -StatusDocument $status
     $provider=Invoke-CnxJson -Name "provider-$Label" -CommandArgs @('provider','status','--json')
     $recovery=Invoke-CnxJson -Name "recovery-$Label" -CommandArgs @('check','recovery','--json') -AllowedExitCodes @(0,1)
     $adapter=@($recovery.checks|Where-Object{$_.name -eq 'Provider event adapter'}); $adapterOkay=($adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected)
     $gateway=Get-Listener -Port (Get-GatewayPort); $ollama=Get-Listener -Port 11434
-    $ok=([string]$hostState.mode -eq 'managed') -and ([string]$hostState.selectedProvider -eq 'ollama') -and ([string]$provider.selectedProvider -eq 'ollama') -and ([string]$recovery.verdict -eq 'READY') -and $adapterOkay -and [bool]$gateway.listening -and [bool]$ollama.listening
-    Step "assert-managed-$Label" $(if($ok){'PASS'}else{'FAIL'}) ([ordered]@{mode=[string]$hostState.mode;hostSelectedProvider=[string]$hostState.selectedProvider;selectedProvider=[string]$provider.selectedProvider;recoveryVerdict=[string]$recovery.verdict;providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null});gateway=$gateway;ollama=$ollama})
+    $observation=[ordered]@{mode=[string]$hostState.mode;hostSelectedProvider=[string]$hostState.selectedProvider;selectedProvider=[string]$provider.selectedProvider;recoveryVerdict=[string]$recovery.verdict;gateway=$gateway;ollama=$ollama;recoveryChecks=$recovery.checks}
+    $carriedOkay=Test-OperatorBoundaryObservation $observation $ExpectedProviderIncident $PreviousScenario
+    $strictOkay=([string]$recovery.verdict -eq 'READY')
+    $ok=([string]$hostState.mode -eq 'managed') -and ([string]$hostState.selectedProvider -eq 'ollama') -and ([string]$provider.selectedProvider -eq 'ollama') -and ([string]$hostState.desiredGateway -eq 'running') -and ([string]$hostState.desiredProvider -eq 'running') -and ($strictOkay -or $carriedOkay) -and $adapterOkay -and [bool]$gateway.listening -and [bool]$ollama.listening
+    Step "assert-managed-$Label" $(if($ok){'PASS'}else{'FAIL'}) ([ordered]@{mode=[string]$hostState.mode;hostSelectedProvider=[string]$hostState.selectedProvider;selectedProvider=[string]$provider.selectedProvider;recoveryVerdict=[string]$recovery.verdict;carriedIncidentAccepted=$carriedOkay;providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null});gateway=$gateway;ollama=$ollama})
     if(-not $ok){throw "Managed Ollama baseline failed at $Label."}
 }
 function Test-DurableConvergenceObservation {
@@ -169,11 +174,23 @@ function Test-DurableConvergenceObservation {
     $warns=@($checks|Where-Object{$_.status -eq 'WARN'}); $bad=@($checks|Where-Object{$_.status -in @('FAIL','INDETERMINATE')})
     return ([string]$incident[0].status -eq 'WARN' -and [bool]$incident[0].details.incidentOpen -and -not [bool]$incident[0].details.circuitOpen -and $warns.Count -eq 1 -and $warns[0].name -eq 'Provider recovery incident' -and $bad.Count -eq 0 -and @($checks|Where-Object{$_.status -ne 'PASS' -and $_.name -ne 'Provider recovery incident'}).Count -eq 0)
 }
+function Test-OperatorBoundaryObservation {
+    param($Observation,$ExpectedProviderIncident,[string]$PreviousScenario='')
+    if($PreviousScenario -ne 'provider-crash' -or $null -eq $ExpectedProviderIncident){return $false}
+    if([string]$Observation.recoveryVerdict -ne 'READY_WITH_WARNINGS'){return $false}
+    if(-not (Test-DurableConvergenceObservation $Observation $true)){return $false}
+    $incident=@($Observation.recoveryChecks|Where-Object{$_.name -eq 'Provider recovery incident'})
+    if($incident.Count -ne 1){return $false}
+    $currentId=[string]$incident[0].details.incidentId; $expectedId=[string]$ExpectedProviderIncident.incidentId
+    if([string]::IsNullOrWhiteSpace($expectedId) -or $currentId -ne $expectedId){return $false}
+    if($ExpectedProviderIncident.PSObject.Properties.Name -contains 'classification' -and [string]$ExpectedProviderIncident.classification -ne [string]$incident[0].details.classification){return $false}
+    return $true
+}
 function New-ContractTestObservation {
-    param([string]$Verdict='READY_WITH_WARNINGS',[switch]$ExtraWarning,[string]$IncidentStatus='WARN',[bool]$IncidentOpen=$true,[switch]$CircuitOpen,[int]$IncidentRows=1,[int]$AdapterRows=1)
+    param([string]$Verdict='READY_WITH_WARNINGS',[switch]$ExtraWarning,[string]$IncidentStatus='WARN',[bool]$IncidentOpen=$true,[switch]$CircuitOpen,[int]$IncidentRows=1,[int]$AdapterRows=1,[string]$IncidentId='ollama:2',[string]$Classification='provider_unreachable')
     $checks=@([pscustomobject]@{name='Maintenance/recovery fence';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Supervisor health snapshot';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}})
     if($AdapterRows -eq 0){$checks=@($checks|Where-Object{$_.name -ne 'Provider event adapter'})}; if($AdapterRows -gt 1){$checks += [pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}}}
-    for($i=0;$i -lt $IncidentRows;$i++){$checks += [pscustomobject]@{name='Provider recovery incident';status=$IncidentStatus;details=[pscustomobject]@{incidentOpen=$IncidentOpen;circuitOpen=$CircuitOpen}}}
+    for($i=0;$i -lt $IncidentRows;$i++){$checks += [pscustomobject]@{name='Provider recovery incident';status=$IncidentStatus;details=[pscustomobject]@{provider='ollama';incidentId=$IncidentId;classification=$Classification;incidentOpen=$IncidentOpen;circuitOpen=$CircuitOpen}}}
     if($ExtraWarning){$checks[0].status='WARN'}
     [pscustomobject]@{mode='managed';hostSelectedProvider='ollama';selectedProvider='ollama';recoveryVerdict=$Verdict;gateway=[pscustomobject]@{listening=$true};ollama=[pscustomobject]@{listening=$true};recoveryChecks=$checks}
 }
@@ -195,6 +212,15 @@ function Invoke-ContractSelfTest {
     $cases[3][1].recoveryChecks[1].status='WARN'; $cases[4][1].recoveryChecks[2].status='WARN'
     $expected=@{'retained'=$true;'ordinary-warning'=$false;'maintenance-warning'=$false;'supervisor-warning'=$false;'adapter-warning'=$false;'closed-warning'=$false;'circuit-open'=$false;'exact-ready'=$true;'missing-incident'=$false;'duplicate-incident'=$false;'missing-adapter'=$false;'duplicate-adapter'=$false}
     foreach($case in $cases){$actual=Test-DurableConvergenceObservation $case[1] ([bool]$case[2]); if($actual -ne $expected[$case[0]]){throw "Contract self-test failed: $($case[0]) expected $($expected[$case[0]]) got $actual"}}
+    $sequence=New-ContractTestObservation -IncidentId 'ollama:2' -Classification 'provider_unreachable'
+    $carried=[pscustomobject]@{incidentId='ollama:2';classification='provider_unreachable'}
+    if(-not (Test-OperatorBoundaryObservation $sequence $carried 'provider-crash')){throw 'Contract self-test failed: provider-to-operator-carried-incident expected true.'}
+    Write-Host 'provider-to-operator-carried-incident: PASS'
+    if(Test-OperatorBoundaryObservation $sequence $carried ''){throw 'Contract self-test failed: standalone-open-incident expected false.'}
+    if(Test-OperatorBoundaryObservation (New-ContractTestObservation -IncidentId 'ollama:3') $carried 'provider-crash'){throw 'Contract self-test failed: different-incident expected false.'}
+    if(Test-OperatorBoundaryObservation (New-ContractTestObservation -IncidentRows 0) $carried 'provider-crash'){throw 'Contract self-test failed: missing-incident expected false.'}
+    if(Test-OperatorBoundaryObservation (New-ContractTestObservation -ExtraWarning) $carried 'provider-crash'){throw 'Contract self-test failed: extra-warning expected false.'}
+    if(Test-OperatorBoundaryObservation (New-ContractTestObservation -Verdict 'READY') $carried 'provider-crash'){throw 'Contract self-test failed: carried-ready-exception expected false.'}
     Write-Host 'v0.9.3 Ollama recovery convergence contract self-test: PASS'
 }
 function Wait-DurableConvergence {
@@ -233,17 +259,17 @@ function Confirm-Disruptive {
 }
 function Scenario-Gateway {
     Assert-Baseline 'gateway-before'; $port=Get-GatewayPort; $before=Get-Listener -Port $port; Hard-Kill -Role gateway -Snapshot $before
-    $after=Wait-Listener -Name 'observe-gateway-recovered' -Port $port -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid)); $convergence=Wait-DurableConvergence 'converge-gateway-after'; Step 'scenario-gateway-crash' 'PASS' ([ordered]@{before=$before;after=$after;convergence=$convergence}); Log 'SCENARIO gateway-crash :: PASS'
+    $after=Wait-Listener -Name 'observe-gateway-recovered' -Port $port -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid)); $convergence=Wait-DurableConvergence 'converge-gateway-after'; $script:CarriedProviderIncident=$null; $script:LastScenario='gateway-crash'; Step 'scenario-gateway-crash' 'PASS' ([ordered]@{before=$before;after=$after;convergence=$convergence}); Log 'SCENARIO gateway-crash :: PASS'
 }
 function Scenario-Provider {
     Assert-Baseline 'provider-before'; $before=Get-Listener -Port 11434; Hard-Kill -Role provider -Snapshot $before
     $after=Wait-Listener -Name 'observe-ollama-recovered' -Port 11434 -Listening $true -DifferentFromPid ([Nullable[int]]([int]$before.pid))
     $recovery=Invoke-CnxJson -Name 'recovery-after-ollama-hard-crash' -CommandArgs @('check','recovery','--json') -AllowedExitCodes @(0,1); $incident=@($recovery.checks|Where-Object{$_.name -eq 'Provider recovery incident'})
     if($incident.Count -ne 1){throw 'Provider recovery incident diagnostic row missing.'}; if([bool]$incident[0].details.circuitOpen){throw 'Ollama recovery circuit open after one injected crash.'}
-    $convergence=Wait-DurableConvergence 'converge-provider-after' $true; Step 'scenario-provider-crash' 'PASS' ([ordered]@{before=$before;after=$after;recoveryIncident=$incident[0];convergence=$convergence}); Log 'SCENARIO provider-crash :: PASS'
+    $convergence=Wait-DurableConvergence 'converge-provider-after' $true; $script:CarriedProviderIncident=$null; if([string]$convergence.finalVerdict -eq 'READY_WITH_WARNINGS'){$accepted=$convergence.lastObservation.providerRecoveryIncident;if($null -eq $accepted){throw 'Accepted provider incident evidence missing at provider-crash boundary.'};$script:CarriedProviderIncident=[pscustomobject]@{incidentId=[string]$accepted.details.incidentId;classification=[string]$accepted.details.classification}}; $script:LastScenario='provider-crash'; Step 'scenario-provider-crash' 'PASS' ([ordered]@{before=$before;after=$after;recoveryIncident=$incident[0];convergence=$convergence}); Log 'SCENARIO provider-crash :: PASS'
 }
 function Scenario-OperatorStop {
-    Assert-Baseline 'operator-before'; Invoke-CnxText -Name 'intentional-cnx-stop' -CommandArgs @('stop') | Out-Null
+    $expected=$null; if($script:LastScenario -eq 'provider-crash'){$expected=$script:CarriedProviderIncident}; Assert-Baseline 'operator-before' $expected $script:LastScenario; $script:CarriedProviderIncident=$null; $script:LastScenario='operator-stop'; Invoke-CnxText -Name 'intentional-cnx-stop' -CommandArgs @('stop') | Out-Null
     $status=Invoke-CnxJson -Name 'status-after-intentional-stop' -CommandArgs @('status'); $hostState=Get-HostState -StatusDocument $status
     if([string]$hostState.mode -ne 'maintenance' -or [string]$hostState.desiredGateway -ne 'stopped' -or [string]$hostState.desiredProvider -ne 'stopped'){throw 'Intentional stop state mismatch.'}
     $port=Get-GatewayPort; [void](Wait-Listener -Name 'observe-gateway-stopped-intentionally' -Port $port -Listening $false -FuseSeconds 60); Start-Sleep -Seconds $IntentionalStopObservationSeconds
