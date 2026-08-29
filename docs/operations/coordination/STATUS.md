@@ -1,84 +1,64 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_OPERATOR_MOUSE_GATES`  
+**Execution mode:** `READ_ONLY_WINDOWS_TASK152_DELIVERY_HOOK_EVIDENCE_COLLECTION`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested a new Phase-P attempt with manual mouse gates; operator has already prepared a brand-new Dashboard session  
+**Human authority:** operator requested continued stabilization; Task 152 is independently ACCEPTed as controlled product/runtime durable-capture failure evidence; the next gate is read-only collection of existing Task-152 hook telemetry  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`](tasks/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md)
+[`tasks/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`](tasks/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md)
 
 Task ID:
 
-`CNX-20260830-152`
+`CNX-20260830-153`
 
-## Task-151 accepted controlled evidence
+## Task-152 accepted failure evidence
 
 Report:
 
-`docs/operations/coordination/reports/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-151-final-dashboard-durable-delivery-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates-review.md`
 
-Disposition: **ACCEPT** as controlled `FAIL_UI_MISMATCH` evidence.
+Disposition: **ACCEPT** as controlled `FAIL_DURABLE_CAPTURE` evidence; Phase P remains FAIL.
 
-Task 151 proved the automated Send click did not transition the UI and created zero Tickets/model calls/delivery rows. No product durable-delivery boundary was reached. Its nonce/Send ledger is retired permanently.
+Task 152 removed the UI harness ambiguity: one real operator Send produced one Ticket, Ticket-first ordering, one completed direct model call, and one visible ACK. The failure is after model execution: `response_ready` exists but the durable direct-result row is absent, so delivery confirmation/completion never occurred and the Ticket failed closed.
 
-## Prepared session state
+No new semantic acceptance run is authorized. The Task-152 nonce/Send ledger is retired.
 
-The operator has already created a brand-new Dashboard session before Task-152 execution.
+## Why Task 153 exists
 
-Hermes/Codex must not create another session automatically. It must verify the current target is fresh/empty, composer empty, Task-151 draft absent, and durable semantic counts unchanged before prompt composition.
+The report does not contain the privacy-bounded `delivery-observe` hook sequence needed to distinguish whether the installed runtime failed at:
 
-## Task-152 UI control policy
+- `reply_dispatch` wiring/handler entry;
+- run correlation/dispatcher capability;
+- `appendBeforeDeliver` callback invocation;
+- final-payload filtering;
+- `stageDashboardDirectResult` attempt/rejection/exception/commit.
 
-Automated mouse control is not authorized for the semantic gates.
+The installed source already emits redacted events for those boundaries. Task 153 reads the existing logs only and returns the first proven internal boundary.
 
-Operator performs:
+## Task-153 hard read-only boundary
 
-1. the composer click when instructed;
-2. the single real `Send message` click when instructed.
+No Dashboard interaction, no semantic Send, no alternate semantic transport, no runtime lifecycle, no database writes, no source edits, and no live repair are authorized.
 
-Hermes/Codex may type/paste the exact acceptance prompt after operator-established focus. This is preferred over requiring the operator to type because Task 151 proved the text-entry path worked.
-
-Before Send, executor verifies exact one-copy fresh-nonce prompt. After the operator's one Send, budget is `1 / 1 consumed`; no retry, resend, Enter submission, or alternate semantic transport is authorized.
-
-## Durable PASS authority
-
-PASS requires:
-
-- exactly one Ticket and Ticket-first ordering;
-- exactly one direct model call;
-- exactly one `response_ready`;
-- exactly one durable direct-result `cnx_assistant_delivery` row;
-- delivered state + `delivered_at`;
-- Ticket `delivery_confirmed_at`;
-- exactly one `delivery_confirmed` and `completed` event;
-- Ticket terminal `completed`;
-- exactly one visible `ACK <NONCE>`;
-- no duplicate inference/recovery/regeneration/delivery;
-- final pending `0`, SQLite `ok`, Gateway/Ollama healthy;
-- telemetry privacy PASS.
-
-Accepted production implementation remains:
-
-`fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
+Raw prompt/response, nonce, Ticket/run/session identifiers, credentials, or secrets must not be published. Use only approved categorical/boolean/count fields and digests.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`
+`docs/operations/coordination/reports/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`
 
-Then stop for independent ChatGPT review. Phase Q, merge, tag and release remain unauthorized.
+Then stop for independent ChatGPT review. Source diagnosis/TDD repair is ChatGPT-owned after the evidence review.
 
-## Hard fence
+## Release fence
 
-No automated Send click; no second Send/resend; no alternate semantic transport; no manual Ticket/workflow/outbox/delivery/recovery/database mutation; no lifecycle/reset/install/uninstall/reinstall; no crash/recovery injection; no manual plugin/config/controller/process/service/task normalization; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
+Phase Q, merge, tag, GitHub Release, promotion, and any new Dashboard semantic acceptance remain unauthorized until the durable-capture defect is repaired, validated, deployed as a new frozen candidate, and separately re-accepted.
