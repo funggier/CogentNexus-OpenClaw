@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`
-Current authorization: `CNX-20260829-134_V093_REAL_WINDOWS_RECOVERY_FINAL_REACCEPTANCE_SEQUENCED`
-Task ID: `CNX-20260829-134`
+Execution mode: `LIVE_WINDOWS_READONLY_DELIVERY_BASELINE_ONLY`
+Current authorization: `CNX-20260829-135_POST_RECOVERY_DELIVERY_RESIDUE_READONLY_CLOSEOUT`
+Task ID: `CNX-20260829-135`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,63 +19,63 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`](tasks/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md)
+[`tasks/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md`](tasks/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md)
 
-Task 134 authorizes exactly one new real-Windows recovery suite against the Task-133 accepted sequenced harness. It does not authorize installer/lifecycle replay outside the harness and does not open Dashboard durable-delivery acceptance.
+Task 135 is a read-only Ticket/workflow/outbox/delivery baseline closeout. It authorizes zero semantic Sends and zero live lifecycle/recovery mutations.
 
-## Task 133 accepted closure
+## Task 134 accepted recovery closure
 
-Task-133 report:
+Report:
 
-`docs/operations/coordination/reports/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`
+`docs/operations/coordination/reports/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced-review.md`
 
-Accepted verdict:
+Accepted result:
 
-`ACCEPTED PASS — Task 133 closes the remaining Task-132 proof gaps. The provider→operator sequencing exception is exercised through the real harness-owned PowerShell self-test with the required fail-closed structural negatives, all four required workflows passed on the exact candidate SHA, and the fresh package artifact metadata/identity are coherent. Candidate 1424d6fbee2c458c8c30440616783d2fa1bc1201 may advance to a new separately authorized one-shot real-Windows recovery acceptance.`
+`ACCEPTED RECOVERY PASS — exact candidate 1424d6fbee2c458c8c30440616783d2fa1bc1201 completed the one-shot real-Windows recovery suite through baseline, Gateway crash, provider crash, the repaired provider→operator carried-incident boundary, intentional stop/no-auto-recovery, harness-owned start, and strict post-start READY. Dashboard advancement remains gated only by the missing read-only outbox/status residue publication item.`
 
-## Accepted candidate
+Task-134 live ledger is consumed and must never be replayed:
 
-- source: `1424d6fbee2c458c8c30440616783d2fa1bc1201`
-- harness blob: `a4138e00e2056db89b0a9eceed1b54e001c4e319`
-- artifact: `9709798190`
-- outer digest: `sha256:e8dbb2f742bfeffc93a80a7cda62a8c273ced9e2b1e9b47a3962dead52ccfeef`
-- payload count: `178`
-- fingerprint: `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+- suite `1 / 1 PASS`;
+- confirmation `1 / 1`;
+- Gateway crash `1 / 1 PASS`;
+- provider crash `1 / 1 PASS`;
+- operator stop/start sequence `1 / 1 PASS`;
+- reruns `0`.
 
-Exact-SHA workflows passed: Validate `33235544556`, Recovery V3 Smoke `33235544569`, Acceptance Smoke `33235544559`, Windows Installer Pack Smoke `33235544603`.
+## Task 135 required proof
 
-## Task 134 execution discipline
+Using the explicit installed launcher and parsed authoritative `.cogentnexus-openclaw` root only:
 
-Before disruption, use the explicit installed launcher `C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd`, parse/verify its explicit `.cogentnexus-openclaw` root, and require an already-safe managed/Ollama/READY baseline, exact fingerprint/OpenClaw/plugin identity, healthy Gateway/Ollama, and authoritative SQLite read-only integrity `ok`.
+- read-only `status`, `check delivery`, and `check recovery`;
+- authoritative SQLite URI `mode=ro` and `integrity_check=ok`;
+- ticket counts by status and `nonterminalTickets=0`;
+- ticket-outbox counts by delivery status and `pendingOutbox=0`;
+- read-only classification of workflow/delivery/direct-recovery residue;
+- no active work capable of contaminating a one-message Dashboard durable-delivery baseline;
+- runtime remains managed/Ollama/READY.
 
-Then use a true interactive PowerShell PTY and run the exact candidate harness once with `-Scenario all -RunDisruptive`. Enter exactly one lowercase `y` only after the literal prompt. No suite/scenario rerun is permitted after launch.
+Historical terminal rows may remain if clearly inert. If any active/ambiguous residue exists, fail closed and report it without cleanup.
 
-The critical repaired acceptance boundary is provider-crash PASS → exact carried incident at operator-before → intentional operator stop/no-auto-recovery → harness start → strict ordinary READY.
+Do not read/publish semantic payload bodies unless strictly unavoidable; prefer IDs/status/timestamps/hashes/lengths.
 
-## Historical live ledger
+## Dashboard fence
 
-Remain consumed/closed:
+Final Dashboard durable-delivery acceptance is still unopened. Task 135 must not send, create, dispatch, retry, cancel, ack, delete, or normalize anything.
 
-- Task-121 install-over `1 / 1`;
-- Task-124 reset/uninstall/fresh reinstall/standalone stop/start/restart `1 / 1` each;
-- Task-125 old-harness recovery suite `1 / 1`;
-- Task-128 suite `0 / 1`, closed blocked;
-- Task-131 suite `1 / 1` consumed; baseline/Gateway/provider PASS; operator-stop not reached.
-
-Task 134 creates one new suite authorization: maximum `1 / 1`.
+Only after Task 135 PASS + independent ChatGPT review may a separate Dashboard task authorize exactly one new semantic nonce/message Send.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`
+`docs/operations/coordination/reports/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md`
 
-Then stop for independent ChatGPT review. Do not open Dashboard acceptance automatically.
+Then stop for independent ChatGPT review.
 
 ## Hard fence
 
-No install/install-over/reset/uninstall/reinstall, no standalone lifecycle outside the exact harness, no source/harness edit, no alternate confirmation, no provider/model/OpenClaw/config mutation, no manual normalization, no generic process-tree kill, no task/service mutation outside observation, no reboot, no credentials/secrets, no Dashboard semantic Send, no merge/tag/release, and no force push.
+No Dashboard semantic Send; no Ticket/workflow/outbox mutation; no SQLite write; no install/install-over/reset/uninstall/reinstall; no start/stop/restart/enable/disable; no recovery suite/crash/process kill; no provider/OpenClaw/model/config mutation; no task/service mutation; no cleanup/normalization; no reboot; no credentials/secrets; no source/runtime repair; no merge/tag/release; no force push.
