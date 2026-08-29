@@ -103,6 +103,7 @@ Local evidence:
 - `C:\Users\CDQ-P\AppData\Local\Temp\cnx136-preflight-20260829T073500Z\post-reply-now.json`
 - `C:\Users\CDQ-P\AppData\Local\Temp\cnx136-preflight-20260829T073500Z\durable-observation.jsonl`
 - `C:\Users\CDQ-P\AppData\Local\Temp\cnx136-preflight-20260829T073500Z\durable-observation-10m.jsonl`
+- `C:\Users\CDQ-P\AppData\Local\Temp\cnx136-preflight-20260829T073500Z\observation-25m-final.jsonl` — read-only observation completed at `2026-08-29T08:09:44.213887Z`; the extended 25-minute window did not change the failed/suppressed outcome.
 
 ## Processing, result, and delivery outcome
 
