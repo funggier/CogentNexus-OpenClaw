@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `REPOSITORY_SOURCE_TDD_REPAIR`
-Current authorization: `CNX-20260829-126_PROVIDER_CRASH_RECOVERY_CONVERGENCE_ROOT_CAUSE_REPAIR`
-Task ID: `CNX-20260829-126`
+Current authorization: `CNX-20260829-127_RECOVERY_HARNESS_FAILCLOSED_CONTRACT_AND_CI_PROOF`
+Task ID: `CNX-20260829-127`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,42 +19,46 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`](tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md)
+[`tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`](tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md)
 
-Task 126 diagnoses and repairs the **real provider-crash durable-convergence failure** proven by Task 125. It is repository/source/test/CI work plus read-only inspection of retained Task-125 evidence. It authorizes no live Windows lifecycle or recovery replay.
+Task 127 repairs only the remaining Task-126 acceptance-harness review defects:
 
-## Task 125 closure
+- replace test-local/source-grep regression with a real behavioral test of harness-owned convergence logic;
+- make `READY_WITH_WARNINGS` provider-crash acceptance fail-closed so only the sole expected open/circuit-closed Provider recovery incident WARN is allowed;
+- ensure the dedicated PS5.1 v0.9.3 Ollama Recovery V3 Smoke runs and passes on the exact direct-push candidate SHA;
+- rerun full validation and package proof.
 
-Task-125 report:
+## Task 126 closure
 
-`docs/operations/coordination/reports/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`
+Task-126 report:
+
+`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair-review.md`
 
 Review verdict:
 
-`ACCEPTED FAIL — GATEWAY-CRASH RECOVERY PASSED, BUT PROVIDER-CRASH RECOVERY FAILED TO REACH THE REVIEWED DURABLE-READY CONTRACT WITHIN 420 SECONDS; SOURCE/HARNESS ROOT-CAUSE DIAGNOSIS IS REQUIRED BEFORE ANY REPLAY.`
+`REJECTED CANDIDATE ADVANCEMENT — ROOT-CAUSE CLASSIFICATION IS ACCEPTED, BUT THE HARNESS REPAIR IS NOT YET FAIL-CLOSED OR BEHAVIORALLY PROVEN, AND THE AFFECTED RECOVERY-SPECIFIC SMOKE DID NOT RUN ON THE EXACT CANDIDATE SHA.`
 
-Accepted Task-125 facts:
+Accepted Task-126 root cause:
 
-- exact candidate `01d08cd7c82f542c821e3a60f7fffa036efb1d75`;
-- true PTY and exact lowercase `y` confirmation passed;
-- harness prechecks passed;
-- `gateway-crash` passed;
-- `provider-crash` was injected;
-- `converge-provider-after` did not observe the complete durable READY predicate inside `420` seconds;
-- `operator-stop` did not execute because fail-stop worked;
-- suite was not replayed;
-- harness-owned cleanup restored healthy managed state;
-- no Dashboard semantic Send occurred.
+- Task-125 provider recovery itself was coherent;
+- provider recovery incident intentionally remained open pending stable model-success evidence;
+- recovery check therefore remained `READY_WITH_WARNINGS`;
+- the mismatch belongs to the acceptance harness;
+- provider recovery policy must not be weakened by treating process/listener health as stable success.
 
-This is not the earlier `$args`, TUI, UTF-16, or confirmation defect.
+Rejected Task-126 candidate:
 
-## Consumed live ledger
+`69a3efa1feb7711f22c83055a8571035240ec81c`
 
-Consumed and forbidden to replay during Task 126:
+Its Validate, Windows Installer Pack Smoke, and PS5.1 Acceptance Smoke runs passed, but candidate advancement was rejected because the focused regression did not execute the real harness contract, warning acceptance was too broad, and the dedicated recovery-v3 smoke had no exact-SHA run.
+
+## Consumed live-operation ledger
+
+All remain consumed/forbidden during Task 127:
 
 - Task-121 install-over `1 / 1`;
 - Task-124 reset `1 / 1`;
@@ -64,70 +68,20 @@ Consumed and forbidden to replay during Task 126:
 - Task-124 start `1 / 1`;
 - Task-124 restart `1 / 1`;
 - Task-125 recovery suite `1 / 1`;
-- Task-125 gateway-crash scenario `1 / 1 PASS`;
-- Task-125 provider-crash scenario `1 / 1 FAIL at durable convergence`;
+- Task-125 gateway-crash `1 / 1 PASS`;
+- Task-125 provider-crash `1 / 1 FAIL at old harness convergence`;
 - operator-stop `0`, not reached.
 
-## Task 126 root-cause gate
-
-Read the retained Task-125 JSON/log read-only and identify exactly which durable-convergence predicate(s) remained false across the 420-second observation window.
-
-The provider-crash predicate requires all of:
-
-- host mode `managed`;
-- host selected provider `ollama`;
-- provider selected provider `ollama`;
-- recovery verdict `READY`;
-- one Provider event adapter row with `details.expected == false`;
-- Gateway listener present;
-- Ollama listener present;
-- one Provider recovery incident row with `details.circuitOpen == false`.
-
-Extract first/last/change-point observations before changing source.
-
-Then trace the owning state machine/check logic, write a focused RED regression test from the actual evidence, apply the smallest responsibility-local repair, and require full GREEN + exact-SHA CI + package proof.
-
-Do not merely increase the recovery timeout unless the retained evidence proves the timeout alone is wrong.
-
-## Independent static trace — mandatory hypothesis check
-
-Before Task 126 was executed, the owner performed a repository-only static trace and recorded it here:
-
-`docs/operations/coordination/notes/CNX-20260829-126-static-contract-trace.md`
-
-This note is `NON_AUTHORITATIVE_HYPOTHESIS`, not evidence replacement.
-
-It proves a contract tension that the retained Task-125 observation series must explicitly confirm or disprove:
-
-- provider recovery policy keeps an incident open until stable model completion or a verified operator transition closes it;
-- an open provider incident is reported by `check recovery` as WARN, which aggregates to `READY_WITH_WARNINGS`;
-- `Wait-DurableConvergence` nevertheless requires recovery verdict exactly `READY`;
-- the provider-crash scenario sets `RequireProviderIncident=true` but does not create a stable model completion before waiting for convergence.
-
-If the retained 420-second evidence shows healthy Gateway/Ollama listeners, coherent Ollama selection, adapter `expected == false`, circuit closed, and only an intentionally open incident keeping verdict at `READY_WITH_WARNINGS`, classify the defect as an acceptance-harness contract mismatch. Write RED against that harness behavior and repair the harness layer only.
-
-Do **not** weaken recovery policy by equating process/listener health with stable model success.
-
-If the retained evidence shows any actual provider/supervisor/state/check inconsistency beyond the intentionally open incident, repair that owning product layer instead.
-
-## Hard fence
-
-Task 126 does not authorize:
-
-- live provider crash injection or recovery-suite replay;
-- install/install-over/reset/uninstall/reinstall;
-- stop/start/restart;
-- live OpenClaw/provider configuration mutation;
-- process kill/reboot;
-- manual Windows cleanup/normalization;
-- credentials/secrets;
-- Dashboard semantic Send;
-- merge/tag/release/force push.
+Task 127 authorizes no live replay.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`
 
-Then stop for independent ChatGPT review. Do not auto-open a new live Windows acceptance task.
+Then stop for independent ChatGPT review. Do not open a live recovery acceptance task automatically.
+
+## Hard fence
+
+No live provider crash, recovery-suite replay, install/reset/uninstall/reinstall, stop/start/restart, provider/OpenClaw mutation, process kill/reboot, manual normalization, credentials/secrets, Dashboard semantic Send, merge/tag/release, or force push.
