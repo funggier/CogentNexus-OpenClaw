@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_REDIRECTED_STDIN_UNINSTALL_AND_FRESH_REINSTALL_ACCEPTANCE`
-Current authorization: `CNX-20260830-147_REDIRECTED_STDIN_PRODUCT_UNINSTALL_AND_FRESH_REINSTALL_RETRY`
-Task ID: `CNX-20260830-147`
+Execution mode: `LIVE_WINDOWS_PRODUCT_RESET_FRESH_STATE_ACCEPTANCE`
+Current authorization: `CNX-20260830-148_PRODUCT_RESET_FRESH_STATE_ACCEPTANCE`
+Task ID: `CNX-20260830-148`
 Updated: 2026-08-30 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,50 +19,63 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative. A stale
 
 ## Active task
 
-[`tasks/CNX-20260830-147-redirected-stdin-product-uninstall-and-fresh-reinstall-retry.md`](tasks/CNX-20260830-147-redirected-stdin-product-uninstall-and-fresh-reinstall-retry.md)
+[`tasks/CNX-20260830-148-product-reset-fresh-state-acceptance.md`](tasks/CNX-20260830-148-product-reset-fresh-state-acceptance.md)
 
-Task 147 retries the Task-146 lifecycle acceptance only after qualifying a deterministic non-PTY redirected-stdin harness with a harmless child process.
+Task 148 is the real-Windows acceptance of the installed operator-facing `cnxclaw.cmd reset` command. It must prove CNX state is recreated as fresh-install MANAGED while installed program/skill/plugin accepted provenance remains installed and exact.
 
-## Task-146 disposition
+## Task-147 disposition
 
-Task-146 report:
+Task-147 report:
 
-`docs/operations/coordination/reports/CNX-20260830-146-product-uninstall-and-clean-fresh-reinstall-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260830-147-redirected-stdin-product-uninstall-and-fresh-reinstall-retry.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-146-product-uninstall-and-clean-fresh-reinstall-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-147-redirected-stdin-product-uninstall-and-fresh-reinstall-retry-review.md`
 
-Review disposition: **ACCEPT** as controlled execution evidence, **not** as lifecycle PASS.
+Review disposition: **ACCEPT**.
 
-Task 146 reached the real uninstall prompt but executor PTY/stdin plumbing failed with `OSError: [Errno 9] Bad file descriptor` before any `y` was delivered. Post-failure read-only proof shows no destructive mutation began and the accepted candidate remains coherent MANAGED.
+Task 147 proved the real operator-facing lifecycle:
 
-No product/source defect is established by that harness failure.
+- qualified non-PTY confirmation harness;
+- one `cnxclaw.cmd uninstall` + one `y`, exit `0`;
+- product-owned cleanup reached CNX-absent/native-OpenClaw healthy state;
+- one normal fresh install from exact accepted SHA, exit `0`;
+- new canonical MANAGED installation with fresh zero-row durable DB;
+- Dashboard semantic Sends `0`.
 
-Accepted implementation/deployment source remains:
+Accepted production implementation remains:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
 
-## Task-147 execution contract
+## Task-148 execution contract
 
-1. Fresh remote authority and read-only live-state recheck.
-2. Qualify the exact redirected-stdin child-process plumbing using a harmless Python `input()` child; it must receive exactly `y`, capture output/error and exit `0`.
-3. If harness qualification fails: stop `BLOCKED_HARNESS`; do not invoke uninstall.
-4. If qualified: invoke installed `cnxclaw.cmd uninstall` exactly once, write exactly one `y` line, close stdin and capture real exit/output.
-5. On uninstall failure: stop, no retry/cleanup/fresh install.
-6. On exit `0`: wait only for product-owned deferred cleanup and prove clean CNX-absent/native-OpenClaw/Ollama-healthy state.
-7. Only then perform exactly one normal fresh `scripts/install.ps1` from exact accepted source.
-8. On fresh-install failure: stop, no retry/manual repair.
-9. On success: prove exact candidate provenance, new ownership, singular canonical plugin, MANAGED runtime health, genuinely fresh durable database, pending `0`, Dashboard Sends `0`.
+Before reset, re-prove live state read-only and capture durable DB/controller creation-time/file-identity evidence plus installed program/plugin hashes.
+
+Qualify redirected stdin again with a harmless `input()` child. Only then invoke installed `cnxclaw.cmd reset` exactly once with exactly one lowercase `y` line.
+
+If reset fails, stop with no retry or repair.
+
+If reset succeeds, prove:
+
+- CNX state/durable DB was recreated using changed file identity and/or creation-time evidence;
+- launcher, skill and canonical plugin remain installed;
+- plugin fingerprint/helper hash remain exact accepted candidate;
+- ownership verify passes;
+- controller is fresh MANAGED with Ollama selected/running;
+- Gateway/Ollama/recovery/delivery/SQLite healthy, pending `0`;
+- semantic counts `0`;
+- no install/uninstall occurred;
+- Dashboard semantic Sends `0`.
 
 ## Required completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-147-redirected-stdin-product-uninstall-and-fresh-reinstall-retry.md`
+`docs/operations/coordination/reports/CNX-20260830-148-product-reset-fresh-state-acceptance.md`
 
 Then stop for independent ChatGPT review.
 
 ## Hard fence
 
-No Dashboard semantic Send/resend; no reset; no crash/recovery injection; no manual semantic/database mutation; no manual plugin lifecycle or CNX live-file cleanup; no clean-reinstall helper; no second uninstall; no fresh-install retry; no manual controller/ownership normalization; no unrelated process/service/task mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No Dashboard semantic Send/resend; no Ticket/workflow/outbox/delivery/recovery semantic mutation; no uninstall/install/reinstall; no manual state deletion; no manual plugin/controller/ownership normalization; no reset retry; no crash/recovery injection; no unrelated process/service/task mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
