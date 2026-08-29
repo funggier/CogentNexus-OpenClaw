@@ -1,90 +1,98 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
+**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 127 authorizes repository/source TDD repair only  
+**Human authority:** operator authorized continued stabilization; Task 128 grants one new repaired-harness real-Windows recovery-suite execution only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`](tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md)
+[`tasks/CNX-20260829-128-v093-real-windows-recovery-reacceptance.md`](tasks/CNX-20260829-128-v093-real-windows-recovery-reacceptance.md)
 
 Task ID:
 
-`CNX-20260829-127`
+`CNX-20260829-128`
 
-## Task 126 independent review
+## Task 127 accepted candidate
 
-Task-126 report:
+Independent review:
 
-`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
-
-Review:
-
-`docs/operations/coordination/reviews/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof-review.md`
 
 Verdict:
 
-`REJECTED CANDIDATE ADVANCEMENT — ROOT-CAUSE CLASSIFICATION IS ACCEPTED, BUT THE HARNESS REPAIR IS NOT YET FAIL-CLOSED OR BEHAVIORALLY PROVEN, AND THE AFFECTED RECOVERY-SPECIFIC SMOKE DID NOT RUN ON THE EXACT CANDIDATE SHA.`
+`ACCEPTED PASS — RECOVERY HARNESS CONTRACT IS BEHAVIORALLY EXERCISED THROUGH THE REAL POWERSHELL ENTRYPOINT, THE PROVIDER-WARNING EXCEPTION IS FAIL-CLOSED, THE DEDICATED RECOVERY V3 SMOKE PASSES ON THE EXACT CANDIDATE SHA, AND THE REPAIRED CANDIDATE MAY ADVANCE TO A NEW, SEPARATELY AUTHORIZED REAL-WINDOWS RECOVERY ACCEPTANCE.`
 
-Accepted root-cause facts:
+Exact source candidate:
 
-- retained Task-125 convergence series showed coherent recovered provider/Gateway state;
-- recovery verdict stayed `READY_WITH_WARNINGS` only because the provider incident intentionally remained open pending stable model-success evidence;
-- provider recovery policy is correct and must not be weakened;
-- the repair belongs to the acceptance harness.
+`1b922bf400fdbccb1f9c7019b89b69fd67f44070`
 
-Rejected candidate:
+Exact harness:
 
-`69a3efa1feb7711f22c83055a8571035240ec81c`
+- `scripts/test-v093-ollama-recovery-windows-v3.ps1`
+- Git blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`
 
-Confirmed exact-SHA successes on that rejected candidate:
+Exact package proof:
 
-- Validate `33223319908` — success;
-- Windows Installer Pack Smoke `33223319175` — success;
-- PS5.1 Acceptance Smoke `33223319261` — success.
+- artifact ID `9706878201`
+- artifact digest `sha256:c5dcbda0858a08362daa3218c2912ddd4a36c259e61a05be28d7b1d4114b104c`
+- payload file count `178`
+- payload fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+- tar.gz `9a4634e41d21271b92d0c6ce69f4931bca11455808a9e1b8567e48db85bb432d`
+- ZIP `526ca264db77b960d2d81d3f6cf7c100e8c45f2d6243eaab00801da9ee293c3e`
 
-GitHub showed only those three runs for the SHA; the dedicated `PS5.1 v0.9.3 Ollama Recovery V3 Smoke` did not run.
+Exact-SHA workflows:
 
-## Task 127 requirements
+- Validate `33226001453` — success;
+- PS5.1 Recovery V3 Smoke `33226001456` — success;
+- PS5.1 Acceptance Smoke `33226001472` — success;
+- Windows Installer Pack Smoke `33226001471` — success.
 
-1. Add a true behavioral RED that invokes harness-owned convergence logic, not a test-local duplicate or source-text grep.
-2. Refactor minimally so `Wait-DurableConvergence` and the non-disruptive self-test share one harness-owned predicate.
-3. Allow `READY_WITH_WARNINGS` only on provider-crash convergence when the sole WARN is exactly the expected open/circuit-closed `Provider recovery incident`; reject any additional/unrelated warning.
-4. Keep ordinary/gateway/operator convergence strict `READY`.
-5. Add/adjust the recovery-v3 workflow so direct-push candidate changes produce an exact-SHA recovery smoke run.
-6. Make that smoke execute the real non-disruptive convergence contract self-test, not only parse/grep source.
-7. Require full GREEN, four exact-SHA workflow successes, and fresh package proof.
-8. Publish the Task-127 report and stop for independent review.
+## Task 128 scope
 
-## Consumed live-operation ledger
+Task 128 is live recovery re-acceptance only. It does not authorize reinstalling or replaying the already-passed lifecycle phases.
 
-Do not replay during Task 127:
+Before disruption:
+
+- fresh-check Task 128 authority;
+- prove the accepted candidate does not require installed runtime redeployment;
+- use an isolated exact-candidate harness copy and verify its blob/provenance;
+- perform deterministic read-only runtime/ownership/OpenClaw/Ollama/SQLite/service preflight;
+- stop BLOCKED if the current live state is not already safe.
+
+Then, in a true interactive PowerShell TTY, run exactly one repaired-harness suite with `-Scenario all -RunDisruptive`. Enter exactly one lowercase `y` only after the exact confirmation prompt appears.
+
+The suite may exercise only its reviewed baseline, gateway-crash, provider-crash, and operator-stop sequence. No scenario or suite rerun is allowed after launch.
+
+After a PASS/exit 0, collect a final read-only snapshot. No standalone lifecycle command may be used to repair the final state.
+
+## Historical consumed ledger
+
+Outside the new Task-128 repaired-harness suite, these remain consumed/forbidden:
 
 - install-over `1 / 1`;
 - reset `1 / 1`;
 - uninstall `1 / 1`;
 - fresh reinstall `1 / 1`;
-- stop `1 / 1`;
-- start `1 / 1`;
-- restart `1 / 1`;
-- Task-125 recovery suite `1 / 1`;
-- gateway-crash `1 / 1 PASS`;
-- provider-crash `1 / 1 old-harness convergence FAIL`;
-- operator-stop `0`, not reached.
+- standalone stop `1 / 1`;
+- standalone start `1 / 1`;
+- standalone restart `1 / 1`;
+- Task-125 old-harness recovery suite `1 / 1`;
+- Task-125 gateway-crash `1 / 1 PASS`;
+- Task-125 provider-crash `1 / 1 old-harness convergence FAIL`.
 
 ## Prohibited
 
-No live provider crash/recovery replay, lifecycle mutation, provider/OpenClaw live mutation, process kill/reboot, manual cleanup/normalization, credential/secret access, Dashboard semantic Send, merge/tag/release, or force push.
+No install/install-over/reset/uninstall/reinstall, no standalone lifecycle outside the exact suite, no source/harness edits, no alternate/piped/synthetic confirmation, no provider/OpenClaw/config/model mutation, no manual cleanup/normalization, no reboot, no generic process-tree kill, no credential/secret access, no Dashboard semantic Send, no merge/tag/release, and no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`
+`docs/operations/coordination/reports/CNX-20260829-128-v093-real-windows-recovery-reacceptance.md`
 
-Then stop for independent ChatGPT review. Do not automatically open a live Windows acceptance task.
+Then stop for independent ChatGPT review. Final Dashboard durable-delivery acceptance remains unopened and prohibited.
