@@ -2,7 +2,7 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_SINGLE_ATTEMPT`
-Executor: Hermes/Codex with explicit operator manual-focus/Send gates
+Executor: Hermes/Codex using `control-mouse-keyboard-use-desktop` first, with operator fallback only when needed
 
 ## Objective
 
@@ -29,6 +29,30 @@ Expected installed `namespace_ownership.py` SHA-256:
 `10dda985e6d4553a73a8cdd3ef7f660937482c3ef0c2d2da8d15bcbfe8d39b66`
 
 Task 150 ended in healthy `managed` state with semantic database counts zero and Dashboard semantic Send count zero. Re-verify; do not assume.
+
+## Desktop-control policy for this task
+
+Before asking the operator to click, focus, type, paste, or activate a normal desktop control, Hermes/Codex must first load/read and follow the skill named:
+
+`control-mouse-keyboard-use-desktop`
+
+Use that skill as the primary procedure for desktop targeting and input verification.
+
+Default rule:
+
+1. identify the exact Firefox Dashboard window/control;
+2. use the skill-guided mouse/keyboard procedure;
+3. verify the expected UI effect immediately;
+4. only if the action was correctly targeted/executed but the expected non-semantic UI effect still did not occur, or the skill cannot establish a reliable target, ask the operator to perform that specific action.
+
+Do not ask the operator merely because desktop automation is inconvenient.
+
+For non-semantic focus/composer actions, a failed correctly targeted skill-guided action may fall back to the operator.
+
+For the semantic **Send** boundary, duplicate prevention is stricter:
+
+- if the executor has **not yet activated Send** and cannot establish a trustworthy Send target, it may ask the operator to activate Send once;
+- if the executor has already activated/clicked Send and the result is ambiguous, the Send budget is treated as consumed/ambiguous: **do not ask the operator to click Send again**; stop and classify the result rather than risking duplicate delivery.
 
 ## Phase A — fresh authority and read-only preflight
 
@@ -64,26 +88,28 @@ Before any browser semantic input:
 
 If any preflight state is ambiguous, active work exists, the session is not fresh/empty, ownership/provenance drifts, or the exact browser target cannot be proven: verdict `BLOCKED` and stop before semantic input.
 
-## Phase B — manual input-target proof
+## Phase B — skill-first input-target proof
 
-This is an explicit manual operator gate.
+This gate is **desktop-control first**, not operator-first.
 
 1. Executor identifies and describes the exact Firefox Dashboard window and exact `Message Assistant` composer.
 2. Executor proves the target Firefox HWND is foreground.
-3. Executor instructs the operator to **click the exact `Message Assistant` composer once with the real mouse**.
-4. Operator must not click another window afterward.
-5. Executor re-verifies exact foreground HWND/session/composer.
-6. After that real-mouse click, **no automation click is allowed on the composer**.
+3. Executor loads/uses `control-mouse-keyboard-use-desktop` and performs one controlled skill-guided focus action on the exact composer.
+4. Executor verifies the expected focus/composer effect.
+5. If the skill-guided action was correctly targeted but the composer still did not receive focus, or reliable focus cannot be proven, then and only then ask the operator to click the exact composer once with the real mouse.
+6. After any operator fallback click, the operator must not click another window and the executor re-verifies exact foreground HWND/session/composer.
+7. Do not perform blind repeated clicks.
 
 An optional non-sent focus sentinel is authorized only if needed to prove typing target. If used:
 
 - generate a fresh non-semantic sentinel;
+- use the skill-guided typing procedure first;
 - type it without Enter/Send;
 - visually verify it appears exactly once in the intended composer;
 - clear it completely without Enter/Send;
 - prove durable semantic DB counts did not change.
 
-If focus cannot be proven safely, verdict `BLOCKED` and stop with Send count `0`.
+If focus cannot be proven safely after the skill-first attempt and any necessary operator fallback, verdict `BLOCKED` and stop with Send count `0`.
 
 ## Phase C — fresh nonce and exact composer proof
 
@@ -97,7 +123,7 @@ Only after Phase A/B pass:
 CogentNexus final durable-delivery acceptance <NONCE>. Reply with exactly: ACK <NONCE>
 ```
 
-4. Put exactly one complete copy into the composer. Clipboard paste is allowed after focus has been manually established.
+4. Put exactly one complete copy into the composer using the `control-mouse-keyboard-use-desktop` procedure first. Clipboard paste is allowed after focus is proven.
 5. Before Send, visually verify:
    - composer contains exactly one complete intended message;
    - no stale/partial/duplicated draft remains;
@@ -109,16 +135,18 @@ If exact composition cannot be proven, clear without Send and stop `BLOCKED`. Th
 
 ## Phase D — exactly one Dashboard Send
 
-This is the second explicit manual operator gate.
+This is the single semantic side-effect boundary.
 
-When and only when the executor has verified the exact prompt and explicitly states Send is authorized:
+When and only when the executor has verified the exact prompt and explicitly marked Send as authorized:
 
-1. Operator manually activates the real Dashboard **Send message** control exactly once.
-2. Record a durable execution ledger immediately:
-   - Send budget `1 / 1 consumed`;
+1. Prefer the `control-mouse-keyboard-use-desktop` skill to target and activate the exact real Dashboard **Send message** control once.
+2. If, **before any Send activation**, the executor cannot establish a trustworthy Send target or cannot safely perform the activation with the skill, ask the operator to activate the exact Send control once.
+3. Immediately record a durable execution ledger:
+   - Send budget `1 / 1 consumed` after activation;
    - nonce retired permanently;
    - no resend authorized.
-3. After Send:
+4. If a skill-guided Send click/activation has already occurred but the UI result is ambiguous, do **not** ask the operator to Send again. Treat the semantic attempt as consumed/ambiguous and proceed only with read-only observation/classification.
+5. After Send:
    - no second Send;
    - no Enter-to-resubmit;
    - no editing/resubmission;
@@ -218,6 +246,7 @@ Report must include:
 - exact GitHub authority/installed provenance;
 - preflight/baseline counts;
 - Firefox/session/focus proof without secrets;
+- whether each UI action used `control-mouse-keyboard-use-desktop` or operator fallback and why;
 - fresh nonce and exact prompt form;
 - Send ledger `1 / 1` or pre-send `0 / 1` if BLOCKED;
 - Ticket/model/delivery durable timeline;

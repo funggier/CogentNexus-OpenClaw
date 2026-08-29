@@ -6,7 +6,7 @@ Current authorization: `CNX-20260830-151_FINAL_DASHBOARD_DURABLE_DELIVERY_ACCEPT
 Task ID: `CNX-20260830-151`
 Updated: 2026-08-30 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex with explicit operator manual gates
+Executor: Hermes/Codex using `control-mouse-keyboard-use-desktop` first; operator fallback only when needed
 
 ## Authoritative coordination files
 
@@ -35,8 +35,6 @@ Independent review:
 
 Review disposition: **ACCEPT**.
 
-Task 150 proved the installed operator runtime sequence `stop → start → restart → disable → enable` exactly once each with correct maintenance/managed/passthrough semantics, real Gateway process boundary, healthy final MANAGED Ollama state, unchanged accepted provenance, SQLite integrity, semantic rows `0`, pending `0`, and Dashboard Sends `0`.
-
 Accepted production implementation remains:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
@@ -45,17 +43,17 @@ Expected installed plugin fingerprint remains:
 
 `12c6d1b5b6ffd938353dd60c5d6190c34a609663369f619ff4fc7cbd176119e0`
 
-## Task-151 execution contract
+## Task-151 desktop-control contract
 
 This task is single-attempt.
 
+Hermes/Codex must load/read and use the skill `control-mouse-keyboard-use-desktop` as the primary procedure for Firefox targeting, composer focus, typing/paste verification, and Send targeting before asking the operator to act.
+
+For non-semantic desktop actions, ask the operator only after a correctly targeted skill-guided action produces no expected UI effect or a reliable target cannot be established.
+
+For Send, duplicate prevention is stricter: if Send has not yet been activated and the target cannot be established safely, operator fallback is allowed once. If a Send click/activation has already occurred and the result is ambiguous, do not ask the operator to Send again; treat the semantic budget as consumed/ambiguous and continue only with read-only observation/classification.
+
 Before semantic input, re-prove fresh GitHub authority, accepted installed provenance, healthy MANAGED Gateway/Ollama/recovery/delivery/SQLite state, zero unexplained active work, exact baseline counts, authenticated Firefox Dashboard, exact fresh/empty target session, empty composer, and freshly rediscovered exact PID/HWND.
-
-Manual gates are mandatory:
-
-1. operator manually clicks the exact `Message Assistant` composer once with the real mouse;
-2. executor re-verifies focus/session/composer and exact prompt;
-3. only after explicit executor authorization does operator manually activate Send exactly once.
 
 After the one Send, no second Send/resend/alternate semantic channel is authorized. All further work is observation/read-only.
 

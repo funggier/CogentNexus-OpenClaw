@@ -4,8 +4,8 @@
 **Execution mode:** `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_SINGLE_ATTEMPT`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 150 is independently ACCEPTed and the Full Stabilization plan now requires the final Phase-P Dashboard semantic/durable-delivery proof  
-**Execution trigger:** manual Hermes/Codex continuation with explicit operator real-mouse gates; scheduled execution remains disabled
+**Human authority:** operator requested continuation and changed the UI-control policy: Hermes must use `control-mouse-keyboard-use-desktop` first and ask the operator only when skill-guided control cannot produce/prove the required non-semantic UI effect, with stricter no-duplicate handling at Send  
+**Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
@@ -29,8 +29,6 @@ Independent review:
 
 Disposition: **ACCEPT**.
 
-Task 150 proved all normal operator runtime transitions exactly once and ended in healthy MANAGED Ollama state with accepted provenance unchanged, SQLite integrity `ok`, semantic rows `0`, pending `0`, and Dashboard semantic Sends `0`.
-
 Accepted production implementation SHA remains:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
@@ -41,13 +39,31 @@ The approved Full Stabilization plan orders the final live stages:
 
 `M clean uninstall → N fresh install → O lifecycle → P final Dashboard semantic/durable delivery → Q final acceptance matrix`.
 
-Tasks 145–150 have supplied the required installer/lifecycle/reset/runtime evidence. There is no additional reboot/crash gate inserted before Phase P.
+Task 151 is the Phase-P single semantic attempt.
 
-## Task-151 authority
+## Desktop-control-first policy
 
-Task 151 is one semantic attempt only.
+Hermes/Codex must load/read and follow the skill:
 
-Preflight must prove fresh exact Firefox/session/composer identity, healthy MANAGED runtime, read-only database baseline and exact accepted installed provenance. The operator must manually click the real composer once; after focus re-verification, the executor prepares one fresh nonce prompt. The operator manually activates Send only after the executor verifies the exact prompt and explicitly authorizes Send.
+`control-mouse-keyboard-use-desktop`
+
+before asking the operator to click/focus/type/paste or activate a normal desktop control.
+
+For composer/focus/pre-send actions:
+
+- identify the exact Firefox Dashboard control;
+- perform the skill-guided action;
+- verify the expected UI effect;
+- only if the correctly targeted action has no effect, or a reliable target cannot be established, request the specific operator action.
+
+For Send:
+
+- if no Send activation has occurred and a trustworthy target cannot be established, operator fallback for one Send is allowed;
+- if a Send activation/click has already occurred and its effect is ambiguous, do not request another Send. Treat the single-attempt budget as consumed/ambiguous and observe/classify read-only.
+
+No blind repeated desktop clicks are authorized.
+
+## Task-151 durable authority
 
 The Send budget is exactly `1 / 1`. Once consumed, the nonce is permanently retired and no resend/alternate semantic route is authorized.
 
@@ -72,6 +88,8 @@ If the visible ACK appears but durable capture/settlement is absent, the result 
 Hermes/Codex must publish exactly:
 
 `docs/operations/coordination/reports/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`
+
+The report must state which UI actions were skill-driven versus operator fallback and why.
 
 Then stop for independent ChatGPT review. Phase Q, merge, tag, release and promotion remain unauthorized until that review.
 
