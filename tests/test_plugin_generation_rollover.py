@@ -139,12 +139,38 @@ def rollover_layout(tmp_path: Path) -> dict[str, Path | dict]:
 
 def build_plan(paths: dict[str, Path | dict], *, token: str = "reviewed-test") -> dict:
     return ownership.build_plugin_rollover_plan(
-        root=paths["root"],
-        workspace=paths["workspace"],
-        application_data=paths["app_data"],
-        plugin_inventory=paths["inventory"],
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"], plugin_inventory=paths["inventory"],
         backup_token=token,
     )
+
+
+def _direct_retired_generation_layout(tmp_path: Path) -> dict[str, Path | dict]:
+    paths = rollover_layout(tmp_path)
+    direct = paths["openclaw_state"] / "extensions" / ownership.PRODUCT_ID
+    shutil.copytree(paths["old_plugin"], direct)
+    shutil.rmtree(paths["old_project"])
+    manifest = ownership.build_manifest(
+        root=paths["root"], workspace=paths["workspace"], skill=paths["workspace"] / "skills" / ownership.PRODUCT_ID,
+        plugin_path=direct, launcher=paths["workspace"] / "cnxclaw.cmd", version=ownership.INSTALLED_VERSION,
+    )
+    ownership.write_manifest(paths["root"], manifest)
+    paths["old_plugin"] = direct
+    return paths
+
+
+def test_prepare_accepts_supported_direct_retired_plugin_before_npm_replacement(tmp_path: Path):
+    paths = _direct_retired_generation_layout(tmp_path)
+
+    transaction = ownership.prepare_plugin_rollover_transaction(
+        root=paths["root"], workspace=paths["workspace"],
+        application_data=paths["app_data"], expected_replacement_fingerprint="0" * 64,
+        backup_token="direct-retired-generation",
+    )
+
+    assert Path(transaction["retiredProjectRoot"]) == paths["old_plugin"].resolve()
+    assert Path(transaction["backupPath"]).is_dir()
+    assert ownership._project_tree_sha256(Path(transaction["backupPath"])) == transaction["backupProjectTreeSha256"]
 
 
 def test_interrupted_rollover_reentry_classifies_exact_active_replacement(tmp_path: Path):

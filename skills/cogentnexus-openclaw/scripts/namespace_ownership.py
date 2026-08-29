@@ -758,6 +758,15 @@ def _npm_project_for_plugin(plugin_path: Path, openclaw_state: Path) -> Path:
     return project
 
 
+def _retired_storage_root(plugin_path: Path, openclaw_state: Path) -> Path:
+    """Return the owned generation root for direct or managed plugin storage."""
+    direct_root = (openclaw_state / "extensions" / PRODUCT_ID).resolve(strict=False)
+    resolved_plugin = plugin_path.resolve(strict=False)
+    if resolved_plugin == direct_root:
+        return resolved_plugin
+    return _npm_project_for_plugin(resolved_plugin, openclaw_state)
+
+
 def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: Path) -> dict[str, Any]:
     if not isinstance(plugin_inventory, dict) or not isinstance(plugin_inventory.get("plugins"), list):
         raise RuntimeError("OpenClaw plugin inventory JSON has no plugins array")
@@ -867,7 +876,7 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")
     if not backup_token or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in backup_token):
         raise RuntimeError("rollover backup token contains unsafe characters")
-    retired_project = _npm_project_for_plugin(retired_root, paths["openclawState"])
+    retired_project = _retired_storage_root(retired_root, paths["openclawState"])
     backup_path = (application_data / "plugin-generation-rollover-backups" /
                    f"{retired_project.name}-{backup_token}").resolve(strict=False)
     backup_root = (application_data / "plugin-generation-rollover-backups").resolve(strict=False)
