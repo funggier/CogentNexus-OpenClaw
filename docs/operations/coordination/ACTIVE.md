@@ -89,6 +89,27 @@ Then trace the owning state machine/check logic, write a focused RED regression 
 
 Do not merely increase the recovery timeout unless the retained evidence proves the timeout alone is wrong.
 
+## Independent static trace — mandatory hypothesis check
+
+Before Task 126 was executed, the owner performed a repository-only static trace and recorded it here:
+
+`docs/operations/coordination/notes/CNX-20260829-126-static-contract-trace.md`
+
+This note is `NON_AUTHORITATIVE_HYPOTHESIS`, not evidence replacement.
+
+It proves a contract tension that the retained Task-125 observation series must explicitly confirm or disprove:
+
+- provider recovery policy keeps an incident open until stable model completion or a verified operator transition closes it;
+- an open provider incident is reported by `check recovery` as WARN, which aggregates to `READY_WITH_WARNINGS`;
+- `Wait-DurableConvergence` nevertheless requires recovery verdict exactly `READY`;
+- the provider-crash scenario sets `RequireProviderIncident=true` but does not create a stable model completion before waiting for convergence.
+
+If the retained 420-second evidence shows healthy Gateway/Ollama listeners, coherent Ollama selection, adapter `expected == false`, circuit closed, and only an intentionally open incident keeping verdict at `READY_WITH_WARNINGS`, classify the defect as an acceptance-harness contract mismatch. Write RED against that harness behavior and repair the harness layer only.
+
+Do **not** weaken recovery policy by equating process/listener health with stable model success.
+
+If the retained evidence shows any actual provider/supervisor/state/check inconsistency beyond the intentionally open incident, repair that owning product layer instead.
+
 ## Hard fence
 
 Task 126 does not authorize:
