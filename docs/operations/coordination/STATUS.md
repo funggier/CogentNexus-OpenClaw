@@ -1,96 +1,119 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
+**Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 131 grants one new exact repaired-harness real-Windows recovery-suite execution only  
+**Human authority:** operator authorized continued stabilization; Task 132 authorizes repository/source/test/CI/package repair only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`](tasks/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md)
+[`tasks/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md`](tasks/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md)
 
 Task ID:
 
-`CNX-20260829-131`
+`CNX-20260829-132`
 
-## Task 129/130 accepted forensic closure
+## Task 131 accepted live result
 
-Task-130 report:
+Report:
 
-`docs/operations/coordination/reports/CNX-20260829-130-task129-readonly-evidence-publication-closeout.md`
+`docs/operations/coordination/reports/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-130-task129-readonly-evidence-publication-closeout-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root-review.md`
 
-Accepted result:
+Accepted classification:
 
-- Task 128's `passthrough` / null-provider / missing-SQLite preflight was a false blocker caused by using `--root C:\Users\CDQ-P\.openclaw\workspace`;
-- installed launcher authority is `C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd`;
-- that launcher explicitly uses `C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw` as state root;
-- direct installed-launcher probes show `managed`, provider `ollama`, recovery `READY`;
-- authoritative SQLite exists below that root and read-only `PRAGMA integrity_check` is `ok`;
-- Supervisor task independently references the same installed state root;
-- no authoritative managed-state drift was accepted.
+- authoritative-root preflight PASS;
+- baseline PASS;
+- gateway-crash PASS;
+- provider-crash PASS under the fail-closed provider incident exception;
+- operator-stop not reached;
+- full suite FAIL at `operator-before` because the just-accepted provider incident intentionally remained open and therefore recovery was `READY_WITH_WARNINGS`, while `Assert-Baseline` requires strict `READY`;
+- this boundary is a harness sequencing contradiction, not a new provider-recovery runtime failure.
 
-Classification:
+Task-131 suite ledger is consumed `1 / 1` and must not be replayed.
 
-`LAUNCHER_OR_ROOT_MISMATCH` + `SQLITE_PATH_OR_STATUS_PROBE_DEFECT` limited to Task-128 preflight.
+## Why Task 132 is repository-only
 
-## Accepted candidate
+The provider recovery policy deliberately closes incidents only on stable model success or a verified manual transition. A successful automatic provider restart does not prove stable model completion and does not close the incident.
 
-Task-127 candidate remains:
+Task 131 showed the repaired provider-crash convergence contract working as designed: the provider listener returned, circuit remained closed, and the only recovery warning was the expected open provider incident. The next suite scenario then rejected that same state before it could exercise operator-stop.
 
-`1b922bf400fdbccb1f9c7019b89b69fd67f44070`
+Therefore Task 132 repairs only the harness scenario boundary.
 
-Exact repaired recovery harness:
+## Required sequencing contract
+
+Standalone `operator-stop` remains strict `READY`.
+
+If `operator-stop` immediately follows a provider-crash PASS in the same harness process, the pre-operator gate may accept the carried prior incident only when:
+
+- exact same incident ID;
+- one incident row only;
+- status WARN;
+- `incidentOpen=true`;
+- `circuitOpen=false`;
+- recovery verdict `READY_WITH_WARNINGS`;
+- exactly one WARN total, the provider incident;
+- all other checks PASS;
+- provider event adapter exactly one PASS row with `expected=false`;
+- managed mode and Ollama selected in both host/provider views;
+- Gateway and Ollama listeners healthy.
+
+Reject standalone/stale/different/missing/duplicate incident, extra warning, circuit-open, FAIL/INDETERMINATE, adapter mismatch, listener loss, provider mismatch, or non-managed state.
+
+Do not manufacture model completion or lifecycle normalization before operator-stop. Existing harness-owned stop/start behavior remains the operation under test, and post-start convergence remains strict `READY`.
+
+## TDD / validation gate
+
+Before modifying the harness:
+
+- behavioral RED must execute the real PowerShell 5.1 harness `-ContractSelfTest` path and reproduce the Task-131 provider→operator sequence rejection;
+- grep/source-text assertions and duplicated Python predicates do not satisfy RED.
+
+Then require focused GREEN, full Python, PowerShell parse/self-test, plugin/evaluation/audit gates, `git diff --check`, dedicated exact-SHA PS5.1 Recovery V3 Smoke, established candidate workflows, and fresh package proof.
+
+Relevant current files:
 
 - `scripts/test-v093-ollama-recovery-windows-v3.ps1`;
-- Git blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`.
+- `tests/test_recovery_harness_contract.py`;
+- `.github/workflows/v093-ollama-recovery-v3-smoke.yml`.
 
-Package proof:
+Previous candidate/harness are historical baseline only:
 
-- artifact `9706878201`;
-- digest `sha256:c5dcbda0858a08362daa3218c2912ddd4a36c259e61a05be28d7b1d4114b104c`;
-- payload count `178`;
-- fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
+- source `1b922bf400fdbccb1f9c7019b89b69fd67f44070`;
+- harness blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`.
 
-## Task 131 corrected preflight requirement
+Task 132 must produce a new exact candidate and harness blob.
 
-Before any disruption, all authoritative CNX preflight commands must be invoked through the explicit installed launcher path. The executor must freshly parse that launcher's owned Python, installed CLI, explicit `.cogentnexus-openclaw` root, and `%*` forwarding.
+## Historical live ledger
 
-The workspace parent must never be substituted as controller root.
+Consumed/closed:
 
-Require a fresh already-safe baseline: managed/Ollama/recovery `READY`, ownership/fingerprint exact, OpenClaw exact, one current plugin, Gateway/Ollama healthy, and authoritative SQLite read-only integrity exactly `ok`. If unsafe, stop BLOCKED without lifecycle repair or normalization.
+- install-over `1 / 1`;
+- Task-124 reset/uninstall/fresh reinstall/standalone stop/start/restart `1 / 1` each;
+- Task-125 old-harness recovery suite `1 / 1`;
+- Task-128 suite `0 / 1`, closed blocked;
+- Task-131 suite `1 / 1` consumed;
+- Task-131 gateway-crash PASS;
+- Task-131 provider-crash PASS;
+- Task-131 operator-stop `0`.
 
-If safe, run exactly one repaired-harness suite in a true interactive PowerShell PTY:
-
-`-Scenario all -RunDisruptive`
-
-Enter exactly one lowercase `y` only after `Type y to continue:` appears. No suite/scenario rerun is permitted once launched.
-
-## Ledger
-
-Historical operations remain consumed. Task 128 closed with suite `0 / 1 launched`.
-
-Task 131 creates a new one-shot ledger:
-
-- repaired-harness suite: maximum `1 / 1`;
-- confirmation: maximum one lowercase `y` after prompt;
-- baseline/gateway-crash/provider-crash/operator-stop only inside the exact harness.
+Task 132 authorizes **zero live lifecycle/recovery operations**.
 
 ## Prohibited
 
-No install/install-over/reset/uninstall/reinstall, no standalone lifecycle outside the exact harness, no source/harness edits, no alternate confirmation, no provider/OpenClaw/model/config mutation, no manual cleanup/normalization, no reboot, no generic process-tree kill, no credentials/secrets, no Dashboard semantic Send, no merge/tag/release, and no force push.
+No live recovery suite/crash injection, install/install-over/reset/uninstall/reinstall, live start/stop/restart/enable/disable, provider/OpenClaw/model/config mutation, process kill, task/service mutation, cleanup/normalization, reboot, credential/secret access, Dashboard semantic Send, merge/tag/release, or force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`
+`docs/operations/coordination/reports/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md`
 
-Then stop for independent ChatGPT review. Dashboard durable-delivery acceptance remains unopened and prohibited.
+Then stop for independent ChatGPT review. Final Dashboard durable-delivery acceptance remains unopened and prohibited.
