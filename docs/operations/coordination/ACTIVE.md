@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_DASHBOARD_DURABLE_DELIVERY_REACCEPTANCE_ONLY`
-Current authorization: `CNX-20260829-137_FINAL_DASHBOARD_DURABLE_DELIVERY_REACCEPTANCE`
-Task ID: `CNX-20260829-137`
+Execution mode: `OFFLINE_SOURCE_TDD_DIAGNOSIS_AND_REPAIR_ONLY`
+Current authorization: `CNX-20260829-138_DASHBOARD_DIRECT_RESULT_DURABLE_CAPTURE_REPAIR`
+Task ID: `CNX-20260829-138`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,71 +19,65 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`](tasks/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md)
+[`tasks/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md`](tasks/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md)
 
-Task 137 is one new clean real-Dashboard durable-delivery re-acceptance. It does not repair production source. It preserves Task-136 history and creates a fresh semantic ledger with one new nonce and maximum one new Dashboard submission activation.
+Task 138 is an offline source TDD diagnosis-and-repair task for the clean Task-137 Dashboard direct-result durable-capture failure. It does not authorize another live Dashboard semantic Send or any live Windows runtime mutation.
 
-## Task-136 disposition
+## Task-137 disposition
 
-Task-136 report:
+Task-137 report:
 
-`docs/operations/coordination/reports/CNX-20260829-136-final-dashboard-durable-delivery-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-136-final-dashboard-durable-delivery-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance-review.md`
 
-Task 136 is accepted as an acceptance FAIL but invalidated for product-root-cause conclusions because the run contained:
+Task 137 is independently **ACCEPTED as a clean `FAIL_PRODUCT_OR_RUNTIME`**. It proved one exact Dashboard Send, Ticket-first admission, one completed direct model call, an exact visible ACK, durable `response_ready`, then terminal `failed` plus `failure_delivery_suppressed` because the final payload was not durably captured.
 
-- one accidentally interrupted Hermes execution disclosed by the operator;
-- a Dashboard composer/user-bubble duplication anomaly;
-- a written 10-minute observation bound shorter than the run's own approximately 14m10s model call and shorter than known local `qwen3.5:9b` first-response behavior.
+The Task-137 Send ledger is permanently consumed `1 / 1`. Its nonce/Ticket must never be resent, retried, deleted, cleaned, or normalized.
 
-Task-136 Send ledger remains consumed `1 / 1`; its nonce/Ticket must never be resent, deleted, retried, cleaned, or normalized.
+The defect class is confirmed at the Dashboard direct final-payload durable capture / delivery-verification boundary. The exact source-level root cause remains unproven until Task 138 obtains a deterministic offline RED reproducer.
 
-## Accepted candidate
+## Accepted baseline before repair
 
-Accepted source candidate:
+Accepted source candidate before Task 138:
 
 `1424d6fbee2c458c8c30440616783d2fa1bc1201`
 
-Accepted installed payload/plugin fingerprint:
+Accepted installed payload/plugin fingerprint before Task 138:
 
 `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
 
-No production reinstall/source repair is authorized before Task 137.
+Branch history after the accepted candidate through the Task-137 report changed coordination documentation only; no production source drift was identified before Task 138 opened.
 
-## Task-137 execution contract
+## Task-138 execution contract
 
-Before Send, use the explicit installed launcher/root and a fresh read-only delta baseline. Historical Task-136 failed records are allowed and must remain intact; require no active/nonterminal/pending semantic work and require managed/Ollama, recovery READY, delivery READY, SQLite integrity `ok`, healthy Gateway/Ollama, exact plugin fingerprint, and unchanged accepted runtime identity.
+Task 138 must use TDD and the narrowest justified repair:
 
-Generate a fresh Task-137 nonce and prove it is absent from historical durable state.
+1. fresh-fetch authority and record exact starting HEAD;
+2. inspect the registered Dashboard delivery hook/callback path and existing tests;
+3. create a deterministic regression reproducer through the registered runtime delivery boundary;
+4. capture genuine **RED** evidence before editing production source;
+5. identify the exact source-level root cause from that reproducer rather than preselecting a hypothesis;
+6. apply the minimum production fix while preserving Ticket-first, session generation fencing, durable-before-transport, stable idempotency, exactly-once delivery semantics, and fail-closed duplicate prevention;
+7. obtain **GREEN** on the new regression, existing Dashboard verified-delivery and response-ready boundary tests, directly affected delivery/recovery tests, full plugin tests, build, plugin validation, and relevant CI;
+8. publish the exact Task-138 report and stop for independent ChatGPT review.
 
-In the real OpenClaw Dashboard composer:
-
-- clear stale draft text if needed;
-- compose exactly one intended Task-137 message;
-- verify immediately before Send that the full message is not duplicated;
-- perform exactly one deliberate Send activation;
-- consume the Task-137 ledger `1 / 1` immediately;
-- never resend or use alternate semantic transport.
-
-After Send, ordinary local-model slowness is not failure. Read-only observation is allowed up to **45 minutes from activation** unless a clear durable terminal result arrives earlier. Do not stop Hermes because the first response is slow.
-
-If Hermes/Codex is externally interrupted after Send, classify `INVALIDATED_AFTER_SEND`; do not call that product failure from this run alone and never resend. If interruption occurs before Send, classify `BLOCKED_BEFORE_SEND` with the ledger unconsumed.
-
-A clean PASS still requires exactly one new Ticket, Ticket-before-inference, one coherent execution/result/validator chain, requested ACK semantics, one durable delivered/acknowledged logical delivery, no duplicate external side effect, zero pending/nonterminal residue after success, and coherent final runtime/recovery/delivery/SQLite/model state.
+If a deterministic RED reproducer cannot be established, do not guess a source fix. Report `BLOCKED_DIAGNOSTIC_EVIDENCE_GAP` with the narrowest additional diagnostic recommendation.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md`
 
 Then stop for independent ChatGPT review.
 
-Do not merge, tag, create a GitHub Release, or automatically open release/finalization work.
+Do not automatically install the repaired candidate, retry the Dashboard acceptance, merge, tag, or create a GitHub Release.
 
 ## Hard fence
 
-Other than the one explicitly authorized Task-137 Dashboard semantic submission: no second Send/resend; no alternate semantic injection; no source/runtime/plugin edit; no install/install-over/reset/uninstall/reinstall; no start/stop/restart/enable/disable; no recovery/crash injection; no provider/model/OpenClaw/config mutation; no manual Ticket/workflow/outbox/ack/delivery mutation; no SQLite write/cleanup; no process kill; no task/service mutation; no normalization; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+Task 138 authorizes repository/source/test/CI work only.
+
+Forbidden: live Dashboard semantic Send/resend; Task-136/137 semantic reuse; alternate live semantic injection; install/install-over/reset/uninstall/reinstall; live start/stop/restart/enable/disable; recovery/crash injection; provider/model/OpenClaw/config mutation; manual Ticket/outbox/delivery/ack mutation; live SQLite cleanup/normalization/write; process kill; scheduled-task/service mutation; reboot; credentials/secrets; merge/tag/release; force push.

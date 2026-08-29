@@ -1,121 +1,101 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_DASHBOARD_DURABLE_DELIVERY_REACCEPTANCE_ONLY`  
+**Execution mode:** `OFFLINE_SOURCE_TDD_DIAGNOSIS_AND_REPAIR_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized one new clean Dashboard durable-delivery re-acceptance after disclosing an accidental Hermes interruption during Task 136  
+**Human authority:** operator requested continuation; Task 137 clean product/runtime failure has been independently reviewed and the narrowest offline repair task is authorized  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`](tasks/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md)
+[`tasks/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md`](tasks/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md)
 
 Task ID:
 
-`CNX-20260829-137`
+`CNX-20260829-138`
 
-## Task-136 closeout
+## Task-137 closeout
 
-Task 136 remains historical FAIL evidence. Its single Send ledger is permanently consumed and its failed Ticket must remain intact.
+Task-137 report:
+
+`docs/operations/coordination/reports/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-136-final-dashboard-durable-delivery-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance-review.md`
 
-The review accepts the failed acceptance outcome but rejects any product-root-cause conclusion from that run because causal evidence is contaminated by an accidental Hermes interruption and a duplicated Dashboard composer/user-bubble state. The report's statement that duplication caused `failure_delivery_suppressed` is not source-proven.
+Review disposition: **ACCEPT**.
 
-Task 136 also demonstrated that its written 10-minute observation limit was too short for the actual local-model path: the direct model call itself lasted about 14m10s, while the operator has separately observed `qwen3.5:9b` first-response latency around 20 minutes when used directly through Ollama.
+Task 137 is accepted as a clean `FAIL_PRODUCT_OR_RUNTIME` and as sufficient evidence to authorize offline product/runtime diagnosis and narrow repair. It is not accepted as proof of a particular source-level root cause.
 
-No production source repair is authorized from Task-136 evidence alone.
+Accepted facts include:
 
-## Accepted candidate
+- exact single Dashboard composition and one Send;
+- Task-137 ledger consumed `1 / 1`, no resend or alternate semantic injection;
+- executor uninterrupted after Send;
+- exactly one new Ticket and exactly one direct model call;
+- Ticket-first ordering proven;
+- visible requested ACK correct;
+- durable `response_ready` present;
+- final Ticket `failed` with `failure_delivery_suppressed` after the final payload remained non-durable;
+- no `cnx_assistant_delivery` durable direct-result row was present;
+- no duplicate semantic external side effect observed;
+- final runtime/recovery/delivery/Gateway/Ollama/SQLite health otherwise coherent.
 
-Accepted source candidate remains:
+Task-137 nonce/Ticket is historical evidence and must not be resent, retried, removed, cleaned, or normalized.
+
+## Source baseline before Task 138
+
+Accepted source candidate before repair:
 
 `1424d6fbee2c458c8c30440616783d2fa1bc1201`
 
-Accepted installed payload/plugin fingerprint remains:
+Accepted installed payload/plugin fingerprint before repair:
 
 `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
 
-## Task-137 authorization
+Comparison through the Task-137 report HEAD found only coordination-document changes after the accepted candidate; there was no intervening production-source drift.
 
-Task 137 creates a fresh, independent semantic ledger:
+## Confirmed repair boundary
 
-- one new nonce maximum;
-- one exact Dashboard message composition;
-- one Dashboard Send activation maximum `1 / 1`;
-- no resend;
-- no alternate semantic transport;
-- no manual retry/ack/cleanup/normalization.
+The shipped runtime intends to durably stage a Dashboard direct final payload into `cnx_assistant_delivery` before native transport, then use durable idempotency and delivery acknowledgement to settle the Ticket.
 
-The old Task-136 nonce/Ticket is not reused or removed.
+The shipped fail-closed path intentionally refuses regeneration when `response_ready` exists but the final payload was never durably captured. Task 137 reached exactly that class.
 
-### Pre-send
+Therefore the confirmed defect boundary is:
 
-Use the explicit installed launcher and authoritative `.cogentnexus-openclaw` root. Capture a read-only **delta baseline**, not an empty-database baseline. Require:
+**Dashboard direct final payload durable capture / delivery verification.**
 
-- managed/Ollama;
-- desired Gateway/provider running;
-- recovery `READY`;
-- delivery `READY`;
-- `pendingOutbox=0`;
-- `nonterminalTickets=0`;
-- no active semantic model/workflow/recovery/outbound operation;
-- Gateway/Ollama healthy;
-- OpenClaw `2026.7.1-2`;
-- exact plugin fingerprint;
-- SQLite URI `mode=ro` integrity exactly `ok`;
-- Task-136 historical failed Ticket present with no unexpected retry/mutation.
+Exact source root cause remains `UNPROVEN` until a deterministic RED reproducer identifies the callback/correlation/filter/ordering/staging condition that missed the valid final payload.
 
-Unsafe or unexplained baseline => `BLOCKED_BEFORE_SEND`; no normalization.
+## Task-138 authorization
 
-Generate a fresh nonce and prove absence from all historical durable semantic/delivery records.
+Task 138 is repository/source/test/CI only.
 
-Before Send, clear stale Dashboard composer text if necessary and verify the exact intended Task-137 message exists **once**, with no duplicated full message or accidental appended content.
+Required sequence:
 
-### Send and observation
+1. fresh authority and source baseline;
+2. deterministic automated reproducer through the registered Dashboard delivery hook/callback boundary;
+3. genuine **RED** before production edit;
+4. source-level root-cause proof;
+5. narrowest production fix;
+6. preserve Ticket-first, session authority/generation fencing, durable-before-transport, stable idempotency, exactly-once semantics, acknowledgement requirement, and fail-closed duplicate protection;
+7. **GREEN** on targeted regression, existing Dashboard verified-delivery and response-ready boundary tests, directly affected tests, full plugin test suite, build, plugin validation, and relevant CI;
+8. scope/diff audit and matching report.
 
-Use the real Dashboard UI and one deliberate Send activation only. Immediately consume Task-137 ledger `1 / 1`. Never resend.
-
-Read-only observation may continue up to **45 minutes from activation** because normal local `qwen3.5:9b` first inference can be slow. Spinner/quiet UI/absence of an early assistant bubble is not failure evidence by itself.
-
-If the runtime reaches a clear durable terminal outcome earlier, use that outcome and do not wait unnecessarily.
-
-### Executor interruption
-
-Do not stop Hermes because of slowness.
-
-- external Hermes/Codex interruption before Send => `BLOCKED_BEFORE_SEND`, Send ledger unconsumed;
-- external interruption after Send => `INVALIDATED_AFTER_SEND`, Send ledger consumed, no resend, and the run cannot independently prove product failure.
-
-### PASS evidence
-
-A clean PASS requires:
-
-- uninterrupted executor after Send;
-- exactly one pre-send composer message and one submission activation;
-- exactly one new Ticket for the fresh nonce;
-- Ticket commit before inference;
-- one coherent execution/result/validator chain;
-- requested ACK semantics;
-- exactly one logical durable delivered/acknowledged assistant delivery;
-- no duplicate external semantic side effect;
-- post-success `pendingOutbox=0` and `nonterminalTickets=0`;
-- coherent final managed/Ollama recovery/delivery/Gateway/Ollama/SQLite/model state;
-- historical Task-136 evidence preserved.
+If RED cannot be reproduced deterministically, do not guess a repair. Publish `BLOCKED_DIAGNOSTIC_EVIDENCE_GAP` and stop for review.
 
 ## Prohibited
 
-Except for the one Task-137 Dashboard semantic submission: no second Send; no alternate semantic injection; no source/runtime/plugin edits; no install/install-over/reset/uninstall/reinstall; no start/stop/restart/enable/disable; no recovery suite/crash injection; no provider/OpenClaw/model/config mutation; no manual Ticket/workflow/outbox/ack/delivery mutation; no database write/cleanup; no process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No live Dashboard Send/resend; no reuse of Task-136/137 semantics; no alternate live semantic injection; no install/install-over/reset/uninstall/reinstall; no live lifecycle/recovery/crash operation; no provider/model/OpenClaw/config mutation; no manual live Ticket/outbox/delivery/ack/database mutation or cleanup; no process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-137-final-dashboard-durable-delivery-reacceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-138-dashboard-direct-result-durable-capture-repair.md`
 
-Then stop for independent ChatGPT review. No release/finalization action is automatic.
+Then stop for independent ChatGPT review. A new live Dashboard acceptance is not automatic.
