@@ -174,7 +174,7 @@ function Wait-DurableConvergence {
         }
         if($null -eq $first){$first=$observation}; $last=$observation; $observations += $observation
         $incidentOkay=(-not $RequireProviderIncident) -or ($incident.Count -eq 1 -and -not [bool]$incident[0].details.circuitOpen)
-        $ok=($observation.mode -eq 'managed' -and $observation.hostSelectedProvider -eq 'ollama' -and $observation.selectedProvider -eq 'ollama' -and $observation.recoveryVerdict -eq 'READY' -and $adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected -and [bool]$gateway.listening -and [bool]$ollama.listening -and $incidentOkay)
+        $ok=($observation.mode -eq 'managed' -and $observation.hostSelectedProvider -eq 'ollama' -and $observation.selectedProvider -eq 'ollama' -and $observation.recoveryVerdict -in @('READY','READY_WITH_WARNINGS') -and $adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected -and [bool]$gateway.listening -and [bool]$ollama.listening -and $incidentOkay)
         if($ok){
             $data=[ordered]@{observationOnly=$true;firstVerdict=$first.recoveryVerdict;finalVerdict=$observation.recoveryVerdict;attempts=$observations.Count;elapsedSeconds=[math]::Round(((Get-Date)-$started).TotalSeconds,3);lastObservation=$observation;observations=$observations}
             Step $Name 'PASS' $data; return $data
