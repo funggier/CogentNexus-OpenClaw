@@ -74,6 +74,30 @@ Then:
 
 Do not assume in advance whether the defect is product recovery logic or the reviewed acceptance predicate. Do not simply lengthen the 420-second fuse without evidence.
 
+## Independent static contract trace
+
+Repository-only pre-analysis is recorded at:
+
+`docs/operations/coordination/notes/CNX-20260829-126-static-contract-trace.md`
+
+Classification: `NON_AUTHORITATIVE_HYPOTHESIS`.
+
+Static source facts that Task 126 must correlate with the retained observation series:
+
+- a successful provider process restart records a recovery attempt but does not itself prove stable model execution;
+- the recovery incident closes on durable stable model success or a verified operator transition;
+- an open incident with circuit closed is WARN in `check recovery`, producing `READY_WITH_WARNINGS`;
+- the v3 provider-crash harness waits for recovery verdict exactly `READY`;
+- the provider-crash harness does not itself create a stable model completion after listener recovery before entering durable convergence polling.
+
+This suggests an idle provider-crash may expose an acceptance-harness contract mismatch: the process can recover coherently while the incident intentionally remains open awaiting stable-success evidence. This is not accepted as root cause until the Task-125 420-second JSON confirms the actual first/last/change-point observations.
+
+If that exact state is confirmed, write RED against the harness behavior and fix only the harness/acceptance layer. Do not weaken recovery policy by equating listener/process health with stable model success.
+
+If the retained evidence shows another stale/incorrect product state, repair that owning product layer instead.
+
+The Task-125 evidence file was not found in the ChatGPT conversation/library surfaces, so the executor must read the retained local file directly from the authorized Windows evidence path.
+
 ## Prohibited during Task 126
 
 - live provider crash/recovery replay;
