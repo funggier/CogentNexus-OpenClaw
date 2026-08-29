@@ -1,31 +1,31 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_SUPPORTED_INSTALLER_REENTRY_AND_HEALTH_PROOF`  
+**Execution mode:** `LIVE_WINDOWS_PRODUCT_UNINSTALL_AND_CLEAN_FRESH_REINSTALL_ACCEPTANCE`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 144 is independently ACCEPTed and the next irreducibly local proof is one controlled supported-installer re-entry from the preserved Task-142 partial state  
+**Human authority:** operator requested continuation; Task 145 is independently ACCEPTed and the next destructive acceptance is one real product uninstall followed by one clean fresh install from the exact accepted candidate  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md`](tasks/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md)
+[`tasks/CNX-20260830-146-product-uninstall-and-clean-fresh-reinstall-acceptance.md`](tasks/CNX-20260830-146-product-uninstall-and-clean-fresh-reinstall-acceptance.md)
 
 Task ID:
 
-`CNX-20260830-145`
+`CNX-20260830-146`
 
-## Task-144 accepted result
+## Task-145 accepted result
 
 Report:
 
-`docs/operations/coordination/reports/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`
+`docs/operations/coordination/reports/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-144-direct-same-path-registration-canonicality-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof-review.md`
 
 Disposition: **ACCEPT**.
 
@@ -33,55 +33,52 @@ Accepted production implementation SHA:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
 
-Task 144 established a genuine alias-registration RED, added the minimal direct same-path lexical canonicality guard, exercised Windows junction semantics, preserved direct/managed/reparse/backup/manifest/storage/partial-state invariants, and passed exact production-SHA CI.
+Task 145 proved:
 
-The outside-state alias preservation case was added afterward as a test-only descendant. No production source changed after `fb5781c1...`.
+- exact accepted candidate provenance recomputed and used;
+- coherent canonical partial-state classification;
+- `pluginAlreadyExact=true`, no redundant plugin rollover;
+- exactly one supported installer invocation, exit `0`;
+- ownership helper refreshed to the accepted repaired source;
+- plugin singular/canonical/enabled/loaded;
+- controller returned to `managed`;
+- Gateway/OpenClaw/Ollama/recovery/delivery/SQLite healthy;
+- pending deliveries `0`;
+- durable history preserved;
+- Dashboard semantic Sends `0`.
 
-Fresh verification head `1a8834e7f5a9083ec427bab2357d1ea0a83a3020` passed:
+## Task-146 authority
 
-- Validate `33265799943` — all matrix/package jobs success;
-- Windows Installer Pack Smoke `33265800014` — success;
-- PS5.1 Acceptance Smoke `33265799941` — success.
+Task 146 tests the actual operator-facing destructive lifecycle rather than a helper wrapper.
 
-## Task-145 authority
+Before mutation Hermes/Codex must re-verify live state, ownership, canonical plugin storage, Gateway/provider/recovery/delivery/SQLite health, and preserve test evidence outside CNX live roots.
 
-Task 145 is the first live Windows action after Task-143/144 offline repair acceptance.
+Authorized destructive sequence is strictly:
 
-GitHub remote working branch is authority. Hermes/Codex must not use a stale local checkout as coordination truth. Preserve uncertain local work and use a fresh detached clone/worktree from exact accepted implementation SHA `fb5781c1...`.
+1. exactly one installed `cnxclaw.cmd uninstall` invocation;
+2. exactly one explicit lowercase `y` confirmation;
+3. prove product-owned Windows deferred cleanup reaches clean CNX-absent/native-OpenClaw state;
+4. only then exactly one normal fresh `scripts/install.ps1` invocation from detached exact SHA `fb5781c1...`;
+5. prove new fresh MANAGED candidate health.
 
-Before any mutation:
+If uninstall fails, there is no fresh install. If deferred cleanup is incomplete, there is no fresh install. If fresh install fails, there is no retry/manual repair.
 
-- recompute candidate package/fingerprint/hash provenance;
-- re-read the real Task-142-derived state without changing it;
-- prove one singular canonical direct plugin registration and no root indirection/conflicting product storage;
-- record plugin/controller/manifest state;
-- prove Gateway/OpenClaw/Ollama/recovery/delivery/SQLite/data-history health;
-- run candidate-aware production install classification and lifecycle action resolution.
+`scripts/clean-reinstall.ps1` is prohibited in this task because it would bypass proof of the product's `uninstall` command.
 
-Only a coherent accepted classification may proceed.
-
-If the preflight passes, exactly **one** normal supported `scripts/install.ps1` invocation is authorized. The production classifier/action resolver decides whether the plugin is already exact or whether one bounded rollover is needed.
-
-Installer failure means immediate stop, no retry/cleanup/manual normalization, and read-only post-failure evidence.
-
-Success must prove exact accepted-candidate installation, refreshed/finalized ownership, normal managed operating state, healthy runtime/provider/recovery/delivery, pending `0`, SQLite `ok`, preserved durable history, singular storage, and Dashboard Send count `0`.
-
-## Current live-state caution
-
-The Task-142 state is historical evidence, not an assumption. Do not replay or normalize anything merely to make it match that snapshot.
+The public GitHub Release distribution/download smoke is intentionally later; Task 146 must not tag or publish a release.
 
 ## Semantic fence
 
-Task 145 authorizes **zero Dashboard semantic Sends** and no manual semantic database/Ticket/workflow/outbox/delivery/recovery mutation.
+Task 146 authorizes **zero Dashboard semantic Sends** and no manual semantic database/Ticket/workflow/outbox/delivery/recovery mutation.
 
 ## Prohibited
 
-No Dashboard Send/resend; no crash/recovery injection; no reset/uninstall/clean reinstall; no manual plugin/controller/ownership-manifest normalization; no installer retry; no alternate installer; no unrelated process/service/task mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
+No Dashboard Send/resend; no reset; no crash/recovery injection; no manual plugin install/uninstall/enable/disable; no manual CNX live-file deletion; no manual controller/ownership-manifest normalization; no clean-reinstall helper; no retry after failure; no alternate installer; no unrelated process/service/task mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md`
+`docs/operations/coordination/reports/CNX-20260830-146-product-uninstall-and-clean-fresh-reinstall-acceptance.md`
 
-Then stop for independent ChatGPT review. No lifecycle clean-uninstall/reinstall or final Dashboard acceptance is automatic.
+Then stop for independent ChatGPT review. Reset/runtime-lifecycle/final Dashboard acceptance are not automatic successors.
