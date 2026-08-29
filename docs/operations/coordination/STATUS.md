@@ -1,98 +1,84 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_SINGLE_ATTEMPT`  
+**Execution mode:** `LIVE_WINDOWS_FINAL_DASHBOARD_DURABLE_DELIVERY_OPERATOR_MOUSE_GATES`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation and changed the UI-control policy: Hermes must use `control-mouse-keyboard-use-desktop` first and ask the operator only when skill-guided control cannot produce/prove the required non-semantic UI effect, with stricter no-duplicate handling at Send  
+**Human authority:** operator requested a new Phase-P attempt with manual mouse gates; operator has already prepared a brand-new Dashboard session  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`](tasks/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md)
+[`tasks/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`](tasks/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md)
 
 Task ID:
 
-`CNX-20260830-151`
+`CNX-20260830-152`
 
-## Task-150 accepted result
+## Task-151 accepted controlled evidence
 
 Report:
 
-`docs/operations/coordination/reports/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-150-runtime-lifecycle-stop-start-restart-disable-enable-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-151-final-dashboard-durable-delivery-acceptance-review.md`
 
-Disposition: **ACCEPT**.
+Disposition: **ACCEPT** as controlled `FAIL_UI_MISMATCH` evidence.
 
-Accepted production implementation SHA remains:
+Task 151 proved the automated Send click did not transition the UI and created zero Tickets/model calls/delivery rows. No product durable-delivery boundary was reached. Its nonce/Send ledger is retired permanently.
+
+## Prepared session state
+
+The operator has already created a brand-new Dashboard session before Task-152 execution.
+
+Hermes/Codex must not create another session automatically. It must verify the current target is fresh/empty, composer empty, Task-151 draft absent, and durable semantic counts unchanged before prompt composition.
+
+## Task-152 UI control policy
+
+Automated mouse control is not authorized for the semantic gates.
+
+Operator performs:
+
+1. the composer click when instructed;
+2. the single real `Send message` click when instructed.
+
+Hermes/Codex may type/paste the exact acceptance prompt after operator-established focus. This is preferred over requiring the operator to type because Task 151 proved the text-entry path worked.
+
+Before Send, executor verifies exact one-copy fresh-nonce prompt. After the operator's one Send, budget is `1 / 1 consumed`; no retry, resend, Enter submission, or alternate semantic transport is authorized.
+
+## Durable PASS authority
+
+PASS requires:
+
+- exactly one Ticket and Ticket-first ordering;
+- exactly one direct model call;
+- exactly one `response_ready`;
+- exactly one durable direct-result `cnx_assistant_delivery` row;
+- delivered state + `delivered_at`;
+- Ticket `delivery_confirmed_at`;
+- exactly one `delivery_confirmed` and `completed` event;
+- Ticket terminal `completed`;
+- exactly one visible `ACK <NONCE>`;
+- no duplicate inference/recovery/regeneration/delivery;
+- final pending `0`, SQLite `ok`, Gateway/Ollama healthy;
+- telemetry privacy PASS.
+
+Accepted production implementation remains:
 
 `fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
-
-## Plan position
-
-The approved Full Stabilization plan orders the final live stages:
-
-`M clean uninstall → N fresh install → O lifecycle → P final Dashboard semantic/durable delivery → Q final acceptance matrix`.
-
-Task 151 is the Phase-P single semantic attempt.
-
-## Desktop-control-first policy
-
-Hermes/Codex must load/read and follow the skill:
-
-`control-mouse-keyboard-use-desktop`
-
-before asking the operator to click/focus/type/paste or activate a normal desktop control.
-
-For composer/focus/pre-send actions:
-
-- identify the exact Firefox Dashboard control;
-- perform the skill-guided action;
-- verify the expected UI effect;
-- only if the correctly targeted action has no effect, or a reliable target cannot be established, request the specific operator action.
-
-For Send:
-
-- if no Send activation has occurred and a trustworthy target cannot be established, operator fallback for one Send is allowed;
-- if a Send activation/click has already occurred and its effect is ambiguous, do not request another Send. Treat the single-attempt budget as consumed/ambiguous and observe/classify read-only.
-
-No blind repeated desktop clicks are authorized.
-
-## Task-151 durable authority
-
-The Send budget is exactly `1 / 1`. Once consumed, the nonce is permanently retired and no resend/alternate semantic route is authorized.
-
-PASS requires the full durable chain, not merely a visible answer:
-
-- Ticket-first accepted before inference;
-- exactly one direct model call;
-- exact visible `ACK <NONCE>` once;
-- exactly one durable direct-result `cnx_assistant_delivery` row;
-- row reaches delivered state;
-- Ticket `delivery_confirmed_at` populated;
-- exactly one `delivery_confirmed` and one `completed` event;
-- Ticket terminal `completed`;
-- no duplicate inference/delivery/recovery/regeneration;
-- redacted observability contains no raw semantic content/nonce/credentials;
-- final pending `0`, SQLite `ok`, Gateway/Ollama healthy.
-
-If the visible ACK appears but durable capture/settlement is absent, the result is FAIL and must not be converted to PASS from UI evidence.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-151-final-dashboard-durable-delivery-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`
 
-The report must state which UI actions were skill-driven versus operator fallback and why.
-
-Then stop for independent ChatGPT review. Phase Q, merge, tag, release and promotion remain unauthorized until that review.
+Then stop for independent ChatGPT review. Phase Q, merge, tag and release remain unauthorized.
 
 ## Hard fence
 
-No second Dashboard Send/resend; no alternate semantic transport; no manual Ticket/workflow/outbox/delivery/recovery/database mutation; no lifecycle/reset/install/uninstall/reinstall; no crash/recovery injection; no manual plugin/config/controller/ownership/process/service/task normalization; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
+No automated Send click; no second Send/resend; no alternate semantic transport; no manual Ticket/workflow/outbox/delivery/recovery/database mutation; no lifecycle/reset/install/uninstall/reinstall; no crash/recovery injection; no manual plugin/config/controller/process/service/task normalization; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
