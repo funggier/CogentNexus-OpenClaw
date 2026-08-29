@@ -342,6 +342,38 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("stages a valid final when the dispatcher count excludes the callback currently being delivered", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v138-callback-count-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const store = new TicketStore(path);
+      const sessionKey = "agent:main:dashboard:callback-count";
+      sessionAuthority(path, sessionKey);
+      const ticket = store.accept({ runId: "callback-count-run", ownerSessionKey: sessionKey, prompt: "reply" });
+      store.route(ticket.ticketId, false);
+      let handler: any;
+      installV091DashboardVerifiedDelivery({
+        on: (_name: string, registered: any) => { handler = registered; },
+        logger: {},
+      }, { workspaceDir: root, ticketDatabasePath: path });
+      const callbacks: any[] = [];
+      const dispatcher = {
+        appendBeforeDeliver: (fn: any) => callbacks.push(fn),
+        // OpenClaw invokes this callback before the current final is included.
+        getQueuedCounts: () => ({ final: 0 }),
+        waitForIdle: () => new Promise<void>(() => undefined),
+      };
+      handler({ runId: "callback-count-run" }, { dispatcher });
+      expect(callbacks).toHaveLength(1);
+      const output = callbacks[0]({ text: "callback-count-result" }, { kind: "final" });
+      expect(output.text).toContain("callback-count-result");
+      const db = new DatabaseSync(path, { readOnly: true });
+      expect(db.prepare("SELECT kind,text,status FROM cnx_assistant_delivery WHERE ticket_id=?").get(ticket.ticketId))
+        .toMatchObject({ kind: "direct_result", text: "callback-count-result", status: "pending" });
+      db.close();
+    } finally { try { rmSync(root, { recursive: true, force: true }); } catch {} }
+  });
+
   it("does not claim durable replay ownership for non-Dashboard Direct tickets", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-external-delivery-"));
     try {

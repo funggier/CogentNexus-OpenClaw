@@ -425,7 +425,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
         observeDelivery(api.logger, "filter-skip", { reason: "media-present" });
         return payload;
       }
-      if (finalCount !== 1) {
+      if (finalCount > 1) {
         observeDelivery(api.logger, "filter-skip", { reason: "final-count-not-one" });
         return payload;
       }
