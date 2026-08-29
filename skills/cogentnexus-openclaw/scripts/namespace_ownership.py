@@ -969,6 +969,8 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         os.path.normcase(os.path.abspath(str(registration_root)))
         if isinstance(registration_root, str) else None
     )
+    if direct_transaction and registration_key != direct_key:
+        raise RuntimeError("direct same-path rollover requires canonical active registration")
     if direct_transaction and registration_key == direct_key:
         if not direct_root.is_dir() or _is_reparse_point(direct_root):
             raise RuntimeError("direct same-path replacement root must remain a real directory")
