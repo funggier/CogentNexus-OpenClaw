@@ -1,6 +1,11 @@
 name: PS5.1 v0.9.3 Ollama Recovery V3 Smoke
 
 on:
+  push:
+    paths:
+      - 'scripts/test-v093-ollama-recovery-windows-v3.ps1'
+      - 'tests/test_recovery_harness_contract.py'
+      - '.github/workflows/v093-ollama-recovery-v3-smoke.yml'
   pull_request:
     paths:
       - 'scripts/test-v093-ollama-recovery-windows-v3.ps1'
@@ -17,7 +22,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $path = '.\scripts\test-v093-ollama-recovery-windows-v3.ps1'
+          $path = '.\\scripts\\test-v093-ollama-recovery-windows-v3.ps1'
           $tokens = $null
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path), [ref]$tokens, [ref]$errors)
@@ -28,14 +33,14 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $path = '.\scripts\test-v093-ollama-recovery-windows-v3.ps1'
+          $path = '.\\scripts\\test-v093-ollama-recovery-windows-v3.ps1'
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File $path -ContractSelfTest
           if ($LASTEXITCODE -ne 0) { throw 'ContractSelfTest failed.' }
       - name: Assert status schema and safety contract
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $text = Get-Content '.\scripts\test-v093-ollama-recovery-windows-v3.ps1' -Raw
+          $text = Get-Content '.\\scripts\\test-v093-ollama-recovery-windows-v3.ps1' -Raw
           foreach ($required in @(
             'Get-HostState',
             '$StatusDocument.host.state',
