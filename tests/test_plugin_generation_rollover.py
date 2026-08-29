@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -171,6 +172,34 @@ def test_prepare_accepts_supported_direct_retired_plugin_before_npm_replacement(
     assert Path(transaction["retiredProjectRoot"]) == paths["old_plugin"].resolve()
     assert Path(transaction["backupPath"]).is_dir()
     assert ownership._project_tree_sha256(Path(transaction["backupPath"])) == transaction["backupProjectTreeSha256"]
+
+
+def test_prepare_rejects_indirected_direct_retired_root_before_backup(tmp_path: Path):
+    paths = _direct_retired_generation_layout(tmp_path)
+    direct = paths["old_plugin"]
+    target = paths["openclaw_state"] / "extensions" / "redirected-retired-payload"
+    direct.rename(target)
+    try:
+        os.symlink(target, direct, target_is_directory=True)
+    except OSError as symlink_error:
+        result = subprocess.run(
+            ["cmd.exe", "/c", "mklink", "/J", str(direct), str(target)],
+            text=True, capture_output=True, check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"unable to create portable symlink or Windows junction: {symlink_error}; {result.stdout}{result.stderr}"
+            ) from symlink_error
+
+    with pytest.raises(RuntimeError, match="direct retired plugin root"):
+        ownership.prepare_plugin_rollover_transaction(
+            root=paths["root"], workspace=paths["workspace"],
+            application_data=paths["app_data"], expected_replacement_fingerprint="0" * 64,
+            backup_token="indirected-direct-root",
+        )
+
+    backup_root = paths["app_data"] / "plugin-generation-rollover-backups"
+    assert not backup_root.exists()
 
 
 def test_interrupted_rollover_reentry_classifies_exact_active_replacement(tmp_path: Path):

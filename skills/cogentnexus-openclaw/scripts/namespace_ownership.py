@@ -59,6 +59,20 @@ def _contained(path: Path, parent: Path) -> bool:
         return False
 
 
+def _is_reparse_point(path: Path) -> bool:
+    """Detect symlink/junction indirection without resolving the path first."""
+    if path.is_symlink():
+        return True
+    isjunction = getattr(os.path, "isjunction", None)
+    if callable(isjunction) and isjunction(path):
+        return True
+    if os.name == "nt":
+        import ctypes
+        attributes = ctypes.windll.kernel32.GetFileAttributesW(str(path))
+        return attributes != 0xFFFFFFFF and bool(attributes & 0x400)
+    return False
+
+
 def expected_paths(workspace: Path) -> dict[str, Any]:
     workspace = workspace.resolve(strict=False)
     state = workspace.parent
@@ -760,11 +774,16 @@ def _npm_project_for_plugin(plugin_path: Path, openclaw_state: Path) -> Path:
 
 def _retired_storage_root(plugin_path: Path, openclaw_state: Path) -> Path:
     """Return the owned generation root for direct or managed plugin storage."""
-    direct_root = (openclaw_state / "extensions" / PRODUCT_ID).resolve(strict=False)
-    resolved_plugin = plugin_path.resolve(strict=False)
-    if resolved_plugin == direct_root:
+    direct_root = Path(os.path.abspath(str(openclaw_state / "extensions" / PRODUCT_ID)))
+    lexical_plugin = Path(os.path.abspath(str(plugin_path)))
+    if lexical_plugin == direct_root:
+        if _is_reparse_point(direct_root):
+            raise RuntimeError(f"direct retired plugin root must be a real directory: {direct_root}")
+        resolved_plugin = direct_root.resolve(strict=False)
+        if not _contained(resolved_plugin, openclaw_state):
+            raise RuntimeError(f"direct retired plugin root escapes the OpenClaw state boundary: {direct_root}")
         return resolved_plugin
-    return _npm_project_for_plugin(resolved_plugin, openclaw_state)
+    return _npm_project_for_plugin(plugin_path, openclaw_state)
 
 
 def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: Path) -> dict[str, Any]:
@@ -866,7 +885,7 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
     manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
-    retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
+    retired_root = Path(manifest["pluginPath"])
     retired_payload = _plugin_payload(retired_root)
     if retired_payload is None:
         raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
