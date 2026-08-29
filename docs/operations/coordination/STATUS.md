@@ -1,80 +1,87 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `OFFLINE_DIRECT_REGISTRATION_CANONICALITY_TDD_REPAIR_ONLY`  
-**Updated:** 2026-08-29 ICT  
+**Execution mode:** `LIVE_WINDOWS_SUPPORTED_INSTALLER_REENTRY_AND_HEALTH_PROOF`  
+**Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 143 report was independently reviewed and requires one narrow canonical-registration rework before any live completion retry  
+**Human authority:** operator requested continuation; Task 144 is independently ACCEPTed and the next irreducibly local proof is one controlled supported-installer re-entry from the preserved Task-142 partial state  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`](tasks/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md)
+[`tasks/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md`](tasks/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md)
 
 Task ID:
 
-`CNX-20260829-144`
+`CNX-20260830-145`
 
-## Task-143 review
+## Task-144 accepted result
 
-Task-143 report:
+Report:
 
-`docs/operations/coordination/reports/CNX-20260829-143-direct-in-place-rollover-finalization-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-143-direct-in-place-rollover-finalization-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-144-direct-same-path-registration-canonicality-repair-review.md`
 
-Disposition: **REWORK**.
+Disposition: **ACCEPT**.
 
-Accepted facts:
+Accepted production implementation SHA:
 
-- Task 143 reproduced the Task-142 direct same-path failure with genuine RED before production edit;
-- the functional repair correctly distinguishes direct in-place generation change from managed distinct-generation storage for covered cases;
-- canonical direct A -> B success, managed same-path rejection, fingerprint transition, backup proof, manifest drift, direct-root reparse rejection, conflicting storage rejection, and partial-state re-entry were tested;
-- exact repair SHA `59952167f51657ae2ff900a28aae528f835f9b6e` completed Validate, Windows Installer Pack Smoke, and PS5.1 Acceptance Smoke successfully.
+`fb5781c1abd68280760bd5b3b4a65fabd8a60e58`
 
-Blocking gap:
+Task 144 established a genuine alias-registration RED, added the minimal direct same-path lexical canonicality guard, exercised Windows junction semantics, preserved direct/managed/reparse/backup/manifest/storage/partial-state invariants, and passed exact production-SHA CI.
 
-- raw OpenClaw `plugins[].rootDir` is resolved by `_active_registered_plugin()`;
-- the finalizer does not require the raw lexical registration path itself to equal the canonical direct root before same-path authority;
-- an alias/symlink/junction registration path resolving to the real canonical direct root can therefore lose its lexical noncanonical identity;
-- current tests do not cover that case even though Task 143 required singular **canonical** active registration.
+The outside-state alias preservation case was added afterward as a test-only descendant. No production source changed after `fb5781c1...`.
 
-## Task-144 authorization
+Fresh verification head `1a8834e7f5a9083ec427bab2357d1ea0a83a3020` passed:
 
-Task 144 is offline-only.
+- Validate `33265799943` — all matrix/package jobs success;
+- Windows Installer Pack Smoke `33265800014` — success;
+- PS5.1 Acceptance Smoke `33265799941` — success.
 
-Required sequence:
+## Task-145 authority
 
-1. prepare the accepted canonical direct A -> B transition offline;
-2. keep the canonical direct root real and non-reparse;
-3. point singular inventory `rootDir` at a distinct alias path resolving to the direct root;
-4. prove current Task-143 repair incorrectly authorizes or fails to reject that registration;
-5. add Windows junction/reparse alias proof;
-6. minimally require canonical lexical registration for direct same-path authority;
-7. preserve all Task-143 positive/negative ownership invariants and Task-142 partial-state classification;
-8. run full relevant test/build/plugin/package validation and exact-SHA CI;
-9. publish the matching report and stop.
+Task 145 is the first live Windows action after Task-143/144 offline repair acceptance.
 
-## Live-state caution
+GitHub remote working branch is authority. Hermes/Codex must not use a stale local checkout as coordination truth. Preserve uncertain local work and use a fresh detached clone/worktree from exact accepted implementation SHA `fb5781c1...`.
 
-The user's live machine remains in Task-142's observed partial state with the candidate payload already present but plugin disabled and controller `passthrough`. Do not replay the installer or normalize that state during Task 144.
+Before any mutation:
+
+- recompute candidate package/fingerprint/hash provenance;
+- re-read the real Task-142-derived state without changing it;
+- prove one singular canonical direct plugin registration and no root indirection/conflicting product storage;
+- record plugin/controller/manifest state;
+- prove Gateway/OpenClaw/Ollama/recovery/delivery/SQLite/data-history health;
+- run candidate-aware production install classification and lifecycle action resolution.
+
+Only a coherent accepted classification may proceed.
+
+If the preflight passes, exactly **one** normal supported `scripts/install.ps1` invocation is authorized. The production classifier/action resolver decides whether the plugin is already exact or whether one bounded rollover is needed.
+
+Installer failure means immediate stop, no retry/cleanup/manual normalization, and read-only post-failure evidence.
+
+Success must prove exact accepted-candidate installation, refreshed/finalized ownership, normal managed operating state, healthy runtime/provider/recovery/delivery, pending `0`, SQLite `ok`, preserved durable history, singular storage, and Dashboard Send count `0`.
+
+## Current live-state caution
+
+The Task-142 state is historical evidence, not an assumption. Do not replay or normalize anything merely to make it match that snapshot.
 
 ## Semantic fence
 
-Task 144 authorizes **zero Dashboard semantic Sends** and zero live runtime/database/ownership mutation.
+Task 145 authorizes **zero Dashboard semantic Sends** and no manual semantic database/Ticket/workflow/outbox/delivery/recovery mutation.
 
 ## Prohibited
 
-No live Windows install/install-over/update/uninstall/reset/clean-reinstall; no live cleanup/normalization; no manual plugin enable/disable/delete/replace; no controller-mode mutation; no ownership-manifest mutation; no Dashboard semantic Send/resend; no Task-136/137 semantic reuse; no alternate semantic injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no crash/recovery injection; no provider/model/OpenClaw config mutation; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
+No Dashboard Send/resend; no crash/recovery injection; no reset/uninstall/clean reinstall; no manual plugin/controller/ownership-manifest normalization; no installer retry; no alternate installer; no unrelated process/service/task mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`
+`docs/operations/coordination/reports/CNX-20260830-145-accepted-candidate-partial-install-reentry-and-health-proof.md`
 
-Then stop for independent ChatGPT review. No live recovery/install completion or Dashboard semantic acceptance is automatic.
+Then stop for independent ChatGPT review. No lifecycle clean-uninstall/reinstall or final Dashboard acceptance is automatic.
