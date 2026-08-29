@@ -1,62 +1,55 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
+**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 133 authorizes repository/test/CI/package proof closeout only  
+**Human authority:** operator authorized continued stabilization; Task 134 grants one new exact sequenced-harness real-Windows recovery-suite execution only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`](tasks/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md)
+[`tasks/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`](tasks/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md)
 
 Task ID:
 
-`CNX-20260829-133`
+`CNX-20260829-134`
 
-## Task 132 independent review
+## Task 133 accepted proof closeout
 
-Task-132 sequencing repair is directionally accepted but not yet live-advanceable.
+Report:
 
-Review:
+`docs/operations/coordination/reports/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`
 
-`docs/operations/coordination/reviews/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair-review.md`
+Independent review:
 
-Blocking proof gaps:
+`docs/operations/coordination/reviews/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout-review.md`
 
-1. the executable harness-owned negative-case matrix did not explicitly cover adapter `expected=true`, host/provider mismatch, missing Gateway/Ollama listeners, and post-start exception leakage;
-2. Task-132 report published a stale artifact outer digest.
+Accepted result:
 
-Task-132 proposed candidate:
+- exact candidate `1424d6fbee2c458c8c30440616783d2fa1bc1201`;
+- exact harness blob `a4138e00e2056db89b0a9eceed1b54e001c4e319`;
+- executable fail-closed provider→operator behavioral matrix complete;
+- all four exact-SHA workflows success;
+- fresh package artifact `9709798190` with outer digest `sha256:e8dbb2f742bfeffc93a80a7cda62a8c273ced9e2b1e9b47a3962dead52ccfeef`;
+- payload count `178` and fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
+- no live operations under Task 133.
 
-`b7074c8cb5b10c77624cfe7b5223e3bae338c80d`
+## Task 134 live gate
 
-is not yet accepted for a new live recovery task.
+Fresh preflight must use the explicit installed launcher and its parsed `.cogentnexus-openclaw` root. Never probe the workspace parent as controller root.
 
-## Package identity clarification
+Require an already-safe managed/Ollama/READY state, exact ownership/fingerprint/OpenClaw/plugin identity, healthy Gateway/Ollama, and authoritative SQLite `integrity_check=ok`. Unsafe preflight => BLOCKED without normalization.
 
-Task-132 artifact `9709442638` itself is coherent and its inner package identity matches `b7074c8c...`, but GitHub metadata gives outer artifact digest:
+If safe, run exactly one true-PTY harness process:
 
-`sha256:8cb0370b6ba2c741b31f5c972a8de9ce4cfc488ccbe6042d4d6e1d6535db213c`
+`-Scenario all -RunDisruptive`
 
-Task-132 report instead reused `sha256:c5dcbda0...` from an older candidate. Task 133 must generate a fresh artifact and publish the fresh outer digest correctly.
+Enter exactly one lowercase `y` after the literal prompt. No rerun after launch.
 
-## Task 133 proof closeout
-
-Required non-disruptive behavioral proof through the real PowerShell `-ContractSelfTest` path:
-
-- carried provider incident still accepts only the exact immediate prior provider-crash state;
-- standalone/different/missing/duplicate/circuit-open/extra-warning/closed-incident cases reject;
-- adapter missing/duplicate/`expected=true` reject;
-- host/provider selection mismatch rejects;
-- Gateway listener missing rejects;
-- Ollama listener missing rejects;
-- ordinary/post-operator-start convergence remains strict `READY` and does not inherit the exception.
-
-Then require full repository validation, all four exact-SHA workflows, and fresh package proof with correct outer artifact digest plus inner package identity/hashes.
+Require baseline PASS, Gateway crash PASS, provider crash PASS, exact carried provider incident accepted only at the immediate operator-before boundary, operator intentional stop/no-auto-recovery PASS, harness-owned start, and strict post-start READY PASS.
 
 ## Historical live ledger
 
@@ -66,21 +59,18 @@ Consumed/closed:
 - Task-124 reset/uninstall/fresh reinstall/standalone stop/start/restart `1 / 1` each;
 - Task-125 old-harness recovery suite `1 / 1`;
 - Task-128 suite `0 / 1`, closed blocked;
-- Task-131 suite `1 / 1` consumed;
-- Task-131 gateway-crash PASS;
-- Task-131 provider-crash PASS;
-- Task-131 operator-stop `0`.
+- Task-131 suite `1 / 1` consumed; baseline/Gateway/provider PASS; operator-stop not reached.
 
-Task 133 authorizes **zero live lifecycle/recovery operations**.
+Task 134 creates a new suite maximum `1 / 1` only.
 
 ## Prohibited
 
-No live recovery suite/crash injection, install/install-over/reset/uninstall/reinstall, live start/stop/restart/enable/disable, provider/OpenClaw/model/config mutation, process kill, task/service mutation, cleanup/normalization, reboot, credential/secret access, Dashboard semantic Send, merge/tag/release, or force push.
+No install/install-over/reset/uninstall/reinstall, no standalone lifecycle outside the exact harness, no source/harness edits, no alternate confirmation, no provider/OpenClaw/model/config mutation, no manual normalization, no generic process-tree kill, no task/service mutation outside observation, no reboot, no credential/secret access, no Dashboard semantic Send, no merge/tag/release, and no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`
+`docs/operations/coordination/reports/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`
 
 Then stop for independent ChatGPT review. Final Dashboard durable-delivery acceptance remains unopened and prohibited.
