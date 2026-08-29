@@ -50,4 +50,14 @@ def test_harness_owned_self_test_covers_provider_to_operator_sequence():
         timeout=30,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "provider-to-operator-carried-incident" in result.stdout
+    required_cases = (
+        "provider-to-operator-carried-incident",
+        "adapter-expected-true",
+        "host-provider-mismatch",
+        "provider-status-mismatch",
+        "gateway-listener-missing",
+        "ollama-listener-missing",
+        "post-operator-start-warning",
+    )
+    for case in required_cases:
+        assert f"{case}: PASS" in result.stdout, result.stdout
