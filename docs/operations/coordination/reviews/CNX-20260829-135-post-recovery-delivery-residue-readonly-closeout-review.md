@@ -49,23 +49,26 @@ This is consistent with the accepted Task-134 post-recovery state and does not m
 
 The authoritative database was opened with SQLite URI `mode=ro` and `PRAGMA query_only=ON`. `PRAGMA integrity_check` returned exactly `ok`.
 
-Published counts establish a clean baseline for an exactly-one future semantic send:
+The authoritative Task-135 report establishes a completely empty execution/delivery baseline rather than merely inert terminal history:
 
-- terminal ticket history exists and is preserved;
-- queued tickets: `0`;
-- running tickets: `0`;
-- other nonterminal tickets: `0`;
+- `tickets`: `0` rows total;
+- queued/running/other nonterminal tickets: `0`;
 - `nonterminalTickets = 0`;
+- `ticket_outbox`: `0` rows total;
 - `pendingOutbox = 0`;
-- pending outbox rows: `0`;
-- `ticket_workflows`: `0` rows;
-- `cnx_direct_recovery`: `0` rows;
+- `ticket_events`: `0` rows;
 - `cnx_assistant_delivery`: `0` rows;
-- `cnx_outbound_send`: `0` rows;
+- `cnx_direct_recovery`: `0` rows;
+- `cnx_direct_model_call`: `0` rows;
+- `cnx_synthetic_runs`: `0` rows;
+- `cnx_context_maintenance`: `0` rows;
+- `cnx_sessions`: `0` rows;
 - unresolved workflow/direct-recovery/delivery/send residue: none;
 - unresolved attempt/acknowledgement residue: none.
 
-Existing historical delivered outbox rows are terminal history and do not constitute pending residue.
+The only retained database rows reported by Task 135 are six `schema_migrations` metadata rows, which are inert schema history and not execution/delivery residue.
+
+This zero-row baseline is stronger than a baseline containing retained terminal delivery history and provides an unambiguous pre-state for the exactly-one future Dashboard acceptance message.
 
 ## Safety review
 
