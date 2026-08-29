@@ -4,46 +4,66 @@
 **Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 126 authorizes repository/source TDD repair and read-only retained-evidence diagnosis only  
+**Human authority:** operator authorized continued stabilization; Task 127 authorizes repository/source TDD repair only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`](tasks/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md)
+[`tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`](tasks/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md)
 
 Task ID:
 
-`CNX-20260829-126`
+`CNX-20260829-127`
 
-## Task 125 independent review
+## Task 126 independent review
 
-Task-125 report:
+Task-126 report:
 
-`docs/operations/coordination/reports/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance.md`
+`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
 
-Independent review:
+Review:
 
-`docs/operations/coordination/reviews/CNX-20260829-125-v093-recovery-reality-interactive-confirmation-acceptance-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair-review.md`
 
 Verdict:
 
-`ACCEPTED FAIL — GATEWAY-CRASH RECOVERY PASSED, BUT PROVIDER-CRASH RECOVERY FAILED TO REACH THE REVIEWED DURABLE-READY CONTRACT WITHIN 420 SECONDS; SOURCE/HARNESS ROOT-CAUSE DIAGNOSIS IS REQUIRED BEFORE ANY REPLAY.`
+`REJECTED CANDIDATE ADVANCEMENT — ROOT-CAUSE CLASSIFICATION IS ACCEPTED, BUT THE HARNESS REPAIR IS NOT YET FAIL-CLOSED OR BEHAVIORALLY PROVEN, AND THE AFFECTED RECOVERY-SPECIFIC SMOKE DID NOT RUN ON THE EXACT CANDIDATE SHA.`
 
-Task 125 established a valid live failure boundary:
+Accepted root-cause facts:
 
-- true interactive confirmation passed;
-- gateway crash recovery passed;
-- provider crash was injected;
-- the complete durable READY predicate was not observed inside 420 seconds;
-- operator-stop was not reached;
-- harness cleanup returned the machine to healthy managed state;
-- no recovery replay and no Dashboard semantic Send occurred.
+- retained Task-125 convergence series showed coherent recovered provider/Gateway state;
+- recovery verdict stayed `READY_WITH_WARNINGS` only because the provider incident intentionally remained open pending stable model-success evidence;
+- provider recovery policy is correct and must not be weakened;
+- the repair belongs to the acceptance harness.
+
+Rejected candidate:
+
+`69a3efa1feb7711f22c83055a8571035240ec81c`
+
+Confirmed exact-SHA successes on that rejected candidate:
+
+- Validate `33223319908` — success;
+- Windows Installer Pack Smoke `33223319175` — success;
+- PS5.1 Acceptance Smoke `33223319261` — success.
+
+GitHub showed only those three runs for the SHA; the dedicated `PS5.1 v0.9.3 Ollama Recovery V3 Smoke` did not run.
+
+## Task 127 requirements
+
+1. Add a true behavioral RED that invokes harness-owned convergence logic, not a test-local duplicate or source-text grep.
+2. Refactor minimally so `Wait-DurableConvergence` and the non-disruptive self-test share one harness-owned predicate.
+3. Allow `READY_WITH_WARNINGS` only on provider-crash convergence when the sole WARN is exactly the expected open/circuit-closed `Provider recovery incident`; reject any additional/unrelated warning.
+4. Keep ordinary/gateway/operator convergence strict `READY`.
+5. Add/adjust the recovery-v3 workflow so direct-push candidate changes produce an exact-SHA recovery smoke run.
+6. Make that smoke execute the real non-disruptive convergence contract self-test, not only parse/grep source.
+7. Require full GREEN, four exact-SHA workflow successes, and fresh package proof.
+8. Publish the Task-127 report and stop for independent review.
 
 ## Consumed live-operation ledger
 
-Do not replay during Task 126:
+Do not replay during Task 127:
 
 - install-over `1 / 1`;
 - reset `1 / 1`;
@@ -54,66 +74,17 @@ Do not replay during Task 126:
 - restart `1 / 1`;
 - Task-125 recovery suite `1 / 1`;
 - gateway-crash `1 / 1 PASS`;
-- provider-crash `1 / 1 FAIL`;
+- provider-crash `1 / 1 old-harness convergence FAIL`;
 - operator-stop `0`, not reached.
 
-## Task 126 diagnosis and TDD contract
+## Prohibited
 
-Use retained Task-125 JSON/log evidence read-only. Before any source edit, extract the complete `converge-provider-after` observation series and identify which exact predicate fields remained unsatisfied.
-
-Correlate the observations with the owning provider recovery, incident/circuit, event-adapter, supervisor, host-state, and recovery-verdict logic.
-
-Then:
-
-1. add a focused RED regression test that reproduces the evidence-derived failure;
-2. apply the smallest responsibility-local source or harness-contract fix at the actual owning layer;
-3. run focused and full test suites/static checks/plugin validation/evaluation/audit;
-4. push an exact repaired candidate;
-5. require exact-SHA CI and package proof;
-6. publish the Task-126 report and stop for ChatGPT review.
-
-Do not assume in advance whether the defect is product recovery logic or the reviewed acceptance predicate. Do not simply lengthen the 420-second fuse without evidence.
-
-## Independent static contract trace
-
-Repository-only pre-analysis is recorded at:
-
-`docs/operations/coordination/notes/CNX-20260829-126-static-contract-trace.md`
-
-Classification: `NON_AUTHORITATIVE_HYPOTHESIS`.
-
-Static source facts that Task 126 must correlate with the retained observation series:
-
-- a successful provider process restart records a recovery attempt but does not itself prove stable model execution;
-- the recovery incident closes on durable stable model success or a verified operator transition;
-- an open incident with circuit closed is WARN in `check recovery`, producing `READY_WITH_WARNINGS`;
-- the v3 provider-crash harness waits for recovery verdict exactly `READY`;
-- the provider-crash harness does not itself create a stable model completion after listener recovery before entering durable convergence polling.
-
-This suggests an idle provider-crash may expose an acceptance-harness contract mismatch: the process can recover coherently while the incident intentionally remains open awaiting stable-success evidence. This is not accepted as root cause until the Task-125 420-second JSON confirms the actual first/last/change-point observations.
-
-If that exact state is confirmed, write RED against the harness behavior and fix only the harness/acceptance layer. Do not weaken recovery policy by equating listener/process health with stable model success.
-
-If the retained evidence shows another stale/incorrect product state, repair that owning product layer instead.
-
-The Task-125 evidence file was not found in the ChatGPT conversation/library surfaces, so the executor must read the retained local file directly from the authorized Windows evidence path.
-
-## Prohibited during Task 126
-
-- live provider crash/recovery replay;
-- install/install-over/reset/uninstall/reinstall;
-- stop/start/restart;
-- live provider/OpenClaw mutation;
-- process kill/reboot;
-- manual cleanup/normalization;
-- credential/secret access;
-- Dashboard semantic Send;
-- merge/tag/release/force push.
+No live provider crash/recovery replay, lifecycle mutation, provider/OpenClaw live mutation, process kill/reboot, manual cleanup/normalization, credential/secret access, Dashboard semantic Send, merge/tag/release, or force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-126-provider-crash-recovery-convergence-root-cause-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-127-recovery-harness-failclosed-contract-and-ci-proof.md`
 
-After publishing, stop for independent ChatGPT review. Do not automatically open a new live Windows acceptance task.
+Then stop for independent ChatGPT review. Do not automatically open a live Windows acceptance task.
