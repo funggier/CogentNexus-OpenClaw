@@ -4,92 +4,59 @@
 **Execution mode:** `REPOSITORY_SOURCE_TDD_REPAIR`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 132 authorizes repository/source/test/CI/package repair only  
+**Human authority:** operator authorized continued stabilization; Task 133 authorizes repository/test/CI/package proof closeout only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md`](tasks/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md)
+[`tasks/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`](tasks/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md)
 
 Task ID:
 
-`CNX-20260829-132`
+`CNX-20260829-133`
 
-## Task 131 accepted live result
+## Task 132 independent review
 
-Report:
+Task-132 sequencing repair is directionally accepted but not yet live-advanceable.
 
-`docs/operations/coordination/reports/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`
+Review:
 
-Independent review:
+`docs/operations/coordination/reviews/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair-review.md`
 
-`docs/operations/coordination/reviews/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root-review.md`
+Blocking proof gaps:
 
-Accepted classification:
+1. the executable harness-owned negative-case matrix did not explicitly cover adapter `expected=true`, host/provider mismatch, missing Gateway/Ollama listeners, and post-start exception leakage;
+2. Task-132 report published a stale artifact outer digest.
 
-- authoritative-root preflight PASS;
-- baseline PASS;
-- gateway-crash PASS;
-- provider-crash PASS under the fail-closed provider incident exception;
-- operator-stop not reached;
-- full suite FAIL at `operator-before` because the just-accepted provider incident intentionally remained open and therefore recovery was `READY_WITH_WARNINGS`, while `Assert-Baseline` requires strict `READY`;
-- this boundary is a harness sequencing contradiction, not a new provider-recovery runtime failure.
+Task-132 proposed candidate:
 
-Task-131 suite ledger is consumed `1 / 1` and must not be replayed.
+`b7074c8cb5b10c77624cfe7b5223e3bae338c80d`
 
-## Why Task 132 is repository-only
+is not yet accepted for a new live recovery task.
 
-The provider recovery policy deliberately closes incidents only on stable model success or a verified manual transition. A successful automatic provider restart does not prove stable model completion and does not close the incident.
+## Package identity clarification
 
-Task 131 showed the repaired provider-crash convergence contract working as designed: the provider listener returned, circuit remained closed, and the only recovery warning was the expected open provider incident. The next suite scenario then rejected that same state before it could exercise operator-stop.
+Task-132 artifact `9709442638` itself is coherent and its inner package identity matches `b7074c8c...`, but GitHub metadata gives outer artifact digest:
 
-Therefore Task 132 repairs only the harness scenario boundary.
+`sha256:8cb0370b6ba2c741b31f5c972a8de9ce4cfc488ccbe6042d4d6e1d6535db213c`
 
-## Required sequencing contract
+Task-132 report instead reused `sha256:c5dcbda0...` from an older candidate. Task 133 must generate a fresh artifact and publish the fresh outer digest correctly.
 
-Standalone `operator-stop` remains strict `READY`.
+## Task 133 proof closeout
 
-If `operator-stop` immediately follows a provider-crash PASS in the same harness process, the pre-operator gate may accept the carried prior incident only when:
+Required non-disruptive behavioral proof through the real PowerShell `-ContractSelfTest` path:
 
-- exact same incident ID;
-- one incident row only;
-- status WARN;
-- `incidentOpen=true`;
-- `circuitOpen=false`;
-- recovery verdict `READY_WITH_WARNINGS`;
-- exactly one WARN total, the provider incident;
-- all other checks PASS;
-- provider event adapter exactly one PASS row with `expected=false`;
-- managed mode and Ollama selected in both host/provider views;
-- Gateway and Ollama listeners healthy.
+- carried provider incident still accepts only the exact immediate prior provider-crash state;
+- standalone/different/missing/duplicate/circuit-open/extra-warning/closed-incident cases reject;
+- adapter missing/duplicate/`expected=true` reject;
+- host/provider selection mismatch rejects;
+- Gateway listener missing rejects;
+- Ollama listener missing rejects;
+- ordinary/post-operator-start convergence remains strict `READY` and does not inherit the exception.
 
-Reject standalone/stale/different/missing/duplicate incident, extra warning, circuit-open, FAIL/INDETERMINATE, adapter mismatch, listener loss, provider mismatch, or non-managed state.
-
-Do not manufacture model completion or lifecycle normalization before operator-stop. Existing harness-owned stop/start behavior remains the operation under test, and post-start convergence remains strict `READY`.
-
-## TDD / validation gate
-
-Before modifying the harness:
-
-- behavioral RED must execute the real PowerShell 5.1 harness `-ContractSelfTest` path and reproduce the Task-131 provider→operator sequence rejection;
-- grep/source-text assertions and duplicated Python predicates do not satisfy RED.
-
-Then require focused GREEN, full Python, PowerShell parse/self-test, plugin/evaluation/audit gates, `git diff --check`, dedicated exact-SHA PS5.1 Recovery V3 Smoke, established candidate workflows, and fresh package proof.
-
-Relevant current files:
-
-- `scripts/test-v093-ollama-recovery-windows-v3.ps1`;
-- `tests/test_recovery_harness_contract.py`;
-- `.github/workflows/v093-ollama-recovery-v3-smoke.yml`.
-
-Previous candidate/harness are historical baseline only:
-
-- source `1b922bf400fdbccb1f9c7019b89b69fd67f44070`;
-- harness blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`.
-
-Task 132 must produce a new exact candidate and harness blob.
+Then require full repository validation, all four exact-SHA workflows, and fresh package proof with correct outer artifact digest plus inner package identity/hashes.
 
 ## Historical live ledger
 
@@ -104,7 +71,7 @@ Consumed/closed:
 - Task-131 provider-crash PASS;
 - Task-131 operator-stop `0`.
 
-Task 132 authorizes **zero live lifecycle/recovery operations**.
+Task 133 authorizes **zero live lifecycle/recovery operations**.
 
 ## Prohibited
 
@@ -114,6 +81,6 @@ No live recovery suite/crash injection, install/install-over/reset/uninstall/rei
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-132-provider-to-operator-recovery-suite-sequencing-contract-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-133-recovery-sequencing-behavioral-matrix-and-package-proof-closeout.md`
 
 Then stop for independent ChatGPT review. Final Dashboard durable-delivery acceptance remains unopened and prohibited.
