@@ -78,4 +78,8 @@ Local results:
 - plugin validation: PASS, packed file count `178`;
 - plugin evaluation: `passed: true`.
 
+## CI correction
+
+The first exact-SHA Validate run exposed a portability issue: the new Python test ran on Ubuntu/macOS and unconditionally invoked `powershell.exe`. The Windows-specific behavioral test is now explicitly skipped when Windows PowerShell 5.1 is unavailable; the dedicated Windows smoke workflow remains the authoritative execution path and runs the real self-test. The corrected local suite passed `485 passed, 3 skipped, 4 subtests passed`.
+
 No live Windows acceptance was claimed by this task.

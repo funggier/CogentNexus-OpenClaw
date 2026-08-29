@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "scripts" / "test-v093-ollama-recovery-windows-v3.ps1"
 
 
+@pytest.mark.skipif(shutil.which("powershell.exe") is None, reason="Windows PowerShell 5.1 is required")
 def test_harness_owned_convergence_contract_self_test_passes():
     result = subprocess.run(
         [
