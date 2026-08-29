@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `OFFLINE_INSTALLER_OWNERSHIP_BOUNDARY_TDD_REPAIR_ONLY`
-Current authorization: `CNX-20260829-140_INSTALLER_OWNERSHIP_BOUNDARY_ROLLOVER_REPAIR`
-Task ID: `CNX-20260829-140`
+Execution mode: `OFFLINE_DIRECT_RETIRED_STORAGE_INDIRECTION_TDD_REPAIR_ONLY`
+Current authorization: `CNX-20260829-141_DIRECT_RETIRED_STORAGE_INDIRECTION_SAFETY_REPAIR`
+Task ID: `CNX-20260829-141`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,68 +19,56 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`](tasks/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md)
+[`tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`](tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md)
 
-Task 140 is an offline RED-first TDD diagnosis/repair of the ownership-safe plugin generation-rollover failure observed by Task 139. It does **not** authorize a live install-over retry and does **not** authorize any Dashboard semantic Send.
+Task 141 is an offline RED-first safety rework of the Task-140 direct retired-storage repair. It does **not** authorize a live install-over retry and does **not** authorize any Dashboard semantic Send.
 
-## Task-139 disposition
+## Task-140 disposition
 
-Task-139 report:
+Task-140 report:
 
-`docs/operations/coordination/reports/CNX-20260829-139-repaired-candidate-install-over-and-health-proof.md`
+`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-139-repaired-candidate-install-over-and-health-proof-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-140-installer-ownership-boundary-rollover-repair-review.md`
 
-Review disposition: **ACCEPT** of the execution evidence and controlled `FAIL_INSTALL_OVER` classification.
+Review disposition: **REWORK**.
 
-This is not acceptance of a successful install.
+Task 140 correctly proved the Task-139 functional root cause: the retired payload may legitimately be a real direct OpenClaw extension directory, while the old prepare phase required an isolated managed npm-project path.
 
-The exact repaired Dashboard candidate remains:
+Production commit under rework:
 
-`16f5c396e9be0af8d1bd34824fe2993613501a6f`
+`4d47629edeb8b4e0ab23f1fabee98c05f702d141`
 
-It remains **not deployed** to the effective installed runtime.
+The blocking review finding is narrower. The new direct-root authorization occurs after `Path.resolve()`, so root-level symlink/junction/reparse identity can be lost before ownership authorization. Boundary escape outside `.openclaw` is still rejected; the unproven case is an indirection from the canonical direct path to another in-state directory.
 
-Task 139 built/validated/packaged that exact candidate and performed the one authorized supported install-over. The installer entered native handoff, then failed closed before plugin replacement because ownership-safe generation rollover could not prove the installed plugin path under the expected managed npm projects boundary.
+## Live-state boundary
 
-Observed error:
+No live retry is authorized.
 
-```text
-RuntimeError: plugin is not inside the managed npm projects boundary:
-C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw
-ownership-safe plugin generation rollover pre-install proof failed
-```
+The exact Dashboard durable-capture repair lineage remains not proven live-installed. Task 139 left the controller in `passthrough` with the existing plugin disabled after its one failed install-over attempt. That state remains evidence and must not be normalized during Task 141.
 
-The old installed plugin fingerprint remained:
+## Task-141 execution contract
 
-`3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
+Task 141 must:
 
-Post-failure live state recorded by Task 139 is intentionally left untouched: controller `passthrough`, one plugin identity disabled, Gateway/Ollama healthy, recovery/delivery read-only checks READY, SQLite integrity `ok`, pending outbox `0`, and historical Task-136/137 evidence preserved.
-
-## Task-140 execution contract
-
-Task 140 must:
-
-1. reconstruct the exact Task-139 installer ownership/caller/path contract offline;
-2. distinguish path/layout/normalization/link/generation causes rather than infer one from the error string;
-3. add a deterministic genuine RED reproducing the factual Task-139 failure before any production edit;
-4. prove the exact source-level root cause;
-5. make the smallest safe repair at the owning boundary;
-6. preserve rejection of unmanaged paths, boundary escapes, and unsafe symlink/junction ownership claims;
-7. run the complete relevant ownership/rollover/installer/package/build validation surface and exact-repair-SHA CI where required;
+1. produce a deterministic RED against the current Task-140 repair for a root-level direct-path indirection;
+2. prove portable symlink rejection and Windows junction/reparse rejection or an equally direct Windows root-attestation proof;
+3. make the smallest repair at the lexical direct retired-root attestation boundary;
+4. preserve the accepted ordinary real direct-directory topology;
+5. preserve valid managed npm-project rollover;
+6. preserve rejection of outside-state, arbitrary, shared-wrapper, malformed, and ambiguous ownership states;
+7. run the full relevant installer/ownership/plugin/build validation and exact-SHA CI;
 8. publish the matching report and stop for independent review.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
 
 Then stop for independent ChatGPT review.
-
-A Task-140 PASS does not automatically authorize a new install-over attempt. A separate deployment-proof task is required after review.
 
 ## Hard fence
 

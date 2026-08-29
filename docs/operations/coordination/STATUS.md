@@ -1,78 +1,73 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `OFFLINE_INSTALLER_OWNERSHIP_BOUNDARY_TDD_REPAIR_ONLY`  
+**Execution mode:** `OFFLINE_DIRECT_RETIRED_STORAGE_INDIRECTION_TDD_REPAIR_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 139 failure evidence is independently accepted and the narrow offline repair task is authorized  
+**Human authority:** operator requested continuation; Task 140 report was independently reviewed and requires narrow safety rework before any deployment retry  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`](tasks/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md)
+[`tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`](tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md)
 
 Task ID:
 
-`CNX-20260829-140`
+`CNX-20260829-141`
 
-## Task-139 closeout
+## Task-140 review
 
-Task-139 report:
+Task-140 report:
 
-`docs/operations/coordination/reports/CNX-20260829-139-repaired-candidate-install-over-and-health-proof.md`
+`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-139-repaired-candidate-install-over-and-health-proof-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-140-installer-ownership-boundary-rollover-repair-review.md`
 
-Review disposition: **ACCEPT** of the report evidence and controlled `FAIL_INSTALL_OVER` verdict.
+Disposition: **REWORK**.
 
-The install itself did **not** succeed.
+Accepted from Task 140:
 
-Exact repaired Dashboard source candidate:
+- Task-139's functional ownership mismatch was correctly reproduced by RED;
+- the legitimate old payload can be a real direct directory at `<openclawState>/extensions/cogentnexus-openclaw`;
+- the previous prepare phase incorrectly required that path to be under the managed npm-project boundary;
+- the ordinary real-direct-directory repair works in the new positive regression;
+- reported targeted/full tests and exact repair-SHA CI were GREEN.
 
-`16f5c396e9be0af8d1bd34824fe2993613501a6f`
+Blocking safety gap:
 
-Task 139 proved build/package provenance from that exact source, then executed the supported `scripts/install.ps1` install-over exactly once. The installer entered native handoff and stopped fail-closed before plugin replacement at ownership-safe generation rollover preparation.
+- Task-140's `_retired_storage_root()` compares the direct root only after resolving both the expected direct path and manifest-owned plugin path;
+- `verify_manifest(..., verify_plugin=False)` proves resolved containment but does not attest that the lexical direct root itself is not a symlink/junction/reparse point;
+- therefore a canonical direct path redirected to another directory still inside `.openclaw` can satisfy the new direct-root authorization after resolution;
+- Task 140 added no RED/GREEN proving root-level indirection is rejected before backup mutation.
 
-Decisive error:
+This does not invalidate Task-140's functional root-cause diagnosis. It means the repair is not yet safe enough for a live retry.
 
-```text
-RuntimeError: plugin is not inside the managed npm projects boundary:
-C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw
-ownership-safe plugin generation rollover pre-install proof failed
-```
+## Task-141 authorization
 
-The repaired candidate remains **not live-installed**. The effective installed fingerprint remained the old baseline:
-
-`3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
-
-Task 139 stopped without retry, cleanup, reset, uninstall, manual database/runtime repair, or semantic acceptance. Historical Task-136/137 evidence remained unchanged and no new semantic Ticket/delivery/recovery state was created.
-
-## Current live-state caution
-
-Task 139 recorded the post-failure controller as `passthrough` and the single installed plugin identity as disabled. Gateway and Ollama remained healthy; recovery/delivery read-only checks were READY; SQLite integrity was `ok`; pending outbox remained `0`.
-
-That state is evidence, not an invitation to normalize it. Task 140 is offline-only and must not mutate the live Windows runtime.
-
-## Task-140 authorization
-
-Task 140 must diagnose and repair the installer ownership-boundary mismatch using RED-first TDD.
+Task 141 is the narrow rework only.
 
 Required sequence:
 
-1. trace the factual Task-139 caller, state-root, installed-plugin-path, and generation-rollover contract;
-2. distinguish installer path selection, managed-projects-root modeling, canonicalization, OpenClaw/npm layout, symlink/junction semantics, and ownership metadata rather than guessing;
-3. add a deterministic RED reproducing the Task-139 semantic failure before production edits;
-4. prove exact root cause;
-5. implement the smallest production repair at the owning boundary;
-6. preserve strict rejection of genuinely unmanaged paths and boundary escapes;
-7. run the complete relevant ownership/rollover/installer/package/build validation and exact-SHA CI as applicable;
-8. publish the matching report and stop.
+1. recreate the accepted real direct retired layout offline;
+2. bind a coherent manifest to that real direct path;
+3. replace the direct root with a root-level indirection to another in-state directory and prove the current Task-140 code incorrectly authorizes it;
+4. prove Windows junction/reparse semantics explicitly or through a narrow Windows-attestation primitive exercised in Windows CI;
+5. make the smallest lexical-root attestation repair;
+6. prove the real direct directory still works;
+7. prove managed npm rollover still works;
+8. prove unsafe/foreign/escape/ambiguous states remain rejected;
+9. run relevant Python/plugin/build validation, `git diff --check`, and exact-SHA CI;
+10. publish the matching report and stop.
 
-A Task-140 PASS is offline evidence only. It requires independent review before any new live install-over task may be opened.
+## Live-state caution
+
+The repaired Dashboard source remains not proven live-installed.
+
+Task 139's post-failure state remains intentionally untouched: controller `passthrough`, one existing plugin identity disabled, Gateway/Ollama previously healthy, historical Task-136/137 durable evidence preserved. Task 141 must not normalize or mutate that state.
 
 ## Prohibited
 
@@ -82,6 +77,6 @@ No live Windows install/install-over/update/uninstall/reset; no runtime cleanup/
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
 
-Then stop for independent ChatGPT review. No deployment retry, semantic acceptance, or release/finalization action is automatic.
+Then stop for independent ChatGPT review. No deployment retry or semantic acceptance is automatic.
