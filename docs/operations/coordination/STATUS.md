@@ -1,82 +1,98 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `OFFLINE_DIRECT_RETIRED_STORAGE_INDIRECTION_TDD_REPAIR_ONLY`  
+**Execution mode:** `CONTROLLED_ACCEPTED_CANDIDATE_INSTALL_OVER_RETRY_AND_HEALTH_PROOF`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 140 report was independently reviewed and requires narrow safety rework before any deployment retry  
+**Human authority:** operator requested continuation; Task 141 offline safety repair is independently accepted and one controlled supported install-over retry is authorized  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`](tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md)
+[`tasks/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md`](tasks/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md)
 
 Task ID:
 
-`CNX-20260829-141`
+`CNX-20260829-142`
 
-## Task-140 review
+## Task-141 closeout
 
-Task-140 report:
+Task-141 report:
 
-`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-140-installer-ownership-boundary-rollover-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-141-direct-retired-storage-indirection-safety-repair-review.md`
 
-Disposition: **REWORK**.
+Disposition: **ACCEPT**.
 
-Accepted from Task 140:
+Accepted findings:
 
-- Task-139's functional ownership mismatch was correctly reproduced by RED;
-- the legitimate old payload can be a real direct directory at `<openclawState>/extensions/cogentnexus-openclaw`;
-- the previous prepare phase incorrectly required that path to be under the managed npm-project boundary;
-- the ordinary real-direct-directory repair works in the new positive regression;
-- reported targeted/full tests and exact repair-SHA CI were GREEN.
+- Task 140's functional direct-extension root cause remains valid;
+- Task 141 produced a genuine root-indirection RED against the Task-140 implementation;
+- a real Windows junction at the canonical direct extension path was incorrectly authorized before the repair;
+- Task 141 now attests the lexical root against symlink/junction/reparse identity before resolution;
+- a normal real direct directory remains accepted;
+- valid managed npm-project rollover remains accepted;
+- unsafe/foreign/ambiguous ownership states remain rejected;
+- exact repair SHA `138759d111fe27a0cda75f59ad108d11caf19120` passed PS5.1 Acceptance Smoke, Windows Installer Pack Smoke, and the full Validate matrix including Windows Python 3.11/3.14 full pytest and plugin validation.
 
-Blocking safety gap:
+Exact deployment source candidate:
 
-- Task-140's `_retired_storage_root()` compares the direct root only after resolving both the expected direct path and manifest-owned plugin path;
-- `verify_manifest(..., verify_plugin=False)` proves resolved containment but does not attest that the lexical direct root itself is not a symlink/junction/reparse point;
-- therefore a canonical direct path redirected to another directory still inside `.openclaw` can satisfy the new direct-root authorization after resolution;
-- Task 140 added no RED/GREEN proving root-level indirection is rejected before backup mutation.
+`138759d111fe27a0cda75f59ad108d11caf19120`
 
-This does not invalidate Task-140's functional root-cause diagnosis. It means the repair is not yet safe enough for a live retry.
+GitHub ancestry shows this candidate descends from Dashboard durable-capture repair `16f5c396e9be0af8d1bd34824fe2993613501a6f` with no backward divergence.
 
-## Task-141 authorization
+## Task-142 authorization
 
-Task 141 is the narrow rework only.
+Task 142 is a controlled live deployment/provenance task, not semantic acceptance.
 
 Required sequence:
 
-1. recreate the accepted real direct retired layout offline;
-2. bind a coherent manifest to that real direct path;
-3. replace the direct root with a root-level indirection to another in-state directory and prove the current Task-140 code incorrectly authorizes it;
-4. prove Windows junction/reparse semantics explicitly or through a narrow Windows-attestation primitive exercised in Windows CI;
-5. make the smallest lexical-root attestation repair;
-6. prove the real direct directory still works;
-7. prove managed npm rollover still works;
-8. prove unsafe/foreign/escape/ambiguous states remain rejected;
-9. run relevant Python/plugin/build validation, `git diff --check`, and exact-SHA CI;
+1. fresh coordination check;
+2. read-only live state capture and drift gate;
+3. detached exact candidate build/package provenance;
+4. candidate plugin fingerprint and ownership-script hash capture;
+5. one supported `scripts/install.ps1` invocation only;
+6. no manual pre-normalization of the current `passthrough` / disabled state;
+7. on any installer failure, stop without retry/cleanup/reset;
+8. on success, prove installed plugin fingerprint and installed `namespace_ownership.py` hash equal the exact candidate;
+9. prove singular ownership/plugin identity, installer-restored managed state, Gateway/provider/recovery/delivery/database health, and semantic preservation;
 10. publish the matching report and stop.
 
-## Live-state caution
+## Accepted live-state predecessor boundary
 
-The repaired Dashboard source remains not proven live-installed.
+Task 139's last accepted live evidence was:
 
-Task 139's post-failure state remains intentionally untouched: controller `passthrough`, one existing plugin identity disabled, Gateway/Ollama previously healthy, historical Task-136/137 durable evidence preserved. Task 141 must not normalize or mutate that state.
+- controller `passthrough`;
+- exactly one plugin identity, disabled;
+- old installed fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
+- Gateway/Ollama healthy;
+- system/recovery/delivery read-only checks READY;
+- SQLite integrity `ok`;
+- pending outbox `0`;
+- historical Task-136/137 evidence preserved;
+- no new semantic state caused by the failed install attempt.
+
+Task 142 must inspect reality and stop on material drift rather than force it back to this shape.
+
+## Semantic fence
+
+Task 142 authorizes **zero Dashboard semantic Sends**.
+
+No Dashboard message, resend, Task-136/137 nonce reuse, alternate semantic injection, synthetic Ticket, or manual semantic database mutation is allowed. Final durable-delivery reacceptance can only be opened after Task 142 is independently reviewed.
 
 ## Prohibited
 
-No live Windows install/install-over/update/uninstall/reset; no runtime cleanup/normalization; no manual plugin enable/disable/delete/replace; no controller-mode mutation; no Dashboard semantic Send/resend; no Task-136/137 semantic reuse; no alternate semantic injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no recovery/crash injection; no provider/model/OpenClaw config mutation; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
+No uninstall/reset/clean-reinstall; no manual controller normalization; no manual plugin enable/disable/delete/replace; no alternate plugin install path; no Dashboard semantic Send/resend; no semantic reuse/injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no crash/recovery injection; no provider/model/OpenClaw config mutation except what the supported installer itself owns; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/GitHub Release; no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md`
 
-Then stop for independent ChatGPT review. No deployment retry or semantic acceptance is automatic.
+Then stop for independent ChatGPT review. No Dashboard semantic acceptance is automatic.

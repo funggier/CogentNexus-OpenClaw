@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `OFFLINE_DIRECT_RETIRED_STORAGE_INDIRECTION_TDD_REPAIR_ONLY`
-Current authorization: `CNX-20260829-141_DIRECT_RETIRED_STORAGE_INDIRECTION_SAFETY_REPAIR`
-Task ID: `CNX-20260829-141`
+Execution mode: `CONTROLLED_ACCEPTED_CANDIDATE_INSTALL_OVER_RETRY_AND_HEALTH_PROOF`
+Current authorization: `CNX-20260829-142_ACCEPTED_CANDIDATE_INSTALL_OVER_RETRY_AND_HEALTH_PROOF`
+Task ID: `CNX-20260829-142`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,57 +19,66 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`](tasks/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md)
+[`tasks/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md`](tasks/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md)
 
-Task 141 is an offline RED-first safety rework of the Task-140 direct retired-storage repair. It does **not** authorize a live install-over retry and does **not** authorize any Dashboard semantic Send.
+Task 142 authorizes exactly one controlled supported live install-over retry from the independently accepted exact candidate, followed by provenance and read-only health proof. It does **not** authorize a Dashboard semantic Send.
 
-## Task-140 disposition
+## Task-141 disposition
 
-Task-140 report:
+Task-141 report:
 
-`docs/operations/coordination/reports/CNX-20260829-140-installer-ownership-boundary-rollover-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-140-installer-ownership-boundary-rollover-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-141-direct-retired-storage-indirection-safety-repair-review.md`
 
-Review disposition: **REWORK**.
+Review disposition: **ACCEPT**.
 
-Task 140 correctly proved the Task-139 functional root cause: the retired payload may legitimately be a real direct OpenClaw extension directory, while the old prepare phase required an isolated managed npm-project path.
+Accepted exact deployment candidate:
 
-Production commit under rework:
+`138759d111fe27a0cda75f59ad108d11caf19120`
 
-`4d47629edeb8b4e0ab23f1fabee98c05f702d141`
+That candidate is a descendant of the accepted Dashboard durable-capture repair `16f5c396e9be0af8d1bd34824fe2993613501a6f` and contains the accepted Task-140/141 installer ownership repairs.
 
-The blocking review finding is narrower. The new direct-root authorization occurs after `Path.resolve()`, so root-level symlink/junction/reparse identity can be lost before ownership authorization. Boundary escape outside `.openclaw` is still rejected; the unproven case is an indirection from the canonical direct path to another in-state directory.
+## Task-142 execution contract
 
-## Live-state boundary
+Task 142 must:
 
-No live retry is authorized.
+1. begin with fresh authority and read-only live-state capture;
+2. stop before mutation on material drift from Task-139's accepted post-failure boundary;
+3. build/package from a detached exact `138759d...` source tree and record provenance;
+4. compute the exact candidate plugin fingerprint and candidate `namespace_ownership.py` hash;
+5. invoke the supported `scripts/install.ps1` path exactly once, with no manual pre-normalization;
+6. if install fails, stop without retry/cleanup/reset;
+7. if install succeeds, prove installed plugin fingerprint and installed ownership-script hash match the exact candidate;
+8. prove singular ownership/plugin identity and installer-restored managed operating state;
+9. prove Gateway/provider/recovery/delivery/database health and semantic preservation;
+10. publish the matching report and stop for independent review.
 
-The exact Dashboard durable-capture repair lineage remains not proven live-installed. Task 139 left the controller in `passthrough` with the existing plugin disabled after its one failed install-over attempt. That state remains evidence and must not be normalized during Task 141.
+## Live-state starting boundary
 
-## Task-141 execution contract
+Task 139 recorded the last accepted live state after its fail-closed install-over attempt:
 
-Task 141 must:
+- controller `passthrough`;
+- one existing CogentNexus-OpenClaw plugin identity, disabled;
+- old installed plugin fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`;
+- Gateway/Ollama healthy;
+- recovery/delivery read-only checks READY;
+- SQLite integrity `ok`;
+- pending outbox `0`;
+- historical Task-136/137 evidence preserved.
 
-1. produce a deterministic RED against the current Task-140 repair for a root-level direct-path indirection;
-2. prove portable symlink rejection and Windows junction/reparse rejection or an equally direct Windows root-attestation proof;
-3. make the smallest repair at the lexical direct retired-root attestation boundary;
-4. preserve the accepted ordinary real direct-directory topology;
-5. preserve valid managed npm-project rollover;
-6. preserve rejection of outside-state, arbitrary, shared-wrapper, malformed, and ambiguous ownership states;
-7. run the full relevant installer/ownership/plugin/build validation and exact-SHA CI;
-8. publish the matching report and stop for independent review.
+Tasks 140/141 were offline-only and did not normalize that state. Task 142 must verify the actual live state before mutation rather than assume it is unchanged.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-141-direct-retired-storage-indirection-safety-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md`
 
 Then stop for independent ChatGPT review.
 
 ## Hard fence
 
-No live Windows install/install-over/update/uninstall/reset; no runtime cleanup/normalization; no manual plugin enable/disable/delete/replace; no controller-mode mutation; no Dashboard semantic Send/resend; no Task-136/137 semantic reuse; no alternate semantic injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no recovery/crash injection; no provider/model/OpenClaw config mutation; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No uninstall/reset/clean-reinstall; no manual controller normalization; no manual plugin enable/disable/delete/replace; no alternate plugin installation path; no Dashboard semantic Send/resend; no Task-136/137 semantic reuse; no alternate semantic injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no crash/recovery injection; no provider/model/OpenClaw config mutation except what the supported installer itself owns; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
