@@ -5,7 +5,8 @@ param(
     [switch]$RunDisruptive,
     [int]$RecoveryFuseSeconds = 420,
     [int]$IntentionalStopObservationSeconds = 10,
-    [switch]$SyntaxOnly
+    [switch]$SyntaxOnly,
+    [switch]$ContractSelfTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,6 +35,7 @@ foreach ($item in $Scenario) {
     } elseif (-not $Expanded.Contains($item)) { [void]$Expanded.Add($item) }
 }
 $Disruptive = @($Expanded | Where-Object { $_ -ne 'baseline' })
+if($ContractSelfTest){$Disruptive=@()}
 if ($Disruptive.Count -gt 0 -and -not $RunDisruptive) { throw "Disruptive scenarios requested without -RunDisruptive: $($Disruptive -join ', ')" }
 
 function Get-ProcessRecord {
@@ -155,6 +157,46 @@ function Assert-Baseline {
     Step "assert-managed-$Label" $(if($ok){'PASS'}else{'FAIL'}) ([ordered]@{mode=[string]$hostState.mode;hostSelectedProvider=[string]$hostState.selectedProvider;selectedProvider=[string]$provider.selectedProvider;recoveryVerdict=[string]$recovery.verdict;providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null});gateway=$gateway;ollama=$ollama})
     if(-not $ok){throw "Managed Ollama baseline failed at $Label."}
 }
+function Test-DurableConvergenceObservation {
+    param($Observation,[bool]$RequireProviderIncident=$false)
+    $checks=@($Observation.recoveryChecks)
+    $adapter=@($checks|Where-Object{$_.name -eq 'Provider event adapter'})
+    $incident=@($checks|Where-Object{$_.name -eq 'Provider recovery incident'})
+    $structural=([string]$Observation.mode -eq 'managed' -and [string]$Observation.hostSelectedProvider -eq 'ollama' -and [string]$Observation.selectedProvider -eq 'ollama' -and $adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected -and [bool]$Observation.gateway.listening -and [bool]$Observation.ollama.listening)
+    if(-not $structural){return $false}
+    if([string]$Observation.recoveryVerdict -eq 'READY'){return (-not $RequireProviderIncident -or $incident.Count -eq 1 -and -not [bool]$incident[0].details.circuitOpen)}
+    if(-not $RequireProviderIncident -or [string]$Observation.recoveryVerdict -ne 'READY_WITH_WARNINGS' -or $incident.Count -ne 1){return $false}
+    $warns=@($checks|Where-Object{$_.status -eq 'WARN'}); $bad=@($checks|Where-Object{$_.status -in @('FAIL','INDETERMINATE')})
+    return ([string]$incident[0].status -eq 'WARN' -and [bool]$incident[0].details.incidentOpen -and -not [bool]$incident[0].details.circuitOpen -and $warns.Count -eq 1 -and $warns[0].name -eq 'Provider recovery incident' -and $bad.Count -eq 0 -and @($checks|Where-Object{$_.status -ne 'PASS' -and $_.name -ne 'Provider recovery incident'}).Count -eq 0)
+}
+function New-ContractTestObservation {
+    param([string]$Verdict='READY_WITH_WARNINGS',[switch]$ExtraWarning,[string]$IncidentStatus='WARN',[bool]$IncidentOpen=$true,[switch]$CircuitOpen,[int]$IncidentRows=1,[int]$AdapterRows=1)
+    $checks=@([pscustomobject]@{name='Maintenance/recovery fence';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Supervisor health snapshot';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}})
+    if($AdapterRows -eq 0){$checks=@($checks|Where-Object{$_.name -ne 'Provider event adapter'})}; if($AdapterRows -gt 1){$checks += [pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}}}
+    for($i=0;$i -lt $IncidentRows;$i++){$checks += [pscustomobject]@{name='Provider recovery incident';status=$IncidentStatus;details=[pscustomobject]@{incidentOpen=$IncidentOpen;circuitOpen=$CircuitOpen}}}
+    if($ExtraWarning){$checks[0].status='WARN'}
+    [pscustomobject]@{mode='managed';hostSelectedProvider='ollama';selectedProvider='ollama';recoveryVerdict=$Verdict;gateway=[pscustomobject]@{listening=$true};ollama=[pscustomobject]@{listening=$true};recoveryChecks=$checks}
+}
+function Invoke-ContractSelfTest {
+    $cases=@(
+      @('retained', (New-ContractTestObservation), $true),
+      @('ordinary-warning', (New-ContractTestObservation), $false),
+      @('maintenance-warning', (New-ContractTestObservation -ExtraWarning), $true),
+      @('supervisor-warning', (New-ContractTestObservation -ExtraWarning), $true),
+      @('adapter-warning', (New-ContractTestObservation -ExtraWarning), $true),
+      @('closed-warning', (New-ContractTestObservation -IncidentStatus 'PASS' -IncidentOpen $false), $true),
+      @('circuit-open', (New-ContractTestObservation -CircuitOpen), $true),
+      @('exact-ready', (New-ContractTestObservation -Verdict 'READY'), $true),
+      @('missing-incident', (New-ContractTestObservation -IncidentRows 0), $true),
+      @('duplicate-incident', (New-ContractTestObservation -IncidentRows 2), $true),
+      @('missing-adapter', (New-ContractTestObservation -AdapterRows 0), $true),
+      @('duplicate-adapter', (New-ContractTestObservation -AdapterRows 2), $true)
+    )
+    $cases[3][1].recoveryChecks[1].status='WARN'; $cases[4][1].recoveryChecks[2].status='WARN'
+    $expected=@{'retained'=$true;'ordinary-warning'=$false;'maintenance-warning'=$false;'supervisor-warning'=$false;'adapter-warning'=$false;'closed-warning'=$false;'circuit-open'=$false;'exact-ready'=$true;'missing-incident'=$false;'duplicate-incident'=$false;'missing-adapter'=$false;'duplicate-adapter'=$false}
+    foreach($case in $cases){$actual=Test-DurableConvergenceObservation $case[1] ([bool]$case[2]); if($actual -ne $expected[$case[0]]){throw "Contract self-test failed: $($case[0]) expected $($expected[$case[0]]) got $actual"}}
+    Write-Host 'v0.9.3 Ollama recovery convergence contract self-test: PASS'
+}
 function Wait-DurableConvergence {
     param([string]$Name,[bool]$RequireProviderIncident=$false)
     $started=Get-Date; $deadline=$started.AddSeconds($RecoveryFuseSeconds); $observations=@(); $first=$null; $last=$null
@@ -171,10 +213,10 @@ function Wait-DurableConvergence {
             selectedProvider=[string]$provider.selectedProvider; recoveryVerdict=[string]$recovery.verdict
             gateway=$gateway; ollama=$ollama; providerEventAdapter=$(if($adapter.Count -eq 1){$adapter[0]}else{$null})
             providerRecoveryIncident=$(if($incident.Count -eq 1){$incident[0]}else{$null})
+            recoveryChecks=$recovery.checks
         }
         if($null -eq $first){$first=$observation}; $last=$observation; $observations += $observation
-        $incidentOkay=(-not $RequireProviderIncident) -or ($incident.Count -eq 1 -and -not [bool]$incident[0].details.circuitOpen)
-        $ok=($observation.mode -eq 'managed' -and $observation.hostSelectedProvider -eq 'ollama' -and $observation.selectedProvider -eq 'ollama' -and ($observation.recoveryVerdict -eq 'READY' -or ($RequireProviderIncident -and $observation.recoveryVerdict -eq 'READY_WITH_WARNINGS')) -and $adapter.Count -eq 1 -and -not [bool]$adapter[0].details.expected -and [bool]$gateway.listening -and [bool]$ollama.listening -and $incidentOkay)
+        $ok=Test-DurableConvergenceObservation $observation $RequireProviderIncident
         if($ok){
             $data=[ordered]@{observationOnly=$true;firstVerdict=$first.recoveryVerdict;finalVerdict=$observation.recoveryVerdict;attempts=$observations.Count;elapsedSeconds=[math]::Round(((Get-Date)-$started).TotalSeconds,3);lastObservation=$observation;observations=$observations}
             Step $Name 'PASS' $data; return $data
@@ -214,6 +256,7 @@ function Best-Effort-Reconcile {
     try{Invoke-CnxText -Name 'cleanup-start' -CommandArgs @('start')|Out-Null;Assert-Baseline 'cleanup';Step 'cleanup-reconcile' 'PASS' ([ordered]@{provider='ollama'})}catch{Step 'cleanup-reconcile' 'FAIL' ([ordered]@{error=$_.Exception.Message})}
 }
 
+if($ContractSelfTest){Invoke-ContractSelfTest;exit 0}
 Set-Content -Path $LogPath -Value "CogentNexus-OpenClaw v0.9.3 Ollama-only Recovery Reality Windows Harness v3`r`n" -Encoding UTF8; Save-Evidence
 try {
     Invoke-Probe -Name 'openclaw-version' -Command { & openclaw.cmd --version }
