@@ -1,67 +1,47 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_READONLY_EVIDENCE_CLOSEOUT_ONLY`  
+**Execution mode:** `LIVE_WINDOWS_RECOVERY_ACCEPTANCE_ONLY`  
 **Updated:** 2026-08-29 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator authorized continued stabilization; Task 130 authorizes read-only Task-129 evidence publication only  
+**Human authority:** operator authorized continued stabilization; Task 131 grants one new exact repaired-harness real-Windows recovery-suite execution only  
 **Execution trigger:** manual Hermes/Codex continuation; scheduled execution remains disabled
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260829-130-task129-readonly-evidence-publication-closeout.md`](tasks/CNX-20260829-130-task129-readonly-evidence-publication-closeout.md)
+[`tasks/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`](tasks/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md)
 
 Task ID:
 
-`CNX-20260829-130`
+`CNX-20260829-131`
 
-## Task 129 review status
+## Task 129/130 accepted forensic closure
 
-Task-129 report:
+Task-130 report:
 
-`docs/operations/coordination/reports/CNX-20260829-129-managed-state-root-authority-readonly-diagnosis.md`
+`docs/operations/coordination/reports/CNX-20260829-130-task129-readonly-evidence-publication-closeout.md`
 
-Task-129 review:
+Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-129-managed-state-state-root-authority-readonly-diagnosis-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-130-task129-readonly-evidence-publication-closeout-review.md`
 
-Verdict:
+Accepted result:
 
-`NEEDS EVIDENCE CLOSEOUT — the reported root-cause classification is technically credible and consistent with the installed-launcher contract, and Task 129 appears to have respected the read-only hard fence, but the published report does not contain enough of the evidence explicitly required by the Task-129 contract for independent acceptance. Do not mutate or normalize the live runtime; publish the retained forensic evidence first.`
+- Task 128's `passthrough` / null-provider / missing-SQLite preflight was a false blocker caused by using `--root C:\Users\CDQ-P\.openclaw\workspace`;
+- installed launcher authority is `C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd`;
+- that launcher explicitly uses `C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw` as state root;
+- direct installed-launcher probes show `managed`, provider `ollama`, recovery `READY`;
+- authoritative SQLite exists below that root and read-only `PRAGMA integrity_check` is `ok`;
+- Supervisor task independently references the same installed state root;
+- no authoritative managed-state drift was accepted.
 
-Current reported diagnosis, not yet independently accepted as a completed gate:
+Classification:
 
-- Task-128 used `--root C:\Users\CDQ-P\.openclaw\workspace`;
-- installed `cnxclaw.cmd` reportedly uses `--root C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw`;
-- direct installed-launcher probes reportedly show `managed`, provider `ollama`, recovery `READY`;
-- authoritative SQLite reportedly exists below `.cogentnexus-openclaw` and `PRAGMA integrity_check` returned `ok` read-only.
+`LAUNCHER_OR_ROOT_MISMATCH` + `SQLITE_PATH_OR_STATUS_PROBE_DEFECT` limited to Task-128 preflight.
 
-This strongly indicates a Task-128 acceptance-probe false negative, but Task 130 must publish the retained literal evidence before that diagnosis is accepted.
-
-## Task 130 evidence closeout
-
-Primary evidence root:
-
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx129-authority-20260829T083000Z`
-
-Task 130 must publish, from retained evidence where possible:
-
-1. exact launcher SHA/content and parsed owned Python/CLI/explicit `--root`;
-2. installed CLI file hashes/identity;
-3. authoritative controller/runtime/ownership/SQLite chain and controller state fields;
-4. literal installed-launcher read-only commands and exit codes;
-5. bounded competing-root inventory and authority references;
-6. scheduled-task/service executable/arguments/working-directory/state/last result where retained;
-7. relevant non-secret environment overrides;
-8. Task-125 cleanup versus current generation/mode/provider/timestamp comparison where provable;
-9. SQLite read-only integrity evidence;
-10. final evidence-backed classification.
-
-New live probing should be avoided; if a required fact is absent from retained evidence, only narrowly scoped deterministic read-only inspection equivalent to Task 129 is authorized.
-
-## Accepted repository candidate
+## Accepted candidate
 
 Task-127 candidate remains:
 
@@ -69,38 +49,48 @@ Task-127 candidate remains:
 
 Exact repaired recovery harness:
 
-- `scripts/test-v093-ollama-recovery-windows-v3.ps1`
-- Git blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`
+- `scripts/test-v093-ollama-recovery-windows-v3.ps1`;
+- Git blob `622f70b339fea0f2ef7c564253aa3c6bf90ffc97`.
 
-Task-128 repaired-harness recovery suite remains unconsumed:
+Package proof:
 
-- suite `0 / 1 launched`;
-- confirmation `0`;
-- baseline `0`;
-- gateway-crash `0`;
-- provider-crash `0`;
-- operator-stop `0`.
+- artifact `9706878201`;
+- digest `sha256:c5dcbda0858a08362daa3218c2912ddd4a36c259e61a05be28d7b1d4114b104c`;
+- payload count `178`;
+- fingerprint `3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`.
 
-## Historical consumed ledger
+## Task 131 corrected preflight requirement
 
-Remain consumed/forbidden:
+Before any disruption, all authoritative CNX preflight commands must be invoked through the explicit installed launcher path. The executor must freshly parse that launcher's owned Python, installed CLI, explicit `.cogentnexus-openclaw` root, and `%*` forwarding.
 
-- Task-121 install-over `1 / 1`;
-- Task-124 reset/uninstall/fresh reinstall/standalone stop/start/restart `1 / 1` each;
-- Task-125 old-harness recovery suite `1 / 1`;
-- Task-125 gateway-crash `1 / 1 PASS`;
-- Task-125 provider-crash `1 / 1 old-harness convergence FAIL`.
+The workspace parent must never be substituted as controller root.
 
-Task 130 authorizes no lifecycle/recovery mutation.
+Require a fresh already-safe baseline: managed/Ollama/recovery `READY`, ownership/fingerprint exact, OpenClaw exact, one current plugin, Gateway/Ollama healthy, and authoritative SQLite read-only integrity exactly `ok`. If unsafe, stop BLOCKED without lifecycle repair or normalization.
+
+If safe, run exactly one repaired-harness suite in a true interactive PowerShell PTY:
+
+`-Scenario all -RunDisruptive`
+
+Enter exactly one lowercase `y` only after `Type y to continue:` appears. No suite/scenario rerun is permitted once launched.
+
+## Ledger
+
+Historical operations remain consumed. Task 128 closed with suite `0 / 1 launched`.
+
+Task 131 creates a new one-shot ledger:
+
+- repaired-harness suite: maximum `1 / 1`;
+- confirmation: maximum one lowercase `y` after prompt;
+- baseline/gateway-crash/provider-crash/operator-stop only inside the exact harness.
 
 ## Prohibited
 
-No recovery suite/crash scenario, install/install-over/reset/uninstall/reinstall, start/stop/restart, enable/disable, provider/OpenClaw/model/config mutation, state/database/log edit or initialization, process kill, task/service run/change, cleanup/normalization, reboot, credential/secret access, Dashboard semantic Send, source/runtime repair, merge/tag/release, or force push.
+No install/install-over/reset/uninstall/reinstall, no standalone lifecycle outside the exact harness, no source/harness edits, no alternate confirmation, no provider/OpenClaw/model/config mutation, no manual cleanup/normalization, no reboot, no generic process-tree kill, no credentials/secrets, no Dashboard semantic Send, no merge/tag/release, and no force push.
 
 ## Required output
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-130-task129-readonly-evidence-publication-closeout.md`
+`docs/operations/coordination/reports/CNX-20260829-131-v093-real-windows-recovery-reacceptance-authoritative-root.md`
 
-Then stop for independent ChatGPT review. Recovery re-acceptance and final Dashboard durable-delivery acceptance remain unopened and prohibited.
+Then stop for independent ChatGPT review. Dashboard durable-delivery acceptance remains unopened and prohibited.
