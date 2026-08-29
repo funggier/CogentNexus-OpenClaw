@@ -31,6 +31,24 @@ def test_direct_same_path_rejects_in_state_symlink_registration_alias(tmp_path: 
         )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX symlink alias proof")
+def test_direct_same_path_rejects_outside_state_symlink_registration_alias(tmp_path: Path):
+    paths, candidate, transaction, _, _ = task143._prepare_direct_transition(tmp_path)
+    alias = tmp_path / f"{ownership.PRODUCT_ID}-outside-registration-alias"
+    os.symlink(paths["direct"], alias, target_is_directory=True)
+    task143._replace_payload(paths["direct"], candidate)
+
+    assert alias != paths["direct"]
+    assert paths["openclaw_state"] not in alias.parents
+    assert alias.resolve() == paths["direct"].resolve()
+
+    with pytest.raises(RuntimeError, match="canonical|registration|alias"):
+        ownership.finalize_plugin_rollover_transaction(
+            transaction=transaction,
+            plugin_inventory=task143._inventory(paths, alias),
+        )
+
+
 @pytest.mark.skipif(os.name != "nt", reason="Windows junction alias proof")
 def test_direct_same_path_rejects_windows_junction_registration_alias(tmp_path: Path):
     paths, candidate, transaction, _, _ = task143._prepare_direct_transition(tmp_path)
