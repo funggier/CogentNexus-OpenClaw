@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `OFFLINE_DIRECT_IN_PLACE_ROLLOVER_FINALIZATION_TDD_REPAIR_ONLY`
-Current authorization: `CNX-20260829-143_DIRECT_IN_PLACE_ROLLOVER_FINALIZATION_REPAIR`
-Task ID: `CNX-20260829-143`
+Execution mode: `OFFLINE_DIRECT_REGISTRATION_CANONICALITY_TDD_REPAIR_ONLY`
+Current authorization: `CNX-20260829-144_DIRECT_SAME_PATH_REGISTRATION_CANONICALITY_REPAIR`
+Task ID: `CNX-20260829-144`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,72 +19,72 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-143-direct-in-place-rollover-finalization-repair.md`](tasks/CNX-20260829-143-direct-in-place-rollover-finalization-repair.md)
+[`tasks/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`](tasks/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md)
 
-Task 143 is an offline RED-first repair of the direct same-path rollover finalization defect proven by Task 142. It does **not** authorize any live install/install-over retry and does **not** authorize a Dashboard semantic Send.
+Task 144 is a narrow offline RED-first rework of Task 143. It does **not** authorize any live install/install-over/recovery action and does **not** authorize a Dashboard semantic Send.
 
-## Task-142 disposition
+## Task-143 disposition
 
-Task-142 report:
+Task-143 report:
 
-`docs/operations/coordination/reports/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof.md`
+`docs/operations/coordination/reports/CNX-20260829-143-direct-in-place-rollover-finalization-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260829-142-accepted-candidate-install-over-retry-and-health-proof-review.md`
+`docs/operations/coordination/reviews/CNX-20260829-143-direct-in-place-rollover-finalization-repair-review.md`
 
-Review disposition: **ACCEPT** of the execution evidence and controlled `FAIL_INSTALL_OVER` verdict.
+Review disposition: **REWORK**.
 
-This is not acceptance of a successful deployment.
+Accepted from Task 143:
 
-Task 142 proved that the supported installer replaced the canonical direct extension payload with the exact accepted candidate, then failed during rollover finalization because the replacement remained at the same canonical direct path recorded as the retired path.
+- genuine Task-142 same-path RED existed before production edit;
+- canonical direct A -> B same-path finalization is a valid supported topology;
+- managed same-path replacement remains invalid;
+- backup/fingerprint/manifest/product-storage/root-indirection containment is substantially correct for covered cases;
+- exact repair SHA `59952167f51657ae2ff900a28aae528f835f9b6e` has GREEN exact-SHA CI.
 
-Decisive failure:
+Blocking finding:
 
-```text
-RuntimeError: replacement still points to the retired generation
-ownership-safe plugin generation rollover finalization failed
-```
+- `_active_registered_plugin()` resolves inventory `rootDir` before returning replacement identity;
+- Task-143 finalization computes the lexical registration key but only uses `registration_key == direct_key` to decide whether to run direct-root attestation;
+- a noncanonical alias `rootDir` resolving to the canonical direct root is not explicitly rejected before same-path authority;
+- therefore Task 143 has not proven its required canonical active-registration invariant.
 
 ## Current live-state boundary
 
-Task 142 left the observed live state intentionally untouched after the failure:
+Task 142's partial live state remains intentionally untouched:
 
-- plugin identity singular and canonical;
-- plugin payload fingerprint now equals candidate `12c6d1b5b6ffd938353dd60c5d6190c34a609663369f619ff4fc7cbd176119e0`;
-- installed `namespace_ownership.py` hash equals candidate `e51f03553a24ea67037a3131b5ff4edb8aa435fbbc82b19974ae18f0d03df666`;
-- plugin disabled;
-- controller `passthrough`;
-- existing ownership manifest preserved with its pre-attempt `installedAt`;
-- Gateway/Ollama healthy in Task-142 post-failure evidence;
-- recovery/delivery read-only READY, pending outbox `0`;
-- SQLite integrity `ok` and semantic counts unchanged;
-- Dashboard semantic Sends `0`.
+- exact candidate plugin payload is present at the canonical direct extension path;
+- exact candidate `namespace_ownership.py` is installed;
+- one plugin identity remains disabled;
+- controller remains `passthrough`;
+- pre-attempt ownership manifest remains present;
+- Task-142 post-failure evidence had healthy Gateway/Ollama, recovery/delivery READY, pending outbox `0`, SQLite `ok`, unchanged semantic counts, and zero Dashboard Sends.
 
-Task 143 must not normalize, replay, enable, disable, reinstall, clean, reset, or otherwise mutate this live state.
+Task 144 must not normalize or mutate this live state.
 
-## Task-143 execution contract
+## Task-144 execution contract
 
-Task 143 must:
+Task 144 must:
 
-1. reconstruct the Task-142 direct same-path replacement sequence offline;
-2. create a genuine RED through actual prepare/finalize transaction APIs before production edit;
-3. prove the exact distinction between managed distinct-generation rollover and direct in-place payload replacement;
-4. make the smallest finalization repair without simply deleting the path-inequality safety check;
-5. allow same-path finalization only for rigorously attested canonical real direct storage with an exact old->expected fingerprint transition and exact backup/manifest/inventory evidence;
-6. preserve strict managed npm generation ownership and all Task-140/141 indirection protections;
-7. prove the exact Task-142 partial-state re-entry classification/action plan offline;
-8. run full relevant installer/ownership/plugin/build/package validation and exact-SHA CI;
+1. create a genuine RED where raw inventory `rootDir` is a noncanonical alias resolving to the canonical direct plugin root;
+2. prove Windows junction/reparse alias semantics explicitly;
+3. make the smallest repair that requires canonical lexical registration before direct same-path mutation authority;
+4. preserve canonical direct A -> B success;
+5. preserve managed npm ownership and Task-140/141 root-indirection safety;
+6. preserve backup/fingerprint/manifest/storage/registration uniqueness proofs;
+7. preserve deterministic Task-142 partial-state re-entry classification/action planning;
+8. run full relevant tests/build/plugin/package validation and exact-SHA CI;
 9. publish the matching report and stop for independent review.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-143-direct-in-place-rollover-finalization-repair.md`
+`docs/operations/coordination/reports/CNX-20260829-144-direct-same-path-registration-canonicality-repair.md`
 
 Then stop for independent ChatGPT review.
 
 ## Hard fence
 
-No live Windows install/install-over/update/uninstall/reset/clean-reinstall; no live runtime cleanup/normalization; no manual plugin enable/disable/delete/replace; no controller-mode mutation; no Dashboard semantic Send/resend; no Task-136/137 semantic reuse; no alternate semantic injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no crash/recovery injection; no provider/model/OpenClaw config mutation; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No live Windows install/install-over/update/uninstall/reset/clean-reinstall; no live cleanup/normalization; no manual plugin enable/disable/delete/replace; no controller-mode mutation; no ownership-manifest mutation; no Dashboard semantic Send/resend; no semantic reuse/injection; no manual Ticket/workflow/outbox/ack/delivery/recovery/database mutation; no crash/recovery injection; no provider/model/OpenClaw config mutation; no unrelated process/task/service mutation; no reboot; no credentials/secrets; no merge/tag/release; no force push.
