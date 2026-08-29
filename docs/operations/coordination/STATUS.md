@@ -21,17 +21,21 @@ Task ID:
 
 Task 134 recovery acceptance is independently accepted PASS and its one-shot recovery ledger is consumed.
 
-Task 135 delivery-baseline closeout is independently accepted PASS:
+Task 135 delivery-baseline closeout is independently accepted PASS. Its authoritative report establishes an entirely empty execution/delivery baseline (not retained terminal history):
 
 - authoritative root `.cogentnexus-openclaw`;
 - runtime managed/Ollama;
 - recovery `READY`;
 - delivery `READY`;
 - SQLite integrity exact `ok`;
-- `pendingOutbox=0`;
-- `nonterminalTickets=0`;
-- no unresolved workflow/direct-recovery/assistant-delivery/outbound-send residue;
+- `tickets=0` rows and `nonterminalTickets=0`;
+- `ticket_outbox=0` rows and `pendingOutbox=0`;
+- `ticket_events=0` rows;
+- relevant assistant-delivery/direct-recovery/model-call/synthetic-run/context-maintenance/session tables each `0` rows;
+- only six inert `schema_migrations` metadata rows retained;
 - no Dashboard semantic Send occurred under the prerequisite tasks.
+
+Task-135 independent review was corrected at commit `72aa672b9c954fcaf4e687f6ec7394014e952305` to reflect this exact zero-row evidence. The Task-136 authorization and safety contract are unchanged.
 
 Accepted source candidate remains:
 
