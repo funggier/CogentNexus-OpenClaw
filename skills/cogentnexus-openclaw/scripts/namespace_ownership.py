@@ -927,18 +927,69 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
     """Prove the post-install replacement, then commit ownership atomically."""
     root = Path(transaction["stateRoot"]).resolve(strict=False)
     workspace = Path(transaction["workspace"]).resolve(strict=False)
-    replacement = _active_registered_plugin(plugin_inventory, Path(transaction["openclawState"]))
+    openclaw_state = Path(transaction["openclawState"]).resolve(strict=False)
+    replacement = _active_registered_plugin(plugin_inventory, openclaw_state)
     expected = transaction["expectedReplacementFingerprint"]
+    retired_fingerprint = transaction["retiredFingerprint"]
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", expected) or not re.fullmatch(
+        r"[0-9a-fA-F]{64}", retired_fingerprint
+    ):
+        raise RuntimeError("rollover transaction fingerprint attestation is invalid")
     if replacement["fingerprint"].lower() != expected.lower():
         raise RuntimeError("replacement payload does not match the expected source attestation")
-    if _canonical(replacement["root"]) == transaction["retiredPluginPath"]:
-        raise RuntimeError("replacement still points to the retired generation")
+
     manifest_target = manifest_path(root)
     if _sha256_file(manifest_target) != transaction["manifestBeforeSha256"]:
         raise RuntimeError("ownership manifest changed during rollover transaction")
     backup_path = Path(transaction["backupPath"])
-    if not backup_path.is_dir() or _project_tree_sha256(backup_path) != transaction["backupProjectTreeSha256"]:
+    backup_tree = _project_tree_sha256(backup_path) if backup_path.is_dir() else None
+    if backup_tree != transaction["backupProjectTreeSha256"]:
         raise RuntimeError("pre-install owned-generation backup proof failed")
+    if backup_tree != transaction["retiredProjectTreeSha256"]:
+        raise RuntimeError("pre-install backup no longer matches the retired generation")
+
+    direct_root = Path(os.path.abspath(str(openclaw_state / "extensions" / PRODUCT_ID)))
+    direct_key = os.path.normcase(os.path.abspath(str(direct_root)))
+    retired_plugin_key = os.path.normcase(os.path.abspath(str(transaction["retiredPluginPath"])))
+    retired_project_key = os.path.normcase(os.path.abspath(str(transaction["retiredProjectRoot"])))
+    manifest_before = transaction.get("manifestBefore")
+    manifest_plugin_path = manifest_before.get("pluginPath") if isinstance(manifest_before, dict) else None
+    manifest_plugin_key = (
+        os.path.normcase(os.path.abspath(str(manifest_plugin_path)))
+        if isinstance(manifest_plugin_path, str) else None
+    )
+    direct_transaction = (
+        retired_plugin_key == direct_key
+        and retired_project_key == direct_key
+        and manifest_plugin_key == direct_key
+    )
+
+    registration_root = replacement["record"].get("rootDir")
+    registration_key = (
+        os.path.normcase(os.path.abspath(str(registration_root)))
+        if isinstance(registration_root, str) else None
+    )
+    if direct_transaction and registration_key == direct_key:
+        if not direct_root.is_dir() or _is_reparse_point(direct_root):
+            raise RuntimeError("direct same-path replacement root must remain a real directory")
+        if _canonical(direct_root) != transaction["retiredPluginPath"]:
+            raise RuntimeError("direct same-path replacement root identity changed during rollover")
+
+    same_path = _canonical(replacement["root"]) == transaction["retiredPluginPath"]
+    if same_path:
+        if not direct_transaction:
+            raise RuntimeError("replacement still points to the retired generation")
+        if expected.lower() == retired_fingerprint.lower():
+            raise RuntimeError("direct same-path rollover requires a fingerprint transition from the retired fingerprint")
+        backup_payload = _plugin_payload(backup_path)
+        if backup_payload is None or backup_payload["fingerprint"].lower() != retired_fingerprint.lower():
+            raise RuntimeError("direct same-path retired backup fingerprint proof failed")
+        product_evidence = product_plugin_inventory(openclaw_state)
+        if set(product_evidence) != {"directPlugin"} or _canonical(
+            product_evidence["directPlugin"]
+        ) != transaction["retiredPluginPath"]:
+            raise RuntimeError("direct same-path rollover has conflicting product storage evidence")
+
     manifest_after = dict(transaction["manifestBefore"])
     manifest_after["pluginPath"] = _canonical(replacement["root"])
     manifest_after["installedAt"] = datetime.now(timezone.utc).isoformat()
