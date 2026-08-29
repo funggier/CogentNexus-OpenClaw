@@ -187,12 +187,12 @@ function Test-OperatorBoundaryObservation {
     return $true
 }
 function New-ContractTestObservation {
-    param([string]$Verdict='READY_WITH_WARNINGS',[switch]$ExtraWarning,[string]$IncidentStatus='WARN',[bool]$IncidentOpen=$true,[switch]$CircuitOpen,[int]$IncidentRows=1,[int]$AdapterRows=1,[string]$IncidentId='ollama:2',[string]$Classification='provider_unreachable')
-    $checks=@([pscustomobject]@{name='Maintenance/recovery fence';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Supervisor health snapshot';status='PASS';details=[pscustomobject]@{}},[pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}})
+    param([string]$Verdict='READY_WITH_WARNINGS',[switch]$ExtraWarning,[string]$IncidentStatus='WARN',[bool]$IncidentOpen=$true,[switch]$CircuitOpen,[int]$IncidentRows=1,[int]$AdapterRows=1,[string]$IncidentId='ollama:2',[string]$Classification='provider_unreachable',[bool]$AdapterExpected=$false,[string]$HostSelectedProvider='ollama',[string]$SelectedProvider='ollama',[bool]$GatewayListening=$true,[bool]$OllamaListening=$true)
+    $checks=@([pscustomobject]@{name='Maintenance/recovery fence';status='PASS';details=[pscustomobject]{}},[pscustomobject]@{name='Supervisor health snapshot';status='PASS';details=[pscustomobject]{}},[pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$AdapterExpected}})
     if($AdapterRows -eq 0){$checks=@($checks|Where-Object{$_.name -ne 'Provider event adapter'})}; if($AdapterRows -gt 1){$checks += [pscustomobject]@{name='Provider event adapter';status='PASS';details=[pscustomobject]@{expected=$false}}}
     for($i=0;$i -lt $IncidentRows;$i++){$checks += [pscustomobject]@{name='Provider recovery incident';status=$IncidentStatus;details=[pscustomobject]@{provider='ollama';incidentId=$IncidentId;classification=$Classification;incidentOpen=$IncidentOpen;circuitOpen=$CircuitOpen}}}
     if($ExtraWarning){$checks[0].status='WARN'}
-    [pscustomobject]@{mode='managed';hostSelectedProvider='ollama';selectedProvider='ollama';recoveryVerdict=$Verdict;gateway=[pscustomobject]@{listening=$true};ollama=[pscustomobject]@{listening=$true};recoveryChecks=$checks}
+    [pscustomobject]@{mode='managed';hostSelectedProvider=$HostSelectedProvider;selectedProvider=$SelectedProvider;recoveryVerdict=$Verdict;gateway=[pscustomobject]@{listening=$GatewayListening};ollama=[pscustomobject]@{listening=$OllamaListening};recoveryChecks=$checks}
 }
 function Invoke-ContractSelfTest {
     $cases=@(
@@ -211,7 +211,7 @@ function Invoke-ContractSelfTest {
     )
     $cases[3][1].recoveryChecks[1].status='WARN'; $cases[4][1].recoveryChecks[2].status='WARN'
     $expected=@{'retained'=$true;'ordinary-warning'=$false;'maintenance-warning'=$false;'supervisor-warning'=$false;'adapter-warning'=$false;'closed-warning'=$false;'circuit-open'=$false;'exact-ready'=$true;'missing-incident'=$false;'duplicate-incident'=$false;'missing-adapter'=$false;'duplicate-adapter'=$false}
-    foreach($case in $cases){$actual=Test-DurableConvergenceObservation $case[1] ([bool]$case[2]); if($actual -ne $expected[$case[0]]){throw "Contract self-test failed: $($case[0]) expected $($expected[$case[0]]) got $actual"}}
+    foreach($case in $cases){$actual=Test-DurableConvergenceObservation $case[1] ([bool]$case[2]); if($actual -ne $expected[$case[0]]){throw "Contract self-test failed: $($case[0]) expected $($expected[$case[0]]) got $actual"}; Write-Host "$($case[0]): PASS"}
     $sequence=New-ContractTestObservation -IncidentId 'ollama:2' -Classification 'provider_unreachable'
     $carried=[pscustomobject]@{incidentId='ollama:2';classification='provider_unreachable'}
     if(-not (Test-OperatorBoundaryObservation $sequence $carried 'provider-crash')){throw 'Contract self-test failed: provider-to-operator-carried-incident expected true.'}
@@ -221,6 +221,16 @@ function Invoke-ContractSelfTest {
     if(Test-OperatorBoundaryObservation (New-ContractTestObservation -IncidentRows 0) $carried 'provider-crash'){throw 'Contract self-test failed: missing-incident expected false.'}
     if(Test-OperatorBoundaryObservation (New-ContractTestObservation -ExtraWarning) $carried 'provider-crash'){throw 'Contract self-test failed: extra-warning expected false.'}
     if(Test-OperatorBoundaryObservation (New-ContractTestObservation -Verdict 'READY') $carried 'provider-crash'){throw 'Contract self-test failed: carried-ready-exception expected false.'}
+    $mismatchCases=@(
+      @('adapter-expected-true',(New-ContractTestObservation -AdapterExpected $true),$false),
+      @('host-provider-mismatch',(New-ContractTestObservation -HostSelectedProvider 'openai'),$false),
+      @('provider-status-mismatch',(New-ContractTestObservation -SelectedProvider 'openai'),$false),
+      @('gateway-listener-missing',(New-ContractTestObservation -GatewayListening $false),$false),
+      @('ollama-listener-missing',(New-ContractTestObservation -OllamaListening $false),$false),
+      @('post-operator-start-warning',(New-ContractTestObservation),$false)
+    )
+    foreach($case in $mismatchCases){$actual=Test-DurableConvergenceObservation $case[1] $false; if($actual -ne $case[2]){throw "Contract self-test failed: $($case[0]) expected $($case[2]) got $actual"}; Write-Host "$($case[0]): PASS"}
+    Write-Host 'provider-to-operator-carried-incident: PASS'
     Write-Host 'v0.9.3 Ollama recovery convergence contract self-test: PASS'
 }
 function Wait-DurableConvergence {
