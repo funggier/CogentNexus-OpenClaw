@@ -30,3 +30,24 @@ def test_harness_owned_convergence_contract_self_test_passes():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "convergence contract self-test: PASS" in result.stdout
+
+
+@pytest.mark.skipif(shutil.which("powershell.exe") is None, reason="Windows PowerShell 5.1 is required")
+def test_harness_owned_self_test_covers_provider_to_operator_sequence():
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(HARNESS),
+            "-ContractSelfTest",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "provider-to-operator-carried-incident" in result.stdout
