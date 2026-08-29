@@ -46,4 +46,4 @@ def test_provider_crash_convergence_accepts_recovered_open_incident_state():
 
 def test_harness_accepts_recovered_open_incident_warning_state():
     source = HARNESS.read_text()
-    assert "recoveryVerdict -in @('READY','READY_WITH_WARNINGS')" in source
+    assert "($RequireProviderIncident -and $observation.recoveryVerdict -eq 'READY_WITH_WARNINGS')" in source
