@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_WINDOWS_READONLY_DELIVERY_BASELINE_ONLY`
-Current authorization: `CNX-20260829-135_POST_RECOVERY_DELIVERY_RESIDUE_READONLY_CLOSEOUT`
-Task ID: `CNX-20260829-135`
+Execution mode: `LIVE_WINDOWS_DASHBOARD_DURABLE_DELIVERY_ACCEPTANCE_ONLY`
+Current authorization: `CNX-20260829-136_FINAL_DASHBOARD_DURABLE_DELIVERY_ACCEPTANCE`
+Task ID: `CNX-20260829-136`
 Updated: 2026-08-29 ICT
 Owner: ChatGPT
 Executor: Hermes/Codex after operator continuation
@@ -19,63 +19,71 @@ Only:
 
 ## Active task
 
-[`tasks/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md`](tasks/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md)
+[`tasks/CNX-20260829-136-final-dashboard-durable-delivery-acceptance.md`](tasks/CNX-20260829-136-final-dashboard-durable-delivery-acceptance.md)
 
-Task 135 is a read-only Ticket/workflow/outbox/delivery baseline closeout. It authorizes zero semantic Sends and zero live lifecycle/recovery mutations.
+Task 136 is the final real OpenClaw Dashboard durable-delivery acceptance. It authorizes exactly one new benign semantic Dashboard message and exactly one submission activation. After that single Send, no resend or alternate semantic transport is permitted; durable Ticket/event/result/outbox/delivery evidence becomes authoritative.
 
-## Task 134 accepted recovery closure
+## Accepted prerequisite chain
 
-Report:
+Accepted source candidate:
 
-`docs/operations/coordination/reports/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced.md`
+`1424d6fbee2c458c8c30440616783d2fa1bc1201`
 
-Independent review:
+Accepted payload/plugin fingerprint:
 
-`docs/operations/coordination/reviews/CNX-20260829-134-v093-real-windows-recovery-final-reacceptance-sequenced-review.md`
+`3b78a99ff15af2489b342aedbbdd7f32d35501f98bf79f016c66c301205049d4`
 
-Accepted result:
+Task 134 independently accepted the complete one-shot real-Windows recovery suite. Its live ledger is consumed and must never be replayed.
 
-`ACCEPTED RECOVERY PASS — exact candidate 1424d6fbee2c458c8c30440616783d2fa1bc1201 completed the one-shot real-Windows recovery suite through baseline, Gateway crash, provider crash, the repaired provider→operator carried-incident boundary, intentional stop/no-auto-recovery, harness-owned start, and strict post-start READY. Dashboard advancement remains gated only by the missing read-only outbox/status residue publication item.`
+Task 135 independently accepted the post-recovery zero delivery baseline:
 
-Task-134 live ledger is consumed and must never be replayed:
+- managed/Ollama;
+- recovery `READY`;
+- delivery `READY`;
+- SQLite integrity `ok`;
+- `pendingOutbox=0`;
+- `nonterminalTickets=0`;
+- no unresolved workflow/direct-recovery/assistant-delivery/outbound-send residue;
+- no Dashboard semantic Send under Tasks 134/135.
 
-- suite `1 / 1 PASS`;
-- confirmation `1 / 1`;
-- Gateway crash `1 / 1 PASS`;
-- provider crash `1 / 1 PASS`;
-- operator stop/start sequence `1 / 1 PASS`;
-- reruns `0`.
+Task-135 independent review:
 
-## Task 135 required proof
+`docs/operations/coordination/reviews/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout-review.md`
 
-Using the explicit installed launcher and parsed authoritative `.cogentnexus-openclaw` root only:
+## Task 136 single-send rule
 
-- read-only `status`, `check delivery`, and `check recovery`;
-- authoritative SQLite URI `mode=ro` and `integrity_check=ok`;
-- ticket counts by status and `nonterminalTickets=0`;
-- ticket-outbox counts by delivery status and `pendingOutbox=0`;
-- read-only classification of workflow/delivery/direct-recovery residue;
-- no active work capable of contaminating a one-message Dashboard durable-delivery baseline;
-- runtime remains managed/Ollama/READY.
+Before Send, require a fresh already-safe zero baseline through the explicit installed launcher/root and SQLite URI `mode=ro`. Unsafe or ambiguous preflight => `BLOCKED`; do not normalize.
 
-Historical terminal rows may remain if clearly inert. If any active/ambiguous residue exists, fail closed and report it without cleanup.
+Generate one fresh non-secret nonce and verify it does not already exist in durable records. Compose one short benign message asking for `ACK <nonce>`.
 
-Do not read/publish semantic payload bodies unless strictly unavoidable; prefer IDs/status/timestamps/hashes/lengths.
+Use the real OpenClaw Dashboard conversation UI only. Perform exactly one submission activation. Immediately consume the Task-136 Send ledger `1 / 1`.
 
-## Dashboard fence
+**Never resend after the first activation**, including when UI is ambiguous, reconnecting, stalled, or missing an immediate reply. No CLI/Gateway/API/database semantic injection is allowed.
 
-Final Dashboard durable-delivery acceptance is still unopened. Task 135 must not send, create, dispatch, retry, cancel, ack, delete, or normalize anything.
+After Send, prove read-only:
 
-Only after Task 135 PASS + independent ChatGPT review may a separate Dashboard task authorize exactly one new semantic nonce/message Send.
+- exactly one new Ticket for the nonce;
+- durable Ticket commit precedes inference/model execution;
+- one coherent execution/workflow chain;
+- successful terminal Ticket/result/validator state;
+- one logical outbox/delivery chain;
+- terminal acknowledged/delivered state;
+- no duplicate external delivery/side effect;
+- final `pendingOutbox=0` and `nonterminalTickets=0`;
+- final managed/Ollama recovery+delivery READY and SQLite integrity `ok`.
+
+If the one message fails to converge within the task's bounded observation window, fail-stop. No resend, retry, cleanup, lifecycle/recovery, or normalization is authorized.
 
 ## Completion signal
 
 Hermes/Codex must publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260829-135-post-recovery-delivery-residue-readonly-closeout.md`
+`docs/operations/coordination/reports/CNX-20260829-136-final-dashboard-durable-delivery-acceptance.md`
 
 Then stop for independent ChatGPT review.
 
+Do not merge, tag, create a GitHub Release, or automatically open a finalization task.
+
 ## Hard fence
 
-No Dashboard semantic Send; no Ticket/workflow/outbox mutation; no SQLite write; no install/install-over/reset/uninstall/reinstall; no start/stop/restart/enable/disable; no recovery suite/crash/process kill; no provider/OpenClaw/model/config mutation; no task/service mutation; no cleanup/normalization; no reboot; no credentials/secrets; no source/runtime repair; no merge/tag/release; no force push.
+Other than the one explicitly authorized Dashboard semantic submission: no second Send/resend; no alternate semantic injection; no source/runtime/plugin edit; no install/install-over/reset/uninstall/reinstall; no start/stop/restart/enable/disable; no recovery/crash injection; no provider/model/OpenClaw/config mutation; no manual Ticket/workflow/outbox/ack mutation; no SQLite write/cleanup; no process kill; no task/service mutation; no normalization; no reboot; no credentials/secrets; no merge/tag/release; no force push.
