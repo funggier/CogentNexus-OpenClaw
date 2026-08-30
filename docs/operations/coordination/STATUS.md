@@ -1,34 +1,33 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`  
-**Updated:** 2026-08-30 ICT  
+**Execution mode:** `WINDOWS_DASHBOARD_SINGLE_SEND_DURABLE_DELIVERY_REACCEPTANCE_HERMES`  
+**Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-165`
+**Active task:** `CNX-20260831-166`
 
 ## Active work
 
-[`tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md`](tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md)
+[`tasks/CNX-20260831-166-hermes-dashboard-single-send-durable-delivery-reacceptance.md`](tasks/CNX-20260831-166-hermes-dashboard-single-send-durable-delivery-reacceptance.md)
 
-Executor: Hermes. Coordinator / final reviewer: ChatGPT. ChatGPT review is required before any Dashboard semantic reacceptance.
+Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
-## Accepted parent checkpoint
+Standing model: executor-heavy / reviewer-light. Hermes/Codex performs the primary technical investigation and evidence packaging; ChatGPT reviews the critical claims and expands review only where evidence/risk requires it.
 
-Task 164 repository repair is accepted.
+## Standing policy
 
-Task:
+Current coordination policy is defined by:
 
-`docs/operations/coordination/tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`
+- `EXECUTOR_ANALYSIS_REVIEW_MODEL.md`
+- `EXECUTION_OWNERSHIP.md`
+- `EXECUTOR_REPORT_CONTRACT.md`
+- `CODEX_BOOTSTRAP.md`
 
-Report:
+Future delegated reports must include the acceptance matrix and reviewer verification packet defined by `EXECUTOR_REPORT_CONTRACT.md`.
 
-`docs/operations/coordination/reports/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`
+## Accepted Task 164
 
-ChatGPT review:
-
-`docs/operations/coordination/reviews/CNX-20260830-164-hermes-native-transcript-authority-red-to-green-review.md`
-
-Accepted disposition:
+Disposition:
 
 `PASS — REPOSITORY_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_ACCEPTED`
 
@@ -36,44 +35,51 @@ Accepted production repair SHA:
 
 `80b87dfbe0d9176e421f3748b4cee0827db12d0c`
 
-Task-164 exact-SHA workflow evidence:
+The repair binds Dashboard delivery success to the native post-persistence transcript receipt path and preserves duplicate/recovery fencing.
 
-- Validate `33322815641`: `SUCCESS`
-- Windows Installer Pack Smoke `33322815634`: `SUCCESS`
-- PS5.1 Acceptance Smoke `33322815695`: `SUCCESS`
+## Accepted Task 165
 
-Pinned intended OpenClaw target remains:
-
-`0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`v2026.7.1-2`)
-
-## Current objective
-
-Prove that the real Windows installation is actually running the repaired candidate before any new semantic Dashboard test.
-
-Task 165 must:
-
-1. capture pre-install installed provenance and health;
-2. prove the install-over artifact derives from the accepted repaired candidate;
-3. perform the supported install-over path;
-4. prove installed post-state provenance using deterministic package/file evidence;
-5. confirm intended OpenClaw version/provenance;
-6. confirm CogentNexus plugin/schema/bootstrap/status/health coherence;
-7. avoid every semantic Dashboard Send or equivalent semantic live input.
-
-## Current gate
-
-No exactly-one-Send Dashboard reacceptance is authorized yet.
-
-Task 165 must first complete and publish:
+Report:
 
 `docs/operations/coordination/reports/CNX-20260830-165-hermes-windows-install-over-provenance-health.md`
 
-ChatGPT must independently review that report and evidence.
+Review:
 
-Only an accepted Task-165 PASS may authorize creation of the later exactly-one-Send Dashboard durable-delivery reacceptance task.
+`docs/operations/coordination/reviews/CNX-20260830-165-hermes-windows-install-over-provenance-health-review.md`
+
+Accepted disposition:
+
+`PASS — REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_PROVENANCE_HEALTH_ACCEPTED`
+
+Accepted installed plugin fingerprint:
+
+`5b23040f26ab1148c44647429cc5eff0ef89505e2f068b72d41d9a5fb0ee02e5`
+
+Frozen package SHA-256:
+
+`ae4181d1a5c107c5077f40338701aa1b801e362b7f61d6accdadae696f7d23ba`
+
+OpenClaw target confirmed by Task 165: `2026.7.1-2`.
+
+Task-165 review accepted the disclosed missing wrapper-level final ExitCode because seven installer substages independently completed with exit code `0`, the installer emitted its explicit success completion message, and independent postflight provenance/health/database checks passed.
+
+## Task 166 objective
+
+Task 166 is the controlled exactly-one-Send functional reacceptance.
+
+Hermes/Codex must:
+
+1. re-prove installed candidate provenance and healthy preflight;
+2. perform exactly one semantic Dashboard Send with a unique correlation nonce;
+3. deeply analyze the resulting UI/Ticket/model-call/delivery/transcript/recovery path;
+4. prove one authoritative assistant result, one model result path, one native marker-bearing transcript row, correct post-persistence settlement, exactly one `delivery_confirmed`, no claimable pending delivery, and no recovery duplicate;
+5. confirm healthy post-state;
+6. publish a Task-166 report satisfying the new executor report contract.
 
 ## Hard fence
 
-Supported repaired-candidate install-over and its inherently required runtime transitions are authorized.
+Exactly one semantic Dashboard Send is authorized by Task 166.
 
-No Dashboard semantic Send; no semantic input through another live OpenClaw surface; no uninstall/reinstall/reset without separate authorization; no manual Ticket/workflow/result/outbox/delivery/database mutation; no arbitrary live-state deletion; no OpenClaw patch/upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
+No retry/second Send under any outcome. No semantic input via another live surface; no `chat.inject`; no manual Ticket/workflow/result/outbox/delivery/database mutation; no transcript editing; no install/uninstall/reinstall/reset; no production/source repair; no OpenClaw/dependency upgrade; no unrelated live mutation; no release/promotion; no default/release-branch merge; no force push.
+
+If the one Send demonstrates a defect, Hermes/Codex must analyze and report it, not repair/resend inside Task 166.
