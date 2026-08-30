@@ -38,6 +38,29 @@ function Require-Command([string]$Name) {
     }
 }
 
+function Start-InstallerDiagnosticStage {
+    param([Parameter(Mandatory = $true)][string]$Stage)
+
+    $startedAt = [DateTimeOffset]::UtcNow
+    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+    Write-Host ("CNXCLAW_INSTALL_STAGE_START stage={0} utc={1}" -f $Stage, $startedAt.ToString("o"))
+    return [pscustomobject]@{
+        Stage = $Stage
+        Stopwatch = $stopwatch
+    }
+}
+
+function Complete-InstallerDiagnosticStage {
+    param(
+        [Parameter(Mandatory = $true)][object]$Context,
+        [Parameter(Mandatory = $true)][int]$ExitCode
+    )
+
+    $Context.Stopwatch.Stop()
+    $completedAt = [DateTimeOffset]::UtcNow
+    Write-Host ("CNXCLAW_INSTALL_STAGE_COMPLETE stage={0} utc={1} elapsed_ms={2} exit_code={3}" -f $Context.Stage, $completedAt.ToString("o"), $Context.Stopwatch.ElapsedMilliseconds, $ExitCode)
+}
+
 function Get-ExistingCnxMode {
     $modeController = if ($migrationSource) { $legacyControllerPath } else { $controllerPath }
     if (-not (Test-Path -LiteralPath $modeController)) { return $null }
@@ -237,7 +260,6 @@ try {
 # launcher first so it restores native OpenClaw before v0.9.3 replaces files.
 # The new installation then enters MANAGED with Ollama only.
 Enter-NativeInstallBoundary
-
 if ($migrationSource) {
     $migrationBackupRoot = Join-Path $localAppData "CogentNexus-OpenClaw\migration-backups\v$version-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     New-Item -ItemType Directory -Force -Path $migrationBackupRoot | Out-Null
@@ -311,8 +333,11 @@ if (-not $SkipAgentsPolicy) {
 }
 
 if (-not $SkipPlugin) {
+    $ticketDbDiagnostic = Start-InstallerDiagnosticStage -Stage "ticket-db-bootstrap"
     node (Join-Path $pluginDir "scripts\bootstrap-ticket-db.mjs") --workspace $Workspace
-    if ($LASTEXITCODE -ne 0) { throw "Ticket database bootstrap failed" }
+    $ticketDbExit = $LASTEXITCODE
+    Complete-InstallerDiagnosticStage -Context $ticketDbDiagnostic -ExitCode $ticketDbExit
+    if ($ticketDbExit -ne 0) { throw "Ticket database bootstrap failed" }
 }
 
 if ($actions.installPlugin) {
@@ -342,8 +367,11 @@ if ($actions.installPlugin) {
         }
 
         $rolloverTransactionPath = $null
+        $packDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-npm-pack"
         $packOutput = (& npm pack --json | Out-String)
-        if ($LASTEXITCODE -ne 0) { throw "npm pack failed" }
+        $packExit = $LASTEXITCODE
+        Complete-InstallerDiagnosticStage -Context $packDiagnostic -ExitCode $packExit
+        if ($packExit -ne 0) { throw "npm pack failed" }
         $packagePath = $null
         try {
             . $artifactResolver
@@ -354,12 +382,18 @@ if ($actions.installPlugin) {
                 New-Item -ItemType Directory -Force -Path $rolloverStaging | Out-Null
                 $rolloverId = [guid]::NewGuid().ToString("N")
                 $rolloverTransactionPath = Join-Path $rolloverStaging "plugin-rollover-transaction-$rolloverId.json"
+                $rolloverPrepareDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-rollover-prepare"
                 $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath | Out-String)
-                if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover pre-install proof failed" }
+                $rolloverPrepareExit = $LASTEXITCODE
+                Complete-InstallerDiagnosticStage -Context $rolloverPrepareDiagnostic -ExitCode $rolloverPrepareExit
+                if ($rolloverPrepareExit -ne 0) { throw "ownership-safe plugin generation rollover pre-install proof failed" }
                 if (-not (Test-Path -LiteralPath $rolloverTransactionPath)) { throw "rollover transaction proof was not persisted" }
             }
+            $pluginInstallDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-install-local-package"
             openclaw plugins install $packagePath --force
-            if ($LASTEXITCODE -ne 0) { throw "plugin installation from local package archive failed" }
+            $pluginInstallExit = $LASTEXITCODE
+            Complete-InstallerDiagnosticStage -Context $pluginInstallDiagnostic -ExitCode $pluginInstallExit
+            if ($pluginInstallExit -ne 0) { throw "plugin installation from local package archive failed" }
             if ($isFreshTransaction) { $script:FreshPluginInstalled = $true }
         }
         finally {
@@ -368,15 +402,21 @@ if ($actions.installPlugin) {
             }
         }
 
+        $pluginDisableDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-disable-post-install"
         openclaw plugins disable cogentnexus-openclaw
-        if ($LASTEXITCODE -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
+        $pluginDisableExit = $LASTEXITCODE
+        Complete-InstallerDiagnosticStage -Context $pluginDisableDiagnostic -ExitCode $pluginDisableExit
+        if ($pluginDisableExit -ne 0) { throw "failed to leave CogentNexus-OpenClaw plugin disabled after installation" }
         if ($rolloverTransactionPath) {
             $rolloverInventoryPath = Join-Path $rolloverStaging "plugin-inventory-$rolloverId.json"
             $rolloverInventory = (& openclaw plugins list --json | Out-String)
             if ($LASTEXITCODE -ne 0) { throw "could not prove active canonical plugin registration after replacement" }
             [System.IO.File]::WriteAllText($rolloverInventoryPath, $rolloverInventory, (New-Object System.Text.UTF8Encoding($false)))
+            $rolloverFinalizeDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-rollover-finalize"
             & python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-finalize" "--transaction" $rolloverTransactionPath "--inventory-json" $rolloverInventoryPath | Out-Null
-            if ($LASTEXITCODE -ne 0) { throw "ownership-safe plugin generation rollover finalization failed" }
+            $rolloverFinalizeExit = $LASTEXITCODE
+            Complete-InstallerDiagnosticStage -Context $rolloverFinalizeDiagnostic -ExitCode $rolloverFinalizeExit
+            if ($rolloverFinalizeExit -ne 0) { throw "ownership-safe plugin generation rollover finalization failed" }
         }
     }
     finally { Pop-Location }
@@ -395,8 +435,11 @@ if (-not (Test-Path -LiteralPath $runtimeAuthorityScript)) {
 # Unconditional ensure/validate on every install/install-over (B6): a stale
 # runtime with a missing manifest or broken interpreter must be repaired or
 # fail closed BEFORE any durable launcher/task definition is written.
+$runtimeEnsureDiagnostic = Start-InstallerDiagnosticStage -Stage "owned-runtime-ensure"
 $runtimeManifestJson = (& python $runtimeAuthorityScript ensure-runtime --application-data-root "$applicationDataRoot" | Out-String)
-if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw-owned runtime provisioning failed; refusing to install." }
+$runtimeEnsureExit = $LASTEXITCODE
+Complete-InstallerDiagnosticStage -Context $runtimeEnsureDiagnostic -ExitCode $runtimeEnsureExit
+if ($runtimeEnsureExit -ne 0) { throw "CogentNexus-OpenClaw-owned runtime provisioning failed; refusing to install." }
 $runtimeManifest = $runtimeManifestJson | ConvertFrom-Json
 $ownedPython = [string]$runtimeManifest.foregroundInterpreter
 $ownedPythonw = [string]$runtimeManifest.backgroundInterpreter
