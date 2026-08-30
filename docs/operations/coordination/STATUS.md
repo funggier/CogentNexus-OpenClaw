@@ -1,55 +1,82 @@
 # Coordination Channel Status
 
-**State:** `IN_PROGRESS_CHATGPT`  
-**Execution mode:** `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_CONTINUATION`  
+**State:** `READY_HERMES`  
+**Execution mode:** `REPOSITORY_DASHBOARD_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_HERMES`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-162`
+**Active task:** `CNX-20260830-164`
 
 ## Active work
 
-[`tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`](tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md)
+[`tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`](tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md)
 
-Owner / coordinator / executor / reviewer: ChatGPT. Completion review remains explicit self-review / non-independent review.
+Executor: Hermes. Coordinator / final reviewer: ChatGPT. ChatGPT review is required before any successor authorization.
 
-## Task-163 review disposition
+## Parent objective
 
-Hermes Task 163 reported `BLOCKED`, but ChatGPT final review is `NOT_ACCEPTED_CONTINUE_TASK_162`.
+Task 164 continues Task 162 after the composite native transcript authority candidate was established and a test-only RED was committed.
+
+Parent:
+
+`docs/operations/coordination/tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`
+
+Task-163 `BLOCKED` was not accepted. ChatGPT review found the missing public trusted-plugin post-persistence surface:
+
+`api.runtime.events.onSessionTranscriptUpdate(...)`
 
 Review:
 
 `docs/operations/coordination/reviews/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair-review.md`
 
-The exact installed OpenClaw target `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` exposes a plugin-accessible post-persistence event that Hermes did not evaluate:
+## Current RED checkpoint
 
-`api.runtime.events.onSessionTranscriptUpdate(...)`
+Exact test-only RED SHA:
 
-Exact source ordering is:
+`61218ca6cc13a5c0312829abd72bcdb524944d12`
 
-`before_message_write -> SessionManager originalAppend -> emitSessionTranscriptUpdate`
+Regression:
 
-The runtime event includes the persisted message plus native message/transcript/session identity and is exposed through `PluginRuntime.events`.
+`plugins/cogentnexus-openclaw/src/v162-dashboard-transcript-authority.test.ts`
 
-Therefore the claim that no public/plugin post-native-transcript boundary exists is not accepted.
+CI evidence at that SHA:
+
+- Validate `33318911825`: `FAILURE` — expected RED
+- PS5.1 Acceptance Smoke `33318911867`: `SUCCESS`
+- Windows Installer Pack Smoke `33318911864`: `SUCCESS`
+
+Validate matrix reached `npm test`; the new Task-162 regression was the observed failing test. First failing assertion:
+
+`v162-dashboard-transcript-authority.test.ts:61`
+
+`expect(beforeAgentFinalize).toBeTypeOf("function")`
+
+Actual:
+
+`expected undefined to be type of 'function'`
+
+The RED history must be preserved.
+
+## Accepted production authority hypothesis to verify
+
+Pinned upstream OpenClaw:
+
+`0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`v2026.7.1-2`)
+
+Composite order to verify and implement against:
+
+`terminal assistant candidate -> before_message_write(marker + bounded native-write claim) -> SessionManager originalAppend -> runtime.events.onSessionTranscriptUpdate(post-persistence receipt) -> durable CogentNexus settlement`
+
+`before_message_write` is pre-persistence. It may bind the marker/ownership claim but must not confirm delivery. Final delivery success must wait for the post-persistence transcript event.
+
+Recovery must not be able to claim/inject the same semantic result while native-write ownership is active, and must find no pending row after native persistence is settled.
 
 ## Current gate
 
-Task 162 resumes at the TDD RED gate.
+Hermes should begin from a fresh session by reading `ACTIVE.md`, `STATUS.md`, and Task 164 from current GitHub state.
 
-Before any production source change, ChatGPT must create and commit a production-faithful regression proving the composite authority path and its duplicate-safety ownership transfer:
+If exact pinned source confirms the inherited RED contract, Hermes may proceed directly to the smallest CogentNexus production repair, then targeted and full GREEN validation.
 
-- no append-capable pre-model `reply_dispatch` assumption;
-- no required second `reply_payload_sending` callback;
-- exact terminal assistant/run/session correlation;
-- marker binding on the native assistant write through `before_message_write`;
-- post-persistence verification through `runtime.events.onSessionTranscriptUpdate` only after native append;
-- no delivery success before verified persistence;
-- no recovery injection after native persistence;
-- no race between active native-write ownership and recovery injection;
-- no second inference;
-- preserved Task-155 duplicate/no-regeneration behavior.
-
-Only after the test-only RED commit is observed may the minimal production repair proceed.
+If exact source disproves the committed RED assumptions, stop and report the discrepancy rather than weakening the test or inventing a weaker authority boundary.
 
 ## Hard fence
 
@@ -57,4 +84,4 @@ Repository-only. No Dashboard semantic Send or semantic Dashboard interaction; n
 
 ## Successor
 
-No live successor is authorized yet. Task 162 must first complete RED -> minimal repair -> GREEN and final self-review. Even repository ACCEPT then requires a separate repaired-candidate Windows install-over/provenance/health checkpoint before any new exactly-one-Send Dashboard acceptance task.
+No live successor is authorized. Even Task-164 PASS requires ChatGPT review first, then a separate repaired-candidate Windows install-over/provenance/health checkpoint. Only after that checkpoint is accepted may a new exactly-one-Send Dashboard reacceptance task be opened.
