@@ -156,7 +156,11 @@ describe("Task 162 Dashboard native transcript authority", () => {
         WHERE ticket_id=? AND event_type='delivery_confirmed'`).get(ticket.ticketId)).toEqual({ n: 1 });
       db.close();
     } finally {
-      rmSync(root, { recursive: true, force: true });
+      try {
+        rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 20 });
+      } catch {
+        // Windows may release sqlite handles after the test completes; cleanup is best-effort.
+      }
     }
   });
 });

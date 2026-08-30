@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { join, resolve } from "node:path";
@@ -10,6 +10,7 @@ import { pulseManagedWorkers } from "./v091-final-entry.js";
 const PATCH = Symbol.for("cogentnexus-openclaw.v091.dashboard-verified-delivery");
 const REGISTERED_APIS = new WeakSet<object>();
 let OBSERVATION_REGISTRATION_COUNT = 0;
+const NATIVE_OWNED_RUNS = new Set<string>();
 
 type DeliveryObservationLogger = { info?: (message: string) => void };
 
@@ -61,10 +62,31 @@ type PendingDirectResult = {
   idempotency_key: string;
 };
 
+type NativeTranscriptCandidate = { runId: string; sessionKey: string; text: string; idempotencyKey?: string };
+
+function messageText(message: any): string {
+  const content = Array.isArray(message?.content) ? message.content : [];
+  return content.filter((part: any) => part?.type === "text" && typeof part.text === "string")
+    .map((part: any) => part.text).join("\n");
+}
+
+function messageWithNativeMarker(message: any, idempotencyKey: string) {
+  const content = Array.isArray(message?.content) ? message.content.slice() : [];
+  const index = content.findIndex((part: any) => part?.type === "text" && typeof part.text === "string");
+  if (index < 0) return message;
+  content[index] = { ...content[index], text: nativePayloadText(content[index].text, idempotencyKey) };
+  return { ...message, content };
+}
+
 function openDb(path: string, readOnly = false) {
   new TicketStore(path).snapshot();
   const db = readOnly ? new DatabaseSync(path, { readOnly: true }) : new DatabaseSync(path);
-  if (!readOnly) db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
+  if (!readOnly) {
+    db.exec("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
+    const columns = new Set((db.prepare("PRAGMA table_info(cnx_assistant_delivery)").all() as any[]).map((row) => row.name));
+    if (!columns.has("claim_token")) db.exec("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_token TEXT");
+    if (!columns.has("claim_expires_at")) db.exec("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_expires_at TEXT");
+  }
   return db;
 }
 
@@ -151,6 +173,15 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
       inserted = created.changes === 1;
     }
 
+    // Establish durable native-write ownership before returning to OpenClaw's
+    // pre-persistence hook. Recovery cannot claim this row during the append.
+    const claimToken = `native:${randomUUID()}`;
+    const claimExpiresAt = new Date((input.now ?? new Date()).getTime() + 120_000).toISOString();
+    db.prepare(`UPDATE cnx_assistant_delivery
+      SET claim_token=COALESCE(claim_token,?),claim_expires_at=COALESCE(claim_expires_at,?),updated_at=?
+      WHERE idempotency_key=? AND status='pending'`)
+      .run(claimToken, claimExpiresAt, stamp, idempotencyKey);
+
     const payload = {
       runId: input.runId,
       direct: true,
@@ -226,8 +257,9 @@ export function settleDashboardNativeDelivery(path: string, runId: string, now =
     db.prepare(`UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,
       failure_class=NULL,failure_message=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`)
       .run(stamp, stamp, row.ticket_id);
-    db.prepare(`UPDATE cnx_assistant_delivery SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?
-      WHERE delivery_id=? AND status='pending'`).run(stamp, stamp, row.delivery_id);
+    db.prepare(`UPDATE cnx_assistant_delivery SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?,
+      claim_token=NULL,claim_expires_at=NULL WHERE delivery_id=? AND status='pending'`)
+      .run(stamp, stamp, row.delivery_id);
     addEvent(db, row.ticket_id, "delivery_confirmed", {
       runId,
       source: "native-dashboard-marker",
@@ -301,6 +333,15 @@ function kickHostDelivery(workspace: string, cfg: DashboardVerifiedDeliveryConfi
   } catch { return false; }
 }
 
+function settleDashboardNativeTranscript(path: string, event: any, candidate: NativeTranscriptCandidate, now = new Date()) {
+  if (event?.message?.role !== "assistant" || typeof event?.sessionKey !== "string") return false;
+  const text = messageText(event.message);
+  if (!candidate.idempotencyKey || !text.includes(deliveryMarker(candidate.idempotencyKey))) return false;
+  const settled = settleDashboardNativeDelivery(path, candidate.runId, now);
+  if (settled) NATIVE_OWNED_RUNS.delete(candidate.runId);
+  return settled;
+}
+
 /** Supersede the v0.9 Dashboard no-receipt bypass only at the v0.9.1 release boundary. */
 export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVerifiedDeliveryConfig = {}) {
   const prototype = TicketStore.prototype as any;
@@ -353,6 +394,10 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     for (const runId of unverifiableDashboardRuns(this.databasePath, { now, olderThanMs: input.olderThanMs, limit: input.limit })) {
       finalize.call(this, { runId, success: false, interrupted: false, message, now });
     }
+    // A pending direct_result is already the exact assistant answer. Whether the
+    // native append is still active or its receipt is delayed, never delegate to
+    // legacy recovery, which would otherwise create a competing recovery claim.
+    if (NATIVE_OWNED_RUNS.size > 0) return [];
     return recover.call(this, { ...input, now });
   };
 
@@ -367,6 +412,38 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     owned: boolean;
     waiterStarted: boolean;
   }>();
+  const nativeTranscriptCandidates = new Map<string, NativeTranscriptCandidate>();
+  const workspace = resolve(cfg.workspaceDir ?? process.cwd());
+  const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
+
+  api.on?.("before_agent_finalize", async (event: any, ctx: any) => {
+    const runId = typeof event?.runId === "string" ? event.runId : typeof ctx?.runId === "string" ? ctx.runId : undefined;
+    const sessionKey = typeof event?.sessionKey === "string" ? event.sessionKey : typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+    const candidateMessage = event?.lastAssistantMessage;
+    const text = typeof candidateMessage === "string" ? candidateMessage.trim() : messageText(candidateMessage).trim();
+    if (!runId || !sessionKey || !text || !dashboardTicket(path, runId)) return;
+    nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text });
+  }, { priority: 600 });
+
+  api.on?.("before_message_write", (event: any, ctx: any) => {
+    if (event?.message?.role !== "assistant") return;
+    const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+    const candidate = sessionKey ? nativeTranscriptCandidates.get(sessionKey) : undefined;
+    if (!candidate || messageText(event.message).trim() !== candidate.text) return;
+    const staged = stageDashboardDirectResult(path, { runId: candidate.runId, text: candidate.text });
+    if (!staged.staged) return;
+    nativeTranscriptCandidates.set(sessionKey!, { ...candidate, idempotencyKey: staged.idempotencyKey });
+    NATIVE_OWNED_RUNS.add(candidate.runId);
+    return { message: messageWithNativeMarker(event.message, staged.idempotencyKey) };
+  }, { priority: 600 });
+
+  api.runtime?.events?.onSessionTranscriptUpdate?.((event: any) => {
+    const sessionKey = typeof event?.sessionKey === "string" ? event.sessionKey : event?.target?.sessionKey;
+    if (!sessionKey) return;
+    const candidate = nativeTranscriptCandidates.get(sessionKey);
+    if (candidate) settleDashboardNativeTranscript(path, { ...event, sessionKey }, candidate);
+    nativeTranscriptCandidates.delete(sessionKey);
+  });
 
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
     const hasEventRunId = typeof event?.runId === "string";
