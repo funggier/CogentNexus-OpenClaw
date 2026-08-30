@@ -1,68 +1,65 @@
 # Coordination Channel Status
 
 **State:** `IN_PROGRESS_CHATGPT`  
-**Execution mode:** `OFFLINE_REPOSITORY_TDD_DASHBOARD_DURABLE_CAPTURE_PUBLIC_HOOK_REPAIR`  
+**Execution mode:** `OFFLINE_REPOSITORY_TDD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continued stabilization; Task 153 is independently ACCEPTed and authorizes ChatGPT-owned offline diagnosis/TDD repair before any new live acceptance  
-**Execution trigger:** direct ChatGPT repository work; no Hermes/live execution authorized by Task 154
+**Human authority:** operator requested continuation; Task 154 is independently `REWORK` and authorizes only the narrow offline duplicate-safety repair  
+**Execution trigger:** direct ChatGPT repository work; no Hermes/live execution authorized by Task 155
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`](tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md)
+[`tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`](tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md)
 
 Task ID:
 
-`CNX-20260830-154`
+`CNX-20260830-155`
 
-## Accepted root-cause evidence
+## Task-154 review result
 
-Task 153 report:
+Task-154 report:
 
-`docs/operations/coordination/reports/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`
+`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-154-dashboard-durable-capture-public-hook-repair-review.md`
 
-Disposition: **ACCEPT**.
+Disposition: **REWORK**.
 
-Task 152/153 proves the production `reply_dispatch` handler sees a dispatcher but no `appendBeforeDeliver`, so CogentNexus skips before durable staging.
+The public-hook fallback architecture is retained, but duplicate re-observation is unsafe because current code returns at `fallback.owned` before durable authority is consulted again.
 
-Exact OpenClaw `v2026.7.1-2` source commit `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` explains why:
+This means:
 
-- `appendBeforeDeliver` is optional on `ReplyDispatcher`;
-- `dispatch-from-config.ts` exposes an abort-aware dispatcher wrapper to `reply_dispatch` and does not forward that optional method;
-- `dispatch.ts` separately owns a before-delivery chain on the original dispatcher and invokes public `reply_payload_sending` with the actual payload, delivery kind, session correlation, and turn `runId`;
-- the returned hooked payload is then used for native delivery.
+- repeated same-text final can fall back to OpenClaw's original unmarked payload;
+- repeated changed-text final can bypass CogentNexus durable mismatch fail-closed behavior;
+- duplicate-row suppression alone is insufficient proof of duplicate delivery safety.
 
-## Task-154 TDD gate
+## Task-155 TDD gate
 
-No production source change before a genuine RED regression.
+Before production code changes, a test-only RED commit must prove both defects against current code:
 
-Required RED shape:
+1. same-text repeat must be required to return the same marker-bearing durable payload while row count stays one;
+2. changed-text repeat must be required to fail closed through durable text mismatch;
+3. only one settlement waiter/pulse ownership sequence may start;
+4. append-capable behavior must remain unchanged.
 
-1. accept/route a direct Dashboard Ticket with active session authority;
-2. invoke the registered `reply_dispatch` handler with event run correlation and a dispatcher lacking `appendBeforeDeliver` but retaining idle/outcome counters;
-3. invoke the same run's registered `reply_payload_sending` hook with one text-only `kind=final` payload;
-4. require durable `direct_result` staging and a marker-bearing returned payload with no duplicate row.
-
-After RED, implement the minimum fallback while preserving the existing append-capable path, duplicate safety, changed-text fail-closed behavior, native-delivery settlement, recovery semantics, and privacy-bounded telemetry.
+After RED, make only the minimum fallback change needed to reuse idempotent durable staging on repeat callbacks while guarding first-ownership side effects.
 
 ## Verification gate
 
-Targeted tests must pass first, then full plugin tests/build/validation/package/security gates and exact-SHA GitHub Actions. No live repaired-candidate install-over is authorized until independent review accepts Task 154.
+Focused regressions first, then directly affected delivery tests, full plugin tests, build, `plugin:validate`, package verification, `git diff --check`, and exact-SHA GitHub Actions including Validate, Windows Installer Pack Smoke, and PS5.1 Acceptance Smoke.
 
 ## Required output
 
 ChatGPT must publish:
 
-`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
+`docs/operations/coordination/reports/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`
 
 Then stop for independent review.
 
 ## Release / live fence
 
-Phase P remains FAIL. No Dashboard semantic Send, Windows install-over, lifecycle mutation, Phase Q, merge, tag, GitHub Release, or promotion is authorized by Task 154. No force push.
+Phase P remains FAIL. No Dashboard semantic Send, Windows install-over, lifecycle mutation, Phase Q, merge, tag, GitHub Release, or promotion is authorized by Task 155. No force push.

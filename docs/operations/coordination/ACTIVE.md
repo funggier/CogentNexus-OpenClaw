@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `IN_PROGRESS_CHATGPT`
-Execution mode: `OFFLINE_REPOSITORY_TDD_DASHBOARD_DURABLE_CAPTURE_PUBLIC_HOOK_REPAIR`
-Current authorization: `CNX-20260830-154_DASHBOARD_DURABLE_CAPTURE_PUBLIC_HOOK_REPAIR`
-Task ID: `CNX-20260830-154`
+Execution mode: `OFFLINE_REPOSITORY_TDD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`
+Current authorization: `CNX-20260830-155_DASHBOARD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`
+Task ID: `CNX-20260830-155`
 Updated: 2026-08-30 ICT
 Owner: ChatGPT
 Executor: ChatGPT; no live Windows execution authorized
@@ -19,42 +19,45 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`](tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md)
+[`tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`](tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md)
 
-Task 154 repairs the Phase-P durable-capture defect offline using TDD. No new Dashboard semantic attempt is authorized.
+Task 155 is the narrow offline RED-first rework required by the independent Task-154 review. No live install/install-over and no Dashboard semantic Send are authorized.
 
-## Task-153 disposition
+## Task-154 disposition
 
 Report:
 
-`docs/operations/coordination/reports/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`
+`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-154-dashboard-durable-capture-public-hook-repair-review.md`
 
-Disposition: **ACCEPT**.
+Disposition: **REWORK**.
 
-The first proven failure boundary is `HANDLER_SKIPPED_MISSING_APPEND_BEFORE_DELIVER`.
+Accepted Task-154 findings remain valid: the production `reply_dispatch` wrapper lacks optional `appendBeforeDeliver`, and `reply_payload_sending` is the correct public before-delivery fallback. The blocking defect is narrower: once fallback ownership is established, repeated qualifying callbacks return early before the durable stage/text authority is re-applied.
 
-Exact OpenClaw `v2026.7.1-2` / `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` source inspection shows `appendBeforeDeliver` is optional and the `reply_dispatch` hook receives an abort-aware dispatcher wrapper that does not forward that optional method. The same OpenClaw source installs `reply_payload_sending` through a core-owned before-delivery hook on the original dispatcher with turn run correlation and payload rewrite support.
+## Task-155 execution contract
 
-## Task-154 execution contract
+ChatGPT must use RED -> minimal GREEN -> full verification.
 
-ChatGPT must use RED → minimal GREEN → full verification.
+Required RED must show that, on current code:
 
-RED must reproduce the production-shaped dispatcher where `reply_dispatch` has no `appendBeforeDeliver`, then require the same run's `reply_payload_sending` final payload to be durably staged and marker-bearing before native delivery.
+1. repeated same-text `reply_payload_sending` final returns no marker-bearing replacement instead of reusing durable `nativeText`;
+2. repeated changed-text final bypasses durable mismatch failure instead of failing closed;
+3. durable row remains singular;
+4. only one waiter/pulse ownership sequence is permitted.
 
-Production repair must preserve the existing append path when available, exactly-once durable staging, changed-text fail-closed behavior, marker replay/dedup semantics, delivery outcome settlement, and telemetry privacy.
+Production repair must route repeated qualifying callbacks through the idempotent durable staging authority while guarding first-ownership waiter/pulse side effects. Existing append-capable behavior must remain unchanged.
 
 ## Required completion signal
 
 Publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
+`docs/operations/coordination/reports/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`
 
-Then stop for independent review before any Windows install-over or new Dashboard acceptance.
+Then stop for independent review before any Windows install-over or Dashboard reacceptance.
 
 ## Hard fence
 
-No Dashboard click/focus/type/paste/Send; no semantic transport; no live Windows/runtime mutation; no lifecycle/reset/install/uninstall/reinstall; no manual semantic/database mutation; no OpenClaw source patch; no dependency upgrade; no merge/tag/release; no force push.
+No Dashboard click/focus/type/paste/Send; no semantic transport; no live Windows/runtime mutation; no lifecycle/reset/install/uninstall/reinstall; no manual semantic/database/plugin/controller mutation; no OpenClaw source patch; no dependency upgrade; no merge/tag/release; no force push.
