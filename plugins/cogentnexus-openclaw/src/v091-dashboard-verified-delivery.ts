@@ -49,6 +49,7 @@ export type DashboardVerifiedDeliveryConfig = {
 
 type DashboardTicket = {
   ticket_id: string;
+  run_id: string;
   owner_session_key: string;
   response_ready_at: string | null;
 };
@@ -98,10 +99,21 @@ function addEvent(db: DatabaseSync, ticketId: string, type: string, payload: unk
 function dashboardTicket(path: string, runId: string): DashboardTicket | undefined {
   const db = openDb(path, true);
   try {
-    const row = db.prepare(`SELECT ticket_id,owner_session_key,response_ready_at FROM tickets
+    const row = db.prepare(`SELECT ticket_id,run_id,owner_session_key,response_ready_at FROM tickets
       WHERE run_id=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL
       ORDER BY created_at DESC LIMIT 1`).get(runId) as DashboardTicket | undefined;
     return row?.owner_session_key && isDashboardSession(row.owner_session_key) ? row : undefined;
+  } finally { db.close(); }
+}
+
+function dashboardTicketForSession(path: string, sessionKey: string): DashboardTicket | undefined {
+  const db = openDb(path, true);
+  try {
+    const rows = db.prepare(`SELECT ticket_id,run_id,owner_session_key,response_ready_at FROM tickets
+      WHERE owner_session_key=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL
+      ORDER BY created_at DESC LIMIT 2`).all(sessionKey) as DashboardTicket[];
+    if (rows.length !== 1 || !isDashboardSession(sessionKey)) return undefined;
+    return rows[0];
   } finally { db.close(); }
 }
 
@@ -428,8 +440,13 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
   api.on?.("before_message_write", (event: any, ctx: any) => {
     if (event?.message?.role !== "assistant") return;
     const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
-    const candidate = sessionKey ? nativeTranscriptCandidates.get(sessionKey) : undefined;
-    if (!candidate || messageText(event.message).trim() !== candidate.text) return;
+    const text = messageText(event.message).trim();
+    if (!sessionKey || !text) return;
+    const candidate = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+      const ticket = dashboardTicketForSession(path, sessionKey);
+      return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
+    })();
+    if (!candidate || text !== candidate.text) return;
     const staged = stageDashboardDirectResult(path, { runId: candidate.runId, text: candidate.text });
     if (!staged.staged) return;
     nativeTranscriptCandidates.set(sessionKey!, { ...candidate, idempotencyKey: staged.idempotencyKey });
