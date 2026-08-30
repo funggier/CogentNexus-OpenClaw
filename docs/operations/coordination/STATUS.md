@@ -1,65 +1,63 @@
 # Coordination Channel Status
 
-**State:** `IN_PROGRESS_CHATGPT`  
-**Execution mode:** `OFFLINE_REPOSITORY_TDD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`  
+**State:** `READY_FOR_HERMES`  
+**Execution mode:** `LIVE_WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_HEALTH_PROOF`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator requested continuation; Task 154 is independently `REWORK` and authorizes only the narrow offline duplicate-safety repair  
-**Execution trigger:** direct ChatGPT repository work; no Hermes/live execution authorized by Task 155
+**Human authority:** operator explicitly approved opening the next Hermes Task for the necessary live Windows checkpoint  
+**Execution trigger:** operator instructs Hermes to execute Task 157 on the real Windows/OpenClaw environment
 
 ## Active work
 
 Task:
 
-[`tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`](tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md)
+[`tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`](tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md)
 
 Task ID:
 
-`CNX-20260830-155`
+`CNX-20260830-157`
 
-## Task-154 review result
+Owner / coordinator / reviewer: ChatGPT  
+Executor: Hermes
 
-Task-154 report:
+## Authorization basis
 
-`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
+Task 155 repaired the public-hook duplicate durable-authority defect and has been reviewed `ACCEPT`.
 
-Independent review:
+Accepted production repair:
 
-`docs/operations/coordination/reviews/CNX-20260830-154-dashboard-durable-capture-public-hook-repair-review.md`
+`1ec8cfc81b8a21a178200c33816427f9abfd31b9`
 
-Disposition: **REWORK**.
+Task-155 acceptance checkpoint commit:
 
-The public-hook fallback architecture is retained, but duplicate re-observation is unsafe because current code returns at `fallback.owned` before durable authority is consulted again.
+`d4a4d6b0b14d18eee47d608edd66917eb27b9a68`
 
-This means:
+The next required Phase-P checkpoint is live deployment proof of the repaired candidate before any Dashboard semantic reacceptance.
 
-- repeated same-text final can fall back to OpenClaw's original unmarked payload;
-- repeated changed-text final can bypass CogentNexus durable mismatch fail-closed behavior;
-- duplicate-row suppression alone is insufficient proof of duplicate delivery safety.
+## Task-157 gate
 
-## Task-155 TDD gate
+Hermes is authorized only to:
 
-Before production code changes, a test-only RED commit must prove both defects against current code:
+- capture pre-state and candidate/package provenance;
+- perform repaired-candidate **install-over** using the established process;
+- perform the minimum lifecycle actions necessary for install-over and health proof;
+- inspect installed identity, provenance, status, health, relevant logs, loader/plugin state;
+- publish the Task-157 evidence report.
 
-1. same-text repeat must be required to return the same marker-bearing durable payload while row count stays one;
-2. changed-text repeat must be required to fail closed through durable text mismatch;
-3. only one settlement waiter/pulse ownership sequence may start;
-4. append-capable behavior must remain unchanged.
-
-After RED, make only the minimum fallback change needed to reuse idempotent durable staging on repeat callbacks while guarding first-ownership side effects.
-
-## Verification gate
-
-Focused regressions first, then directly affected delivery tests, full plugin tests, build, `plugin:validate`, package verification, `git diff --check`, and exact-SHA GitHub Actions including Validate, Windows Installer Pack Smoke, and PS5.1 Acceptance Smoke.
+Candidate provenance must be established before live install-over. If it cannot be established, stop `BLOCKED` before mutation.
 
 ## Required output
 
-ChatGPT must publish:
+Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`
+`docs/operations/coordination/reports/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`
 
-Then stop for independent review.
+Then stop. ChatGPT will fresh-read and review the durable report before authorizing any successor Task.
 
-## Release / live fence
+## Live / semantic fence
 
-Phase P remains FAIL. No Dashboard semantic Send, Windows install-over, lifecycle mutation, Phase Q, merge, tag, GitHub Release, or promotion is authorized by Task 155. No force push.
+Phase P remains pending/FAIL until later acceptance completes.
+
+Task 157 does **not** authorize Dashboard semantic Send, Dashboard click/focus/type/paste for semantic testing, a new semantic user message, manual Ticket/workflow/outbox/delivery/database mutation, reset, clean uninstall/fresh reinstall, arbitrary live-state deletion, production/source patching, OpenClaw source patching, dependency upgrade, Phase Q, merge, tag, GitHub Release, package publication/promotion, or force push.
+
+A separate explicit coordination Task is required before Dashboard durable-delivery reacceptance.
