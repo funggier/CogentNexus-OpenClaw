@@ -15,8 +15,8 @@ INSTALL_PS1 = (REPO / "scripts" / "install.ps1").read_text(encoding="utf-8")
 
 
 def test_installer_diagnostic_record_format_is_machine_searchable():
-    assert "CNX_INSTALL_STAGE_START" in INSTALL_PS1
-    assert "CNX_INSTALL_STAGE_COMPLETE" in INSTALL_PS1
+    assert "CNXCLAW_INSTALL_STAGE_START" in INSTALL_PS1
+    assert "CNXCLAW_INSTALL_STAGE_COMPLETE" in INSTALL_PS1
     assert "utc=" in INSTALL_PS1
     assert "elapsed_ms=" in INSTALL_PS1
     assert "exit_code=" in INSTALL_PS1
