@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `IN_PROGRESS_CHATGPT`
-Execution mode: `OFFLINE_REPOSITORY_TDD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`
-Current authorization: `CNX-20260830-155_DASHBOARD_PUBLIC_HOOK_DUPLICATE_DURABLE_AUTHORITY_REWORK`
-Task ID: `CNX-20260830-155`
+Status: `READY_FOR_HERMES`
+Execution mode: `LIVE_WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_HEALTH_PROOF`
+Current authorization: `CNX-20260830-157_REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_HEALTH_PROOF`
+Task ID: `CNX-20260830-157`
 Updated: 2026-08-30 ICT
-Owner: ChatGPT
-Executor: ChatGPT; no live Windows execution authorized
+Owner / coordinator / reviewer: ChatGPT
+Executor: Hermes on the operator's real Windows/OpenClaw environment
 
 ## Authoritative coordination files
 
@@ -19,45 +19,47 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`](tasks/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md)
+[`tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`](tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md)
 
-Task 155 is the narrow offline RED-first rework required by the independent Task-154 review. No live install/install-over and no Dashboard semantic Send are authorized.
+Task 157 authorizes the narrow live Windows checkpoint required after accepted Task-155 repair: install-over the repaired candidate, prove installed provenance, and collect live lifecycle/loader/health evidence.
 
-## Task-154 disposition
+## Accepted repair lineage
 
-Report:
+Accepted production repair:
 
-`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
+`1ec8cfc81b8a21a178200c33816427f9abfd31b9`
 
-Independent review:
+Task-155 report:
 
-`docs/operations/coordination/reviews/CNX-20260830-154-dashboard-durable-capture-public-hook-repair-review.md`
+`docs/operations/coordination/reports/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`
 
-Disposition: **REWORK**.
+Task-155 review disposition: **ACCEPT**, recorded by commit:
 
-Accepted Task-154 findings remain valid: the production `reply_dispatch` wrapper lacks optional `appendBeforeDeliver`, and `reply_payload_sending` is the correct public before-delivery fallback. The blocking defect is narrower: once fallback ownership is established, repeated qualifying callbacks return early before the durable stage/text authority is re-applied.
+`d4a4d6b0b14d18eee47d608edd66917eb27b9a68`
 
-## Task-155 execution contract
+## Task-157 execution contract
 
-ChatGPT must use RED -> minimal GREEN -> full verification.
+Hermes must:
 
-Required RED must show that, on current code:
+1. capture live pre-state and candidate provenance before mutation;
+2. install-over the already-repaired candidate using the established repository process;
+3. perform only lifecycle operations necessary for install-over and health proof;
+4. prove installed identity/provenance and post-install lifecycle/loader/health state;
+5. publish the required evidence report;
+6. stop for ChatGPT review.
 
-1. repeated same-text `reply_payload_sending` final returns no marker-bearing replacement instead of reusing durable `nativeText`;
-2. repeated changed-text final bypasses durable mismatch failure instead of failing closed;
-3. durable row remains singular;
-4. only one waiter/pulse ownership sequence is permitted.
-
-Production repair must route repeated qualifying callbacks through the idempotent durable staging authority while guarding first-ownership waiter/pulse side effects. Existing append-capable behavior must remain unchanged.
+If provenance cannot be established before mutation, stop `BLOCKED` before install-over.
 
 ## Required completion signal
 
 Publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-155-dashboard-public-hook-duplicate-durable-authority-rework.md`
+`docs/operations/coordination/reports/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`
 
-Then stop for independent review before any Windows install-over or Dashboard reacceptance.
+Then stop for ChatGPT review. A separate explicit Task is required before any Dashboard semantic Send.
 
 ## Hard fence
 
-No Dashboard click/focus/type/paste/Send; no semantic transport; no live Windows/runtime mutation; no lifecycle/reset/install/uninstall/reinstall; no manual semantic/database/plugin/controller mutation; no OpenClaw source patch; no dependency upgrade; no merge/tag/release; no force push.
+No Dashboard semantic Send or Dashboard click/focus/type/paste for semantic testing; no new semantic user message; no manual Ticket/workflow/outbox/delivery/database mutation; no reset; no clean uninstall/fresh reinstall; no arbitrary live-state deletion; no manual production/source or OpenClaw patch; no dependency upgrade; no merge/tag/release/publish/promotion; no force push.
+
+Task 157 authorizes install-over plus the minimum necessary lifecycle operations and read-only health/provenance/log inspection only.
