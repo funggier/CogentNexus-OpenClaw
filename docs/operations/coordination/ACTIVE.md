@@ -1,13 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_HERMES`
-Execution mode: `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_HERMES`
-Current authorization: `CNX-20260830-163_HERMES_REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR`
-Task ID: `CNX-20260830-163`
+Status: `IN_PROGRESS_CHATGPT`
+Execution mode: `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_CONTINUATION`
+Current authorization: `CNX-20260830-162_REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_CONTINUATION`
+Task ID: `CNX-20260830-162`
 Updated: 2026-08-30 ICT
-Executor: Hermes
-Coordinator / final reviewer: ChatGPT
-Review type at completion: ChatGPT review required
+Owner / coordinator / executor / reviewer: ChatGPT
+Review type at completion: self-review / non-independent
 
 ## Authoritative coordination files
 
@@ -20,32 +19,49 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md`](tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md)
+[`tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`](tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md)
 
-## Parent task
+## Delegated investigation review
 
-Task 162 remains the parent repository repair objective:
+Task 163 delegated the unresolved authority-boundary trace to Hermes.
 
-`tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`
+Hermes reported `BLOCKED`, but ChatGPT final review did not accept that conclusion because exact OpenClaw `v2026.7.1-2` exposes a missing plugin-accessible post-persistence primitive:
 
-Task 163 delegates the unresolved source-trace / authority-boundary / TDD repair attempt to Hermes. ChatGPT remains coordinator and must review Hermes' report before any successor authorization.
+`api.runtime.events.onSessionTranscriptUpdate(...)`
 
-## Task-163 execution contract
+Review:
 
-Hermes must:
+`reviews/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair-review.md`
 
-1. re-read fresh GitHub branch state before work and before every write;
-2. read Task 162 and its session handoff checkpoint;
-3. trace exact installed OpenClaw Dashboard/webchat final-delivery behavior at upstream commit `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c`;
-4. prove a plugin-accessible authoritative persistence/verification boundary that prevents native-send + recovery-inject duplication, or report `BLOCKED` with exact evidence;
-5. commit a production-faithful test-only RED regression before any production source change;
-6. only after verified RED, implement the smallest safe CogentNexus-OpenClaw repair;
-7. preserve Task-155 duplicate-safe authority and no-regeneration safeguards;
-8. run the required repository/plugin/Windows hosted validation on the exact repair SHA;
-9. publish the Task-163 report for ChatGPT review.
+The exact upstream source establishes:
+
+`before_message_write -> native SessionManager originalAppend -> emitSessionTranscriptUpdate`
+
+and `PluginRuntime.events` publicly exposes `onSessionTranscriptUpdate` to trusted native plugins.
+
+Task 162 therefore resumes under ChatGPT authority.
+
+## Current TDD gate
+
+No production source change is authorized yet.
+
+ChatGPT must first commit a production-faithful test-only RED regression proving the composite authority candidate:
+
+1. pre-model `reply_dispatch` has no append-capable dispatcher;
+2. no second `reply_payload_sending` callback is assumed;
+3. exact assistant result/run/session correlation is available on the real post-model path;
+4. `before_message_write` binds the stable CogentNexus durable-delivery marker to the assistant message that OpenClaw will natively persist;
+5. `runtime.events.onSessionTranscriptUpdate` is observed only after the native append and carries the marker-bearing assistant plus native message identity;
+6. delivery success remains withheld until that post-persistence observation;
+7. native persistence suppresses recovery injection;
+8. native-write ownership and recovery ownership cannot race into duplicate semantic assistant output;
+9. no second inference occurs after an assistant result already exists;
+10. Task-155 duplicate/no-regeneration safeguards remain intact.
+
+Only after the RED commit and expected failure are recorded may the smallest CogentNexus-OpenClaw production repair be made.
 
 ## Hard fence
 
 Repository-only. No Dashboard semantic Send or semantic UI interaction; no real Windows install/uninstall/reinstall/reset; no Gateway/Ollama/Supervisor live restart; no manual durable-state mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product change; no release/promotion; no merge to default/release branch; no force push.
 
-Even Task-163 PASS does not authorize another Dashboard Send or live Windows mutation. ChatGPT must review and explicitly accept the evidence first.
+Even Task-162 ACCEPT does not authorize another Dashboard Send. A separate repaired-candidate Windows install-over + provenance/health acceptance checkpoint is still required first.
