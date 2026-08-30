@@ -1,46 +1,41 @@
 # Coordination Channel Status
 
-**State:** `IN_PROGRESS_CHATGPT`  
-**Execution mode:** `REPOSITORY_DASHBOARD_DURABLE_DELIVERY_PATH_REPAIR`  
+**State:** `READY_HERMES`  
+**Execution mode:** `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_HERMES`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-161`
+**Active task:** `CNX-20260830-163`
 
 ## Active work
 
-[`tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md`](tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md)
+[`tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md`](tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md)
 
-Owner / coordinator / executor / reviewer: ChatGPT. Completion review will be an explicit self-review / non-independent review.
+Executor: Hermes. Coordinator / final reviewer: ChatGPT.
 
-## Task-160 disposition
+## Parent repair objective
 
-Task 160 is accepted as a valid `FAIL` live acceptance result.
+Task 162 remains the parent repository repair objective and source of the current causal investigation:
 
-- pre-Send installed candidate provenance/health: PASS
-- semantic Dashboard Send count: exactly `1`
-- model call: completed
-- `response_ready`: committed
-- durable assistant-delivery row: absent
-- `delivery_confirmed_at`: null
-- terminal Ticket result: permanent failure
-- bounded verified-delivery log: `hasAppendBeforeDeliver=false`, then `missing-append-before-deliver`
-- semantic retry: none
-- post-send runtime health: PASS
+`docs/operations/coordination/tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`
 
-Task-160 review:
-
-`docs/operations/coordination/reviews/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance-review.md`
+Task 163 delegates the unresolved exact OpenClaw Dashboard/webchat final-delivery authority trace and TDD repair attempt to Hermes.
 
 ## Current gate
 
-Task 161 is repository-only root-cause + TDD repair.
+Hermes must first prove a plugin-accessible authoritative persistence/verification boundary on exact upstream OpenClaw commit `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` that prevents native-send + recovery-inject duplication.
 
-Before production change, ChatGPT must prove the exact Dashboard/webchat control flow responsible for the missing durable capture. A valid RED regression is mandatory. The repair must preserve Task-155 duplicate-safe durable authority and the no-regeneration safety boundary.
+Before any CogentNexus production source change, Hermes must commit a production-faithful test-only RED regression. Only then may it make the smallest safe repair and run the full required GREEN validation.
+
+If no safe public authority boundary exists without patching OpenClaw, Hermes must stop and report `BLOCKED` with exact source evidence rather than weaken the contract.
 
 ## Hard fence
 
-No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no force push.
+Repository-only. No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
 
-## Successor
+## Completion gate
 
-After Task 161 report + self-review ACCEPT, open a separate Hermes repaired-candidate Windows install-over/provenance/health checkpoint. Only after that live checkpoint is reviewed ACCEPT may another exactly-one-Send Dashboard reacceptance be authorized.
+Hermes must publish:
+
+`docs/operations/coordination/reports/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md`
+
+ChatGPT must review that report and fresh GitHub state before any successor is opened. Task-163 PASS by itself does not authorize a Dashboard Send or live Windows install-over.
