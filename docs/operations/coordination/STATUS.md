@@ -1,44 +1,46 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_DASHBOARD_SINGLE_SEND_DURABLE_DELIVERY_REACCEPTANCE`  
+**State:** `IN_PROGRESS_CHATGPT`  
+**Execution mode:** `REPOSITORY_DASHBOARD_DURABLE_DELIVERY_PATH_REPAIR`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-160`
+**Active task:** `CNX-20260830-161`
 
 ## Active work
 
-[`tasks/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md`](tasks/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md)
+[`tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md`](tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md)
 
-Owner / coordinator / reviewer: ChatGPT. Executor: Hermes on the operator's real Windows/OpenClaw environment.
+Owner / coordinator / executor / reviewer: ChatGPT. Completion review will be an explicit self-review / non-independent review.
 
-## Accepted prerequisite
+## Task-160 disposition
 
-Task 159 is `ACCEPT` after direct ChatGPT review of its report and durable raw installer evidence.
+Task 160 is accepted as a valid `FAIL` live acceptance result.
 
-- report/evidence commit: `5615b8beda31ba4da0636f4cde7a51a2e197afc9`
-- review commit: `138b5d3f9509ec42ec00b6fa701a7c2b02e2ab3f`
-- accepted installed candidate includes Dashboard repair `1ec8cfc81b8a21a178200c33816427f9abfd31b9`
-- accepted installer observability repair: `2e8ff49da2573d87236fa7a004bc156d8c94b880`
+- pre-Send installed candidate provenance/health: PASS
+- semantic Dashboard Send count: exactly `1`
+- model call: completed
+- `response_ready`: committed
+- durable assistant-delivery row: absent
+- `delivery_confirmed_at`: null
+- terminal Ticket result: permanent failure
+- bounded verified-delivery log: `hasAppendBeforeDeliver=false`, then `missing-append-before-deliver`
+- semantic retry: none
+- post-send runtime health: PASS
 
-The live candidate was proven installed with matching fingerprint and healthy managed/plugin/gateway state. No Dashboard semantic Send has been used in the install checkpoints.
+Task-160 review:
+
+`docs/operations/coordination/reviews/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance-review.md`
 
 ## Current gate
 
-Task 160 is the separate Dashboard durable-delivery reacceptance checkpoint.
+Task 161 is repository-only root-cause + TDD repair.
 
-Hermes must first prove current provenance/health. If that gate fails, stop with `0` semantic Sends.
-
-If the gate passes, exactly **one** semantic Dashboard Send is authorized. There is no semantic retry authorization.
-
-The one Send must be correlated to durable Ticket/run/generation/result/delivery evidence. Visible UI output alone is insufficient; Hermes must reconcile visible response, durable authority, settlement/delivery state, bounded logs, and post-send health.
+Before production change, ChatGPT must prove the exact Dashboard/webchat control flow responsible for the missing durable capture. A valid RED regression is mandatory. The repair must preserve Task-155 duplicate-safe durable authority and the no-regeneration safety boundary.
 
 ## Hard fence
 
-No second semantic Dashboard Send or alternate semantic message; no replay/follow-up/duplicate callback injection; no manual Ticket/workflow/result/outbox/delivery/database semantic mutation; no reset; no install-over; no uninstall/reinstall; no arbitrary live-state deletion; no source/dependency/OpenClaw patch; no product behavior repair; no merge/tag/release/publication/promotion; no force push.
+No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no force push.
 
-## Required report
+## Successor
 
-`docs/operations/coordination/reports/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md`
-
-After report/evidence publication Hermes must STOP for ChatGPT review. Phase P is still pending until that review accepts the evidence.
+After Task 161 report + self-review ACCEPT, open a separate Hermes repaired-candidate Windows install-over/provenance/health checkpoint. Only after that live checkpoint is reviewed ACCEPT may another exactly-one-Send Dashboard reacceptance be authorized.
