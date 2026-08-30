@@ -504,7 +504,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const payload = event?.payload;
     const kind = event?.kind;
     if (kind !== "final") return;
-    if (fallback.owned) return;
+    const firstOwnership = !fallback.owned;
 
     const text = typeof payload?.text === "string" ? payload.text.trim() : "";
     const finalCount = Number(fallback.dispatcher.getQueuedCounts?.().final ?? 1);
@@ -532,14 +532,16 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
       return;
     }
 
-    fallback.owned = true;
     observeDelivery(api.logger, "stage-staged", {
       correlation: correlationDigest(event, ctx),
       ownerGeneration: staged.ownerGeneration ?? null,
       source: "reply-payload-sending",
     });
-    pulseManagedWorkers();
-    api.logger?.info?.("CogentNexus-OpenClaw durably staged Dashboard Direct result before native delivery");
+    if (firstOwnership) {
+      fallback.owned = true;
+      pulseManagedWorkers();
+      api.logger?.info?.("CogentNexus-OpenClaw durably staged Dashboard Direct result before native delivery");
+    }
 
     if (!fallback.waiterStarted) {
       fallback.waiterStarted = true;
