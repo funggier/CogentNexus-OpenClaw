@@ -1,44 +1,54 @@
 # Coordination Channel Status
 
-**State:** `IN_PROGRESS_CHATGPT`  
-**Execution mode:** `REPOSITORY_WINDOWS_INSTALL_OVER_OBSERVABILITY_DIAGNOSIS`  
+**State:** `READY_FOR_HERMES`  
+**Execution mode:** `LIVE_WINDOWS_DIAGNOSTIC_INSTALL_OVER_RETRY`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-158`
+**Active task:** `CNX-20260830-159`
 
 ## Active work
 
-[`tasks/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis.md`](tasks/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis.md)
+[`tasks/CNX-20260830-159-windows-diagnostic-install-over-retry.md`](tasks/CNX-20260830-159-windows-diagnostic-install-over-retry.md)
 
-Owner / executor / reviewer: ChatGPT. Any same-actor review must be labeled self-review and is not independent.
+Owner / coordinator / reviewer: ChatGPT. Executor: Hermes on the operator's real Windows/OpenClaw environment.
 
-## Prior live checkpoint
+## Accepted prerequisite
 
-Task 157 report and ChatGPT review are durable. Task 157 disposition is **BLOCKED**, not ACCEPT:
+Task 158 is `ACCEPT`.
 
-- the single repaired-candidate install-over exceeded the executor's 420-second window;
-- no installer completion/exit boundary was proven;
-- the installed plugin fingerprint remained the pre-existing fingerprint;
-- the live system remained safely in `passthrough` with the plugin disabled;
-- Dashboard semantic Sends were `0`;
-- the complete raw installer capture remained local and was not published into GitHub.
+- accepted diagnostic production repair: `2e8ff49da2573d87236fa7a004bc156d8c94b880`
+- Task-158 report: `docs/operations/coordination/reports/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis.md`
+- Task-158 review: `docs/operations/coordination/reviews/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis-review.md`
 
-Task-157 review:
+The installer now owns machine-searchable START/COMPLETE records with UTC/elapsed/exit-code evidence around the critical late install-over substages.
 
-`docs/operations/coordination/reviews/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof-review.md`
+## Task-159 priority
 
-## Current diagnosis
+Before new mutation, Hermes must first recover and inspect the original Task-157 raw installer log if it still exists:
 
-The durable report proves the installer progressed through native handoff, skill backup/replacement, skill validation, host initialization, and database snapshot. It does not prove which later external substage consumed the remaining execution window.
+`C:/Users/CDQ-P/AppData/Local/Temp/cnx157-install-over-20260830T0610/install-over.txt`
 
-Repository inspection confirms the production Windows installer does not currently provide a stable installer-owned start/completion/elapsed diagnostic contract around all critical late install-over substages. Task 158 therefore adds diagnosability under TDD while preserving installer semantics.
+When available, hash and publish a faithful durable copy. If that complete old log proves a concrete defect that makes unchanged retry unsafe, stop `BLOCKED` before new install mutation.
+
+Otherwise perform one diagnostic install-over retry with exactly one uniquely observable installer process. Record PID/start UTC, durable stdout/stderr, stage markers, final process state/exit code, installed provenance, lifecycle/loader/health evidence, and prove no second installer was launched.
 
 ## Current gate
 
-No blind live retry and no Dashboard semantic reacceptance are authorized.
+Task 159 authorizes the narrow real-Windows diagnostic install-over retry only.
 
-Task 158 is repository-only. If accepted, the next step is a separate Hermes live-retry task that must durably preserve raw installer/subprocess evidence and prove repaired-candidate installation/health before Dashboard testing can be considered.
+Dashboard semantic reacceptance remains forbidden. Dashboard semantic Sends must remain `0`.
+
+After Hermes publishes Task-159 report/evidence, Hermes must STOP for ChatGPT review.
+
+## Required report
+
+`docs/operations/coordination/reports/CNX-20260830-159-windows-diagnostic-install-over-retry.md`
+
+Expected raw evidence when available/reasonably sized:
+
+- `docs/operations/coordination/reports/CNX-20260830-159-task157-original-install-over-log.txt`
+- `docs/operations/coordination/reports/CNX-20260830-159-diagnostic-install-over-log.txt`
 
 ## Hard fence
 
-No live Windows mutation, Dashboard semantic Send/interaction, reset, uninstall, reinstall, runtime/database/semantic mutation, speculative installer retry/timeout/rollback behavior, dependency upgrade, OpenClaw source patch, merge, tag, release, publication/promotion, or force push.
+No Dashboard semantic Send/semantic interaction; no new semantic user message; no manual durable Ticket/workflow/outbox/delivery/DB mutation; no reset; no clean uninstall; no fresh reinstall after uninstall; no arbitrary live-state deletion; no source patch; no dependency upgrade; no OpenClaw source patch; no installer retry/timeout/rollback/kill redesign; no merge/tag/release/publication/promotion; no force push.
