@@ -1,63 +1,44 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`  
-**Execution mode:** `LIVE_WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_HEALTH_PROOF`  
+**State:** `IN_PROGRESS_CHATGPT`  
+**Execution mode:** `REPOSITORY_WINDOWS_INSTALL_OVER_OBSERVABILITY_DIAGNOSIS`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Human authority:** operator explicitly approved opening the next Hermes Task for the necessary live Windows checkpoint  
-**Execution trigger:** operator instructs Hermes to execute Task 157 on the real Windows/OpenClaw environment
+**Active task:** `CNX-20260830-158`
 
 ## Active work
 
-Task:
+[`tasks/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis.md`](tasks/CNX-20260830-158-windows-install-over-observability-recovery-diagnosis.md)
 
-[`tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`](tasks/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md)
+Owner / executor / reviewer: ChatGPT. Any same-actor review must be labeled self-review and is not independent.
 
-Task ID:
+## Prior live checkpoint
 
-`CNX-20260830-157`
+Task 157 report and ChatGPT review are durable. Task 157 disposition is **BLOCKED**, not ACCEPT:
 
-Owner / coordinator / reviewer: ChatGPT  
-Executor: Hermes
+- the single repaired-candidate install-over exceeded the executor's 420-second window;
+- no installer completion/exit boundary was proven;
+- the installed plugin fingerprint remained the pre-existing fingerprint;
+- the live system remained safely in `passthrough` with the plugin disabled;
+- Dashboard semantic Sends were `0`;
+- the complete raw installer capture remained local and was not published into GitHub.
 
-## Authorization basis
+Task-157 review:
 
-Task 155 repaired the public-hook duplicate durable-authority defect and has been reviewed `ACCEPT`.
+`docs/operations/coordination/reviews/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof-review.md`
 
-Accepted production repair:
+## Current diagnosis
 
-`1ec8cfc81b8a21a178200c33816427f9abfd31b9`
+The durable report proves the installer progressed through native handoff, skill backup/replacement, skill validation, host initialization, and database snapshot. It does not prove which later external substage consumed the remaining execution window.
 
-Task-155 acceptance checkpoint commit:
+Repository inspection confirms the production Windows installer does not currently provide a stable installer-owned start/completion/elapsed diagnostic contract around all critical late install-over substages. Task 158 therefore adds diagnosability under TDD while preserving installer semantics.
 
-`d4a4d6b0b14d18eee47d608edd66917eb27b9a68`
+## Current gate
 
-The next required Phase-P checkpoint is live deployment proof of the repaired candidate before any Dashboard semantic reacceptance.
+No blind live retry and no Dashboard semantic reacceptance are authorized.
 
-## Task-157 gate
+Task 158 is repository-only. If accepted, the next step is a separate Hermes live-retry task that must durably preserve raw installer/subprocess evidence and prove repaired-candidate installation/health before Dashboard testing can be considered.
 
-Hermes is authorized only to:
+## Hard fence
 
-- capture pre-state and candidate/package provenance;
-- perform repaired-candidate **install-over** using the established process;
-- perform the minimum lifecycle actions necessary for install-over and health proof;
-- inspect installed identity, provenance, status, health, relevant logs, loader/plugin state;
-- publish the Task-157 evidence report.
-
-Candidate provenance must be established before live install-over. If it cannot be established, stop `BLOCKED` before mutation.
-
-## Required output
-
-Hermes must publish:
-
-`docs/operations/coordination/reports/CNX-20260830-157-repaired-candidate-windows-install-over-health-proof.md`
-
-Then stop. ChatGPT will fresh-read and review the durable report before authorizing any successor Task.
-
-## Live / semantic fence
-
-Phase P remains pending/FAIL until later acceptance completes.
-
-Task 157 does **not** authorize Dashboard semantic Send, Dashboard click/focus/type/paste for semantic testing, a new semantic user message, manual Ticket/workflow/outbox/delivery/database mutation, reset, clean uninstall/fresh reinstall, arbitrary live-state deletion, production/source patching, OpenClaw source patching, dependency upgrade, Phase Q, merge, tag, GitHub Release, package publication/promotion, or force push.
-
-A separate explicit coordination Task is required before Dashboard durable-delivery reacceptance.
+No live Windows mutation, Dashboard semantic Send/interaction, reset, uninstall, reinstall, runtime/database/semantic mutation, speculative installer retry/timeout/rollback behavior, dependency upgrade, OpenClaw source patch, merge, tag, release, publication/promotion, or force push.
