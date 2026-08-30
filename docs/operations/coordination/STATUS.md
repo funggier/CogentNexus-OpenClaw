@@ -1,87 +1,79 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `REPOSITORY_DASHBOARD_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_HERMES`  
+**Execution mode:** `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-164`
+**Active task:** `CNX-20260830-165`
 
 ## Active work
 
-[`tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`](tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md)
+[`tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md`](tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md)
 
-Executor: Hermes. Coordinator / final reviewer: ChatGPT. ChatGPT review is required before any successor authorization.
+Executor: Hermes. Coordinator / final reviewer: ChatGPT. ChatGPT review is required before any Dashboard semantic reacceptance.
 
-## Parent objective
+## Accepted parent checkpoint
 
-Task 164 continues Task 162 after the composite native transcript authority candidate was established and a test-only RED was committed.
+Task 164 repository repair is accepted.
 
-Parent:
+Task:
 
-`docs/operations/coordination/tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`
+`docs/operations/coordination/tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`
 
-Task-163 `BLOCKED` was not accepted. ChatGPT review found the missing public trusted-plugin post-persistence surface:
+Report:
 
-`api.runtime.events.onSessionTranscriptUpdate(...)`
+`docs/operations/coordination/reports/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`
 
-Review:
+ChatGPT review:
 
-`docs/operations/coordination/reviews/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-164-hermes-native-transcript-authority-red-to-green-review.md`
 
-## Current RED checkpoint
+Accepted disposition:
 
-Exact test-only RED SHA:
+`PASS — REPOSITORY_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_ACCEPTED`
 
-`61218ca6cc13a5c0312829abd72bcdb524944d12`
+Accepted production repair SHA:
 
-Regression:
+`80b87dfbe0d9176e421f3748b4cee0827db12d0c`
 
-`plugins/cogentnexus-openclaw/src/v162-dashboard-transcript-authority.test.ts`
+Task-164 exact-SHA workflow evidence:
 
-CI evidence at that SHA:
+- Validate `33322815641`: `SUCCESS`
+- Windows Installer Pack Smoke `33322815634`: `SUCCESS`
+- PS5.1 Acceptance Smoke `33322815695`: `SUCCESS`
 
-- Validate `33318911825`: `FAILURE` — expected RED
-- PS5.1 Acceptance Smoke `33318911867`: `SUCCESS`
-- Windows Installer Pack Smoke `33318911864`: `SUCCESS`
-
-Validate matrix reached `npm test`; the new Task-162 regression was the observed failing test. First failing assertion:
-
-`v162-dashboard-transcript-authority.test.ts:61`
-
-`expect(beforeAgentFinalize).toBeTypeOf("function")`
-
-Actual:
-
-`expected undefined to be type of 'function'`
-
-The RED history must be preserved.
-
-## Accepted production authority hypothesis to verify
-
-Pinned upstream OpenClaw:
+Pinned intended OpenClaw target remains:
 
 `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`v2026.7.1-2`)
 
-Composite order to verify and implement against:
+## Current objective
 
-`terminal assistant candidate -> before_message_write(marker + bounded native-write claim) -> SessionManager originalAppend -> runtime.events.onSessionTranscriptUpdate(post-persistence receipt) -> durable CogentNexus settlement`
+Prove that the real Windows installation is actually running the repaired candidate before any new semantic Dashboard test.
 
-`before_message_write` is pre-persistence. It may bind the marker/ownership claim but must not confirm delivery. Final delivery success must wait for the post-persistence transcript event.
+Task 165 must:
 
-Recovery must not be able to claim/inject the same semantic result while native-write ownership is active, and must find no pending row after native persistence is settled.
+1. capture pre-install installed provenance and health;
+2. prove the install-over artifact derives from the accepted repaired candidate;
+3. perform the supported install-over path;
+4. prove installed post-state provenance using deterministic package/file evidence;
+5. confirm intended OpenClaw version/provenance;
+6. confirm CogentNexus plugin/schema/bootstrap/status/health coherence;
+7. avoid every semantic Dashboard Send or equivalent semantic live input.
 
 ## Current gate
 
-Hermes should begin from a fresh session by reading `ACTIVE.md`, `STATUS.md`, and Task 164 from current GitHub state.
+No exactly-one-Send Dashboard reacceptance is authorized yet.
 
-If exact pinned source confirms the inherited RED contract, Hermes may proceed directly to the smallest CogentNexus production repair, then targeted and full GREEN validation.
+Task 165 must first complete and publish:
 
-If exact source disproves the committed RED assumptions, stop and report the discrepancy rather than weakening the test or inventing a weaker authority boundary.
+`docs/operations/coordination/reports/CNX-20260830-165-hermes-windows-install-over-provenance-health.md`
+
+ChatGPT must independently review that report and evidence.
+
+Only an accepted Task-165 PASS may authorize creation of the later exactly-one-Send Dashboard durable-delivery reacceptance task.
 
 ## Hard fence
 
-Repository-only. No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no live Gateway/Ollama/Supervisor restart; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
+Supported repaired-candidate install-over and its inherently required runtime transitions are authorized.
 
-## Successor
-
-No live successor is authorized. Even Task-164 PASS requires ChatGPT review first, then a separate repaired-candidate Windows install-over/provenance/health checkpoint. Only after that checkpoint is accepted may a new exactly-one-Send Dashboard reacceptance task be opened.
+No Dashboard semantic Send; no semantic input through another live OpenClaw surface; no uninstall/reinstall/reset without separate authorization; no manual Ticket/workflow/result/outbox/delivery/database mutation; no arbitrary live-state deletion; no OpenClaw patch/upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
