@@ -21,7 +21,7 @@ function correlationDigest(event: unknown, context: unknown) {
   const runId = typeof (event as any)?.runId === "string" ? (event as any).runId
     : typeof (context as any)?.runId === "string" ? (context as any).runId : "";
   const sessionKey = typeof (event as any)?.sessionKey === "string" ? (event as any).sessionKey : "";
-  return runId || sessionKey ? createHash("sha256").update(`${runId}\\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
+  return runId || sessionKey ? createHash("sha256").update(`${runId}\0${sessionKey}`).digest("hex").slice(0, 12) : undefined;
 }
 
 function exceptionCategory(error: unknown) {
@@ -360,6 +360,14 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
 
   if (typeof api !== "object" || api === null || REGISTERED_APIS.has(api)) return;
   REGISTERED_APIS.add(api);
+  const publicHookFallbacks = new Map<string, {
+    dispatcher: any;
+    workspace: string;
+    path: string;
+    owned: boolean;
+    waiterStarted: boolean;
+  }>();
+
   api.on?.("reply_dispatch", (event: any, ctx: any) => {
     const hasEventRunId = typeof event?.runId === "string";
     const hasContextRunId = typeof ctx?.runId === "string";
@@ -378,14 +386,26 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
       observeDelivery(api.logger, "handler-skip", { reason: "missing-dispatcher" });
       return;
     }
+    const workspace = resolve(cfg.workspaceDir ?? process.cwd());
+    const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
     if (!hasAppendBeforeDeliver) {
       observeDelivery(api.logger, "handler-skip", { reason: "missing-append-before-deliver" });
+      if (dashboardTicket(path, runId)) {
+        publicHookFallbacks.set(runId, {
+          dispatcher: ctx.dispatcher,
+          workspace,
+          path,
+          owned: false,
+          waiterStarted: false,
+        });
+        observeDelivery(api.logger, "public-hook-fallback-armed", {
+          correlation: correlationDigest(event, ctx),
+        });
+      }
       return;
     }
     let owned = false;
     let waiterStarted = false;
-    const workspace = resolve(cfg.workspaceDir ?? process.cwd());
-    const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
 
     ctx.dispatcher.appendBeforeDeliver((payload: any, info: any) => {
       // Preserve the predecessor's short-circuit order: non-final and already-owned
@@ -474,6 +494,86 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     });
     observeDelivery(api.logger, "callback-registered", { hasAppendBeforeDeliver: true });
   }, { priority: 600 });
+
+  api.on?.("reply_payload_sending", (event: any, ctx: any) => {
+    const runId = typeof event?.runId === "string" ? event.runId
+      : typeof ctx?.runId === "string" ? ctx.runId : undefined;
+    if (!runId) return;
+    const fallback = publicHookFallbacks.get(runId);
+    if (!fallback) return;
+    const payload = event?.payload;
+    const kind = event?.kind;
+    if (kind !== "final") return;
+    if (fallback.owned) return;
+
+    const text = typeof payload?.text === "string" ? payload.text.trim() : "";
+    const finalCount = Number(fallback.dispatcher.getQueuedCounts?.().final ?? 1);
+    const hasMedia = Boolean(payload?.mediaUrl || (Array.isArray(payload?.mediaUrls) && payload.mediaUrls.length > 0));
+    observeDelivery(api.logger, "public-hook-entry", {
+      kind: callbackKindCategory(kind),
+      finalCount,
+      hasText: text.length > 0,
+      hasMedia,
+      alreadyOwned: fallback.owned,
+      correlation: correlationDigest(event, ctx),
+    });
+    if (!text || hasMedia || finalCount > 1) return;
+
+    observeDelivery(api.logger, "stage-attempt", { correlation: correlationDigest(event, ctx), hasText: true });
+    let staged: ReturnType<typeof stageDashboardDirectResult>;
+    try {
+      staged = stageDashboardDirectResult(fallback.path, { runId, text });
+    } catch (error) {
+      observeDelivery(api.logger, "stage-exception", { category: "stage", exception: exceptionCategory(error) });
+      throw error;
+    }
+    if (!staged.staged) {
+      observeDelivery(api.logger, "stage-not-staged", { reason: staged.reason ?? "unknown" });
+      return;
+    }
+
+    fallback.owned = true;
+    observeDelivery(api.logger, "stage-staged", {
+      correlation: correlationDigest(event, ctx),
+      ownerGeneration: staged.ownerGeneration ?? null,
+      source: "reply-payload-sending",
+    });
+    pulseManagedWorkers();
+    api.logger?.info?.("CogentNexus-OpenClaw durably staged Dashboard Direct result before native delivery");
+
+    if (!fallback.waiterStarted) {
+      fallback.waiterStarted = true;
+      queueMicrotask(() => { void (async () => {
+        try {
+          await fallback.dispatcher.waitForIdle();
+          const failed = Number(fallback.dispatcher.getFailedCounts?.().final ?? 0);
+          const cancelled = Number(fallback.dispatcher.getCancelledCounts?.().final ?? 0);
+          if (failed === 0 && cancelled === 0) {
+            settleDashboardNativeDelivery(fallback.path, runId);
+          } else {
+            const message = failed > 0 ? `final delivery failed count=${failed}` : `final delivery cancelled count=${cancelled}`;
+            recordPendingDeliveryFailure(fallback.path, runId, message);
+            kickHostDelivery(fallback.workspace, cfg);
+            pulseManagedWorkers();
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          recordPendingDeliveryFailure(fallback.path, runId, message);
+          kickHostDelivery(fallback.workspace, cfg);
+          pulseManagedWorkers();
+        } finally {
+          publicHookFallbacks.delete(runId);
+        }
+      })(); });
+    }
+
+    return { payload: { ...payload, text: staged.nativeText } };
+  }, { priority: 600 });
+
   OBSERVATION_REGISTRATION_COUNT += 1;
-  observeDelivery(api.logger, "hook-registered", { registrationCount: OBSERVATION_REGISTRATION_COUNT, hasReplyDispatch: true });
+  observeDelivery(api.logger, "hook-registered", {
+    registrationCount: OBSERVATION_REGISTRATION_COUNT,
+    hasReplyDispatch: true,
+    hasReplyPayloadSending: true,
+  });
 }
