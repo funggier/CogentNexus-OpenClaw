@@ -198,7 +198,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       expect(logs.some((line) => line.includes('reason":"missing-run-correlation'))).toBe(true);
       handlers[0]({ runId: "raw-run-secret" }, { dispatcher: {} });
       expect(logs.some((line) => line.includes('reason":"missing-append-before-deliver'))).toBe(true);
-      expect(logs.join("\\n")).not.toContain("raw-run-secret");
+      expect(logs.join("\n")).not.toContain("raw-run-secret");
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -209,7 +209,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       const logs: string[] = [];
       let handler: any;
       installV091DashboardVerifiedDelivery({
-        on: (_name: string, registered: any) => { handler = registered; },
+        on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; },
         logger: { info: (message: string) => logs.push(String(message)) },
       }, { workspaceDir: root, ticketDatabasePath: path });
       const callbacks: any[] = [];
@@ -217,8 +217,8 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       handler({ runId: "filter-run-secret" }, { dispatcher });
       callbacks[0]({ text: "response-secret" }, { kind: "final" });
       expect(logs.some((line) => line.includes('reason":"final-count-not-one'))).toBe(true);
-      expect(logs.join("\\n")).not.toContain("filter-run-secret");
-      expect(logs.join("\\n")).not.toContain("response-secret");
+      expect(logs.join("\n")).not.toContain("filter-run-secret");
+      expect(logs.join("\n")).not.toContain("response-secret");
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -234,7 +234,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       const logs: string[] = [];
       let handler: any;
       installV091DashboardVerifiedDelivery({
-        on: (_name: string, registered: any) => { handler = registered; },
+        on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; },
         logger: { info: (message: string) => logs.push(String(message)) },
       }, { workspaceDir: root, ticketDatabasePath: path });
       const callbacks: any[] = [];
@@ -244,8 +244,8 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       expect(output.text).toContain("response-secret");
       expect(logs.some((line) => line.includes('event":"stage-attempt'))).toBe(true);
       expect(logs.some((line) => line.includes('event":"stage-staged'))).toBe(true);
-      expect(logs.join("\\n")).not.toContain("stage-run-secret");
-      expect(logs.join("\\n")).not.toContain("response-secret");
+      expect(logs.join("\n")).not.toContain("stage-run-secret");
+      expect(logs.join("\n")).not.toContain("response-secret");
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -267,16 +267,16 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     try {
       const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
       let handler: any;
-      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) };
       handler({ runId: "reasons-run-secret" }, { dispatcher });
       callbacks[0]({}, { kind: "delta" }); callbacks[0]({}, { kind: "final" });
       callbacks[0]({ text: "media-secret", mediaUrl: "https://example.invalid/media" }, { kind: "final" });
       const multi: any[] = []; const multiDispatcher = { appendBeforeDeliver: (fn: any) => multi.push(fn), getQueuedCounts: () => ({ final: 2 }), waitForIdle: () => new Promise<void>(() => {}) };
-      let second: any; installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { second = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      let second: any; installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") second = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       second({ runId: "multi-run-secret" }, { dispatcher: multiDispatcher }); multi[0]({ text: "multi-secret" }, { kind: "final" });
       for (const reason of ["not-final", "empty-text", "media-present", "final-count-not-one"]) expect(logs.some((line) => line.includes(`reason\":\"${reason}`))).toBe(true);
-      expect(logs.join("\\n")).not.toMatch(/reasons-run-secret|multi-run-secret|media-secret|multi-secret/);
+      expect(logs.join("\n")).not.toMatch(/reasons-run-secret|multi-run-secret|media-secret|multi-secret/);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -284,7 +284,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v104-observe-errors-"));
     try {
       const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
-      let handler: any; installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      let handler: any; installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) };
       handler({ runId: "missing-ticket-secret" }, { dispatcher }); callbacks[0]({ text: "not-staged-secret" }, { kind: "final" });
       expect(logs.some((line) => line.includes('reason\":\"not-dashboard-direct'))).toBe(true);
@@ -292,11 +292,11 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       const ticket = store.accept({ runId: "exception-run-secret", ownerSessionKey: sessionKey, prompt: "exception-prompt-secret" }); store.route(ticket.ticketId, false);
       stageDashboardDirectResult(path, { runId: "exception-run-secret", text: "old-response-secret" });
       const exceptionCallbacks: any[] = []; let exceptionHandler: any;
-      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { exceptionHandler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") exceptionHandler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       exceptionHandler({ runId: "exception-run-secret" }, { dispatcher: { appendBeforeDeliver: (fn: any) => exceptionCallbacks.push(fn), getQueuedCounts: () => ({ final: 1 }), waitForIdle: () => new Promise<void>(() => {}) } });
       expect(() => exceptionCallbacks[0]({ text: "new-response-secret" }, { kind: "final" })).toThrow();
       expect(logs.some((line) => line.includes('event\":\"stage-exception'))).toBe(true);
-      expect(logs.join("\\n")).not.toMatch(/exception-run-secret|exception-prompt-secret|old-response-secret|new-response-secret/);
+      expect(logs.join("\n")).not.toMatch(/exception-run-secret|exception-prompt-secret|old-response-secret|new-response-secret/);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -305,7 +305,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     try {
       const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
       let handler: any;
-      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       const store = new TicketStore(path); const sessionKey = "agent:main:dashboard:order";
       sessionAuthority(path, sessionKey);
       const ticket = store.accept({ runId: "order-run-secret", ownerSessionKey: sessionKey, prompt: "order-prompt-secret" });
@@ -321,7 +321,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       expect(() => callbacks[0]({ text: "second-secret" }, { kind: "final" })).not.toThrow();
       expect(countCalls).toBe(1);
       expect(logs.some((line) => line.includes('reason":"already-owned'))).toBe(true);
-      expect(logs.join("\\n")).not.toMatch(/order-run-secret|delta-secret|first-secret|second-secret/);
+      expect(logs.join("\n")).not.toMatch(/order-run-secret|delta-secret|first-secret|second-secret/);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
@@ -330,7 +330,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
     try {
       const path = join(root, "tickets.sqlite3"); const logs: string[] = []; const callbacks: any[] = [];
       let handler: any;
-      installV091DashboardVerifiedDelivery({ on: (_name: string, registered: any) => { handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
+      installV091DashboardVerifiedDelivery({ on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; }, logger: { info: (m: string) => logs.push(String(m)) } }, { workspaceDir: root, ticketDatabasePath: path });
       const dispatcher = { appendBeforeDeliver: (fn: any) => callbacks.push(fn), getQueuedCounts: () => { throw new Error("unexpected-counts"); }, waitForIdle: () => new Promise<void>(() => {}) };
       handler({ runId: "kind-run-secret" }, { dispatcher });
       callbacks[0]({ text: "kind-response-secret" }, { kind: "x".repeat(5000) });
@@ -353,7 +353,7 @@ describe("v0.9.1 Dashboard verified delivery", () => {
       store.route(ticket.ticketId, false);
       let handler: any;
       installV091DashboardVerifiedDelivery({
-        on: (_name: string, registered: any) => { handler = registered; },
+        on: (name: string, registered: any) => { if (name === "reply_dispatch") handler = registered; },
         logger: {},
       }, { workspaceDir: root, ticketDatabasePath: path });
       const callbacks: any[] = [];
