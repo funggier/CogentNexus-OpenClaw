@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `LIVE_DASHBOARD_SINGLE_SEND_DURABLE_DELIVERY_REACCEPTANCE`
-Current authorization: `CNX-20260830-160_DASHBOARD_SINGLE_SEND_DURABLE_DELIVERY_REACCEPTANCE`
-Task ID: `CNX-20260830-160`
+Status: `IN_PROGRESS_CHATGPT`
+Execution mode: `REPOSITORY_DASHBOARD_DURABLE_DELIVERY_PATH_REPAIR`
+Current authorization: `CNX-20260830-161_REPOSITORY_DASHBOARD_DURABLE_DELIVERY_PATH_REPAIR`
+Task ID: `CNX-20260830-161`
 Updated: 2026-08-30 ICT
-Owner / coordinator / reviewer: ChatGPT
-Executor: Hermes on the operator's real Windows/OpenClaw environment
+Owner / coordinator / executor / reviewer: ChatGPT
+Review type at completion: self-review / non-independent
 
 ## Authoritative coordination files
 
@@ -19,41 +19,30 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md`](tasks/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md)
+[`tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md`](tasks/CNX-20260830-161-dashboard-live-durable-delivery-path-repair.md)
 
-## Accepted prerequisite
+## Trigger
 
-Task 159 is durably reviewed `ACCEPT`:
+Task 160 is durably reviewed `FAIL`:
 
-`docs/operations/coordination/reviews/CNX-20260830-159-windows-diagnostic-install-over-retry-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance-review.md`
 
-Task-159 review commit:
+The one authorized live Dashboard Send had valid candidate provenance and healthy runtime, completed its model call, and reached `response_ready`, but no authoritative durable delivery row was committed. The Ticket terminal-failed through `missing-append-before-deliver` / no-regeneration protection.
 
-`138b5d3f9509ec42ec00b6fa701a7c2b02e2ab3f`
+## Task-161 execution contract
 
-The repaired candidate is proven installed with matching provenance and healthy managed/plugin/gateway state. Task-159 Dashboard semantic Sends were `0`.
+ChatGPT must:
 
-## Task-160 execution contract
+1. establish exact OpenClaw Dashboard/webchat control flow at the installed upstream version before production change;
+2. determine why the accepted CogentNexus durable-delivery fallback did not establish durable authority;
+3. create a valid RED regression for the demonstrated mechanism;
+4. implement the smallest safe CogentNexus-OpenClaw repair;
+5. preserve Task-155 duplicate-safe authority and no-regeneration safeguards;
+6. run full relevant repository/plugin/Windows validation on the exact repair SHA;
+7. publish Task-161 report and explicit self-review.
 
-Hermes must:
+## Hard fence
 
-1. fresh-check installed candidate provenance and live health before semantic interaction;
-2. if the pre-Send gate fails, stop `BLOCKED` with semantic Sends = `0`;
-3. if the gate passes, submit exactly one benign Dashboard semantic message specified by Task 160;
-4. never retry or submit a second semantic message, even on timeout/failure/ambiguity;
-5. correlate the one Send to its durable Ticket/run/generation/result/delivery evidence using read-only tooling;
-6. reconcile visible Dashboard output with durable authoritative result and settlement state;
-7. collect bounded relevant logs and post-send health;
-8. publish the Task-160 report/evidence and STOP for ChatGPT review.
+Repository-only. No Dashboard semantic Send or semantic UI interaction; no live Windows install/uninstall/reinstall/reset; no manual durable-state mutation; no OpenClaw source patch; no dependency upgrade; no unrelated behavior change; no release/promotion; no force push.
 
-## Exactly-one Send fence
-
-Maximum authorized semantic Dashboard Sends after a valid pre-Send gate: `1`.
-
-No second Send, semantic retry, follow-up, replay, duplicate callback injection, manual Ticket/workflow/result/outbox/delivery/database mutation, reset, install-over, uninstall, reinstall, source patch, dependency upgrade, OpenClaw patch, release/promotion, or force push.
-
-## Required report
-
-`docs/operations/coordination/reports/CNX-20260830-160-dashboard-single-send-durable-delivery-reacceptance.md`
-
-After report/evidence publication Hermes must STOP. Task-160 PASS is not final until ChatGPT fresh-reads and reviews the durable evidence.
+Even Task-161 ACCEPT does not authorize another Dashboard Send. A separate repaired-candidate Windows install-over acceptance checkpoint is required first.
