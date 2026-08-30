@@ -1,41 +1,60 @@
 # Coordination Channel Status
 
-**State:** `READY_HERMES`  
-**Execution mode:** `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_HERMES`  
+**State:** `IN_PROGRESS_CHATGPT`  
+**Execution mode:** `REPOSITORY_DASHBOARD_FINAL_DELIVERY_AUTHORITY_REPAIR_CONTINUATION`  
 **Updated:** 2026-08-30 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260830-163`
+**Active task:** `CNX-20260830-162`
 
 ## Active work
 
-[`tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md`](tasks/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md)
+[`tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`](tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md)
 
-Executor: Hermes. Coordinator / final reviewer: ChatGPT.
+Owner / coordinator / executor / reviewer: ChatGPT. Completion review remains explicit self-review / non-independent review.
 
-## Parent repair objective
+## Task-163 review disposition
 
-Task 162 remains the parent repository repair objective and source of the current causal investigation:
+Hermes Task 163 reported `BLOCKED`, but ChatGPT final review is `NOT_ACCEPTED_CONTINUE_TASK_162`.
 
-`docs/operations/coordination/tasks/CNX-20260830-162-dashboard-final-delivery-authority-repair-continuation.md`
+Review:
 
-Task 163 delegates the unresolved exact OpenClaw Dashboard/webchat final-delivery authority trace and TDD repair attempt to Hermes.
+`docs/operations/coordination/reviews/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair-review.md`
+
+The exact installed OpenClaw target `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` exposes a plugin-accessible post-persistence event that Hermes did not evaluate:
+
+`api.runtime.events.onSessionTranscriptUpdate(...)`
+
+Exact source ordering is:
+
+`before_message_write -> SessionManager originalAppend -> emitSessionTranscriptUpdate`
+
+The runtime event includes the persisted message plus native message/transcript/session identity and is exposed through `PluginRuntime.events`.
+
+Therefore the claim that no public/plugin post-native-transcript boundary exists is not accepted.
 
 ## Current gate
 
-Hermes must first prove a plugin-accessible authoritative persistence/verification boundary on exact upstream OpenClaw commit `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` that prevents native-send + recovery-inject duplication.
+Task 162 resumes at the TDD RED gate.
 
-Before any CogentNexus production source change, Hermes must commit a production-faithful test-only RED regression. Only then may it make the smallest safe repair and run the full required GREEN validation.
+Before any production source change, ChatGPT must create and commit a production-faithful regression proving the composite authority path and its duplicate-safety ownership transfer:
 
-If no safe public authority boundary exists without patching OpenClaw, Hermes must stop and report `BLOCKED` with exact source evidence rather than weaken the contract.
+- no append-capable pre-model `reply_dispatch` assumption;
+- no required second `reply_payload_sending` callback;
+- exact terminal assistant/run/session correlation;
+- marker binding on the native assistant write through `before_message_write`;
+- post-persistence verification through `runtime.events.onSessionTranscriptUpdate` only after native append;
+- no delivery success before verified persistence;
+- no recovery injection after native persistence;
+- no race between active native-write ownership and recovery injection;
+- no second inference;
+- preserved Task-155 duplicate/no-regeneration behavior.
+
+Only after the test-only RED commit is observed may the minimal production repair proceed.
 
 ## Hard fence
 
-Repository-only. No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
+Repository-only. No Dashboard semantic Send or semantic Dashboard interaction; no real Windows lifecycle mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no live Gateway/Ollama/Supervisor restart; no OpenClaw source patch; no dependency upgrade; no unrelated product repair; no release/promotion; no merge to default/release branch; no force push.
 
-## Completion gate
+## Successor
 
-Hermes must publish:
-
-`docs/operations/coordination/reports/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair.md`
-
-ChatGPT must review that report and fresh GitHub state before any successor is opened. Task-163 PASS by itself does not authorize a Dashboard Send or live Windows install-over.
+No live successor is authorized yet. Task 162 must first complete RED -> minimal repair -> GREEN and final self-review. Even repository ACCEPT then requires a separate repaired-candidate Windows install-over/provenance/health checkpoint before any new exactly-one-Send Dashboard acceptance task.
