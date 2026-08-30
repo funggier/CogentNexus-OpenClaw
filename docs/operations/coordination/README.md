@@ -1,201 +1,201 @@
 # CogentNexus Coordination Layer
 
-This directory is the GitHub-based handoff surface between ChatGPT, **Hermes/Codex**, and the human operator.
+This directory is the GitHub-based durable handoff surface between ChatGPT, Hermes/Codex, and the human operator.
 
-GitHub is the durable coordination source of truth. Local execution remains on the operator's machine only through the exact executor and permissions authorized by an active task.
+GitHub remote coordination state is authoritative. Local execution is allowed only within the exact permissions of the active task.
 
-See [`EXECUTION_OWNERSHIP.md`](EXECUTION_OWNERSHIP.md) for the standing rule that repository/source/test/CI work stays with ChatGPT by default and Hermes/Codex is reserved for irreducibly local/live proof or an explicit operator-requested handoff.
+Standing model:
+
+- [`EXECUTOR_ANALYSIS_REVIEW_MODEL.md`](EXECUTOR_ANALYSIS_REVIEW_MODEL.md) — executor-heavy / reviewer-light role architecture;
+- [`EXECUTION_OWNERSHIP.md`](EXECUTION_OWNERSHIP.md) — ownership, authority, race prevention, and live-action boundaries;
+- [`EXECUTOR_REPORT_CONTRACT.md`](EXECUTOR_REPORT_CONTRACT.md) — mandatory executor analysis/evidence interface;
+- [`CODEX_BOOTSTRAP.md`](CODEX_BOOTSTRAP.md) — Hermes/Codex startup behavior;
+- [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md) — blocker handling;
+- [`SIGNALS.md`](SIGNALS.md) — minimal operator signals;
+- [`WATCH_MODE.md`](WATCH_MODE.md) — optional continuous pickup.
 
 ## Canonical current contract
 
 - Repository: `funggier/CogentNexus-OpenClaw`
 - Current stabilization branch: `agent/v0.9.3-full-stabilization`
-- READY gate: `READY_FOR_HERMES`
+- Active authority: current remote `ACTIVE.md` + `STATUS.md`
 - Executor role: `Hermes/Codex`
 - Manual trigger: `ต่อ`
-- ChatGPT owns tasks, reviews, `ACTIVE.md`, and `STATUS.md`
-- ChatGPT may directly execute repository/source/test/CI work when GitHub evidence is sufficient
-- ChatGPT may review its own repository-capable work through a distinct durable self-review checkpoint when operator policy permits
-- Hermes/Codex owns matching local/live execution reports when a handoff is actually required
+- ChatGPT owns task framing, reviews, `ACTIVE.md`, `STATUS.md`, and successor authorization
+- Hermes/Codex owns primary technical investigation, implementation, validation, evidence packaging, and matching delegated reports
 - Human operator remains final authority
 
-`READY_FOR_HERMES` is an executor handoff gate, not a requirement that every development or review step pass through Hermes/Codex.
+Do not rely on a historical READY-state token copied into older docs. The exact current state and execution mode come from remote `ACTIVE.md` and `STATUS.md`.
 
 ## Intended loop
 
-The default loop is hybrid:
-
 ```text
-Human talks primarily with ChatGPT
-        ↓
-ChatGPT reads GitHub and performs repository-capable work directly
-(source / tests / docs / CI / review)
-        ↓
-Does the current result need a review checkpoint?
-        ├─ yes → ChatGPT records a durable review checkpoint
-        │          (self-review is explicitly labeled when ChatGPT also executed the work)
-        └─ no  → continue within the active task contract
-        ↓
-Is real-machine/live proof or an explicit operator-requested handoff required?
-        ├─ no → ChatGPT continues from durable GitHub evidence
-        └─ yes
-             ↓
-        ChatGPT publishes narrow active task
-             ↓
-        ACTIVE.md = READY_FOR_HERMES
-             ↓
-        Human sends authorized executor: ต่อ
-             ↓
-        Hermes/Codex synchronizes remote GitHub and executes exact task
-             ↓
-        Executor pushes matching report/evidence references
-             ↓
-        ChatGPT reviews and publishes next disposition
+Human intent
+    ↓
+ChatGPT defines objective + accepted starting state + success criteria + hard fences
+    ↓
+ChatGPT publishes delegated task
+    ↓
+Hermes/Codex synchronizes current remote GitHub truth
+    ↓
+Hermes/Codex performs primary technical investigation
+(source / upstream / root cause / TDD / implementation / CI / local-live proof as authorized)
+    ↓
+Hermes/Codex publishes evidence-rich report
++ acceptance matrix
++ reviewer verification packet
+    ↓
+ChatGPT verifies critical claims using targeted evidence checks
+    ↓
+Need deeper review?
+    ├─ no  → ACCEPT / next task
+    └─ yes → focused expansion or REWORK/BLOCKED
 ```
 
-The human is a trigger and final authority, not a courier for task details or logs.
-
-## Optional continuous watch loop
-
-For repeated local execution, an authorized executor may use the Scheduled-task mode defined in [`WATCH_MODE.md`](WATCH_MODE.md).
-
-Continuous execution never bypasses task-specific safety gates, invents tasks, or repeats completed side effects.
+The default is **not** for ChatGPT to reconstruct the executor's investigation from scratch.
 
 ## Ownership model
 
-- **ChatGPT owns**
-  - `ACTIVE.md`
-  - `STATUS.md`
-  - `tasks/*.md`
-  - `reviews/*.md`
-  - repository-capable diagnosis, source/test/docs/CI repair, exact-SHA CI inspection, and durable review checkpoints
-- **Hermes/Codex owns**
-  - `reports/*.md` for delegated machine/local/live execution
-  - only source/runtime changes explicitly authorized by the active task
-- **Human operator** may intervene anywhere and is the final authority.
+### ChatGPT owns
 
-The executor should not rewrite task specifications merely to reflect progress. Progress/results belong in the matching report.
+- translating operator intent into a bounded task;
+- accepted parent/candidate selection;
+- success criteria and evidence thresholds;
+- hard fences and semantic/destructive-action gates;
+- `tasks/*.md`;
+- `reviews/*.md`;
+- `ACTIVE.md` and `STATUS.md`;
+- targeted verification of critical executor claims;
+- deeper reviewer investigation only when evidence or risk requires it;
+- final ACCEPT / REWORK / BLOCKED / SUPERSEDED disposition;
+- successor-task authorization;
+- standing coordination policy.
 
-## Review identity and self-review policy
+### Hermes/Codex owns for delegated tasks
 
-Reviewer identity separation is not a standing requirement for repository-capable work.
+- remote-state synchronization;
+- repository/source/upstream investigation;
+- root-cause analysis;
+- source/test/config/installer implementation within task scope;
+- TDD and regression coverage;
+- build/package/plugin/schema validation;
+- GitHub Actions exact-SHA verification;
+- Windows/local/live proof when explicitly authorized;
+- risk, crash-window, compatibility, and residual-uncertainty analysis;
+- implementation commits/pushes within scope;
+- matching `reports/*.md` using `EXECUTOR_REPORT_CONTRACT.md`.
 
-ChatGPT may execute and review the same repository-capable task when the operator has allowed that workflow, provided that:
+### Human operator
 
-- the review is recorded as a distinct durable Task/Review checkpoint;
-- the review cites exact commits, tests, CI runs, reports, or other durable evidence sufficient for the disposition;
-- the review identifies itself as `ChatGPT self-review` when ChatGPT also executed the work;
-- a same-actor review is never described as `independent`;
-- task safety fences, acceptance criteria, evidence thresholds, exact-SHA requirements, and fail-closed behavior are unchanged;
-- a separate reviewer is used when the active task or operator explicitly requires one.
+- provides intent and priorities;
+- approves policy or disruptive boundaries when needed;
+- triggers authorized executors;
+- remains final authority.
 
-Do not create a Hermes/Codex handoff solely to manufacture reviewer identity separation. Hermes/Codex should be used when real-machine/live proof is irreducible, when an authorized action needs that executor surface, or when the operator explicitly requests the handoff.
+The human should not be used as a courier for task bodies, logs, or routine synchronization.
 
-## Diagnosis, fix, and proof ownership
+## Reviewer-light rule
 
-The default technical-role split is:
+A compliant executor report should let ChatGPT begin from a small verification packet rather than rereading the entire codebase/history.
 
-- **ChatGPT leads and executes repository-capable cause/fix work** when durable repository evidence and CI are sufficient.
-- **Hermes/Codex executes local/live proof** when machine access, current runtime state, GUI, hardware, permissions, or disruptive lifecycle behavior is essential, or when the operator explicitly requests that handoff.
-- ChatGPT should not create an executor task merely to run work that GitHub Actions can prove adequately or merely to obtain a different reviewer identity.
-- Contrary machine evidence overrides a repository hypothesis. The executor records the contradiction without broadening authority; ChatGPT revises the task/disposition.
+Review depth escalates only as necessary:
 
-See [`EXECUTION_OWNERSHIP.md`](EXECUTION_OWNERSHIP.md) for escalation and race-prevention rules.
+1. contract/lineage review;
+2. critical-claim spot checks;
+3. focused technical expansion;
+4. full reconstruction only for insufficient/contradictory/high-risk evidence.
+
+PASS is never accepted solely because the executor says PASS. The reviewer independently verifies the claims that determine acceptance.
+
+## Report contract
+
+Future delegated reports follow [`EXECUTOR_REPORT_CONTRACT.md`](EXECUTOR_REPORT_CONTRACT.md).
+
+Required high-value elements include:
+
+- objective and acceptance contract;
+- exact starting authority/HEAD/candidate lineage;
+- investigation and causal conclusion;
+- material alternatives when relevant;
+- implementation/action summary;
+- risk and residual uncertainty;
+- RED/minimal fix/GREEN or equivalent preflight/action/postflight evidence;
+- criterion-by-criterion acceptance matrix;
+- exact commits/runs/hashes/fingerprints/evidence paths;
+- contradictions/anomalies;
+- hard-fence compliance;
+- residual unproven items;
+- **3-10 item reviewer verification packet**;
+- recommended successor without self-authorizing it.
+
+Reports should be information-dense, not chronological transcripts. Prefer exact evidence pointers over large copied logs/source.
+
+## Executor autonomy and hard fences
+
+Within an authorized task, Hermes/Codex may choose the investigation sequence, inspect relevant additional source, add narrowly necessary tests, and choose safe implementation details needed to satisfy the acceptance contract.
+
+It may not infer authority for unrelated product changes, destructive/live mutations, semantic Sends, dependency/OpenClaw upgrades, release/promotion, default-branch merge, force push, or successor tasks.
+
+If broader authority is needed, publish a blocker/rework report stating the exact missing authorization.
 
 ## Task identity
 
 Every delegated task has a stable ID such as:
 
 ```text
-CNX-20260822-001
+CNX-20260831-166
 ```
 
-The same ID is used across `tasks/`, `reports/`, and `reviews/`.
+The same task identity is used across `tasks/`, `reports/`, and `reviews/`.
 
-Repository-only ChatGPT work does not need an artificial Hermes task/report cycle when commits + exact-SHA CI + durable review evidence are sufficient.
+Historical tasks/reports remain governed by the contract under which they were produced; they do not need rewriting solely because the standing model changed.
 
 ## Handoff state model
 
+Exact tokens may vary by active task, but the conceptual state is:
+
 ```text
-READY_FOR_HERMES
-    ↓ manual signal: ต่อ OR authorized AUTO pickup
+READY executor handoff
+    ↓ manual `ต่อ` or authorized auto pickup
 EXECUTING
-    ↓ report pushed
-REPORT_READY
-    ↓ ChatGPT review
-CHATGPT_REVIEWING
+    ↓ matching report pushed
+REPORT READY FOR REVIEW
+    ↓ ChatGPT targeted review
+ACCEPTED / REWORK / BLOCKED
     ↓
-READY_FOR_HERMES | CLOSED | BLOCKED
+next authorized task or closure
 ```
 
-`ACTIVE.md` is the single pointer to the current delegated executor handoff state/task.
-
-The executor must not repeat a task whose report already records completion. If `ACTIVE.md` is not `READY_FOR_HERMES`, synchronize, report/read status as appropriate, and stop unless the active task explicitly authorizes another action.
+`ACTIVE.md` is the single pointer to the current delegated executor authority.
 
 ## Remote authority rule
 
-The current remote stabilization branch is authoritative. A local checkout is only a working copy.
+Hermes/Codex must re-read the current remote branch for every execution signal. A local checkout is only a working copy.
 
-Hermes/Codex must fetch the named remote branch and verify its remote HEAD before using local `ACTIVE.md` or `STATUS.md` as authority. If local state is stale or uncertain, prefer a fresh worktree/clone; do not reset away uncommitted work and never force-push to solve freshness.
+Before work and before pushes:
+
+- verify remote HEAD;
+- read current remote `ACTIVE.md`, `STATUS.md`, task, and report state;
+- race-check concurrent changes;
+- prefer fresh worktree/clone when local state is uncertain;
+- never reset away unknown work merely to synchronize;
+- never force-push coordination history.
 
 ## Minimal human signals
 
 See [`SIGNALS.md`](SIGNALS.md).
 
-`ต่อ` means: synchronize current remote GitHub coordination truth, read the active task/report/safety gates, execute only the exact authorized READY task, publish its report, and stop for review.
-
-`สถานะ` is read-only coordination status. `หยุด` means do not begin a new coordination task.
+`ต่อ` means synchronize current remote truth and execute only the exact authorized delegated task. `สถานะ` is read-only coordination status. `หยุด` means do not begin a new task.
 
 ## Problem resolution
 
 See [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md).
 
-A safe stop must not become a silent dead end. The executor publishes the matching problem report; ChatGPT reviews it, classifies the blocker, and selects the narrowest safe next disposition or an exact human-decision gate.
-
-## Progress communication contract
-
-During a running delegated task:
-
-- announce objective/current phase at execution start;
-- provide meaningful progress at milestones and before/after authorized mutations;
-- report blockers immediately;
-- expose actions/evidence/outcomes, not private reasoning;
-- in AUTO mode continue unless a safety/authority/permission/required-information gate blocks execution;
-- finish with actions taken, evidence, side effects, remaining unproven items, and durable next state.
-
-## Evidence rule
-
-Evidence must distinguish what was executed, what was observed, what commit/run/report records the result, and what remains unproven. Do not convert assumptions into PASS.
-
-For disruptive tests, preserve the task's safety invariants. If required preconditions are not satisfied, report `BLOCKED` rather than improvising.
-
-## Source and revision rule
-
-Tasks may name an exact commit, ancestor requirement, or branch requirement. Verify exact revision constraints before execution. A documentation-only coordination commit must not silently redefine the implementation candidate being tested.
-
-Before GitHub writes, re-read branch HEAD. Before moving the branch ref, race-check again and use fast-forward history only.
-
-## Report contract
-
-A delegated executor report should include at minimum:
-
-```text
-Task ID
-Status
-Repository path
-Branch
-HEAD
-Commands/actions executed
-Observed result
-Evidence paths / hashes / commits
-Safety notes
-Unproven or blocked items
-Recommended next step
-```
+Do not convert a safe stop into a silent dead end. The executor should analyze the blocker, preserve evidence, state the smallest missing authority or repair needed, publish the matching report, and stop for ChatGPT review.
 
 ## Review contract
 
-ChatGPT review files record one of:
+ChatGPT review files use durable dispositions such as:
 
 ```text
 ACCEPT
@@ -204,14 +204,12 @@ BLOCKED
 SUPERSEDED
 ```
 
-Every review states its reviewer identity. If ChatGPT also executed the reviewed work, record it as self-review rather than independent review. ChatGPT explains why and points to the next Task ID/disposition when needed.
+The review records reviewer identity and the exact critical evidence checked. If ChatGPT also executed the reviewed technical work, it must be labeled `ChatGPT self-review`, never independent review.
 
-## Standing executor rule
+## Standing executor stop rule
 
-For every `ต่อ`, Hermes/Codex must re-read the **remote working branch** rather than relying on stale conversational memory or an old local checkout. Current remote `ACTIVE.md`, `STATUS.md`, task file, report state, and task-specific safety gates determine what may execute.
-
-After publishing the matching report, the executor stops. It does not invent the next task.
+After publishing the matching report, Hermes/Codex stops that run. It may recommend the next action but must not invent, open, or execute the successor task until ChatGPT publishes new authority.
 
 ## Relationship to `docs/operations`
 
-This directory is the execution/handoff layer only. Living status/roadmap/decisions remain under `docs/operations/`; historical task/report/review evidence remains historical. Accepted technical truth is grounded in code, tests, evidence, and release/acceptance gates.
+This directory is the coordination/handoff layer. Historical evidence remains historical. Accepted technical truth comes from source, tests, immutable evidence, machine observations where required, and explicit review/acceptance gates.
