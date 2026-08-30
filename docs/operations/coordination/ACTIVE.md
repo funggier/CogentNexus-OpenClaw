@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `READ_ONLY_WINDOWS_TASK152_DELIVERY_HOOK_EVIDENCE_COLLECTION`
-Current authorization: `CNX-20260830-153_TASK152_REDACTED_DELIVERY_HOOK_EVIDENCE_COLLECTION`
-Task ID: `CNX-20260830-153`
+Status: `IN_PROGRESS_CHATGPT`
+Execution mode: `OFFLINE_REPOSITORY_TDD_DASHBOARD_DURABLE_CAPTURE_PUBLIC_HOOK_REPAIR`
+Current authorization: `CNX-20260830-154_DASHBOARD_DURABLE_CAPTURE_PUBLIC_HOOK_REPAIR`
+Task ID: `CNX-20260830-154`
 Updated: 2026-08-30 ICT
 Owner: ChatGPT
-Executor: Hermes/Codex, read-only evidence collection only
+Executor: ChatGPT; no live Windows execution authorized
 
 ## Authoritative coordination files
 
@@ -19,46 +19,42 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`](tasks/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md)
+[`tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`](tasks/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md)
 
-Task 153 collects only existing Task-152 redacted delivery-hook telemetry from the real Windows OpenClaw logs. It authorizes no Dashboard interaction, no semantic action, and no runtime mutation.
+Task 154 repairs the Phase-P durable-capture defect offline using TDD. No new Dashboard semantic attempt is authorized.
 
-## Task-152 disposition
+## Task-153 disposition
 
 Report:
 
-`docs/operations/coordination/reports/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates.md`
+`docs/operations/coordination/reports/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260830-152-final-dashboard-durable-delivery-operator-mouse-gates-review.md`
+`docs/operations/coordination/reviews/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection-review.md`
 
-Disposition: **ACCEPT** as controlled `FAIL_DURABLE_CAPTURE` evidence. Phase P remains FAIL.
+Disposition: **ACCEPT**.
 
-Task 152 proved one real operator Send, Ticket-first ordering, one completed direct model call, and one visible ACK, but no durable `cnx_assistant_delivery` direct-result row, no delivery confirmation, and no completed Ticket. The Ticket failed closed with `failure_delivery_suppressed`.
+The first proven failure boundary is `HANDLER_SKIPPED_MISSING_APPEND_BEFORE_DELIVER`.
 
-The Task-152 nonce and Send ledger are permanently retired. No further Dashboard semantic Send is authorized by Task 153.
+Exact OpenClaw `v2026.7.1-2` / `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` source inspection shows `appendBeforeDeliver` is optional and the `reply_dispatch` hook receives an abort-aware dispatcher wrapper that does not forward that optional method. The same OpenClaw source installs `reply_payload_sending` through a core-owned before-delivery hook on the original dispatcher with turn run correlation and payload rewrite support.
 
-## Task-153 evidence contract
+## Task-154 execution contract
 
-Use existing logs/DB read-only to identify the first internal boundary among:
+ChatGPT must use RED → minimal GREEN → full verification.
 
-- hook registration;
-- `reply_dispatch` handler entry/skip;
-- `appendBeforeDeliver` callback registration/invocation;
-- final payload filtering;
-- durable stage attempt/rejection/exception/success.
+RED must reproduce the production-shaped dispatcher where `reply_dispatch` has no `appendBeforeDeliver`, then require the same run's `reply_payload_sending` final payload to be durably staged and marker-bearing before native delivery.
 
-Report only privacy-bounded `delivery-observe` event names and source-approved categorical/boolean/count/digest fields. Never publish raw prompt/response, nonce, Ticket/run/session identifiers, credentials, or tokens.
+Production repair must preserve the existing append path when available, exactly-once durable staging, changed-text fail-closed behavior, marker replay/dedup semantics, delivery outcome settlement, and telemetry privacy.
 
 ## Required completion signal
 
-Hermes/Codex must publish exactly:
+Publish exactly:
 
-`docs/operations/coordination/reports/CNX-20260830-153-task152-redacted-delivery-hook-evidence-collection.md`
+`docs/operations/coordination/reports/CNX-20260830-154-dashboard-durable-capture-public-hook-repair.md`
 
-Then stop for independent ChatGPT review. Do not patch source or create a new live acceptance task.
+Then stop for independent review before any Windows install-over or new Dashboard acceptance.
 
 ## Hard fence
 
-No Dashboard click/focus/type/paste/Send; no new semantic input; no API/CLI/Gateway semantic transport; no DB writes; no lifecycle/reset/install/uninstall/reinstall; no process/service/task/plugin/config/controller mutation; no log deletion/rotation; no source edit; no reboot; no credentials/secrets; no merge/tag/release; no force push.
+No Dashboard click/focus/type/paste/Send; no semantic transport; no live Windows/runtime mutation; no lifecycle/reset/install/uninstall/reinstall; no manual semantic/database mutation; no OpenClaw source patch; no dependency upgrade; no merge/tag/release; no force push.
