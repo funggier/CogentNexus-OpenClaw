@@ -52,7 +52,7 @@ describe("Task 154 Dashboard public-hook durable capture fallback", () => {
       replyDispatch?.({ runId }, { dispatcher: productionHookDispatcher });
 
       // OpenClaw installs reply_payload_sending on the original dispatcher through
-      // its own before-delivery chain. CogentNexus must use that public hook as the
+      // its own before-delivery chain. CogentNexus-OpenClaw must use that public hook as the
       // durable-capture fallback instead of requiring appendBeforeDeliver here.
       expect(replyPayloadSending).toBeTypeOf("function");
       const result = await replyPayloadSending?.(
