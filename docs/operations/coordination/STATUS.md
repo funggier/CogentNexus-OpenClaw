@@ -1,18 +1,18 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `REPOSITORY_NATIVE_DELIVERY_STAGING_ROOT_CAUSE_REPAIR_HERMES`  
+**Execution mode:** `REPOSITORY_TASK167_VERIFICATION_COMPLETION_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-167`
+**Active task:** `CNX-20260831-168`
 
 ## Active work
 
-[`tasks/CNX-20260831-167-hermes-native-delivery-staging-root-cause-repair.md`](tasks/CNX-20260831-167-hermes-native-delivery-staging-root-cause-repair.md)
+[`tasks/CNX-20260831-168-hermes-task167-verification-completion.md`](tasks/CNX-20260831-168-hermes-task167-verification-completion.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
-Standing model: executor-heavy / reviewer-light. Hermes/Codex performs the primary technical investigation, implementation, validation, and evidence packaging; ChatGPT reviews the critical claims and expands review only where evidence/risk requires it.
+Standing model: executor-heavy / reviewer-light. Hermes/Codex performs primary verification and evidence packaging; ChatGPT reviews the critical claims and expands review only where evidence/risk requires it.
 
 ## Standing policy
 
@@ -23,62 +23,78 @@ Current coordination policy is defined by:
 - `EXECUTOR_REPORT_CONTRACT.md`
 - `CODEX_BOOTSTRAP.md`
 
-Delegated reports must include the acceptance matrix and reviewer verification packet defined by `EXECUTOR_REPORT_CONTRACT.md`.
+Delegated reports must include the acceptance matrix and Reviewer Verification Packet defined by `EXECUTOR_REPORT_CONTRACT.md`.
 
-## Task 166 — accepted failure
-
-Report:
-
-`docs/operations/coordination/reports/CNX-20260831-166-hermes-dashboard-single-send-durable-delivery-reacceptance.md`
-
-Review:
-
-`docs/operations/coordination/reviews/CNX-20260831-166-hermes-dashboard-single-send-durable-delivery-reacceptance-review.md`
+## Task 166 — accepted live failure
 
 Disposition:
 
 `ACCEPT — FAILURE_CONFIRMED`
 
-The live Task-166 experiment proved:
+The real Dashboard experiment proved one Send / one model result / one visible-native assistant answer, but no durable assistant-delivery staging/marker and no delivery confirmation. Duplicate safety failed closed without regeneration.
 
-- exactly one semantic Dashboard Send;
-- exactly one completed model call;
-- exactly one correct visible/native assistant result;
-- no retry or duplicate inference;
-- native assistant transcript marker count `0`;
-- no `cnx_assistant_delivery` row staged;
-- no `delivery_confirmed_at`;
-- final Ticket permanent failure with `durableDelivery:false`;
-- duplicate safety remained fail-closed.
+## Task 167 — repair produced, acceptance evidence incomplete
 
-The empirical break is before or at the durable staging/marker boundary. The exact source-level root cause is intentionally not claimed by ChatGPT review.
+Exact repair SHA:
 
-## Task 167 objective
+`231761fca24c315e90536955d3e384f55e2e232e`
 
-Hermes/Codex must independently perform the systematic repository investigation and repair:
+Task-167 report:
 
-1. consume Task-166 live evidence;
-2. inspect exact pinned OpenClaw `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` read-only;
-3. trace actual `before_agent_finalize -> before_message_write -> staging/marker -> native append -> onSessionTranscriptUpdate` data flow and event/context shapes;
-4. identify and minimally test a single root-cause hypothesis;
-5. create a production-faithful RED that reproduces the live miss;
-6. implement the smallest CogentNexus repair only after the root cause is proven;
-7. preserve post-persistence settlement and duplicate/recovery safety;
-8. run targeted/full tests, build/plugin/package validation, and exact-SHA GitHub workflows;
-9. publish the Task-167 report with acceptance matrix + reviewer verification packet.
+`docs/operations/coordination/reports/CNX-20260831-167-hermes-native-delivery-staging-root-cause-repair.md`
 
-Accepted Task-164 repair ancestor:
+Task-167 review:
 
-`80b87dfbe0d9176e421f3748b4cee0827db12d0c`
+`docs/operations/coordination/reviews/CNX-20260831-167-hermes-native-delivery-staging-root-cause-repair-review.md`
 
-Pinned intended OpenClaw target:
+Disposition:
+
+`REWORK_REQUIRED — EVIDENCE_CONTRACT_INCOMPLETE`
+
+The Task-167 report presents a coherent lifecycle-order root cause and a production-shaped RED/GREEN regression, but final acceptance remains blocked on required validation/report evidence.
+
+Missing or incomplete evidence includes:
+
+- `npm run build`;
+- `npm run plugin:validate`;
+- baseline consistency;
+- package/installer validation;
+- final exact-SHA workflow results;
+- acceptance matrix;
+- crash-window / duplicate-recovery / ambiguity risk analysis;
+- residual uncertainty;
+- mandatory Reviewer Verification Packet.
+
+At the ChatGPT review snapshot of repair SHA `231761fc...`:
+
+- PS5.1 Acceptance Smoke `33330458475`: `SUCCESS`;
+- Validate `33330458434`: `IN_PROGRESS`;
+- Windows Installer Pack Smoke `33330458470`: `IN_PROGRESS`.
+
+These are snapshot states only. Task 168 must inspect final GitHub outcomes.
+
+## Task 168 objective
+
+Hermes/Codex must complete verification against the exact Task-167 product repair SHA without changing production source by default:
+
+1. verify candidate lineage and exact changed-file scope;
+2. run all missing required local validations on exact SHA `231761fc...`;
+3. collect final exact-SHA workflow IDs/results;
+4. analyze crash windows, duplicate/recovery safety, and session-fallback ambiguity;
+5. produce acceptance matrix;
+6. produce 3–10-claim Reviewer Verification Packet;
+7. publish `reports/CNX-20260831-168-hermes-task167-verification-completion.md`.
+
+If any validation contradicts the repair, report `FAIL`/`REWORK_REQUIRED` and stop rather than editing production source inside Task 168.
+
+Pinned OpenClaw remains:
 
 `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`2026.7.1-2`).
 
 ## Hard fence
 
-Task 167 is repository-only.
+Task 168 is repository verification-only by default.
 
-No Dashboard semantic Send; no semantic input via another live surface; no `chat.inject`; no install-over/uninstall/reinstall/reset; no live Gateway/Ollama/Supervisor/OpenClaw mutation; no manual live Ticket/workflow/result/outbox/delivery/database/transcript mutation; no OpenClaw patch/upgrade; no dependency upgrade; no unrelated repair; no release/promotion; no default/release-branch merge; no force push.
+No Dashboard semantic Send; no other semantic live input; no `chat.inject`; no install-over/uninstall/reinstall/reset; no live Gateway/Ollama/Supervisor/OpenClaw mutation; no manual live DB/transcript/delivery mutation; no production source change merely to force acceptance; no OpenClaw/dependency upgrade; no unrelated repair; no release/promotion; no default/release merge; no force push.
 
-Task-167 PASS requires ChatGPT review before any repaired candidate may be installed. A separate Windows install-over/provenance checkpoint is required before any later semantic reacceptance.
+Task-168 PASS still requires ChatGPT review. Only after Task-167 repair is accepted may coordination open a separate Windows install-over/provenance/health checkpoint, and only after that may a later exactly-one-Send semantic reacceptance be considered.
