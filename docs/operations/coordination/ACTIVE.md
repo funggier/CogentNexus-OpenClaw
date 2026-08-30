@@ -1,13 +1,13 @@
 # Active Coordination Task
 
 Status: `READY_HERMES`
-Execution mode: `REPOSITORY_DASHBOARD_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_HERMES`
-Current authorization: `CNX-20260830-164_HERMES_REPOSITORY_DASHBOARD_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR`
-Task ID: `CNX-20260830-164`
+Execution mode: `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`
+Current authorization: `CNX-20260830-165_HERMES_WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH`
+Task ID: `CNX-20260830-165`
 Updated: 2026-08-30 ICT
 Executor: Hermes
 Coordinator / final reviewer: ChatGPT
-Review type at completion: ChatGPT review required before successor authorization
+Review type at completion: ChatGPT review required before any Dashboard semantic reacceptance
 
 ## Authoritative coordination files
 
@@ -20,58 +20,48 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md`](tasks/CNX-20260830-164-hermes-native-transcript-authority-red-to-green.md)
+[`tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md`](tasks/CNX-20260830-165-hermes-windows-install-over-provenance-health.md)
 
-Task 164 is the delegated Hermes continuation of the Task-162 Dashboard final-delivery authority repair.
+Task 165 is the repaired-candidate Windows install-over + provenance/health checkpoint required after Task-164 repository repair acceptance.
 
-## Handoff state
+## Accepted parent checkpoint
 
-The production-faithful RED is already committed and CI-proven at:
+Task 164 is accepted by ChatGPT as:
 
-`61218ca6cc13a5c0312829abd72bcdb524944d12`
+`PASS — REPOSITORY_NATIVE_TRANSCRIPT_AUTHORITY_REPAIR_ACCEPTED`
 
-Regression:
+Accepted production repair SHA:
 
-`plugins/cogentnexus-openclaw/src/v162-dashboard-transcript-authority.test.ts`
+`80b87dfbe0d9176e421f3748b4cee0827db12d0c`
 
-RED Actions evidence:
+Task-164 report publication SHA:
 
-- Validate run `33318911825`: expected `FAILURE`
-- PS5.1 Acceptance Smoke `33318911867`: `SUCCESS`
-- Windows Installer Pack Smoke `33318911864`: `SUCCESS`
+`a9eccaba3d3acd46530cd59d256a6b13702b29ef`
 
-First observed RED assertion:
+Task-164 ChatGPT review publication SHA:
 
-`v162-dashboard-transcript-authority.test.ts:61`
-
-`expect(beforeAgentFinalize).toBeTypeOf("function")`
-
-Actual: `expected undefined to be type of 'function'`.
-
-## Proven authority candidate
-
-ChatGPT review rejected Hermes Task-163 `BLOCKED` because exact OpenClaw `v2026.7.1-2` commit `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` exposes the missing public trusted-plugin post-persistence primitive:
-
-`api.runtime.events.onSessionTranscriptUpdate(...)`
-
-Required composite ordering:
-
-`terminal assistant candidate -> before_message_write(marker + native claim) -> native SessionManager originalAppend -> onSessionTranscriptUpdate(post-persistence receipt) -> CogentNexus delivery settlement`
-
-`before_message_write` is pre-persistence and must not itself confirm delivery. Recovery must be fenced while native-write ownership is active and must have no claimable pending row after native persistence is settled.
+`3a8caf12f8d7fc2cd03687ce088d01ccf790a5c0`
 
 Review:
 
-`reviews/CNX-20260830-163-hermes-dashboard-final-delivery-authority-repair-review.md`
+`reviews/CNX-20260830-164-hermes-native-transcript-authority-red-to-green-review.md`
 
-## Current TDD gate
+Pinned intended OpenClaw target remains:
 
-Hermes must first re-read GitHub current state and verify the inherited RED against exact pinned upstream source. If valid, the RED checkpoint is already satisfied and Hermes is authorized to proceed directly to the **minimal CogentNexus production repair**, then GREEN validation.
+`0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`v2026.7.1-2`)
 
-Do not weaken or replace the RED merely to obtain GREEN. If exact source disproves an assumption, stop and report the discrepancy.
+## Current gate
+
+Hermes must re-read current GitHub state, prove the exact candidate/package lineage, capture pre-install provenance, perform the supported install-over path, then prove post-install provenance and non-semantic health.
+
+Task 165 must not perform semantic Dashboard acceptance.
+
+If the candidate/package cannot be proven to derive from the accepted repair, or install-over reveals a product/installer defect, stop and report `FAIL`/`BLOCKED` rather than improvising a lifecycle change.
 
 ## Hard fence
 
-Repository-only. No Dashboard semantic Send or semantic UI interaction; no real Windows install/uninstall/reinstall/reset; no live Gateway/Ollama/Supervisor mutation; no manual Ticket/workflow/result/outbox/delivery/database mutation; no OpenClaw source patch; no dependency upgrade; no unrelated product change; no release/promotion; no merge to default/release branch; no force push.
+Task 165 may perform only the supported repaired-candidate install-over and the runtime transitions inherently required by that installer, plus provenance/status/health inspection.
 
-Even Task-164 PASS does not authorize another Dashboard Send. ChatGPT review is required, followed by a separate repaired-candidate Windows install-over + provenance/health acceptance checkpoint before any new exactly-one-Send Dashboard reacceptance.
+No Dashboard semantic Send; no semantic input through any other OpenClaw surface; no uninstall/reinstall/reset without separate authorization; no manual Ticket/workflow/result/outbox/delivery/database mutation; no arbitrary live-state deletion; no OpenClaw source patch or upgrade; no unrelated product change; no release/promotion; no merge to default/release branch; no force push.
+
+Even Task-165 PASS does not itself authorize a Dashboard Send. ChatGPT review is required first. Only after Task-165 acceptance may a separate exactly-one-Send Dashboard durable-delivery reacceptance task be opened.
