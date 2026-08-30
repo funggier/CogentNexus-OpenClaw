@@ -1,111 +1,156 @@
 # Execution Ownership and Escalation Policy
 
-Updated: 2026-08-30 ICT
+Updated: 2026-08-31 ICT
 
 ## Purpose
 
-Use the smallest execution surface that can produce trustworthy evidence. Do not involve the operator's real machine when repository, GitHub, source, tests, or CI are sufficient. Escalate to Hermes/Codex only when the required proof genuinely depends on local/live environment state or when the operator explicitly requests that handoff.
+Use an executor-heavy, reviewer-light workflow that preserves strong evidence while reducing duplicated analysis and ChatGPT context consumption.
 
-## Default lane: ChatGPT executes repository-capable work directly
+Standing role model:
 
-ChatGPT should directly perform work that can be completed and verified through the GitHub coordination/source surface, including:
+- Hermes/Codex is the default primary technical investigator and implementer for delegated tasks.
+- ChatGPT is the coordinator, acceptance-contract author, evidence reviewer, and final disposition owner.
+- The human operator remains final authority.
 
-- reading and reviewing repository source, documentation, reports, reviews, commits, diffs, and workflow evidence;
-- root-cause analysis when durable repository evidence is sufficient;
-- source, test, documentation, configuration, and CI repair that does not require machine-local state;
-- TDD through repository commits and GitHub Actions: genuine RED -> minimal production fix -> GREEN;
-- exact-SHA GitHub Actions inspection across available Windows/Linux/macOS runners;
-- package/build/plugin validation available in CI;
-- coordination task/review/status updates;
-- durable review checkpoints and successor-task selection, including explicitly labeled self-review when operator policy permits.
+See also:
 
-Repository-only work does not need to be delegated to Hermes/Codex merely because an executor exists. Git commits, exact-SHA CI, durable review checkpoints, and coordination records are the proof surface for this lane.
+- `EXECUTOR_ANALYSIS_REVIEW_MODEL.md`
+- `EXECUTOR_REPORT_CONTRACT.md`
 
-## Review identity and self-review
+## Default delegated lane: Hermes/Codex owns the technical loop
 
-Reviewer identity separation is optional unless the operator or the active task explicitly requires it.
+When ChatGPT publishes a delegated task, Hermes/Codex should normally execute the full authorized technical loop, including both repository and local/live work as applicable:
 
-ChatGPT may execute and review the same repository-capable task when operator policy permits. In that case:
+- fresh remote-state synchronization;
+- source/repository/upstream investigation;
+- root-cause analysis;
+- TDD RED -> minimal fix -> GREEN;
+- source/test/configuration/installer/CI repair within task scope;
+- targeted and full validation;
+- exact-SHA GitHub Actions inspection;
+- package/build/plugin/schema evidence;
+- local Windows/runtime/lifecycle/GUI proof when explicitly authorized;
+- risk and residual-uncertainty analysis;
+- detailed report publication under `reports/` using `EXECUTOR_REPORT_CONTRACT.md`.
 
-1. use a distinct durable Task/Review checkpoint rather than folding the disposition invisibly into the implementation step;
-2. anchor the review to exact commits, tests, CI runs, reports, hashes, or other durable evidence sufficient for the acceptance contract;
-3. identify the reviewer as `ChatGPT self-review` when ChatGPT also executed the work;
-4. never describe same-actor review as `independent`;
-5. do not weaken safety fences, evidence thresholds, exact-SHA requirements, acceptance criteria, or fail-closed behavior because the review is self-review;
-6. use a separate reviewer whenever the active task or operator explicitly requires one.
+Repository/source/test/CI work is no longer reserved for ChatGPT by default once a task is delegated.
 
-Do not hand work to Hermes/Codex solely to manufacture reviewer separation. A different executor/reviewer identity is not itself evidence of correctness.
+## ChatGPT lane: framing, targeted review, and disposition
 
-## Escalation lane: create a Hermes/Codex task only when local/live proof is necessary or explicitly requested
+ChatGPT normally performs:
 
-A dedicated executor task is appropriate when evidence or action requires one or more of the following:
+- task framing from operator intent;
+- success criteria and evidence requirements;
+- hard fences and irreversible-action gates;
+- selection of accepted candidate/parent state;
+- targeted review of the executor report and verification packet;
+- independent spot-checks of critical claims;
+- deeper source/diff/CI reconstruction only when evidence quality, contradiction, or risk requires it;
+- ACCEPT / REWORK / BLOCKED review publication;
+- successor-task selection;
+- standing coordination-policy changes.
 
-- the operator's real Windows machine or its current filesystem/runtime state;
-- real OpenClaw, Ollama, Gateway, provider, controller, service, Scheduled Task, process, or port state;
-- supported live install/install-over/update/uninstall/reset/clean-reinstall behavior;
-- live recovery, crash, restart, lifecycle, process, service, or reboot behavior;
-- real Dashboard/browser/GUI interaction or a semantic Send/ack/delivery side effect;
-- local credentials, permissions, OS policy, device, hardware, capture source, or machine-specific integration;
-- filesystem behavior that CI cannot prove adequately against the required real topology;
-- evidence that must be captured from the actual installation rather than a fixture or CI runner;
-- an explicit operator instruction to hand the work to Hermes/Codex.
+ChatGPT may still perform direct repository work when the operator explicitly requests it, when executor capability is unavailable, or when a narrow reviewer-side probe is cheaper and safer than a new executor cycle. This is an exception rather than the standing default for delegated technical work.
 
-The task must authorize only the narrow local action/evidence that cannot be obtained safely from GitHub/CI, unless the operator explicitly requests a broader but still bounded handoff.
+## No reconstruction by default
 
-## Handoff rule
+A compliant executor report is a structured claim set, not an instruction for ChatGPT to repeat the entire investigation.
 
-Before creating an executor task, ChatGPT should ask internally:
+ChatGPT should begin with:
 
-1. Can the question be answered from repository evidence already present?
-2. Can a deterministic test reproduce it in CI?
-3. Can GitHub Actions provide the required OS/platform proof?
-4. Is real-machine state or a real side effect essential to acceptance?
-5. Has the operator explicitly requested a Hermes/Codex handoff?
+1. task/lineage/acceptance-contract check;
+2. verification-packet spot checks;
+3. targeted inspection of high-impact or uncertain claims.
 
-If 1-3 are sufficient and 4-5 are false, keep the work in the ChatGPT/GitHub lane. If 4 or 5 is true, create the narrowest safe Hermes/Codex task.
+Full reconstruction is required only when the report is insufficient, contradictory, implausible, or safety-critical evidence cannot otherwise be established.
 
-Reviewer separation alone is not a reason to answer yes to the handoff gate.
+## Review identity
+
+For delegated tasks, Hermes/Codex executes and ChatGPT reviews, naturally creating cross-actor separation.
+
+Reviewer identity separation itself is not evidence. Acceptance still depends on exact commits, tests, workflow runs, artifact hashes, machine observations, and task-specific proof.
+
+If ChatGPT directly executes a task and later reviews it, the durable review must say `ChatGPT self-review`; it must never be described as independent.
+
+## Local/live authority
+
+Hermes/Codex may perform real-machine or semantic actions only when the active task explicitly authorizes them.
+
+Examples requiring explicit live authority include:
+
+- install/install-over/update/uninstall/reset/clean-reinstall;
+- Gateway/Ollama/provider/controller/service/process restart or mutation outside installer-owned transitions;
+- crash/recovery/reboot acceptance;
+- Dashboard/browser/GUI semantic interaction;
+- semantic Send/ack/delivery side effects;
+- local filesystem/state mutation beyond the task's repository/worktree operations;
+- manual database or durable runtime-state mutation;
+- hardware/device/permission changes.
+
+Repository delegation does not implicitly authorize live side effects.
+
+## Executor autonomy inside the hard fence
+
+Hermes/Codex may determine the investigation sequence, inspect additional relevant source, add narrowly necessary regression coverage, and choose safe implementation details needed to satisfy the task.
+
+It must not broaden into unrelated product changes, destructive/live actions, dependency upgrades, OpenClaw upgrades/patches, releases, default-branch merges, force pushes, or successor tasks unless the active task explicitly authorizes them.
+
+If broader authority is required, report `BLOCKED` or `REWORK_REQUIRED` with the exact needed scope.
 
 ## Existing task ownership and race prevention
 
-When a Hermes/Codex task is already active and an executor may be working on it:
+When a Hermes/Codex task is active:
 
-- do not make overlapping production/source changes for the same task from ChatGPT at the same time;
-- ChatGPT may continue read-only review, CI inspection, reasoning, and non-overlapping coordination work;
-- if ChatGPT must take over implementation, first make the ownership transition explicit in durable coordination state or supersede/rework the active task;
-- documentation-only policy work may be appended only with fresh HEAD checks and fast-forward history, without changing the implementation candidate under test;
-- after an executor report appears, ChatGPT reviews it before authorizing a successor; that review is naturally cross-actor because Hermes/Codex executed the task, but cross-actor separation is not a standing requirement for ChatGPT-direct work.
+- Hermes/Codex owns production/source implementation for that task unless the task says otherwise;
+- ChatGPT must not make overlapping production/source changes concurrently;
+- ChatGPT may perform read-only review, coordination updates, and non-overlapping policy/documentation work with fresh HEAD checks;
+- if ChatGPT must take over implementation, ownership must first be changed explicitly in durable coordination state;
+- before every push/write, the executor must fetch/race-check the remote branch and preserve normal fast-forward history;
+- never force-push to solve coordination drift.
 
 ## Remote authority and local checkout freshness
 
-The authoritative revision is the current remote working branch named by coordination, not an arbitrary local checkout.
+The current remote working branch named by coordination is authoritative.
 
-Hermes/Codex must, before treating coordination gates as current:
+Hermes/Codex must:
 
-1. fetch/synchronize the named working branch from GitHub;
-2. verify the remote branch HEAD;
-3. read `ACTIVE.md`, `STATUS.md`, the active task, report state, and safety gates from that remote revision;
-4. compare any local checkout/worktree against the remote HEAD.
+1. fetch/synchronize the named branch;
+2. verify remote HEAD;
+3. read remote `ACTIVE.md`, `STATUS.md`, active task, and report state;
+4. compare local checkout/worktree against remote HEAD;
+5. prefer a fresh clone/worktree if local state is stale or uncertain;
+6. never reset away unknown local work merely to synchronize.
 
-A stale local checkout must never be used to claim that remote coordination is stale or missing.
-
-If the local checkout contains uncommitted or uncertain work, do not reset or overwrite it merely to synchronize. Prefer a fresh clone/worktree from the verified remote HEAD. Never force-push to resolve a freshness problem.
+A stale local checkout cannot override remote coordination truth.
 
 ## Evidence ownership
 
-- ChatGPT direct lane: commits, exact-SHA CI runs, durable review checkpoints, coordination records, and final summaries are the evidence.
-- Hermes/Codex local lane: the matching `reports/*.md` file records commands/actions, observed machine evidence, side effects, hashes/commits, and remaining uncertainty.
-- Contrary real-machine evidence outranks repository hypotheses and triggers review/rework rather than improvisation.
+Hermes/Codex owns the primary technical evidence package for delegated tasks:
+
+- implementation commits;
+- test output summaries;
+- workflow run IDs;
+- artifact hashes/fingerprints;
+- local evidence paths and hashes;
+- machine observations;
+- risk/uncertainty analysis;
+- acceptance matrix;
+- verification packet;
+- final matching `reports/*.md` file.
+
+ChatGPT owns the durable review/disposition and successor authorization.
+
+Contrary real-machine evidence outranks repository hypotheses and triggers review/rework rather than improvisation.
 
 ## Human role
 
-The human operator remains final authority, but should not be used as a courier for logs, task bodies, or routine synchronization. The operator should primarily approve/trigger genuinely local or disruptive actions when required, and may explicitly request a Hermes/Codex handoff at any point.
+The human operator should not be used as a courier for logs, task bodies, or routine synchronization. The operator primarily provides intent, approves policy or disruptive boundaries when required, triggers authorized executors, and remains final authority.
 
 ## Core operating principle
 
 ```text
-Do everything safely possible in GitHub/CI first.
-Use durable self-review checkpoints when the same ChatGPT executor also reviews.
-Escalate only the irreducibly local/live remainder or an explicit operator-requested handoff.
-Use the real machine for proof, not as the default development surface.
+ChatGPT defines what must be proven and what must not be crossed.
+Hermes/Codex performs the deep technical work and packages the evidence.
+ChatGPT verifies the critical claims instead of rebuilding the investigation.
+Escalate review depth only when evidence or risk requires it.
 ```
