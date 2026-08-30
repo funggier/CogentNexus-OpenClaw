@@ -1,0 +1,125 @@
+Installing CogentNexus-OpenClaw v0.9.3
+Workspace: C:/Users/CDQ-P/.openclaw/workspace
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+added 352 packages, and audited 353 packages in 12s
+
+85 packages are looking for funding
+  run `npm fund` for details
+
+4 high severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn install-scripts 5 packages had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @google/genai@2.10.0 (preinstall: echo 'preinstall: no-op')
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   openclaw@2026.7.1-2 (preinstall: node scripts/preinstall-package-manager-warning.mjs; postinstall: node scripts/postinstall-bundled-plugins.mjs)
+npm warn install-scripts   protobufjs@7.6.5 (postinstall: node scripts/postinstall)
+npm warn install-scripts   tree-sitter-bash@0.25.1 (install: node-gyp-build)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+npm notice run openclaw-plugin-cogentnexus-openclaw@0.9.3 plugin:validate
+npm notice run npm run plugin:build && node ./scripts/test-ticket-db-bootstrap.mjs && node ./scripts/verify-package-contents.mjs
+npm notice run openclaw-plugin-cogentnexus-openclaw@0.9.3 plugin:build
+npm notice run npm run build && node ./scripts/verify-v091-schema.mjs
+npm notice run openclaw-plugin-cogentnexus-openclaw@0.9.3 build
+npm notice run tsc -p tsconfig.json
+CogentNexus-OpenClaw mixed-plugin artifact verification: PASS (45 config properties, 5 tools)
+(node:6776) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+CogentNexus-OpenClaw ticket DB bootstrap: PASS (9 required tables + v095 registration fence)
+(node:8828) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "result": "ok",
+  "package": "openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz",
+  "required": [
+    "dist/v091-release-entry.js",
+    "scripts/bootstrap-ticket-db.mjs",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "packedFileCount": 180
+}
+Existing CogentNexus-OpenClaw is managed; entering PASSTHROUGH/native boundary before upgrade mutation.
+{
+  "mode": "passthrough",
+  "policyChanged": true,
+  "policy": {
+    "source": "registered",
+    "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+    "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+    "bytes": 1674
+  },
+  "startup": {
+    "policy": "disabled",
+    "result": "disabled",
+    "backup": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\startup-backups\\20260830-130856-windows-task.xml",
+    "adapter": {
+      "installed": false
+    }
+  },
+  "gateway": {
+    "exitCode": 0,
+    "stdout": "│\n◇  Config warnings ──────────────────────────────────────────────────────╮\n│                                                                        │\n│  - plugins.entries.cogentnexus-openclaw: plugin disabled (disabled in  │\n│    config) but config is present                                       │\n│                                                                        │\n├────────────────────────────────────────────────────────────────────────╯\nRestarted Scheduled Task: OpenClaw Gateway",
+    "stderr": "",
+    "healthy": true
+  },
+  "transactional": true,
+  "note": "OpenClaw is running in passthrough mode; CogentNexus-OpenClaw no longer intercepts new turns. The registered managed policy is preserved for the next enable."
+}
+{
+  "result": "ok",
+  "action": "disable",
+  "openclawRouteRestore": {
+    "ok": true,
+    "restored": false,
+    "reason": "no managed OpenClaw route state"
+  }
+}
+Pre-install native handoff: PASS
+Backed up existing skill to C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\install-backups\cogentnexus-openclaw-20260830-130948
+Installed CogentNexus-OpenClaw skill to C:\Users\CDQ-P\.openclaw\workspace\skills\cogentnexus-openclaw
+CogentNexus-OpenClaw validation: PASS
+{
+  "state": {
+    "schemaVersion": 1,
+    "mode": "passthrough",
+    "desiredGateway": "running",
+    "desiredProvider": "unchanged",
+    "generation": 19,
+    "updatedAt": "2026-08-30T06:09:29.328794+00:00",
+    "providerTransition": null,
+    "selectedProvider": "ollama",
+    "providerSelection": {
+      "selectedAt": "2026-08-29T20:49:03.665156+00:00",
+      "selectionSource": "explicit",
+      "lastVerifiedAt": "2026-08-29T20:49:03.665156+00:00"
+    }
+  },
+  "policy": {
+    "source": "registered",
+    "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+    "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+    "bytes": 1674
+  }
+}
+{
+  "result": "ok",
+  "workspace": "C:\\Users\\CDQ-P\\.openclaw\\workspace",
+  "database": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\cogentnexus-openclaw.sqlite3",
+  "snapshot": {
+    "databasePath": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\cogentnexus-openclaw.sqlite3",
+    "tickets": {
+      "failed": 1
+    },
+    "expiredRunning": 0,
+    "pendingOutbox": 0,
+    "linkedRunning": 0
+  }
+}
+(node:19396) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
