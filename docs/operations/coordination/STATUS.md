@@ -1,81 +1,71 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `CI_TASK167_EXACT_SHA_VALIDATE_RERUN_HERMES`  
+**Execution mode:** `WINDOWS_TASK167_ACCEPTED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-169`
+**Active task:** `CNX-20260831-170`
 
 ## Active work
 
-[`tasks/CNX-20260831-169-hermes-task167-exact-sha-validate-rerun.md`](tasks/CNX-20260831-169-hermes-task167-exact-sha-validate-rerun.md)
+[`tasks/CNX-20260831-170-hermes-windows-install-over-provenance-health.md`](tasks/CNX-20260831-170-hermes-windows-install-over-provenance-health.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
-Standing model: executor-heavy / reviewer-light.
+Standing model: executor-heavy / reviewer-light. Hermes/Codex owns primary investigation/execution/evidence packaging; ChatGPT reviews critical claims and final disposition.
 
-## Task 166 — accepted live failure
+## Task 167 — repair accepted
 
-One semantic Send produced one model result and one correct visible/native assistant answer, but no durable assistant-delivery marker/staging was captured. Duplicate safety failed closed without regeneration.
-
-## Task 167 — proposed repository repair
-
-Frozen exact repair SHA:
+Accepted product repair SHA:
 
 `231761fca24c315e90536955d3e384f55e2e232e`
 
-Root-cause/repair report:
+Final disposition:
 
-`reports/CNX-20260831-167-hermes-native-delivery-staging-root-cause-repair.md`
+`PASS — NATIVE_DELIVERY_STAGING_REPAIR_ACCEPTED`
 
-The repair introduced production-shaped pre-write staging/marker behavior and corresponding regression coverage. It is not yet finally accepted because exact-SHA Validate evidence remains incomplete.
+Task 168 supplied the required local/build/package/Python/evaluation evidence and risk/verification packet. Task 169 closed the only remaining exact-SHA CI gap.
 
-## Task 168 — verification completion
+## Task 169 — accepted CI completion
 
 Report:
 
-`reports/CNX-20260831-168-hermes-task167-verification-completion.md`
+`reports/CNX-20260831-169-hermes-task167-exact-sha-validate-rerun.md`
 
-ChatGPT review:
+Review:
 
-`reviews/CNX-20260831-168-hermes-task167-verification-completion-review.md`
+`reviews/CNX-20260831-169-hermes-task167-exact-sha-validate-rerun-review.md`
 
 Disposition:
 
-`REWORK_REQUIRED — EXACT_SHA_VALIDATE_CANCELLED_BY_COORDINATION_CONCURRENCY`
+`ACCEPTED_PASS`
 
-Task 168 completed the missing local/build/package/Python/evaluation validations, lineage/change fence, risk analysis, acceptance matrix, and Reviewer Verification Packet.
+Exact-SHA workflows for repair `231761f...`:
 
-Exact repair SHA workflow state:
+- Validate `33330458434`, attempt 2: `completed/success`, 7/7 jobs;
+- Windows Installer Pack Smoke `33330458470`: `success`;
+- PS5.1 Acceptance Smoke `33330458475`: `success`.
 
-- PS5.1 Acceptance Smoke `33330458475`: `SUCCESS`;
-- Windows Installer Pack Smoke `33330458470`: `SUCCESS`;
-- Validate `33330458434`: `CANCELLED`.
+Pinned OpenClaw remains:
 
-Independent ChatGPT review established that the Validate cancellation was caused by branch-level GitHub Actions concurrency, not by a reported product assertion failure:
+`0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`2026.7.1-2`).
 
-- `validate.yml` groups concurrency by workflow + branch and sets `cancel-in-progress: true`;
-- repair Validate `33330458434` started at `19:17:33Z` and was cancelled at `19:20:19Z`;
-- coordination commit `05f86ba565367d0e4ad91850c2ea291e40eae8f8` triggered newer Validate `33330579992` at `19:20:07Z`.
+## Task 170 objective
 
-The cancellation mechanism explains the interruption but does not convert the cancelled exact-SHA workflow into PASS.
+Perform one bounded Windows install-over from the exact accepted candidate and prove:
 
-## Task 169 objective
+1. exact package SHA/fingerprint provenance before installation;
+2. exactly one supported install-over execution;
+3. installed fingerprint equals frozen candidate fingerprint;
+4. OpenClaw pin is preserved;
+5. plugin/controller/Gateway/provider/startup/recovery/delivery/storage health is acceptable;
+6. database integrity and durable-state reconciliation pass;
+7. zero semantic Dashboard Sends/inference requests/manual semantic mutations occur.
 
-Rerun Validate `33330458434` against exact frozen repair SHA `231761fca24c315e90536955d3e384f55e2e232e`, obtain a terminal successful full matrix, and publish the matching verification report.
+Only after Task 170 reports PASS and ChatGPT accepts it may coordination consider a separate exactly-one-Send semantic durable-delivery reacceptance.
 
-No product/source change is authorized.
+## Hard fence
 
-## Critical coordination freeze
+Task 170 does not authorize semantic acceptance.
 
-Once this Task-169 activation commit is remote, **no branch push is allowed while the exact-SHA Validate rerun is queued or in progress**.
-
-The Task-169 report is pushed only after the rerun reaches terminal state and evidence is captured.
-
-If another push interrupts the rerun, or the rerun fails for a product/workflow reason, report the actual `FAIL`/`REWORK_REQUIRED` outcome; do not improvise source changes inside Task 169.
-
-## Successor gate
-
-Task-169 PASS requires ChatGPT review.
-
-If exact-SHA Validate succeeds and the review accepts the evidence, ChatGPT may finally accept the Task-167 repository repair and then open a separate Windows install-over/provenance/health task. No semantic Dashboard reacceptance is authorized by Task 169.
+No second installer attempt, uninstall, clean reinstall, reset, Dashboard semantic Send, `chat.inject`, intentional model inference/regeneration, manual Ticket/result/outbox/delivery/database/transcript mutation, OpenClaw/dependency upgrade, production repair, release/promotion, default/release merge, or force push.
