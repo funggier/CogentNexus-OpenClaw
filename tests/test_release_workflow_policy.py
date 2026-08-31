@@ -85,3 +85,27 @@ def test_release_keeps_duplicate_fence_and_only_publishes_from_dispatch_candidat
     assert "CANDIDATE_SHA" in scripts
     assert "GITHUB_REF_TYPE" not in scripts
     assert "GITHUB_REF_NAME#release/" not in scripts
+
+
+def test_release_publish_job_is_repository_explicit_without_checkout_dependency():
+    workflow = _workflow()
+    publish_steps = workflow["jobs"]["publish"]["steps"]
+    release_steps = [
+        step for step in publish_steps
+        if "gh release create" in str(step.get("run", ""))
+    ]
+    assert release_steps, "publish job must contain the GitHub Release publication step"
+
+    step = release_steps[0]
+    env = step.get("env", {})
+    run = str(step.get("run", ""))
+    gh_repo = str(env.get("GH_REPO", ""))
+    has_explicit_repo_env = "github.repository" in gh_repo
+    has_explicit_repo_arg = "--repo" in run and (
+        "GITHUB_REPOSITORY" in run or "github.repository" in run
+    )
+
+    assert has_explicit_repo_env or has_explicit_repo_arg, (
+        "publish job must identify the GitHub repository explicitly instead of relying "
+        "on current-working-directory git metadata"
+    )
