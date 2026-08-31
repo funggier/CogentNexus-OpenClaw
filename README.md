@@ -15,7 +15,7 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 - **Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`
 - **Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
 
-The v0.9.3 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
+The v0.9.3 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus-OpenClaw could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
 
 Task 191 repaired that boundary with TDD. Task 192 then installed the exact repaired candidate on the accepted Windows host and proved the normal real-runtime shape:
 
@@ -112,7 +112,7 @@ See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
 ## Recovery and transient-stall boundary
 
-A model call may fail transiently even when the same provider/model/configuration later succeeds. CogentNexus treats this as a continuity problem rather than proof that a provider is permanently defective.
+A model call may fail transiently even when the same provider/model/configuration later succeeds. CogentNexus-OpenClaw treats this as a continuity problem rather than proof that a provider is permanently defective.
 
 - model call interrupted and no durable result exists -> bounded inference recovery may be eligible only from sufficient evidence;
 - durable result exists but delivery failed -> retry delivery only, never regenerate;
