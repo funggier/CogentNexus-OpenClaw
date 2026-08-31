@@ -17,6 +17,34 @@ Task-180 was blocked before the supported install-over. Fresh authority and sour
 
 No installer command, reset, uninstall, reinstall, lifecycle helper, Gateway/Ollama restart, semantic action, model call, recovery action, or live product repair was performed.
 
+## Operator-requested impact addendum — 2026-08-31T06:25:42Z
+
+A fresh Windows process scan after the report was published still found the historical Task-178 outer observer chain:
+
+```text
+bash PID 14196
+  -> bash PID 22832
+      -> Python PID 17052: run_reset178.py
+          -> Python PID 17444: run_reset178.py
+```
+
+The actual Task-178 reset command and lifecycle descendants are not present. No `cnxclaw.cmd reset`, `cnxclaw_v093.py reset`, or `cnxclaw.py` reset child was found in this scan. The retained Task-178 ledger still has zero prompt/input events, and no new input was sent.
+
+### Importance and possible impact
+
+| Area | Severity | Current assessment |
+|---|---|---|
+| Immediate product/data safety | `LOW` | No reset child remains; no new mutation, confirmation, model, recovery, Gateway, Ollama, or DB action was observed. |
+| Coordination/preflight | `HIGH` | The observer matches the Task-180 prohibition on live Task-178/179 reset residue, so a supported install-over cannot safely start under the current task contract. |
+| Process/resource hygiene | `MEDIUM` | The wrapper may retain process handles/pipes and remains an unnecessary long-lived process chain. Exact CPU/memory impact was not measured; no claim of material resource exhaustion is made. |
+| Diagnostic correctness | `MEDIUM` | Future broad process scans may mistake the observer for an active reset and either block safe work or create false lifecycle conclusions unless the wrapper is classified separately. |
+| Future lifecycle acceptance | `HIGH` | A later reset/install acceptance should not begin until the observer chain is explicitly retired or otherwise dispositioned by an authorized successor and a clean process scan is recorded. |
+| Data loss from the observer itself | `UNPROVEN/NOT OBSERVED` | The observer is associated with retained evidence files; no evidence of ongoing product-state writes was found, but the wrapper's natural-exit behavior remains unresolved. |
+
+### Decision implication
+
+This is primarily an **operational blocker**, not evidence of current product corruption. The exact reset tree was already removed, while the outer observer remained alive beyond the additional 60-second observation window. Task-180 did not authorize terminating it, so no installation attempt was made. A successor should explicitly authorize identity-checked cleanup of only this observer chain, then repeat fresh preflight before any install-over.
+
 ## Authority
 
 Fresh remote fetch/read at final pre-publication check:
