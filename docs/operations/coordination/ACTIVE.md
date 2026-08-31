@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK202_TASK201_ORIGINAL_INSTALLER_WAIT_TREE_DIAGNOSIS`
-Current disposition: `TASK201_BLOCKED_INSTALLER_STILL_RUNNING_ACCEPTED__ROOT_CAUSE_EVIDENCE_REQUIRED`
-Task ID: `CNX-20260901-202`
-Parent task: `CNX-20260901-201`
+Execution mode: `TASK203_ORPHANED_HOST_CLEANUP_MANAGED_RECOVERY_AND_DISCORD_CLOSURE`
+Current disposition: `TASK202_ROOT_IDLE_NO_EXEC_DESCENDANT_ACCEPTED__BOUNDED_RECOVERY_AUTHORIZED`
+Task ID: `CNX-20260901-203`
+Parent task: `CNX-20260901-202`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
@@ -13,7 +13,7 @@ Coordinator / final reviewer: ChatGPT
 
 ## Published authority
 
-Public v0.9.3 remains immutable at:
+Public `v0.9.3` remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
@@ -29,54 +29,52 @@ Expected installed plugin fingerprint:
 
 Do not substitute coordination HEAD for product identity.
 
-## Task 201 accepted result
+Repository RED -> GREEN gates remain accepted:
 
-Task-201 report disposition:
+- Validate `33413832703`: `completed/success`
+- Windows Installer Pack Smoke `33413832709`: `completed/success`
+- PS5.1 Acceptance Smoke `33413832777`: `completed/success`
 
-`BLOCKED_INSTALLER_STILL_RUNNING`
+## Task 202 accepted result
+
+Task-202 report outcome:
+
+`EVIDENCE_ROOT_IDLE_NO_EXEC_DESCENDANT`
 
 Review:
 
-[`reviews/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure-review.md`](reviews/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure-review.md)
+[`reviews/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis-review.md`](reviews/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis-review.md)
 
 Accepted facts:
 
-- original Task-200 PowerShell PID `11704` remained the same process by retained creation-time identity;
-- no final installer completion line or exit artifact exists;
-- installed repaired fingerprint and ownership verify pass;
-- Host remains passthrough/startup disabled/plugin disabled;
-- Gateway/Ollama/delivery/recovery/SQLite remain healthy;
-- Discord Send remains unused: `0 / 1` consumed;
-- no lifecycle/source/publication mutation was performed.
+- stale root PowerShell PID `11704` remained exact by creation-time identity;
+- across bounded samples its CPU/threads/handles and stdout/stderr did not advance;
+- its only descendant was `conhost.exe` console infrastructure;
+- no Python, cnxclaw, Host, Node, OpenClaw, Gateway, installer, or other executable work descendant survived;
+- exact repaired plugin fingerprint and ownership remained valid;
+- Host remained passthrough/startup disabled/plugin disabled;
+- Gateway/Ollama/delivery/recovery/SQLite remained healthy;
+- Discord Send remains unused: `0 / 1` consumed.
 
-The long interval now establishes a genuine unresolved terminal stall, but Task 201 did not enumerate the recursive execution descendant tree sufficiently to identify the active wait boundary.
+No `install.ps1` product deadlock is accepted from this evidence. The observed root shape materially differs from the known-good Task-159 standalone `powershell.exe ... -File install.ps1` process pattern and is treated as an orphaned executor/PowerShell-host boundary for recovery purposes.
 
-## Active Task 202
+## Active Task 203
 
 Hermes must execute:
 
-[`tasks/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis.md`](tasks/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis.md)
+[`tasks/CNX-20260901-203-task202-orphaned-host-cleanup-managed-recovery-and-discord-closure.md`](tasks/CNX-20260901-203-task202-orphaned-host-cleanup-managed-recovery-and-discord-closure.md)
 
-Task 202 is strictly read-only and must:
+Execution order:
 
-1. verify the original PID identity;
-2. enumerate the entire recursive descendant tree of PID 11704;
-3. take two bounded CPU/thread/wait/handle and stream-progress samples;
-4. map any surviving Python/Node/OpenClaw descendant command line to the exact installer/enable source boundary;
-5. capture current runtime health without forcing convergence;
-6. publish one evidence classification and stop.
-
-## Important process-wait hypothesis
-
-The repository has a prior Windows acceptance finding that some wait mechanisms can remain blocked on long-lived descendants. That precedent makes process-tree/wait semantics a relevant hypothesis, but it is **not yet accepted as the Task-200/201 root cause**.
-
-Task 202 exists to distinguish:
-
-- a real surviving `cnxclaw enable`/Host/OpenClaw descendant boundary;
-- an idle root PowerShell with no meaningful execution descendant;
-- late process progress/exit;
-- process-identity/evidence ambiguity.
+1. revalidate exact PID `11704` identity and idle/no-executable-descendant shape;
+2. terminate only that exact stale root process;
+3. do **not** rerun installer;
+4. verify coherent installed exact-candidate passthrough state;
+5. invoke installed `cnxclaw.cmd enable` exactly once using root-only process observation semantics;
+6. prove full managed/plugin/startup/Gateway/Ollama/delivery/recovery/SQLite convergence;
+7. only then use the still-unused human Discord Send budget `1 / 1` and prove one Ticket -> one model call -> one visible Discord result -> delivery_confirmed -> completed;
+8. stop immediately on cleanup/enable/health failure without retry or Discord Send.
 
 ## Hard fence
 
-No process termination, installer replay, enable/disable/start/stop/restart, reset/uninstall/reinstall/install-over, state/config/SQLite mutation, provider/model change, Discord Send, source/test/workflow edit, diagnostic software installation, Release/tag mutation, or force push.
+No installer replay, reset/uninstall/reinstall/install-over, second enable, disable/start/stop/restart, provider/model/config/SQLite manual mutation, broad process kill, Release/tag mutation, product/source/test/workflow edit, second Discord Send, injection, or force push.
