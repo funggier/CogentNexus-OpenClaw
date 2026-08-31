@@ -1,4 +1,7 @@
 import { TicketStore, type TicketLease } from "./ticket-store.js";
+import { installTicketAdmissionContentionRetry } from "./v198-ticket-admission-contention.js";
+
+installTicketAdmissionContentionRetry();
 
 export type TicketLaunch = (lease: TicketLease) => void;
 export type TicketAdmission = (candidate: {ticketId:string;attemptCount:number;maxAttempts:number}) => boolean;
