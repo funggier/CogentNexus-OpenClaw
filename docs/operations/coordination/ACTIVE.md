@@ -1,14 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_HERMES`
-Execution mode: `FINAL_POST_LIFECYCLE_DASHBOARD_SEMANTIC_DURABLE_DELIVERY_HYBRID`
-Current authorization: `CNX-20260831-186_HERMES_FINAL_POST_LIFECYCLE_DASHBOARD_SEMANTIC_DURABLE_DELIVERY_ACCEPTANCE`
-Task ID: `CNX-20260831-186`
+Status: `AWAITING_HUMAN_RELEASE_REVIEW`
+Execution mode: `NO_ACTIVE_EXECUTION_TASK`
+Current authorization: `NONE`
+Task ID: `NONE`
 Updated: 2026-08-31 ICT
-Executor: Hermes/Codex
 Coordinator / final reviewer: ChatGPT
-UI actor: User
-Review model: executor-heavy / reviewer-light
+Human release authority: User
 
 ## Authoritative coordination files
 
@@ -19,15 +17,13 @@ Only:
 
 GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
-## Active task
+## Execution state
 
-[`tasks/CNX-20260831-186-hermes-final-post-lifecycle-dashboard-semantic-durable-delivery-acceptance.md`](tasks/CNX-20260831-186-hermes-final-post-lifecycle-dashboard-semantic-durable-delivery-acceptance.md)
+No repository/source/live-runtime execution task is active.
 
-## Accepted state
+The bounded v0.9.3 stabilization and real-Windows acceptance sequence is complete for the frozen candidate.
 
-Task 179 repository repair:
-
-`ACCEPTED_PASS — INTERACTIVE_LIFECYCLE_DELEGATION_REPAIR_ACCEPTED`
+## Accepted candidate
 
 Exact frozen candidate:
 
@@ -41,47 +37,56 @@ Accepted plugin fingerprint:
 
 `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 
-Task 183 reset:
+## Accepted lifecycle / semantic sequence
 
-`ACCEPTED_PASS — QUALIFIED_HARNESS_RESET_FRESH_STATE_REACCEPTED`
+- Task 179: `ACCEPTED_PASS — INTERACTIVE_LIFECYCLE_DELEGATION_REPAIR_ACCEPTED`
+- Task 183: `ACCEPTED_PASS — QUALIFIED_HARNESS_RESET_FRESH_STATE_REACCEPTED`
+- Task 184: `ACCEPTED_PASS — QUALIFIED_HARNESS_UNINSTALL_EXTERNAL_PRESERVATION_ACCEPTED`
+- Task 185: `ACCEPTED_PASS — FRESH_REINSTALL_POST_UNINSTALL_ACCEPTED`
+- Task 186: `ACCEPTED_PASS — FINAL_POST_LIFECYCLE_DASHBOARD_SEMANTIC_DURABLE_DELIVERY_ACCEPTED`
 
-Task 184 uninstall/external preservation:
+Task 186 proved the final designed path after reset → uninstall → fresh reinstall:
 
-`ACCEPTED_PASS — QUALIFIED_HARNESS_UNINSTALL_EXTERNAL_PRESERVATION_ACCEPTED`
+`1 human Send → 1 Ticket → 1 session/run → 1 Ollama model call → 1 durable assistant delivery → 1 logical Dashboard assistant result`
 
-Task 185 fresh reinstall:
+with no retry, duplicate logical work, recovery action, outbox residue, or runtime-health regression.
 
-`ACCEPTED_PASS — FRESH_REINSTALL_POST_UNINSTALL_ACCEPTED`
+## Current live boundary
 
-The live machine is freshly reinstalled on the accepted candidate with OpenClaw `2026.7.1-2`, plugin/runtime health accepted, provider Ollama selected, and the semantic durable baseline clean at zero across tickets/events/outbox/delivery/model/recovery/sessions.
+The accepted candidate remains freshly installed and healthy on the validated Windows environment with:
 
-## Task-186 authorization
+- OpenClaw `2026.7.1-2 (0790d9f)`;
+- CogentNexus-OpenClaw release `0.9.3`;
+- controller MANAGED;
+- selected provider Ollama;
+- Gateway healthy;
+- Ollama healthy/ready;
+- delivery/recovery READY;
+- SQLite integrity `ok`.
 
-After a fresh read-only authority/provenance/runtime/durable preflight, Task 186 authorizes exactly one real Dashboard semantic turn to prove:
+The final Task-186 semantic acceptance intentionally leaves one accepted completed Ticket/session/model-call/delivery record as the durable evidence of that test.
 
-`one human Send → one Ticket → one model call → one durable assistant delivery → one logical assistant result`
+## Next phase — explicit human release review
 
-PASS requires unique correlation from a frozen Task-186 nonce through Ticket/session/run/model/delivery/UI evidence, no duplicate logical work, no recovery, outbox drain to zero, and healthy runtime afterwards.
+Per `docs/operations/ROADMAP.md`, repository stabilization and real-Windows acceptance do **not** automatically authorize publication.
 
-## Human-controlled UI gate
+The next action requires explicit human review/decision covering:
 
-- The user controls Dashboard navigation/New Session/clicks.
-- The user focuses/selects the intended composer field.
-- Hermes may type/paste only the already frozen Task-186 nonce/test text after that focus exists.
-- Hermes must not press Enter as Send, click Send, or use `chat.inject`/semantic injection.
-- The user presses Send exactly once.
-- Hermes/Codex then performs read-only Ticket/model/durable-delivery/UI correlation.
-
-If the turn becomes slow or ambiguous, do not Send again and do not retry/regenerate/recover. Inspect the same durable turn and report the bounded disposition.
+1. version/release notes and consumer installation guidance;
+2. exact source/artifact identity intended for publication;
+3. Draft PR / merge path as appropriate;
+4. tag/release/publication decision.
 
 ## Hard fence
 
-Human Dashboard Send maximum: `1`.
-Hermes/Codex Send: `0`.
-Semantic injection/chat.inject: `0`.
-Second Send/retry: `0`.
-Manual recovery/regeneration: `0`.
+Until explicit human authorization:
 
-No reset, uninstall, install/reinstall/install-over, executor lifecycle helper, manual Gateway/Ollama lifecycle action, manual DB/config/transcript/route repair, source/product/test/workflow/dependency edit, release/tag/merge, or force push.
+- no new live semantic acceptance action;
+- no reset/uninstall/reinstall/install-over;
+- no source/product/test/workflow mutation;
+- no merge;
+- no tag;
+- no GitHub Release publication;
+- no force push.
 
-After Task-186 report publication, stop for ChatGPT review. No second semantic action is authorized.
+Normal read-only inspection/review is allowed.
