@@ -1,25 +1,23 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK201_TASK200_ORIGINAL_INSTALLER_TERMINAL_ADJUDICATION_AND_DISCORD_CLOSURE`
-Current disposition: `TASK200_BLOCKED_EVIDENCE_ACCEPTED__ADJUDICATE_ORIGINAL_INSTALLER_BEFORE_ANY_MUTATION`
-Task ID: `CNX-20260901-201`
-Parent task: `CNX-20260831-200`
+Execution mode: `TASK202_TASK201_ORIGINAL_INSTALLER_WAIT_TREE_DIAGNOSIS`
+Current disposition: `TASK201_BLOCKED_INSTALLER_STILL_RUNNING_ACCEPTED__ROOT_CAUSE_EVIDENCE_REQUIRED`
+Task ID: `CNX-20260901-202`
+Parent task: `CNX-20260901-201`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / final reviewer: ChatGPT
 
-## Published v0.9.3 authority
+## Published authority
 
-Publication is already complete and must remain untouched.
-
-Public tag `v0.9.3` target:
+Public v0.9.3 remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Do not republish, retarget, recreate, or modify the v0.9.3 Release/assets.
+No Release/tag/asset mutation is authorized.
 
 ## Frozen repaired product candidate
 
@@ -29,68 +27,56 @@ Expected installed plugin fingerprint:
 
 `f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
 
-Do not substitute later coordination HEADs for product identity.
+Do not substitute coordination HEAD for product identity.
 
-Repository RED -> GREEN gates remain accepted:
+## Task 201 accepted result
 
-- Validate `33413832703`: `completed/success`
-- Windows Installer Pack Smoke `33413832709`: `completed/success`
-- PS5.1 Acceptance Smoke `33413832777`: `completed/success`
+Task-201 report disposition:
 
-## Task 200 review
-
-Task-200 report disposition:
-
-`BLOCKED_EVIDENCE`
+`BLOCKED_INSTALLER_STILL_RUNNING`
 
 Review:
 
-[`reviews/CNX-20260831-200-task198-repaired-discord-windows-requalification-review.md`](reviews/CNX-20260831-200-task198-repaired-discord-windows-requalification-review.md)
+[`reviews/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure-review.md`](reviews/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure-review.md)
 
 Accepted facts:
 
-- one supported install-over invocation was consumed;
-- exact repaired plugin bytes were installed and fingerprint-matched;
-- original installer process was still running at Task-200 stop boundary;
-- final installer completion/exit and managed convergence were not proven;
-- last observed host mode was `passthrough`, startup disabled;
-- Gateway/Ollama/SQLite remained healthy;
-- Discord Send was correctly not started;
-- human Discord Send budget remains `0 / 1` consumed.
+- original Task-200 PowerShell PID `11704` remained the same process by retained creation-time identity;
+- no final installer completion line or exit artifact exists;
+- installed repaired fingerprint and ownership verify pass;
+- Host remains passthrough/startup disabled/plugin disabled;
+- Gateway/Ollama/delivery/recovery/SQLite remain healthy;
+- Discord Send remains unused: `0 / 1` consumed;
+- no lifecycle/source/publication mutation was performed.
 
-No new product defect is accepted from Task 200 merely because the observation window ended while the installer was alive.
+The long interval now establishes a genuine unresolved terminal stall, but Task 201 did not enumerate the recursive execution descendant tree sufficiently to identify the active wait boundary.
 
-## Active Task 201
+## Active Task 202
 
-[`tasks/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure.md`](tasks/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure.md)
+Hermes must execute:
 
-Task 201 must first be read-only:
+[`tasks/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis.md`](tasks/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis.md)
 
-1. identify whether the exact original Task-200 installer process terminated, remains genuinely running, or the PID was reused;
-2. inspect/hash retained `b01-install.stdout` / `b01-install.stderr` and any late-created exit artifact;
-3. determine whether the installer completion line appeared;
-4. capture current plugin/ownership/host/startup/Gateway/Ollama/delivery/recovery/SQLite state;
-5. perform no command to force convergence.
+Task 202 is strictly read-only and must:
 
-Only if the original installer is proven successfully completed **and** current runtime is already independently healthy in managed mode may Hermes proceed to the still-unused single Discord Send.
+1. verify the original PID identity;
+2. enumerate the entire recursive descendant tree of PID 11704;
+3. take two bounded CPU/thread/wait/handle and stream-progress samples;
+4. map any surviving Python/Node/OpenClaw descendant command line to the exact installer/enable source boundary;
+5. capture current runtime health without forcing convergence;
+6. publish one evidence classification and stop.
 
-If the original installer is still the same running process after the extended interval, or if it terminated without successful completion/managed convergence, Task 201 must stop without Discord Send and report exact evidence.
+## Important process-wait hypothesis
 
-## Discord acceptance semantics if Phase B gate passes
+The repository has a prior Windows acceptance finding that some wait mechanisms can remain blocked on long-lived descendants. That precedent makes process-tree/wait semantics a relevant hypothesis, but it is **not yet accepted as the Task-200/201 root cause**.
 
-- Known owner session: `agent:main:discord:channel:1531199905673252946`
-- Human Discord Send budget: exactly `1 / 1`
-- Hermes/bot/API/injected send: `0`
-- retry/regenerate/second message: `0`
+Task 202 exists to distinguish:
 
-Expected durable shape:
-
-`1 human Discord Send -> 1 Ticket -> 1 Direct model call -> response_ready -> 1 native visible Discord result -> delivery_confirmed -> completed`
-
-`before_agent_run hook failed` for the tested Send is a failure.
-
-A `cnx_assistant_delivery` row is not required for native Discord Direct delivery. Dashboard-observer `missing-run-correlation` / `missing-append-before-deliver` diagnostics are not failures by themselves.
+- a real surviving `cnxclaw enable`/Host/OpenClaw descendant boundary;
+- an idle root PowerShell with no meaningful execution descendant;
+- late process progress/exit;
+- process-identity/evidence ambiguity.
 
 ## Hard fence
 
-Before the Task-201 Phase-B decision gate: no install rerun, no `enable`/`disable`, no start/stop/restart, no process kill, no reset/uninstall/reinstall/install-over, no state/config/SQLite mutation, no provider/model change, no Discord Send, no source/test/workflow edit, no Release/tag mutation, and no force push.
+No process termination, installer replay, enable/disable/start/stop/restart, reset/uninstall/reinstall/install-over, state/config/SQLite mutation, provider/model change, Discord Send, source/test/workflow edit, diagnostic software installation, Release/tag mutation, or force push.
