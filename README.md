@@ -8,15 +8,15 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 - **Core / Bridge version:** 0.9.3
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** **Ollama only**
-- **Frozen accepted product candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`
+- **Previously accepted implementation candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`
 - **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
-- **Accepted plugin fingerprint:** `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
-- **Latest published release:** v0.9.2
-- **v0.9.3 publication:** blocked pending fingerprint-sensitive documentation requalification; no `v0.9.3` GitHub Release/tag exists yet
+- **Task-188 package payload-v2 identity:** `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files
+- **Task-188 installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`
+- **Executable scripts tree:** unchanged from the accepted implementation baseline (`3d9d323ba19443d46e970b87cef52ce878da274f`)
 
-The exact v0.9.3 product candidate has completed the bounded real-Windows lifecycle/semantic acceptance sequence: install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and one final Dashboard semantic/durable-delivery turn. Those results apply to the exact accepted candidate/artifact identity above.
+The v0.9.3 implementation completed the bounded real-Windows lifecycle/semantic acceptance sequence: install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and one final Dashboard semantic/durable-delivery turn. Task 188 subsequently corrected stale current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. Because those documentation bytes are part of product identity, publication is allowed only from an exact candidate that carries the corrected identities above and passes the proportional changed-surface requalification defined by Task 188.
 
-Task 187 found that current guidance inside installed/payload-sensitive product surfaces still contains pre-acceptance wording. Correcting those files would change the accepted plugin/skill artifact identity, so release publication is intentionally blocked until a new exact candidate is produced and the changed documentation-bearing product surface is requalified. Safe repository documentation outside that product boundary may continue to converge without pretending that the accepted fingerprint changed.
+Public release availability is authoritative on the repository's GitHub Releases/tags. A branch checkout by itself is never proof that a release has been published.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
 
@@ -105,7 +105,7 @@ See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
 There is intentionally no `cnxclaw.cmd install` command. Installation is performed from a reviewed source/archive through the repository installer.
 
-Because v0.9.3 publication is currently blocked on documentation-bearing artifact requalification, do not assume public v0.9.3 release assets exist and do not treat a moving branch checkout as the accepted Windows candidate. The accepted candidate identity is the exact SHA/fingerprint recorded above; any payload/skill documentation correction creates a new candidate identity that must be requalified before publication.
+For pre-publication or source-based validation, use an exact reviewed candidate rather than a moving branch. For a published release, use the exact release archive and verify it against `SHA256SUMS.txt`. The package payload and installed skill identities above distinguish the documentation-corrected v0.9.3 artifact from the earlier Windows-accepted implementation baseline while executable/runtime source remains unchanged.
 
 See:
 
@@ -163,4 +163,4 @@ npm run plugin:validate
 
 v0.9.2 is a frozen historical release. Its release notes and historical acceptance evidence may legitimately describe provider-neutral Ollama/LM Studio work. Those records must not be rewritten to pretend history was different, and they must not be used as current v0.9.3 operator guidance.
 
-The accepted v0.9.3 Windows evidence is also immutable evidence for its exact candidate. A later documentation-bearing product candidate may inherit only the claims justified by explicit unchanged-surface proof and its own required requalification.
+The Windows evidence for `f6392da3...` is also immutable exact-artifact history. Task 188 carries forward only unchanged-surface claims that are proven by byte identity and requires proportional requalification for the documentation-bearing surface that changed.

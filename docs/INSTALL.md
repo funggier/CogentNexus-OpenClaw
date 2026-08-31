@@ -2,9 +2,9 @@
 
 CogentNexus-OpenClaw v0.9.3 targets OpenClaw `2026.7.1-2 (0790d9f)` and manages **Ollama only** at the current runtime/operator boundary.
 
-The exact product candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Public v0.9.3 release publication is nevertheless **blocked** at Task 187 because current documentation inside installed/payload-sensitive product surfaces must be corrected; changing those bytes creates a new candidate identity that requires scoped requalification before publication.
+The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Task 188 subsequently corrected current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files and the installed skill-tree identity is `a1e873ba404205507a1623961b49f1b1a0689f9f`.
 
-There is therefore no public `v0.9.3` GitHub Release/tag yet. Do not assume release assets exist and do not treat a moving development branch as the accepted candidate.
+Publication or installation claims must always be tied to an exact reviewed candidate/release artifact. GitHub Releases/tags are authoritative for whether v0.9.3 has been publicly published; a moving branch is not a release identity.
 
 ## Requirements
 
@@ -41,19 +41,29 @@ The installer is provider-neutral: it stages/validates the skill, initializes ow
 
 LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it. The v0.9.3 runtime/operator provider target is Ollama, but that selection/readiness responsibility is outside the installer prerequisite boundary.
 
-## Accepted-candidate identity
+## Artifact identity and acceptance lineage
 
-The accepted Windows evidence applies to exactly:
+The full Windows acceptance sequence completed first on this exact implementation baseline:
 
 ```text
 source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
 active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
-plugin fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+installed plugin inventory fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
 OpenClaw: 2026.7.1-2 (0790d9f)
 managed provider: ollama
 ```
 
-Task 187 found that correcting stale current guidance inside the installed skill and npm plugin package would change that product/payload identity. A later corrected candidate must not be presented as the same accepted artifact merely because its executable source is unchanged.
+Task 188 corrected documentation-bearing product bytes while preserving executable/runtime source. The corrected artifact identities are:
+
+```text
+package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
+package file count: 184
+installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
+executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f (unchanged)
+facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
+```
+
+Because the package/skill bytes changed, the corrected artifact requires proportional changed-surface requalification before publication. This does not erase the earlier lifecycle evidence; it preserves that evidence for unchanged executable surfaces while independently qualifying the changed installed documentation/instruction surface.
 
 ## Runtime/provider readiness after installation
 
@@ -112,7 +122,7 @@ Where supported, an explicit Ollama target may also be supplied:
 
 `reset` is destructive and requires explicit `y` confirmation. It clears CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/configuration state and reconstructs fresh state from the currently installed candidate. It must not remove external OpenClaw, Ollama models/data, or unrelated workspace data.
 
-Task 183 accepted this boundary for the frozen candidate.
+Task 183 accepted this boundary for the implementation baseline. Task 188 does not repeat this destructive boundary by default because the corrected files are documentation/instruction bytes; it repeats lifecycle acceptance only if changed-candidate evidence gives a concrete reason.
 
 ## Completely uninstall CogentNexus-OpenClaw
 
@@ -122,9 +132,9 @@ Task 183 accepted this boundary for the frozen candidate.
 
 `uninstall` is destructive and requires explicit `y` confirmation. It must return to native/PASSTHROUGH safely, remove only CogentNexus-OpenClaw-owned installation/runtime surfaces, and preserve external OpenClaw, Ollama, user data, and unrelated/future product namespaces.
 
-Task 184 accepted this external-preservation boundary for the frozen candidate; Task 185 then accepted fresh reinstall and post-install health.
+Task 184 accepted this external-preservation boundary for the implementation baseline; Task 185 then accepted fresh reinstall and post-install health.
 
-## Final semantic acceptance already completed for the frozen candidate
+## Final semantic acceptance lineage
 
 Task 186 accepted one bounded Dashboard turn after the lifecycle sequence:
 
@@ -137,16 +147,16 @@ Task 186 accepted one bounded Dashboard turn after the lifecycle sequence:
 -> 1 logical Dashboard assistant result
 ```
 
-No retry, duplicate semantic work, direct recovery, or outbox residue occurred.
+No retry, duplicate semantic work, direct recovery, or outbox residue occurred. Because Task 188 changes the installed instruction surface, its proportional requalification includes one additional bounded semantic/durable-delivery turn before publication.
 
-## Future published-release install
+## Published-release install
 
-After a corrected documentation-bearing candidate is requalified and `v0.9.3` is actually published, consumer installation should use the assets generated by `.github/workflows/release.yml`:
+When `v0.9.3` is present as a GitHub Release, consumer installation should use the exact assets generated and verified by `.github/workflows/release.yml`:
 
 - `cogentnexus-openclaw-v0.9.3.tar.gz`
 - `cogentnexus-openclaw-v0.9.3.zip`
 - `SHA256SUMS.txt`
 
-Verify the archive checksum from `SHA256SUMS.txt`, extract the archive, then run the installer from that exact extracted release tree. Until the GitHub Release exists, do not fabricate or guess release download URLs.
+Verify the archive checksum from `SHA256SUMS.txt`, extract the archive, then run the installer from that exact extracted release tree. If the GitHub Release/tag is absent, use an explicitly reviewed exact candidate instead of inventing or guessing release download URLs.
 
 See [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md), and [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md).

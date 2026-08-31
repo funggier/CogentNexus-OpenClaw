@@ -3,15 +3,16 @@
 **Updated:** 2026-08-31  
 **Release line:** v0.9.3  
 **Current branch:** `agent/v0.9.3-full-stabilization`  
-**Frozen accepted product candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`  
+**Previously accepted implementation candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`  
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
 **Managed provider:** **Ollama only**  
-**Latest published release:** v0.9.2  
-**Task-187 disposition in progress:** `BLOCKED — fingerprint-sensitive documentation convergence requires a new candidate/requalification`
+**Task-188 package payload-v2:** `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files  
+**Task-188 installed skill tree:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
+**Executable scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f` — unchanged
 
 ## What is already accepted
 
-The exact frozen candidate completed the bounded real-Windows acceptance sequence:
+The exact implementation baseline completed the bounded real-Windows acceptance sequence:
 
 - Task 182 — install-over/provenance reacceptance;
 - Task 183 — reset/fresh-state reacceptance;
@@ -21,41 +22,52 @@ The exact frozen candidate completed the bounded real-Windows acceptance sequenc
 
 Task 186 proved one human Send produced exactly one Ticket, one session/run, one Ollama model call, one durable assistant delivery, and one logical Dashboard assistant result, with no retry/recovery/duplicate semantic work/outbox residue.
 
-## Why publication is blocked
+## Documentation-bearing candidate
 
-Task 187 audited release/current documentation before merge/tag/publication and proved that some stale current guidance is part of the accepted installed/payload surface:
+Task 187 correctly stopped initial publication because stale current guidance existed inside package/installed product surfaces. Task 188 has now corrected that guidance in exactly these product documentation paths:
 
-1. `plugins/cogentnexus-openclaw/README.md` is listed in `plugins/cogentnexus-openclaw/package.json.files`; payload-v2 fingerprinting hashes `package.json` plus every declared package file. Editing the README therefore changes the accepted plugin fingerprint `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`.
-2. `skills/cogentnexus-openclaw/SKILL.md` and its references are copied wholesale by the installer into the live workspace skill tree. Current wording still contains pre-acceptance status; `references/architecture.md` also labels the architecture as current v0.9.1.
-3. Correcting those files is required for full living-documentation convergence, but the corrected artifact would no longer be the exact artifact accepted by Tasks 182–186.
+- `plugins/cogentnexus-openclaw/README.md`;
+- `skills/cogentnexus-openclaw/SKILL.md`;
+- `skills/cogentnexus-openclaw/references/architecture.md`;
+- `skills/cogentnexus-openclaw/references/scheduler-adapters.md`.
 
-The Task-187 hard fence therefore forbids continuing to merge/tag/release while pretending the previous Windows acceptance applies unchanged.
+The package README change produced payload-v2 `408167da...` / 184 files. The installed skill tree is now `a1e873ba...`. The executable scripts tree remains `3d9d323...`, including the unchanged accepted facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
 
-## Safe documentation convergence
+This is therefore a documentation/instruction identity change, not an executable/runtime behavior change.
 
-Repository documentation outside the installed/product payload may be updated to describe the true current state. Those changes must remain documentation-only and must not modify production/runtime/plugin executable source, tests, dependencies, or workflow behavior.
+## Qualification policy
 
-Historical release notes, completed coordination reports, and old accepted evidence remain historical and are not rewritten.
+The corrected artifact must receive proportional changed-surface requalification before publication:
+
+1. exact-candidate repository/package CI;
+2. one supported Windows install-over of the corrected candidate;
+3. exact installed package/skill/facade provenance checks;
+4. MANAGED + Ollama + Gateway + delivery/recovery + SQLite health;
+5. one bounded Dashboard semantic/durable-delivery turn;
+6. reset/uninstall/fresh-reinstall only if evidence from the corrected artifact gives a concrete lifecycle reason to repeat them.
+
+The earlier destructive lifecycle evidence remains valid historical evidence for the implementation baseline and may support unchanged-surface claims only where byte identity is explicitly proven.
 
 ## Release topology
 
 - default branch: `main`;
-- current `main` opening HEAD for Task 187: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
-- `v0.9.3` tag/release did not exist at Task-187 inspection;
-- PR #24 is an older Draft from `agent/v0.9.3-recovery-reality-tests` to `release/v0.9.2` and is not the current release path;
-- `.github/workflows/release.yml` remains the required exact-SHA publication gate once a corrected candidate is requalified.
+- Task-188 starting `main`: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
+- stale PR #24 is closed and not merged;
+- `.github/workflows/release.yml` is the required exact-SHA publication gate;
+- public release/tag state must be verified directly from GitHub Releases/tags rather than inferred from source prose.
 
-## Next priority
+## Publication path
 
-Open a narrowly scoped documentation-payload repair/requalification task:
+After Task-188 requalification passes:
 
-1. correct stale plugin/skill current guidance only;
-2. prove executable/runtime/plugin executable bytes remain unchanged from the accepted product candidate;
-3. compute the new plugin fingerprint and skill-tree identity;
-4. rerun exact-candidate repository/package validation;
-5. perform the minimum Windows requalification justified by the changed surface, including install-over/provenance and final semantic/durable-delivery validation when the installed instruction surface changed;
-6. after acceptance, create the correct current PR to `main`, merge only on green gates, freeze exact merged SHA, and dispatch Release workflow with `version=0.9.3` + that exact SHA.
+1. freeze the final exact candidate;
+2. require exact-candidate CI/checks to be green;
+3. create the current `agent/v0.9.3-full-stabilization` -> `main` release PR;
+4. merge without force push only when topology/diff/checks are correct;
+5. freeze exact merged `main` SHA;
+6. dispatch `.github/workflows/release.yml` with `version=0.9.3` and that exact SHA;
+7. verify Release workflow success, tag target, release notes, `.tar.gz`, `.zip`, `SHA256SUMS.txt`, and independent checksums.
 
 ## Safety boundary
 
-Do not force push. Do not publish v0.9.3 from the Task-187 branch after a material payload/product identity change unless the corrected candidate receives the required requalification. Do not repeat reset/uninstall/fresh-reinstall/semantic side effects merely because documentation work is blocked; requalification scope must be proportional to the actual changed artifact surface.
+Do not change production/runtime/plugin executable source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Any need for such a change is a separate product defect and blocks publication. Do not force push.

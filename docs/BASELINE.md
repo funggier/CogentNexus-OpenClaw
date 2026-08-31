@@ -6,11 +6,11 @@ Current release line: **v0.9.3**.
 Current managed provider: **Ollama only**.  
 Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
-Frozen accepted v0.9.3 product candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.
+Previously accepted v0.9.3 implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.
 
-The v0.9.3 candidate later completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and final Dashboard semantic/durable-delivery acceptance. Those later results do not rewrite this historical Recovery Core checkpoint; they extend the accepted evidence for the exact v0.9.3 candidate.
+The v0.9.3 implementation later completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and final Dashboard semantic/durable-delivery acceptance. Those later results do not rewrite this historical Recovery Core checkpoint; they extend the accepted evidence for the exact implementation candidate.
 
-At Task 187, public v0.9.3 publication is blocked because stale current guidance exists inside documentation-bearing product/payload surfaces. Correcting those files changes the accepted artifact identity and therefore requires a new exact candidate and scoped requalification before release publication.
+Task 187 correctly stopped initial publication when it found stale current guidance inside documentation-bearing product/payload surfaces. Task 188 corrected those installed/package documentation bytes while preserving the executable scripts tree and established a new package payload-v2 identity `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files plus installed skill-tree identity `a1e873ba404205507a1623961b49f1b1a0689f9f`. Publication must proceed only from an exact candidate carrying those corrected identities after proportional changed-surface requalification.
 
 See `docs/CURRENT_STATE.md` for current release/acceptance/publication status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
 
@@ -91,4 +91,4 @@ Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
 Accepted live Test A v16: one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
 
-The later frozen v0.9.3 candidate `f6392da3...` completed the separate lifecycle and final Dashboard acceptance sequence. Any later product/payload change creates a different candidate identity and must be qualified according to the changed surface before inheriting that evidence.
+The later implementation candidate `f6392da3...` completed the separate lifecycle and final Dashboard acceptance sequence. Task 188 changes documentation/instruction identity only; executable/runtime claims are inherited only where exact unchanged-byte proof exists, while changed documentation-bearing surfaces require their own proportional requalification.

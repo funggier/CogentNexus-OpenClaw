@@ -18,44 +18,39 @@ If all three answers are no, the value should not exist in that layer.
 
 For v0.9.3 this means, among other things, that installation remains provider-neutral while the current runtime/operator provider contract is Ollama only.
 
-## Current position — accepted candidate, blocked publication
+## Current position — corrected documentation-bearing v0.9.3 artifact
 
-The exact candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence through Tasks 182–186.
+The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence through Tasks 182–186.
 
-Task 187 then found that full documentation convergence requires edits inside artifact-sensitive product surfaces:
+Task 187 then found that full documentation convergence required edits inside artifact-sensitive product surfaces. Task 188 corrected the verified stale current guidance in four paths:
 
-- `plugins/cogentnexus-openclaw/README.md` participates directly in the npm payload-v2 fingerprint;
-- `skills/cogentnexus-openclaw/SKILL.md` and references are copied into the installed skill tree and form part of the runtime instruction surface;
-- current wording in those surfaces still reflects pre-acceptance state.
+- `plugins/cogentnexus-openclaw/README.md`;
+- `skills/cogentnexus-openclaw/SKILL.md`;
+- `skills/cogentnexus-openclaw/references/architecture.md`;
+- `skills/cogentnexus-openclaw/references/scheduler-adapters.md`.
 
-Changing them creates a different product/artifact identity. Publication is therefore blocked until a corrected exact candidate receives the qualification appropriate to that changed surface.
+The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / 184 files. The installed skill tree is `a1e873ba404205507a1623961b49f1b1a0689f9f`. The executable scripts tree remains byte-identical at `3d9d323ba19443d46e970b87cef52ce878da274f`.
 
-## Short term — documentation-payload repair and requalification
+The next gate is therefore proportional changed-surface requalification, not another broad implementation stabilization cycle.
 
-### 1. Correct only the stale product documentation surface
+## Short term — proportional requalification and publication
 
-Allowed repair scope should be tightly bounded to documentation/instruction text that must become current. Do not change production/runtime/plugin executable source, tests, dependencies, or workflow behavior merely to make release publication easier.
+### 1. Documentation-payload convergence — complete
 
-Required convergence includes:
+Current product guidance has been corrected without changing production/runtime/plugin executable source, tests, dependencies, or workflow behavior. Historical technical notes remain historical.
 
-- plugin package README current status;
-- installed skill `SKILL.md` current status;
-- stale installed skill references such as `references/architecture.md`;
-- any other current guidance inside the same installed/payload tree discovered by the audit.
+### 2. Changed-surface identity — established
 
-Historical technical notes must remain historical.
+For the documentation-corrected artifact, preserve and verify:
 
-### 2. Prove changed-surface identity exactly
-
-For the corrected candidate, record:
-
-- exact source commit SHA;
+- exact final source commit SHA at candidate freeze;
 - unchanged executable/runtime source proof against `f6392da3...`;
-- new plugin payload-v2 fingerprint and file count;
-- deterministic identity/hash for the installed skill tree or exact changed paths;
+- package payload-v2 `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / 184 files;
+- installed skill-tree identity `a1e873ba404205507a1623961b49f1b1a0689f9f`;
+- executable scripts tree `3d9d323ba19443d46e970b87cef52ce878da274f`;
+- facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`;
 - `VERSION`, package, plugin manifest, and lockfile version alignment;
-- release archive SHA256 values;
-- GitHub Actions validation/package evidence for that exact SHA.
+- exact-candidate GitHub Actions/package evidence.
 
 No moving branch name may substitute for candidate identity.
 
@@ -63,20 +58,21 @@ No moving branch name may substitute for candidate identity.
 
 Because the changed files are documentation/instruction-bearing rather than lifecycle executable code, do not automatically repeat every disruptive historical test. Requalification should prove the surfaces actually affected:
 
-1. install/install-over the exact corrected candidate and verify ownership plus the new plugin fingerprint/skill bytes;
-2. verify facade/controller/Gateway/Ollama/delivery/recovery health remains unchanged;
-3. because `SKILL.md`/skill references are runtime instruction surfaces, run one bounded Dashboard semantic/durable-delivery turn to prove Ticket-first and single-delivery behavior remains intact;
-4. repeat reset/uninstall/fresh-reinstall only if the changed candidate or installation path introduces evidence requiring those lifecycle boundaries to be re-proven.
+1. install-over the exact corrected candidate once and verify ownership plus package/installed skill identity;
+2. verify the active facade and executable/runtime source remain the accepted byte identity;
+3. verify controller/Gateway/Ollama/delivery/recovery/SQLite health;
+4. because `SKILL.md`/references are runtime instruction surfaces, run one bounded Dashboard semantic/durable-delivery turn and prove one Ticket -> one session/run -> one Ollama call -> one durable delivery -> one logical Dashboard result;
+5. repeat reset/uninstall/fresh-reinstall only if evidence from the changed candidate demonstrates a plausible lifecycle impact or a failing gate requires those boundaries to be re-proven.
 
-The old Tasks 182–186 remain valid historical evidence for `f6392da3...`; the corrected candidate may inherit only unchanged-surface claims justified by explicit proof.
+The old Tasks 182–186 remain valid historical evidence for `f6392da3...`; the corrected candidate inherits only unchanged-surface claims justified by explicit proof.
 
 ### 4. Final v0.9.3 release publication
 
 After the corrected candidate is accepted:
 
 1. re-audit living documentation and product-identity boundaries;
-2. create a current `agent/v0.9.3-full-stabilization` (or successor exact candidate branch) -> `main` release PR;
-3. supersede stale PR #24 rather than merging its old head/base path;
+2. create a current `agent/v0.9.3-full-stabilization` -> `main` release PR;
+3. keep stale PR #24 closed rather than merging its old head/base path;
 4. require green CI/checks;
 5. merge without force push and freeze exact merged `main` SHA;
 6. dispatch `.github/workflows/release.yml` with:

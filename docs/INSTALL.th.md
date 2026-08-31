@@ -2,9 +2,9 @@
 
 CogentNexus-OpenClaw v0.9.3 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
 
-exact product candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว แต่ Task 187 พบว่า current guidance บางไฟล์อยู่ภายใน installed/payload-sensitive product surface และยังมีข้อความก่อน acceptance อยู่ การแก้ไฟล์เหล่านั้นจะเปลี่ยน candidate/artifact identity จึงต้องทำ candidate ใหม่และ requalification ตาม changed surface ก่อน publish
+implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว หลังจากนั้น Task 188 แก้ current-facing documentation ภายใน npm package และ installed skill surface โดยไม่เปลี่ยน executable/runtime source โดย corrected package payload-v2 identity คือ `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files และ installed skill-tree identity คือ `a1e873ba404205507a1623961b49f1b1a0689f9f`
 
-ดังนั้นตอนนี้ยัง **ไม่มี** public GitHub Release/tag `v0.9.3` ห้ามสมมติว่า release asset มีอยู่แล้ว และห้ามถือ moving development branch ว่าเป็น accepted candidate เดิม
+การอ้างว่า artifact ถูก publish หรือติดตั้งต้องผูกกับ exact candidate/release artifact เสมอ GitHub Releases/tags เป็น authority ว่า public `v0.9.3` ถูก publish แล้วหรือยัง ส่วน moving branch ไม่ใช่ release identity
 
 ## สิ่งที่ต้องมี
 
@@ -41,19 +41,29 @@ Installer เป็น provider-neutral: ทำหน้าที่ stage/valid
 
 LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3 ส่วน runtime/operator target ของ v0.9.3 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
 
-## Accepted-candidate identity
+## Artifact identity และ acceptance lineage
 
-Windows acceptance ที่ผ่านแล้วใช้ตัวตนนี้เท่านั้น:
+full Windows acceptance sequence ผ่านครั้งแรกบน implementation baseline นี้:
 
 ```text
 source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
 active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
-plugin fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+installed plugin inventory fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
 OpenClaw: 2026.7.1-2 (0790d9f)
 managed provider: ollama
 ```
 
-Task 187 พิสูจน์ว่าการแก้ stale current guidance ภายใน installed skill และ npm plugin package จะเปลี่ยน product/payload identity จึงห้ามอ้างว่า corrected candidate ใหม่ยังเป็น artifact เดิมเพียงเพราะ executable source ไม่ได้เปลี่ยน
+Task 188 แก้ documentation-bearing product bytes โดยรักษา executable/runtime source เดิมไว้ corrected artifact identities คือ:
+
+```text
+package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
+package file count: 184
+installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
+executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f (unchanged)
+facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
+```
+
+เพราะ package/skill bytes เปลี่ยน corrected artifact จึงต้องผ่าน proportional changed-surface requalification ก่อน publication การทำเช่นนี้ไม่ได้ลบหลักฐาน lifecycle เดิม แต่เก็บหลักฐานนั้นไว้สำหรับ executable surface ที่พิสูจน์ว่า byte-identical และ requalify เฉพาะ installed documentation/instruction surface ที่เปลี่ยน
 
 ## ตรวจ runtime/provider หลังติดตั้ง
 
@@ -115,7 +125,7 @@ managed readiness ควรมีอย่างน้อย:
 
 `reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบจะล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
 
-Task 183 ยืนยัน boundary นี้บน frozen candidate แล้ว
+Task 183 ยืนยัน boundary นี้บน implementation baseline แล้ว Task 188 จะไม่ทำ destructive boundary นี้ซ้ำโดยอัตโนมัติเพราะไฟล์ที่แก้เป็น documentation/instruction bytes และจะทำซ้ำเฉพาะเมื่อ evidence ของ corrected candidate ให้เหตุผลด้าน lifecycle ที่ชัดเจน
 
 ## ถอน CogentNexus-OpenClaw ออกทั้งหมด
 
@@ -125,9 +135,9 @@ Task 183 ยืนยัน boundary นี้บน frozen candidate แล้�
 
 `uninstall` เป็น destructive operation และต้องพิมพ์ `y` ยืนยัน ระบบต้องคืน native/PASSTHROUGH อย่างปลอดภัยแล้วลบเฉพาะ CogentNexus-OpenClaw-owned surfaces โดยรักษา OpenClaw, Ollama, user data และ namespace อื่นไว้
 
-Task 184 ยืนยัน external-preservation boundary แล้ว และ Task 185 ยืนยัน fresh reinstall + post-install health ต่อจาก uninstall แล้ว
+Task 184 ยืนยัน external-preservation boundary บน implementation baseline แล้ว และ Task 185 ยืนยัน fresh reinstall + post-install health ต่อจาก uninstall แล้ว
 
-## Final semantic acceptance ที่ผ่านแล้วสำหรับ frozen candidate
+## Final semantic acceptance lineage
 
 Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง lifecycle sequence:
 
@@ -140,16 +150,16 @@ Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง l
 -> 1 logical Dashboard assistant result
 ```
 
-ไม่มี retry, duplicate semantic work, direct recovery หรือ outbox residue
+ไม่มี retry, duplicate semantic work, direct recovery หรือ outbox residue เนื่องจาก Task 188 เปลี่ยน installed instruction surface การ proportional requalification จึงรวม bounded semantic/durable-delivery turn เพิ่มอีกหนึ่งครั้งก่อน publication
 
-## การติดตั้งจาก Release ในอนาคต
+## การติดตั้งจาก Release
 
-หลัง corrected documentation-bearing candidate ผ่าน requalification และ `v0.9.3` ถูก publish จริง ให้ใช้ assets ที่ `.github/workflows/release.yml` สร้าง:
+เมื่อ GitHub Release `v0.9.3` มีอยู่จริง ให้ใช้ exact assets ที่ `.github/workflows/release.yml` สร้างและ verify:
 
 - `cogentnexus-openclaw-v0.9.3.tar.gz`
 - `cogentnexus-openclaw-v0.9.3.zip`
 - `SHA256SUMS.txt`
 
-ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น จนกว่า GitHub Release จะมีอยู่จริง ห้ามเดาหรือสร้าง release download URL ขึ้นเอง
+ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น หาก GitHub Release/tag ยังไม่มีอยู่ ให้ใช้ exact candidate ที่ได้รับการ review ชัดเจนแทน และห้ามเดาหรือสร้าง release download URL ขึ้นเอง
 
 ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md) และ [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md)
