@@ -1,14 +1,14 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `TASK206_DISCORD_NATIVE_DELIVERY_HOOK_FORENSICS`
-Current disposition: `TASK205_FAIL_DURABLE_CORRELATION_ACCEPTED__READ_ONLY_FORENSICS_REQUIRED`
-Task ID: `CNX-20260901-206`
-Parent task: `CNX-20260901-205`
+Status: `AWAITING_IMPLEMENTATION_APPROVAL`
+Execution mode: `TASK207_DIRECT_DISCORD_NO_REPLY_VISIBLE_FINAL_REPAIR`
+Current disposition: `TASK206_ACCEPTED__DISCORD_NO_REPLY_SCOPE_GAP_PROVEN__TASK207_DESIGN_READY`
+Task ID: `CNX-20260901-207`
+Parent task: `CNX-20260901-206`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
-Executor: Hermes / authenticated Windows operator
+Executor: ChatGPT / repository TDD after design approval
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -19,77 +19,65 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Frozen repaired product candidate
+## Current repaired product candidate
 
 `9f4eaa429b2540540e7d6f6c2af99067960e45fb`
 
-Expected installed plugin fingerprint:
+This remains the installed/live candidate until Task 207 produces a new repository-GREEN candidate.
 
-`f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
+## Task 206 accepted result
 
-## Task 205 accepted result
+Task-206 report:
 
-Task-205 report disposition:
-
-`FAIL_DURABLE_CORRELATION`
+`reports/CNX-20260901-206-task205-discord-native-delivery-hook-forensics.md`
 
 Review:
 
-[`reviews/CNX-20260901-205-task204-correct-room-discord-requalification-review.md`](reviews/CNX-20260901-205-task204-correct-room-discord-requalification-review.md)
+`reviews/CNX-20260901-206-task205-discord-native-delivery-hook-forensics-review.md`
 
-Accepted facts:
+Accepted run-bound facts:
 
-- exact numeric Discord channel `1531199905673252946` was proven before Send;
-- fresh managed runtime health passed;
-- exactly one human Send was consumed;
-- one Ticket was accepted for owner session `agent:main:discord:channel:1531199905673252946`;
-- exactly one direct Ollama model call completed;
-- `response_ready` was persisted;
-- no recovery or outbox residue occurred;
-- Ticket remained `accepted` with `delivery_confirmed_at = null`;
-- no matching native delivery settlement was proven;
-- no retry, second message, second room, lifecycle mutation, or manual state repair occurred.
+- Task-205 final assistant text was exact bare `NO_REPLY`;
+- no messaging-tool send occurred;
+- OpenClaw recorded no queued reply payloads for the final Discord channel turn;
+- no native Discord message ID or success/failure receipt was retained;
+- the direct Ticket reached response readiness but later timed out without delivery confirmation.
 
-Exact Task-205 run:
+The observed `reply_dispatch` missing-correlation diagnostic cannot be bound to the Task-205 run because that observer entry precedes the session start. It is therefore retained as a separate integration risk rather than used as the Task-205 production root cause.
 
-```text
-Ticket: CNXT-f23e2c11-e630-4319-84c2-c57ed7e7edf6
-run_id: b79dbb65-15eb-4b3e-8ffb-4084125e6cb5
-call_id: b79dbb65-15eb-4b3e-8ffb-4084125e6cb5:model:1
-response_ready: 2026-08-31T19:06:52.333Z
-channel: 1531199905673252946
-```
+## Proven root cause
 
-## Active Task 206
+Task 191 already protects genuine direct Dashboard Tickets from terminating as bare OpenClaw `NO_REPLY` by requesting one bounded same-run revision in `before_agent_finalize`.
 
-Hermes must execute:
+That guard is scoped through `dashboardTicket(path, runId)`. A genuine direct Discord owner Ticket does not enter the guard, so Task 205 allowed the small local model's bare `NO_REPLY` to reach OpenClaw silent suppression and produced no channel payload.
 
-[`tasks/CNX-20260901-206-task205-discord-native-delivery-hook-forensics.md`](tasks/CNX-20260901-206-task205-discord-native-delivery-hook-forensics.md)
+## Task 207 design
 
-Task 206 is read-only. It must inspect retained evidence from the existing Task-205 window and distinguish:
+Task definition:
 
-1. native Discord send failed/absent;
-2. native send succeeded but receipt correlation was missing;
-3. reply-dispatch settlement failed;
-4. message-sent hook emission/correlation failed;
-5. another precise delivery-path mechanism; or
-6. insufficient retained evidence.
+`tasks/CNX-20260901-207-direct-discord-no-reply-visible-final-repair.md`
 
-OpenClaw baseline contract relevant to this investigation:
+Bounded design:
 
-- outbound `message_sent.runId` is optional and not plumbed through the accepted baseline outbound path;
-- outbound `message_sent.sessionKey` is optional;
-- `reply_dispatch.runId` is optional;
-- CogentNexus `message_sent` fallback currently needs a run ID or exact session-key match to settle a direct Ticket.
-
-Do not implement a fix until Task 206 identifies the live event shape or reports evidence insufficiency.
+1. add focused RED for an accepted direct Discord owner Ticket whose final is bare `NO_REPLY`;
+2. require exact run ID + exact owner session + accepted direct/non-workflow Ticket + canonical Discord channel session shape;
+3. return one bounded same-run finalization revision only for exact bare `NO_REPLY` / `no_reply`;
+4. do not synthesize the user answer;
+5. preserve Dashboard Task-191 staging/marker/settlement semantics unchanged;
+6. do not modify `reply_dispatch` or `message_sent` correlation in Task 207;
+7. GREEN through focused/full plugin tests, Validate matrix, Windows installer pack smoke and PS5.1 smoke;
+8. only after repository GREEN open a separate one-send Windows/Discord requalification.
 
 ## Discord budget
 
-Task 206 authorizes no Discord traffic:
+Repository Task 207 authorizes:
 
-`0 sends authorized`
+`0 Discord sends`
+
+A new live semantic budget may be allocated only in the separate post-GREEN requalification task.
 
 ## Hard fence
 
-No Discord Send/probe, no retry/regenerate, no lifecycle command, no process kill, no provider/model/config/SQLite mutation, no product/source/test/workflow edit, no Release/tag mutation, and no force push.
+Until implementation approval: no production/test source mutation.
+
+For Task 207 after approval: no Discord Send, no lifecycle mutation, no live SQLite lock, no provider/model/config/schema change, no installer/uninstall/reset/reinstall, no Release/tag mutation, no force push, and no delivery-correlation production change.
