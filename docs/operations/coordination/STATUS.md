@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK203_ORPHANED_HOST_CLEANUP_MANAGED_RECOVERY_AND_DISCORD_CLOSURE`  
+**Execution mode:** `TASK204_STALE_RESET_LIFECYCLE_ADJUDICATION_CLEANUP_AND_DISCORD_CLOSURE`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + one bounded Windows cleanup/recovery + at most one human Discord Send through Hermes  
-**Active task:** `CNX-20260901-203`  
-**Parent:** `CNX-20260901-202`  
+**Transport:** GitHub repository + bounded Windows stale-lifecycle adjudication/recovery + at most one human Discord Send through Hermes  
+**Active task:** `CNX-20260901-204`  
+**Parent:** `CNX-20260901-203`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK202_ROOT_IDLE_NO_EXEC_DESCENDANT__BOUNDED_RECOVERY_READY`
+**Disposition:** `TASK203_STALE_RESET_TREE_BLOCKER__TASK204_READY`
 
 ## Publication and product authority
 
@@ -25,52 +25,50 @@ Expected installed plugin fingerprint:
 
 `f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
 
-## Task 202 result
+## Task 203 result
 
-Task 202 is accepted as:
+Task 203 is accepted as:
 
-`EVIDENCE_ROOT_IDLE_NO_EXEC_DESCENDANT`
+`FAIL_PRE_ENABLE_HEALTH`
 
-The exact stale PowerShell PID remained alive but idle with unchanged CPU/threads/handles and unchanged installer streams across bounded samples. Its only descendant was `conhost.exe`; no Python, cnxclaw, Host, Node, OpenClaw, Gateway, installer or other execution descendant remained.
+It safely removed only the exact orphaned PowerShell root from Task 200/202 and then correctly stopped because a separate historical reset lifecycle remained active against the same state root:
 
-Current runtime remained coherent but incomplete:
+```text
+9840 -> 17360
+host_control_v092.py --root ... reset --provider ollama
+```
 
-- exact repaired installed fingerprint: PASS;
-- ownership verify: PASS;
-- Host: passthrough;
-- startup/plugin: disabled;
-- Gateway/Ollama: healthy;
-- delivery/recovery: READY, no pending outbox/recovery attempt;
-- SQLite integrity: ok;
-- Discord Send: `0 / 1` consumed.
+The reset tree was created at approximately `2026-08-31T14:36:03Z / 21:36 ICT`, well before the repaired Task-198 candidate and before Task-200 install-over. It is not the accepted Task-183 reset and not a Task-200 installer child.
 
-No production `install.ps1` deadlock is accepted from this evidence. A bounded live recovery is authorized instead of a source change.
+Current infrastructure remains safe but not managed:
 
-## Active Task 203
+- installed repaired fingerprint exact;
+- ownership verify PASS;
+- Host passthrough;
+- startup/plugin disabled;
+- Gateway/Ollama healthy;
+- delivery/recovery READY;
+- outbox 0;
+- SQLite integrity ok;
+- enable count 0/1;
+- Discord Send 0/1.
+
+## Active Task 204
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-203-task202-orphaned-host-cleanup-managed-recovery-and-discord-closure.md`
+`docs/operations/coordination/tasks/CNX-20260901-204-task203-stale-reset-lifecycle-adjudication-cleanup-and-discord-closure.md`
 
-Required sequence:
+First, read-only adjudicate exact reset PID identities, parent/session lineage and no-progress state. Do not send any input to the reset process.
 
-1. final read-only identity/idle fence on PID `11704`;
-2. terminate only that exact orphaned root process;
-3. no installer replay;
-4. verify installed exact-candidate passthrough health;
-5. run installed `cnxclaw.cmd enable` exactly once with root-only process observation;
-6. require full managed convergence;
-7. only after convergence, use exactly one human Discord Send in the known healthy room;
-8. prove one Ticket / one model call / one visible reply / delivery_confirmed / completed with no retry/recovery/duplicate/outbox residue.
+Only if the stale cleanup gate passes may Hermes terminate exactly the identity-fenced reset child/parent tree, verify no lifecycle residue, then run installed `cnxclaw.cmd enable` exactly once.
 
-If cleanup or enable fails or becomes ambiguous, stop before Discord Send.
+Only after full managed convergence may the still-unused single human Discord Send be performed and durably correlated.
 
 ## Discord budget
 
 `0 / 1 consumed; 1 / 1 available`
 
-No bot/API/injected message, retry, regenerate, second message, or second room is authorized.
-
 ## Hard fence
 
-No installer rerun, reset/uninstall/reinstall/install-over, broad process kill, second enable, disable/start/stop/restart, provider/model/config/SQLite manual mutation, Release/tag mutation, source/test/workflow edit, force push, or second Discord Send.
+No reset/installer replay, uninstall/reinstall/install-over, broad process kill, input injection into stale reset, second enable, disable/start/stop/restart, provider/model/config/SQLite manual mutation, source/test/workflow edit, Release/tag mutation, force push, retry/regenerate, or second Discord Send.
