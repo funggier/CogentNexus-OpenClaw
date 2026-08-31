@@ -1,64 +1,78 @@
 # CNX-20260831-195 — Release Publish Repository-Context Repair
 
-Status: `IN_PROGRESS`
+Status: `PASS`
 Date: 2026-08-31 ICT
 Parent: `CNX-20260831-188`
 Executor: ChatGPT
 Repository: `funggier/CogentNexus-OpenClaw`
 Working branch: `agent/v0.9.3-full-stabilization`
-Frozen published-candidate main SHA: `26ce64a624255278a3a0266ad38746e0e6ed2e31`
+Frozen v0.9.3 release target: `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 Failed Release run: `33399493141`
 
 ## Problem
 
 Task 194 dispatched `.github/workflows/release.yml` exactly once with `version=0.9.3` and `candidate_sha=26ce64a624255278a3a0266ad38746e0e6ed2e31`.
 
-The `package` job passed, but `publish / Publish GitHub Release` failed with:
+The package job passed, but publish failed because the publish job intentionally had no repository checkout while `gh release view` / `gh release create` relied on local Git repository discovery.
+
+Observed failure:
 
 `failed to run git: fatal: not a git repository (or any of the parent directories): .git`
 
-The publish job intentionally downloads validated artifacts without checking out the repository. Its `gh release view` / `gh release create` commands therefore must identify the target repository explicitly instead of relying on GitHub CLI repository discovery from a local `.git` directory.
-
-## Scope
-
-Allowed:
-
-- add a focused regression test for repository-explicit release publication;
-- minimally repair `.github/workflows/release.yml` so the publish step identifies `funggier/CogentNexus-OpenClaw` through GitHub Actions repository context;
-- coordination/report/review documentation for this repair;
-- normal PR/CI merge of the workflow-only repair into `main` after GREEN.
-
-Not allowed:
-
-- product/runtime/plugin/installer/provider behavior changes;
-- package payload changes;
-- release metadata/version changes;
-- manual tag/release creation outside the workflow;
-- retargeting the v0.9.3 candidate away from `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
-- force push.
-
-## TDD contract
+## TDD evidence
 
 ### RED
 
-Add a regression assertion that the `publish` job can resolve the repository without requiring `actions/checkout` / current-working-directory git metadata. The test must fail against the Task-194 workflow shape.
+Commit:
+
+`7fc267dc15cb072079685790850ad57ca4574680`
+
+Added regression test:
+
+`test_release_publish_job_is_repository_explicit_without_checkout_dependency`
+
+Validate run:
+
+`33403409766`
+
+Observed pytest result:
+
+`1 failed, 474 passed, 33 skipped, 4 subtests passed`
+
+The sole failure was the new repository-context assertion.
 
 ### Minimal fix
 
-Prefer repository-explicit GitHub CLI context in the publish step, for example `GH_REPO: ${{ github.repository }}` or equivalent explicit `--repo` arguments. Do not add an unnecessary checkout merely to make repository discovery work.
+Commit:
+
+`6d522806114d46f16a8efcc1c6722fa64ddd75e3`
+
+Changed only `.github/workflows/release.yml` by one line in the `Publish GitHub Release` environment:
+
+`GH_REPO: ${{ github.repository }}`
+
+No checkout was added to the publish job and no product/runtime/plugin/installer/provider/package bytes changed.
 
 ### GREEN
 
-The focused release workflow policy test and normal repository Validate/PR gates must pass on the exact repaired head.
+Exact fix-head runs:
 
-## Publication fence
+- Validate `33403566461`: `completed/success`;
+- PS5.1 Acceptance Smoke `33403566370`: `completed/success`;
+- Windows Installer Pack Smoke `33403566408`: `completed/success`.
 
-Do not dispatch Release again until:
+The regression test passed as part of the full pytest matrix, including Windows.
 
-1. RED is proven;
-2. minimal workflow repair is GREEN;
-3. workflow-only repair is merged to `main` through a fresh PR;
-4. exact new `main` SHA is frozen as workflow execution ref while `candidate_sha` remains the already accepted release candidate `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
-5. tag/release `v0.9.3` are still absent.
+## Disposition
 
-A subsequent publication task must authorize the second Release dispatch explicitly and must preserve the original candidate SHA as the release target.
+`PASS`
+
+Task 195 proves the release publication workflow can resolve the repository explicitly without depending on a local `.git` checkout in the publish job.
+
+## Publication invariant
+
+The v0.9.3 release target remains frozen at:
+
+`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+
+The workflow repair must be merged into `main` before a separately authorized second Release dispatch. The repair merge SHA is a workflow-execution identity only and must not replace the accepted v0.9.3 `candidate_sha`.

@@ -1,38 +1,39 @@
 # Coordination Channel Status
 
 **State:** `IN_PROGRESS`  
-**Execution mode:** `TASK188_RELEASE_PUBLICATION__TASK195_RELEASE_WORKFLOW_REPAIR`  
+**Execution mode:** `TASK188_RELEASE_PUBLICATION__TASK195_REPAIR_PR`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository + Actions  
 **Active umbrella task:** `CNX-20260831-188`  
-**Active repair:** `CNX-20260831-195`  
-**Disposition:** `TASK194_FAILED__RED_REQUIRED`
+**Completed repair:** `CNX-20260831-195`  
+**Disposition:** `TASK195_PASS__REPAIR_PR_REQUIRED`
 
-## Task 194 result
+## Task 195 acceptance
 
-Release workflow run `33399493141`:
+`PASS`
 
-- exact dispatch candidate: `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
-- `package`: PASS;
-- `publish`: FAIL;
-- failure: `gh release create` attempted git repository discovery in a job with no checkout;
-- tag `v0.9.3`: not created;
-- release `v0.9.3`: not created;
-- candidate/main identity remained intact.
+Accepted TDD evidence:
 
-## Task 195
+- Task 194 Release run `33399493141` reproduced the real publication defect;
+- RED commit `7fc267dc15cb072079685790850ad57ca4574680`;
+- RED Validate run `33403409766` failed only the new repository-context regression test;
+- fix commit `6d522806114d46f16a8efcc1c6722fa64ddd75e3` changed only `.github/workflows/release.yml` by one line;
+- GREEN Validate `33403566461`;
+- GREEN PS5.1 Acceptance `33403566370`;
+- GREEN Windows Installer Pack `33403566408`.
 
-Repair only the release publication repository-context contract.
+## Frozen release target
 
-Required sequence:
+v0.9.3 `candidate_sha` remains:
 
-1. prove RED with a focused regression test;
-2. minimally make the publish GitHub CLI invocation repository-explicit;
-3. prove GREEN under focused and normal CI;
-4. merge the workflow-only repair through a fresh PR;
-5. keep v0.9.3 `candidate_sha` frozen at `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
-6. authorize any second Release dispatch only in a separate publication subtask.
+`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+
+The repaired workflow must be merged through a fresh PR before publication is attempted again.
+
+## Next phase
+
+`fresh repair PR -> exact PR checks -> merge -> freeze repaired main -> separate second-dispatch authorization`
 
 ## Hard fence
 
-No product/runtime/plugin/installer/provider/package payload changes, no manual tag/release, no retargeting, no duplicate dispatch during repair, and no force push.
+No second Release dispatch yet. No manual tag/release, no candidate retargeting, no unrelated product change, and no force push.
