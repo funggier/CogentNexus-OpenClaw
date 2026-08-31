@@ -1,16 +1,19 @@
 # CogentNexus-OpenClaw Recovery Architecture Baseline
 
-This document records the accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current release identity.
+This document records accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current public-release identity.
 
 Current release line: **v0.9.3**.  
 Current managed provider: **Ollama only**.  
 Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
-Previously accepted v0.9.3 implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.
+Historical broad-lifecycle implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.  
+Frozen repaired publication candidate for Task-191/192 evidence: `050ab53f4b593ab538143084d6bbdbf7e1672e34`.
 
-The v0.9.3 implementation later completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and final Dashboard semantic/durable-delivery acceptance. Those later results do not rewrite this historical Recovery Core checkpoint; they extend the accepted evidence for the exact implementation candidate.
+The v0.9.3 implementation completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and Dashboard semantic/durable-delivery acceptance. Those results extend this historical Recovery Core checkpoint; they do not rewrite it.
 
-Task 187 correctly stopped initial publication when it found stale current guidance inside documentation-bearing product/payload surfaces. Task 188 corrected those installed/package documentation bytes while preserving the executable scripts tree and established a new package payload-v2 identity `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files plus installed skill-tree identity `a1e873ba404205507a1623961b49f1b1a0689f9f`. Publication must proceed only from an exact candidate carrying those corrected identities after proportional changed-surface requalification.
+Task 187 stopped initial publication when stale current guidance was found inside documentation-bearing product surfaces. Task 188 corrected those bytes. A subsequent proportional Dashboard requalification exposed a narrow executable integration defect where bare OpenClaw `NO_REPLY` could be promoted into a visible durable result after CogentNexus marker decoration.
+
+Task 191 repaired that boundary with TDD. Task 192 then requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host. Current package payload-v2 is `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files, installed skill-tree identity remains `a1e873ba404205507a1623961b49f1b1a0689f9f`, executable skill scripts tree remains `3d9d323ba19443d46e970b87cef52ce878da274f`, and repaired Dashboard source blob is `aa97d7a5411f799c612cd0aeece050085298a8bb`.
 
 See `docs/CURRENT_STATE.md` for current release/acceptance/publication status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
 
@@ -28,7 +31,7 @@ In MANAGED mode, durable CNXCLAW state determines recovery authority. Process ti
 
 Authority is fenced by Ticket identity, owner session, session generation, model-call/Host timeout state, Direct Recovery run identity, cancellation/terminal state, and operating mode.
 
-OpenClaw native restart continuation is suppressed only when the exact continuation shape belongs to the same CNX-owned session/generation and the durable original prompt matches. Ordinary messages continue normally.
+OpenClaw native restart continuation is suppressed only when the exact continuation shape belongs to the same CNX-owned session/generation and durable evidence matches the owned recovery. Ordinary messages continue normally.
 
 ## Request lanes
 
@@ -59,13 +62,21 @@ When CNXCLAW owns Direct Recovery, OpenClaw native restart recovery must not cre
 
 ### SQLite BUSY rule
 
-Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use a busy timeout and the revocation watcher tolerates transient BUSY conditions. A BUSY read must not race a still-running inference against a replacement attempt.
+Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use bounded tolerance. A BUSY read must not race a still-running inference against a replacement attempt.
 
 ### Response/delivery rule
 
 `response_ready` is immutable once committed. Delivery transport may retry delivery of a durable result; it must not regenerate inference merely because delivery is uncertain.
 
 CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery boundary, not a universal guarantee that arbitrary external side effects happen exactly once.
+
+### Direct Dashboard silent-sentinel rule
+
+A bare OpenClaw `NO_REPLY` / `no_reply` silent sentinel is not visible semantic content and must never be marker-staged into a durable visible Dashboard result.
+
+For a genuine direct Dashboard Ticket whose natural final is exactly the bare sentinel, the repaired integration may request at most one same-run OpenClaw finalization revision. CogentNexus does not fabricate the answer and does not authorize a separate external Direct Recovery run merely because the sentinel appeared.
+
+Task 192's accepted real turn required zero revisions because the first natural final was already the requested visible nonce. The repair remains protected by repository regression tests even though the fallback branch was not needed in that successful live turn.
 
 ## Operating modes
 
@@ -75,7 +86,7 @@ CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery bou
 
 OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
 
-The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. The `policy register` operation records that policy independently from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
+The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Registration is independent from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
 
 ## Host and supervisor
 
@@ -85,10 +96,12 @@ The external supervisor is deterministic and CPU-only in its periodic healthy pa
 
 STAGED work retains revisioned task state, checkpoint/resume/rollback, worker leases and generation fences, durable outboxes, deterministic validators, artifact hashes/manifests, bounded retry/repair, and terminal evidence gates.
 
-## Accepted checkpoint
+## Accepted checkpoint and later evidence
 
 Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
-Accepted live Test A v16: one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
+Accepted live Test A v16 demonstrated one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
 
-The later implementation candidate `f6392da3...` completed the separate lifecycle and final Dashboard acceptance sequence. Task 188 changes documentation/instruction identity only; executable/runtime claims are inherited only where exact unchanged-byte proof exists, while changed documentation-bearing surfaces require their own proportional requalification.
+The later broad-lifecycle candidate `f6392da3...` completed the lifecycle sequence. The documentation-corrected candidate `604569c...` was later superseded after the `NO_REPLY` defect was exposed. Task 191/192 provide the repair and proportional real-Windows evidence for `050ab53f...`.
+
+Acceptance remains exact-artifact based. Later living-document/coordination commits may accompany publication without redefining the Task-191/192 product candidate, but any new product-bearing executable/package change requires classification and evidence appropriate to that changed surface.
