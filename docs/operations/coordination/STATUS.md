@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK205_CORRECT_ROOM_DISCORD_REQUALIFICATION`  
+**Execution mode:** `TASK206_DISCORD_NATIVE_DELIVERY_HOOK_FORENSICS`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + read-only Windows health/Discord-room verification + one human Discord Send through Hermes  
-**Active task:** `CNX-20260901-205`  
-**Parent:** `CNX-20260901-204`  
+**Transport:** GitHub repository + read-only Windows/OpenClaw retained-evidence forensics  
+**Active task:** `CNX-20260901-206`  
+**Parent:** `CNX-20260901-205`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK204_WRONG_ROOM_ACCEPTED__TASK205_CORRECT_ROOM_RETEST_READY`
+**Disposition:** `TASK205_FAIL_DURABLE_CORRELATION__TASK206_FORENSICS_READY`
 
 ## Publication and product authority
 
@@ -25,41 +25,40 @@ Expected installed fingerprint:
 
 `f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
 
-## Task 204 terminal review
+## Task 205 terminal review
 
-Task 204 is accepted as:
+Task 205 is accepted as:
 
-`FAIL_DISCORD_SEMANTIC_DELIVERY`
+`FAIL_DURABLE_CORRELATION`
 
-The lifecycle/recovery portion passed: stale reset residue was removed, one enable exited 0, and the final runtime was managed/loaded/healthy/READY with SQLite integrity ok and exact repaired fingerprint.
+The correct numeric Discord channel was proven. One human Send created one Ticket and one completed direct Ollama model call. `response_ready` was persisted, but no durable native delivery confirmation or Ticket completion was observed. Runtime health remained green and no recovery/outbox residue occurred.
 
-The semantic Send failed the acceptance boundary because the operator later identified that it was made in the wrong / previously failing Discord room. The nonce had no durable Ticket/model/delivery/recovery/outbox match. No second Send was attempted under Task 204.
+Exact live correlation:
 
-This does not establish a product failure in the intended room.
+```text
+Ticket: CNXT-f23e2c11-e630-4319-84c2-c57ed7e7edf6
+run_id: b79dbb65-15eb-4b3e-8ffb-4084125e6cb5
+call_id: b79dbb65-15eb-4b3e-8ffb-4084125e6cb5:model:1
+owner session: agent:main:discord:channel:1531199905673252946
+response_ready: 2026-08-31T19:06:52.333Z
+```
 
-## Active Task 205
+## Active Task 206
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-205-task204-correct-room-discord-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260901-206-task205-discord-native-delivery-hook-forensics.md`
 
-Correct target:
+The task is read-only and uses the existing Task-205 evidence window. It must determine whether native Discord delivery failed, succeeded without usable receipt correlation, reply-dispatch settlement failed, message-sent emission/correlation failed, another precise mechanism occurred, or retained evidence is insufficient.
 
-```text
-owner session: agent:main:discord:channel:1531199905673252946
-numeric channel ID: 1531199905673252946
-```
+No new Discord traffic is authorized.
 
-Before a nonce is generated, Hermes must verify the active Discord acceptance surface against the exact numeric channel ID. Room name or window title alone is not sufficient and no probe message may be sent.
+## Contract clue under investigation
 
-If the numeric channel identity is proven and fresh managed health remains green, Hermes may issue exactly one new human-Send instruction with a fresh `CNX205-*` nonce and then durably correlate the result.
+Accepted OpenClaw `2026.7.1-2 (0790d9f)` states outbound `message_sent.runId` is not yet plumbed through the outbound path and outbound `sessionKey` is optional. `reply_dispatch.runId` is also optional.
 
-## Task-205 Discord budget
-
-`0 / 1 consumed; 1 / 1 available`
-
-This is a new independently authorized acceptance attempt following the user's explicit correction of the Task-204 wrong-room send.
+CogentNexus currently settles its `message_sent` fallback only after resolving a run from `event.runId` or an exact `event.sessionKey` match. This is a plausible correlation gap, but Task 206 must establish the actual live hook/outbound shape before repository TDD begins.
 
 ## Hard fence
 
-No lifecycle mutation, installer/reset/uninstall/reinstall/install-over, process termination, provider/model/config/SQLite mutation, probe Send, bot/API/injected Send, retry/regenerate/second human message, product/source/test/workflow edit, Release/tag mutation, or force push.
+No Discord Send/probe/retry, no lifecycle mutation, no process termination, no provider/model/config/SQLite mutation, no source/test/workflow edit, no Release/tag mutation, and no force push.
