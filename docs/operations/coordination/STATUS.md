@@ -1,58 +1,82 @@
 # Coordination Channel Status
 
-**State:** `EXECUTING_CHATGPT`  
-**Execution mode:** `TASK188_DOCUMENTATION_PAYLOAD_CONVERGENCE_AND_PROPORTIONAL_REQUALIFICATION`  
+**State:** `AWAITING_HERMES_WINDOWS_EXECUTION`  
+**Execution mode:** `TASK188_SUBTASK189_BOUNDED_WINDOWS_REQUALIFICATION`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-188`  
+**Active umbrella task:** `CNX-20260831-188`  
+**Execution subtask:** `CNX-20260831-189`  
 **Disposition:** `IN_PROGRESS`
 
-Task 187 was reviewed and its blocker classification accepted. The user clarified the desired publication path: make all current v0.9.3 documentation/instruction surfaces correct first, proportionally requalify the resulting documentation-bearing artifact, then release.
+## Frozen candidate
 
-## Task 188
+The documentation-corrected v0.9.3 product candidate is frozen at:
 
-[`tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md`](tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md)
+`604569c286e930f1a596362ab926b065b56d486e`
 
-## Starting identities
+Coordination-only commits after this freeze do not redefine the candidate.
 
-- pre-task HEAD: `fa3c89d93b506f2e7ccfb167cc665e593ebf1373`
-- previously accepted implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`
+Identity:
+
+- package payload-v2: `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files
+- installed skill-tree Git tree: `a1e873ba404205507a1623961b49f1b1a0689f9f`
+- executable scripts-tree Git tree: `3d9d323ba19443d46e970b87cef52ce878da274f`
+- accepted facade Git blob: `879083d6186589d4b2774b8fd87fa93692dd2dfc`
 - accepted facade SHA-256: `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
-- previous package payload-v2: `df6e395a47b632c779d12dd95f9ce762c7f28ca2740442b8b299ff622df94959` / `184` files
-- accepted live installed-plugin fingerprint: `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
+
+## Documentation convergence completed
+
+Task 188 corrected the stale current-facing installed/payload documentation surface and converged living release documentation. Intentional product-surface corrections are limited to:
+
+- `plugins/cogentnexus-openclaw/README.md`
+- `skills/cogentnexus-openclaw/SKILL.md`
+- `skills/cogentnexus-openclaw/references/architecture.md`
+- `skills/cogentnexus-openclaw/references/scheduler-adapters.md`
+
+Executable/runtime/plugin source, tests, dependencies, and workflow behavior were preserved.
+
+## Exact-candidate CI/package state
+
+`604569c286e930f1a596362ab926b065b56d486e`:
+
+- Validate run `33382417045` — `completed/success`
+- Windows Installer Pack Smoke run `33382417032` — `completed/success`
+- PS5.1 Acceptance Smoke run `33382417028` — `completed/success`
+- package-proof artifact ID `9754267508`
+- dry-run tar.gz SHA-256 `16523b0226aed0aa1eb58a3e335bfadb34abdc027777806bd7c74133c07c3457`
+- dry-run zip SHA-256 `e273a967771f281c895402dd8b2078bd1ec6c1944d9a8e817cf73f467e38fc06`
 
 ## Current phase
 
-`DOCUMENTATION_PAYLOAD_AUDIT_AND_CONVERGENCE`
+`BOUNDED_REAL_WINDOWS_REQUALIFICATION`
 
-Known stale installed/payload surfaces include:
+Task 189:
 
-- `plugins/cogentnexus-openclaw/README.md`;
-- `skills/cogentnexus-openclaw/SKILL.md`;
-- `skills/cogentnexus-openclaw/references/architecture.md`.
+[`tasks/CNX-20260831-189-bounded-windows-documentation-payload-requalification.md`](tasks/CNX-20260831-189-bounded-windows-documentation-payload-requalification.md)
 
-The complete installed skill/reference tree is being checked before candidate freeze.
+Checkpoint:
 
-## Requalification boundary
+[`notes/CNX-20260831-188-checkpoint-02-pre-windows-requalification.md`](notes/CNX-20260831-188-checkpoint-02-pre-windows-requalification.md)
 
-Default after documentation-only candidate freeze:
+Default Windows boundary:
 
-- exact-candidate CI/package validation;
-- prove executable/runtime bytes unchanged;
-- one supported Windows install-over;
-- exact installed documentation/provenance/health proof;
-- one bounded Dashboard semantic/durable-delivery turn.
+`one exact-candidate install-over -> provenance/health/installed-byte proof -> one bounded human Dashboard semantic/durable-delivery turn`
 
-Reset/uninstall/fresh-reinstall are not repeated by default because the implementation has already passed those full-stabilization boundaries. Repeat them only if changed-candidate evidence requires it.
+Reset/uninstall/fresh-reinstall are not repeated by default because those lifecycle boundaries already passed during full stabilization. Task 189 must stop rather than expand destructively without review.
+
+## Transport limitation
+
+No installed Hermes/LConnect/Windows remote-execution connector is exposed to this ChatGPT session. Task 189 is published as the durable execution packet; Windows acceptance remains pending until real Hermes/operator evidence is committed.
 
 ## Publication state
 
-- `main` remains `874dd8f8ce9c1ca5595b29207281430a86c074de` at Task-188 start;
-- stale PR #24 remains closed/not merged;
+Release publication remains fenced behind Task-189 acceptance and ChatGPT review:
+
 - current release PR not yet created;
+- no merge to `main` for v0.9.3 publication yet;
 - `v0.9.3` tag/release absent;
 - Release workflow not yet dispatched.
 
 ## Hard fence
 
-Do not change executable/runtime/plugin source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Do not force push.
+Task 189 does not authorize production/runtime/plugin executable source edits, test edits, dependency edits, workflow behavior edits, reset, uninstall, fresh reinstall, release PR merge, Release workflow dispatch, tag/release publication, or force push.
