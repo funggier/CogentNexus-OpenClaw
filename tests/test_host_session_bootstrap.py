@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
-HOST=ROOT/"skills"/"cogentnexus"/"scripts"/"host.py"
+HOST=ROOT/"skills"/"cogentnexus-openclaw"/"scripts"/"host.py"
 spec=importlib.util.spec_from_file_location("cnx_host_session_bootstrap",HOST)
 cnx_host=importlib.util.module_from_spec(spec)
 assert spec and spec.loader

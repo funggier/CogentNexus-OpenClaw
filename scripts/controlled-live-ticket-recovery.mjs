@@ -12,10 +12,10 @@ if (!expectedOwnerSessionKey || !/^agent:[^:]+:dashboard:[^:]+$/u.test(expectedO
   throw new Error("expected owner session key must use agent:<id>:dashboard:<id>");
 }
 
-const evidencePath = join(workspace, ".cogent", "runtime", "controlled-live-ticket-recovery.json");
-const databasePath = join(workspace, ".cogent", "runtime", "cogentnexus.sqlite3");
-const runtimePath = join(workspace, "skills", "cogentnexus", "scripts", "runtime.py");
-const workflowPath = join(workspace, "skills", "cogentnexus", "scripts", "workflow.py");
+const evidencePath = join(workspace, ".cogentnexus-openclaw", "runtime", "controlled-live-ticket-recovery.json");
+const databasePath = join(workspace, ".cogentnexus-openclaw", "runtime", "cogentnexus-openclaw.sqlite3");
+const runtimePath = join(workspace, "skills", "cogentnexus-openclaw", "scripts", "runtime.py");
+const workflowPath = join(workspace, "skills", "cogentnexus-openclaw", "scripts", "workflow.py");
 const deadline = Date.now() + timeoutMs;
 const startedAt = new Date().toISOString();
 const priorEvidence = revalidateExisting && existsSync(evidencePath)

@@ -1,782 +1,165 @@
-# คู่มือติดตั้ง CogentNexus แบบจับมือทำ — Windows + OpenClaw + Ollama
+# ติดตั้ง CogentNexus-OpenClaw v0.9.3 บน Windows
 
-คู่มือนี้ออกแบบสำหรับผู้ใช้ Windows ที่ต้องการติดตั้ง CogentNexus แบบ **ติดตั้งแล้วใช้งานได้ทันที** โดยให้ CogentNexus ทำหน้าที่เป็น Host Controller ภายนอก OpenClaw และยังสามารถสั่ง `disable` เพื่อคืน OpenClaw ให้ทำงานแบบปกติได้ทุกเมื่อ
+CogentNexus-OpenClaw v0.9.3 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
 
-> Baseline ของคู่มือนี้: CogentNexus v0.8.0, OpenClaw 2026.7.1-2 หรือใหม่กว่า, Python 3.10+, Node.js 22+
+implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว หลังจากนั้น Task 188 แก้ current-facing documentation ภายใน npm package และ installed skill surface โดยไม่เปลี่ยน executable/runtime source โดย corrected package payload-v2 identity คือ `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files และ installed skill-tree identity คือ `a1e873ba404205507a1623961b49f1b1a0689f9f`
 
----
+การอ้างว่า artifact ถูก publish หรือติดตั้งต้องผูกกับ exact candidate/release artifact เสมอ GitHub Releases/tags เป็น authority ว่า public `v0.9.3` ถูก publish แล้วหรือยัง ส่วน moving branch ไม่ใช่ release identity
 
-## สิ่งที่จะได้หลังติดตั้ง
+## สิ่งที่ต้องมี
 
-เมื่อทำครบแล้ว ระบบจะมีเส้นทางประมาณนี้:
+- Windows 10/11 หรือ Windows Server พร้อม PowerShell 5.1 ขึ้นไป
+- OpenClaw ที่ใช้งานได้
+- OpenClaw `2026.7.1-2` สำหรับ validated compatibility baseline
+- Python 3.11+ และ PyYAML
+- Node.js + npm
 
-```text
-ข้อความของคุณ
-   -> Ticket ถูกบันทึกก่อน inference
-   -> OpenClaw / LLM ทำงาน
-   -> ถ้าค้าง/ดับ CogentNexus Host ตรวจและกู้ได้
-   -> ได้ผลลัพธ์หรือจบด้วยสถานะที่ชัดเจน
-```
+รายการนี้เป็น prerequisite ของ installer ส่วน managed-provider readiness ตรวจหลังติดตั้งผ่าน runtime checks ไม่ใช่ความรับผิดชอบของ installer prerequisite contract
 
-และจะมีคำสั่งหลักใน OpenClaw workspace:
+## ติดตั้งจาก development candidate
 
-```powershell
-.\cnx.cmd status
-.\cnx.cmd start
-.\cnx.cmd stop
-.\cnx.cmd restart
-.\cnx.cmd disable
-.\cnx.cmd enable
-```
+ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน repository installer จาก exact source/archive ที่ตรวจสอบแล้ว
 
-ความหมายสำคัญ:
-
-- `start` = ให้ CogentNexus กลับมาควบคุมและให้ runtime ทำงาน
-- `stop` = หยุดแบบตั้งใจ (MAINTENANCE) ระบบจะไม่พยายามเปิดเอง
-- `restart` = restart แล้วกลับมาทำงานต่อ
-- `disable` = ปิด CogentNexus และคืน OpenClaw เป็นโหมดปกติ
-- `enable` = เปิด CogentNexus MANAGED mode กลับมา
-
----
-
-# ส่วนที่ 1 — ตรวจเครื่องก่อนติดตั้ง
-
-เปิด **PowerShell** ปกติหนึ่งหน้าต่าง
-
-> ไม่จำเป็นต้อง Run as Administrator สำหรับการติดตั้งแบบ user-level ปกติ
-
-## 1.1 ตรวจ Python
-
-พิมพ์:
-
-```powershell
-python --version
-```
-
-ควรเห็นประมาณ:
-
-```text
-Python 3.11.x
-```
-
-หรือ Python 3.10 ขึ้นไป
-
-ถ้าขึ้นว่า `python is not recognized` ให้ติดตั้ง Python ก่อน และเลือก **Add Python to PATH** ตอนติดตั้ง
-
-ตรวจ path เพิ่มเติมได้ด้วย:
-
-```powershell
-where.exe python
-```
-
----
-
-## 1.2 ตรวจ Node.js
-
-```powershell
-node --version
-npm --version
-```
-
-ควรใช้ Node.js 22 หรือใหม่กว่า
-
-ตัวอย่าง:
-
-```text
-v24.x.x
-10.x.x
-```
-
-ถ้าไม่มี `node` หรือ `npm` ให้ติดตั้ง Node.js ก่อน
-
----
-
-## 1.3 ตรวจ OpenClaw
-
-```powershell
-openclaw --version
-```
-
-สำหรับ baseline นี้ควรเป็น:
-
-```text
-2026.7.1-2
-```
-
-หรือใหม่กว่า
-
-จากนั้น:
-
-```powershell
-openclaw gateway status
-```
-
-ถ้า Gateway ทำงานอยู่ ควรเห็นว่า service/task ถูกติดตั้งและ Gateway reachable
-
-ถ้า Gateway ยังไม่ทำงาน **ไม่เป็นปัญหา** เพราะ CogentNexus สามารถ start ให้ตอนติดตั้งได้
-
----
-
-## 1.4 ตรวจ Ollama
-
-ถ้าคุณใช้ local model ผ่าน Ollama:
-
-```powershell
-ollama --version
-ollama list
-```
-
-ควรเห็น Ollama และรายชื่อ model ที่มีอยู่
-
-ตัวอย่าง:
-
-```text
-gpt-oss:20b
-```
-
-ถ้าใช้ cloud provider แทน Ollama สามารถข้ามส่วน Ollama ได้ แต่ต้องตั้ง OpenClaw provider ให้ใช้งานได้ก่อน
-
----
-
-## 1.5 ตรวจว่า OpenClaw ใช้ model ได้จริง
-
-ก่อนเพิ่ม CogentNexus แนะนำให้ตรวจว่า OpenClaw/Ollama เดิมใช้งานได้ก่อน
-
-ถ้า Gateway เปิดอยู่:
-
-```powershell
-openclaw gateway status
-```
-
-ถ้ามีคำสั่ง inference diagnostic ใน OpenClaw เวอร์ชันของคุณ สามารถทดสอบ direct model path เพิ่มเติมได้
-
-จุดสำคัญคือ **อย่าเริ่มแก้ CogentNexus หาก Ollama/OpenClaw เดิมยังใช้ model ไม่ได้** เพราะจะทำให้แยกสาเหตุยาก
-
----
-
-# ส่วนที่ 2 — เตรียม Python dependency
-
-CogentNexus ใช้ PyYAML สำหรับ validation
-
-ติดตั้งด้วย:
+บน Windows:
 
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
-ทดสอบ:
+บน POSIX:
 
-```powershell
-python -c "import yaml; print(yaml.__version__)"
+```sh
+python -m pip install 'PyYAML>=6.0,<7'
+./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
-ถ้าแสดงเลข version แปลว่าพร้อม
+## สิ่งที่ installer ทำ
 
----
+Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
 
-# ส่วนที่ 3 — ดาวน์โหลด CogentNexus Release
+LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3 ส่วน runtime/operator target ของ v0.9.3 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
 
-แนะนำให้ใช้ Release แทนการ clone `main` เพื่อให้ไฟล์ทุกอย่างเป็นชุดเดียวกัน
+## Artifact identity และ acceptance lineage
 
-ตัวอย่างด้านล่างใช้ v0.8.0
-
-## 3.1 สร้างโฟลเดอร์ดาวน์โหลด
-
-```powershell
-New-Item -ItemType Directory -Force "$HOME\Downloads\CogentNexus" | Out-Null
-Set-Location "$HOME\Downloads\CogentNexus"
-```
-
-## 3.2 ดาวน์โหลด ZIP และ checksum
-
-```powershell
-$version = "v0.8.0"
-$base = "https://github.com/funggier/cogentnexus/releases/download/$version"
-Invoke-WebRequest "$base/cogentnexus-$version.zip" -OutFile "cogentnexus-$version.zip"
-Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile "SHA256SUMS.txt"
-```
-
-ตรวจว่ามีไฟล์:
-
-```powershell
-Get-ChildItem
-```
-
-ควรเห็นอย่างน้อย:
+full Windows acceptance sequence ผ่านครั้งแรกบน implementation baseline นี้:
 
 ```text
-cogentnexus-v0.8.0.zip
-SHA256SUMS.txt
+source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
+active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
+installed plugin inventory fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+OpenClaw: 2026.7.1-2 (0790d9f)
+managed provider: ollama
 ```
 
----
-
-# ส่วนที่ 4 — ตรวจ SHA256 ก่อนติดตั้ง
-
-คำนวณ hash ของ ZIP:
-
-```powershell
-$actual = (Get-FileHash ".\cogentnexus-v0.8.0.zip" -Algorithm SHA256).Hash.ToLower()
-$expected = ((Get-Content ".\SHA256SUMS.txt" | Select-String "cogentnexus-v0.8.0.zip") -split "\s+")[0].ToLower()
-$actual
-$expected
-```
-
-สองค่าต้องเหมือนกัน
-
-ให้ตรวจอัตโนมัติ:
-
-```powershell
-if ($actual -ne $expected) {
-    throw "SHA256 mismatch - ห้ามติดตั้งไฟล์นี้"
-}
-Write-Host "SHA256 OK"
-```
-
-ต้องเห็น:
+Task 188 แก้ documentation-bearing product bytes โดยรักษา executable/runtime source เดิมไว้ corrected artifact identities คือ:
 
 ```text
-SHA256 OK
+package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
+package file count: 184
+installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
+executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f (unchanged)
+facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
 ```
 
-ถ้าไม่ตรง **หยุดทันที** และดาวน์โหลดใหม่
+เพราะ package/skill bytes เปลี่ยน corrected artifact จึงต้องผ่าน proportional changed-surface requalification ก่อน publication การทำเช่นนี้ไม่ได้ลบหลักฐาน lifecycle เดิม แต่เก็บหลักฐานนั้นไว้สำหรับ executable surface ที่พิสูจน์ว่า byte-identical และ requalify เฉพาะ installed documentation/instruction surface ที่เปลี่ยน
 
----
+## ตรวจ runtime/provider หลังติดตั้ง
 
-# ส่วนที่ 5 — แตก ZIP
+runtime/provider target ของ v0.9.3 คือ Ollama เท่านั้น ส่วน executable availability, endpoint/model readiness และ provider-specific health checks เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
 
 ```powershell
-Expand-Archive ".\cogentnexus-v0.8.0.zip" -DestinationPath ".\cogentnexus-v0.8.0" -Force
-Set-Location ".\cogentnexus-v0.8.0\cogentnexus-v0.8.0"
+cd "$HOME\.openclaw\workspace"
+.\cnxclaw.cmd status
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd check provider
+.\cnxclaw.cmd check provider ollama
 ```
 
-ตรวจ:
+managed readiness ควรมีอย่างน้อย:
+
+- controller mode = `managed`
+- managed provider = Ollama
+- Ollama ติดตั้งและ reachable
+- Gateway healthy
+- CogentNexus-OpenClaw plugin enabled/loaded
+- Ticket database อ่านได้และ integrity ผ่าน
+- ไม่มี recovery/outbox backlog ที่ไม่คาดคิดในระบบ idle
+
+ทุกคำสั่งใต้ `check` ต้องเป็น **read-only** และห้ามแก้ lifecycle/config/Ticket state
+
+## คำสั่งใช้งานประจำ
 
 ```powershell
-Get-ChildItem
+.\cnxclaw.cmd status
+.\cnxclaw.cmd provider list
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd start
+.\cnxclaw.cmd start --provider ollama
+.\cnxclaw.cmd stop
+.\cnxclaw.cmd restart
+.\cnxclaw.cmd restart --provider ollama
+.\cnxclaw.cmd gateway start
+.\cnxclaw.cmd gateway stop
+.\cnxclaw.cmd gateway restart
+.\cnxclaw.cmd ticket list
+.\cnxclaw.cmd disable
+.\cnxclaw.cmd enable
 ```
 
-ควรเห็นประมาณ:
+- `disable` = คืน OpenClaw ไป native/PASSTHROUGH
+- `stop` = deliberate MAINTENANCE โดยเก็บ durable state
+
+## Reset ให้เหมือน fresh install
+
+```powershell
+.\cnxclaw.cmd reset
+```
+
+หรือระบุ Ollama อย่างชัดเจนเมื่อ interface รองรับ:
+
+```powershell
+.\cnxclaw.cmd reset --provider ollama
+```
+
+`reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบจะล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
+
+Task 183 ยืนยัน boundary นี้บน implementation baseline แล้ว Task 188 จะไม่ทำ destructive boundary นี้ซ้ำโดยอัตโนมัติเพราะไฟล์ที่แก้เป็น documentation/instruction bytes และจะทำซ้ำเฉพาะเมื่อ evidence ของ corrected candidate ให้เหตุผลด้าน lifecycle ที่ชัดเจน
+
+## ถอน CogentNexus-OpenClaw ออกทั้งหมด
+
+```powershell
+.\cnxclaw.cmd uninstall
+```
+
+`uninstall` เป็น destructive operation และต้องพิมพ์ `y` ยืนยัน ระบบต้องคืน native/PASSTHROUGH อย่างปลอดภัยแล้วลบเฉพาะ CogentNexus-OpenClaw-owned surfaces โดยรักษา OpenClaw, Ollama, user data และ namespace อื่นไว้
+
+Task 184 ยืนยัน external-preservation boundary บน implementation baseline แล้ว และ Task 185 ยืนยัน fresh reinstall + post-install health ต่อจาก uninstall แล้ว
+
+## Final semantic acceptance lineage
+
+Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง lifecycle sequence:
 
 ```text
-skills
-plugins
-scripts
-docs
-README.md
+1 human Send
+-> 1 Ticket
+-> 1 session/run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical Dashboard assistant result
 ```
 
-ถ้า ZIP ถูกแตกออกมาโดยไม่มีโฟลเดอร์ซ้อน ให้ `Set-Location` เข้าโฟลเดอร์ที่มี `scripts\install.ps1` จริง
+ไม่มี retry, duplicate semantic work, direct recovery หรือ outbox residue เนื่องจาก Task 188 เปลี่ยน installed instruction surface การ proportional requalification จึงรวม bounded semantic/durable-delivery turn เพิ่มอีกหนึ่งครั้งก่อน publication
 
-ตรวจได้ด้วย:
+## การติดตั้งจาก Release
 
-```powershell
-Test-Path ".\scripts\install.ps1"
-```
+เมื่อ GitHub Release `v0.9.3` มีอยู่จริง ให้ใช้ exact assets ที่ `.github/workflows/release.yml` สร้างและ verify:
 
-ต้องได้:
+- `cogentnexus-openclaw-v0.9.3.tar.gz`
+- `cogentnexus-openclaw-v0.9.3.zip`
+- `SHA256SUMS.txt`
 
-```text
-True
-```
+ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น หาก GitHub Release/tag ยังไม่มีอยู่ ให้ใช้ exact candidate ที่ได้รับการ review ชัดเจนแทน และห้ามเดาหรือสร้าง release download URL ขึ้นเอง
 
----
-
-# ส่วนที่ 6 — ติดตั้ง CogentNexus
-
-## 6.1 ถ้า PowerShell บล็อก script
-
-ใช้เฉพาะ process นี้:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-```
-
-ไม่จำเป็นต้องเปลี่ยน execution policy ทั้งเครื่อง
-
-## 6.2 รัน installer
-
-```powershell
-.\scripts\install.ps1
-```
-
-Installer จะทำตามลำดับนี้:
-
-1. ตรวจ `python`, `openclaw`, `npm`
-2. ตรวจ PyYAML
-3. backup CogentNexus เดิมถ้ามี
-4. copy skill เข้า OpenClaw workspace
-5. validate skill
-6. update เฉพาะ CogentNexus managed block ใน `AGENTS.md`
-7. `npm ci`
-8. build/validate OpenClaw plugin
-9. ติดตั้ง plugin
-10. สร้าง `cnx.cmd`
-11. initialize Host Controller state
-12. enable MANAGED mode
-13. เปิด Ticket-first settings
-14. เปิด hidden Host supervisor
-15. start/reconcile Gateway/provider
-16. ตรวจ Gateway และ supervisor health
-
-ระหว่างติดตั้งอาจใช้เวลาตรง `npm ci` และ plugin validation
-
-เมื่อสำเร็จควรเห็นท้าย ๆ ประมาณ:
-
-```text
-CogentNexus installation completed successfully.
-```
-
-ถ้า installer จบด้วย error อย่ารันซ้ำแบบสุ่ม ให้ดูหัวข้อ Troubleshooting ด้านล่าง
-
----
-
-# ส่วนที่ 7 — เข้า OpenClaw workspace
-
-ค่า default คือ:
-
-```powershell
-Set-Location "$HOME\.openclaw\workspace"
-```
-
-ตรวจ launcher:
-
-```powershell
-Test-Path ".\cnx.cmd"
-```
-
-ต้องได้:
-
-```text
-True
-```
-
----
-
-# ส่วนที่ 8 — ตรวจสถานะ CogentNexus หลังติดตั้ง
-
-```powershell
-.\cnx.cmd status
-```
-
-ผลลัพธ์เป็น JSON
-
-สิ่งที่ควรตรวจ:
-
-```text
-mode = managed
-desiredGateway = running
-```
-
-และ Gateway ควร healthy
-
-ถ้า Ticket database ยังว่างถือว่าปกติ เพราะยังไม่ได้ส่งข้อความ
-
-ตรวจ OpenClaw อีกครั้ง:
-
-```powershell
-openclaw gateway status
-```
-
----
-
-# ส่วนที่ 9 — ทดสอบข้อความแรก
-
-เปิดช่องทางที่คุณใช้คุยกับ OpenClaw แล้วส่ง:
-
-```text
-สวัสดีครับ
-```
-
-สิ่งที่ต้องการคือ:
-
-```text
-message
- -> Ticket commit
- -> DIRECT
- -> LLM ตอบธรรมดา
- -> delivered/completed
-```
-
-หลังจากส่งแล้ว กลับมาที่ PowerShell:
-
-```powershell
-.\cnx.cmd ticket list
-```
-
-คุณควรเห็น Ticket ล่าสุดและสถานะของมัน
-
-เป้าหมายของการทดสอบนี้คือพิสูจน์ว่า **แม้ข้อความง่ายก็ถูก durable ก่อน แต่ไม่ได้ถูกบังคับเข้า STAGED workflow**
-
----
-
-# ส่วนที่ 10 — ทดสอบ stop / start
-
-## 10.1 หยุดแบบตั้งใจ
-
-```powershell
-.\cnx.cmd stop
-```
-
-จากนั้น:
-
-```powershell
-.\cnx.cmd status
-```
-
-ควรเห็น:
-
-```text
-mode = maintenance
-desiredGateway = stopped
-```
-
-CogentNexus supervisor จะไม่พยายามเปิด Gateway กลับเอง เพราะรู้ว่าคุณเป็นคนสั่งหยุด
-
-## 10.2 เปิดกลับ
-
-```powershell
-.\cnx.cmd start
-```
-
-แล้ว:
-
-```powershell
-.\cnx.cmd status
-```
-
-ควรกลับเป็น:
-
-```text
-mode = managed
-desiredGateway = running
-```
-
-หากมีงานที่ถูก commit ไว้และยัง eligible ระบบสามารถทำต่อจาก durable state ได้
-
----
-
-# ส่วนที่ 11 — ทดสอบ restart
-
-```powershell
-.\cnx.cmd restart
-```
-
-จากนั้น:
-
-```powershell
-.\cnx.cmd status
-```
-
-เป้าหมายคือ Gateway restart แต่ MANAGED intent ยังคงอยู่ และ supervisor สามารถ resume งานที่ยังไม่จบได้
-
----
-
-# ส่วนที่ 12 — ทดสอบเฉพาะ Gateway
-
-หยุดเฉพาะ Gateway โดยยังใช้ CogentNexus Host semantics:
-
-```powershell
-.\cnx.cmd gateway stop
-```
-
-เปิดกลับ:
-
-```powershell
-.\cnx.cmd gateway start
-```
-
-restart:
-
-```powershell
-.\cnx.cmd gateway restart
-```
-
-ใน MANAGED mode คำสั่งพวกนี้ผ่าน Host Controller
-
----
-
-# ส่วนที่ 13 — ทดสอบ PASSTHROUGH: ปิด CogentNexus แต่ใช้ OpenClaw ต่อ
-
-นี่คือ test สำคัญมาก
-
-```powershell
-.\cnx.cmd disable
-```
-
-จากนั้น:
-
-```powershell
-.\cnx.cmd status
-```
-
-ควรเห็น:
-
-```text
-mode = passthrough
-```
-
-CogentNexus จะ:
-
-- ปิด background ownership ของตัวเอง
-- เอา CogentNexus managed block ออกจาก `AGENTS.md`
-- disable CogentNexus plugin
-- restart/start OpenClaw แบบ native
-- **ไม่ลบ durable state เดิม**
-
-ตอนนี้ลองคุย OpenClaw อีกครั้ง
-
-ควรทำงานเหมือน OpenClaw ปกติที่ไม่มี CogentNexus คั่น
-
-เปิด CogentNexus กลับ:
-
-```powershell
-.\cnx.cmd enable
-```
-
-แล้วตรวจ:
-
-```powershell
-.\cnx.cmd status
-```
-
-ควรกลับเป็น MANAGED
-
----
-
-# ส่วนที่ 14 — ทดสอบการ cancel Ticket
-
-ดูรายการ:
-
-```powershell
-.\cnx.cmd ticket list
-```
-
-ถ้ามี Ticket ที่ไม่ต้องการแล้ว:
-
-```powershell
-.\cnx.cmd ticket cancel <ticket-id> --reason "ยกเลิกโดยผู้ใช้"
-```
-
-เช่น:
-
-```powershell
-.\cnx.cmd ticket cancel CNX-123 --reason "ไม่ต้องทำงานนี้ต่อ"
-```
-
-Ticket ที่ cancelled เป็น terminal และไม่ควรถูก supervisor ปลุกกลับมาทำอีก
-
----
-
-# ส่วนที่ 15 — ยกเลิกงานทั้ง session
-
-```powershell
-.\cnx.cmd session cancel "<session-key>" --reason "session นี้ถูกยกเลิก"
-```
-
-คำสั่งนี้จะ cancel Ticket ที่ยังไม่ terminal ใน session นั้น
-
-เหมาะสำหรับกรณีที่คุณลบ/เลิกใช้ session แล้วไม่ต้องการให้ detached work กลับมาทำต่อ
-
----
-
-# ส่วนที่ 16 — ทดสอบ recovery จาก Gateway interruption
-
-ทำเฉพาะเมื่อการใช้งานปกติผ่านแล้ว
-
-แนวทางทดสอบ:
-
-1. ส่งงานที่ใช้เวลานานกว่า greeting
-2. ตรวจว่ามี Ticket ถูกสร้าง
-3. ระหว่างงานกำลังทำ ให้หยุด Gateway
-4. ตรวจ Ticket ยังไม่หาย
-5. start Gateway ผ่าน `cnx`
-6. ตรวจว่า Host reconcile และงาน eligible ถูก resume
-7. ตรวจว่าไม่มี duplicate side effect
-
-คำสั่งหลัก:
-
-```powershell
-.\cnx.cmd ticket list
-.\cnx.cmd gateway stop
-.\cnx.cmd status
-.\cnx.cmd gateway start
-.\cnx.cmd ticket list
-```
-
----
-
-# ส่วนที่ 17 — ทดสอบ reboot
-
-หลังจาก stop/start/restart ผ่านแล้ว ค่อยทดสอบ reboot
-
-1. ให้ CogentNexus อยู่ MANAGED
-2. มีงานที่สามารถ resume ได้
-3. restart Windows
-4. login กลับมา
-5. เปิด PowerShell
-6. เข้า workspace
-
-```powershell
-Set-Location "$HOME\.openclaw\workspace"
-.\cnx.cmd status
-```
-
-ตรวจว่า Host supervisor ถูก reconcile และ desired state ยังอยู่
-
-จากนั้น:
-
-```powershell
-.\cnx.cmd ticket list
-```
-
-งาน non-terminal ที่ปลอดภัยต่อ recovery ควรสามารถทำต่อได้
-
----
-
-# ส่วนที่ 18 — เรื่องไฟดับจริง
-
-CogentNexus ออกแบบให้ state ที่ commit ลง disk แล้วสามารถใช้ recovery หลัง boot ได้ แต่การดึงปลั๊กไฟจริงมีความเสี่ยงต่อ filesystem/hardware
-
-แนะนำให้ทดสอบตามลำดับ:
-
-1. kill/restart Gateway
-2. restart OpenClaw process
-3. restart Windows ปกติ
-4. ค่อยทดสอบ unexpected shutdown ในเครื่องที่ยอมรับความเสี่ยงได้
-
-สิ่งที่ CogentNexus รับประกันในเชิง architecture คือ **งานที่ commit แล้วต้องมี state สำหรับ recovery** ไม่ใช่การรับประกันว่าดิสก์ที่เสียหายทางกายภาพจะกู้ได้
-
----
-
-# ส่วนที่ 19 — อัปเดต CogentNexus
-
-สำหรับ stable release:
-
-1. ดาวน์โหลด release ใหม่
-2. ตรวจ SHA256
-3. แตกไฟล์ใหม่
-4. รัน installer ใหม่
-
-```powershell
-.\scripts\install.ps1
-```
-
-Installer จะ backup skill/policy เดิมและ preserve durable `.cogent` state
-
-อย่าลบ `$HOME\.openclaw\workspace\.cogent` ถ้าต้องการเก็บ Ticket/workflow/history
-
----
-
-# ส่วนที่ 20 — Troubleshooting
-
-## `python` not found
-
-```powershell
-where.exe python
-```
-
-ถ้าไม่พบ ให้ติดตั้ง Python และเพิ่ม PATH
-
-## `yaml` import ไม่ได้
-
-```powershell
-python -m pip install "PyYAML>=6.0,<7"
-```
-
-## `npm` not found
-
-```powershell
-node --version
-npm --version
-```
-
-ติดตั้ง Node.js ใหม่ถ้าจำเป็น
-
-## `openclaw` not found
-
-```powershell
-where.exe openclaw
-openclaw --version
-```
-
-ตรวจการติดตั้ง global npm / PATH
-
-## Gateway ไม่ healthy
-
-```powershell
-openclaw gateway status
-openclaw status
-```
-
-จากนั้นลอง:
-
-```powershell
-.\cnx.cmd restart
-```
-
-ถ้า CogentNexus ยังติดตั้งไม่สำเร็จ ใช้ native command:
-
-```powershell
-openclaw gateway restart
-```
-
-## ต้องการกลับไปใช้ OpenClaw ปกติทันที
-
-```powershell
-.\cnx.cmd disable
-```
-
-นี่คือ recovery path ที่ตั้งใจออกแบบไว้ ไม่ต้อง uninstall
-
-## CogentNexus หยุดแล้วแต่ supervisor เปิดกลับ
-
-อย่าฆ่า process อย่างเดียว ให้ใช้:
-
-```powershell
-.\cnx.cmd stop
-```
-
-เพื่อ persist MAINTENANCE intent
-
-## งานค้าง ไม่แน่ใจว่าควรส่งใหม่หรือไม่
-
-**อย่าส่งซ้ำก่อน**
-
-ตรวจ:
-
-```powershell
-.\cnx.cmd status
-.\cnx.cmd ticket list
-```
-
-ถ้า Ticket เดิมยังอยู่ ระบบอาจกำลังกู้มันอยู่
-
----
-
-# Checklist หลังติดตั้ง
-
-ให้ทำเครื่องหมายทีละข้อ:
-
-```text
-[ ] python --version ผ่าน
-[ ] node/npm ผ่าน
-[ ] openclaw --version ผ่าน
-[ ] ollama/model พร้อม (ถ้าใช้ Ollama)
-[ ] SHA256 release ตรง
-[ ] install.ps1 สำเร็จ
-[ ] cnx.cmd มีอยู่
-[ ] cnx status = managed
-[ ] gateway healthy
-[ ] ส่ง "สวัสดีครับ" แล้วตอบได้
-[ ] ticket list เห็น Ticket
-[ ] cnx stop แล้วไม่ auto-start
-[ ] cnx start แล้วกลับมาทำงาน
-[ ] cnx restart ผ่าน
-[ ] cnx disable แล้ว OpenClaw ใช้ได้ปกติ
-[ ] cnx enable แล้วกลับ MANAGED
-[ ] ทดสอบ Gateway interruption recovery
-[ ] ทดสอบ Windows reboot recovery
-```
-
-เมื่อ checklist นี้ผ่านทั้งหมด จึงค่อยถือว่า CogentNexus ถูกติดตั้งและตรวจ end-to-end บนเครื่องจริงแล้ว
+ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md) และ [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md)

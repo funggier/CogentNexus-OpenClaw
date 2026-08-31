@@ -1,0 +1,95 @@
+name: PS5.1 v0.9.3 Ollama Recovery Reality Smoke
+
+on:
+  push:
+    branches:
+      - agent/v0.9.3-recovery-reality-tests
+  pull_request:
+    paths:
+      - 'scripts/test-v093-recovery-reality-windows.ps1'
+      - 'scripts/install.ps1'
+      - 'scripts/install.sh'
+      - 'skills/cogentnexus-openclaw/scripts/cnxclaw_v093.py'
+      - 'skills/cogentnexus-openclaw/scripts/provider_v093.py'
+      - 'docs/V093_RECOVERY_REALITY_TESTS.md'
+      - 'docs/V093_OLLAMA_ONLY.md'
+      - '.github/workflows/ps51-v093-recovery-reality-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Parse harness with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\test-v093-recovery-reality-windows.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'v0.9.3 Ollama Recovery Reality harness PowerShell 5.1 parse: PASS'
+
+      - name: Load harness in syntax-only mode
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\test-v093-recovery-reality-windows.ps1
+          -SyntaxOnly
+
+      - name: Enforce process-safety and Ollama-only harness surface
+        shell: powershell
+        run: |
+          $text = Get-Content '.\scripts\test-v093-recovery-reality-windows.ps1' -Raw
+          if ($text -match '(?i)lmstudio') { throw 'Recovery Reality harness must not contain LM Studio paths in v0.9.3.' }
+          if ($text -match '(?i)taskkill\.exe.*\/T') { throw 'Recovery Reality harness must not kill process trees.' }
+          foreach ($required in @('firefox.exe','powershell.exe','windowsterminal.exe','Stop-Process exact PID only')) {
+            if ($text -notmatch [regex]::Escape($required)) { throw "Missing process-safety marker: $required" }
+          }
+          Write-Host 'v0.9.3 process-safety/Ollama-only contract: PASS'
+
+      - name: Parse Windows installer and require provider-neutral contract
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\install.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          )
+          if ($errors.Count) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $text = Get-Content '.\scripts\install.ps1' -Raw
+          if ($text -match '(?i)\[string\]\s*\$Provider\b') { throw 'Windows installer must remain provider-neutral; remove installer-owned Provider parameter/default.' }
+          if ($text -match '(?i)ValidateSet\([^\)]*(ollama|lmstudio)[^\)]*\)') { throw 'Windows installer must not own provider selection.' }
+          if ($text -notmatch 'cnxclaw_v093\.py') { throw 'Windows installer is not wired to the v0.9.3 CogentNexus-OpenClaw CLI facade.' }
+          Write-Host 'v0.9.3 Windows installer provider-neutral contract: PASS'
+
+      - name: Require POSIX installer provider-neutral contract
+        shell: powershell
+        run: |
+          $text = Get-Content '.\scripts\install.sh' -Raw
+          if ($text -match '(?im)^\s*PROVIDER\s*=') { throw 'POSIX installer must remain provider-neutral; remove installer-owned provider default.' }
+          if ($text -match '(?i)--provider\b') { throw 'POSIX installer must not expose provider selection.' }
+          if ($text -notmatch 'cnxclaw_v093\.py') { throw 'POSIX installer is not wired to the v0.9.3 CogentNexus-OpenClaw CLI facade.' }
+          Write-Host 'v0.9.3 POSIX installer provider-neutral contract: PASS'
+
+      - name: Compile v0.9.3 Python facades
+        shell: powershell
+        run: >-
+          python -m py_compile
+          .\skills\cogentnexus-openclaw\scripts\provider_v093.py
+          .\skills\cogentnexus-openclaw\scripts\cnxclaw_v093.py

@@ -1,0 +1,1641 @@
+Installing CogentNexus-OpenClaw v0.9.3
+Workspace: C:\Users\CDQ-P\.openclaw\workspace
+
+added 352 packages, and audited 353 packages in 1m
+
+85 packages are looking for funding
+  run `npm fund` for details
+
+4 high severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> openclaw-plugin-cogentnexus-openclaw@0.9.3 plugin:validate
+> npm run plugin:build && node ./scripts/test-ticket-db-bootstrap.mjs && node ./scripts/verify-package-contents.mjs
+
+
+> openclaw-plugin-cogentnexus-openclaw@0.9.3 plugin:build
+> npm run build && node ./scripts/verify-v091-schema.mjs
+
+
+> openclaw-plugin-cogentnexus-openclaw@0.9.3 build
+> tsc -p tsconfig.json
+
+CogentNexus-OpenClaw mixed-plugin artifact verification: PASS (45 config properties, 5 tools)
+CogentNexus-OpenClaw ticket DB bootstrap: PASS (9 required tables + v095 registration fence)
+{
+  "result": "ok",
+  "package": "openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz",
+  "required": [
+    "dist/v091-release-entry.js",
+    "scripts/bootstrap-ticket-db.mjs",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "packedFileCount": 180
+}
+Existing CogentNexus-OpenClaw already PASSTHROUGH; pre-install native handoff not required.
+Backed up existing skill to C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\install-backups\cogentnexus-openclaw-20260830-162746
+Installed CogentNexus-OpenClaw skill to C:\Users\CDQ-P\.openclaw\workspace\skills\cogentnexus-openclaw
+CogentNexus-OpenClaw validation: PASS
+{
+  "state": {
+    "schemaVersion": 1,
+    "mode": "passthrough",
+    "desiredGateway": "running",
+    "desiredProvider": "unchanged",
+    "generation": 19,
+    "updatedAt": "2026-08-30T06:09:29.328794+00:00",
+    "providerTransition": null,
+    "selectedProvider": "ollama",
+    "providerSelection": {
+      "selectedAt": "2026-08-29T20:49:03.665156+00:00",
+      "selectionSource": "explicit",
+      "lastVerifiedAt": "2026-08-29T20:49:03.665156+00:00"
+    }
+  },
+  "policy": {
+    "source": "registered",
+    "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+    "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+    "bytes": 1674
+  }
+}
+CNXCLAW_INSTALL_STAGE_START stage=ticket-db-bootstrap utc=2026-08-30T09:27:52.3905153+00:00
+{
+  "result": "ok",
+  "workspace": "C:\\Users\\CDQ-P\\.openclaw\\workspace",
+  "database": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\cogentnexus-openclaw.sqlite3",
+  "snapshot": {
+    "databasePath": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\cogentnexus-openclaw.sqlite3",
+    "tickets": {
+      "failed": 1
+    },
+    "expiredRunning": 0,
+    "pendingOutbox": 0,
+    "linkedRunning": 0
+  }
+}
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=ticket-db-bootstrap utc=2026-08-30T09:27:52.4495238+00:00 elapsed_ms=57 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=plugin-npm-pack utc=2026-08-30T09:27:54.2436838+00:00
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=plugin-npm-pack utc=2026-08-30T09:27:54.8638287+00:00 elapsed_ms=620 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=plugin-rollover-prepare utc=2026-08-30T09:27:54.9027595+00:00
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=plugin-rollover-prepare utc=2026-08-30T09:31:46.4376488+00:00 elapsed_ms=231535 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=plugin-install-local-package utc=2026-08-30T09:31:46.4396958+00:00
+│
+◇  Config warnings ──────────────────────────────────────────────────────╮
+│                                                                        │
+│  - plugins.entries.cogentnexus-openclaw: plugin disabled (disabled in  │
+│    config) but config is present                                       │
+│                                                                        │
+├────────────────────────────────────────────────────────────────────────╯
+Extracting C:\Users\CDQ-P\AppData\Local\Temp\cnx159-current-20260830T092402Z\repo\plugins\cogentnexus-openclaw\openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz…
+Plugin manifest id "cogentnexus-openclaw" differs from npm package name "openclaw-plugin-cogentnexus-openclaw"; using manifest id as the config key.
+Installing to C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw…
+Installing plugin dependencies…
+Linked peerDependency "openclaw" -> C:\Users\CDQ-P\AppData\Roaming\npm\node_modules\openclaw
+[35m[plugins][39m [36mCogentNexus-OpenClaw v0.9.1 runtime registration suppressed: Host authority=passthrough mode=passthrough[39m
+Installed plugin: cogentnexus-openclaw
+Restart the gateway to load plugins.
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=plugin-install-local-package utc=2026-08-30T09:32:07.6159479+00:00 elapsed_ms=21176 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=plugin-disable-post-install utc=2026-08-30T09:32:07.6179954+00:00
+Disabled plugin "cogentnexus-openclaw". Restart the gateway to apply.
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=plugin-disable-post-install utc=2026-08-30T09:32:13.4277488+00:00 elapsed_ms=5809 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=plugin-rollover-finalize utc=2026-08-30T09:32:18.1714715+00:00
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=plugin-rollover-finalize utc=2026-08-30T09:32:21.3386414+00:00 elapsed_ms=3166 exit_code=0
+CNXCLAW_INSTALL_STAGE_START stage=owned-runtime-ensure utc=2026-08-30T09:32:21.3415626+00:00
+CNXCLAW_INSTALL_STAGE_COMPLETE stage=owned-runtime-ensure utc=2026-08-30T09:32:21.4858437+00:00 elapsed_ms=144 exit_code=0
+Owned runtime interpreter: C:\Users\CDQ-P\AppData\Local\CogentNexus-OpenClaw\runtime\python\Scripts\python.exe
+Installed CogentNexus-OpenClaw launcher to C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd
+{
+  "applied": false,
+  "reason": "passthrough",
+  "policy": {
+    "source": "registered",
+    "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+    "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+    "bytes": 1674
+  }
+}
+{
+  "result": "ok",
+  "action": "enable",
+  "provider": "ollama",
+  "selectionSource": "explicit",
+  "providerSelection": {
+    "selectedAt": "2026-08-30T09:35:25.768499+00:00",
+    "selectionSource": "explicit",
+    "lastVerifiedAt": "2026-08-30T09:35:25.768499+00:00"
+  },
+  "host": {
+    "mode": "managed",
+    "authorityCommit": {
+      "mode": "managed",
+      "generation": 21,
+      "linearizedBeforePluginReload": true
+    },
+    "policyChanged": true,
+    "policy": {
+      "source": "registered",
+      "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+      "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+      "bytes": 1674
+    },
+    "startup": {
+      "policy": "enabled",
+      "result": "installed",
+      "backup": null,
+      "adapter": {
+        "installed": true,
+        "State": "Ready",
+        "Enabled": true,
+        "Execute": "C:\\Users\\CDQ-P\\AppData\\Local\\CogentNexus-OpenClaw\\runtime\\python\\Scripts\\pythonw.exe",
+        "Arguments": "\"C:\\Users\\CDQ-P\\.openclaw\\workspace\\skills\\cogentnexus-openclaw\\scripts\\host_control_v092.py\" --root \"C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\" supervisor tick --execute-safe",
+        "Hidden": true,
+        "LastTaskResult": 0,
+        "NextRunTime": "/Date(1788082535000)/"
+      },
+      "mode": "hidden-background-logon"
+    },
+    "reload": {
+      "restartRequested": true,
+      "maintenance": {
+        "schemaVersion": 1,
+        "active": true,
+        "createdAt": "2026-08-30T09:34:19.856806+00:00",
+        "reason": "CogentNexus-OpenClaw MANAGED authority committed; reload plugin under Host authority",
+        "owner": "operator",
+        "recoveryPolicy": "healthy-runtime"
+      },
+      "result": {
+        "ok": true,
+        "exitCode": 0,
+        "durationMs": 15360,
+        "stdout": "Restarted Scheduled Task: OpenClaw Gateway\n",
+        "stderr": ""
+      },
+      "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."
+    },
+    "lifecycle": {
+      "provider": "ollama",
+      "providerLifecycle": {
+        "ok": true,
+        "skipped": true,
+        "reason": "already healthy",
+        "before": {
+          "name": "ollama",
+          "installed": true,
+          "controllable": true,
+          "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+          "application": null,
+          "endpoint": "http://127.0.0.1:11434",
+          "reachable": true,
+          "healthy": true,
+          "ready": true,
+          "models": [
+            "qwen3.5:9b",
+            "muse-glimmer:30b",
+            "qwen3.6:27b",
+            "qwen3.8:27b"
+          ],
+          "modelCount": 4,
+          "evidence": {
+            "status": 200,
+            "url": "http://127.0.0.1:11434/api/tags",
+            "body": {
+              "models": [
+                {
+                  "name": "qwen3.5:9b",
+                  "model": "qwen3.5:9b",
+                  "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                  "size": 6594474711,
+                  "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                  "details": {
+                    "parent_model": "",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "9.7B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 4096
+                  },
+                  "capabilities": [
+                    "vision",
+                    "completion",
+                    "tools",
+                    "thinking"
+                  ]
+                },
+                {
+                  "name": "muse-glimmer:30b",
+                  "model": "muse-glimmer:30b",
+                  "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                  "size": 18157010252,
+                  "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                  "details": {
+                    "parent_model": "muse-glimmer:30b-q4_K_M",
+                    "format": "gguf",
+                    "family": "muse-glimmer",
+                    "families": [
+                      "muse-glimmer"
+                    ],
+                    "parameter_size": "27.9B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 131072,
+                    "embedding_length": 6656
+                  },
+                  "capabilities": [
+                    "completion",
+                    "tools",
+                    "thinking",
+                    "vision"
+                  ]
+                },
+                {
+                  "name": "qwen3.6:27b",
+                  "model": "qwen3.6:27b",
+                  "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                  "size": 17420432739,
+                  "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                  "details": {
+                    "parent_model": "",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "27.8B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 5120
+                  },
+                  "capabilities": [
+                    "vision",
+                    "completion",
+                    "tools",
+                    "thinking"
+                  ]
+                },
+                {
+                  "name": "qwen3.8:27b",
+                  "model": "qwen3.8:27b",
+                  "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                  "size": 17741872154,
+                  "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                  "details": {
+                    "parent_model": "qwen3.8:27b-q4_K_M",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "27.3B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 5120
+                  },
+                  "capabilities": [
+                    "completion",
+                    "tools",
+                    "thinking",
+                    "vision"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "after": {
+          "name": "ollama",
+          "installed": true,
+          "controllable": true,
+          "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+          "application": null,
+          "endpoint": "http://127.0.0.1:11434",
+          "reachable": true,
+          "healthy": true,
+          "ready": true,
+          "models": [
+            "qwen3.5:9b",
+            "muse-glimmer:30b",
+            "qwen3.6:27b",
+            "qwen3.8:27b"
+          ],
+          "modelCount": 4,
+          "evidence": {
+            "status": 200,
+            "url": "http://127.0.0.1:11434/api/tags",
+            "body": {
+              "models": [
+                {
+                  "name": "qwen3.5:9b",
+                  "model": "qwen3.5:9b",
+                  "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                  "size": 6594474711,
+                  "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                  "details": {
+                    "parent_model": "",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "9.7B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 4096
+                  },
+                  "capabilities": [
+                    "vision",
+                    "completion",
+                    "tools",
+                    "thinking"
+                  ]
+                },
+                {
+                  "name": "muse-glimmer:30b",
+                  "model": "muse-glimmer:30b",
+                  "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                  "size": 18157010252,
+                  "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                  "details": {
+                    "parent_model": "muse-glimmer:30b-q4_K_M",
+                    "format": "gguf",
+                    "family": "muse-glimmer",
+                    "families": [
+                      "muse-glimmer"
+                    ],
+                    "parameter_size": "27.9B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 131072,
+                    "embedding_length": 6656
+                  },
+                  "capabilities": [
+                    "completion",
+                    "tools",
+                    "thinking",
+                    "vision"
+                  ]
+                },
+                {
+                  "name": "qwen3.6:27b",
+                  "model": "qwen3.6:27b",
+                  "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                  "size": 17420432739,
+                  "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                  "details": {
+                    "parent_model": "",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "27.8B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 5120
+                  },
+                  "capabilities": [
+                    "vision",
+                    "completion",
+                    "tools",
+                    "thinking"
+                  ]
+                },
+                {
+                  "name": "qwen3.8:27b",
+                  "model": "qwen3.8:27b",
+                  "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                  "size": 17741872154,
+                  "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                  "details": {
+                    "parent_model": "qwen3.8:27b-q4_K_M",
+                    "format": "gguf",
+                    "family": "qwen35",
+                    "families": [
+                      "qwen35"
+                    ],
+                    "parameter_size": "27.3B",
+                    "quantization_level": "Q4_K_M",
+                    "context_length": 262144,
+                    "embedding_length": 5120
+                  },
+                  "capabilities": [
+                    "completion",
+                    "tools",
+                    "thinking",
+                    "vision"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "providerEventAdapter": {
+        "provider": "ollama",
+        "supported": false,
+        "running": false,
+        "reason": "no provider progress stream adapter required"
+      },
+      "providerEventAdapterRollback": null,
+      "runtime": {
+        "started": true,
+        "maintenance": null,
+        "results": {
+          "ollama": {
+            "ok": true,
+            "skipped": true,
+            "reason": "already healthy"
+          },
+          "gateway": {
+            "ok": true,
+            "skipped": true,
+            "reason": "already healthy"
+          }
+        },
+        "verified": {
+          "gateway": {
+            "name": "gateway",
+            "enabled": true,
+            "healthy": true,
+            "evidence": {
+              "ok": true,
+              "exitCode": 0,
+              "durationMs": 2735,
+              "stdout": "Service: Scheduled Task (registered)\nFile logs: ~\\AppData\\Local\\Temp\\openclaw\\openclaw-2026-08-30.log\nCommand: C:\\Program Files\\nodejs\\node.exe C:\\Users\\CDQ-P\\AppData\\Roaming\\npm\\node_modules\\openclaw\\dist\\index.js gateway --port 18789\nService file: ~\\.openclaw\\gateway.cmd\nService env: OPENCLAW_GATEWAY_PORT=18789\n\nConfig (cli): ~\\.openclaw\\openclaw.json\nConfig (service): ~\\.openclaw\\openclaw.json\n\nGateway: bind=loopback (127.0.0.1), port=18789 (service args)\nProbe target: ws://127.0.0.1:18789\nDashboard: http://127.0.0.1:18789/\nProbe note: Loopback-only gateway; only local clients can connect.\n\nCLI version: 2026.7.1-2 (~\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs)\nGateway version: 2026.7.1-2\n\nRuntime: running (pid 21880, state Ready, last run 0, last run time 8/30/2026 4:34:27 PM, Gateway process detected for gateway port 18789.)\nConnectivity probe: ok\nCapability: connected-no-operator-scope\n\nListening: 127.0.0.1:18789\nTroubles: run openclaw status\nTroubleshooting: https://docs.openclaw.ai/troubleshooting\n",
+              "stderr": ""
+            }
+          },
+          "ollama": {
+            "name": "ollama",
+            "enabled": true,
+            "healthy": true,
+            "evidence": "http://127.0.0.1:11434/api/tags"
+          }
+        },
+        "verification": {
+          "attempts": 1,
+          "timeoutSeconds": 30,
+          "initialDelaySeconds": 3.0
+        }
+      }
+    },
+    "sessionBootstrap": {
+      "ok": true,
+      "created": false,
+      "sessionKey": "agent:main:main",
+      "reason": "already present"
+    },
+    "terminalFences": {
+      "cancelledOutboxSuppressed": 0,
+      "terminalRecoverySuppressed": 0,
+      "cancelledClassificationNormalized": 0
+    },
+    "directDeliveryFences": {
+      "unverifiableFailed": [],
+      "durableDeliveryHeld": [],
+      "confirmedHeld": [],
+      "workflowOwnedSkipped": []
+    },
+    "recoveredTickets": [],
+    "postCommitRecoveryError": null,
+    "transactional": true
+  },
+  "processBoundary": {
+    "primary": {
+      "ok": true,
+      "exitCode": 0,
+      "output": {
+        "mode": "managed",
+        "authorityCommit": {
+          "mode": "managed",
+          "generation": 21,
+          "linearizedBeforePluginReload": true
+        },
+        "policyChanged": true,
+        "policy": {
+          "source": "registered",
+          "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+          "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+          "bytes": 1674
+        },
+        "startup": {
+          "policy": "enabled",
+          "result": "installed",
+          "backup": null,
+          "adapter": {
+            "installed": true,
+            "State": "Ready",
+            "Enabled": true,
+            "Execute": "C:\\Users\\CDQ-P\\AppData\\Local\\CogentNexus-OpenClaw\\runtime\\python\\Scripts\\pythonw.exe",
+            "Arguments": "\"C:\\Users\\CDQ-P\\.openclaw\\workspace\\skills\\cogentnexus-openclaw\\scripts\\host_control_v092.py\" --root \"C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\" supervisor tick --execute-safe",
+            "Hidden": true,
+            "LastTaskResult": 0,
+            "NextRunTime": "/Date(1788082535000)/"
+          },
+          "mode": "hidden-background-logon"
+        },
+        "reload": {
+          "restartRequested": true,
+          "maintenance": {
+            "schemaVersion": 1,
+            "active": true,
+            "createdAt": "2026-08-30T09:34:19.856806+00:00",
+            "reason": "CogentNexus-OpenClaw MANAGED authority committed; reload plugin under Host authority",
+            "owner": "operator",
+            "recoveryPolicy": "healthy-runtime"
+          },
+          "result": {
+            "ok": true,
+            "exitCode": 0,
+            "durationMs": 15360,
+            "stdout": "Restarted Scheduled Task: OpenClaw Gateway\n",
+            "stderr": ""
+          },
+          "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."
+        },
+        "lifecycle": {
+          "provider": "ollama",
+          "providerLifecycle": {
+            "ok": true,
+            "skipped": true,
+            "reason": "already healthy",
+            "before": {
+              "name": "ollama",
+              "installed": true,
+              "controllable": true,
+              "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+              "application": null,
+              "endpoint": "http://127.0.0.1:11434",
+              "reachable": true,
+              "healthy": true,
+              "ready": true,
+              "models": [
+                "qwen3.5:9b",
+                "muse-glimmer:30b",
+                "qwen3.6:27b",
+                "qwen3.8:27b"
+              ],
+              "modelCount": 4,
+              "evidence": {
+                "status": 200,
+                "url": "http://127.0.0.1:11434/api/tags",
+                "body": {
+                  "models": [
+                    {
+                      "name": "qwen3.5:9b",
+                      "model": "qwen3.5:9b",
+                      "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                      "size": 6594474711,
+                      "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                      "details": {
+                        "parent_model": "",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "9.7B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 4096
+                      },
+                      "capabilities": [
+                        "vision",
+                        "completion",
+                        "tools",
+                        "thinking"
+                      ]
+                    },
+                    {
+                      "name": "muse-glimmer:30b",
+                      "model": "muse-glimmer:30b",
+                      "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                      "size": 18157010252,
+                      "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                      "details": {
+                        "parent_model": "muse-glimmer:30b-q4_K_M",
+                        "format": "gguf",
+                        "family": "muse-glimmer",
+                        "families": [
+                          "muse-glimmer"
+                        ],
+                        "parameter_size": "27.9B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 131072,
+                        "embedding_length": 6656
+                      },
+                      "capabilities": [
+                        "completion",
+                        "tools",
+                        "thinking",
+                        "vision"
+                      ]
+                    },
+                    {
+                      "name": "qwen3.6:27b",
+                      "model": "qwen3.6:27b",
+                      "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                      "size": 17420432739,
+                      "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                      "details": {
+                        "parent_model": "",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "27.8B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 5120
+                      },
+                      "capabilities": [
+                        "vision",
+                        "completion",
+                        "tools",
+                        "thinking"
+                      ]
+                    },
+                    {
+                      "name": "qwen3.8:27b",
+                      "model": "qwen3.8:27b",
+                      "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                      "size": 17741872154,
+                      "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                      "details": {
+                        "parent_model": "qwen3.8:27b-q4_K_M",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "27.3B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 5120
+                      },
+                      "capabilities": [
+                        "completion",
+                        "tools",
+                        "thinking",
+                        "vision"
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "after": {
+              "name": "ollama",
+              "installed": true,
+              "controllable": true,
+              "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+              "application": null,
+              "endpoint": "http://127.0.0.1:11434",
+              "reachable": true,
+              "healthy": true,
+              "ready": true,
+              "models": [
+                "qwen3.5:9b",
+                "muse-glimmer:30b",
+                "qwen3.6:27b",
+                "qwen3.8:27b"
+              ],
+              "modelCount": 4,
+              "evidence": {
+                "status": 200,
+                "url": "http://127.0.0.1:11434/api/tags",
+                "body": {
+                  "models": [
+                    {
+                      "name": "qwen3.5:9b",
+                      "model": "qwen3.5:9b",
+                      "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                      "size": 6594474711,
+                      "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                      "details": {
+                        "parent_model": "",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "9.7B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 4096
+                      },
+                      "capabilities": [
+                        "vision",
+                        "completion",
+                        "tools",
+                        "thinking"
+                      ]
+                    },
+                    {
+                      "name": "muse-glimmer:30b",
+                      "model": "muse-glimmer:30b",
+                      "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                      "size": 18157010252,
+                      "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                      "details": {
+                        "parent_model": "muse-glimmer:30b-q4_K_M",
+                        "format": "gguf",
+                        "family": "muse-glimmer",
+                        "families": [
+                          "muse-glimmer"
+                        ],
+                        "parameter_size": "27.9B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 131072,
+                        "embedding_length": 6656
+                      },
+                      "capabilities": [
+                        "completion",
+                        "tools",
+                        "thinking",
+                        "vision"
+                      ]
+                    },
+                    {
+                      "name": "qwen3.6:27b",
+                      "model": "qwen3.6:27b",
+                      "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                      "size": 17420432739,
+                      "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                      "details": {
+                        "parent_model": "",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "27.8B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 5120
+                      },
+                      "capabilities": [
+                        "vision",
+                        "completion",
+                        "tools",
+                        "thinking"
+                      ]
+                    },
+                    {
+                      "name": "qwen3.8:27b",
+                      "model": "qwen3.8:27b",
+                      "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                      "size": 17741872154,
+                      "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                      "details": {
+                        "parent_model": "qwen3.8:27b-q4_K_M",
+                        "format": "gguf",
+                        "family": "qwen35",
+                        "families": [
+                          "qwen35"
+                        ],
+                        "parameter_size": "27.3B",
+                        "quantization_level": "Q4_K_M",
+                        "context_length": 262144,
+                        "embedding_length": 5120
+                      },
+                      "capabilities": [
+                        "completion",
+                        "tools",
+                        "thinking",
+                        "vision"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "providerEventAdapter": {
+            "provider": "ollama",
+            "supported": false,
+            "running": false,
+            "reason": "no provider progress stream adapter required"
+          },
+          "providerEventAdapterRollback": null,
+          "runtime": {
+            "started": true,
+            "maintenance": null,
+            "results": {
+              "ollama": {
+                "ok": true,
+                "skipped": true,
+                "reason": "already healthy"
+              },
+              "gateway": {
+                "ok": true,
+                "skipped": true,
+                "reason": "already healthy"
+              }
+            },
+            "verified": {
+              "gateway": {
+                "name": "gateway",
+                "enabled": true,
+                "healthy": true,
+                "evidence": {
+                  "ok": true,
+                  "exitCode": 0,
+                  "durationMs": 2735,
+                  "stdout": "Service: Scheduled Task (registered)\nFile logs: ~\\AppData\\Local\\Temp\\openclaw\\openclaw-2026-08-30.log\nCommand: C:\\Program Files\\nodejs\\node.exe C:\\Users\\CDQ-P\\AppData\\Roaming\\npm\\node_modules\\openclaw\\dist\\index.js gateway --port 18789\nService file: ~\\.openclaw\\gateway.cmd\nService env: OPENCLAW_GATEWAY_PORT=18789\n\nConfig (cli): ~\\.openclaw\\openclaw.json\nConfig (service): ~\\.openclaw\\openclaw.json\n\nGateway: bind=loopback (127.0.0.1), port=18789 (service args)\nProbe target: ws://127.0.0.1:18789\nDashboard: http://127.0.0.1:18789/\nProbe note: Loopback-only gateway; only local clients can connect.\n\nCLI version: 2026.7.1-2 (~\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs)\nGateway version: 2026.7.1-2\n\nRuntime: running (pid 21880, state Ready, last run 0, last run time 8/30/2026 4:34:27 PM, Gateway process detected for gateway port 18789.)\nConnectivity probe: ok\nCapability: connected-no-operator-scope\n\nListening: 127.0.0.1:18789\nTroubles: run openclaw status\nTroubleshooting: https://docs.openclaw.ai/troubleshooting\n",
+                  "stderr": ""
+                }
+              },
+              "ollama": {
+                "name": "ollama",
+                "enabled": true,
+                "healthy": true,
+                "evidence": "http://127.0.0.1:11434/api/tags"
+              }
+            },
+            "verification": {
+              "attempts": 1,
+              "timeoutSeconds": 30,
+              "initialDelaySeconds": 3.0
+            }
+          }
+        },
+        "sessionBootstrap": {
+          "ok": true,
+          "created": false,
+          "sessionKey": "agent:main:main",
+          "reason": "already present"
+        },
+        "terminalFences": {
+          "cancelledOutboxSuppressed": 0,
+          "terminalRecoverySuppressed": 0,
+          "cancelledClassificationNormalized": 0
+        },
+        "directDeliveryFences": {
+          "unverifiableFailed": [],
+          "durableDeliveryHeld": [],
+          "confirmedHeld": [],
+          "workflowOwnedSkipped": []
+        },
+        "recoveredTickets": [],
+        "postCommitRecoveryError": null,
+        "transactional": true
+      },
+      "stdout": "{\n  \"mode\": \"managed\",\n  \"authorityCommit\": {\n    \"mode\": \"managed\",\n    \"generation\": 21,\n    \"linearizedBeforePluginReload\": true\n  },\n  \"policyChanged\": true,\n  \"policy\": {\n    \"source\": \"registered\",\n    \"path\": \"C:\\\\Users\\\\CDQ-P\\\\.openclaw\\\\workspace\\\\.cogentnexus-openclaw\\\\host\\\\managed-policy.md\",\n    \"sha256\": \"14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4\",\n    \"bytes\": 1674\n  },\n  \"startup\": {\n    \"policy\": \"enabled\",\n    \"result\": \"installed\",\n    \"backup\": null,\n    \"adapter\": {\n      \"installed\": true,\n      \"State\": \"Ready\",\n      \"Enabled\": true,\n      \"Execute\": \"C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Local\\\\CogentNexus-OpenClaw\\\\runtime\\\\python\\\\Scripts\\\\pythonw.exe\",\n      \"Arguments\": \"\\\"C:\\\\Users\\\\CDQ-P\\\\.openclaw\\\\workspace\\\\skills\\\\cogentnexus-openclaw\\\\scripts\\\\host_control_v092.py\\\" --root \\\"C:\\\\Users\\\\CDQ-P\\\\.openclaw\\\\workspace\\\\.cogentnexus-openclaw\\\" supervisor tick --execute-safe\",\n      \"Hidden\": true,\n      \"LastTaskResult\": 0,\n      \"NextRunTime\": \"/Date(1788082535000)/\"\n    },\n    \"mode\": \"hidden-background-logon\"\n  },\n  \"reload\": {\n    \"restartRequested\": true,\n    \"maintenance\": {\n      \"schemaVersion\": 1,\n      \"active\": true,\n      \"createdAt\": \"2026-08-30T09:34:19.856806+00:00\",\n      \"reason\": \"CogentNexus-OpenClaw MANAGED authority committed; reload plugin under Host authority\",\n      \"owner\": \"operator\",\n      \"recoveryPolicy\": \"healthy-runtime\"\n    },\n    \"result\": {\n      \"ok\": true,\n      \"exitCode\": 0,\n      \"durationMs\": 15360,\n      \"stdout\": \"Restarted Scheduled Task: OpenClaw Gateway\\n\",\n      \"stderr\": \"\"\n    },\n    \"recovery\": \"The native supervisor will start and verify Gateway if this caller is interrupted.\"\n  },\n  \"lifecycle\": {\n    \"provider\": \"ollama\",\n    \"providerLifecycle\": {\n      \"ok\": true,\n      \"skipped\": true,\n      \"reason\": \"already healthy\",\n      \"before\": {\n        \"name\": \"ollama\",\n        \"installed\": true,\n        \"controllable\": true,\n        \"cli\": \"C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.EXE\",\n        \"application\": null,\n        \"endpoint\": \"http://127.0.0.1:11434\",\n        \"reachable\": true,\n        \"healthy\": true,\n        \"ready\": true,\n        \"models\": [\n          \"qwen3.5:9b\",\n          \"muse-glimmer:30b\",\n          \"qwen3.6:27b\",\n          \"qwen3.8:27b\"\n        ],\n        \"modelCount\": 4,\n        \"evidence\": {\n          \"status\": 200,\n          \"url\": \"http://127.0.0.1:11434/api/tags\",\n          \"body\": {\n            \"models\": [\n              {\n                \"name\": \"qwen3.5:9b\",\n                \"model\": \"qwen3.5:9b\",\n                \"modified_at\": \"2026-08-17T14:28:04.9046441+07:00\",\n                \"size\": 6594474711,\n                \"digest\": \"6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7\",\n                \"details\": {\n                  \"parent_model\": \"\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"9.7B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 4096\n                },\n                \"capabilities\": [\n                  \"vision\",\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\"\n                ]\n              },\n              {\n                \"name\": \"muse-glimmer:30b\",\n                \"model\": \"muse-glimmer:30b\",\n                \"modified_at\": \"2026-08-17T14:25:58.4549848+07:00\",\n                \"size\": 18157010252,\n                \"digest\": \"de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1\",\n                \"details\": {\n                  \"parent_model\": \"muse-glimmer:30b-q4_K_M\",\n                  \"format\": \"gguf\",\n                  \"family\": \"muse-glimmer\",\n                  \"families\": [\n                    \"muse-glimmer\"\n                  ],\n                  \"parameter_size\": \"27.9B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 131072,\n                  \"embedding_length\": 6656\n                },\n                \"capabilities\": [\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\",\n                  \"vision\"\n                ]\n              },\n              {\n                \"name\": \"qwen3.6:27b\",\n                \"model\": \"qwen3.6:27b\",\n                \"modified_at\": \"2026-08-17T13:01:06.6994976+07:00\",\n                \"size\": 17420432739,\n                \"digest\": \"a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e\",\n                \"details\": {\n                  \"parent_model\": \"\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"27.8B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 5120\n                },\n                \"capabilities\": [\n                  \"vision\",\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\"\n                ]\n              },\n              {\n                \"name\": \"qwen3.8:27b\",\n                \"model\": \"qwen3.8:27b\",\n                \"modified_at\": \"2026-08-16T03:00:45.4352331+07:00\",\n                \"size\": 17741872154,\n                \"digest\": \"22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643\",\n                \"details\": {\n                  \"parent_model\": \"qwen3.8:27b-q4_K_M\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"27.3B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 5120\n                },\n                \"capabilities\": [\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\",\n                  \"vision\"\n                ]\n              }\n            ]\n          }\n        }\n      },\n      \"after\": {\n        \"name\": \"ollama\",\n        \"installed\": true,\n        \"controllable\": true,\n        \"cli\": \"C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.EXE\",\n        \"application\": null,\n        \"endpoint\": \"http://127.0.0.1:11434\",\n        \"reachable\": true,\n        \"healthy\": true,\n        \"ready\": true,\n        \"models\": [\n          \"qwen3.5:9b\",\n          \"muse-glimmer:30b\",\n          \"qwen3.6:27b\",\n          \"qwen3.8:27b\"\n        ],\n        \"modelCount\": 4,\n        \"evidence\": {\n          \"status\": 200,\n          \"url\": \"http://127.0.0.1:11434/api/tags\",\n          \"body\": {\n            \"models\": [\n              {\n                \"name\": \"qwen3.5:9b\",\n                \"model\": \"qwen3.5:9b\",\n                \"modified_at\": \"2026-08-17T14:28:04.9046441+07:00\",\n                \"size\": 6594474711,\n                \"digest\": \"6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7\",\n                \"details\": {\n                  \"parent_model\": \"\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"9.7B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 4096\n                },\n                \"capabilities\": [\n                  \"vision\",\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\"\n                ]\n              },\n              {\n                \"name\": \"muse-glimmer:30b\",\n                \"model\": \"muse-glimmer:30b\",\n                \"modified_at\": \"2026-08-17T14:25:58.4549848+07:00\",\n                \"size\": 18157010252,\n                \"digest\": \"de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1\",\n                \"details\": {\n                  \"parent_model\": \"muse-glimmer:30b-q4_K_M\",\n                  \"format\": \"gguf\",\n                  \"family\": \"muse-glimmer\",\n                  \"families\": [\n                    \"muse-glimmer\"\n                  ],\n                  \"parameter_size\": \"27.9B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 131072,\n                  \"embedding_length\": 6656\n                },\n                \"capabilities\": [\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\",\n                  \"vision\"\n                ]\n              },\n              {\n                \"name\": \"qwen3.6:27b\",\n                \"model\": \"qwen3.6:27b\",\n                \"modified_at\": \"2026-08-17T13:01:06.6994976+07:00\",\n                \"size\": 17420432739,\n                \"digest\": \"a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e\",\n                \"details\": {\n                  \"parent_model\": \"\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"27.8B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 5120\n                },\n                \"capabilities\": [\n                  \"vision\",\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\"\n                ]\n              },\n              {\n                \"name\": \"qwen3.8:27b\",\n                \"model\": \"qwen3.8:27b\",\n                \"modified_at\": \"2026-08-16T03:00:45.4352331+07:00\",\n                \"size\": 17741872154,\n                \"digest\": \"22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643\",\n                \"details\": {\n                  \"parent_model\": \"qwen3.8:27b-q4_K_M\",\n                  \"format\": \"gguf\",\n                  \"family\": \"qwen35\",\n                  \"families\": [\n                    \"qwen35\"\n                  ],\n                  \"parameter_size\": \"27.3B\",\n                  \"quantization_level\": \"Q4_K_M\",\n                  \"context_length\": 262144,\n                  \"embedding_length\": 5120\n                },\n                \"capabilities\": [\n                  \"completion\",\n                  \"tools\",\n                  \"thinking\",\n                  \"vision\"\n                ]\n              }\n            ]\n          }\n        }\n      }\n    },\n    \"providerEventAdapter\": {\n      \"provider\": \"ollama\",\n      \"supported\": false,\n      \"running\": false,\n      \"reason\": \"no provider progress stream adapter required\"\n    },\n    \"providerEventAdapterRollback\": null,\n    \"runtime\": {\n      \"started\": true,\n      \"maintenance\": null,\n      \"results\": {\n        \"ollama\": {\n          \"ok\": true,\n          \"skipped\": true,\n          \"reason\": \"already healthy\"\n        },\n        \"gateway\": {\n          \"ok\": true,\n          \"skipped\": true,\n          \"reason\": \"already healthy\"\n        }\n      },\n      \"verified\": {\n        \"gateway\": {\n          \"name\": \"gateway\",\n          \"enabled\": true,\n          \"healthy\": true,\n          \"evidence\": {\n            \"ok\": true,\n            \"exitCode\": 0,\n            \"durationMs\": 2735,\n            \"stdout\": \"Service: Scheduled Task (registered)\\nFile logs: ~\\\\AppData\\\\Local\\\\Temp\\\\openclaw\\\\openclaw-2026-08-30.log\\nCommand: C:\\\\Program Files\\\\nodejs\\\\node.exe C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\openclaw\\\\dist\\\\index.js gateway --port 18789\\nService file: ~\\\\.openclaw\\\\gateway.cmd\\nService env: OPENCLAW_GATEWAY_PORT=18789\\n\\nConfig (cli): ~\\\\.openclaw\\\\openclaw.json\\nConfig (service): ~\\\\.openclaw\\\\openclaw.json\\n\\nGateway: bind=loopback (127.0.0.1), port=18789 (service args)\\nProbe target: ws://127.0.0.1:18789\\nDashboard: http://127.0.0.1:18789/\\nProbe note: Loopback-only gateway; only local clients can connect.\\n\\nCLI version: 2026.7.1-2 (~\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\openclaw\\\\openclaw.mjs)\\nGateway version: 2026.7.1-2\\n\\nRuntime: running (pid 21880, state Ready, last run 0, last run time 8/30/2026 4:34:27 PM, Gateway process detected for gateway port 18789.)\\nConnectivity probe: ok\\nCapability: connected-no-operator-scope\\n\\nListening: 127.0.0.1:18789\\nTroubles: run openclaw status\\nTroubleshooting: https://docs.openclaw.ai/troubleshooting\\n\",\n            \"stderr\": \"\"\n          }\n        },\n        \"ollama\": {\n          \"name\": \"ollama\",\n          \"enabled\": true,\n          \"healthy\": true,\n          \"evidence\": \"http://127.0.0.1:11434/api/tags\"\n        }\n      },\n      \"verification\": {\n        \"attempts\": 1,\n        \"timeoutSeconds\": 30,\n        \"initialDelaySeconds\": 3.0\n      }\n    }\n  },\n  \"sessionBootstrap\": {\n    \"ok\": true,\n    \"created\": false,\n    \"sessionKey\": \"agent:main:main\",\n    \"reason\": \"already present\"\n  },\n  \"terminalFences\": {\n    \"cancelledOutboxSuppressed\": 0,\n    \"terminalRecoverySuppressed\": 0,\n    \"cancelledClassificationNormalized\": 0\n  },\n  \"directDeliveryFences\": {\n    \"unverifiableFailed\": [],\n    \"durableDeliveryHeld\": [],\n    \"confirmedHeld\": [],\n    \"workflowOwnedSkipped\": []\n  },\n  \"recoveredTickets\": [],\n  \"postCommitRecoveryError\": null,\n  \"transactional\": true\n}",
+      "stderr": ""
+    },
+    "gatewayRestart": {
+      "ok": true,
+      "exitCode": 0,
+      "output": {
+        "state": {
+          "schemaVersion": 1,
+          "mode": "managed",
+          "desiredGateway": "running",
+          "desiredProvider": "running",
+          "generation": 23,
+          "updatedAt": "2026-08-30T09:35:03.704762+00:00",
+          "providerTransition": {
+            "from": "ollama",
+            "to": "ollama",
+            "source": "explicit",
+            "startedAt": "2026-08-30T09:32:23.920915+00:00"
+          },
+          "selectedProvider": "ollama",
+          "providerSelection": {
+            "selectedAt": "2026-08-29T20:49:03.665156+00:00",
+            "selectionSource": "explicit",
+            "lastVerifiedAt": "2026-08-29T20:49:03.665156+00:00"
+          }
+        },
+        "lifecycle": {
+          "restartRequested": true,
+          "maintenance": {
+            "schemaVersion": 1,
+            "active": true,
+            "createdAt": "2026-08-30T09:35:03.794797+00:00",
+            "reason": "CogentNexus-OpenClaw Host requested restart",
+            "owner": "operator",
+            "recoveryPolicy": "healthy-runtime"
+          },
+          "result": {
+            "ok": true,
+            "exitCode": 0,
+            "durationMs": 14734,
+            "stdout": "Restarted Scheduled Task: OpenClaw Gateway\n",
+            "stderr": ""
+          },
+          "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."
+        },
+        "recoveredTickets": [],
+        "provider": "ollama",
+        "providerLifecycle": {
+          "ok": true,
+          "skipped": true,
+          "reason": "already healthy",
+          "before": {
+            "name": "ollama",
+            "installed": true,
+            "controllable": true,
+            "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+            "application": null,
+            "endpoint": "http://127.0.0.1:11434",
+            "reachable": true,
+            "healthy": true,
+            "ready": true,
+            "models": [
+              "qwen3.5:9b",
+              "muse-glimmer:30b",
+              "qwen3.6:27b",
+              "qwen3.8:27b"
+            ],
+            "modelCount": 4,
+            "evidence": {
+              "status": 200,
+              "url": "http://127.0.0.1:11434/api/tags",
+              "body": {
+                "models": [
+                  {
+                    "name": "qwen3.5:9b",
+                    "model": "qwen3.5:9b",
+                    "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                    "size": 6594474711,
+                    "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                    "details": {
+                      "parent_model": "",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "9.7B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 4096
+                    },
+                    "capabilities": [
+                      "vision",
+                      "completion",
+                      "tools",
+                      "thinking"
+                    ]
+                  },
+                  {
+                    "name": "muse-glimmer:30b",
+                    "model": "muse-glimmer:30b",
+                    "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                    "size": 18157010252,
+                    "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                    "details": {
+                      "parent_model": "muse-glimmer:30b-q4_K_M",
+                      "format": "gguf",
+                      "family": "muse-glimmer",
+                      "families": [
+                        "muse-glimmer"
+                      ],
+                      "parameter_size": "27.9B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 131072,
+                      "embedding_length": 6656
+                    },
+                    "capabilities": [
+                      "completion",
+                      "tools",
+                      "thinking",
+                      "vision"
+                    ]
+                  },
+                  {
+                    "name": "qwen3.6:27b",
+                    "model": "qwen3.6:27b",
+                    "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                    "size": 17420432739,
+                    "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                    "details": {
+                      "parent_model": "",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "27.8B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 5120
+                    },
+                    "capabilities": [
+                      "vision",
+                      "completion",
+                      "tools",
+                      "thinking"
+                    ]
+                  },
+                  {
+                    "name": "qwen3.8:27b",
+                    "model": "qwen3.8:27b",
+                    "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                    "size": 17741872154,
+                    "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                    "details": {
+                      "parent_model": "qwen3.8:27b-q4_K_M",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "27.3B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 5120
+                    },
+                    "capabilities": [
+                      "completion",
+                      "tools",
+                      "thinking",
+                      "vision"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "after": {
+            "name": "ollama",
+            "installed": true,
+            "controllable": true,
+            "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+            "application": null,
+            "endpoint": "http://127.0.0.1:11434",
+            "reachable": true,
+            "healthy": true,
+            "ready": true,
+            "models": [
+              "qwen3.5:9b",
+              "muse-glimmer:30b",
+              "qwen3.6:27b",
+              "qwen3.8:27b"
+            ],
+            "modelCount": 4,
+            "evidence": {
+              "status": 200,
+              "url": "http://127.0.0.1:11434/api/tags",
+              "body": {
+                "models": [
+                  {
+                    "name": "qwen3.5:9b",
+                    "model": "qwen3.5:9b",
+                    "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                    "size": 6594474711,
+                    "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                    "details": {
+                      "parent_model": "",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "9.7B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 4096
+                    },
+                    "capabilities": [
+                      "vision",
+                      "completion",
+                      "tools",
+                      "thinking"
+                    ]
+                  },
+                  {
+                    "name": "muse-glimmer:30b",
+                    "model": "muse-glimmer:30b",
+                    "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                    "size": 18157010252,
+                    "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                    "details": {
+                      "parent_model": "muse-glimmer:30b-q4_K_M",
+                      "format": "gguf",
+                      "family": "muse-glimmer",
+                      "families": [
+                        "muse-glimmer"
+                      ],
+                      "parameter_size": "27.9B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 131072,
+                      "embedding_length": 6656
+                    },
+                    "capabilities": [
+                      "completion",
+                      "tools",
+                      "thinking",
+                      "vision"
+                    ]
+                  },
+                  {
+                    "name": "qwen3.6:27b",
+                    "model": "qwen3.6:27b",
+                    "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                    "size": 17420432739,
+                    "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                    "details": {
+                      "parent_model": "",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "27.8B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 5120
+                    },
+                    "capabilities": [
+                      "vision",
+                      "completion",
+                      "tools",
+                      "thinking"
+                    ]
+                  },
+                  {
+                    "name": "qwen3.8:27b",
+                    "model": "qwen3.8:27b",
+                    "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                    "size": 17741872154,
+                    "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                    "details": {
+                      "parent_model": "qwen3.8:27b-q4_K_M",
+                      "format": "gguf",
+                      "family": "qwen35",
+                      "families": [
+                        "qwen35"
+                      ],
+                      "parameter_size": "27.3B",
+                      "quantization_level": "Q4_K_M",
+                      "context_length": 262144,
+                      "embedding_length": 5120
+                    },
+                    "capabilities": [
+                      "completion",
+                      "tools",
+                      "thinking",
+                      "vision"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "providerEventAdapter": {
+          "provider": "ollama",
+          "supported": false,
+          "running": false,
+          "reason": "no provider progress stream adapter required"
+        }
+      },
+      "stdout": "{\n  \"state\": {\n    \"schemaVersion\": 1,\n    \"mode\": \"managed\",\n    \"desiredGateway\": \"running\",\n    \"desiredProvider\": \"running\",\n    \"generation\": 23,\n    \"updatedAt\": \"2026-08-30T09:35:03.704762+00:00\",\n    \"providerTransition\": {\n      \"from\": \"ollama\",\n      \"to\": \"ollama\",\n      \"source\": \"explicit\",\n      \"startedAt\": \"2026-08-30T09:32:23.920915+00:00\"\n    },\n    \"selectedProvider\": \"ollama\",\n    \"providerSelection\": {\n      \"selectedAt\": \"2026-08-29T20:49:03.665156+00:00\",\n      \"selectionSource\": \"explicit\",\n      \"lastVerifiedAt\": \"2026-08-29T20:49:03.665156+00:00\"\n    }\n  },\n  \"lifecycle\": {\n    \"restartRequested\": true,\n    \"maintenance\": {\n      \"schemaVersion\": 1,\n      \"active\": true,\n      \"createdAt\": \"2026-08-30T09:35:03.794797+00:00\",\n      \"reason\": \"CogentNexus-OpenClaw Host requested restart\",\n      \"owner\": \"operator\",\n      \"recoveryPolicy\": \"healthy-runtime\"\n    },\n    \"result\": {\n      \"ok\": true,\n      \"exitCode\": 0,\n      \"durationMs\": 14734,\n      \"stdout\": \"Restarted Scheduled Task: OpenClaw Gateway\\n\",\n      \"stderr\": \"\"\n    },\n    \"recovery\": \"The native supervisor will start and verify Gateway if this caller is interrupted.\"\n  },\n  \"recoveredTickets\": [],\n  \"provider\": \"ollama\",\n  \"providerLifecycle\": {\n    \"ok\": true,\n    \"skipped\": true,\n    \"reason\": \"already healthy\",\n    \"before\": {\n      \"name\": \"ollama\",\n      \"installed\": true,\n      \"controllable\": true,\n      \"cli\": \"C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.EXE\",\n      \"application\": null,\n      \"endpoint\": \"http://127.0.0.1:11434\",\n      \"reachable\": true,\n      \"healthy\": true,\n      \"ready\": true,\n      \"models\": [\n        \"qwen3.5:9b\",\n        \"muse-glimmer:30b\",\n        \"qwen3.6:27b\",\n        \"qwen3.8:27b\"\n      ],\n      \"modelCount\": 4,\n      \"evidence\": {\n        \"status\": 200,\n        \"url\": \"http://127.0.0.1:11434/api/tags\",\n        \"body\": {\n          \"models\": [\n            {\n              \"name\": \"qwen3.5:9b\",\n              \"model\": \"qwen3.5:9b\",\n              \"modified_at\": \"2026-08-17T14:28:04.9046441+07:00\",\n              \"size\": 6594474711,\n              \"digest\": \"6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7\",\n              \"details\": {\n                \"parent_model\": \"\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"9.7B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 4096\n              },\n              \"capabilities\": [\n                \"vision\",\n                \"completion\",\n                \"tools\",\n                \"thinking\"\n              ]\n            },\n            {\n              \"name\": \"muse-glimmer:30b\",\n              \"model\": \"muse-glimmer:30b\",\n              \"modified_at\": \"2026-08-17T14:25:58.4549848+07:00\",\n              \"size\": 18157010252,\n              \"digest\": \"de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1\",\n              \"details\": {\n                \"parent_model\": \"muse-glimmer:30b-q4_K_M\",\n                \"format\": \"gguf\",\n                \"family\": \"muse-glimmer\",\n                \"families\": [\n                  \"muse-glimmer\"\n                ],\n                \"parameter_size\": \"27.9B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 131072,\n                \"embedding_length\": 6656\n              },\n              \"capabilities\": [\n                \"completion\",\n                \"tools\",\n                \"thinking\",\n                \"vision\"\n              ]\n            },\n            {\n              \"name\": \"qwen3.6:27b\",\n              \"model\": \"qwen3.6:27b\",\n              \"modified_at\": \"2026-08-17T13:01:06.6994976+07:00\",\n              \"size\": 17420432739,\n              \"digest\": \"a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e\",\n              \"details\": {\n                \"parent_model\": \"\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"27.8B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 5120\n              },\n              \"capabilities\": [\n                \"vision\",\n                \"completion\",\n                \"tools\",\n                \"thinking\"\n              ]\n            },\n            {\n              \"name\": \"qwen3.8:27b\",\n              \"model\": \"qwen3.8:27b\",\n              \"modified_at\": \"2026-08-16T03:00:45.4352331+07:00\",\n              \"size\": 17741872154,\n              \"digest\": \"22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643\",\n              \"details\": {\n                \"parent_model\": \"qwen3.8:27b-q4_K_M\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"27.3B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 5120\n              },\n              \"capabilities\": [\n                \"completion\",\n                \"tools\",\n                \"thinking\",\n                \"vision\"\n              ]\n            }\n          ]\n        }\n      }\n    },\n    \"after\": {\n      \"name\": \"ollama\",\n      \"installed\": true,\n      \"controllable\": true,\n      \"cli\": \"C:\\\\Users\\\\CDQ-P\\\\AppData\\\\Local\\\\Programs\\\\Ollama\\\\ollama.EXE\",\n      \"application\": null,\n      \"endpoint\": \"http://127.0.0.1:11434\",\n      \"reachable\": true,\n      \"healthy\": true,\n      \"ready\": true,\n      \"models\": [\n        \"qwen3.5:9b\",\n        \"muse-glimmer:30b\",\n        \"qwen3.6:27b\",\n        \"qwen3.8:27b\"\n      ],\n      \"modelCount\": 4,\n      \"evidence\": {\n        \"status\": 200,\n        \"url\": \"http://127.0.0.1:11434/api/tags\",\n        \"body\": {\n          \"models\": [\n            {\n              \"name\": \"qwen3.5:9b\",\n              \"model\": \"qwen3.5:9b\",\n              \"modified_at\": \"2026-08-17T14:28:04.9046441+07:00\",\n              \"size\": 6594474711,\n              \"digest\": \"6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7\",\n              \"details\": {\n                \"parent_model\": \"\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"9.7B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 4096\n              },\n              \"capabilities\": [\n                \"vision\",\n                \"completion\",\n                \"tools\",\n                \"thinking\"\n              ]\n            },\n            {\n              \"name\": \"muse-glimmer:30b\",\n              \"model\": \"muse-glimmer:30b\",\n              \"modified_at\": \"2026-08-17T14:25:58.4549848+07:00\",\n              \"size\": 18157010252,\n              \"digest\": \"de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1\",\n              \"details\": {\n                \"parent_model\": \"muse-glimmer:30b-q4_K_M\",\n                \"format\": \"gguf\",\n                \"family\": \"muse-glimmer\",\n                \"families\": [\n                  \"muse-glimmer\"\n                ],\n                \"parameter_size\": \"27.9B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 131072,\n                \"embedding_length\": 6656\n              },\n              \"capabilities\": [\n                \"completion\",\n                \"tools\",\n                \"thinking\",\n                \"vision\"\n              ]\n            },\n            {\n              \"name\": \"qwen3.6:27b\",\n              \"model\": \"qwen3.6:27b\",\n              \"modified_at\": \"2026-08-17T13:01:06.6994976+07:00\",\n              \"size\": 17420432739,\n              \"digest\": \"a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e\",\n              \"details\": {\n                \"parent_model\": \"\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"27.8B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 5120\n              },\n              \"capabilities\": [\n                \"vision\",\n                \"completion\",\n                \"tools\",\n                \"thinking\"\n              ]\n            },\n            {\n              \"name\": \"qwen3.8:27b\",\n              \"model\": \"qwen3.8:27b\",\n              \"modified_at\": \"2026-08-16T03:00:45.4352331+07:00\",\n              \"size\": 17741872154,\n              \"digest\": \"22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643\",\n              \"details\": {\n                \"parent_model\": \"qwen3.8:27b-q4_K_M\",\n                \"format\": \"gguf\",\n                \"family\": \"qwen35\",\n                \"families\": [\n                  \"qwen35\"\n                ],\n                \"parameter_size\": \"27.3B\",\n                \"quantization_level\": \"Q4_K_M\",\n                \"context_length\": 262144,\n                \"embedding_length\": 5120\n              },\n              \"capabilities\": [\n                \"completion\",\n                \"tools\",\n                \"thinking\",\n                \"vision\"\n              ]\n            }\n          ]\n        }\n      }\n    }\n  },\n  \"providerEventAdapter\": {\n    \"provider\": \"ollama\",\n    \"supported\": false,\n    \"running\": false,\n    \"reason\": \"no provider progress stream adapter required\"\n  }\n}",
+      "stderr": ""
+    }
+  },
+  "route": {
+    "ok": true,
+    "committed": true,
+    "provider": "ollama",
+    "model": "ollama/qwen3.5:9b"
+  },
+  "providerRecoveryPolicy": {
+    "provider": "ollama",
+    "allowed": false,
+    "circuitOpen": false,
+    "incidentOpen": false,
+    "incidentId": null,
+    "classification": null,
+    "recoveryAttempts": 0,
+    "maximumRecoveriesPerIncident": 3,
+    "lastEvent": {
+      "type": "incident_closed",
+      "at": "2026-08-30T09:35:25.773551+00:00",
+      "evidence": {
+        "reason": "verified_manual_transition",
+        "evidence": {
+          "operatorVerified": true
+        }
+      }
+    }
+  },
+  "verification": {
+    "provider": {
+      "name": "ollama",
+      "installed": true,
+      "controllable": true,
+      "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+      "application": null,
+      "endpoint": "http://127.0.0.1:11434",
+      "reachable": true,
+      "healthy": true,
+      "ready": true,
+      "models": [
+        "qwen3.5:9b",
+        "muse-glimmer:30b",
+        "qwen3.6:27b",
+        "qwen3.8:27b"
+      ],
+      "modelCount": 4,
+      "evidence": {
+        "status": 200,
+        "url": "http://127.0.0.1:11434/api/tags",
+        "body": {
+          "models": [
+            {
+              "name": "qwen3.5:9b",
+              "model": "qwen3.5:9b",
+              "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+              "size": 6594474711,
+              "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+              "details": {
+                "parent_model": "",
+                "format": "gguf",
+                "family": "qwen35",
+                "families": [
+                  "qwen35"
+                ],
+                "parameter_size": "9.7B",
+                "quantization_level": "Q4_K_M",
+                "context_length": 262144,
+                "embedding_length": 4096
+              },
+              "capabilities": [
+                "vision",
+                "completion",
+                "tools",
+                "thinking"
+              ]
+            },
+            {
+              "name": "muse-glimmer:30b",
+              "model": "muse-glimmer:30b",
+              "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+              "size": 18157010252,
+              "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+              "details": {
+                "parent_model": "muse-glimmer:30b-q4_K_M",
+                "format": "gguf",
+                "family": "muse-glimmer",
+                "families": [
+                  "muse-glimmer"
+                ],
+                "parameter_size": "27.9B",
+                "quantization_level": "Q4_K_M",
+                "context_length": 131072,
+                "embedding_length": 6656
+              },
+              "capabilities": [
+                "completion",
+                "tools",
+                "thinking",
+                "vision"
+              ]
+            },
+            {
+              "name": "qwen3.6:27b",
+              "model": "qwen3.6:27b",
+              "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+              "size": 17420432739,
+              "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+              "details": {
+                "parent_model": "",
+                "format": "gguf",
+                "family": "qwen35",
+                "families": [
+                  "qwen35"
+                ],
+                "parameter_size": "27.8B",
+                "quantization_level": "Q4_K_M",
+                "context_length": 262144,
+                "embedding_length": 5120
+              },
+              "capabilities": [
+                "vision",
+                "completion",
+                "tools",
+                "thinking"
+              ]
+            },
+            {
+              "name": "qwen3.8:27b",
+              "model": "qwen3.8:27b",
+              "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+              "size": 17741872154,
+              "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+              "details": {
+                "parent_model": "qwen3.8:27b-q4_K_M",
+                "format": "gguf",
+                "family": "qwen35",
+                "families": [
+                  "qwen35"
+                ],
+                "parameter_size": "27.3B",
+                "quantization_level": "Q4_K_M",
+                "context_length": 262144,
+                "embedding_length": 5120
+              },
+              "capabilities": [
+                "completion",
+                "tools",
+                "thinking",
+                "vision"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "gateway": {
+      "name": "Gateway",
+      "status": "PASS",
+      "summary": "OpenClaw Gateway is reachable",
+      "details": {
+        "evidence": {
+          "ok": true,
+          "exitCode": 0,
+          "stdout": "Service: Scheduled Task (registered)\nFile logs: ~\\AppData\\Local\\Temp\\openclaw\\openclaw-2026-08-30.log\nCommand: C:\\Program Files\\nodejs\\node.exe C:\\Users\\CDQ-P\\AppData\\Roaming\\npm\\node_modules\\openclaw\\dist\\index.js gateway --port 18789\nService file: ~\\.openclaw\\gateway.cmd\nService env: OPENCLAW_GATEWAY_PORT=18789\n\nConfig (cli): ~\\.openclaw\\openclaw.json\nConfig (service): ~\\.openclaw\\openclaw.json\n\nGateway: bind=loopback (127.0.0.1), port=18789 (service args)\nProbe target: ws://127.0.0.1:18789\nDashboard: http://127.0.0.1:18789/\nProbe note: Loopback-only gateway; only local clients can connect.\n\nCLI version: 2026.7.1-2 (~\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs)\nGateway version: 2026.7.1-2\n\nRuntime: running (pid 9696, state Ready, last run 0, last run time 8/30/2026 4:35:10 PM, Gateway process detected for gateway port 18789.)\nConnectivity probe: ok\nCapability: connected-no-operator-scope\n\nListening: 127.0.0.1:18789\nTroubles: run openclaw status\nTroubleshooting: https://docs.openclaw.ai/troubleshooting",
+          "stderr": ""
+        }
+      }
+    },
+    "route": {
+      "ok": true,
+      "provider": "ollama",
+      "providerKey": "ollama",
+      "model": "ollama/qwen3.5:9b",
+      "currentModel": "ollama/qwen3.5:9b",
+      "currentProvider": "ollama",
+      "configPath": "C:\\Users\\CDQ-P\\.openclaw\\openclaw.json",
+      "mutatesState": false
+    }
+  }
+}
+Service: Scheduled Task (registered)
+File logs: ~\AppData\Local\Temp\openclaw\openclaw-2026-08-30.log
+Command: C:\Program Files\nodejs\node.exe C:\Users\CDQ-P\AppData\Roaming\npm\node_modules\openclaw\dist\index.js gateway --port 18789
+Service file: ~\.openclaw\gateway.cmd
+Service env: OPENCLAW_GATEWAY_PORT=18789
+
+Config (cli): ~\.openclaw\openclaw.json
+Config (service): ~\.openclaw\openclaw.json
+
+Gateway: bind=loopback (127.0.0.1), port=18789 (service args)
+Probe target: ws://127.0.0.1:18789
+Dashboard: http://127.0.0.1:18789/
+Probe note: Loopback-only gateway; only local clients can connect.
+
+CLI version: 2026.7.1-2 (~\AppData\Roaming\npm\node_modules\openclaw\openclaw.mjs)
+Gateway version: 2026.7.1-2
+
+Runtime: running (pid 9696, state Ready, last run 0, last run time 8/30/2026 4:35:10 PM, Gateway process detected for gateway port 18789.)
+Connectivity probe: ok
+Capability: connected-no-operator-scope
+
+Listening: 127.0.0.1:18789
+Troubles: run openclaw status
+Troubleshooting: https://docs.openclaw.ai/troubleshooting
+{
+  "platform": "windows",
+  "schedulerBackend": "windows",
+  "openclaw": "C:\\Users\\CDQ-P\\AppData\\Roaming\\npm\\openclaw.CMD",
+  "ollama": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+  "workspace": "C:\\Users\\CDQ-P\\.openclaw\\workspace",
+  "runtimeRoot": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw",
+  "config": {
+    "schemaVersion": 1,
+    "supervisor": {
+      "intervalSeconds": 300,
+      "commandTimeoutSeconds": 30,
+      "confirmDelaySeconds": 1,
+      "verifyDelaySeconds": 3,
+      "cooldownSeconds": 300,
+      "maximumRecoveriesPerHour": 3,
+      "ollamaMode": "auto",
+      "allowOllamaStart": false
+    },
+    "concurrency": {
+      "mode": "fixed",
+      "inferenceLanes": 1,
+      "maxInferenceLanes": 1,
+      "executionLanes": 2,
+      "verificationLanes": 2,
+      "supervisorLanes": 1,
+      "minimumFreeMemoryGB": 2,
+      "leaseSeconds": 1800
+    },
+    "contextContinuity": {
+      "softLimit": 0.25,
+      "handoffLimit": 0.35,
+      "criticalLimit": 0.45,
+      "reserveTokens": 16384,
+      "leaseSeconds": 1800,
+      "autoMonitor": true
+    },
+    "workflowAutomation": {
+      "enabled": true,
+      "maximumLaunchesPerTick": 2
+    }
+  }
+}
+{
+  "host": {
+    "state": {
+      "schemaVersion": 1,
+      "mode": "managed",
+      "desiredGateway": "running",
+      "desiredProvider": "running",
+      "generation": 24,
+      "updatedAt": "2026-08-30T09:35:25.768499+00:00",
+      "providerTransition": null,
+      "selectedProvider": "ollama",
+      "providerSelection": {
+        "selectedAt": "2026-08-30T09:35:25.768499+00:00",
+        "selectionSource": "explicit",
+        "lastVerifiedAt": "2026-08-30T09:35:25.768499+00:00"
+      }
+    },
+    "policy": {
+      "source": "registered",
+      "path": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\host\\managed-policy.md",
+      "sha256": "14edead0180690c3d9565e864d2bdaaae60e32df9ef2c64ebd2a1238df5cd8b4",
+      "bytes": 1674
+    },
+    "gateway": {
+      "healthy": true,
+      "exitCode": 0,
+      "stdout": "Service: Scheduled Task (registered)\nFile logs: ~\\AppData\\Local\\Temp\\openclaw\\openclaw-2026-08-30.log\nCommand: C:\\Program Files\\nodejs\\node.exe C:\\Users\\CDQ-P\\AppData\\Roaming\\npm\\node_modules\\openclaw\\dist\\index.js gateway --port 18789\nService file: ~\\.openclaw\\gateway.cmd\nService env: OPENCLAW_GATEWAY_PORT=18789\n\nConfig (cli): ~\\.openclaw\\openclaw.json\nConfig (service): ~\\.openclaw\\openclaw.json\n\nGateway: bind=loopback (127.0.0.1), port=18789 (service args)\nProbe target: ws://127.0.0.1:18789\nDashboard: http://127.0.0.1:18789/\nProbe note: Loopback-only gateway; only local clients can connect.\n\nCLI version: 2026.7.1-2 (~\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs)\nGateway version: 2026.7.1-2\n\nRuntime: running (pid 9696, state Ready, last run 0, last run time 8/30/2026 4:35:10 PM, Gateway process detected for gateway port 18789.)\nConnectivity probe: ok\nCapability: connected-no-operator-scope\n\nListening: 127.0.0.1:18789\nTroubles: run openclaw status\nTroubleshooting: https://docs.openclaw.ai/troubleshooting",
+      "stderr": ""
+    },
+    "startup": {
+      "policy": "enabled",
+      "adapter": {
+        "installed": true,
+        "State": "Ready",
+        "Enabled": true,
+        "Execute": "C:\\Users\\CDQ-P\\AppData\\Local\\CogentNexus-OpenClaw\\runtime\\python\\Scripts\\pythonw.exe",
+        "Arguments": "\"C:\\Users\\CDQ-P\\.openclaw\\workspace\\skills\\cogentnexus-openclaw\\scripts\\host_control_v092.py\" --root \"C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\" supervisor tick --execute-safe",
+        "Hidden": true,
+        "LastTaskResult": 0,
+        "NextRunTime": "/Date(1788082596000)/"
+      },
+      "background": true
+    },
+    "tickets": {
+      "database": "C:\\Users\\CDQ-P\\.openclaw\\workspace\\.cogentnexus-openclaw\\runtime\\cogentnexus-openclaw.sqlite3",
+      "tickets": {
+        "failed": 1
+      },
+      "pendingOutbox": 0
+    }
+  },
+  "provider": {
+    "selectedProvider": "ollama",
+    "desiredProvider": "running",
+    "providerTransition": null,
+    "providers": {
+      "ollama": {
+        "name": "ollama",
+        "installed": true,
+        "controllable": true,
+        "cli": "C:\\Users\\CDQ-P\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+        "application": null,
+        "endpoint": "http://127.0.0.1:11434",
+        "reachable": true,
+        "healthy": true,
+        "ready": true,
+        "models": [
+          "qwen3.5:9b",
+          "muse-glimmer:30b",
+          "qwen3.6:27b",
+          "qwen3.8:27b"
+        ],
+        "modelCount": 4,
+        "evidence": {
+          "status": 200,
+          "url": "http://127.0.0.1:11434/api/tags",
+          "body": {
+            "models": [
+              {
+                "name": "qwen3.5:9b",
+                "model": "qwen3.5:9b",
+                "modified_at": "2026-08-17T14:28:04.9046441+07:00",
+                "size": 6594474711,
+                "digest": "6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7",
+                "details": {
+                  "parent_model": "",
+                  "format": "gguf",
+                  "family": "qwen35",
+                  "families": [
+                    "qwen35"
+                  ],
+                  "parameter_size": "9.7B",
+                  "quantization_level": "Q4_K_M",
+                  "context_length": 262144,
+                  "embedding_length": 4096
+                },
+                "capabilities": [
+                  "vision",
+                  "completion",
+                  "tools",
+                  "thinking"
+                ]
+              },
+              {
+                "name": "muse-glimmer:30b",
+                "model": "muse-glimmer:30b",
+                "modified_at": "2026-08-17T14:25:58.4549848+07:00",
+                "size": 18157010252,
+                "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+                "details": {
+                  "parent_model": "muse-glimmer:30b-q4_K_M",
+                  "format": "gguf",
+                  "family": "muse-glimmer",
+                  "families": [
+                    "muse-glimmer"
+                  ],
+                  "parameter_size": "27.9B",
+                  "quantization_level": "Q4_K_M",
+                  "context_length": 131072,
+                  "embedding_length": 6656
+                },
+                "capabilities": [
+                  "completion",
+                  "tools",
+                  "thinking",
+                  "vision"
+                ]
+              },
+              {
+                "name": "qwen3.6:27b",
+                "model": "qwen3.6:27b",
+                "modified_at": "2026-08-17T13:01:06.6994976+07:00",
+                "size": 17420432739,
+                "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+                "details": {
+                  "parent_model": "",
+                  "format": "gguf",
+                  "family": "qwen35",
+                  "families": [
+                    "qwen35"
+                  ],
+                  "parameter_size": "27.8B",
+                  "quantization_level": "Q4_K_M",
+                  "context_length": 262144,
+                  "embedding_length": 5120
+                },
+                "capabilities": [
+                  "vision",
+                  "completion",
+                  "tools",
+                  "thinking"
+                ]
+              },
+              {
+                "name": "qwen3.8:27b",
+                "model": "qwen3.8:27b",
+                "modified_at": "2026-08-16T03:00:45.4352331+07:00",
+                "size": 17741872154,
+                "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+                "details": {
+                  "parent_model": "qwen3.8:27b-q4_K_M",
+                  "format": "gguf",
+                  "family": "qwen35",
+                  "families": [
+                    "qwen35"
+                  ],
+                  "parameter_size": "27.3B",
+                  "quantization_level": "Q4_K_M",
+                  "context_length": 262144,
+                  "embedding_length": 5120
+                },
+                "capabilities": [
+                  "completion",
+                  "tools",
+                  "thinking",
+                  "vision"
+                ]
+              }
+            ]
+          }
+        },
+        "selected": true
+      }
+    }
+  }
+}
+CogentNexus-OpenClaw v0.9.3 installation completed successfully.
+Control it with: C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd status|check|provider|start|stop|restart|gateway|ticket|session|policy|disable|enable|reset|uninstall

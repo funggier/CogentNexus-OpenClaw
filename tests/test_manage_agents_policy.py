@@ -5,7 +5,7 @@ import unittest
 from scripts.manage_agents_policy import BEGIN, END, install, merge
 
 
-POLICY = "## CogentNexus\n\nUse it for every request."
+POLICY = "## CogentNexus-OpenClaw\n\nUse it for every request."
 
 
 class ManageAgentsPolicyTests(unittest.TestCase):

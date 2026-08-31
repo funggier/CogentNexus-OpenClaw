@@ -17,7 +17,7 @@ artifact หรือ validator ภายในอาจตรวจเพีย
 - timeout รวม
 - จำนวน turn หรือจำนวนครั้งที่อนุญาตให้กลับมาทำงานต่อ
 - tools และสิทธิ์เขียนไฟล์/รันคำสั่งที่เปิดให้ใช้
-- ใช้ CogentNexus หรือกลไก orchestration อื่นหรือไม่
+- ใช้ CogentNexus-OpenClaw หรือกลไก orchestration อื่นหรือไม่
 - วันเวลาและ platform ที่ทดสอบ
 
 ห้ามเปรียบเทียบคะแนนของสองรอบโดยไม่เปิดเผยเงื่อนไขเหล่านี้ เพราะความสามารถของ
@@ -123,7 +123,7 @@ artifact extraction, write-scope enforcement หรือ validation แล้�
 ```text
 Model:
 Harness:
-CogentNexus: yes/no
+CogentNexus-OpenClaw: yes/no
 Context / token limit:
 Timeout / turns:
 Platform:
@@ -153,10 +153,10 @@ Notes:
 2. `ASSISTED PASS`: ผ่านหลังคนให้ข้อมูลหรือแก้ไขระหว่างทาง
 3. `FAIL/INCOMPLETE`: validator ไม่ผ่านหรือหมดเวลาก่อนสร้างหลักฐานครบ
 
-## 7. การเปรียบเทียบแบบมีและไม่มี CogentNexus
+## 7. การเปรียบเทียบแบบมีและไม่มี CogentNexus-OpenClaw
 
 ใช้ prompt, model, context limit, timeout, tools และเครื่องเดียวกัน เปลี่ยนเฉพาะ
-การเปิดใช้ CogentNexus จากนั้นเริ่มด้วย submission ว่างคนละโฟลเดอร์ ควรรันอย่าง
+การเปิดใช้ CogentNexus-OpenClaw จากนั้นเริ่มด้วย submission ว่างคนละโฟลเดอร์ ควรรันอย่าง
 น้อยสามรอบต่อเงื่อนไขและรายงานทั้งอัตราผ่าน เวลา และจำนวน repair ไม่ควรเลือก
 รายงานเฉพาะรอบที่ดีที่สุด
 

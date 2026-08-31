@@ -1,0 +1,105 @@
+name: Windows Installer Pack Smoke
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  npm-pack:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
+      - name: Pin npm 12 production shape
+        shell: powershell
+        run: |
+          npm install --global npm@12.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'failed to install npm 12.0.2' }
+          $npmVersion = (& npm --version | Out-String).Trim()
+          if ($npmVersion -ne '12.0.2') { throw "expected npm 12.0.2, got $npmVersion" }
+      - name: Install plugin development dependencies
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm ci
+      - name: Build and validate plugin before packing
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm run plugin:validate
+      - name: Verify installer uses npm12-safe local archive path
+        shell: powershell
+        run: |
+          $source = Get-Content scripts/install.ps1 -Raw
+          if (-not $source.Contains('openclaw plugins install $packagePath --force')) {
+            throw 'Windows installer is not using the plain local archive install path.'
+          }
+          if ($source.Contains('openclaw plugins install ("npm-pack:" + $packagePath) --force')) {
+            throw 'Windows installer still uses the OpenClaw npm-pack metadata path that is incompatible with npm 12.'
+          }
+          if ($source.Contains('openclaw plugins install . --force')) {
+            throw 'Windows installer still contains the managed checkout-copy install path.'
+          }
+      - name: Build and inspect the exact Windows npm 12 pack artifact
+        shell: powershell
+        working-directory: plugins/cogentnexus-openclaw
+        run: |
+          $packOutput = (& npm pack --json | Out-String)
+          if ($LASTEXITCODE -ne 0) { throw 'npm pack failed' }
+
+          $packed = $packOutput | ConvertFrom-Json
+          if ($packed -is [array]) {
+            throw 'npm 12 unexpectedly returned the legacy array-shaped pack metadata'
+          }
+          $properties = @($packed.PSObject.Properties)
+          if ($properties.Count -ne 1 -or -not $properties[0].Value.filename) {
+            throw 'npm 12 did not return the expected single keyed package metadata object'
+          }
+
+          $repoRoot = (Resolve-Path ..\..).Path
+          . (Join-Path $repoRoot 'scripts\resolve-npm-pack-artifact.ps1')
+          $packedArtifact = Resolve-NpmPackArtifact -PackJson $packOutput -PluginDir (Get-Location).Path
+          $artifact = [string]$packedArtifact.path
+          if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) {
+            throw "resolved npm pack artifact not found: $artifact"
+          }
+          try {
+            $entries = @(
+              tar -tf $artifact |
+                ForEach-Object { ([string]$_ -replace '\\','/').TrimStart('.', '/') }
+            )
+            if ($LASTEXITCODE -ne 0) { throw 'failed to list npm-pack artifact' }
+
+            $required = @(
+              'dist/v091-release-entry.js',
+              'scripts/bootstrap-ticket-db.mjs',
+              'openclaw.plugin.json',
+              'README.md'
+            )
+            foreach ($requiredPath in $required) {
+              $match = @($entries | Where-Object {
+                $_ -eq $requiredPath -or $_.EndsWith('/' + $requiredPath)
+              })
+              if ($match.Count -eq 0) {
+                Write-Host 'Archive entries:'
+                $entries | ForEach-Object { Write-Host "  $_" }
+                throw "npm-pack artifact missing $requiredPath"
+              }
+            }
+            if ($entries | Where-Object { $_ -match '(^|/)node_modules/' }) {
+              throw 'npm-pack artifact unexpectedly contains node_modules'
+            }
+            if ($entries | Where-Object { $_ -match 'node_modules/openclaw' }) {
+              throw 'npm-pack artifact unexpectedly contains the OpenClaw peer link'
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $artifact -Force -ErrorAction SilentlyContinue
+          }

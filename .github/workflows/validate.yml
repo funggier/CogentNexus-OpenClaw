@@ -21,63 +21,261 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+      - name: Verify CogentNexus-OpenClaw namespace isolation
+        run: python scripts/check_namespace_isolation.py
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
-          cache-dependency-path: plugins/cogentnexus-rotation/package-lock.json
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
       - run: python -m pip install -r requirements-dev.txt
       - run: python scripts/check_baseline_consistency.py
-      - run: python skills/cogentnexus/scripts/validate.py --workspace-singleton
-      - run: python skills/cogentnexus/scripts/cogent.py self-test
-      - run: python skills/cogentnexus/scripts/runtime.py self-test
+      - run: python skills/cogentnexus-openclaw/scripts/validate.py --workspace-singleton
+      - run: python skills/cogentnexus-openclaw/scripts/cogent.py self-test
+      - run: python skills/cogentnexus-openclaw/scripts/runtime.py self-test
       - name: Workflow self-test
         if: runner.os != 'Windows'
-        run: python skills/cogentnexus/scripts/workflow.py self-test
+        run: python skills/cogentnexus-openclaw/scripts/workflow.py self-test
       - name: Workflow self-test on Windows with one teardown-race retry
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          python skills/cogentnexus/scripts/workflow.py self-test
+          python skills/cogentnexus-openclaw/scripts/workflow.py self-test
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "Workflow self-test hit the known detached-controller teardown race; retrying once."
-            python skills/cogentnexus/scripts/workflow.py self-test
+            python skills/cogentnexus-openclaw/scripts/workflow.py self-test
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - run: python -m py_compile skills/cogentnexus/scripts/host.py skills/cogentnexus/scripts/startup.py
-      - run: python -m unittest discover -s tests -v
+      - run: >-
+          python -m py_compile
+          skills/cogentnexus-openclaw/scripts/host.py
+          skills/cogentnexus-openclaw/scripts/host_v091.py
+          skills/cogentnexus-openclaw/scripts/host_control.py
+          skills/cogentnexus-openclaw/scripts/host_control_v091.py
+          skills/cogentnexus-openclaw/scripts/lifecycle_v091.py
+          skills/cogentnexus-openclaw/scripts/startup.py
+          skills/cogentnexus-openclaw/scripts/startup_v091.py
+          skills/cogentnexus-openclaw/scripts/provider.py
+          skills/cogentnexus-openclaw/scripts/checks.py
+          skills/cogentnexus-openclaw/scripts/checks_v092.py
+          skills/cogentnexus-openclaw/scripts/cnxclaw.py
+          skills/cogentnexus-openclaw/scripts/openclaw_route_v092.py
+          skills/cogentnexus-openclaw/scripts/openclaw_runtime_boundary_v092.py
+          skills/cogentnexus-openclaw/scripts/provider_events_v092.py
+          skills/cogentnexus-openclaw/scripts/provider_recovery_v092.py
+          skills/cogentnexus-openclaw/scripts/host_provider_v092.py
+          skills/cogentnexus-openclaw/scripts/host_v092.py
+          skills/cogentnexus-openclaw/scripts/host_control_v092.py
+          skills/cogentnexus-openclaw/scripts/startup_v092.py
+          skills/cogentnexus-openclaw/scripts/lifecycle_v092.py
+          skills/cogentnexus-openclaw/scripts/namespace_ownership.py
+      - run: python -m pytest -q
       - run: python benchmarks/single-ai-hybrid-e2e/test_validator.py
       - name: Test plugin path migration helper
         shell: bash
         run: |
-          printf '["/tmp/cogentnexus-rotation","/tmp/keep"]' | \
-            python scripts/filter_plugin_paths.py --plugin-id cogentnexus-rotation | \
+          printf '["/tmp/cogentnexus-openclaw","/tmp/keep"]' | \
+            python scripts/filter_plugin_paths.py --plugin-id cogentnexus-openclaw | \
             python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
-      - name: Validate PowerShell installer syntax
+      - name: Validate Windows PowerShell script syntax
         if: runner.os == 'Windows'
-        shell: pwsh
+        shell: powershell
         run: |
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path scripts/install.ps1),
-            [ref]$tokens,
-            [ref]$errors
+          $files = @(
+            'scripts/install.ps1',
+            'scripts/accept-v092-windows.ps1',
+            'scripts/accept-v092-windows-ps51.ps1',
+            'scripts/invoke-root-process-exact.ps1'
           )
-          if ($errors.Count) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file),
+              [ref]$tokens,
+              [ref]$errors
+            )
+            if ($errors.Count) {
+              $errors | ForEach-Object { Write-Error "$file :: $_" }
+              exit 1
+            }
+          }
+      - name: Smoke-test Windows PowerShell 5.1 acceptance serializer
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\accept-v092-windows-ps51.ps1
+          -SerializerSelfTestOnly
+      - name: Smoke-test exact numeric root-process exit capture
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File .\scripts\invoke-root-process-exact.ps1 -SelfTest
       - name: Validate POSIX installer syntax
         if: runner.os != 'Windows'
         run: sh -n scripts/install.sh
       - run: npm ci
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm test
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm run evaluation
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm audit --omit=dev
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
       - run: npm run plugin:validate
-        working-directory: plugins/cogentnexus-rotation
+        working-directory: plugins/cogentnexus-openclaw
+
+  package-dry-run:
+    name: package dry-run (no publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Verify CogentNexus-OpenClaw v0.9.3 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          core=$(tr -d '\r\n' < VERSION)
+          package_version=$(node -p "require('./plugins/cogentnexus-openclaw/package.json').version")
+          manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-openclaw/openclaw.plugin.json')).version")
+          lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
+          test "$core" = "0.9.3"
+          test "$package_version" = "0.9.3"
+          test "$package_version" = "$manifest_version"
+          test "$package_version" = "$lock_version"
+          test "$package_version" = "$lock_root_version"
+          test -s docs/BASELINE.md
+          test -s docs/INSTALL.md
+          test -s docs/INSTALL.th.md
+          test -s docs/releases/v0.9.3.md
+      - name: Install plugin dependencies
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm ci
+      - name: Validate built plugin payload
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm run plugin:validate
+      - name: Compute payload-v2 identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/release"
+          mkdir -p "$out"
+          python skills/cogentnexus-openclaw/scripts/plugin_payload_identity.py \
+            --plugin-root plugins/cogentnexus-openclaw \
+            --version 0.9.3 > "$out/PAYLOAD_IDENTITY.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          target = Path(os.environ["RUNNER_TEMP"]) / "release" / "PAYLOAD_IDENTITY.json"
+          payload = json.loads(target.read_text(encoding="utf-8"))
+          assert payload["version"] == "0.9.3"
+          assert isinstance(payload["fileCount"], int) and payload["fileCount"] > 0
+          assert isinstance(payload["fingerprint"], str) and len(payload["fingerprint"]) == 64
+          print(json.dumps(payload, sort_keys=True))
+          PY
+      - name: Build and verify release archives without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="cogentnexus-openclaw-v0.9.3"
+          stage="$RUNNER_TEMP/$name"
+          out="$RUNNER_TEMP/release"
+          required=(
+            "plugins/cogentnexus-openclaw/dist/v091-release-entry.js"
+            "plugins/cogentnexus-openclaw/scripts/bootstrap-ticket-db.mjs"
+            "plugins/cogentnexus-openclaw/openclaw.plugin.json"
+            "plugins/cogentnexus-openclaw/README.md"
+            "plugins/cogentnexus-openclaw/package.json"
+          )
+          mkdir -p "$stage" "$out"
+          rsync -a --exclude '.git/' --exclude '.cogentnexus-openclaw/' --exclude 'node_modules/' ./ "$stage/"
+          for rel in "${required[@]}"; do
+            test -f "$stage/$rel"
+          done
+          tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
+          (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
+          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          (cd "$out" && sha256sum -c SHA256SUMS.txt)
+          tar -tzf "$out/$name.tar.gz" > "$out/tar-contents.txt"
+          unzip -Z1 "$out/$name.zip" > "$out/zip-contents.txt"
+          for rel in "${required[@]}"; do
+            grep -Fx "$name/$rel" "$out/tar-contents.txt"
+            grep -Fx "$name/$rel" "$out/zip-contents.txt"
+          done
+          unzip -tq "$out/$name.zip"
+          test -s "$out/$name.tar.gz"
+          test -s "$out/$name.zip"
+          test -s "$out/SHA256SUMS.txt"
+      - name: Record exact package provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          out = Path(os.environ["RUNNER_TEMP"]) / "release"
+          identity = json.loads((out / "PAYLOAD_IDENTITY.json").read_text(encoding="utf-8"))
+          source_sha = os.environ["GITHUB_SHA"]
+          package_version = Path("VERSION").read_text(encoding="utf-8").strip()
+          if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+              raise SystemExit("GITHUB_SHA is not an exact 40-hex source commit")
+          if package_version != "0.9.3" or identity.get("version") != package_version:
+              raise SystemExit("package provenance version mismatch")
+          fingerprint = identity.get("fingerprint")
+          file_count = identity.get("fileCount")
+          if not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint):
+              raise SystemExit("payload-v2 fingerprint is not an exact SHA256")
+          if not isinstance(file_count, int) or file_count <= 0:
+              raise SystemExit("payload file count is invalid")
+
+          archive_sha256 = {}
+          for line in (out / "SHA256SUMS.txt").read_text(encoding="utf-8").splitlines():
+              digest, filename = line.split(maxsplit=1)
+              filename = filename.lstrip("*")
+              if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                  raise SystemExit(f"invalid archive SHA256 for {filename}")
+              archive_sha256[filename] = digest
+          expected = {
+              "cogentnexus-openclaw-v0.9.3.tar.gz",
+              "cogentnexus-openclaw-v0.9.3.zip",
+          }
+          if set(archive_sha256) != expected:
+              raise SystemExit("archive SHA256 set is incomplete")
+
+          provenance = {
+              "sourceCommit": source_sha,
+              "packageVersion": package_version,
+              "payloadV2Fingerprint": fingerprint,
+              "payloadFileCount": file_count,
+              "archiveSha256": {
+                  name: archive_sha256[name] for name in sorted(archive_sha256)
+              },
+          }
+          target = out / "PACKAGE_IDENTITY.json"
+          target.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(target.read_text(encoding="utf-8"), end="")
+          PY
+          test -s "$RUNNER_TEMP/release/PACKAGE_IDENTITY.json"
+      - name: Retain package proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: cogentnexus-openclaw-v0.9.3-package-proof-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 14

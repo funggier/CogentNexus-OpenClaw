@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST_PATH = ROOT / "skills" / "cogentnexus" / "scripts" / "host.py"
+HOST_PATH = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host.py"
 
 spec = importlib.util.spec_from_file_location("cnx_host_windows_test", HOST_PATH)
 host = importlib.util.module_from_spec(spec)

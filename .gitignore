@@ -1,5 +1,5 @@
-# CogentNexus runtime state
-.cogent/
+# CogentNexus-OpenClaw runtime state
+.cogentnexus-openclaw/
 memory/
 *.lock
 *.log

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run CogentNexus-OpenClaw supervisor every minute
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=1m
+Persistent=true
+RandomizedDelaySec=15s
+Unit=cogentnexus-openclaw-supervisor.service
+
+[Install]
+WantedBy=timers.target

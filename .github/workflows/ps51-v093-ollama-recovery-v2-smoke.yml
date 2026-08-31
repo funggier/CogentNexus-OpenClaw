@@ -1,0 +1,80 @@
+name: PS5.1 v0.9.3 Ollama Recovery V2 Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/test-v093-ollama-recovery-windows-v2.ps1'
+      - '.github/workflows/ps51-v093-ollama-recovery-v2-smoke.yml'
+  push:
+    branches:
+      - 'agent/v0.9.3-recovery-reality-tests'
+    paths:
+      - 'scripts/test-v093-ollama-recovery-windows-v2.ps1'
+      - '.github/workflows/ps51-v093-ollama-recovery-v2-smoke.yml'
+
+jobs:
+  ps51-v2-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = '.\scripts\test-v093-ollama-recovery-windows-v2.ps1'
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Host
+            throw 'PowerShell parser errors detected.'
+          }
+
+      - name: Load harness SyntaxOnly
+        shell: powershell
+        run: |
+          .\scripts\test-v093-ollama-recovery-windows-v2.ps1 -SyntaxOnly
+
+      - name: Assert corrected command argument plumbing
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $text = Get-Content '.\scripts\test-v093-ollama-recovery-windows-v2.ps1' -Raw
+          foreach ($required in @(
+            '[string[]]$CommandArgs',
+            '-CommandArgs @(''status'')',
+            'requestedArguments=$argsCopy',
+            "@argsCopy"
+          )) {
+            if (-not $text.Contains($required)) {
+              throw "Missing v2 argument-plumbing invariant: $required"
+            }
+          }
+          if ($text -match 'param\([^\)]*\$Args') {
+            throw 'Harness v2 must not declare a parameter named $Args.'
+          }
+          Write-Host 'v2 argument plumbing invariants: PASS'
+
+      - name: Assert process safety contract
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $text = Get-Content '.\scripts\test-v093-ollama-recovery-windows-v2.ps1' -Raw
+          foreach ($required in @(
+            'Stop-Process -Id ([int]$target.pid) -Force',
+            'process trees are never killed',
+            'firefox.exe',
+            'explorer.exe',
+            'windowsterminal.exe',
+            'openconsole.exe',
+            'harness ancestor'
+          )) {
+            if (-not $text.Contains($required)) {
+              throw "Missing process-safety invariant: $required"
+            }
+          }
+          if ($text -match 'taskkill(\.exe)?\s+.*\/T') {
+            throw 'Process-tree kill is forbidden.'
+          }
+          Write-Host 'v2 process safety invariants: PASS'

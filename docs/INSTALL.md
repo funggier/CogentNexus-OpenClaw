@@ -1,308 +1,162 @@
-# CogentNexus installation guide
+# Install CogentNexus-OpenClaw v0.9.3
 
-CogentNexus v0.8 installs as a **durable Host-managed control layer for OpenClaw**. A normal managed installation configures Ticket-first intake, deterministic recovery supervision, lifecycle control, delivery receipts, post-compaction continuation, and the OpenClaw bridge required to resume accepted work after interruption.
+CogentNexus-OpenClaw v0.9.3 targets OpenClaw `2026.7.1-2 (0790d9f)` and manages **Ollama only** at the current runtime/operator boundary.
 
-For a detailed Windows walkthrough in Thai, see [INSTALL.th.md](INSTALL.th.md). After installation, use [CONTINUITY_TESTS.th.md](CONTINUITY_TESTS.th.md) to verify partial-reply, compaction, Gateway-restart, and reboot recovery end to end.
+The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Task 188 subsequently corrected current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files and the installed skill-tree identity is `a1e873ba404205507a1623961b49f1b1a0689f9f`.
+
+Publication or installation claims must always be tied to an exact reviewed candidate/release artifact. GitHub Releases/tags are authoritative for whether v0.9.3 has been publicly published; a moving branch is not a release identity.
 
 ## Requirements
 
-- Python 3.10+
-- PyYAML 6.x
-- Node.js 22+
-- npm
-- OpenClaw
-- Git only when installing from a source clone
-- Ollama only when your OpenClaw provider is local Ollama
+- Windows 10/11 or Windows Server with PowerShell 5.1+;
+- OpenClaw installed and working;
+- OpenClaw `2026.7.1-2` for the validated compatibility baseline;
+- Python 3.11+ with PyYAML;
+- Node.js + npm.
 
-Tested baseline: OpenClaw 2026.7.1-2 or newer.
+These are installer prerequisites. Managed-provider readiness is verified after installation by the runtime checks, not by the installer prerequisite contract.
 
-## Recommended stable install
+## Development-candidate source install
 
-Use a versioned GitHub Release instead of `main` for a stable machine.
+Installation is performed from a reviewed source/archive through the repository installer. There is intentionally no `cnxclaw.cmd install` command.
 
-For v0.8.0 on PowerShell:
+From an exact reviewed checkout or extracted candidate archive on Windows:
 
 ```powershell
-$version = "v0.8.0"
-$base = "https://github.com/funggier/cogentnexus/releases/download/$version"
-Invoke-WebRequest "$base/cogentnexus-$version.zip" -OutFile "cogentnexus-$version.zip"
-Invoke-WebRequest "$base/SHA256SUMS.txt" -OutFile "SHA256SUMS.txt"
-
-$actual = (Get-FileHash ".\cogentnexus-v0.8.0.zip" -Algorithm SHA256).Hash.ToLower()
-$expected = ((Get-Content ".\SHA256SUMS.txt" | Select-String "cogentnexus-v0.8.0.zip") -split "\s+")[0].ToLower()
-if ($actual -ne $expected) { throw "Release checksum mismatch" }
-
-Expand-Archive ".\cogentnexus-v0.8.0.zip" -DestinationPath ".\cogentnexus-v0.8.0" -Force
-cd .\cogentnexus-v0.8.0\cogentnexus-v0.8.0
 python -m pip install "PyYAML>=6.0,<7"
-.\scripts\install.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
-If PowerShell blocks the script, use a process-scoped policy only:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\install.ps1
-```
-
-## What the Windows installer does
-
-A normal Windows install:
-
-1. checks required commands and PyYAML;
-2. backs up an existing CogentNexus skill;
-3. installs and validates the skill;
-4. updates only the CogentNexus-managed block in workspace `AGENTS.md`;
-5. runs `npm ci`, builds and validates the OpenClaw bridge plugin;
-6. installs the plugin without disturbing unrelated plugin paths;
-7. creates `<workspace>\cnx.cmd`;
-8. initializes durable Host state under `<workspace>\.cogent`;
-9. enters MANAGED mode and enables Ticket-first settings;
-10. enables the OpenClaw conversation-hook access required for delivery receipts and successful-compaction guards;
-11. enables the hidden deterministic Host supervisor;
-12. starts/reconciles Gateway/provider state;
-13. verifies Gateway and supervisor health.
-
-The default workspace is `$HOME\.openclaw\workspace`.
-
-## Install from source
-
-```powershell
-git clone https://github.com/funggier/cogentnexus.git
-cd cogentnexus
-python -m pip install -r requirements-dev.txt
-.\scripts\install.ps1
-```
-
-POSIX:
+On POSIX systems:
 
 ```sh
-git clone https://github.com/funggier/cogentnexus.git
-cd cogentnexus
-python -m pip install -r requirements-dev.txt
-chmod +x scripts/install.sh
-./scripts/install.sh
+python -m pip install 'PyYAML>=6.0,<7'
+./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
-Windows is the primary Host-managed install path in v0.8. POSIX packaging remains supported, but platform startup adapters should be validated on the target machine before relying on unattended recovery.
+## What the installer does
 
-## Installer options
+The installer is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
 
-PowerShell:
+LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it. The v0.9.3 runtime/operator provider target is Ollama, but that selection/readiness responsibility is outside the installer prerequisite boundary.
 
-- `-Workspace PATH` — select a non-default OpenClaw workspace.
-- `-SkipPlugin` — do not install the OpenClaw bridge; this removes Ticket-first bridge, delivery-receipt, and post-compaction guarantees for new turns.
-- `-SkipGatewayRestart` — install files/config but leave runtime lifecycle untouched; run `cnx enable` later.
-- `-SkipAgentsPolicy` — do not install the managed workspace policy.
-- `-LinkPlugin` — development mode; link plugin working tree instead of copying it.
+## Artifact identity and acceptance lineage
 
-Use skip options only when you understand which managed guarantees they remove.
+The full Windows acceptance sequence completed first on this exact implementation baseline:
 
-## First verification
+```text
+source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
+active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
+installed plugin inventory fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+OpenClaw: 2026.7.1-2 (0790d9f)
+managed provider: ollama
+```
 
-After installation:
+Task 188 corrected documentation-bearing product bytes while preserving executable/runtime source. The corrected artifact identities are:
+
+```text
+package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
+package file count: 184
+installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
+executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f (unchanged)
+facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
+```
+
+Because the package/skill bytes changed, the corrected artifact requires proportional changed-surface requalification before publication. This does not erase the earlier lifecycle evidence; it preserves that evidence for unchanged executable surfaces while independently qualifying the changed installed documentation/instruction surface.
+
+## Runtime/provider readiness after installation
+
+The v0.9.3 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
+
+From the OpenClaw workspace:
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
-.\cnx.cmd status
-openclaw gateway status
+.\cnxclaw.cmd status
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd check provider
+.\cnxclaw.cmd check provider ollama
 ```
 
-Expected Host state includes:
+Expected managed readiness includes:
+
+- controller mode `managed`;
+- managed provider Ollama;
+- Ollama installed/reachable;
+- Gateway healthy;
+- CogentNexus-OpenClaw plugin enabled/loaded;
+- Ticket database readable and integrity-valid;
+- no unexpected recovery/outbox backlog on an idle system.
+
+Every `check` command is read-only and must not mutate lifecycle/configuration/Ticket state.
+
+## Everyday lifecycle
+
+```powershell
+.\cnxclaw.cmd status
+.\cnxclaw.cmd provider list
+.\cnxclaw.cmd check system
+.\cnxclaw.cmd start
+.\cnxclaw.cmd start --provider ollama
+.\cnxclaw.cmd stop
+.\cnxclaw.cmd restart
+.\cnxclaw.cmd restart --provider ollama
+.\cnxclaw.cmd disable
+.\cnxclaw.cmd enable
+```
+
+`disable` means native OpenClaw PASSTHROUGH. `stop` means deliberate CNXCLAW MAINTENANCE.
+
+## Reset to fresh-install state
+
+```powershell
+.\cnxclaw.cmd reset
+```
+
+Where supported, an explicit Ollama target may also be supplied:
+
+```powershell
+.\cnxclaw.cmd reset --provider ollama
+```
+
+`reset` is destructive and requires explicit `y` confirmation. It clears CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/configuration state and reconstructs fresh state from the currently installed candidate. It must not remove external OpenClaw, Ollama models/data, or unrelated workspace data.
+
+Task 183 accepted this boundary for the implementation baseline. Task 188 does not repeat this destructive boundary by default because the corrected files are documentation/instruction bytes; it repeats lifecycle acceptance only if changed-candidate evidence gives a concrete reason.
+
+## Completely uninstall CogentNexus-OpenClaw
+
+```powershell
+.\cnxclaw.cmd uninstall
+```
+
+`uninstall` is destructive and requires explicit `y` confirmation. It must return to native/PASSTHROUGH safely, remove only CogentNexus-OpenClaw-owned installation/runtime surfaces, and preserve external OpenClaw, Ollama, user data, and unrelated/future product namespaces.
+
+Task 184 accepted this external-preservation boundary for the implementation baseline; Task 185 then accepted fresh reinstall and post-install health.
+
+## Final semantic acceptance lineage
+
+Task 186 accepted one bounded Dashboard turn after the lifecycle sequence:
 
 ```text
-mode = managed
-desiredGateway = running
+1 human Send
+-> 1 Ticket
+-> 1 session/run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical Dashboard assistant result
 ```
 
-Then send a simple message such as `สวัสดีครับ` through your OpenClaw channel and inspect:
+No retry, duplicate semantic work, direct recovery, or outbox residue occurred. Because Task 188 changes the installed instruction surface, its proportional requalification includes one additional bounded semantic/durable-delivery turn before publication.
 
-```powershell
-.\cnx.cmd ticket list
-```
+## Published-release install
 
-The request should be durably accepted without forcing the conversational turn into a STAGED workflow. A visible reply is considered complete only after delivery settles; `agent_end(success=true)` alone is not the delivery receipt.
+When `v0.9.3` is present as a GitHub Release, consumer installation should use the exact assets generated and verified by `.github/workflows/release.yml`:
 
-## Verify delivery and compaction continuity
+- `cogentnexus-openclaw-v0.9.3.tar.gz`
+- `cogentnexus-openclaw-v0.9.3.zip`
+- `SHA256SUMS.txt`
 
-After the basic greeting works, follow [CONTINUITY_TESTS.th.md](CONTINUITY_TESTS.th.md).
+Verify the archive checksum from `SHA256SUMS.txt`, extract the archive, then run the installer from that exact extracted release tree. If the GitHub Release/tag is absent, use an explicitly reviewed exact candidate instead of inventing or guessing release download URLs.
 
-The two highest-value tests are:
-
-1. start a long reply, interrupt the Gateway after some text is visible, and verify that the response-ready Ticket is not silently completed without `delivery_confirmed_at`;
-2. allow/force a long managed task to cross a successful history compaction boundary and verify that unfinished durable work continues without requiring the user to type “continue”.
-
-The expected model is:
-
-```text
-execution succeeds
- -> RESPONSE_READY
- -> final delivery settles
- -> DELIVERY_CONFIRMED
- -> COMPLETED
-```
-
-and:
-
-```text
-successful compaction
- -> inspect durable session work
- -> no work: nothing scheduled
- -> work remains: one delayed idempotent continuation guard
-```
-
-## Lifecycle commands
-
-```powershell
-.\cnx.cmd start
-.\cnx.cmd stop
-.\cnx.cmd restart
-.\cnx.cmd gateway start
-.\cnx.cmd gateway stop
-.\cnx.cmd gateway restart
-```
-
-Semantics:
-
-- `start` -> MANAGED/running, reconcile health and resume eligible committed work.
-- `stop` -> MAINTENANCE/stopped, so the supervisor does not fight an intentional stop.
-- `restart` -> preserve MANAGED intent, restart, verify, then recover eligible work.
-- `gateway ...` -> control only Gateway while preserving Host ownership semantics.
-
-## Disable CogentNexus without disabling OpenClaw
-
-```powershell
-.\cnx.cmd disable
-```
-
-This enters PASSTHROUGH mode. CogentNexus disables its startup ownership, removes the managed workspace block, disables the bridge plugin, and restarts/starts native OpenClaw. Durable CogentNexus state is preserved.
-
-Verify:
-
-```powershell
-.\cnx.cmd status
-```
-
-Expected:
-
-```text
-mode = passthrough
-```
-
-OpenClaw should remain normally usable. Because the bridge is disabled in PASSTHROUGH, CogentNexus delivery and post-compaction guards no longer intercept new turns.
-
-Return to managed operation:
-
-```powershell
-.\cnx.cmd enable
-```
-
-## Cancel work
-
-List Tickets:
-
-```powershell
-.\cnx.cmd ticket list
-```
-
-Cancel one Ticket:
-
-```powershell
-.\cnx.cmd ticket cancel <ticket-id> --reason "cancelled by operator"
-```
-
-Cancel all non-terminal Tickets for a session:
-
-```powershell
-.\cnx.cmd session cancel "<session-key>" --reason "session cancelled by operator"
-```
-
-Cancellation is terminal and recovery must not resurrect cancelled work.
-
-## Reboot recovery
-
-When Host desired state is MANAGED/running and automatic startup is enabled, the OS launches the deterministic supervisor after startup/logon. The Host then reads persisted state, reconciles Gateway/provider health, identifies stale leases, and resumes only eligible non-terminal work.
-
-If a response is already durably `RESPONSE_READY` but delivery was not confirmed, recovery should retry/progress delivery rather than treating the reply as completed or blindly recomputing external side effects.
-
-This architecture does not protect against physical storage loss/corruption or messages that never reached the durable acceptance boundary.
-
-## Upgrading
-
-For a stable system:
-
-1. download the new versioned release;
-2. verify SHA256;
-3. extract to a new directory;
-4. rerun the installer.
-
-The installer backs up installed skill/policy files and preserves runtime data under the workspace `.cogent` directory.
-
-Do not delete `.cogent` if you want to preserve Tickets, workflows, checkpoints, response/delivery state, and evidence.
-
-## Troubleshooting
-
-### OpenClaw must work without CogentNexus
-
-```powershell
-.\cnx.cmd disable
-```
-
-### Gateway was intentionally stopped but keeps coming back
-
-Use:
-
-```powershell
-.\cnx.cmd stop
-```
-
-instead of killing the process without persisting MAINTENANCE intent.
-
-### A message appears stuck or only part of the answer was displayed
-
-Do not immediately resubmit it. Check:
-
-```powershell
-.\cnx.cmd status
-.\cnx.cmd ticket list
-```
-
-A committed non-terminal or response-ready Ticket may already be waiting for delivery receipt/recovery. Sending the same request again can create avoidable duplicate work.
-
-### Work stopped after successful history compaction
-
-Do not immediately type the full request again. The managed bridge should schedule the idempotent post-compaction continuation when durable session work remains. Check Ticket/workflow state first and use the continuity test guide to collect the relevant evidence.
-
-### `openclaw` not found
-
-```powershell
-where.exe openclaw
-openclaw --version
-```
-
-Fix the OpenClaw installation/PATH before retrying CogentNexus.
-
-### PyYAML missing
-
-```powershell
-python -m pip install "PyYAML>=6.0,<7"
-```
-
-### Plugin validation fails
-
-Ensure Node.js 22+ is active, then from `plugins\cogentnexus-rotation` run:
-
-```powershell
-npm ci
-npm run plugin:validate
-```
-
-### Gateway unhealthy
-
-```powershell
-openclaw gateway status
-openclaw status
-.\cnx.cmd restart
-```
-
-Use the log path reported by OpenClaw to diagnose provider/Gateway failures that persist after managed restart.
+See [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md), and [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md).

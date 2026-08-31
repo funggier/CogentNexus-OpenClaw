@@ -1,102 +1,202 @@
 # Transient Model-Call Stall Recovery
 
-CogentNexus is designed to preserve accepted user intent across transient failures that may disappear on a retry.
+CogentNexus-OpenClaw treats a transient model-call stall as a continuity problem, not as automatic proof that a provider, model, or tool is permanently defective.
 
-One practical failure mode is a **model call that starts but stops making observable progress**. Native OpenClaw testing on 2026-08-21 demonstrated that this behavior can be nondeterministic: with the same configuration, provider, model, and tool policy, one run can stall until OpenClaw interrupts it while a later run succeeds without changing configuration or restarting the provider.
+A run can start normally, stop making user-visible/model-stream progress, and later fail at a watchdog or interruption boundary while an equivalent later run succeeds without changing the provider configuration. Ticket-first durability matters because the accepted user intent can survive that failed inference attempt. Recovery is then bounded by durable evidence:
 
-This observation does **not** establish that a specific provider, model, or OpenClaw tool is universally defective. It establishes a continuity problem: a transient inference stall can otherwise force the user to notice the failure and manually repeat the original request.
+- if inference is confirmed interrupted and no durable result or protected external side-effect receipt exists, recovery may resume/retry the same committed Ticket within policy;
+- if response content is already durable, recovery retries delivery only and must not regenerate completed work;
+- if an external side effect may already have happened, retry requires idempotency, receipt, checkpoint, or read-after-write evidence;
+- elapsed silence alone is never sufficient authority to restart a healthy provider or launch duplicate inference.
 
-## Observed failure shape
+This file also preserves the historical v0.9.2 live LM Studio evidence that motivated the event-driven recovery model. v0.9.3 currently manages Ollama only; the LM Studio observations below remain technical history rather than a current provider-management promise.
 
-A representative native failure looked like this conceptually:
+## Historical live LM Studio evidence
 
-```text
-user request
-   -> model_call started
-   -> no model-call progress
-   -> long-running diagnostic
-   -> stalled_agent_run
-   -> watchdog / interrupt
+Native Windows testing with OpenClaw `2026.7.1-2`, LM Studio, Qwen3.5:9B and real OpenClaw tool schemas established this sequence:
+
+1. OpenClaw opened the OpenAI-compatible `/v1/chat/completions` request successfully.
+2. LM Studio returned HTTP 200/SSE and kept its backend alive.
+3. llama.cpp runtime logs showed prompt processing progressing through roughly 17%, 35%, 52%, 70% and 87%.
+4. No generated token was available yet, so the OpenAI-compatible stream exposed no prompt-progress event to OpenClaw.
+5. OpenClaw's default stuck-session boundary aborted the client connection at about 360 seconds.
+6. LM Studio observed the client disconnect and only then cancelled the still-running inference.
+7. Repeating the same cold test with a wider watchdog allowed the request to finish successfully at roughly 469 seconds wall time.
+
+Therefore:
+
+> `active_model_call_without_progress` is not sufficient evidence that the provider is hung.
+
+Silence can mean valid cold prompt processing whose progress is hidden by the OpenAI-compatible stream.
+
+## Tool-surface evidence
+
+After applying the historical LM Studio llama.cpp schema compatibility profile:
+
+```json
+{
+  "unsupportedToolSchemaKeywords": ["pattern", "maxLength"]
+}
 ```
 
-In the controlled tests, stalled runs reached the OpenClaw watchdog boundary at roughly six minutes, while an identical later retry could complete successfully.
+all of these model-facing schema surfaces completed successfully with a sufficient request envelope:
 
-The same test campaign also showed that tool-schema composition can change latency or success behavior in non-monotonic ways. A smaller tool set is therefore not guaranteed to fail or succeed solely because it is smaller, and a single PASS/FAIL is not sufficient evidence to blame one tool.
+- minimal;
+- `cron`;
+- `image_generate`;
+- `cron + image_generate`;
+- full OpenClaw `coding` profile (26 tools in the observed run).
 
-## Why Ticket-first continuity matters
+The full coding surface also exposed the independent `agents.defaults.timeoutSeconds` boundary: a valid request can outlive the default agent timeout even after provider/stuck-watchdog tuning.
 
-In MANAGED mode, CogentNexus can durably accept an eligible user message as a Ticket before inference. The original intent therefore survives the lifetime of a single OpenClaw/model call.
+## Event hierarchy
 
-Conceptually:
-
-```text
-receive message
-   -> commit Ticket
-   -> begin inference
-   -> inference stalls
-   -> classify interruption from durable/observable evidence
-   -> recover the same eligible Ticket within bounded retry policy
-   -> commit durable result
-   -> deliver
-```
-
-The important property is not simply "retry on timeout". Recovery is constrained by durable state.
-
-## Recovery boundaries
-
-CogentNexus must distinguish three materially different cases.
-
-### 1. Inference stalled and no durable result exists
-
-If the run is confirmed stalled, the Ticket is still eligible, no durable response/result has been committed, and no protected external side effect has already been performed, bounded recovery may retry inference for the **same committed Ticket**.
-
-A transient provider/model stall is therefore a recovery candidate, not proof that the provider is permanently offline.
-
-### 2. Durable result already exists, but delivery is incomplete or unconfirmed
-
-Once completed response content is durable, recovery must **not rerun inference merely because delivery failed**.
-
-Instead:
+Recovery decisions are ordered by evidence strength:
 
 ```text
-durable result exists
-   -> retry delivery / redelivery
-   -> do not regenerate completed work
+model/provider success event
+    -> close current incident
+
+provider prompt progress
+    -> proof of life
+    -> destructive recovery forbidden
+
+provider process/endpoint failure event
+    -> open provider incident
+    -> bounded recovery authority
+
+HTTP 4xx / schema / grammar rejection
+    -> provider_protocol_error
+    -> non-retryable, no provider restart
+
+elapsed model-call deadline with healthy provider + healthy Gateway
+    -> observation checkpoint only
+    -> wait for event evidence
+    -> no restart, no re-inference
 ```
 
-This is the purpose of the Delivery Commit Gate and Direct Recovery Guard.
+## Historical provider event adapter
 
-### 3. External side effects may already have happened
-
-Consequential actions cannot be repeated blindly. Recovery must use idempotency, receipts, checkpoints, or read-after-write evidence before deciding whether any external action may be retried.
-
-A timeout or missing UI reply is never sufficient evidence that an external side effect did not occur.
-
-## What CogentNexus does not claim
-
-CogentNexus does not claim to:
-
-- make every model/provider/tool combination reliable;
-- diagnose every stall as a provider defect;
-- retry forever;
-- treat every interruption as permission to rerun inference;
-- repeat external side effects without evidence;
-- override intentional operator stop/maintenance state.
-
-Its role is to preserve durable intent and apply bounded recovery at the correct boundary so that a transient failure does not silently discard accepted work or cause completed work to be repeated.
-
-## Operational lesson
-
-A useful mental model is:
+LM Studio exposed prompt-prefill progress through a blocking runtime stream:
 
 ```text
-transient inference failure
-        +
-durable accepted intent
-        +
-evidence-aware bounded recovery
-        =
-continuity without blind duplication
+lms log stream --source runtime
 ```
 
-This is one of the practical reasons CogentNexus places deterministic Host/Ticket state outside the lifetime of OpenClaw and any individual LLM call.
+The v0.9.2 provider event adapter persisted observations such as:
+
+```text
+prompt_progress
+provider_dead
+provider_ready
+stable_success
+```
+
+`prompt_progress` was deliberately suppression-only evidence. A parser mistake could delay destructive recovery but could never authorize a restart or repeated inference.
+
+If the runtime stream ended, the adapter probed LM Studio. Only when the provider was actually unreachable did it publish `provider_dead` and wake the Host immediately. Periodic supervisor reconciliation remained a fallback for events that the external provider could not expose.
+
+## Failure classes
+
+### `provider_protocol_error`
+
+Examples:
+
+- deterministic HTTP 4xx before inference starts;
+- JSON-schema conversion failure;
+- llama.cpp grammar initialization failure.
+
+Policy:
+
+```text
+inference_started = false
+retryable = false
+provider_restart = false
+```
+
+Restarting a healthy provider does not repair a deterministic request-shape incompatibility.
+
+### `active_model_processing`
+
+Evidence:
+
+- provider endpoint is healthy;
+- Gateway is healthy;
+- Direct model call is still active;
+- provider runtime emitted prompt-progress evidence after that call started.
+
+Policy:
+
+```text
+recoveryEligible = false
+providerRestart = false
+```
+
+There is no duration threshold. Continued progress remains proof of life regardless of how long prompt processing takes.
+
+### `active_model_processing_unknown`
+
+Evidence:
+
+- provider endpoint is healthy;
+- Gateway is healthy;
+- Direct model call remains active;
+- no explicit provider/model failure event exists;
+- the old durable lease checkpoint has passed, but no observable prompt progress is available.
+
+Policy:
+
+```text
+recoveryEligible = false
+providerRestart = false
+wait_for_event_evidence = true
+```
+
+The deadline is not extended and does not become permission to recover. It is only the point at which CogentNexus-OpenClaw records that the call is silent/unknown and waits for stronger evidence.
+
+### `provider_dead` / `provider_unreachable`
+
+The selected provider process/endpoint is unavailable while MANAGED expects it to be running. Explicit failure evidence opens a durable provider incident and may authorize bounded recovery immediately.
+
+When such an event intersects an active Direct model call, the durable model-call lease can be made claimable at the failure-event timestamp so the accepted claim/quiesce/result-fence/recovery primitives can proceed without waiting for elapsed time alone.
+
+## Incident-based circuit breaker
+
+Automatic recovery is bounded per failure incident, not merely by a rolling time window. An incident opens from failure evidence and closes only when stronger success or explicit/manual transition evidence establishes a new stable generation.
+
+Historical v0.9.2 limits were provider-specific; v0.9.3 current operator/provider policy is Ollama-only and its accepted behavior is defined by the current runtime code and tests rather than the historical LM Studio table.
+
+## OpenClaw timeout boundary
+
+Timeout/watchdog values are request/runtime safety envelopes, not recovery authority. CogentNexus-OpenClaw recovery decisions remain evidence-driven. A long timeout may prevent premature interruption, but it does not prove that a silent call is healthy; conversely, crossing a timer does not prove that a healthy provider is dead.
+
+Historical LM Studio testing used widened provider/agent request envelopes to prove this distinction. Those exact LM Studio values are retained only in historical reports and should not be interpreted as current v0.9.3 operator configuration.
+
+## Durable-result boundary
+
+Once explicit failure evidence has made a call recovery-eligible, the accepted ordering remains:
+
+1. Host claims the model-call lease;
+2. Gateway/provider runtime is quiesced where required;
+3. delivery/result fences are reconciled while inference cannot race them;
+4. exactly one durable Direct-recovery authorization is written;
+5. runtime restarts/converges as required;
+6. the recovery worker consumes that authorization.
+
+The decisive rule is unchanged: **authority to enter recovery comes from durable/observable evidence, not elapsed time alone.**
+
+## Durable result exists
+
+If exact response text already exists durably, inference must not run again. Transport/delivery owns retry.
+
+## Response may have reached the user but exact durable payload is missing
+
+The system fails closed rather than regenerating text. Ambiguous UI visibility is not permission to infer again.
+
+## External side effect may already have happened
+
+A retry is permitted only when the external action has an idempotency/receipt/read-after-write contract proving repetition is safe. Provider recovery alone is never sufficient evidence.
+
+## Process exit is not success proof
+
+Live diagnostics produced cases where an OpenClaw CLI process returned exit code 0 while the inner agent result was an error/timeout. CogentNexus-OpenClaw therefore inspects durable/inner completion evidence instead of treating process exit or a top-level wrapper status as success proof.
