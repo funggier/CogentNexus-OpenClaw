@@ -21,13 +21,13 @@ The historical implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0
 
 Task 187 then stopped publication because stale current-facing documentation existed inside package/installed product surfaces. Task 188 corrected those documentation/instruction bytes and established the installed skill identity that remains current.
 
-The first proportional Dashboard requalification later exposed a narrow executable integration defect: a bare OpenClaw `NO_REPLY` silent sentinel could be staged by CogentNexus as durable visible content after delivery-marker decoration.
+The first proportional Dashboard requalification later exposed a narrow executable integration defect: a bare OpenClaw `NO_REPLY` silent sentinel could be staged by CogentNexus-OpenClaw as durable visible content after delivery-marker decoration.
 
 Task 191 repaired that boundary with TDD:
 
 - bare `NO_REPLY` / `no_reply` is fenced from durable visible staging;
 - a genuine direct Dashboard Ticket may request at most one same-run `before_agent_finalize` revision when the natural final is exactly the silent sentinel;
-- CogentNexus does not fabricate semantic answer content and does not create an external recovery run for that case.
+- CogentNexus-OpenClaw does not fabricate semantic answer content and does not create an external recovery run for that case.
 
 Task 192 then requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host with exactly one supported install-over and exactly one genuine human Dashboard Send.
 
