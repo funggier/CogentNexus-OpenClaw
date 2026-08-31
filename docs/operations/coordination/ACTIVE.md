@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_HERMES`
-Execution mode: `WINDOWS_TASK167_ACCEPTED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`
-Current authorization: `CNX-20260831-170_HERMES_WINDOWS_INSTALL_OVER_PROVENANCE_HEALTH`
-Task ID: `CNX-20260831-170`
+Execution mode: `WINDOWS_DASHBOARD_EXACTLY_ONE_SEND_DURABLE_DELIVERY_REACCEPTANCE_HERMES`
+Current authorization: `CNX-20260831-171_HERMES_DASHBOARD_EXACTLY_ONE_SEND_REACCEPTANCE`
+Task ID: `CNX-20260831-171`
 Updated: 2026-08-31 ICT
 Executor: Hermes/Codex
 Coordinator / final reviewer: ChatGPT
@@ -20,46 +20,42 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260831-170-hermes-windows-install-over-provenance-health.md`](tasks/CNX-20260831-170-hermes-windows-install-over-provenance-health.md)
+[`tasks/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md`](tasks/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md)
 
-Task 170 is the bounded Windows install-over/provenance/health checkpoint for the accepted Task-167 repair.
+Task 171 is the bounded live semantic durable-delivery reacceptance checkpoint.
 
-## Accepted frozen product candidate
+## Accepted installed checkpoint
 
-Exact repair SHA:
+Accepted product repair SHA:
 
 `231761fca24c315e90536955d3e384f55e2e232e`
 
-Disposition:
+Installed candidate fingerprint accepted by Task 170:
 
-`PASS — NATIVE_DELIVERY_STAGING_REPAIR_ACCEPTED`
+`e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 
-Pinned OpenClaw remains:
+Task-170 package SHA-256:
+
+`8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`
+
+Pinned OpenClaw:
 
 `0790d9f593ad30c940ed93b5872a8cf6d6f3cf8c` (`2026.7.1-2`).
 
-## Accepted validation
+Task-170 disposition:
 
-- Task 168 local/build/package/Python/evaluation verification: complete except for the then-cancelled Validate run.
-- Task 169 exact-SHA Validate rerun: `PASS`.
-- Validate run `33330458434`, attempt 2: `completed/success`, 7/7 jobs.
-- PS5.1 Acceptance Smoke `33330458475`: `success`.
-- Windows Installer Pack Smoke `33330458470`: `success`.
-
-Task-169 review:
-
-`reviews/CNX-20260831-169-hermes-task167-exact-sha-validate-rerun-review.md`
+`ACCEPTED_PASS — REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_PROVENANCE_HEALTH_ACCEPTED`
 
 ## Current gate
 
-Hermes/Codex must build/package from exact accepted SHA `231761f...`, record package SHA/fingerprint, perform exactly one supported Windows install-over, then independently prove installed fingerprint equality and healthy controller/Gateway/provider/plugin/recovery/delivery/storage state.
+Hermes/Codex must perform preflight against the accepted installed checkpoint, generate one unique nonce, issue exactly one Dashboard semantic Send, and then collect native transcript/durable delivery/Ticket/model/recovery/post-health evidence.
 
-No semantic Dashboard Send is authorized.
+After the Send is issued, retry is prohibited regardless of timeout, failure, missing evidence, or ambiguity.
 
 ## Hard fence
 
-Exactly one supported install-over only.
+Authorized: read-only preflight; exactly one Dashboard semantic Send; read-only post-action observation; Task-171 report publication.
 
-No second installer attempt; no uninstall/reinstall/reset; no Dashboard semantic Send or semantic input; no `chat.inject`; no intentional model inference/regeneration; no manual Ticket/result/outbox/delivery/database/transcript mutation; no OpenClaw/dependency upgrade; no production repair; no release/promotion; no default/release merge; no force push.
+Prohibited: second Send; `chat.inject`; alternate semantic surface; manual model/recovery invocation; installer/uninstall/reinstall/reset/rollback; runtime restart/lifecycle mutation; manual DB/Ticket/result/outbox/delivery/transcript mutation; production repair; OpenClaw/dependency upgrade; release/promotion; merge; force push.
 
-If install-over/provenance/health cannot be proven, report and stop. Task 170 does not authorize semantic reacceptance.
+If the experiment fails or remains unproven, preserve the state and report it. No successor action is authorized before ChatGPT review.
