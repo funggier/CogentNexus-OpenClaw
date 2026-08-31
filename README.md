@@ -8,19 +8,33 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 - **Core / Bridge version:** 0.9.3
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** **Ollama only**
-- **Previously accepted implementation candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`
+- **Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`
 - **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
-- **Task-188 package payload-v2 identity:** `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files
-- **Task-188 installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`
-- **Executable scripts tree:** unchanged from the accepted implementation baseline (`3d9d323ba19443d46e970b87cef52ce878da274f`)
+- **Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files
+- **Installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`
+- **Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`
+- **Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
 
-The v0.9.3 implementation completed the bounded real-Windows lifecycle/semantic acceptance sequence: install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and one final Dashboard semantic/durable-delivery turn. Task 188 subsequently corrected stale current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. Because those documentation bytes are part of product identity, publication is allowed only from an exact candidate that carries the corrected identities above and passes the proportional changed-surface requalification defined by Task 188.
+The v0.9.3 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
 
-Public release availability is authoritative on the repository's GitHub Releases/tags. A branch checkout by itself is never proof that a release has been published.
+Task 191 repaired that boundary with TDD. Task 192 then installed the exact repaired candidate on the accepted Windows host and proved the normal real-runtime shape:
+
+```text
+1 human Send
+-> 1 Ticket
+-> 1 logical OpenClaw run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical visible Dashboard assistant result
+```
+
+The accepted Task-192 turn returned the requested visible nonce on the first natural final, required no sentinel revision, created no duplicate or Direct Recovery row, left pending outbox at zero, and showed no bare `NO_REPLY` in durable/UI output.
+
+Public release availability is authoritative on GitHub Releases/tags. A branch checkout or this README is never proof that v0.9.3 has been published.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
 
-See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the exact accepted/deferred/publication boundary.
+See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the current acceptance/publication boundary.
 
 ## Architecture
 
@@ -71,7 +85,7 @@ CogentNexus-OpenClaw v0.9.3 manages **Ollama only**.
 .\cnxclaw.cmd check provider ollama
 ```
 
-LM Studio support belongs to the frozen v0.9.2 historical provider layer. v0.9.3 may retain compatibility code needed for migration or native restoration, but current operator-facing v0.9.3 commands do not select, start, stop, probe, or manage LM Studio.
+The installer itself remains provider-neutral. Historical LM Studio support belongs to the frozen v0.9.2 provider layer and may remain in compatibility/migration history, but current v0.9.3 operator commands do not manage LM Studio.
 
 See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
@@ -89,23 +103,29 @@ See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 - transient SQLite BUSY tolerance at the authority-read boundary;
 - recursive/self-intake suppression for recovery continuations;
 - response-ready immutability and one durable `direct_result`;
-- delivery confirmation and exactly-once-ish CNXCLAW delivery semantics;
+- delivery confirmation and duplicate suppression;
+- direct-Dashboard silent-sentinel fencing so bare `NO_REPLY` is never promoted into durable visible content;
+- at most one same-run OpenClaw finalization revision for the exact bounded sentinel case;
 - ticket/session cancellation and terminal fencing;
-- worker leases, generations, duplicate suppression, bounded retries, durable outboxes;
-- verified STAGED workflows, artifact hashes, validators, bounded repair and checkpoints;
+- worker leases, generations, bounded retries, durable outboxes, validators and checkpoints for staged work;
 - deterministic supervisor probes that perform no model inference.
 
-## Recovery boundary
+## Recovery and transient-stall boundary
 
-- model call interrupted and no durable result exists -> bounded inference recovery may be eligible;
+A model call may fail transiently even when the same provider/model/configuration later succeeds. CogentNexus treats this as a continuity problem rather than proof that a provider is permanently defective.
+
+- model call interrupted and no durable result exists -> bounded inference recovery may be eligible only from sufficient evidence;
 - durable result exists but delivery failed -> retry delivery only, never regenerate;
-- an external side effect may already have happened -> require idempotency/receipt/read-after-write evidence before doing anything again.
+- a model call is merely slow/silent while provider/Gateway remain healthy -> elapsed time alone is not recovery authority;
+- an external side effect may already have happened -> require idempotency/receipt/read-after-write evidence before repetition.
+
+See [Transient Model-Call Stall Recovery](docs/TRANSIENT_STALL_RECOVERY.md) for the observed failure shapes and evidence hierarchy.
 
 ## Installation status
 
 There is intentionally no `cnxclaw.cmd install` command. Installation is performed from a reviewed source/archive through the repository installer.
 
-For pre-publication or source-based validation, use an exact reviewed candidate rather than a moving branch. For a published release, use the exact release archive and verify it against `SHA256SUMS.txt`. The package payload and installed skill identities above distinguish the documentation-corrected v0.9.3 artifact from the earlier Windows-accepted implementation baseline while executable/runtime source remains unchanged.
+For pre-publication validation, use an exact reviewed candidate rather than a moving branch. For a published release, use the exact release archive and verify it against `SHA256SUMS.txt`.
 
 See:
 
@@ -161,6 +181,6 @@ npm run plugin:validate
 
 ## Historical boundary
 
-v0.9.2 is a frozen historical release. Its release notes and historical acceptance evidence may legitimately describe provider-neutral Ollama/LM Studio work. Those records must not be rewritten to pretend history was different, and they must not be used as current v0.9.3 operator guidance.
+v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may legitimately describe LM Studio/provider-neutral behavior when that is what actually occurred; those records must not be rewritten as current v0.9.3 promises.
 
-The Windows evidence for `f6392da3...` is also immutable exact-artifact history. Task 188 carries forward only unchanged-surface claims that are proven by byte identity and requires proportional requalification for the documentation-bearing surface that changed.
+The earlier Windows implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` and documentation-corrected candidate `604569c286e930f1a596362ab926b065b56d486e` remain immutable historical evidence. Task 191/192 supersede them for publication with repaired candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34`.
