@@ -1,14 +1,14 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_STDIN_QUALIFICATION_THEN_RESET_REACCEPTANCE_HERMES`  
+**Execution mode:** `WINDOWS_RESET_PROMPT_CAPTURE_HARNESS_DIAGNOSIS_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-175`
+**Active task:** `CNX-20260831-176`
 
 ## Active work
 
-[`tasks/CNX-20260831-175-hermes-stdin-qualification-reset-reacceptance.md`](tasks/CNX-20260831-175-hermes-stdin-qualification-reset-reacceptance.md)
+[`tasks/CNX-20260831-176-hermes-reset-prompt-capture-harness-diagnosis.md`](tasks/CNX-20260831-176-hermes-reset-prompt-capture-harness-diagnosis.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
@@ -23,51 +23,36 @@ Standing model: executor-heavy / reviewer-light.
 - OpenClaw: `2026.7.1-2`
 - Dashboard/native/durable acceptance: `PASS — DASHBOARD_NATIVE_DURABLE_DELIVERY_REACCEPTANCE_ACCEPTED`
 
-## Task 174 reviewed
+## Task 175 reviewed
 
 Disposition:
 
-`ACCEPTED_BLOCKED — RESET_CONFIRMATION_STDIN_BOUNDARY_FAILED_BEFORE_DESTRUCTIVE_MUTATION`
+`ACCEPTED_UNPROVEN — RESET_COMPLETION_BOUNDARY_UNAVAILABLE_AFTER_QUALIFIED_STDIN`
 
-Task 174 started one normal installed reset process, reached the confirmation prompt, then Python `input()` raised `OSError: [Errno 9] Bad file descriptor` before any `y` was supplied.
+Task 175 proved a harmless redirected Python `input()` child can accept one input line and return an exact ACK with exit `0`, then launched one newly authorized reset boundary. The outer executor timed out before its wrapper finalized prompt/confirmation/exit evidence. No retry/helper/semantic action followed. Postflight still showed the prior managed runtime and Task-171 durable state.
 
-Important boundaries:
+Reset acceptance therefore remains open; uninstall remains unauthorized.
 
-- Task-174 reset invocation: `1`;
-- explicit `y`: `0`;
-- destructive reset transaction reached: `0`;
-- second reset/helper lifecycle: `0`;
-- semantic/model/recovery actions: `0`;
-- original controller/runtime/DB state remained intact after the blocked attempt.
+## Task 176 objective
 
-The evidence establishes the failure boundary but does not yet distinguish executor stdin/PTY failure from a launcher/product-specific stdin problem.
+Diagnose the executor prompt-capture/result harness non-destructively before authorizing any further reset.
 
-## Task 175 objective
+The accepted product confirmation is `input("Continue? [y/N]: ")`, whose prompt is not newline-terminated. Task 176 must prove or falsify whether the Task-175 observer blocked on that characteristic or on another harness/process boundary.
 
-Qualify the interactive stdin path before attempting another destructive action.
+Use only harmless disposable Python prompt children and read-only launcher/source inspection. Qualify a capture mechanism with at least two harmless successful runs proving:
 
-### Gate A
-
-Run one harmless Python `input()` round-trip probe through the same terminal/process/stdin mechanism intended for reset.
-
-If the probe cannot accept and echo a unique token with exit `0`, Task 175 must stop `BLOCKED`; reset is not authorized.
-
-### Gates B/C
-
-Only after the stdin probe passes, re-check the critical installed/runtime/DB baseline. If still valid, Task 175 authorizes exactly one new `cnxclaw.cmd reset` invocation and exactly one `y` after the real prompt is observed.
-
-This new authorization is not a retry under Task 174. Task 174 remains closed.
-
-No pre-piped confirmation is accepted as the interactive reset proof.
-
-## Success boundary if reset runs
-
-A PASS requires reset itself to reconstruct fresh `MANAGED` state without executor repair, preserve installed fingerprint/release and OpenClaw pin, produce healthy controller/plugin/Gateway/Ollama/route state, create a valid fresh SQLite state, remove the exact old Task-171 reset-owned Ticket/run/model/delivery identities, manufacture no semantic/model/recovery work, and preserve external OpenClaw/Ollama/unrelated namespaces.
+- prompt is observed before input;
+- exactly one input event occurs;
+- exact ACK is returned;
+- exit code `0` and output/result evidence are retained;
+- no timeout/orphan occurs;
+- no product/runtime/durable mutation occurs.
 
 ## Hard fence
 
-Task 175 semantic action budget is `0`.
+Task 176 destructive action budget: `0`.
+Task 176 semantic action budget: `0`.
 
-No Dashboard Send, composer submission, `chat.inject`, model inference, recovery/regeneration, source/product/test/workflow/dependency change, second reset, executor-issued lifecycle helper, manual Gateway/Ollama restart, installer/uninstall/reinstall/rollback, manual durable/config/transcript mutation, upgrade, release, merge, or force push.
+No `cnxclaw reset`, uninstall, installer/reinstall, executor live lifecycle command, Gateway/Ollama restart, Dashboard Send, model/recovery action, manual state mutation, product/source/test/workflow/dependency change, upgrade, release, merge, or force push.
 
-After Task-175 report publication, stop for ChatGPT review. Uninstall is not authorized yet.
+After Task-176 report publication, stop for ChatGPT review. A new reset authorization requires a separate successor task after this harness diagnosis is accepted.
