@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_HERMES`
-Execution mode: `WINDOWS_QUALIFIED_HARNESS_RESET_REACCEPTANCE_HERMES`
-Current authorization: `CNX-20260831-178_HERMES_QUALIFIED_HARNESS_RESET_REACCEPTANCE`
-Task ID: `CNX-20260831-178`
+Execution mode: `REPOSITORY_INTERACTIVE_LIFECYCLE_DELEGATION_DEADLOCK_REPAIR_HERMES`
+Current authorization: `CNX-20260831-179_HERMES_INTERACTIVE_LIFECYCLE_DELEGATION_DEADLOCK_REPAIR`
+Task ID: `CNX-20260831-179`
 Updated: 2026-08-31 ICT
 Executor: Hermes/Codex
 Coordinator / final reviewer: ChatGPT
@@ -20,42 +20,43 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260831-178-hermes-qualified-harness-reset-reacceptance.md`](tasks/CNX-20260831-178-hermes-qualified-harness-reset-reacceptance.md)
+[`tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md`](tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md)
 
-Task 178 is the next bounded real-Windows reset reacceptance using the Task-177-qualified cmd/batch incremental evidence harness.
+Task 179 repairs the production nested-capture deadlock exposed by Task 178 and first retires the exact Task-178 hung process tree if it remains alive.
 
 ## Accepted baseline
 
-- Product repair SHA: `231761fca24c315e90536955d3e384f55e2e232e`
+- Previous accepted product repair SHA: `231761fca24c315e90536955d3e384f55e2e232e`
 - Installed fingerprint: `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 - Accepted package SHA-256: `8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`
 - Installed release: `0.9.3`
 - OpenClaw: `2026.7.1-2`
 - Task 171–173: `PASS — DASHBOARD_NATIVE_DURABLE_DELIVERY_REACCEPTANCE_ACCEPTED`
 - Task 177: `ACCEPTED_DIAGNOSTIC_PASS — CMD_BATCH_INCREMENTAL_HARNESS_QUALIFIED`
+- Task 178: `ACCEPTED_FAILURE_BOUNDARY — RESET_INTERACTIVE_PROMPT_BLOCKED_BY_NESTED_DELEGATION_CAPTURE`
 
 Task-171 semantic Send count remains permanently frozen at exactly `1`.
 
-## Task-178 authorization
+## Root cause
 
-After fresh preflight, Hermes/Codex may run exactly one new installed reset invocation:
+`cnxclaw.py` delegates unhandled commands through `host_control_v092.py` using `capture_output=True` and forwards stdout/stderr only after child completion. `host_control_v092.py` routes reset/uninstall into the lifecycle wrapper, which waits for explicit interactive confirmation. Therefore the real prompt is trapped behind the intermediate captured child while the child waits for input.
 
-`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd reset`
+This is a production delegation defect, not a Task-177 outer-harness defect.
 
-It must be executed through the Task-177-qualified architecture: character/byte prompt detection, concurrent stdout/stderr drain, append-only flushed/fsync'd event ledger, prompt recorded before input intent, exactly one `y` line, and incremental completion evidence.
+## Task-179 authorization
 
-No pre-piped confirmation is allowed. No second reset or second `y` is authorized.
-
-## Required success boundary
-
-PASS requires reset itself to return exit `0` with the documented reset PASS / `fresh-install MANAGED` markers, preserve the accepted installed candidate and OpenClaw pin, reconstruct healthy MANAGED plugin/controller/Gateway/Ollama/route state, bootstrap a valid fresh DB, remove the exact old Task-171 reset-owned Ticket/run/model/delivery identities, manufacture no semantic/model/recovery work, and preserve external OpenClaw/Ollama/unrelated namespaces within contract.
+1. Re-verify the exact Task-178 ledger/process identities. If the same hung Task-178 process tree still exists with zero prompt/input events and unchanged pre-confirmation state, terminate only that exact process tree and verify cleanup.
+2. Use TDD to reproduce the nested interactive delegation failure harmlessly in repository tests.
+3. Apply the smallest source repair that gives `reset`/`uninstall` a true interactive stdin/stdout/stderr delegation path while preserving normal noninteractive delegation behavior.
+4. Run focused/full validation and exact-SHA CI.
+5. Publish the Task-179 report and stop.
 
 ## Hard fence
 
-Task 178 semantic action budget: `0`.
+Task 179 semantic action budget: `0`.
 
-After reset starts: no retry, second `y`, process kill for cleanup, start/stop/restart/enable/disable, manual Gateway/Ollama restart, installer/uninstall/reinstall/rollback, route/config/DB repair, recovery/regeneration, Dashboard Send, model invocation, manual durable/config/transcript mutation, source/product/test/workflow/dependency change, upgrade, release, merge, or force push.
+No new reset, uninstall, install/install-over/reinstall, runtime lifecycle helper, Gateway/Ollama restart, Dashboard Send, model/recovery action, manual durable/config/transcript/route/DB repair, upgrade, release, merge, or force push.
 
-Implementation-owned reset subprocesses/process boundaries are authorized only as part of the single reset command.
+Repository source/test changes required by TDD are authorized. Live mutation is limited to cleanup of the exact already-hung Task-178 process tree after re-verification.
 
-After Task-178 report publication, stop for ChatGPT review. Uninstall remains unauthorized.
+After Task-179 report publication, stop for ChatGPT review. A repaired candidate must be reviewed and then installed-over in a later successor before reset is attempted again.
