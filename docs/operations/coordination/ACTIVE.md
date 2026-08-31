@@ -1,63 +1,76 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK198_DISCORD_INVESTIGATION__TASK199_EXISTING_EVIDENCE_CAPTURE`
-Current disposition: `TASK197_PASS_ACCEPTED__V093_PUBLISHED__TASK198_WAITING_READ_ONLY_WINDOWS_EVIDENCE`
-Task ID: `CNX-20260831-198`
-Active evidence subtask: `CNX-20260831-199`
+Execution mode: `TASK200_TASK198_REPAIRED_DISCORD_WINDOWS_REQUALIFICATION`
+Current disposition: `TASK198_REPOSITORY_REPAIR_ACCEPTED__WAITING_ONE_LIVE_DISCORD_REQUALIFICATION`
+Task ID: `CNX-20260831-200`
+Parent task: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-08-31 ICT
-Executor: Hermes for Task 199 read-only evidence; ChatGPT resumes root-cause/TDD after report
+Executor: Hermes / authenticated Windows operator
 Coordinator / final reviewer: ChatGPT
 
 ## Published v0.9.3 authority
 
-Publication is complete. Public tag `v0.9.3` targets exactly:
+Publication is already complete and must remain untouched.
+
+Public tag `v0.9.3` target:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Do not republish or retarget v0.9.3.
+Do not republish, retarget, recreate, or modify the v0.9.3 Release/assets.
 
-## Active investigation
+## Task 198 repository repair
 
-Parent:
+Task 198 repository diagnosis/repair is accepted RED -> GREEN.
 
-[`tasks/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation.md`](tasks/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation.md)
+Report:
 
-Read-only evidence handoff:
+[`reports/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation.md`](reports/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation.md)
 
-[`tasks/CNX-20260831-199-task198-existing-discord-hook-failure-evidence-capture.md`](tasks/CNX-20260831-199-task198-existing-discord-hook-failure-evidence-capture.md)
+Review:
 
-## Source findings already established
+[`reviews/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation-review.md`](reviews/CNX-20260831-198-discord-session-correlation-and-durable-delivery-investigation-review.md)
 
-1. `cnx_assistant_delivery` is not required for every native external-channel Direct reply. The base Ticket contract can complete a Direct Ticket through receipt-confirmed `confirmDirectDelivery(runId)` and persist `delivery_confirmed` / `completed` directly on the Ticket.
-2. The v0.9.1 Dashboard verified-delivery code explicitly refuses to claim non-Dashboard Direct tickets.
-3. Its `missing-run-correlation` / `missing-append-before-deliver` messages are observer diagnostics; those branches return without throwing.
-4. OpenClaw treats `before_agent_run` hook exceptions as fail-closed, so Session A's `before_agent_run hook failed; blocking request` represents a separate exception that must be identified.
-5. Candidate uncaught boundaries include Ticket admission, recovery-order SQLite work, and context-guard SQLite/runtime work. No one of these is yet accepted as root cause.
+Frozen repaired product candidate:
 
-## Task 199 objective
+`9f4eaa429b2540540e7d6f6c2af99067960e45fb`
 
-Use only existing logs and SQLite state to determine:
+Do not substitute later coordination HEADs for this product identity.
 
-- the exact exception/error behind Session A's fail-closed before-agent failure;
-- whether Session A created a Ticket and which run ID it used;
-- whether Session B followed the expected native `message_sent` receipt path;
-- which A/B correlation fields and session-generation state differ.
+Exact candidate gates:
 
-No new Discord Send is authorized in Task 199.
+- Validate `33413832703`: `completed/success`
+- Windows Installer Pack Smoke `33413832709`: `completed/success`
+- PS5.1 Acceptance Smoke `33413832777`: `completed/success`
+- package payload-v2: `db5fbd96630ac3685c0588e3d5009dce68e0052bc03f8dab5fdb29577410b27d`
+- package file count: `190`
 
-## After Task 199
+## Active Hermes task
 
-ChatGPT will:
+[`tasks/CNX-20260831-200-task198-repaired-discord-windows-requalification.md`](tasks/CNX-20260831-200-task198-repaired-discord-windows-requalification.md)
 
-1. review the evidence;
-2. state the minimum evidence-backed violated invariant;
-3. write one focused regression test and observe RED;
-4. apply only the minimal production fix;
-5. run focused/full validation;
-6. authorize at most one bounded human Discord reality test only after repository GREEN if still needed.
+Task 200 must:
+
+1. capture read-only pre-state;
+2. perform exactly one supported install-over from exact product candidate `9f4eaa...`;
+3. prove installed repair identity and post-install health;
+4. use known healthy Discord session `agent:main:discord:channel:1531199905673252946`;
+5. generate a fresh nonce and tell the user the exact Discord prompt;
+6. wait for user `ส่งแล้ว`;
+7. after that single human Send, prove one Ticket -> one model call -> response_ready -> one native visible Discord reply -> delivery_confirmed -> completed;
+8. prove no retry/recovery/duplicate/outbox residue and no `before_agent_run hook failed` for the tested send;
+9. publish the Task 200 report and stop for ChatGPT review.
+
+## Discord acceptance semantics
+
+- Human Discord Send budget: exactly `1 / 1`.
+- No Hermes/bot/API/injected human message.
+- No retry, regenerate, or second room/message.
+- `cnx_assistant_delivery` is **not required** for a native Discord Direct reply; Ticket-level native delivery confirmation is accepted.
+- `missing-run-correlation` or `missing-append-before-deliver` from the Dashboard observer is not a failure by itself if the actual Discord lifecycle is correct.
+- `before_agent_run hook failed` for the tested send is a failure.
 
 ## Hard fence
 
-No Discord send/retry/injection, no Gateway/OpenClaw/Ollama restart, no reset/uninstall/reinstall/install-over, no state/config/source mutation during Task 199, no provider/model change, no republish/retarget, and no force push.
+No force push, no release/tag mutation, no reset/uninstall/fresh reinstall, no state deletion, no artificial production SQLite lock, no provider/model substitution, no product/source/test/workflow edit, and no second human Discord Send under Task 200.
