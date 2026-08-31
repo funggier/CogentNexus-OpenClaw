@@ -1,66 +1,56 @@
 # Coordination Channel Status
 
-**State:** `IN_PROGRESS`  
-**Execution mode:** `TASK188_RELEASE_PUBLICATION`  
+**State:** `READY_FOR_HERMES`  
+**Execution mode:** `TASK188_RELEASE_PUBLICATION__TASK194_DISPATCH_AND_VERIFY`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository + Actions  
 **Active umbrella task:** `CNX-20260831-188`  
-**Completed repair:** `CNX-20260831-191`  
-**Accepted requalification:** `CNX-20260831-192`  
-**Completed CI contract repair:** `CNX-20260831-193`  
-**Disposition:** `TASK193_PASS__PR26_READY_TO_MERGE`
+**Active publication subtask:** `CNX-20260831-194`  
+**Disposition:** `WAITING_AUTHENTICATED_RELEASE_WORKFLOW_DISPATCH`
 
-## Task-192 accepted evidence
+## Merge result
 
-- exact repaired candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34`;
-- exactly one supported install-over;
-- exactly one genuine human Dashboard Send;
-- exactly one new Ticket;
-- exactly one new direct Ollama model call;
-- exactly one new durable assistant delivery;
-- no direct recovery;
-- no duplicate result;
-- pending outbox remained zero;
-- final durable/UI answer was the requested nonce, not `NO_REPLY`;
-- Gateway/Ollama/delivery/recovery/SQLite health passed.
+PR #26 is merged.
 
-## Task-193 result
+Exact authoritative merged `main` SHA:
 
-`PASS`
+`26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-The stale Recovery Reality CI contract was repaired without changing product/runtime/plugin/installer/test/dependency behavior.
+This SHA is frozen as the v0.9.3 publication candidate.
 
-Current v0.9.3 responsibility boundary remains:
+## Prior acceptance chain
+
+- Task 191 repository repair: accepted;
+- Task 192 real-Windows NO_REPLY repair requalification: `PASS`;
+- Task 193 Recovery Reality CI contract repair: `PASS`;
+- final PR head before merge: `66fdba1c6dc2ee0997c5764bc56a52f543741bdc`;
+- all final-head release gates passed, including Validate, PS5.1 Acceptance, Windows Installer Pack, Recovery Reality, Recovery V2/V3, Gateway Convergence, Partial Repair, and Live Runner.
+
+Accepted product/payload identities remain:
+
+- repaired product candidate: `050ab53f4b593ab538143084d6bbdbf7e1672e34`;
+- installable plugin payload-v2: `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files.
+
+Current provider boundary:
 
 - managed runtime/operator provider: Ollama only;
 - installer: provider-neutral.
 
-Pre-closeout PR head `743d51d0d789354a419086072fa83eeeacc048cb` passed:
+## Active Task 194
 
-- Validate `33396028043`;
-- PS5.1 Acceptance Smoke `33396028229`;
-- Windows Installer Pack Smoke `33396028169`;
-- PS5.1 v0.9.3 Ollama Recovery Reality Smoke `33396028030`;
-- Recovery V2 `33396028128`;
-- Recovery V3 `33396028324`;
-- Gateway Convergence `33396028228`;
-- Partial Repair `33396028052`;
-- Live Runner `33396028041`.
+Task:
 
-Installable plugin payload identity remains:
+[`tasks/CNX-20260831-194-v093-release-workflow-dispatch-and-publication-verification.md`](tasks/CNX-20260831-194-v093-release-workflow-dispatch-and-publication-verification.md)
 
-`b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files.
+Required exact dispatch after fresh authority checks:
 
-## Final publication gate
+- workflow: `.github/workflows/release.yml`
+- ref: `main`
+- `version=0.9.3`
+- `candidate_sha=26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-PR #26 is the active release PR. The final coordination-only head must receive fresh green checks before merge.
-
-Then execute:
-
-`fresh PR/main authority check -> merge PR #26 with expected head -> freeze merged main SHA -> Release workflow exact SHA -> verify tag/release/assets/checksums -> final Task-188 report/review`
-
-Historical PR #24 must not be reused or merged.
+Dispatch exactly once. Then verify workflow terminal success, tag target, GitHub Release state, exact release asset set, archive integrity, and independent SHA-256 checksums.
 
 ## Hard fence
 
-No force push, destructive lifecycle action, provider replacement, OpenClaw version change, unrelated product edit, stale PR reuse, or Release workflow dispatch before the exact successful merge gate.
+No force push, no source/runtime/plugin/test/installer/provider change, no main commit before publication, no release candidate retargeting, no manual release outside the approved Release workflow, and no duplicate dispatch/release/tag are authorized.
