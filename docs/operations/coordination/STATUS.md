@@ -1,16 +1,16 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_FRESH_REINSTALL_POST_UNINSTALL_REACCEPTANCE_HERMES`  
+**Execution mode:** `FINAL_POST_LIFECYCLE_DASHBOARD_SEMANTIC_DURABLE_DELIVERY_HYBRID`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-185`
+**Active task:** `CNX-20260831-186`
 
 ## Active work
 
-[`tasks/CNX-20260831-185-hermes-fresh-reinstall-post-uninstall-reacceptance.md`](tasks/CNX-20260831-185-hermes-fresh-reinstall-post-uninstall-reacceptance.md)
+[`tasks/CNX-20260831-186-hermes-final-post-lifecycle-dashboard-semantic-durable-delivery-acceptance.md`](tasks/CNX-20260831-186-hermes-final-post-lifecycle-dashboard-semantic-durable-delivery-acceptance.md)
 
-Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
+Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT. UI actor: User.
 
 Standing model: executor-heavy / reviewer-light.
 
@@ -28,6 +28,10 @@ Required installed facade SHA-256:
 
 `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
 
+Accepted plugin fingerprint:
+
+`e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
+
 Task 183:
 
 `ACCEPTED_PASS — QUALIFIED_HARNESS_RESET_FRESH_STATE_REACCEPTED`
@@ -36,43 +40,50 @@ Task 184:
 
 `ACCEPTED_PASS — QUALIFIED_HARNESS_UNINSTALL_EXTERNAL_PRESERVATION_ACCEPTED`
 
-Current live state is post-uninstall native OpenClaw. CNX launcher/skill/plugin/state/runtime/scheduled-task/config registration are absent. OpenClaw `2026.7.1-2`, native Gateway health, Ollama/model inventory, unrelated plugins, and Gateway command surface were preserved.
+Task 185:
 
-## Task 185 gate
+`ACCEPTED_PASS — FRESH_REINSTALL_POST_UNINSTALL_ACCEPTED`
 
-Task 185 must independently re-prove the clean post-uninstall boundary and exact candidate identity before mutation, then may invoke the supported installer exactly once.
+Current live state is the freshly reinstalled accepted candidate. OpenClaw `2026.7.1-2`, CogentNexus plugin/runtime, Gateway, and Ollama were accepted healthy after reinstall. The semantic durable baseline is zero across tickets, ticket events, outbox, assistant delivery, direct model calls, direct recovery, and sessions.
 
-Post-install acceptance requires:
+## Task 186 gate
 
-- active `cnxclaw.py` SHA-256 `aa747f8f...`;
-- release `0.9.3`, plugin loaded/enabled with accepted fingerprint;
-- ownership present and legacy namespace empty;
-- controller MANAGED with selected provider Ollama and no transition;
-- healthy Gateway and Ollama;
-- SQLite integrity `ok` and no manufactured Ticket/session/delivery/model/recovery history;
-- delivery/recovery READY with outbox `0`;
-- external OpenClaw/Ollama/model/unrelated-plugin/Gateway-command preservation.
+Task 186 independently re-proves the clean post-lifecycle baseline before any semantic action, freezes a unique nonce and exact test message, then uses one human-controlled Dashboard Send to test the complete designed path.
 
-No retry is authorized if the one installer invocation becomes ambiguous; inspect the same process/evidence instead.
+Acceptance target:
+
+`1 human Send → 1 Ticket → 1 session/run → 1 Ollama model call → 1 durable assistant delivery → 1 logical Dashboard assistant result`
+
+Expected post-action durable cardinalities from the clean baseline:
+
+- tickets: `1`
+- sessions: `1`
+- direct model calls: `1`
+- assistant delivery: `1`
+- direct recovery: `0`
+- outbox after drain: `0`
+
+`ticket_events` is evaluated for one coherent Ticket event chain rather than a brittle fixed count.
 
 ## UI policy
 
-Task 185 uses no Dashboard/UI semantic action.
+- User opens/navigates Dashboard/New Session and performs clicks.
+- User focuses the intended composer field.
+- Hermes may type/paste only the frozen Task-186 test text after focus.
+- Hermes does not press Send/Enter, click Send, or invoke `chat.inject`.
+- User presses Send exactly once.
+- Hermes/Codex then collects read-only Ticket/session/model/delivery/UI evidence.
 
-For final Dashboard acceptance after Task 185 review:
-
-- user controls New Session/navigation and clicks;
-- user focuses/selects the text field;
-- Hermes may type the nonce/test text after focus;
-- Hermes must not press Send;
-- user presses Send exactly once;
-- Hermes/Codex then collect Ticket/model/durable-delivery evidence.
+Loss of contact, slow response, or ambiguity never authorizes a second Send, retry, regeneration, recovery, or lifecycle action.
 
 ## Hard fence
 
-Supported fresh-install root invocation maximum: `1`.
-Semantic/model/recovery action budget: `0`.
+Human Dashboard Send maximum: `1`.
+Hermes/Codex Send: `0`.
+Semantic injection/chat.inject: `0`.
+Second Send/retry: `0`.
+Manual model retry/recovery/regeneration: `0`.
 
-No reset, uninstall, second install/retry, executor lifecycle helper outside installer, manual Gateway/Ollama action, Dashboard Send/chat.inject, model/recovery action, manual repair, source/product/test/workflow edit, release/tag/merge, or force push.
+No reset, uninstall, install/reinstall/install-over, lifecycle helper, manual Gateway/Ollama action, manual DB/config/transcript/route repair, source/product/test/workflow/dependency edit, release/tag/merge, or force push.
 
-After Task-185 report publication, stop for ChatGPT review. Final Dashboard semantic acceptance remains unauthorized.
+After Task-186 report publication, stop for ChatGPT review. No second semantic action is authorized.
