@@ -86,7 +86,7 @@ Task 192's accepted real turn required zero revisions because the first natural 
 
 OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
 
-The durable managed-policy registration is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Registration is independent from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
+The durable policy register is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Registration is independent from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
 
 ## Host and supervisor
 
