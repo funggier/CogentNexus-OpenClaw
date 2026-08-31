@@ -2,7 +2,7 @@
 
 Native schedulers are **triggers only**. They must not own recovery policy and must not bypass Host operating mode.
 
-For v0.8 managed installations, automatic periodic execution should enter through the CogentNexus-OpenClaw Host supervisor path. The Host first checks MANAGED / PASSTHROUGH / MAINTENANCE and desired runtime state; only then may it invoke lower-level runtime supervision.
+For current v0.9.3 managed installations, automatic periodic execution should enter through the CogentNexus-OpenClaw Host supervisor path. The Host first checks MANAGED / PASSTHROUGH / MAINTENANCE and desired runtime state; only then may it invoke lower-level runtime supervision.
 
 Supported adapters:
 

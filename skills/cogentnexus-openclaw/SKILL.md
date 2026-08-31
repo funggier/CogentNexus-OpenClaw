@@ -7,7 +7,7 @@ description: "Durable Host-managed recovery, lifecycle control, and verified exe
 
 CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
 
-Current development line: **v0.9.3**.  
+Release line: **v0.9.3**.  
 Current managed provider: **Ollama only**.  
 Validated OpenClaw baseline: `2026.7.1-2`.
 
@@ -98,8 +98,10 @@ python skills/cogentnexus-openclaw/scripts/runtime.py self-test
 python -m pytest -q
 ```
 
-## Accepted historical checkpoint vs current candidate
+## Accepted stabilization lineage
 
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`, validated on OpenClaw `2026.7.1-2`.
 
-That checkpoint is historical technical evidence. The current line is v0.9.3 and requires its own repository stabilization and exact-candidate real-machine acceptance before release promotion. See root `docs/CURRENT_STATE.md` for accepted/deferred boundaries.
+That checkpoint remains historical technical evidence. The v0.9.3 implementation line subsequently completed repository stabilization and the bounded real-machine lifecycle/semantic acceptance sequence on exact frozen candidate `f6392da3e4112ce441526d5ef19925c90a872b0b`.
+
+Acceptance is exact-artifact based. Changes to installed skill/package documentation bytes require validation and proportional requalification appropriate to the changed surface before prior acceptance claims are carried forward. See root `docs/CURRENT_STATE.md` for current publication state and exact candidate provenance.

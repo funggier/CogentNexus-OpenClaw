@@ -1,6 +1,6 @@
 # Architecture
 
-The current v0.9.1 architecture has two independent axes: **continuity** and **execution depth**.
+The current v0.9.3 architecture has two independent axes: **continuity** and **execution depth**.
 
 ## Continuity plane
 
