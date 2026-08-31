@@ -204,6 +204,17 @@ def delegate(root: Path, args: list[str]) -> int:
     return int(proc.returncode)
 
 
+def delegate_interactive(root: Path, args: list[str]) -> int:
+    proc = subprocess.run(
+        [sys.executable, str(HOST_CONTROL), "--root", str(root), *args],
+        stdin=sys.stdin,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+        creationflags=creation_flags(),
+    )
+    return int(proc.returncode)
+
+
 def provider_snapshot(root: Path) -> dict[str, Any]:
     state = load_state(root)
     selected = state.get("selectedProvider")
@@ -429,6 +440,9 @@ def main(argv: list[str] | None = None) -> int:
         code, result = provider_transition(root, command, explicit)
         emit(result)
         return code
+
+    if command in {"reset", "uninstall"}:
+        return delegate_interactive(root, args)
 
     if command == "stop":
         if len(args) != 1:
