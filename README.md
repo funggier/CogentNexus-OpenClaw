@@ -4,19 +4,23 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Development line:** v0.9.3
+- **Release line:** v0.9.3
 - **Core / Bridge version:** 0.9.3
-- **Validated OpenClaw baseline:** `2026.7.1-2`
+- **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** **Ollama only**
-- **Published historical release:** v0.9.2
-- **v0.9.3 release status:** development candidate; not yet published as a GitHub Release
-- **Accepted Recovery Core checkpoint:** `eadb89099637d24f96e265a500d66c577aa939a3`
+- **Frozen accepted product candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`
+- **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
+- **Accepted plugin fingerprint:** `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
+- **Latest published release:** v0.9.2
+- **v0.9.3 publication:** blocked pending fingerprint-sensitive documentation requalification; no `v0.9.3` GitHub Release/tag exists yet
 
-v0.9.3 narrows the current managed provider surface to Ollama while retaining older v0.9.2 compatibility modules in-tree for migration/native-restore compatibility. Those historical modules are not a current LM Studio management contract.
+The exact v0.9.3 product candidate has completed the bounded real-Windows lifecycle/semantic acceptance sequence: install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and one final Dashboard semantic/durable-delivery turn. Those results apply to the exact accepted candidate/artifact identity above.
+
+Task 187 found that current guidance inside installed/payload-sensitive product surfaces still contains pre-acceptance wording. Correcting those files would change the accepted plugin/skill artifact identity, so release publication is intentionally blocked until a new exact candidate is produced and the changed documentation-bearing product surface is requalified. Safe repository documentation outside that product boundary may continue to converge without pretending that the accepted fingerprint changed.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
 
-See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the exact accepted/deferred boundary.
+See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the exact accepted/deferred/publication boundary.
 
 ## Architecture
 
@@ -67,7 +71,7 @@ CogentNexus-OpenClaw v0.9.3 manages **Ollama only**.
 .\cnxclaw.cmd check provider ollama
 ```
 
-LM Studio support belongs to the frozen v0.9.2 historical provider layer. v0.9.3 may retain compatibility code needed for migration or restoration, but current operator-facing v0.9.3 commands do not select, start, stop, probe, or manage LM Studio.
+LM Studio support belongs to the frozen v0.9.2 historical provider layer. v0.9.3 may retain compatibility code needed for migration or native restoration, but current operator-facing v0.9.3 commands do not select, start, stop, probe, or manage LM Studio.
 
 See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
@@ -97,17 +101,11 @@ See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 - durable result exists but delivery failed -> retry delivery only, never regenerate;
 - an external side effect may already have happened -> require idempotency/receipt/read-after-write evidence before doing anything again.
 
-## Install during v0.9.3 development
+## Installation status
 
-There is no published v0.9.3 GitHub Release yet. Repository stabilization and real-machine acceptance must complete before publication is considered.
+There is intentionally no `cnxclaw.cmd install` command. Installation is performed from a reviewed source/archive through the repository installer.
 
-From a reviewed v0.9.3 source/development candidate checkout on Windows:
-
-```powershell
-.\scripts\install.ps1 -Provider ollama
-```
-
-Do not treat an arbitrary moving branch checkout as a frozen release candidate. The final acceptance process records an exact commit, payload fingerprint, file count, archive SHA256, and GitHub Actions evidence before installation on the real machine.
+Because v0.9.3 publication is currently blocked on documentation-bearing artifact requalification, do not assume public v0.9.3 release assets exist and do not treat a moving branch checkout as the accepted Windows candidate. The accepted candidate identity is the exact SHA/fingerprint recorded above; any payload/skill documentation correction creates a new candidate identity that must be requalified before publication.
 
 See:
 
@@ -139,6 +137,8 @@ See:
 .\cnxclaw.cmd uninstall
 ```
 
+Destructive `reset` and `uninstall` require explicit `y` confirmation and are ownership-bounded.
+
 ## Validation
 
 ```sh
@@ -163,4 +163,4 @@ npm run plugin:validate
 
 v0.9.2 is a frozen historical release. Its release notes and historical acceptance evidence may legitimately describe provider-neutral Ollama/LM Studio work. Those records must not be rewritten to pretend history was different, and they must not be used as current v0.9.3 operator guidance.
 
-A successful repository stabilization and later real-Windows acceptance do not automatically publish v1.0.0; final release promotion remains a separate human decision.
+The accepted v0.9.3 Windows evidence is also immutable evidence for its exact candidate. A later documentation-bearing product candidate may inherit only the claims justified by explicit unchanged-surface proof and its own required requalification.

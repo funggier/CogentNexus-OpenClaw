@@ -1,22 +1,27 @@
 # Install CogentNexus-OpenClaw v0.9.3
 
-CogentNexus-OpenClaw v0.9.3 is currently a development candidate. The validated compatibility target is OpenClaw `2026.7.1-2`, and the v0.9.3 managed provider surface is **Ollama only**.
+CogentNexus-OpenClaw v0.9.3 targets OpenClaw `2026.7.1-2 (0790d9f)` and manages **Ollama only** at the current runtime/operator boundary.
 
-There is no published v0.9.3 GitHub Release yet. Until repository stabilization, exact-candidate freeze, real-Windows lifecycle acceptance, and human release review are complete, use this document only for reviewed source/development-candidate installation work.
+The exact product candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Public v0.9.3 release publication is nevertheless **blocked** at Task 187 because current documentation inside installed/payload-sensitive product surfaces must be corrected; changing those bytes creates a new candidate identity that requires scoped requalification before publication.
+
+There is therefore no public `v0.9.3` GitHub Release/tag yet. Do not assume release assets exist and do not treat a moving development branch as the accepted candidate.
 
 ## Requirements
 
 - Windows 10/11 or Windows Server with PowerShell 5.1+;
 - OpenClaw installed and working;
-- OpenClaw version `2026.7.1-2` for the currently validated compatibility baseline;
+- OpenClaw `2026.7.1-2` for the validated compatibility baseline;
 - Python 3.11+ with PyYAML;
-- Node.js + npm.
+- Node.js + npm;
+- Ollama for the managed runtime/provider path.
 
 LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it.
 
-## Development-candidate source install
+## Source/archive installation boundary
 
-Use only a reviewed/frozen candidate when performing acceptance work. From the candidate checkout or extracted candidate archive:
+Installation is performed from a reviewed source/archive through the repository installer. There is intentionally no `cnxclaw.cmd install` command.
+
+From an exact reviewed checkout or extracted candidate archive on Windows:
 
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
@@ -31,25 +36,25 @@ python -m pip install 'PyYAML>=6.0,<7'
 ./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
-There is intentionally no `cnxclaw.cmd install` command. Installation is performed from the source/archive installation entry point.
+The installer itself is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
 
-For final real-machine acceptance, the archive/source identity must already be frozen and recorded with the exact commit SHA, payload-v2 fingerprint, payload file count, archive SHA256, and GitHub Actions evidence. Do not install an ad-hoc modified worktree and call it the same candidate.
+## Accepted-candidate identity
 
-## Future published-release install
+The accepted Windows evidence applies to exactly:
 
-After v0.9.3 is actually published, release installation documentation may point to the published archive and checksums. Until then, do not assume a v0.9.3 release asset exists.
+```text
+source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
+active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
+plugin fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+OpenClaw: 2026.7.1-2 (0790d9f)
+managed provider: ollama
+```
 
-## What the installer does
-
-The installer stages and validates the CogentNexus-OpenClaw skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. It does not select or preflight a provider.
-
-The v0.9.3 operator-facing provider target is Ollama.
+Task 187 found that correcting stale current guidance inside the installed skill and npm plugin package would change that product/payload identity. A later corrected candidate must not be presented as the same accepted artifact merely because its executable source is unchanged.
 
 ## Runtime/provider readiness after installation
 
-The current v0.9.3 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
-
-## Post-install pre-flight
+The v0.9.3 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
 
 From the OpenClaw workspace:
 
@@ -90,19 +95,21 @@ Every `check` command is read-only and must not mutate lifecycle/configuration/T
 
 `disable` means native OpenClaw PASSTHROUGH. `stop` means deliberate CNXCLAW MAINTENANCE.
 
-## Reset CogentNexus-OpenClaw to fresh-install state
+## Reset to fresh-install state
 
 ```powershell
 .\cnxclaw.cmd reset
 ```
 
-An explicit Ollama target may also be supplied where the supported interface permits it:
+Where supported, an explicit Ollama target may also be supplied:
 
 ```powershell
 .\cnxclaw.cmd reset --provider ollama
 ```
 
 `reset` is destructive and requires explicit `y` confirmation. It clears CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/configuration state and reconstructs fresh state from the currently installed candidate. It must not remove external OpenClaw, Ollama models/data, or unrelated workspace data.
+
+Task 183 accepted this boundary for the frozen candidate.
 
 ## Completely uninstall CogentNexus-OpenClaw
 
@@ -112,16 +119,31 @@ An explicit Ollama target may also be supplied where the supported interface per
 
 `uninstall` is destructive and requires explicit `y` confirmation. It must return to native/PASSTHROUGH safely, remove only CogentNexus-OpenClaw-owned installation/runtime surfaces, and preserve external OpenClaw, Ollama, user data, and unrelated/future product namespaces.
 
-## Acceptance boundary
+Task 184 accepted this external-preservation boundary for the frozen candidate; Task 185 then accepted fresh reinstall and post-install health.
 
-During the repository stabilization phase, do **not** run uninstall/install/reset/restart against the live target installation and do not send a new Dashboard semantic acceptance message.
+## Final semantic acceptance already completed for the frozen candidate
 
-Only after the repository candidate is frozen should a separate bounded real-Windows task exercise:
+Task 186 accepted one bounded Dashboard turn after the lifecycle sequence:
 
-1. clean uninstall;
-2. fresh install of the exact frozen candidate;
-3. install-over/reset/uninstall/reinstall lifecycle tests;
-4. runtime readiness and installed fingerprint parity;
-5. one final Dashboard semantic/durable-delivery acceptance probe.
+```text
+1 human Send
+-> 1 Ticket
+-> 1 session/run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical Dashboard assistant result
+```
 
-See [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), and [CHECK_SYSTEM.md](CHECK_SYSTEM.md).
+No retry, duplicate semantic work, direct recovery, or outbox residue occurred.
+
+## Future published-release install
+
+After a corrected documentation-bearing candidate is requalified and `v0.9.3` is actually published, consumer installation should use the assets generated by `.github/workflows/release.yml`:
+
+- `cogentnexus-openclaw-v0.9.3.tar.gz`
+- `cogentnexus-openclaw-v0.9.3.zip`
+- `SHA256SUMS.txt`
+
+Verify the archive checksum from `SHA256SUMS.txt`, extract the archive, then run the installer from that exact extracted release tree. Until the GitHub Release exists, do not fabricate or guess release download URLs.
+
+See [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md), and [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md).

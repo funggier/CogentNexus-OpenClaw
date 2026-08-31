@@ -2,12 +2,17 @@
 
 This document records the accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current release identity.
 
-Current development line: **v0.9.3**.  
+Current release line: **v0.9.3**.  
 Current managed provider: **Ollama only**.  
-Validated OpenClaw baseline: `2026.7.1-2`.  
-Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.
+Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
+Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
+Frozen accepted v0.9.3 product candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.
 
-See `docs/CURRENT_STATE.md` for current development/release/acceptance status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
+The v0.9.3 candidate later completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and final Dashboard semantic/durable-delivery acceptance. Those later results do not rewrite this historical Recovery Core checkpoint; they extend the accepted evidence for the exact v0.9.3 candidate.
+
+At Task 187, public v0.9.3 publication is blocked because stale current guidance exists inside documentation-bearing product/payload surfaces. Correcting those files changes the accepted artifact identity and therefore requires a new exact candidate and scoped requalification before release publication.
+
+See `docs/CURRENT_STATE.md` for current release/acceptance/publication status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
 
 ## Purpose
 
@@ -86,4 +91,4 @@ Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
 
 Accepted live Test A v16: one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
 
-This checkpoint remains evidence for the Recovery Core; it does not make v0.9.3 a published or fully accepted release. v0.9.3 must pass its repository gates and separate exact-candidate real-Windows acceptance.
+The later frozen v0.9.3 candidate `f6392da3...` completed the separate lifecycle and final Dashboard acceptance sequence. Any later product/payload change creates a different candidate identity and must be qualified according to the changed surface before inheriting that evidence.

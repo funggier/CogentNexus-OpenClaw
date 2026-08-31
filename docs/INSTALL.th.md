@@ -1,22 +1,27 @@
 # ติดตั้ง CogentNexus-OpenClaw v0.9.3 บน Windows
 
-CogentNexus-OpenClaw v0.9.3 ตอนนี้ยังเป็น **development candidate** โดย compatibility baseline ที่ยืนยันคือ OpenClaw `2026.7.1-2` และ managed provider ของ v0.9.3 คือ **Ollama only**
+CogentNexus-OpenClaw v0.9.3 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
 
-ตอนนี้ยังไม่มี GitHub Release v0.9.3 ที่เผยแพร่แล้ว คู่มือนี้จึงใช้สำหรับ source/development candidate ที่ผ่านการตรวจสอบเท่านั้น จนกว่าจะผ่าน repository stabilization, freeze exact candidate, real-Windows acceptance และ human release review
+exact product candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว แต่ Task 187 พบว่า current guidance บางไฟล์อยู่ภายใน installed/payload-sensitive product surface และยังมีข้อความก่อน acceptance อยู่ การแก้ไฟล์เหล่านั้นจะเปลี่ยน candidate/artifact identity จึงต้องทำ candidate ใหม่และ requalification ตาม changed surface ก่อน publish
+
+ดังนั้นตอนนี้ยัง **ไม่มี** public GitHub Release/tag `v0.9.3` ห้ามสมมติว่า release asset มีอยู่แล้ว และห้ามถือ moving development branch ว่าเป็น accepted candidate เดิม
 
 ## สิ่งที่ต้องมี
 
 - Windows 10/11 หรือ Windows Server พร้อม PowerShell 5.1 ขึ้นไป
 - OpenClaw ที่ใช้งานได้
-- OpenClaw `2026.7.1-2` สำหรับ compatibility baseline ที่ยืนยันในปัจจุบัน
+- OpenClaw `2026.7.1-2` สำหรับ validated compatibility baseline
 - Python 3.11+ และ PyYAML
 - Node.js + npm
+- Ollama สำหรับ managed runtime/provider path
 
-LM Studio เป็นส่วนของ provider layer ใน historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3
+LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3
 
-## ติดตั้งจาก development candidate
+## ขอบเขตการติดตั้งจาก source/archive
 
-สำหรับงาน acceptance ต้องใช้ candidate ที่ระบุตัวตนแน่นอนแล้วเท่านั้น จาก checkout หรือ archive ของ candidate:
+ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน repository installer จาก exact source/archive ที่ตรวจสอบแล้ว
+
+บน Windows:
 
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
@@ -24,32 +29,30 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
 ```
 
-บนระบบ POSIX:
+บน POSIX:
 
 ```sh
 python -m pip install 'PyYAML>=6.0,<7'
 ./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
-ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน installer จาก source/archive
+Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
 
-ก่อน final real-machine acceptance ต้องบันทึก exact commit SHA, payload-v2 fingerprint, payload file count, archive SHA256 และ GitHub Actions evidence ให้ครบก่อน ห้ามแก้ worktree หลัง freeze แล้วถือว่าเป็น candidate เดิม
+## Accepted-candidate identity
 
-## การติดตั้งจาก Release ในอนาคต
+Windows acceptance ที่ผ่านแล้วใช้ตัวตนนี้เท่านั้น:
 
-เมื่อ v0.9.3 ถูกเผยแพร่จริงแล้ว คู่มือ release จึงค่อยอ้าง archive และ checksum ของ release ที่มีอยู่จริงได้ ระหว่างนี้อย่าสมมติว่า v0.9.3 release asset มีอยู่แล้ว
+```text
+source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
+active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
+plugin fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
+OpenClaw: 2026.7.1-2 (0790d9f)
+managed provider: ollama
+```
 
-## สิ่งที่ installer ทำ
+Task 187 พิสูจน์ว่าการแก้ stale current guidance ภายใน installed skill และ npm plugin package จะเปลี่ยน product/payload identity จึงห้ามอ้างว่า corrected candidate ใหม่ยังเป็น artifact เดิมเพียงเพราะ executable source ไม่ได้เปลี่ยน
 
-Installer จะ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเข้า runtime เฉพาะเมื่อ verification ที่เป็นความรับผิดชอบของการติดตั้งผ่านแล้ว โดย installer จะไม่เลือกหรือ preflight provider
-
-operator-facing provider target ของ v0.9.3 คือ Ollama
-
-## Runtime/provider readiness หลังติดตั้ง
-
-runtime/provider target ปัจจุบันของ v0.9.3 คือ Ollama เท่านั้น ส่วนความพร้อมของ executable, endpoint/model และ health check เฉพาะ provider เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
-
-## ตรวจหลังติดตั้งแบบ Pre-flight
+## ตรวจ runtime/provider หลังติดตั้ง
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
@@ -59,7 +62,7 @@ cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd check provider ollama
 ```
 
-managed state ที่พร้อมควรมีอย่างน้อย:
+managed readiness ควรมีอย่างน้อย:
 
 - controller mode = `managed`
 - managed provider = Ollama
@@ -67,7 +70,7 @@ managed state ที่พร้อมควรมีอย่างน้อย
 - Gateway healthy
 - CogentNexus-OpenClaw plugin enabled/loaded
 - Ticket database อ่านได้และ integrity ผ่าน
-- ไม่มี recovery/outbox backlog ที่ไม่คาดคิดในระบบที่ idle
+- ไม่มี recovery/outbox backlog ที่ไม่คาดคิดในระบบ idle
 
 ทุกคำสั่งใต้ `check` ต้องเป็น **read-only** และห้ามแก้ lifecycle/config/Ticket state
 
@@ -105,7 +108,9 @@ managed state ที่พร้อมควรมีอย่างน้อย
 .\cnxclaw.cmd reset --provider ollama
 ```
 
-`reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบต้องล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
+`reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบจะล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
+
+Task 183 ยืนยัน boundary นี้บน frozen candidate แล้ว
 
 ## ถอน CogentNexus-OpenClaw ออกทั้งหมด
 
@@ -115,18 +120,31 @@ managed state ที่พร้อมควรมีอย่างน้อย
 
 `uninstall` เป็น destructive operation และต้องพิมพ์ `y` ยืนยัน ระบบต้องคืน native/PASSTHROUGH อย่างปลอดภัยแล้วลบเฉพาะ CogentNexus-OpenClaw-owned surfaces โดยรักษา OpenClaw, Ollama, user data และ namespace อื่นไว้
 
-## ขอบเขต acceptance
+Task 184 ยืนยัน external-preservation boundary แล้ว และ Task 185 ยืนยัน fresh reinstall + post-install health ต่อจาก uninstall แล้ว
 
-ระหว่าง repository stabilization **ห้าม** uninstall/install/reset/restart live target และห้ามส่ง Dashboard semantic acceptance message ใหม่
+## Final semantic acceptance ที่ผ่านแล้วสำหรับ frozen candidate
 
-หลัง repository candidate ถูก freeze แล้วเท่านั้นจึงเปิด bounded real-Windows task สำหรับ:
+Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง lifecycle sequence:
 
-1. clean uninstall
-2. fresh install exact frozen candidate
-3. install-over/reset/uninstall/reinstall lifecycle tests
-4. runtime readiness + installed fingerprint parity
-5. final Dashboard semantic/durable-delivery acceptance หนึ่งครั้ง
+```text
+1 human Send
+-> 1 Ticket
+-> 1 session/run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical Dashboard assistant result
+```
 
-Recovery Core checkpoint `eadb89099637d24f96e265a500d66c577aa939a3` เป็น historical technical evidence ที่ผ่าน live Test A v16 บน Windows/OpenClaw/Ollama แล้ว แต่ไม่ใช่ final v0.9.3 release acceptance โดยตัวมันเอง
+ไม่มี retry, duplicate semantic work, direct recovery หรือ outbox residue
 
-ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md) และ [CHECK_SYSTEM.md](CHECK_SYSTEM.md)
+## การติดตั้งจาก Release ในอนาคต
+
+หลัง corrected documentation-bearing candidate ผ่าน requalification และ `v0.9.3` ถูก publish จริง ให้ใช้ assets ที่ `.github/workflows/release.yml` สร้าง:
+
+- `cogentnexus-openclaw-v0.9.3.tar.gz`
+- `cogentnexus-openclaw-v0.9.3.zip`
+- `SHA256SUMS.txt`
+
+ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น จนกว่า GitHub Release จะมีอยู่จริง ห้ามเดาหรือสร้าง release download URL ขึ้นเอง
+
+ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md) และ [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md)

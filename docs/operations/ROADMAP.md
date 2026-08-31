@@ -1,8 +1,8 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-08-28
+**Updated:** 2026-08-31
 
-This roadmap is directional, not contractual. Items may move, split, merge, or be abandoned when better evidence or architecture appears. Movement is evidence-driven: a phase advances because its gate passes, not merely because code was written.
+This roadmap is directional, not contractual. Movement is evidence-driven: a phase advances because its gate passes, not merely because code was written.
 
 ## Architectural rule — responsibility-local data and policy
 
@@ -16,202 +16,122 @@ Before adding a parameter, default, configuration field, dependency check, or po
 
 If all three answers are no, the value should not exist in that layer.
 
-This rule is intended to reduce cross-layer coupling, hidden defaults, accidental policy inheritance, and failure modes where unrelated data is bound into a subsystem that never needed it.
+For v0.9.3 this means, among other things, that installation remains provider-neutral while the current runtime/operator provider contract is Ollama only.
 
-For the current stabilization work, provider selection is the immediate example: installation does not intrinsically require a provider name/model/endpoint/timeout/provider executable, so provider policy belongs in runtime/configuration layers rather than in the installer. The installer should remain provider-neutral and use generic lifecycle handoff contracts. This does not by itself expand current runtime provider support.
+## Current position — accepted candidate, blocked publication
 
-Apply this principle recursively to future architecture work: prefer narrower responsibility boundaries over passing extra context through layers “just in case.”
+The exact candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence through Tasks 182–186.
 
-## Short term — finish v0.9.3 repository stabilization and freeze the exact candidate
+Task 187 then found that full documentation convergence requires edits inside artifact-sensitive product surfaces:
 
-### 1. Phase I — living documentation cleanup
+- `plugins/cogentnexus-openclaw/README.md` participates directly in the npm payload-v2 fingerprint;
+- `skills/cogentnexus-openclaw/SKILL.md` and references are copied into the installed skill tree and form part of the runtime instruction surface;
+- current wording in those surfaces still reflects pre-acceptance state.
 
-Keep current operational guidance aligned with the repository that will become the candidate:
+Changing them creates a different product/artifact identity. Publication is therefore blocked until a corrected exact candidate receives the qualification appropriate to that changed surface.
 
-- `docs/operations/STATUS.md`, `ROADMAP.md`, and `DECISIONS.md` reflect the current stabilization phase;
-- clean-reinstall documentation matches the implementation-owned external backup boundary;
-- current user command examples are checked programmatically against the v0.9.3 facade/delegated CLI surface where practical;
-- installation documentation reflects the provider-neutral installer boundary and does not require runtime provider arguments at install time;
-- historical release notes, completed coordination reports, and retained evidence remain historical and are not rewritten as current guidance.
+## Short term — documentation-payload repair and requalification
 
-### 2. Phase J — security and repository hygiene
+### 1. Correct only the stale product documentation surface
 
-Before candidate freeze:
+Allowed repair scope should be tightly bounded to documentation/instruction text that must become current. Do not change production/runtime/plugin executable source, tests, dependencies, or workflow behavior merely to make release publication easier.
 
-- scan tracked files for accidental credentials/secrets and classify test placeholders separately;
-- audit ignored/generated artifacts so runtime databases, logs, caches, local credentials, and unintended build residue are not tracked;
-- run the current npm production dependency audit and perform an appropriate Python dependency review;
-- review OpenClaw compatibility metadata against the actual validated guarantee of `2026.7.1-2` instead of silently promising a broader range than evidence supports.
+Required convergence includes:
 
-Do not perform broad dependency upgrades merely to make audit output quieter during stabilization. Any change must have a concrete compatibility or security reason and its own verification evidence.
+- plugin package README current status;
+- installed skill `SKILL.md` current status;
+- stale installed skill references such as `references/architecture.md`;
+- any other current guidance inside the same installed/payload tree discovered by the audit.
 
-### 3. Phase K — final repository audit and exact-candidate freeze
+Historical technical notes must remain historical.
 
-Freeze one exact v0.9.3 candidate only after all repository gates are green.
+### 2. Prove changed-surface identity exactly
 
-Required identity/evidence includes:
+For the corrected candidate, record:
 
 - exact source commit SHA;
-- package version;
-- payload-v2 fingerprint;
-- payload file count;
-- archive SHA256 values;
-- GitHub Actions matrix/package proof for that exact source;
-- final review that current docs, release workflow policy, namespace isolation, responsibility boundaries, and compatibility metadata all describe the same candidate.
+- unchanged executable/runtime source proof against `f6392da3...`;
+- new plugin payload-v2 fingerprint and file count;
+- deterministic identity/hash for the installed skill tree or exact changed paths;
+- `VERSION`, package, plugin manifest, and lockfile version alignment;
+- release archive SHA256 values;
+- GitHub Actions validation/package evidence for that exact SHA.
 
-After freeze, no source modification may be treated as the same candidate. Any source change creates a new candidate identity and requires re-verification.
+No moving branch name may substitute for candidate identity.
 
-### 4. Bounded real-Windows acceptance of the frozen candidate
+### 3. Bounded Windows requalification proportional to the change
 
-Only after Phase K freezes the exact candidate, exercise the real Windows target through a separately authorized task.
+Because the changed files are documentation/instruction-bearing rather than lifecycle executable code, do not automatically repeat every disruptive historical test. Requalification should prove the surfaces actually affected:
 
-Required lifecycle sequence remains:
+1. install/install-over the exact corrected candidate and verify ownership plus the new plugin fingerprint/skill bytes;
+2. verify facade/controller/Gateway/Ollama/delivery/recovery health remains unchanged;
+3. because `SKILL.md`/skill references are runtime instruction surfaces, run one bounded Dashboard semantic/durable-delivery turn to prove Ticket-first and single-delivery behavior remains intact;
+4. repeat reset/uninstall/fresh-reinstall only if the changed candidate or installation path introduces evidence requiring those lifecycle boundaries to be re-proven.
 
-1. record the frozen candidate identity and archive checksums before mutation;
-2. install the exact candidate through the provider-neutral installer and verify installation/ownership/Gateway readiness without requiring installer-level provider selection;
-3. separately verify that the currently configured runtime/provider state remains coherent and was not unexpectedly changed by installation;
-4. install the same candidate over an existing CogentNexus-OpenClaw deployment and verify safe convergence;
-5. run the documented `cnxclaw reset` flow with explicit `y` confirmation and verify fresh-state reconstruction;
-6. run `cnxclaw uninstall` with explicit `y` confirmation and verify only CogentNexus-OpenClaw-owned surfaces are removed;
-7. verify external OpenClaw, provider runtimes/models/data, and unrelated namespaces remain intact;
-8. reinstall the same frozen candidate after uninstall;
-9. verify post-reinstall ownership/runtime state, Gateway readiness, configured-provider preservation, and recovery readiness as separate postconditions rather than treating provider choice as an installer decision;
-10. perform the final bounded Dashboard semantic/durable-delivery acceptance probe only after lifecycle readiness is proven;
-11. retain commands, exit codes, artifact hashes, runtime evidence, and duplicate-execution fences for every disruptive phase.
+The old Tasks 182–186 remain valid historical evidence for `f6392da3...`; the corrected candidate may inherit only unchanged-surface claims justified by explicit proof.
 
-A completed disruptive phase must never be repeated simply because a watcher or coordination loop runs again.
+### 4. Final v0.9.3 release publication
 
-### 5. Explicit human release review and publication decision
+After the corrected candidate is accepted:
 
-Repository stabilization and live acceptance do not automatically publish a release.
-
-After the frozen candidate and real-Windows evidence are accepted:
-
-- review version/release notes and consumer installation guidance;
-- review the exact source/artifact identity intended for publication;
-- update or replace the older Draft PR path as appropriate for the accepted candidate;
-- merge/tag/publish only as a separate explicit human-controlled action;
-- never publish because a development or `release/v*` branch was merely pushed.
-
-## Medium term — prove work continuity, not only process recovery
-
-The medium-term objective is to prove that replacing failed processes does not lose or duplicate user work.
-
-### Active-call Gateway death
-
-Scenario:
+1. re-audit living documentation and product-identity boundaries;
+2. create a current `agent/v0.9.3-full-stabilization` (or successor exact candidate branch) -> `main` release PR;
+3. supersede stale PR #24 rather than merging its old head/base path;
+4. require green CI/checks;
+5. merge without force push and freeze exact merged `main` SHA;
+6. dispatch `.github/workflows/release.yml` with:
 
 ```text
-Ticket committed
-→ LLM work active
-→ Gateway dies
-→ Gateway returns
-→ durable work state reconciled
-→ only incomplete work continues
+version = 0.9.3
+candidate_sha = <exact merged publication SHA>
 ```
 
-### Active-call provider death
+7. require the Release workflow package and publish jobs to pass;
+8. verify tag `v0.9.3`, exact target SHA, release notes, archives, and `SHA256SUMS.txt`.
 
-Required distinctions:
+Expected assets:
 
-- actual provider failure must open/advance the correct provider incident;
-- a healthy but slow inference must **not** be restarted merely because it is quiet;
-- Gateway failure while the provider stays healthy must not be misclassified as provider failure;
-- provider-specific recovery knowledge should remain in the provider/runtime boundary rather than leak into unrelated installation/ownership layers.
+- `cogentnexus-openclaw-v0.9.3.tar.gz`
+- `cogentnexus-openclaw-v0.9.3.zip`
+- `SHA256SUMS.txt`
 
-### Host/supervisor death
+## Medium term — extend continuity evidence
 
-Prove that CogentNexus-OpenClaw control-plane failure itself is recoverable:
+After v0.9.3 publication, continue proving work continuity rather than only process recovery.
+
+Priority scenarios include:
+
+- abrupt machine power loss and cold-boot continuation;
+- high-concurrency/long-soak behavior;
+- disk-full and database-corruption handling;
+- stronger external side-effect adapters with idempotency/receipt/read-after-write evidence;
+- explicit compatibility qualification for OpenClaw versions newer than `2026.7.1-2`.
+
+A healthy listener is not sufficient proof that durable recovery is complete, and elapsed time alone is never recovery authority.
+
+## Long term — durable intent across replaceable intelligence/runtime
+
+The architectural destination is broader than a watchdog or process supervisor:
 
 ```text
-Host dies
-→ startup/supervisor returns
-→ reads durable state
-→ reconciles desired runtime/work state
+human intent
+-> durable accepted work
+-> replaceable runtime/intelligence workers
+-> failure/interruption
+-> durable reconciliation
+-> resume only incomplete work
+-> deliver without duplicating completed effects
 ```
 
-### Delivery interruption
+Preserve these invariants recursively as the system scales:
 
-If a result is already durably committed but delivery is interrupted:
-
-- reuse/redeliver the committed result;
-- do not re-run inference merely to reproduce the same result;
-- retain terminal/delivery fences.
-
-### Ticket and workflow recovery matrix
-
-Create deterministic fixtures for:
-
-- accepted-but-not-started work;
-- started-but-not-committed work;
-- response-ready committed work;
-- delivery pending;
-- delivered/completed;
-- cancelled/failed terminal work.
-
-Each state must define what recovery is allowed to repeat and what must never repeat.
-
-## Long term — durable intent across machine/runtime failure
-
-The long-term destination is broader than a watchdog or process supervisor.
-
-### Power loss and reboot continuation
-
-Prove recovery across abrupt machine failure:
-
-```text
-user intent accepted
-→ work partially progresses
-→ power loss / reboot
-→ runtime returns
-→ durable state is authoritative
-→ incomplete work resumes
-```
-
-### External side-effect safety
-
-For operations outside CogentNexus-OpenClaw, support or require reconciliation mechanisms such as:
-
-- idempotency keys;
-- durable receipts;
-- read-after-write verification;
-- external transaction identifiers;
-- explicit effect adapters.
-
-A completed Ticket alone must never be treated as proof that an arbitrary irreversible external effect may safely be repeated.
-
-### Replaceable intelligence/runtime boundary
-
-Move toward an architecture where OpenClaw, individual provider runtimes, model calls, agents, and eventually other intelligent workers are replaceable execution resources.
-
-Continuity authority should remain in durable intent, committed work state, evidence, generation/ownership fences, and reconciliation.
-
-Responsibility-locality is part of that replaceability: installation should not need provider policy, ownership should not need model policy, delivery should not need installer policy, and provider/runtime modules should not become authorities for unrelated durable-work decisions.
-
-### Multi-agent / large-scale direction
-
-As CogentNexus-OpenClaw expands, preserve the same invariant recursively:
-
-- one intent may flow through many intelligence/execution units;
-- local failures must not silently redirect the original intent;
-- each layer should be able to prove what it owns, what it completed, and what remains incomplete;
-- each layer should receive only the information necessary for its contract instead of accumulating unrelated global context;
-- coordination scale must not weaken durable evidence or duplicate-effect safety.
-
-## Non-goals for the current repository-stabilization phase
-
-These may become future work, but should not distract from the exact v0.9.3 candidate boundary:
-
-- reintroducing multi-provider runtime complexity into v0.9.3 merely because the installer becomes provider-neutral;
-- rewriting the frozen v0.9.2 historical release;
-- treating timeouts/cooldowns as recovery authority;
-- claiming arbitrary exactly-once external effects without reconciliation evidence;
-- broadening supported OpenClaw versions without corresponding evidence;
-- starting live install/reset/uninstall/restart/semantic acceptance before Phase K freezes the candidate;
-- publishing a release automatically from branch activity.
+- durable intent outranks transient model memory;
+- each layer owns only the policy/data required for its responsibility;
+- local failure must not silently redirect the original intent;
+- completed/terminal evidence must fence duplicate work;
+- external irreversible effects require explicit reconciliation evidence;
+- coordination scale must not weaken artifact identity or proof requirements.
 
 ## Roadmap movement rule
 
-Move an item forward because its **evidence gate passed**, not because code was written.
-
-When evidence reveals a new blocker, it is acceptable for the roadmap to move backward, split a milestone, or introduce a diagnostic phase. That is progress when it reduces uncertainty about the real system.
+Move an item forward because its **evidence gate passed**, not because code was written. When evidence reveals a blocker, moving backward to create a narrower candidate/requalification phase is correct behavior when it preserves the integrity of accepted evidence.
