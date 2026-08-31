@@ -168,7 +168,7 @@ Historical v0.9.2 limits were provider-specific; v0.9.3 current operator/provide
 
 ## OpenClaw timeout boundary
 
-Timeout/watchdog values are request/runtime safety envelopes, not recovery authority. CogentNexus recovery decisions remain evidence-driven. A long timeout may prevent premature interruption, but it does not prove that a silent call is healthy; conversely, crossing a timer does not prove that a healthy provider is dead.
+Timeout/watchdog values are request/runtime safety envelopes, not recovery authority. CogentNexus-OpenClaw recovery decisions remain evidence-driven. A long timeout may prevent premature interruption, but it does not prove that a silent call is healthy; conversely, crossing a timer does not prove that a healthy provider is dead.
 
 Historical LM Studio testing used widened provider/agent request envelopes to prove this distinction. Those exact LM Studio values are retained only in historical reports and should not be interpreted as current v0.9.3 operator configuration.
 
