@@ -1,77 +1,69 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_DASHBOARD_EXACTLY_ONE_SEND_DURABLE_DELIVERY_REACCEPTANCE_HERMES`  
+**Execution mode:** `TASK171_EVIDENCE_CONTRACT_COMPLETION_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-171`
+**Active task:** `CNX-20260831-172`
 
 ## Active work
 
-[`tasks/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md`](tasks/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md)
+[`tasks/CNX-20260831-172-hermes-task171-evidence-contract-completion.md`](tasks/CNX-20260831-172-hermes-task171-evidence-contract-completion.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
 Standing model: executor-heavy / reviewer-light.
 
-## Task 167 — accepted repair
+## Accepted repair/install baseline
 
 Accepted product repair SHA:
 
 `231761fca24c315e90536955d3e384f55e2e232e`
 
-Final disposition:
-
-`PASS — NATIVE_DELIVERY_STAGING_REPAIR_ACCEPTED`
-
-## Task 169 — accepted exact-SHA CI completion
-
-Validate run `33330458434`, attempt 2: `completed/success`, 7/7 jobs.
-
-Windows Installer Pack Smoke `33330458470`: `success`.
-
-PS5.1 Acceptance Smoke `33330458475`: `success`.
-
-## Task 170 — accepted Windows install-over checkpoint
-
-Review:
-
-`reviews/CNX-20260831-170-hermes-windows-install-over-provenance-health-review.md`
-
-Disposition:
-
-`ACCEPTED_PASS — REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_PROVENANCE_HEALTH_ACCEPTED`
-
-Installed candidate fingerprint:
+Installed candidate fingerprint accepted by Task 170:
 
 `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 
-Package SHA-256:
+OpenClaw remains pinned to `2026.7.1-2`.
 
-`8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`
+## Task 171 — semantic action executed once; final acceptance pending evidence completion
 
-OpenClaw remains pinned to `2026.7.1-2`. Task 170 reported plugin loaded/enabled, healthy controller/Gateway/Ollama/startup/recovery/ownership, SQLite integrity `ok`, and zero semantic activity.
+Task-171 report:
 
-## Task 171 objective
+`reports/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md`
 
-Perform exactly one controlled Dashboard semantic Send and prove or falsify the repaired durable-delivery chain using native persistence as authority.
+ChatGPT review:
 
-Required evidence includes:
+`reviews/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance-review.md`
 
-1. exact nonce/prompt/session and exactly-one-Send proof;
-2. exactly-one model-call proof;
-3. native transcript user/assistant counts and exact expected response;
-4. persisted assistant delivery marker/identity;
-5. exactly one `cnx_assistant_delivery` row correctly bound to the Ticket/run;
-6. post-persistence settlement and non-null `delivery_confirmed_at`;
-7. final Ticket state/event sequence;
-8. zero duplicate UI/native output, second inference, recovery reinjection, or conflicting outbox/delivery;
-9. healthy post-state and preserved installed provenance.
+Disposition:
+
+`REWORK_REQUIRED — TASK171_SEMANTIC_RESULT_COHERENT_BUT_VERIFICATION_PACKET_MISSING`
+
+The report describes a coherent successful chain: exactly one Send, one native request/result, one direct model call, one marker-bearing native assistant result, one durable delivery row, `delivery_confirmed_at` set, completed Ticket, zero recovery/outbox/duplicate result, and healthy post-state.
+
+Final acceptance is withheld because the report omitted mandatory contract items: the Task-171 acceptance matrix, Reviewer Verification Packet, transcript SHA-256, exact marker/idempotency binding details, full model/request identity, run-scoped zero-conflict evidence, and immutable hashes for critical local evidence files.
+
+The Task-171 Send MUST NOT be repeated. The acceptance-attempt semantic Send count is frozen at `1`.
+
+## Task 172 objective
+
+Complete the Task-171 evidence contract from preserved evidence and read-only inspection only:
+
+1. prove the exact single action identity and Send ledger;
+2. hash and inspect the native transcript, including marker/identity binding;
+3. record full Ticket/run/model identities and event timestamps;
+4. inspect the exact durable delivery row and staged text/hash identity;
+5. provide run-scoped duplicate/recovery/outbox proof;
+6. hash critical local evidence artifacts;
+7. produce the required nine-row Task-171 acceptance matrix;
+8. produce a 5-10 claim Reviewer Verification Packet;
+9. state anomalies, residual uncertainty, hard-fence compliance, and publication state.
 
 ## Hard fence
 
-After the single Send is issued, **no retry under any outcome**.
+Task 172 authorizes **zero semantic actions**.
 
-No second Dashboard Send, `chat.inject`, alternate semantic input, manual inference/recovery, install/lifecycle mutation, manual DB/Ticket/result/outbox/delivery/transcript mutation, production repair, OpenClaw/dependency upgrade, release/promotion, merge, or force push.
+No Dashboard Send, `chat.inject`, Enter submission, alternate semantic surface, manual model inference, recovery/regeneration, installer/uninstall/reinstall/reset/rollback, Gateway/Ollama/Supervisor/OpenClaw restart, manual durable-state mutation, source/test/workflow/product change, OpenClaw/dependency upgrade, release/promotion, merge, or force push.
 
-If PASS cannot be proven, report the exact failure/blocked/unproven boundary and stop for ChatGPT review.
+If existing evidence cannot prove a Task-171 criterion, report `UNPROVEN`/`FAIL`; never repeat the live experiment.
