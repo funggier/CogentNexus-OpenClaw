@@ -1,77 +1,58 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_CHATGPT_REVIEW`  
-**Execution mode:** `TASK187_BLOCKED_DOCUMENTATION_PAYLOAD_REQUALIFICATION_REQUIRED`  
+**State:** `EXECUTING_CHATGPT`  
+**Execution mode:** `TASK188_DOCUMENTATION_PAYLOAD_CONVERGENCE_AND_PROPORTIONAL_REQUALIFICATION`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-187`  
-**Disposition:** `BLOCKED — DOCUMENTATION_BEARING_PRODUCT_PAYLOAD_REQUALIFICATION_REQUIRED`
+**Active task:** `CNX-20260831-188`  
+**Disposition:** `IN_PROGRESS`
 
-Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT. Human release authority existed, but publication gates did not pass because full documentation convergence would change the accepted artifact identity.
+Task 187 was reviewed and its blocker classification accepted. The user clarified the desired publication path: make all current v0.9.3 documentation/instruction surfaces correct first, proportionally requalify the resulting documentation-bearing artifact, then release.
 
-## Final Task-187 report
+## Task 188
 
-[`reports/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication.md`](reports/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication.md)
+[`tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md`](tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md)
 
-## Accepted candidate / live evidence retained
+## Starting identities
 
-Frozen product candidate:
+- pre-task HEAD: `fa3c89d93b506f2e7ccfb167cc665e593ebf1373`
+- previously accepted implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`
+- accepted facade SHA-256: `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
+- previous package payload-v2: `df6e395a47b632c779d12dd95f9ce762c7f28ca2740442b8b299ff622df94959` / `184` files
+- accepted live installed-plugin fingerprint: `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 
-`f6392da3e4112ce441526d5ef19925c90a872b0b`
+## Current phase
 
-Accepted active facade SHA-256:
+`DOCUMENTATION_PAYLOAD_AUDIT_AND_CONVERGENCE`
 
-`aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
+Known stale installed/payload surfaces include:
 
-Repository package payload-v2 identity:
+- `plugins/cogentnexus-openclaw/README.md`;
+- `skills/cogentnexus-openclaw/SKILL.md`;
+- `skills/cogentnexus-openclaw/references/architecture.md`.
 
-`df6e395a47b632c779d12dd95f9ce762c7f28ca2740442b8b299ff622df94959` / `184` files
+The complete installed skill/reference tree is being checked before candidate freeze.
 
-Accepted live installed-plugin inventory fingerprint:
+## Requalification boundary
 
-`e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
+Default after documentation-only candidate freeze:
 
-Accepted lifecycle/semantic sequence remains Tasks 182–186, ending with exactly one human Send -> one Ticket -> one session/run -> one Ollama call -> one durable delivery -> one logical Dashboard result.
+- exact-candidate CI/package validation;
+- prove executable/runtime bytes unchanged;
+- one supported Windows install-over;
+- exact installed documentation/provenance/health proof;
+- one bounded Dashboard semantic/durable-delivery turn.
 
-## Why Task 187 blocked release
+Reset/uninstall/fresh-reinstall are not repeated by default because the implementation has already passed those full-stabilization boundaries. Repeat them only if changed-candidate evidence requires it.
 
-Safe repository docs were updated, but full living-documentation convergence requires edits to product/payload surfaces that still contain stale pre-acceptance/current-version guidance:
+## Publication state
 
-- plugin package README participates in payload-v2 identity;
-- installed `SKILL.md` participates in the runtime instruction surface;
-- installed `references/architecture.md` still labels the current architecture as v0.9.1.
-
-Changing those bytes creates a new artifact. Task 187 is forbidden to treat the old Windows acceptance as acceptance of the changed artifact.
-
-## Safe documentation validation
-
-Exact validated safe-doc SHA before report publication:
-
-`5ee5089d5b666c84dae4de8db32fd3ab4051788d`
-
-CI:
-
-- Validate run `33380292013`: success;
-- Windows Installer Pack Smoke run `33380292072`: success;
-- PS5.1 Acceptance Smoke run `33380292047`: success.
-
-An initial install-doc pytest regression after safe convergence was corrected only in INSTALL EN/TH without changing tests or product behavior. Final CI is green.
-
-## PR / release state
-
-- stale Draft PR #24 was explicitly superseded and closed without merge;
-- no replacement release PR was opened because the blocker occurred before the PR gate;
-- `main` remained `874dd8f8ce9c1ca5595b29207281430a86c074de` before report publication;
-- `v0.9.3` tag absent;
-- GitHub Release `v0.9.3` absent;
-- Release workflow not dispatched.
-
-## Next state
-
-Stop for ChatGPT review.
-
-If the review accepts this blocker classification, the next task should be a narrowly scoped documentation-payload repair/requalification task, not an immediate release task. It must correct the installed/plugin documentation, freeze new identity, rerun exact-candidate validation, and requalify the changed product surface before PR/merge/release publication.
+- `main` remains `874dd8f8ce9c1ca5595b29207281430a86c074de` at Task-188 start;
+- stale PR #24 remains closed/not merged;
+- current release PR not yet created;
+- `v0.9.3` tag/release absent;
+- Release workflow not yet dispatched.
 
 ## Hard fence
 
-No plugin/skill payload-sensitive edits, product/test/dependency/workflow changes, live lifecycle/semantic mutation, release PR/merge, Release workflow dispatch, tag, GitHub Release, or force push until a new authorized task exists.
+Do not change executable/runtime/plugin source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Do not force push.

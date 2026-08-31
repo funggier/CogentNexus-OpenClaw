@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `AWAITING_CHATGPT_REVIEW`
-Execution mode: `TASK187_BLOCKED_DOCUMENTATION_PAYLOAD_REQUALIFICATION_REQUIRED`
-Current disposition: `BLOCKED — DOCUMENTATION_BEARING_PRODUCT_PAYLOAD_REQUALIFICATION_REQUIRED`
-Task ID: `CNX-20260831-187`
+Status: `EXECUTING_CHATGPT`
+Execution mode: `TASK188_DOCUMENTATION_PAYLOAD_CONVERGENCE_AND_PROPORTIONAL_REQUALIFICATION`
+Current disposition: `IN_PROGRESS`
+Task ID: `CNX-20260831-188`
 Updated: 2026-08-31 ICT
-Executor: Hermes/Codex
+Executor: ChatGPT / Hermes for bounded Windows requalification when required
 Coordinator / final reviewer: ChatGPT
-Human release authority: User — publication authorization existed, but the Task-187 artifact-identity gate failed before PR/merge/release publication.
+Human release authority: User — documentation must be made current first, then v0.9.3 publication may proceed when gates pass.
 
 ## Authoritative coordination files
 
@@ -18,27 +18,21 @@ Only:
 
 GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
-## Task-187 result
+## Active task
 
-Final report:
+[`tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md`](tasks/CNX-20260831-188-documentation-payload-convergence-and-proportional-requalification.md)
 
-[`reports/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication.md`](reports/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication.md)
+Task-187 review:
 
-Disposition:
+[`reviews/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication-review.md`](reviews/CNX-20260831-187-final-documentation-convergence-and-v093-release-publication-review.md)
 
-`BLOCKED — DOCUMENTATION_BEARING_PRODUCT_PAYLOAD_REQUALIFICATION_REQUIRED`
+## Starting authority
 
-Safe living documentation outside installed/product payload was converged and validated. Full documentation convergence cannot finish under the accepted Windows artifact identity because current-facing stale text remains inside documentation-bearing product surfaces:
+Task-188 pre-task HEAD:
 
-- `plugins/cogentnexus-openclaw/README.md` is part of `package.json.files` and therefore package payload-v2 identity;
-- `skills/cogentnexus-openclaw/SKILL.md` is copied into the installed runtime skill surface;
-- `skills/cogentnexus-openclaw/references/architecture.md` is installed skill guidance and still identifies the architecture as current v0.9.1.
+`fa3c89d93b506f2e7ccfb167cc665e593ebf1373`
 
-Correcting these bytes creates a new product/payload identity. Task 187 therefore did not open a replacement release PR, merge to `main`, dispatch Release, create tag `v0.9.3`, or publish a GitHub Release.
-
-## Accepted product/live baseline preserved
-
-Frozen accepted product candidate:
+Previously accepted implementation candidate:
 
 `f6392da3e4112ce441526d5ef19925c90a872b0b`
 
@@ -46,7 +40,7 @@ Accepted active facade SHA-256:
 
 `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
 
-Repository package payload-v2 identity for the accepted candidate:
+Previously accepted package payload-v2:
 
 `df6e395a47b632c779d12dd95f9ce762c7f28ca2740442b8b299ff622df94959` / `184` files
 
@@ -54,43 +48,16 @@ Accepted live installed-plugin inventory fingerprint:
 
 `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 
-Task 187 changed no plugin/skill/product executable/test/dependency/workflow path after the accepted candidate. The active facade path still resolves to accepted Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
+## Current objective
 
-## Validation state
+Correct stale current-facing plugin/skill documentation, freeze the resulting documentation-only artifact, prove executable/runtime identity preservation, run exact-candidate CI/package validation, then perform proportional Windows requalification before returning to PR/merge/release publication.
 
-Validated safe-documentation HEAD before report publication:
+## Requalification principle
 
-`5ee5089d5b666c84dae4de8db32fd3ab4051788d`
+The implementation has already passed the full v0.9.3 stabilization sequence at a meaningful level. Documentation/instruction-only changes therefore require bounded proportional requalification by default, not automatic repetition of reset/uninstall/fresh-reinstall.
 
-Primary CI on that exact SHA:
-
-- Validate `33380292013` — success;
-- Windows Installer Pack Smoke `33380292072` — success;
-- PS5.1 Acceptance Smoke `33380292047` — success.
-
-## Release topology final state
-
-- `main`: `874dd8f8ce9c1ca5595b29207281430a86c074de` before Task-187 report publication;
-- stale PR #24: closed, not merged;
-- replacement release PR: not created because blocker occurred before PR gate;
-- `v0.9.3` tag: absent;
-- GitHub Release `v0.9.3`: absent;
-- `.github/workflows/release.yml`: not dispatched.
-
-## Required successor
-
-ChatGPT should review the Task-187 report and, if accepted, authorize/create a narrowly scoped documentation-payload repair/requalification task. That task should correct only stale product documentation/instruction surfaces, freeze a new exact candidate/fingerprint/skill identity, rerun repository/package validation, and perform Windows requalification proportional to the changed installed instruction/payload surface before returning to PR/merge/release publication.
-
-Do not silently reuse Tasks 182–186 exact-artifact acceptance for changed plugin/skill documentation bytes.
+Default Windows requalification: exact install-over + provenance/health/skill-byte proof + one semantic durable-delivery turn. Destructive lifecycle tests repeat only if evidence requires them.
 
 ## Hard fence
 
-Until ChatGPT review and a new task:
-
-- do not edit plugin/skill payload-sensitive current documentation;
-- do not change production/runtime/plugin executable source, tests, dependencies, or workflow behavior;
-- do not mutate live Windows lifecycle/semantic state;
-- do not create/merge a v0.9.3 release PR;
-- do not dispatch Release workflow;
-- do not create tag/release;
-- do not force push.
+No production/runtime/plugin executable source, test, dependency, workflow-behavior, provider/runtime semantic, or durable-schema changes under Task 188 merely to make release pass. No force push.
