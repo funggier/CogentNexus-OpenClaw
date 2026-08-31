@@ -3,16 +3,17 @@
 **Updated:** 2026-08-31  
 **Release line:** v0.9.3  
 **Current branch:** `agent/v0.9.3-full-stabilization`  
-**Previously accepted implementation candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`  
+**Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`  
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
 **Managed provider:** **Ollama only**  
-**Task-188 package payload-v2:** `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files  
-**Task-188 installed skill tree:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
-**Executable scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f` — unchanged
+**Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files  
+**Installed skill tree:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
+**Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`  
+**Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
 
-## What is already accepted
+## Accepted evidence chain
 
-The exact implementation baseline completed the bounded real-Windows acceptance sequence:
+The broad v0.9.3 lifecycle implementation baseline completed:
 
 - Task 182 — install-over/provenance reacceptance;
 - Task 183 — reset/fresh-state reacceptance;
@@ -20,54 +21,56 @@ The exact implementation baseline completed the bounded real-Windows acceptance 
 - Task 185 — fresh reinstall/post-install acceptance;
 - Task 186 — final Dashboard semantic/durable-delivery acceptance.
 
-Task 186 proved one human Send produced exactly one Ticket, one session/run, one Ollama model call, one durable assistant delivery, and one logical Dashboard assistant result, with no retry/recovery/duplicate semantic work/outbox residue.
+Task 187 then stopped publication because stale current guidance existed inside package/installed product surfaces. Task 188 corrected those documentation-bearing bytes.
 
-## Documentation-bearing candidate
+The first proportional human Dashboard requalification exposed a narrow `NO_REPLY` semantic defect. Task 191 repaired the executable Dashboard delivery boundary with RED -> minimal fix -> GREEN, including bare-sentinel staging protection and a bounded same-run revision path.
 
-Task 187 correctly stopped initial publication because stale current guidance existed inside package/installed product surfaces. Task 188 has now corrected that guidance in exactly these product documentation paths:
+Task 192 requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host and is accepted `PASS`.
 
-- `plugins/cogentnexus-openclaw/README.md`;
-- `skills/cogentnexus-openclaw/SKILL.md`;
-- `skills/cogentnexus-openclaw/references/architecture.md`;
-- `skills/cogentnexus-openclaw/references/scheduler-adapters.md`.
+## Task-192 real-runtime proof
 
-The package README change produced payload-v2 `408167da...` / 184 files. The installed skill tree is now `a1e873ba...`. The executable scripts tree remains `3d9d323...`, including the unchanged accepted facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
+The accepted shape was:
 
-This is therefore a documentation/instruction identity change, not an executable/runtime behavior change.
+```text
+1 human Send
+-> 1 Ticket
+-> 1 logical OpenClaw run
+-> 1 Ollama model call
+-> 1 durable assistant delivery
+-> 1 logical visible Dashboard assistant result
+```
 
-## Qualification policy
+Observed deltas were exactly +1 Ticket, +1 direct model call, +1 durable assistant delivery, +0 Direct Recovery, +0 pending outbox. The requested nonce was the durable/UI result. No duplicate and no bare `NO_REPLY` was present. The first natural final succeeded, so same-run sentinel revision count was zero.
 
-The corrected artifact must receive proportional changed-surface requalification before publication:
+Post-install Gateway/Ollama/delivery/recovery/SQLite health passed, and the installed repaired module was byte-identical to the candidate built module. The active facade remained at accepted SHA-256 `aa747f8f...`.
 
-1. exact-candidate repository/package CI;
-2. one supported Windows install-over of the corrected candidate;
-3. exact installed package/skill/facade provenance checks;
-4. MANAGED + Ollama + Gateway + delivery/recovery + SQLite health;
-5. one bounded Dashboard semantic/durable-delivery turn;
-6. reset/uninstall/fresh-reinstall only if evidence from the corrected artifact gives a concrete lifecycle reason to repeat them.
+## Candidate identity policy
 
-The earlier destructive lifecycle evidence remains valid historical evidence for the implementation baseline and may support unchanged-surface claims only where byte identity is explicitly proven.
+The product candidate remains frozen at `050ab53f...` for Task-191/192 acceptance evidence. Later coordination/review/living-document commits do not redefine that product candidate.
+
+Unlike the earlier Task-188 documentation-only state, the repaired Dashboard delivery plugin source is intentionally changed. That changed executable surface has direct repository regression proof and real-Windows requalification. The skill scripts/facade remain unchanged.
 
 ## Release topology
 
 - default branch: `main`;
-- Task-188 starting `main`: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
-- stale PR #24 is closed and not merged;
+- fresh `main` before final reconciliation: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
+- `main` contains two documentation-only commits not yet in the stabilization history;
+- stale PR #24 is closed and must not be reused;
 - `.github/workflows/release.yml` is the required exact-SHA publication gate;
-- public release/tag state must be verified directly from GitHub Releases/tags rather than inferred from source prose.
+- public release/tag state is authoritative only on GitHub Releases/tags.
+
+The current branch must first reconcile the two documentation-only `main` commits without force, resolve the independently-added transient-stall document, and rerun validation on the reconciled branch HEAD.
 
 ## Publication path
 
-After Task-188 requalification passes:
-
-1. freeze the final exact candidate;
-2. require exact-candidate CI/checks to be green;
-3. create the current `agent/v0.9.3-full-stabilization` -> `main` release PR;
-4. merge without force push only when topology/diff/checks are correct;
+1. merge/reconcile fresh `main` into the stabilization history without force;
+2. require reconciled-HEAD CI/package proof to pass and verify package-sensitive identity remains `b1ca9f3b...` / 186 files;
+3. create a fresh `agent/v0.9.3-full-stabilization` -> `main` release PR;
+4. inspect exact diff/topology/checks and merge only when green;
 5. freeze exact merged `main` SHA;
 6. dispatch `.github/workflows/release.yml` with `version=0.9.3` and that exact SHA;
-7. verify Release workflow success, tag target, release notes, `.tar.gz`, `.zip`, `SHA256SUMS.txt`, and independent checksums.
+7. verify workflow success, tag target, release notes, archives, `SHA256SUMS.txt`, and independent checksums.
 
 ## Safety boundary
 
-Do not change production/runtime/plugin executable source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Any need for such a change is a separate product defect and blocks publication. Do not force push.
+Do not force push. Do not change production/runtime/plugin executable source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Any new need for such a change is a separate product defect and blocks publication.
