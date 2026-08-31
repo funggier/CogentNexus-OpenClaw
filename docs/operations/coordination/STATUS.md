@@ -1,90 +1,61 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_HERMES_WINDOWS_EXECUTION`  
-**Execution mode:** `TASK188_SUBTASK191_SUBTASK192_NO_REPLY_REPAIR_WINDOWS_REQUALIFICATION`  
+**State:** `IN_PROGRESS`  
+**Execution mode:** `TASK188_RELEASE_PUBLICATION`  
 **Updated:** 2026-08-31 ICT  
-**Transport:** GitHub coordination + Hermes accepted Windows host + one genuine human Dashboard Send  
+**Transport:** GitHub repository + Actions  
 **Active umbrella task:** `CNX-20260831-188`  
-**Parent repair:** `CNX-20260831-191`  
-**Execution subtask:** `CNX-20260831-192`  
-**Disposition:** `READY_FOR_HERMES`
+**Completed repair:** `CNX-20260831-191`  
+**Accepted requalification:** `CNX-20260831-192`  
+**Disposition:** `TASK192_ACCEPTED_RELEASE_PUBLICATION_READY`
 
-## Trigger and repair state
+## Task-192 review result
 
-Task 190 exposed a narrow semantic failure: a genuine direct Dashboard request completed exactly once durably, but assistant content was bare `NO_REPLY` and CogentNexus marker-staged it into a visible result.
+Task-192 report:
 
-Task 191 has repaired the repository boundary using TDD.
+[`reports/CNX-20260831-192-no-reply-repair-windows-requalification.md`](reports/CNX-20260831-192-no-reply-repair-windows-requalification.md)
 
-Repository report:
+Task-192 review:
 
-[`reports/CNX-20260831-191-no-reply-direct-dashboard-semantic-repair.md`](reports/CNX-20260831-191-no-reply-direct-dashboard-semantic-repair.md)
+[`reviews/CNX-20260831-192-no-reply-repair-windows-requalification-review.md`](reviews/CNX-20260831-192-no-reply-repair-windows-requalification-review.md)
 
-Repository disposition:
+Disposition:
 
-`READY_FOR_WINDOWS_REQUALIFICATION`
+`PASS`
 
-## Frozen repaired product candidate
+Accepted evidence:
+
+- exact repaired candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34`;
+- exactly one supported install-over;
+- exactly one genuine human Dashboard Send;
+- exactly one new Ticket;
+- exactly one new direct Ollama model call;
+- exactly one new durable assistant delivery;
+- no direct recovery;
+- no duplicate result;
+- pending outbox remained zero;
+- final durable/UI answer was the requested nonce, not `NO_REPLY`;
+- same-run sentinel revision count was `0`;
+- Gateway/Ollama/delivery/recovery/SQLite health passed;
+- installed repaired plugin module matched the exact candidate bytes;
+- active facade SHA-256 remained accepted.
+
+Task 191 is accepted as closed for release-gate purposes.
+
+## Frozen product candidate
 
 `050ab53f4b593ab538143084d6bbdbf7e1672e34`
 
-Coordination/report commits after this freeze do not redefine the product candidate.
+This remains the Task-188 repaired product candidate identity. Coordination/report/review commits after the freeze do not redefine the product candidate.
 
-Historical candidate `604569c286e930f1a596362ab926b065b56d486e` is retained only for Task-189/190 evidence and must not be installed for Task 192.
+## Publication phase
 
-## Repository validation
+Final v0.9.3 publication is now authorized to proceed through the normal guarded sequence:
 
-Fresh exact-candidate gates:
+`fresh authority check -> new release PR -> PR diff/check review -> merge -> freeze merged main SHA -> Release workflow exact SHA -> verify tag/release/assets/checksums -> final Task-188 report`
 
-- Validate `33390552591`: `completed/success`;
-- PS5.1 Acceptance Smoke `33390552613`: `completed/success`;
-- Windows Installer Pack Smoke `33390552545`: `completed/success`;
-- Task-191 direct NO_REPLY regression: `2/2` PASS;
-- inspected plugin suite: `54` test files / `275` tests PASS.
-
-Candidate package identity:
-
-- payload-v2 `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93`;
-- file count `186`;
-- plugin tree `eeab5fb8c67e5c16284d5df49ec413a53c251a13`;
-- fixed source blob `aa97d7a5411f799c612cd0aeece050085298a8bb`;
-- unchanged skill tree `a1e873ba404205507a1623961b49f1b1a0689f9f`;
-- unchanged executable scripts-tree `3d9d323ba19443d46e970b87cef52ce878da274f`;
-- unchanged `cnxclaw.py` blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
-
-## Current task
-
-[`tasks/CNX-20260831-192-no-reply-repair-windows-requalification.md`](tasks/CNX-20260831-192-no-reply-repair-windows-requalification.md)
-
-Hermes must:
-
-- baseline the accepted Windows host read-only;
-- acquire exact candidate `050ab53f...`;
-- perform exactly one supported install-over;
-- prove installed repaired plugin identity + unchanged facade/runtime health;
-- orchestrate exactly one genuine human Dashboard Send;
-- if the first natural final is bare `NO_REPLY`, allow at most one same-run OpenClaw `before_agent_finalize` revision and prove the sentinel itself is neither durable nor visible;
-- prove exactly one Ticket and exactly one final durable visible assistant result, with no external direct recovery or duplicate delivery;
-- publish Task-192 report and stop.
-
-## Human interaction contract
-
-Hermes, not ChatGPT, will generate the fresh nonce immediately before Send and tell the user the exact one-line Dashboard prompt.
-
-The user sends exactly once, then says `ส่งแล้ว` to Hermes. Hermes continues evidence collection immediately in the same execution context.
-
-Hermes must not perform or simulate the Send.
+Historical PR #24 must not be reused or merged.
 
 ## Hard fence
 
-No reset, uninstall, fresh reinstall, state deletion, provider replacement, OpenClaw version change, production/source/test/dependency/workflow/schema edit, second Send, retry/regenerate/injection, release action, or force push.
-
-## Publication state
-
-Still fenced:
-
-- release PR not yet created;
-- no v0.9.3 merge to `main` for publication;
-- Release workflow not dispatched;
-- `v0.9.3` tag/release not published.
-
-Release work resumes only after Task 192 evidence is committed and accepted by ChatGPT.
+No force push, destructive lifecycle action, provider replacement, OpenClaw version change, unrelated product edit, stale PR reuse, or Release workflow dispatch before the fresh merge gate.
