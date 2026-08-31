@@ -1,63 +1,70 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `REPOSITORY_INTERACTIVE_LIFECYCLE_DELEGATION_DEADLOCK_REPAIR_HERMES`  
+**Execution mode:** `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-179`
+**Active task:** `CNX-20260831-180`
 
 ## Active work
 
-[`tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md`](tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md)
+[`tasks/CNX-20260831-180-hermes-repaired-candidate-windows-install-over-provenance-health.md`](tasks/CNX-20260831-180-hermes-repaired-candidate-windows-install-over-provenance-health.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
 Standing model: executor-heavy / reviewer-light.
 
-## Reviewed reset history
+## Accepted repository state
 
-- Task 174: `ACCEPTED_BLOCKED — RESET_CONFIRMATION_STDIN_BOUNDARY_FAILED_BEFORE_DESTRUCTIVE_MUTATION`
-- Task 175: `ACCEPTED_UNPROVEN — RESET_COMPLETION_BOUNDARY_UNAVAILABLE_AFTER_QUALIFIED_STDIN`
-- Task 176: `ACCEPTED_DIAGNOSTIC_PASS — CHARACTER_PROMPT_CAPTURE_QUALIFIED_TASK175_ROOT_CAUSE_REMAINS_UNPROVEN`
-- Task 177: `ACCEPTED_DIAGNOSTIC_PASS — CMD_BATCH_INCREMENTAL_HARNESS_QUALIFIED`
-- Task 178: `ACCEPTED_FAILURE_BOUNDARY — RESET_INTERACTIVE_PROMPT_BLOCKED_BY_NESTED_DELEGATION_CAPTURE`
+Task 179 is independently accepted:
 
-## Task-178 failure boundary
+`ACCEPTED_PASS — INTERACTIVE_LIFECYCLE_DELEGATION_REPAIR_ACCEPTED`
 
-Task 178 started exactly one installed reset command using the qualified outer harness. The process remained alive with:
+Accepted repository repair candidate:
 
-- `prompt_observed=0`;
-- `input_send_intent=0`;
-- `input_sent=0`;
-- stdout/stderr empty;
-- no reset PASS/fresh-MANAGED result;
-- old Task-171 durable state still present;
-- no retry/helper/semantic action.
+`f6392da3e4112ce441526d5ef19925c90a872b0b`
 
-Uninstall remains unauthorized.
+Candidate facade Git blob:
 
-## Root-cause classification
+`879083d6186589d4b2774b8fd87fa93692dd2dfc`
 
-Accepted source trace shows that the v0.9.3 facade enters legacy `cnxclaw.py`, whose fallback `delegate()` starts `host_control_v092.py` with `capture_output=True`. For reset/uninstall, host control calls the lifecycle wrapper and waits for explicit `input("Continue? [y/N]: ")`.
+Exact-SHA workflows:
 
-The intermediate child stdout/stderr are not forwarded until that captured child exits. Therefore an external interactive observer cannot see the lifecycle prompt before supplying input. This is the production deadlock exposed by Task 178.
+- Validate `33361090584`: completed/success, 7/7 jobs; full pytest step success in each matrix job.
+- Windows Installer Pack Smoke `33361090561`: completed/success.
+- PS5.1 Acceptance Smoke `33361090569`: completed/success.
 
-The lifecycle reset implementation performs only read-only validation/preflight before confirmation. Destructive reset mutation begins after explicit `y` succeeds.
+Task-179 report publication is `a391ff4d6e4eaa469972d312d932407952265b47` and its publication commit is report-only relative to the repair candidate.
 
-## Task 179 objective
+## Live installed baseline entering Task 180
 
-First, if the exact Task-178 process tree is still alive, re-verify zero input and exact identities and retire only that hung process tree. Then repair the facade boundary through TDD:
+The live installation has not yet been proven to contain the Task-179 facade repair. Treat the installed baseline as the prior accepted v0.9.3 candidate until Task 180 completes:
 
-`RED nested interactive prompt propagation -> minimal interactive delegation fix -> GREEN/full validation -> exact-SHA CI`
+- previous repair SHA `231761fca24c315e90536955d3e384f55e2e232e`;
+- plugin fingerprint `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`;
+- npm plugin package SHA-256 `8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`;
+- release `0.9.3`;
+- OpenClaw `2026.7.1-2`.
 
-The minimal expected design is a dedicated interactive delegation route for `reset`/`uninstall` that inherits or directly streams stdin/stdout/stderr, while leaving ordinary noninteractive capture behavior unchanged.
+Task 178 never crossed confirmation. The historical Task-171 Ticket/delivery state is therefore expected to remain present before and after Task-180 install-over.
+
+## Task 180 gate
+
+Task 180 authorizes exactly one supported install-over from exact candidate `f6392da3...`.
+
+Primary acceptance proof is byte identity between:
+
+1. `skills/cogentnexus-openclaw/scripts/cnxclaw.py` from a clean exact-candidate source checkout/materialization; and
+2. the actual installed `cnxclaw.py` reached by the operator's active `cnxclaw.cmd` chain after install-over.
+
+Because the repair is outside the npm plugin payload, unchanged npm package SHA/plugin fingerprint cannot substitute for active facade proof.
+
+Post-install must also prove ownership, plugin/controller health, selected Ollama route, Gateway health, OpenClaw pin, SQLite integrity, no pending recovery/outbox manufacture, and preservation of pre-reset durable history.
 
 ## Hard fence
 
-Task 179 semantic action budget is `0`.
+Task 180 semantic action budget is `0`.
 
-No new reset, uninstall, install/install-over/reinstall, Gateway/Ollama manual lifecycle action, Dashboard Send, model/recovery action, manual state repair, release/tag/merge, or force push.
+No reset, uninstall, reinstall, second install-over/retry, executor-issued lifecycle helper, manual Gateway/Ollama restart, Dashboard Send, model/recovery action, manual durable/config/transcript/route/DB repair, product/source/test/workflow edit, release/tag/merge, or force push.
 
-Repository source/test changes and exact-SHA validation are authorized. Live mutation is limited to exact Task-178 hung-process cleanup after identity and zero-input re-verification.
-
-After Task-179 report publication, stop for ChatGPT review. The repaired candidate must be installed-over and health/provenance reaccepted in a later successor before another reset attempt.
+After Task-180 report publication, stop for ChatGPT review. Another reset remains unauthorized.

@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_HERMES`
-Execution mode: `REPOSITORY_INTERACTIVE_LIFECYCLE_DELEGATION_DEADLOCK_REPAIR_HERMES`
-Current authorization: `CNX-20260831-179_HERMES_INTERACTIVE_LIFECYCLE_DELEGATION_DEADLOCK_REPAIR`
-Task ID: `CNX-20260831-179`
+Execution mode: `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH_HERMES`
+Current authorization: `CNX-20260831-180_HERMES_REPAIRED_CANDIDATE_INSTALL_OVER_PROVENANCE_HEALTH`
+Task ID: `CNX-20260831-180`
 Updated: 2026-08-31 ICT
 Executor: Hermes/Codex
 Coordinator / final reviewer: ChatGPT
@@ -20,43 +20,55 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md`](tasks/CNX-20260831-179-hermes-interactive-lifecycle-delegation-deadlock-repair.md)
+[`tasks/CNX-20260831-180-hermes-repaired-candidate-windows-install-over-provenance-health.md`](tasks/CNX-20260831-180-hermes-repaired-candidate-windows-install-over-provenance-health.md)
 
-Task 179 repairs the production nested-capture deadlock exposed by Task 178 and first retires the exact Task-178 hung process tree if it remains alive.
+## Accepted repository repair
 
-## Accepted baseline
+Task 179:
 
-- Previous accepted product repair SHA: `231761fca24c315e90536955d3e384f55e2e232e`
-- Installed fingerprint: `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
-- Accepted package SHA-256: `8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`
-- Installed release: `0.9.3`
-- OpenClaw: `2026.7.1-2`
-- Task 171–173: `PASS — DASHBOARD_NATIVE_DURABLE_DELIVERY_REACCEPTANCE_ACCEPTED`
-- Task 177: `ACCEPTED_DIAGNOSTIC_PASS — CMD_BATCH_INCREMENTAL_HARNESS_QUALIFIED`
-- Task 178: `ACCEPTED_FAILURE_BOUNDARY — RESET_INTERACTIVE_PROMPT_BLOCKED_BY_NESTED_DELEGATION_CAPTURE`
+`ACCEPTED_PASS — INTERACTIVE_LIFECYCLE_DELEGATION_REPAIR_ACCEPTED`
 
-Task-171 semantic Send count remains permanently frozen at exactly `1`.
+Accepted repair candidate:
 
-## Root cause
+`f6392da3e4112ce441526d5ef19925c90a872b0b`
 
-`cnxclaw.py` delegates unhandled commands through `host_control_v092.py` using `capture_output=True` and forwards stdout/stderr only after child completion. `host_control_v092.py` routes reset/uninstall into the lifecycle wrapper, which waits for explicit interactive confirmation. Therefore the real prompt is trapped behind the intermediate captured child while the child waits for input.
+Candidate facade:
 
-This is a production delegation defect, not a Task-177 outer-harness defect.
+- path `skills/cogentnexus-openclaw/scripts/cnxclaw.py`
+- Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`
 
-## Task-179 authorization
+Required exact-SHA CI:
 
-1. Re-verify the exact Task-178 ledger/process identities. If the same hung Task-178 process tree still exists with zero prompt/input events and unchanged pre-confirmation state, terminate only that exact process tree and verify cleanup.
-2. Use TDD to reproduce the nested interactive delegation failure harmlessly in repository tests.
-3. Apply the smallest source repair that gives `reset`/`uninstall` a true interactive stdin/stdout/stderr delegation path while preserving normal noninteractive delegation behavior.
-4. Run focused/full validation and exact-SHA CI.
-5. Publish the Task-179 report and stop.
+- Validate `33361090584` — success
+- Windows Installer Pack Smoke `33361090561` — success
+- PS5.1 Acceptance Smoke `33361090569` — success
+
+The official Validate matrix ran full `python -m pytest -q` successfully on every matrix job.
+
+## Installed baseline before Task 180
+
+Until Task 180 proves otherwise, the live machine is still considered to have the previous installed v0.9.3 candidate:
+
+- previous repository repair SHA `231761fca24c315e90536955d3e384f55e2e232e`;
+- plugin fingerprint `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`;
+- npm plugin package SHA-256 `8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`;
+- release `0.9.3`;
+- OpenClaw `2026.7.1-2`.
+
+Task-171 historical durable state remains expected before the future reset acceptance because Task 178 never crossed confirmation.
+
+## Task-180 authorization
+
+After fresh preflight, Hermes/Codex may perform exactly one supported Windows install-over from exact repaired source candidate `f6392da3...`.
+
+Task 180 must prove the actual active installed `cnxclaw.py` reached by `cnxclaw.cmd` is byte-identical to the clean exact candidate facade. The unchanged npm package hash/plugin fingerprint are not sufficient proof by themselves because Task-179 changed the CLI facade outside the npm plugin payload.
 
 ## Hard fence
 
-Task 179 semantic action budget: `0`.
+Task 180 semantic action budget: `0`.
 
-No new reset, uninstall, install/install-over/reinstall, runtime lifecycle helper, Gateway/Ollama restart, Dashboard Send, model/recovery action, manual durable/config/transcript/route/DB repair, upgrade, release, merge, or force push.
+No reset, uninstall, reinstall, second installer invocation/retry, executor lifecycle helper, manual Gateway/Ollama restart, Dashboard Send, model/recovery action, manual state repair, source/product/test/workflow change, release/tag/merge, or force push.
 
-Repository source/test changes required by TDD are authorized. Live mutation is limited to cleanup of the exact already-hung Task-178 process tree after re-verification.
+Installer-owned internal stages/process boundaries are authorized only as part of the one supported install-over.
 
-After Task-179 report publication, stop for ChatGPT review. A repaired candidate must be reviewed and then installed-over in a later successor before reset is attempted again.
+After Task-180 report publication, stop for ChatGPT review. Another reset remains unauthorized.
