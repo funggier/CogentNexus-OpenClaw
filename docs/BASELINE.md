@@ -11,7 +11,7 @@ Frozen repaired publication candidate for Task-191/192 evidence: `050ab53f4b593a
 
 The v0.9.3 implementation completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and Dashboard semantic/durable-delivery acceptance. Those results extend this historical Recovery Core checkpoint; they do not rewrite it.
 
-Task 187 stopped initial publication when stale current guidance was found inside documentation-bearing product surfaces. Task 188 corrected those bytes. A subsequent proportional Dashboard requalification exposed a narrow executable integration defect where bare OpenClaw `NO_REPLY` could be promoted into a visible durable result after CogentNexus marker decoration.
+Task 187 stopped initial publication when stale current guidance was found inside documentation-bearing product surfaces. Task 188 corrected those bytes. A subsequent proportional Dashboard requalification exposed a narrow executable integration defect where bare OpenClaw `NO_REPLY` could be promoted into a visible durable result after CogentNexus-OpenClaw marker decoration.
 
 Task 191 repaired that boundary with TDD. Task 192 then requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host. Current package payload-v2 is `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files, installed skill-tree identity remains `a1e873ba404205507a1623961b49f1b1a0689f9f`, executable skill scripts tree remains `3d9d323ba19443d46e970b87cef52ce878da274f`, and repaired Dashboard source blob is `aa97d7a5411f799c612cd0aeece050085298a8bb`.
 
@@ -74,7 +74,7 @@ CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery bou
 
 A bare OpenClaw `NO_REPLY` / `no_reply` silent sentinel is not visible semantic content and must never be marker-staged into a durable visible Dashboard result.
 
-For a genuine direct Dashboard Ticket whose natural final is exactly the bare sentinel, the repaired integration may request at most one same-run OpenClaw finalization revision. CogentNexus does not fabricate the answer and does not authorize a separate external Direct Recovery run merely because the sentinel appeared.
+For a genuine direct Dashboard Ticket whose natural final is exactly the bare sentinel, the repaired integration may request at most one same-run OpenClaw finalization revision. CogentNexus-OpenClaw does not fabricate the answer and does not authorize a separate external Direct Recovery run merely because the sentinel appeared.
 
 Task 192's accepted real turn required zero revisions because the first natural final was already the requested visible nonce. The repair remains protected by repository regression tests even though the fallback branch was not needed in that successful live turn.
 
