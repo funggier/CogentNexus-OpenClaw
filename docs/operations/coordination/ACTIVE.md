@@ -1,43 +1,47 @@
 # Active Coordination Task
 
-Status: `IN_PROGRESS`
-Execution mode: `TASK188_RELEASE_PUBLICATION__TASK195_REPAIR_PR`
-Current disposition: `TASK195_PASS__REPAIR_PR_REQUIRED`
+Status: `READY_FOR_HERMES`
+Execution mode: `TASK188_RELEASE_PUBLICATION__TASK196_SECOND_RELEASE_DISPATCH`
+Current disposition: `TASK195_PASS__PR27_MERGED__AWAITING_HERMES_RELEASE`
 Task ID: `CNX-20260831-188`
+Active publication subtask: `CNX-20260831-196`
 Completed repair subtask: `CNX-20260831-195`
-Failed publication subtask: `CNX-20260831-194`
+Failed first publication subtask: `CNX-20260831-194`
 Updated: 2026-08-31 ICT
-Executor: ChatGPT / GitHub repository + Actions
+Executor: Hermes
 Coordinator / final reviewer: ChatGPT
 
-## Task 195 result
+## Workflow execution identity
 
-Task 195: `PASS`
+Repaired authoritative `main` after PR #27 merge:
 
-TDD chain:
+`c70552801ddbb9dc0a49c9cfc64368b9f4820f07`
 
-- RED commit `7fc267dc15cb072079685790850ad57ca4574680`;
-- RED Validate `33403409766`;
-- minimal one-line workflow fix `6d522806114d46f16a8efcc1c6722fa64ddd75e3`;
-- GREEN Validate `33403566461`;
-- GREEN PS5.1 Acceptance `33403566370`;
-- GREEN Windows Installer Pack `33403566408`.
+PR #27 merged only the Task 195 release-workflow/test/coordination repair. The publish step is now repository-explicit.
 
 ## Frozen v0.9.3 release target
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-This release target does not change when the workflow repair is merged.
+This remains the `candidate_sha` and tag target. Do not substitute the repaired workflow merge SHA.
+
+## Active task
+
+[`tasks/CNX-20260831-196-v093-second-release-dispatch-and-publication-verification.md`](tasks/CNX-20260831-196-v093-second-release-dispatch-and-publication-verification.md)
 
 ## Current objective
 
-1. fresh-check `main`, branch, tag/release authority;
-2. create a fresh Task-195 repair PR to `main`;
-3. review exact diff/topology/checks;
-4. merge only when GREEN, no force;
-5. freeze repaired `main` SHA as workflow execution identity;
-6. create a separate publication task authorizing one second Release dispatch from repaired `main` with `candidate_sha=26ce64a624255278a3a0266ad38746e0e6ed2e31`.
+Hermes must fresh-check authority, dispatch `.github/workflows/release.yml` exactly once from repaired `main` using:
+
+- `version=0.9.3`
+- `candidate_sha=26ce64a624255278a3a0266ad38746e0e6ed2e31`
+
+Then verify workflow success, exact tag target, Release metadata, all three assets, and independent SHA-256 equality before publishing the Task 196 report.
+
+## User-directed lifecycle boundary
+
+Do not run reset/uninstall/reinstall before release. The user explicitly chose to publish first and perform clean removal/fresh installation testing afterwards.
 
 ## Hard fence
 
-No manual tag/release, no product/runtime/plugin/installer/provider/package payload change, no candidate retargeting, no second Release dispatch before the repair merge and separate authorization, and no force push.
+No manual tag/release, no second dispatch retry, no product/runtime/plugin/installer/provider/package change, no candidate retargeting, no reset/uninstall/reinstall, and no force push.
