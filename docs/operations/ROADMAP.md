@@ -6,7 +6,7 @@ This roadmap is directional, not contractual. Movement is evidence-driven: a pha
 
 ## Architectural rule — responsibility-local data and policy
 
-Every subsystem should define only information that is actually necessary to perform or verify that subsystem's own responsibility.
+Every subsystem should define only information actually necessary to perform or verify that subsystem's own responsibility.
 
 Before adding a parameter, default, configuration field, dependency check, or policy decision to a layer, ask:
 
@@ -16,80 +16,89 @@ Before adding a parameter, default, configuration field, dependency check, or po
 
 If all three answers are no, the value should not exist in that layer.
 
-For v0.9.3 this means, among other things, that installation remains provider-neutral while the current runtime/operator provider contract is Ollama only.
+For v0.9.3 this means, among other things, that installation remains provider-neutral while the current managed runtime/operator provider contract is Ollama only.
 
-## Current position — corrected documentation-bearing v0.9.3 artifact
+## Current position — repaired v0.9.3 candidate accepted
 
-The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence through Tasks 182–186.
+The broad lifecycle implementation baseline completed the bounded real-Windows sequence through Tasks 182–186.
 
-Task 187 then found that full documentation convergence required edits inside artifact-sensitive product surfaces. Task 188 corrected the verified stale current guidance in four paths:
+Task 187 then found stale current guidance inside artifact-sensitive product surfaces. Task 188 corrected those documentation/instruction bytes.
 
-- `plugins/cogentnexus-openclaw/README.md`;
-- `skills/cogentnexus-openclaw/SKILL.md`;
-- `skills/cogentnexus-openclaw/references/architecture.md`;
-- `skills/cogentnexus-openclaw/references/scheduler-adapters.md`.
+A proportional human Dashboard requalification subsequently exposed a narrow direct-result defect: bare OpenClaw `NO_REPLY` could be marker-staged into durable visible output. Task 191 repaired that executable plugin boundary with TDD, producing frozen repaired candidate:
 
-The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / 184 files. The installed skill tree is `a1e873ba404205507a1623961b49f1b1a0689f9f`. The executable scripts tree remains byte-identical at `3d9d323ba19443d46e970b87cef52ce878da274f`.
+`050ab53f4b593ab538143084d6bbdbf7e1672e34`
 
-The next gate is therefore proportional changed-surface requalification, not another broad implementation stabilization cycle.
+Current candidate identities include:
 
-## Short term — proportional requalification and publication
+- package payload-v2 `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / 186 files;
+- plugin tree `eeab5fb8c67e5c16284d5df49ec413a53c251a13`;
+- repaired Dashboard source blob `aa97d7a5411f799c612cd0aeece050085298a8bb`;
+- installed skill tree `a1e873ba404205507a1623961b49f1b1a0689f9f`;
+- executable skill scripts tree `3d9d323ba19443d46e970b87cef52ce878da274f`;
+- facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
 
-### 1. Documentation-payload convergence — complete
+Task 192 then performed exactly one supported install-over of that candidate on the accepted Windows host and exactly one genuine human Dashboard Send. The real runtime produced one Ticket, one logical run, one Ollama model call, one durable delivery, and one logical visible nonce result with no duplicate, no recovery, no pending outbox, and no bare `NO_REPLY`. Task 192 is accepted `PASS`.
 
-Current product guidance has been corrected without changing production/runtime/plugin executable source, tests, dependencies, or workflow behavior. Historical technical notes remain historical.
+The next gate is final repository reconciliation and publication, not another lifecycle test cycle.
 
-### 2. Changed-surface identity — established
+## Short term — final v0.9.3 publication
 
-For the documentation-corrected artifact, preserve and verify:
+### 1. Task-191/192 repaired candidate — complete
 
-- exact final source commit SHA at candidate freeze;
-- unchanged executable/runtime source proof against `f6392da3...`;
-- package payload-v2 `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / 184 files;
-- installed skill-tree identity `a1e873ba404205507a1623961b49f1b1a0689f9f`;
-- executable scripts tree `3d9d323ba19443d46e970b87cef52ce878da274f`;
-- facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`;
-- `VERSION`, package, plugin manifest, and lockfile version alignment;
-- exact-candidate GitHub Actions/package evidence.
+Repository RED/GREEN and real-Windows requalification are accepted for exact candidate `050ab53f...`.
 
-No moving branch name may substitute for candidate identity.
+### 2. Reconcile current `main` history — in progress
 
-### 3. Bounded Windows requalification proportional to the change
+Fresh `main` contains two documentation-only commits beyond the stabilization merge base. The stabilization branch independently added/changed the same transient-stall documentation surface, so final publication must reconcile those histories explicitly rather than relying on an ambiguous PR conflict.
 
-Because the changed files are documentation/instruction-bearing rather than lifecycle executable code, do not automatically repeat every disruptive historical test. Requalification should prove the surfaces actually affected:
+Requirements:
 
-1. install-over the exact corrected candidate once and verify ownership plus package/installed skill identity;
-2. verify the active facade and executable/runtime source remain the accepted byte identity;
-3. verify controller/Gateway/Ollama/delivery/recovery/SQLite health;
-4. because `SKILL.md`/references are runtime instruction surfaces, run one bounded Dashboard semantic/durable-delivery turn and prove one Ticket -> one session/run -> one Ollama call -> one durable delivery -> one logical Dashboard result;
-5. repeat reset/uninstall/fresh-reinstall only if evidence from the changed candidate demonstrates a plausible lifecycle impact or a failing gate requires those boundaries to be re-proven.
+- no force push;
+- preserve the current v0.9.3/Ollama-only semantics;
+- preserve useful historical transient-stall evidence;
+- keep Task-191/192 product candidate identity separate from later living-document/coordination commits;
+- rerun CI/package proof on the reconciled branch HEAD.
 
-The old Tasks 182–186 remain valid historical evidence for `f6392da3...`; the corrected candidate inherits only unchanged-surface claims justified by explicit proof.
+### 3. Reconciled-HEAD validation
 
-### 4. Final v0.9.3 release publication
+Require:
 
-After the corrected candidate is accepted:
+- full Validate workflow success;
+- Windows Installer Pack Smoke success;
+- PS5.1 Acceptance Smoke success where triggered/required;
+- package dry-run success;
+- package-sensitive payload identity remains `b1ca9f3b...` / 186 files unless an explicitly product-bearing change is discovered;
+- no new executable/runtime/test/dependency/workflow behavior change.
 
-1. re-audit living documentation and product-identity boundaries;
-2. create a current `agent/v0.9.3-full-stabilization` -> `main` release PR;
-3. keep stale PR #24 closed rather than merging its old head/base path;
-4. require green CI/checks;
-5. merge without force push and freeze exact merged `main` SHA;
-6. dispatch `.github/workflows/release.yml` with:
+If the package-sensitive identity unexpectedly changes, publication stops and the changed surface must be classified before continuing.
+
+### 4. Final release PR
+
+After reconciled-HEAD validation:
+
+1. create a fresh `agent/v0.9.3-full-stabilization` -> `main` release PR;
+2. keep stale PR #24 closed;
+3. inspect exact topology, changed files, mergeability, and checks;
+4. merge only when green and only with the expected head SHA;
+5. no force push.
+
+### 5. Release workflow and public verification
+
+Freeze exact merged `main` SHA, then dispatch `.github/workflows/release.yml` with:
 
 ```text
 version = 0.9.3
 candidate_sha = <exact merged publication SHA>
 ```
 
-7. require the Release workflow package and publish jobs to pass;
-8. verify tag `v0.9.3`, exact target SHA, release notes, archives, and `SHA256SUMS.txt`.
+Require successful package/publish jobs and verify:
 
-Expected assets:
-
-- `cogentnexus-openclaw-v0.9.3.tar.gz`
-- `cogentnexus-openclaw-v0.9.3.zip`
-- `SHA256SUMS.txt`
+- tag `v0.9.3` targets the exact merged SHA;
+- GitHub Release is public and non-draft/non-prerelease unless intentionally specified otherwise;
+- `cogentnexus-openclaw-v0.9.3.tar.gz`;
+- `cogentnexus-openclaw-v0.9.3.zip`;
+- `SHA256SUMS.txt`;
+- published archive checksums independently match `SHA256SUMS.txt`.
 
 ## Medium term — extend continuity evidence
 
@@ -122,12 +131,12 @@ human intent
 Preserve these invariants recursively as the system scales:
 
 - durable intent outranks transient model memory;
-- each layer owns only the policy/data required for its responsibility;
-- local failure must not silently redirect the original intent;
+- each layer owns only policy/data required for its responsibility;
+- local failure must not silently redirect original intent;
 - completed/terminal evidence must fence duplicate work;
 - external irreversible effects require explicit reconciliation evidence;
 - coordination scale must not weaken artifact identity or proof requirements.
 
 ## Roadmap movement rule
 
-Move an item forward because its **evidence gate passed**, not because code was written. When evidence reveals a blocker, moving backward to create a narrower candidate/requalification phase is correct behavior when it preserves the integrity of accepted evidence.
+Move an item forward because its **evidence gate passed**, not because code was written. When evidence reveals a blocker, moving backward to create a narrower repair/requalification phase is correct behavior when it preserves the integrity of accepted evidence.
