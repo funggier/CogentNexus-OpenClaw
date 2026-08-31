@@ -71,6 +71,10 @@ function messageText(message: any): string {
     .map((part: any) => part.text).join("\n");
 }
 
+function isBareSilentReply(text: string) {
+  return /^NO_REPLY$/iu.test(text.trim());
+}
+
 function messageWithNativeMarker(message: any, idempotencyKey: string) {
   const content = Array.isArray(message?.content) ? message.content.slice() : [];
   const index = content.findIndex((part: any) => part?.type === "text" && typeof part.text === "string");
@@ -142,6 +146,7 @@ function nativePayloadText(text: string, idempotencyKey: string) {
 export function stageDashboardDirectResult(path: string, input: { runId: string; text: string; now?: Date }) {
   const text = input.text.trim();
   if (!text) return { staged: false as const, reason: "empty-text" };
+  if (isBareSilentReply(text)) return { staged: false as const, reason: "silent-reply" };
   const initial = dashboardTicket(path, input.runId);
   if (!initial) return { staged: false as const, reason: "not-dashboard-direct" };
 
@@ -167,7 +172,6 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
     }
     const generation = Number(session.generation ?? -1);
     if (!Number.isSafeInteger(generation) || generation < 0) throw new Error("invalid Dashboard owner generation");
-
     const idempotencyKey = `cnxclaw-direct-result:${ticket.ticket_id}:g${generation}`;
     const existing = db.prepare(`SELECT delivery_id,text,status FROM cnx_assistant_delivery
       WHERE idempotency_key=?`).get(idempotencyKey) as { delivery_id?: number; text?: string; status?: string } | undefined;
@@ -434,6 +438,17 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const candidateMessage = event?.lastAssistantMessage;
     const text = typeof candidateMessage === "string" ? candidateMessage.trim() : messageText(candidateMessage).trim();
     if (!runId || !sessionKey || !text || !dashboardTicket(path, runId)) return;
+    if (isBareSilentReply(text)) {
+      return {
+        action: "revise",
+        reason: "direct Dashboard request produced a silent sentinel",
+        retry: {
+          instruction: "This is a genuine direct Dashboard user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn.",
+          idempotencyKey: `cnxclaw-dashboard-visible-final:${runId}`,
+          maxAttempts: 1,
+        },
+      };
+    }
     nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text });
   }, { priority: 600 });
 
