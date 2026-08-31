@@ -1,14 +1,14 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `TASK171_EVIDENCE_CONTRACT_COMPLETION_HERMES`  
+**Execution mode:** `TASK171_READ_ONLY_UI_DUPLICATE_VERIFICATION_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-172`
+**Active task:** `CNX-20260831-173`
 
 ## Active work
 
-[`tasks/CNX-20260831-172-hermes-task171-evidence-contract-completion.md`](tasks/CNX-20260831-172-hermes-task171-evidence-contract-completion.md)
+[`tasks/CNX-20260831-173-hermes-task171-read-only-ui-duplicate-verification.md`](tasks/CNX-20260831-173-hermes-task171-read-only-ui-duplicate-verification.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
@@ -26,44 +26,64 @@ Installed candidate fingerprint accepted by Task 170:
 
 OpenClaw remains pinned to `2026.7.1-2`.
 
-## Task 171 — semantic action executed once; final acceptance pending evidence completion
+## Task 171 — semantic action remains frozen at one Send
 
-Task-171 report:
+Frozen Task-171 identity:
 
-`reports/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance.md`
+- nonce `T171-20260831T020446Z-3142A528`;
+- expected result `CNX-171-ACK-T171-20260831T020446Z-3142A528`;
+- session `agent:main:dashboard:13b27c98-c09c-431e-928f-446175ed1937`;
+- Ticket `CNXT-b5bf2532-d35d-47db-8951-fcf9f4729abf`;
+- run `8b69bede-030f-4c20-8bb8-0aa99e12422c`.
 
-ChatGPT review:
+The Task-171 Send MUST NOT be repeated. Semantic Send count stays `1`.
 
-`reviews/CNX-20260831-171-hermes-dashboard-exactly-one-send-durable-delivery-reacceptance-review.md`
+## Task 172 — native/durable evidence completion reviewed
+
+Task-172 report:
+
+`reports/CNX-20260831-172-hermes-task171-evidence-contract-completion.md`
+
+Task-172 ChatGPT review:
+
+`reviews/CNX-20260831-172-hermes-task171-evidence-contract-completion-review.md`
 
 Disposition:
 
-`REWORK_REQUIRED — TASK171_SEMANTIC_RESULT_COHERENT_BUT_VERIFICATION_PACKET_MISSING`
+`REWORK_REQUIRED — TASK171_NATIVE_DURABLE_PATH_PROVEN_UI_DUPLICATE_CRITERION_UNPROVEN`
 
-The report describes a coherent successful chain: exactly one Send, one native request/result, one direct model call, one marker-bearing native assistant result, one durable delivery row, `delivery_confirmed_at` set, completed Ticket, zero recovery/outbox/duplicate result, and healthy post-state.
+Task 172 closes the substantive native/durable evidence gaps:
 
-Final acceptance is withheld because the report omitted mandatory contract items: the Task-171 acceptance matrix, Reviewer Verification Packet, transcript SHA-256, exact marker/idempotency binding details, full model/request identity, run-scoped zero-conflict evidence, and immutable hashes for critical local evidence files.
+- immutable transcript and trajectory hashes;
+- one native user and one assistant record;
+- native delivery marker identity;
+- exactly one completed model call;
+- one correctly bound delivered `cnx_assistant_delivery` row;
+- non-null `delivery_confirmed_at`;
+- completed Ticket and ordered events;
+- zero recovery/outbox/duplicate durable conflicts;
+- preserved installed provenance and health;
+- nine-row acceptance matrix and Reviewer Verification Packet.
 
-The Task-171 Send MUST NOT be repeated. The acceptance-attempt semantic Send count is frozen at `1`.
+However Task 172 also explicitly records that final visible Dashboard nonce counts remain uncertain. Because Task-171 criterion 8 requires no duplicate **UI/native** result, the visible UI conjunct remains unproven.
 
-## Task 172 objective
+## Task 173 objective
 
-Complete the Task-171 evidence contract from preserved evidence and read-only inspection only:
+Close only that remaining UI condition with zero semantic action:
 
-1. prove the exact single action identity and Send ledger;
-2. hash and inspect the native transcript, including marker/identity binding;
-3. record full Ticket/run/model identities and event timestamps;
-4. inspect the exact durable delivery row and staged text/hash identity;
-5. provide run-scoped duplicate/recovery/outbox proof;
-6. hash critical local evidence artifacts;
-7. produce the required nine-row Task-171 acceptance matrix;
-8. produce a 5-10 claim Reviewer Verification Packet;
-9. state anomalies, residual uncertainty, hard-fence compliance, and publication state.
+1. inspect the existing Dashboard session/history read-only;
+2. count visible user messages containing the frozen nonce;
+3. count visible assistant messages containing the exact expected result;
+4. prove no duplicate visible user or assistant result in the relevant session history;
+5. preserve screenshot plus DOM/accessibility/message-list evidence and hashes where possible;
+6. report `UNPROVEN` if UI history/virtualization prevents a complete count.
 
 ## Hard fence
 
-Task 172 authorizes **zero semantic actions**.
+Task 173 authorizes **zero semantic actions**.
 
-No Dashboard Send, `chat.inject`, Enter submission, alternate semantic surface, manual model inference, recovery/regeneration, installer/uninstall/reinstall/reset/rollback, Gateway/Ollama/Supervisor/OpenClaw restart, manual durable-state mutation, source/test/workflow/product change, OpenClaw/dependency upgrade, release/promotion, merge, or force push.
+No Send, Enter submission, composer typing/paste, `chat.inject`, alternate semantic input, model inference, recovery/regeneration, installer/uninstall/reinstall/reset/rollback, Gateway/Ollama/Supervisor/OpenClaw restart, manual durable-state mutation, source/test/workflow/product change, OpenClaw/dependency upgrade, release/promotion, merge, or force push.
 
-If existing evidence cannot prove a Task-171 criterion, report `UNPROVEN`/`FAIL`; never repeat the live experiment.
+Only read-only browser/session observation, non-semantic scroll/navigation, screenshots/DOM/accessibility extraction, evidence hashing, identity correlation, and report publication are authorized.
+
+After Task 173 report publication, stop for ChatGPT review. If the narrow UI condition is proven, ChatGPT may combine Tasks 171–173 and issue final semantic durable-delivery acceptance without any new Send.
