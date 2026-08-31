@@ -1,89 +1,63 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK201_TASK200_ORIGINAL_INSTALLER_TERMINAL_ADJUDICATION_AND_DISCORD_CLOSURE`  
+**Execution mode:** `TASK202_TASK201_ORIGINAL_INSTALLER_WAIT_TREE_DIAGNOSIS`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + bounded read-only Windows adjudication, then at most one conditional human Discord Send  
-**Active task:** `CNX-20260901-201`  
-**Parent:** `CNX-20260831-200`  
+**Transport:** GitHub repository + read-only Windows process-tree evidence through Hermes  
+**Active task:** `CNX-20260901-202`  
+**Parent:** `CNX-20260901-201`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK200_BLOCKED_EVIDENCE__WAITING_ORIGINAL_INSTALLER_TERMINAL_ADJUDICATION`
+**Disposition:** `TASK201_BLOCKED_INSTALLER_STILL_RUNNING__WAIT_TREE_DIAGNOSIS_REQUIRED`
 
-## Publication authority
+## Publication and product authority
 
-v0.9.3 remains published and accepted at:
+Published v0.9.3 remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-No publication mutation is authorized.
-
-## Frozen repaired candidate
+Frozen repaired candidate remains:
 
 `9f4eaa429b2540540e7d6f6c2af99067960e45fb`
 
-Expected installed repaired plugin fingerprint:
+Expected installed plugin fingerprint:
 
 `f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
 
-Repository repair remains RED -> GREEN with exact candidate gates:
+## Task 201 result
 
-- Validate `33413832703`: `completed/success`
-- Windows Installer Pack Smoke `33413832709`: `completed/success`
-- PS5.1 Acceptance Smoke `33413832777`: `completed/success`
+Task 201 is accepted as:
 
-## Task 200 terminal review
+`BLOCKED_INSTALLER_STILL_RUNNING`
 
-Task 200 is accepted as correctly `BLOCKED_EVIDENCE`, not PASS and not a proven product failure.
+The exact original installer process remained alive with unchanged retained streams, no final success line, no exit artifact, and no managed convergence. Host stayed passthrough/startup disabled/plugin disabled while Gateway/Ollama/delivery/recovery/SQLite remained healthy. Discord Send was not performed.
 
-It established:
-
-- exactly one supported install-over invocation was started;
-- installed plugin bytes/fingerprint match the frozen repaired candidate;
-- seven instrumented installer substages through `owned-runtime-ensure` completed with exit 0;
-- the original PowerShell installer remained alive at the observation boundary;
-- no terminal completion line/exit artifact was yet proven;
-- last observed host state was passthrough/startup disabled;
-- Gateway, Ollama, delivery/recovery checks and SQLite remained healthy;
-- no Discord message was sent;
-- no install retry, process kill, reset, uninstall, reinstall, provider change, source mutation, or release mutation occurred.
-
-Exact candidate `install.ps1` still has ownership verification, managed policy apply, enable, gateway/supervisor/status checks and final completion after `owned-runtime-ensure`, so the observed boundary does not identify a specific late command failure by itself.
-
-## Active Task 201
-
-Hermes must execute:
-
-`docs/operations/coordination/tasks/CNX-20260901-201-task200-original-installer-terminal-adjudication-and-discord-closure.md`
-
-First phase is strictly read-only. Hermes must determine whether the **original** Task-200 installer invocation:
-
-- later terminated successfully;
-- terminated incompletely;
-- is still genuinely the same running process; or
-- cannot be distinguished safely because of PID reuse/identity ambiguity.
-
-No lifecycle command may be used to force the desired state.
-
-Only if original successful completion and current managed/healthy state are independently proven may Task 201 continue to the still-unused one human Discord Send.
-
-## Conditional Discord closure
-
-If the Phase-B gate passes, use known owner session:
-
-`agent:main:discord:channel:1531199905673252946`
-
-Human Send budget remains exactly:
+Human Discord Send budget remains:
 
 `0 / 1 consumed; 1 / 1 available`
 
-Expected shape:
+## Task 202 objective
 
-`1 human Discord Send -> 1 Ticket -> 1 Direct model call -> response_ready -> 1 native visible Discord result -> delivery_confirmed -> completed`
+Hermes must execute:
 
-No retry/regenerate/second Send/injection is authorized.
+`docs/operations/coordination/tasks/CNX-20260901-202-task201-original-installer-wait-tree-diagnosis.md`
+
+Required evidence:
+
+- recursive process tree rooted at the exact retained installer process;
+- command line/creation/parent identity for every descendant;
+- two bounded CPU/thread/wait/handle samples;
+- stdout/stderr hash/size/mtime progress samples;
+- source-boundary mapping for any surviving Python/Node/OpenClaw descendant;
+- current read-only Host/Gateway/Ollama/delivery/recovery/SQLite state.
+
+Task 202 must not kill or repair the process. It stops after evidence publication.
+
+## Current hypothesis discipline
+
+A prior repository acceptance harness documents that Windows wait APIs can block on long-lived descendants. This is relevant but not yet accepted as the root cause of the current installer stall. Task 202 must distinguish actual surviving descendant work from an idle root wait before ChatGPT authorizes cleanup or source repair.
 
 ## Hard fence
 
-No force push, no tag/Release mutation, no installer replay, no `enable`/`disable`, no process termination, no Gateway/Host/provider restart, no reset/uninstall/reinstall/install-over, no state/config/SQLite mutation, no artificial SQLite lock, no provider/model replacement, and no product/source/test/workflow edit during the adjudication phase.
+No process kill/termination, installer replay, enable/disable/start/stop/restart, reset/uninstall/reinstall/install-over, state/config/SQLite mutation, provider/model replacement, Discord Send/injection, product/source/test/workflow edit, diagnostic software installation, Release/tag mutation, or force push.
