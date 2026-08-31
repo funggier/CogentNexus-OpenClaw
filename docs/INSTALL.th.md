@@ -13,11 +13,10 @@ exact product candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน 
 - OpenClaw `2026.7.1-2` สำหรับ validated compatibility baseline
 - Python 3.11+ และ PyYAML
 - Node.js + npm
-- Ollama สำหรับ managed runtime/provider path
 
-LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3
+รายการนี้เป็น prerequisite ของ installer ส่วน managed-provider readiness ตรวจหลังติดตั้งผ่าน runtime checks ไม่ใช่ความรับผิดชอบของ installer prerequisite contract
 
-## ขอบเขตการติดตั้งจาก source/archive
+## ติดตั้งจาก development candidate
 
 ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน repository installer จาก exact source/archive ที่ตรวจสอบแล้ว
 
@@ -36,7 +35,11 @@ python -m pip install 'PyYAML>=6.0,<7'
 ./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
+## สิ่งที่ installer ทำ
+
 Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
+
+LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3 ส่วน runtime/operator target ของ v0.9.3 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
 
 ## Accepted-candidate identity
 
@@ -53,6 +56,8 @@ managed provider: ollama
 Task 187 พิสูจน์ว่าการแก้ stale current guidance ภายใน installed skill และ npm plugin package จะเปลี่ยน product/payload identity จึงห้ามอ้างว่า corrected candidate ใหม่ยังเป็น artifact เดิมเพียงเพราะ executable source ไม่ได้เปลี่ยน
 
 ## ตรวจ runtime/provider หลังติดตั้ง
+
+runtime/provider target ของ v0.9.3 คือ Ollama เท่านั้น ส่วน executable availability, endpoint/model readiness และ provider-specific health checks เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
 
 ```powershell
 cd "$HOME\.openclaw\workspace"

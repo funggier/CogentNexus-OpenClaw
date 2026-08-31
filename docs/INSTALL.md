@@ -12,12 +12,11 @@ There is therefore no public `v0.9.3` GitHub Release/tag yet. Do not assume rele
 - OpenClaw installed and working;
 - OpenClaw `2026.7.1-2` for the validated compatibility baseline;
 - Python 3.11+ with PyYAML;
-- Node.js + npm;
-- Ollama for the managed runtime/provider path.
+- Node.js + npm.
 
-LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it.
+These are installer prerequisites. Managed-provider readiness is verified after installation by the runtime checks, not by the installer prerequisite contract.
 
-## Source/archive installation boundary
+## Development-candidate source install
 
 Installation is performed from a reviewed source/archive through the repository installer. There is intentionally no `cnxclaw.cmd install` command.
 
@@ -36,7 +35,11 @@ python -m pip install 'PyYAML>=6.0,<7'
 ./scripts/install.sh --workspace "$HOME/.openclaw/workspace"
 ```
 
-The installer itself is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
+## What the installer does
+
+The installer is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
+
+LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it. The v0.9.3 runtime/operator provider target is Ollama, but that selection/readiness responsibility is outside the installer prerequisite boundary.
 
 ## Accepted-candidate identity
 
