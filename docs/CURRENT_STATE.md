@@ -6,70 +6,82 @@
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
 **Managed provider:** **Ollama only**  
 **Accepted Recovery Core:** `eadb89099637d24f96e265a500d66c577aa939a3`  
-**Previously accepted implementation candidate:** `f6392da3e4112ce441526d5ef19925c90a872b0b`  
+**Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`  
 **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`  
-**Task-188 package payload-v2 identity:** `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files  
-**Task-188 installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
-**Executable scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f` — unchanged from the accepted implementation baseline
+**Package payload-v2 identity:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files  
+**Installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
+**Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`  
+**Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
 
 ## Classification
 
-CogentNexus-OpenClaw v0.9.3 completed the bounded real-Windows acceptance sequence on implementation candidate `f6392da3...`. The accepted sequence covers install-over/provenance, reset/fresh-state behavior, uninstall with preservation of external OpenClaw/Ollama/user data, fresh reinstall/post-install health, and a final Dashboard semantic/durable-delivery turn.
+CogentNexus-OpenClaw v0.9.3 has completed the repository and real-Windows acceptance gates required for final publication.
 
-Task 187 then correctly stopped the initial publication path because some stale current-facing documentation was itself part of the npm package and installed skill surface. Task 188 corrected that documentation-only product surface:
+The historical implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the broad lifecycle sequence through Tasks 182–186: install-over/provenance, reset/fresh-state reconstruction, uninstall with external preservation, fresh reinstall, and a final Dashboard semantic/durable-delivery turn.
 
-- `plugins/cogentnexus-openclaw/README.md` now reflects the completed v0.9.3 stabilization lineage;
-- `skills/cogentnexus-openclaw/SKILL.md` now reflects the completed v0.9.3 stabilization lineage;
-- `skills/cogentnexus-openclaw/references/architecture.md` now identifies the current architecture as v0.9.3;
-- `skills/cogentnexus-openclaw/references/scheduler-adapters.md` now identifies current managed installations as v0.9.3.
+Task 187 then stopped publication because stale current-facing documentation existed inside package/installed product surfaces. Task 188 corrected those documentation/instruction bytes and established the installed skill identity that remains current.
 
-Those changes created the package/skill identities recorded above while leaving executable/runtime scripts byte-identical. The corrected artifact therefore requires proportional changed-surface requalification before publication, not a silent transfer of the old exact-artifact acceptance and not an automatic replay of every destructive lifecycle test.
+The first proportional Dashboard requalification later exposed a narrow executable integration defect: a bare OpenClaw `NO_REPLY` silent sentinel could be staged by CogentNexus as durable visible content after delivery-marker decoration.
 
-## Accepted lifecycle/semantic evidence
+Task 191 repaired that boundary with TDD:
 
-The implementation baseline passed:
+- bare `NO_REPLY` / `no_reply` is fenced from durable visible staging;
+- a genuine direct Dashboard Ticket may request at most one same-run `before_agent_finalize` revision when the natural final is exactly the silent sentinel;
+- CogentNexus does not fabricate semantic answer content and does not create an external recovery run for that case.
 
-1. **Task 182** — repaired-candidate Windows install-over reacceptance;
-2. **Task 183** — reset/fresh-state reacceptance;
-3. **Task 184** — uninstall/external-preservation acceptance;
-4. **Task 185** — fresh reinstall/post-uninstall reacceptance;
-5. **Task 186** — final post-lifecycle Dashboard semantic/durable-delivery acceptance.
+Task 192 then requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host with exactly one supported install-over and exactly one genuine human Dashboard Send.
 
-Task 186 proved:
+## Accepted Task-192 semantic evidence
+
+The repaired real-runtime turn proved:
 
 ```text
 1 human Send
 -> 1 Ticket
--> 1 session/run
+-> 1 logical OpenClaw run
 -> 1 Ollama model call
 -> 1 durable assistant delivery
--> 1 logical Dashboard assistant result
+-> 1 logical visible Dashboard assistant result
 ```
 
-with no duplicate semantic work, retry, direct recovery, or outbox residue.
+For the accepted turn:
 
-## Task-188 changed-surface identity
+- the first natural final was already the requested nonce;
+- same-run sentinel revision count was `0` (allowed maximum `1`);
+- durable delivery text equaled the nonce;
+- Dashboard showed one logical assistant result containing the nonce;
+- no bare `NO_REPLY` appeared in final durable/UI output;
+- no duplicate Ticket, model call, delivery, or result existed;
+- no Direct Recovery row was created;
+- pending outbox remained zero;
+- Gateway, Ollama, delivery, recovery, and SQLite integrity remained healthy.
 
-Task 188 changes documentation/instruction bytes only. Proven current identities include:
+The installed repaired built module was byte-identical to the exact candidate. The active facade SHA-256 remained `aa747f8f...`.
+
+## Current candidate identity
 
 ```text
-package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
-package file count: 184
+product candidate SHA: 050ab53f4b593ab538143084d6bbdbf7e1672e34
+root tree: 1c10a631b58e1609fc76168e76a26dbe72444e6c
+plugin tree: eeab5fb8c67e5c16284d5df49ec413a53c251a13
+repaired source blob: aa97d7a5411f799c612cd0aeece050085298a8bb
+package payload-v2: b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93
+package file count: 186
 installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
-executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f
+executable skill scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f
 facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc
 ```
 
-The package payload identity changed because the package README changed. The skill-tree identity changed because installed skill documentation changed. The scripts tree and facade source blob did not change.
+The repaired source is inside the plugin surface, so the earlier statement that all executable/runtime bytes were unchanged no longer applies. The skill scripts tree and facade remain unchanged; the Dashboard delivery plugin module is the intentionally changed executable surface and has been requalified directly on Windows.
 
 ## Capability boundary
 
 | Capability | v0.9.3 state |
 | --- | --- |
-| Ticket-first durable admission | Accepted on implementation baseline; executable surface unchanged |
-| DIRECT lane without forced workflow promotion | Accepted; executable surface unchanged |
-| Host-owned managed recovery authority | Accepted; executable surface unchanged |
-| Gateway/Ollama lifecycle and recovery path | Accepted; executable surface unchanged |
+| Ticket-first durable admission | Accepted |
+| DIRECT lane without forced workflow promotion | Accepted |
+| Host-owned managed recovery authority | Accepted |
+| Gateway/Ollama lifecycle and recovery path | Accepted |
 | Managed provider | **Ollama only** |
 | Validated OpenClaw | `2026.7.1-2 (0790d9f)` |
 | Original provider/model recovery provenance | Accepted |
@@ -79,14 +91,15 @@ The package payload identity changed because the package README changed. The ski
 | Transient SQLite BUSY authority-read tolerance | Accepted |
 | Response-ready immutability | Accepted |
 | Durable direct result and delivery confirmation | Accepted |
+| Bare `NO_REPLY` durable/UI leakage fence | Accepted by Task 191 + real Task 192 |
+| Bounded same-run sentinel finalization revision | Implemented; Task 192 normal path required 0 revisions |
 | PASSTHROUGH / native OpenClaw compatibility mode | Accepted through lifecycle sequence |
 | MAINTENANCE deliberate-stop semantics | Accepted through lifecycle sequence |
-| `reset` explicit-`y` fresh-state reconstruction | Accepted on implementation baseline |
-| `uninstall` explicit-`y` ownership-safe external preservation | Accepted on implementation baseline |
-| Fresh reinstall after uninstall | Accepted on implementation baseline |
-| Final Dashboard durable-delivery semantic path | Accepted on implementation baseline; Task 188 requires one proportional confirmation turn because installed instruction bytes changed |
-| Public v0.9.3 GitHub Release | Determined only by GitHub Releases/tag and exact release-workflow evidence |
-| Real power-loss/cold-boot acceptance | Deferred |
+| `reset` explicit-`y` fresh-state reconstruction | Accepted |
+| `uninstall` explicit-`y` ownership-safe external preservation | Accepted |
+| Fresh reinstall after uninstall | Accepted |
+| Public v0.9.3 GitHub Release | Determined only by GitHub Releases/tag and exact Release-workflow evidence |
+| Real abrupt power-loss/cold-boot acceptance | Deferred |
 | Newer OpenClaw compatibility | Deferred |
 | High-concurrency/long-soak hardening | Not fully accepted |
 | Disk-full / DB-corruption recovery | Not production-hardened |
@@ -96,7 +109,7 @@ The package payload identity changed because the package README changed. The ski
 
 Current v0.9.3 lifecycle operations target Ollama. Explicit `--provider ollama` remains accepted, and provider-bearing lifecycle operations without an explicit provider are normalized to Ollama by the v0.9.3 facade.
 
-Historical v0.9.2 selected-provider/transition state can remain relevant during migration and native restoration. That compatibility requirement does not re-open LM Studio as a current v0.9.3 managed provider.
+Historical v0.9.2 LM Studio state can remain relevant in migration/history. That does not re-open LM Studio as a current v0.9.3 managed provider.
 
 ## System-check semantics
 
@@ -112,23 +125,23 @@ Current examples:
 
 `check system` reports `READY`, `READY_WITH_WARNINGS`, `NOT_READY`, or `INDETERMINATE` with stable exit codes 0/1/2/3.
 
-## Requalification and publication boundary
+## Publication boundary
 
-Acceptance evidence is exact-artifact evidence, not a floating branch promise. Task 188 uses proportional requalification because the changed product surface is documentation/instruction-bearing while executable/runtime bytes are proven unchanged.
+Task 192 is accepted `PASS`, so final publication may proceed only through the guarded repository path:
 
-The required changed-surface proof is:
+1. reconcile the current stabilization branch with fresh `main` without force;
+2. rerun validation on the merged/reconciled branch HEAD and prove package-sensitive identity remains correct;
+3. create a fresh release PR to `main`;
+4. inspect PR topology/diff/checks;
+5. merge only when green;
+6. freeze the exact merged `main` SHA;
+7. dispatch `.github/workflows/release.yml` with `version=0.9.3` and that exact merged SHA;
+8. verify Release workflow success, tag target, release assets, `SHA256SUMS.txt`, and independent checksums.
 
-1. exact-candidate repository/package CI;
-2. one supported Windows install-over of the corrected artifact;
-3. installed package/skill documentation identity and facade/runtime provenance checks;
-4. MANAGED + Ollama + Gateway + delivery/recovery + SQLite health;
-5. one bounded Dashboard semantic/durable-delivery turn;
-6. repeat reset/uninstall/fresh-reinstall only if evidence demonstrates a concrete lifecycle reason.
-
-After those gates pass, publication proceeds through a current PR to `main`, exact merged-SHA freeze, `.github/workflows/release.yml`, and post-release tag/asset/checksum verification. GitHub Releases/tags remain authoritative for public availability.
+GitHub Releases/tags are authoritative for public availability. Historical PR #24 must not be reused.
 
 ## Historical boundary
 
-v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may preserve LM Studio and older provider-neutral behavior when that is what actually occurred.
+v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may preserve LM Studio/provider-neutral behavior where that was true at the time.
 
-The `f6392da3...` Windows evidence also remains immutable exact-artifact history. Task 188 carries forward unchanged-surface claims only through explicit byte-identity proof and independently qualifies the documentation-bearing surface that changed.
+The candidates `f6392da3...` and `604569c...` remain immutable historical evidence. They are superseded for v0.9.3 publication by repaired candidate `050ab53f...` and the Task-191/192 evidence chain.
