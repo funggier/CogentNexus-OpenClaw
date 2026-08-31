@@ -1,60 +1,59 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_HISTORICAL_TASK178_OUTER_OBSERVER_CLEANUP_HERMES`  
+**Execution mode:** `WINDOWS_REPAIRED_CANDIDATE_INSTALL_OVER_REACCEPTANCE_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-181`
+**Active task:** `CNX-20260831-182`
 
 ## Active work
 
-[`tasks/CNX-20260831-181-hermes-historical-task178-outer-observer-cleanup.md`](tasks/CNX-20260831-181-hermes-historical-task178-outer-observer-cleanup.md)
+[`tasks/CNX-20260831-182-hermes-repaired-candidate-windows-install-over-reacceptance.md`](tasks/CNX-20260831-182-hermes-repaired-candidate-windows-install-over-reacceptance.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
 Standing model: executor-heavy / reviewer-light.
 
-## Accepted state
+## Accepted repository state
 
-Task 179 repository repair:
+Task 179:
 
 `ACCEPTED_PASS — INTERACTIVE_LIFECYCLE_DELEGATION_REPAIR_ACCEPTED`
 
-Accepted repository candidate:
+Exact repair candidate:
 
 `f6392da3e4112ce441526d5ef19925c90a872b0b`
 
-Task 180:
+Candidate facade Git blob:
 
-`ACCEPTED_BLOCKED — PREINSTALL_TASK178_OUTER_OBSERVER_CLEANUP_REQUIRED`
+`879083d6186589d4b2774b8fd87fa93692dd2dfc`
 
-Task 180 started no installer and performed no product lifecycle mutation. The live installation is still the previous v0.9.3 facade baseline.
+Candidate facade SHA-256:
 
-## Current blocker
+`aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
 
-The actual Task-178 reset command/lifecycle descendants are gone, but Task-180's fresh impact scan still found a historical evidence observer chain:
+Task 181:
 
-```text
-bash PID 14196
-  -> bash PID 22832
-      -> Python PID 17052: run_reset178.py
-          -> Python PID 17444: run_reset178.py
-```
+`ACCEPTED_PASS — HISTORICAL_TASK178_OUTER_OBSERVER_RETIRED_CLEAN_BOUNDARY_PROVEN`
 
-These PIDs are historical hints, not kill authority. Fresh identity must be verified.
+The historical Task-178 observer and actual lifecycle residue are zero after cleanup; controller/Gateway/Ollama/ownership/delivery/recovery/SQLite and Task-171 history were preserved.
 
-The retained Task-178 ledger remains zero prompt/input events. No evidence of current product corruption was found; the observer is an operational/preflight blocker.
+## Task 182 gate
 
-## Task 181 objective
+Task 182 must independently re-prove a clean process boundary immediately before mutation, then may invoke exactly one supported install-over from the exact repaired candidate.
 
-Retire only that exact observer chain after fresh identity/zero-input verification, then prove a clean process boundary and preservation of controller/Gateway/Ollama/ownership/delivery/recovery/SQLite and Task-171 historical durable state.
+PASS requires the active installed `cnxclaw.py` reached by the installed launcher to have SHA-256:
 
-Task 181 must not run the installer after cleanup. A later successor will repeat a fresh install-over preflight from the clean boundary.
+`aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
+
+Unchanged npm package/plugin fingerprint values are supporting evidence only and cannot substitute for active facade identity.
+
+Post-install must also prove ownership, plugin/controller health, Ollama route, Gateway health, OpenClaw `2026.7.1-2`, SQLite integrity, zero pending outbox/recovery manufacture, and preservation of Task-171 pre-reset durable history.
 
 ## Hard fence
 
-Task 181 semantic action budget is `0`.
+Task 182 semantic action budget is `0`.
 
-No install/install-over/reinstall, reset, uninstall, lifecycle helper, Gateway/Ollama restart, Dashboard Send, model/recovery action, manual durable/config/transcript/route/DB repair, source/product/test/workflow edit, release/tag/merge, or force push.
+No reset, uninstall, second installer/retry, executor-issued lifecycle helper, manual Gateway/Ollama restart, Dashboard Send, model/recovery action, manual state repair, product/source/test/workflow edit, release/tag/merge, or force push.
 
-After Task-181 report publication, stop for ChatGPT review. Install-over and reset remain unauthorized.
+After Task-182 report publication, stop for ChatGPT review. Reset remains unauthorized.
