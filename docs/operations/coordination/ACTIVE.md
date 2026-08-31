@@ -1,9 +1,9 @@
 # Active Coordination Task
 
 Status: `READY_HERMES`
-Execution mode: `WINDOWS_RESET_FRESH_STATE_RECONSTRUCTION_ACCEPTANCE_HERMES`
-Current authorization: `CNX-20260831-174_HERMES_RESET_FRESH_STATE_RECONSTRUCTION_ACCEPTANCE`
-Task ID: `CNX-20260831-174`
+Execution mode: `WINDOWS_STDIN_QUALIFICATION_THEN_RESET_REACCEPTANCE_HERMES`
+Current authorization: `CNX-20260831-175_HERMES_STDIN_QUALIFICATION_THEN_RESET_REACCEPTANCE`
+Task ID: `CNX-20260831-175`
 Updated: 2026-08-31 ICT
 Executor: Hermes/Codex
 Coordinator / final reviewer: ChatGPT
@@ -20,9 +20,9 @@ GitHub remote branch `agent/v0.9.3-full-stabilization` is authoritative.
 
 ## Active task
 
-[`tasks/CNX-20260831-174-hermes-reset-fresh-state-reconstruction-acceptance.md`](tasks/CNX-20260831-174-hermes-reset-fresh-state-reconstruction-acceptance.md)
+[`tasks/CNX-20260831-175-hermes-stdin-qualification-reset-reacceptance.md`](tasks/CNX-20260831-175-hermes-stdin-qualification-reset-reacceptance.md)
 
-Task 174 is the bounded real-Windows `cnxclaw reset` / fresh-state reconstruction acceptance for the already installed frozen candidate.
+Task 175 resolves the Task-174 confirmation-stdin blocker before any new destructive reset attempt.
 
 ## Accepted baseline
 
@@ -30,47 +30,45 @@ Task 174 is the bounded real-Windows `cnxclaw reset` / fresh-state reconstructio
 - Installed plugin fingerprint: `e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19`
 - Accepted package SHA-256: `8f6d0b8e64b1b53199ab1841a41bc1032241d107eac68603066fdd2ea642ca91`
 - OpenClaw: `2026.7.1-2`
-- Task-171 through Task-173 result: `PASS — DASHBOARD_NATIVE_DURABLE_DELIVERY_REACCEPTANCE_ACCEPTED`
+- Task-171 through Task-173: `PASS — DASHBOARD_NATIVE_DURABLE_DELIVERY_REACCEPTANCE_ACCEPTED`
+- Task 174: `ACCEPTED_BLOCKED — RESET_CONFIRMATION_STDIN_BOUNDARY_FAILED_BEFORE_DESTRUCTIVE_MUTATION`
 
-The Task-171 semantic Send count remains permanently frozen at exactly `1`. No additional semantic Send is authorized.
+Task-174 did not cross confirmation and did not perform reset-owned destructive mutation. Task-171 semantic Send count remains permanently frozen at `1`.
 
-## Task-174 reset contract
+## Task-175 gate A — harmless stdin qualification
 
-Task 174 authorizes exactly one normal installed invocation:
+Hermes/Codex must first use a harmless Python `input()` probe through the same executor terminal/process/stdin mechanism intended for reset.
 
-`cnxclaw.cmd reset`
+The probe must round-trip a unique token and exit `0` without `OSError`, EOF, invalid-handle, or closed-stdin failure.
 
-and exactly one interactive confirmation:
+If this qualification fails: **do not run reset**. Report the stdin-channel blocker and stop.
+
+No product/source repair is authorized merely to make the probe pass.
+
+## Task-175 gate B/C — reset only after qualification
+
+Only if the harmless stdin probe passes and a fresh critical preflight remains valid, Task 175 authorizes exactly one new installed reset invocation:
+
+`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd reset`
+
+After the documented prompt is observed, provide exactly one interactive:
 
 `y`
 
-The reset implementation itself owns the PASSTHROUGH/native-route boundary, CogentNexus state removal/reconstruction, database bootstrap, policy application, re-enable, Gateway process boundary, and plugin/Gateway/Ollama/route verification required to return `fresh-install MANAGED`.
+No pre-piped confirmation, no second reset, and no executor-issued lifecycle helper is authorized.
 
-No separate helper lifecycle command is authorized. In particular, after reset starts Hermes/Codex must not issue a second reset, start/stop/restart/enable/disable, manual Gateway/Ollama restart, installer, uninstall, reinstall, rollback, or repair action.
+After reset starts, any failure/timeout/uncertainty is evidence to preserve, not permission to retry or repair.
 
-## Current gate
+## Required reset success boundary
 
-Hermes/Codex must first perform fresh read-only authority/provenance/runtime/database preflight. If the accepted installed identity or safety prerequisites are materially inconsistent, do not reset; report `BLOCKED`.
-
-If preflight passes:
-
-1. run exactly one `cnxclaw.cmd reset`;
-2. answer the documented prompt with exactly one `y`;
-3. never retry under any failure/timeout/uncertainty condition;
-4. collect read-only post-reset evidence;
-5. prove the same installed candidate/release and OpenClaw pin remain;
-6. prove reset itself reconstructed healthy fresh `MANAGED` controller/plugin/Gateway/Ollama/route state;
-7. prove the fresh CogentNexus database is valid and the pre-reset Task-171 CogentNexus durable history was removed as required by reset;
-8. prove no semantic/model/recovery work was manufactured;
-9. prove OpenClaw/Ollama external data and unrelated namespaces remain intact within the documented preservation boundary;
-10. publish the Task-174 report and stop for ChatGPT review.
+If reset is run, PASS requires the command itself to return documented `COGENTNEXUS-OPENCLAW RESET: PASS` / `fresh-install MANAGED`, preserve the installed candidate and OpenClaw pin, reconstruct healthy MANAGED controller/plugin/Gateway/Ollama/route state, bootstrap a valid fresh DB, remove the exact old Task-171 reset-owned durable identities, manufacture no semantic/model/recovery work, and preserve external OpenClaw/Ollama/unrelated namespaces.
 
 ## Hard fence
 
-Task 174 authorizes semantic action count `0`.
+Task 175 semantic action count: `0`.
 
-Authorized only: read-only preflight, exactly one reset invocation, exactly one interactive `y`, implementation-owned internal reset subprocesses/process boundaries, read-only post-reset evidence, and Task-174 report publication.
+Authorized only: read-only preflight; one harmless stdin probe; if and only if it passes, one reset invocation plus one interactive `y`; implementation-owned reset subprocesses/process boundaries; read-only postflight; Task-175 report publication.
 
-No Dashboard Send, Enter semantic submission, composer typing/paste, `chat.inject`, alternate semantic input, manual inference, recovery/regeneration, second reset, executor-issued lifecycle helper, installer/uninstall/reinstall/rollback, manual durable/config/transcript mutation, source/product/test/workflow/dependency change, upgrade, release/promotion, merge, or force push.
+No Dashboard Send, composer input, `chat.inject`, manual model/recovery action, product/source/test/workflow/dependency change, second reset, executor `start/stop/restart/enable/disable`, manual Gateway/Ollama restart, installer/uninstall/reinstall/rollback, manual durable/config/transcript mutation, upgrade, release, merge, or force push.
 
-After the Task-174 report is published, stop. Uninstall is not yet authorized.
+After Task-175 report publication, stop for ChatGPT review. Uninstall remains unauthorized.
