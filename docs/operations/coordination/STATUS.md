@@ -1,57 +1,64 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK188_SUBTASK190_TASK189_PHASE_E_HUMAN_SEND_ORCHESTRATION`  
+**State:** `IN_PROGRESS`  
+**Execution mode:** `TASK188_SUBTASK191_NO_REPLY_DIRECT_DASHBOARD_SEMANTIC_REPAIR`  
 **Updated:** 2026-08-31 ICT  
-**Transport:** GitHub coordination history + Hermes conversation + one genuine human Dashboard Send  
+**Transport:** GitHub repository + repository CI; Hermes returns only after repaired candidate freeze  
 **Active umbrella task:** `CNX-20260831-188`  
-**Execution subtask:** `CNX-20260831-190`  
-**Continues:** `CNX-20260831-189`  
-**Disposition:** `IN_PROGRESS`
+**Execution subtask:** `CNX-20260831-191`  
+**Triggered by:** `CNX-20260831-190`  
+**Disposition:** `SOURCE_REPAIR_REQUIRED`
 
-## Frozen candidate
+## Task-190 review result
 
-The documentation-corrected v0.9.3 product candidate remains:
+Task-190 report:
 
-`604569c286e930f1a596362ab926b065b56d486e`
+[`reports/CNX-20260831-190-task189-phase-e-human-send-orchestration-and-evidence-closure.md`](reports/CNX-20260831-190-task189-phase-e-human-send-orchestration-and-evidence-closure.md)
 
-Coordination-only commits after this freeze do not redefine the candidate.
+Disposition:
 
-## Task-189 accepted state
+`FAIL_SEMANTIC_DURABLE_DELIVERY`
 
-Task-189 report commit:
+Accepted evidence from Task 190:
 
-`e4229bf80051c3eed31b471a9e620dbf10d95f4d`
+- exactly one genuine human Dashboard Send;
+- exactly one new Ticket;
+- one correlated run/model call;
+- one durable `direct_result` delivery;
+- no direct recovery;
+- no duplicate Ticket/model-call/delivery;
+- pending terminal outbox remained zero;
+- Gateway/Ollama/delivery/SQLite health passed after settlement.
 
-Report disposition:
+Decisive failure:
 
-`WAITING_HUMAN_SEMANTIC_SEND`
+- durable assistant delivery text was exactly `NO_REPLY`;
+- Dashboard showed exactly one assistant bubble containing `NO_REPLY`;
+- requested nonce acknowledgement was absent.
 
-ChatGPT review accepts Phases A-D. One supported exact-candidate install-over, documentation byte proof, executable identity preservation, managed Ollama/Gateway/delivery/SQLite health, and durable-state preservation all passed. No reset/uninstall/fresh-reinstall replay is required from current evidence.
+## Root-cause boundary
+
+CogentNexus Dashboard verified delivery currently treats any non-empty assistant final text as durable visible content and adds a delivery marker before native persistence. That transforms a bare OpenClaw silent sentinel into a marked non-sentinel payload and can bypass OpenClaw's normal exact-token suppression.
+
+OpenClaw itself uses `NO_REPLY` as a silent/background sentinel and has known direct-chat behavior where models, especially small/local models, can still emit the token on an ordinary direct turn. CogentNexus must therefore defend the integration boundary rather than assume the sentinel cannot appear.
 
 ## Current task
 
-[`tasks/CNX-20260831-190-task189-phase-e-human-send-orchestration-and-evidence-closure.md`](tasks/CNX-20260831-190-task189-phase-e-human-send-orchestration-and-evidence-closure.md)
+[`tasks/CNX-20260831-191-no-reply-direct-dashboard-semantic-repair.md`](tasks/CNX-20260831-191-no-reply-direct-dashboard-semantic-repair.md)
 
-Task 190 gives Hermes ownership of the Phase-E interaction boundary:
+TDD sequence:
 
-`pre-send read-only baseline -> Hermes generates fresh nonce and instructs user -> exactly one human Dashboard Send -> user says ส่งแล้ว to Hermes -> immediate durable evidence collection -> Task-190 report`
+`RED sentinel leakage + RED bounded revision -> minimal repair -> targeted GREEN -> broad CI GREEN -> new exact candidate -> proportional Windows requalification`
 
-Hermes must not itself send or inject the Dashboard message.
+## Candidate state
 
-## Required acceptance shape
+Previous product candidate `604569c286e930f1a596362ab926b065b56d486e` is retained as historical Task-189/190 evidence but is no longer release-eligible.
 
-`1 human Send -> 1 Ticket -> 1 session/run -> 1 Ollama model call -> 1 durable assistant delivery -> 1 logical Dashboard assistant result`
-
-Also require no unexpected retry/direct recovery, no duplicate durable assistant result, no pending terminal outbox residue, and healthy post-turn Gateway/provider/delivery/SQLite state.
-
-## Failure boundary
-
-If the single human turn is contaminated by retry/regenerate/second Send, or if evidence indicates lifecycle/product mutation is needed, Hermes must stop and publish the appropriate non-PASS disposition. It must not perform another semantic Send or broaden scope automatically.
+No replacement candidate exists until Task 191 repository repair passes exact-candidate validation.
 
 ## Publication state
 
-Still fenced behind Task-190 completion and ChatGPT review:
+Still fenced:
 
 - release PR not yet created;
 - no merge to `main` for v0.9.3 publication;
@@ -60,4 +67,4 @@ Still fenced behind Task-190 completion and ChatGPT review:
 
 ## Hard fence
 
-No reset, uninstall, fresh reinstall, product/runtime/plugin executable source edit, test/dependency/workflow edit, provider/runtime semantic change, durable-schema change, release publication action, or force push is authorized by Task 190.
+No release action, force push, reset, uninstall, fresh reinstall, state deletion, provider replacement, dependency change, durable-schema change, or unrelated refactor while Task 191 is active.
