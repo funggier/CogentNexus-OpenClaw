@@ -1,56 +1,38 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK188_RELEASE_PUBLICATION__TASK194_DISPATCH_AND_VERIFY`  
+**State:** `IN_PROGRESS`  
+**Execution mode:** `TASK188_RELEASE_PUBLICATION__TASK195_RELEASE_WORKFLOW_REPAIR`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository + Actions  
 **Active umbrella task:** `CNX-20260831-188`  
-**Active publication subtask:** `CNX-20260831-194`  
-**Disposition:** `WAITING_AUTHENTICATED_RELEASE_WORKFLOW_DISPATCH`
+**Active repair:** `CNX-20260831-195`  
+**Disposition:** `TASK194_FAILED__RED_REQUIRED`
 
-## Merge result
+## Task 194 result
 
-PR #26 is merged.
+Release workflow run `33399493141`:
 
-Exact authoritative merged `main` SHA:
+- exact dispatch candidate: `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
+- `package`: PASS;
+- `publish`: FAIL;
+- failure: `gh release create` attempted git repository discovery in a job with no checkout;
+- tag `v0.9.3`: not created;
+- release `v0.9.3`: not created;
+- candidate/main identity remained intact.
 
-`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+## Task 195
 
-This SHA is frozen as the v0.9.3 publication candidate.
+Repair only the release publication repository-context contract.
 
-## Prior acceptance chain
+Required sequence:
 
-- Task 191 repository repair: accepted;
-- Task 192 real-Windows NO_REPLY repair requalification: `PASS`;
-- Task 193 Recovery Reality CI contract repair: `PASS`;
-- final PR head before merge: `66fdba1c6dc2ee0997c5764bc56a52f543741bdc`;
-- all final-head release gates passed, including Validate, PS5.1 Acceptance, Windows Installer Pack, Recovery Reality, Recovery V2/V3, Gateway Convergence, Partial Repair, and Live Runner.
-
-Accepted product/payload identities remain:
-
-- repaired product candidate: `050ab53f4b593ab538143084d6bbdbf7e1672e34`;
-- installable plugin payload-v2: `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files.
-
-Current provider boundary:
-
-- managed runtime/operator provider: Ollama only;
-- installer: provider-neutral.
-
-## Active Task 194
-
-Task:
-
-[`tasks/CNX-20260831-194-v093-release-workflow-dispatch-and-publication-verification.md`](tasks/CNX-20260831-194-v093-release-workflow-dispatch-and-publication-verification.md)
-
-Required exact dispatch after fresh authority checks:
-
-- workflow: `.github/workflows/release.yml`
-- ref: `main`
-- `version=0.9.3`
-- `candidate_sha=26ce64a624255278a3a0266ad38746e0e6ed2e31`
-
-Dispatch exactly once. Then verify workflow terminal success, tag target, GitHub Release state, exact release asset set, archive integrity, and independent SHA-256 checksums.
+1. prove RED with a focused regression test;
+2. minimally make the publish GitHub CLI invocation repository-explicit;
+3. prove GREEN under focused and normal CI;
+4. merge the workflow-only repair through a fresh PR;
+5. keep v0.9.3 `candidate_sha` frozen at `26ce64a624255278a3a0266ad38746e0e6ed2e31`;
+6. authorize any second Release dispatch only in a separate publication subtask.
 
 ## Hard fence
 
-No force push, no source/runtime/plugin/test/installer/provider change, no main commit before publication, no release candidate retargeting, no manual release outside the approved Release workflow, and no duplicate dispatch/release/tag are authorized.
+No product/runtime/plugin/installer/provider/package payload changes, no manual tag/release, no retargeting, no duplicate dispatch during repair, and no force push.
