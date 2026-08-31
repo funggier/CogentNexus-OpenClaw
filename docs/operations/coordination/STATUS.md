@@ -1,14 +1,14 @@
 # Coordination Channel Status
 
 **State:** `READY_HERMES`  
-**Execution mode:** `WINDOWS_CMD_BATCH_INCREMENTAL_HARNESS_QUALIFICATION_HERMES`  
+**Execution mode:** `WINDOWS_QUALIFIED_HARNESS_RESET_REACCEPTANCE_HERMES`  
 **Updated:** 2026-08-31 ICT  
 **Transport:** GitHub repository history  
-**Active task:** `CNX-20260831-177`
+**Active task:** `CNX-20260831-178`
 
 ## Active work
 
-[`tasks/CNX-20260831-177-hermes-cmd-batch-incremental-harness-qualification.md`](tasks/CNX-20260831-177-hermes-cmd-batch-incremental-harness-qualification.md)
+[`tasks/CNX-20260831-178-hermes-qualified-harness-reset-reacceptance.md`](tasks/CNX-20260831-178-hermes-qualified-harness-reset-reacceptance.md)
 
 Executor: Hermes/Codex. Coordinator / final reviewer: ChatGPT.
 
@@ -25,54 +25,43 @@ Standing model: executor-heavy / reviewer-light.
 
 ## Reset acceptance history
 
-Task 174:
+- Task 174: `ACCEPTED_BLOCKED — RESET_CONFIRMATION_STDIN_BOUNDARY_FAILED_BEFORE_DESTRUCTIVE_MUTATION`
+- Task 175: `ACCEPTED_UNPROVEN — RESET_COMPLETION_BOUNDARY_UNAVAILABLE_AFTER_QUALIFIED_STDIN`
+- Task 176: `ACCEPTED_DIAGNOSTIC_PASS — CHARACTER_PROMPT_CAPTURE_QUALIFIED_TASK175_ROOT_CAUSE_REMAINS_UNPROVEN`
+- Task 177: `ACCEPTED_DIAGNOSTIC_PASS — CMD_BATCH_INCREMENTAL_HARNESS_QUALIFIED`
 
-`ACCEPTED_BLOCKED — RESET_CONFIRMATION_STDIN_BOUNDARY_FAILED_BEFORE_DESTRUCTIVE_MUTATION`
+Task 177 closed the remaining executor-harness qualification gap. Two harmless cmd/batch/Python runs proved prompt-before-input, one input, concurrent stdout/stderr draining, flushed/fsync'd incremental event ledger, exact ACK, exit `0`, and no timeout/orphan.
 
-Task 175:
+## Task 178 objective
 
-`ACCEPTED_UNPROVEN — RESET_COMPLETION_BOUNDARY_UNAVAILABLE_AFTER_QUALIFIED_STDIN`
+Use that qualified architecture for one new bounded live reset attempt.
 
-Task 176:
+Fresh preflight must pass first. Then exactly one installed `cnxclaw.cmd reset` may be started. The harness must durably record the real prompt before confirmation intent, send exactly one `y`, and retain event/output/process evidence incrementally rather than relying on a post-completion-only artifact.
 
-`ACCEPTED_DIAGNOSTIC_PASS — CHARACTER_PROMPT_CAPTURE_QUALIFIED_TASK175_ROOT_CAUSE_REMAINS_UNPROVEN`
+If the observer times out or disconnects, do not relaunch reset, resend `y`, kill for a cleaner result, or issue helper lifecycle commands. Preserve the ledger and report the exact boundary.
 
-Task 176 established that:
+## PASS boundary
 
-- `input("Continue? [y/N]: ")` has a no-newline prompt;
-- a line-oriented observer stalls on that shape;
-- Task-175 itself was not line-oriented—it already used `read(1)`;
-- a character-level capture method passed two direct harmless Python runs;
-- the actual Task-175 timeout root cause remains unproven;
-- the remaining relevant unqualified boundary is the Windows `cmd.exe` / batch / child completion and evidence-finalization topology.
+A Task-178 PASS requires all of:
 
-## Reviewer coordination anomaly
+- exactly one reset invocation;
+- real prompt observed before exactly one `y`;
+- no retry/helper/kill/repair;
+- exit `0` and documented reset PASS / `fresh-install MANAGED` markers;
+- accepted installed fingerprint/release preserved;
+- OpenClaw remains `2026.7.1-2`;
+- healthy fresh MANAGED controller/plugin/Gateway/Ollama/route state produced by reset itself;
+- fresh SQLite integrity/schema valid;
+- exact old Task-171 reset-owned Ticket/run/model/delivery identities removed;
+- zero semantic/model/recovery work manufactured;
+- external OpenClaw/Ollama/unrelated namespaces preserved within contract.
 
-After Task-176 report publication, an accidental reviewer-side empty root file `__noop__` was created in `4d16bded6b0909f599a5703d82d44ef7145f2d03` and removed immediately in `5f8aaacf24e90cab8764817c0f9777c0366d10f1` without force-push.
-
-Independent compare from Task-176 report publication `3fdc8b56f40c90b6d7af4136b1412d20bd9187c8` to cleanup commit `5f8aaacf24e90cab8764817c0f9777c0366d10f1` has effective changed files `[]`. No lasting repository-tree or product drift remains from that reviewer error.
-
-## Task 177 objective
-
-Before authorizing any new reset attempt, qualify the exact harmless Windows topology:
-
-`outer harness → cmd.exe /d /c → disposable .cmd → disposable Python input() child`
-
-The harness intended for future reset must prove with at least two independent runs:
-
-- prompt observed before input without requiring newline;
-- exactly one input line per run;
-- stdout/stderr drained concurrently;
-- critical event ledger persisted incrementally before process completion;
-- exact ACK and exit `0` retained;
-- no timeout/orphan;
-- installed launcher topology is materially represented;
-- zero destructive/semantic/live mutation.
+Any materially unproven required condition invalidates PASS.
 
 ## Hard fence
 
-Task 177 destructive action budget is `0` and semantic action budget is `0`.
+Task 178 semantic action budget is `0`.
 
-No `cnxclaw reset`, uninstall, installer/reinstall, lifecycle helper, Gateway/Ollama restart, Dashboard Send, model/recovery action, manual durable/config/transcript mutation, product/source/test/workflow/dependency change, upgrade, release, merge, or force push.
+No Dashboard Send, composer submission, `chat.inject`, manual model/recovery action, second reset, second `y`, process kill for cleanup, executor start/stop/restart/enable/disable, manual Gateway/Ollama restart, installer/uninstall/reinstall/rollback, manual route/config/DB/durable/transcript repair, source/product/test/workflow/dependency change, upgrade, release, merge, or force push.
 
-After the Task-177 report is published, stop for ChatGPT review. Reset remains unauthorized until a new successor task is explicitly opened.
+After Task-178 report publication, stop for ChatGPT review. Uninstall is not authorized yet.
