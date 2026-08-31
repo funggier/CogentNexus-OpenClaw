@@ -58,7 +58,7 @@ jobs:
           }
           Write-Host 'v0.9.3 process-safety/Ollama-only contract: PASS'
 
-      - name: Parse Windows installer and require Ollama-only default
+      - name: Parse Windows installer and require provider-neutral contract
         shell: powershell
         run: |
           $tokens = $null
@@ -73,19 +73,19 @@ jobs:
             exit 1
           }
           $text = Get-Content '.\scripts\install.ps1' -Raw
-          if ($text -match 'ValidateSet\("ollama",\s*"lmstudio"\)') { throw 'Windows installer still exposes LM Studio.' }
-          if ($text -notmatch '\[string\]\$Provider\s*=\s*"ollama"') { throw 'Windows installer is not defaulted to Ollama.' }
+          if ($text -match '(?i)\[string\]\s*\$Provider\b') { throw 'Windows installer must remain provider-neutral; remove installer-owned Provider parameter/default.' }
+          if ($text -match '(?i)ValidateSet\([^\)]*(ollama|lmstudio)[^\)]*\)') { throw 'Windows installer must not own provider selection.' }
           if ($text -notmatch 'cnxclaw_v093\.py') { throw 'Windows installer is not wired to the v0.9.3 CogentNexus-OpenClaw CLI facade.' }
-          Write-Host 'v0.9.3 Windows installer Ollama-only contract: PASS'
+          Write-Host 'v0.9.3 Windows installer provider-neutral contract: PASS'
 
-      - name: Require POSIX installer Ollama-only contract
+      - name: Require POSIX installer provider-neutral contract
         shell: powershell
         run: |
           $text = Get-Content '.\scripts\install.sh' -Raw
-          if ($text -match 'ollama\|lmstudio') { throw 'POSIX installer still exposes LM Studio.' }
-          if ($text -notmatch 'PROVIDER="ollama"') { throw 'POSIX installer is not defaulted to Ollama.' }
+          if ($text -match '(?im)^\s*PROVIDER\s*=') { throw 'POSIX installer must remain provider-neutral; remove installer-owned provider default.' }
+          if ($text -match '(?i)--provider\b') { throw 'POSIX installer must not expose provider selection.' }
           if ($text -notmatch 'cnxclaw_v093\.py') { throw 'POSIX installer is not wired to the v0.9.3 CogentNexus-OpenClaw CLI facade.' }
-          Write-Host 'v0.9.3 POSIX installer Ollama-only contract: PASS'
+          Write-Host 'v0.9.3 POSIX installer provider-neutral contract: PASS'
 
       - name: Compile v0.9.3 Python facades
         shell: powershell
