@@ -1,14 +1,14 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK217_TASK216_CROSS_PLATFORM_PLUGIN_FINGERPRINT_PROVENANCE_ADJUDICATION`
-Current disposition: `TASK216_BLOCKED_AUTHORITY_ACCEPTED__CROSS_PLATFORM_PAYLOAD_FINGERPRINT_ADJUDICATION_REQUIRED`
-Task ID: `CNX-20260901-217`
-Parent task: `CNX-20260901-216`
+Execution mode: `TASK218_CROSS_PLATFORM_PAYLOAD_DETERMINISM_TDD_REPAIR`
+Current disposition: `TASK217_NEWLINE_VARIANCE_ACCEPTED__TDD_DETERMINISTIC_PAYLOAD_REPAIR_REQUIRED`
+Task ID: `CNX-20260901-218`
+Parent task: `CNX-20260901-217`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
-Executor: Hermes / authenticated Windows operator
+Executor: Hermes / repository engineer
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -19,72 +19,69 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Task-207 source under adjudication
+## Repair base
 
-Exact source commit:
+Task-207 semantic repair base remains:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Accepted Ubuntu CI payload fingerprint:
+Historical payload identities:
 
-`d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
+```text
+Ubuntu CI / retained Task-207 payload: d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b
+Windows Task-216 payload:             3b86b13f6d39996f18687510ab65aa4bba46bdf8d80b1aaeef14fe8d199eb3ed
+```
 
-Fresh Windows build fingerprint from Task 216:
+These are diagnostic references only. Task 218 must establish a **new exact candidate SHA and package fingerprint** after the deterministic-build repair.
 
-`3b86b13f6d39996f18687510ab65aa4bba46bdf8d80b1aaeef14fe8d199eb3ed`
-
-Known preserved old live generation remains:
-
-`f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
-
-## Task 216 reviewed result
+## Task 217 accepted result
 
 Report:
 
-`reports/CNX-20260901-216-task215-direct-scheduled-task-task207-installer-requalification.md`
+`reports/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication.md`
 
 Review:
 
-`reviews/CNX-20260901-216-task215-direct-scheduled-task-task207-installer-requalification-review.md`
+`reviews/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication-review.md`
 
 Accepted disposition:
 
-`ACCEPT_BLOCKED_AUTHORITY__CROSS_PLATFORM_PAYLOAD_FINGERPRINT_ADJUDICATION_REQUIRED`
+`ACCEPT_PASS_NEWLINE_VARIANCE_PROVEN__TDD_DETERMINISTIC_PAYLOAD_REPAIR_REQUIRED`
 
 Accepted facts:
 
-- fresh exact `27fe0181...` checkout was clean;
-- installer and Task-207 production source hashes matched the candidate;
-- Windows `npm ci` and `npm run plugin:validate` passed with packed file count 192;
-- Windows repository-supported fingerprint was `3b86b13f...`, not accepted Ubuntu package-proof `d0677581...`;
-- no Scheduled Task registration, installer invocation, lifecycle workaround, live SQLite mutation, Gateway restart or Discord traffic occurred;
-- Task-207 CI artifact `9790881384` remains available, bound to exact head SHA `27fe0181...`, digest `sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34`, expiring 2026-09-15.
+- CI and Windows installable path sets were equal at 192 files;
+- exactly 43 generated `dist` files differed;
+- all differences were CRLF/LF-normalizable byte differences;
+- normalizing Windows generated payload bytes to LF reproduced historical CI `d0677581...` exactly;
+- explicit `tsc --newLine lf` alone did not change the Windows build, so a compiler-flag-only repair is not accepted;
+- the fingerprint algorithm remains byte-exact and must not be weakened;
+- live Windows product remained PASSTHROUGH on the old generation, Gateway healthy, delivery/recovery READY, with no installer/lifecycle/SQLite/Discord mutation.
 
-Independent source inspection shows the byte-exact payload fingerprint includes generated `dist/`; package dry-run establishes `d067...` on Ubuntu; Task 216 builds on Windows; `tsconfig.json` does not explicitly define TypeScript `newLine`. Cross-platform generated-byte variance is therefore the active hypothesis, not yet a concluded root cause.
-
-## Active Task 217
+## Active Task 218
 
 Hermes must execute:
 
-`tasks/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication.md`
+`tasks/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair.md`
 
-Task 217 is diagnostic/build-only and must:
+Task 218 is repository/build repair only.
 
-1. preserve live product state read-only;
-2. retrieve/verify retained package-proof artifact `9790881384` and reproduce CI extracted payload fingerprint `d067...` / file count 192;
-3. reproduce fresh Windows-default exact-commit fingerprint `3b86...`;
-4. compare exact payload path sets and file SHA-256 values file-by-file;
-5. perform CRLF/LF byte-normalization analysis for every difference;
-6. in an isolated copy, build exact source with explicit TypeScript `--newLine lf` and compute payload identity;
-7. determine whether explicit LF makes the Windows payload byte-identical to retained CI `d067...`;
-8. publish report and stop.
+Required flow:
 
-If newline nondeterminism is proven, a separate TDD Task 218 will canonicalize build output and establish a new repaired candidate before installer requalification resumes.
+1. create a platform-independent RED regression that builds logically identical LF-source and CRLF-source fixtures through the real build/package path and requires identical payload identity;
+2. prove the pre-fix test fails for generated newline variance and commit the test alone;
+3. implement minimal post-emit `dist` LF canonicalization without modifying fingerprint semantics;
+4. prove focused GREEN + full plugin/build/validation GREEN;
+5. obtain authoritative CI for the exact new GREEN candidate and retain a new package proof;
+6. fresh-build that exact candidate on Windows and require exact fingerprint/path/byte equality with the new CI package proof;
+7. preserve live runtime read-only and publish the Task-218 report.
+
+A `.gitattributes`-only fix is insufficient. Do not accept multiple fingerprints. Do not normalize inside `_plugin_payload()`.
 
 ## Discord budget
 
-Task 217 authorizes `0 Discord Sends`.
+Task 218 authorizes `0 Discord Sends`.
 
 ## Hard fence
 
-No installer/install-over, no lifecycle command, no OpenClaw plugin/config mutation, no Gateway restart, no ownership/staging/transaction/SQLite mutation, no provider/model substitution, no product source/test/workflow commit, no Release/tag mutation, no force push, and no Discord traffic. Isolated exact-commit build experiments and CI-artifact extraction only.
+No installer/install-over, no `cnxclaw` lifecycle action, no live OpenClaw plugin/config mutation, no Gateway restart, no live ownership/staging/transaction/SQLite mutation, no provider/model substitution, no Release/tag mutation, no force push, and no Discord traffic. Repository test/build/package repair and isolated build validation only.
