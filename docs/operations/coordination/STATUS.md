@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK213_TASK212_INSTALLER_SOURCE_AND_DETACHED_LAUNCH_ROOT_CAUSE_ADJUDICATION`  
+**Execution mode:** `TASK214_DURABLE_WINDOWS_LAUNCHER_QUALIFICATION`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + authenticated Windows read-only/harness evidence through Hermes  
-**Active task:** `CNX-20260901-213`  
-**Parent:** `CNX-20260901-212`  
+**Transport:** GitHub repository + authenticated Windows harness qualification through Hermes  
+**Active task:** `CNX-20260901-214`  
+**Parent:** `CNX-20260901-213`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK212_TERMINAL_BLOCK_ACCEPTED__TASK213_ROOT_CAUSE_READY`
+**Disposition:** `TASK213_DETACHED_LAUNCH_DEFECT_ACCEPTED__TASK214_DURABLE_LAUNCHER_READY`
 
 ## Publication and product authority
 
@@ -25,55 +25,44 @@ Task-207 candidate plugin fingerprint:
 
 `d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
 
-## Task 212 reviewed boundary
+## Task 213 accepted boundary
 
-Task 212 is accepted only as an evidence-safe stop:
+Task-213 report disposition:
 
-`ACCEPT_BLOCKED_INSTALLER_TERMINAL__LAUNCH_SOURCE_AND_HARNESS_ROOT_CAUSE_REQUIRED`
+`PASS_DETACHED_LAUNCH_HARNESS_DEFECT_PROVEN`
 
-Observed Task-212 shape:
+ChatGPT review disposition:
 
-```text
-preflight mode: passthrough ordinary upgrade
-old live fingerprint: f82674172...
-recorded installer PID: 21836
-first bounded observation ~27s later: PID absent
-stdout bytes: 0
-stderr bytes: 0
-stage markers: 0
-terminal line: none
-exit code: unavailable
-post live fingerprint: f82674172...
-startup adapter: absent
-Gateway: healthy
-SQLite: ok
-Discord sends: 0
-```
+`ACCEPT_PASS_DETACHED_LAUNCH_HARNESS_DEFECT_PROVEN__QUALIFY_DURABLE_WINDOWS_LAUNCHER_BEFORE_INSTALLER`
 
-No product failure is accepted from this shape.
+The harmful uncertainty from Task 212 is now localized to the launcher/observer boundary, not CogentNexus product code.
 
-The executed command also referenced:
+A harmless PowerShell child launched with the exact Task-212 detached `Popen` mechanics disappeared before 10 seconds with zero-byte stdout/stderr despite an intended >=65-second lifetime and known exit code. This reproduces Task-212 behavior without touching product paths.
 
-`C:/Users/CDQ-P/AppData/Local/Temp/cnx-successor-204-authority-20260901T/scripts/install.ps1`
+Live CogentNexus state remains preserved on the old generation: PASSTHROUGH, startup absent, plugin fingerprint `f826...`, Gateway healthy, delivery/recovery READY, SQLite integrity `ok`, and Task-205 recovery cancelled/inert.
 
-Task 212 did not bind that exact source tree to Task-207 candidate `27fe0181...`; it proved the Task-207 package separately. Since the installer packages the repository-relative plugin tree, this source boundary must be adjudicated before another install authorization.
-
-## Active Task 213
+## Active Task 214
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-213-task212-installer-source-and-detached-launch-root-cause-adjudication.md`
+`docs/operations/coordination/tasks/CNX-20260901-214-task213-durable-windows-launcher-qualification.md`
 
-Required diagnostic work:
+Task 214 must qualify a **temporary uniquely named Windows Scheduled Task** with a harmless PowerShell child only.
 
-- read-only live preservation;
-- exact identity/fingerprint/hash binding of the source root containing the actually executed Task-212 `install.ps1`;
-- exact inspection of retained `launch-installer.py` / `monitor-installer.py` Popen and Windows creation flags;
-- harmless synthetic PowerShell child using the same launch options, with deterministic stdout/stderr, >=60s lifetime, known exit code, and immediate OS identity sampling;
-- comparison with known-good Task-170 launch/observation evidence where directly provable;
-- explicit root-cause classification.
+Required outcome for PASS:
 
-Task 213 may create only external evidence files and a harmless temporary process. It may not run any product installer/lifecycle action.
+- task registered/read back exactly;
+- task started exactly once;
+- child OS identity captured immediately and during execution;
+- child alive beyond 10 seconds and reaches intended >=65-second lifetime;
+- stdout/stderr start and terminal markers persist;
+- child exit code `23` is persisted;
+- Scheduled Task reaches terminal state with `LastTaskResult` reconciled to `23`;
+- exact temporary task is unregistered afterward;
+- no harness process/task residue;
+- no CogentNexus/OpenClaw product or semantic state changes.
+
+Task 214 does not authorize the CogentNexus installer. Installer requalification requires a separate successor after independent review of Task 214 PASS.
 
 ## Discord budget
 
@@ -81,4 +70,4 @@ Task 213 may create only external evidence files and a harmless temporary proces
 
 ## Hard fence
 
-No install-over/installer, no lifecycle enable/disable/start/stop/restart/reset/uninstall, no OpenClaw plugin mutation, no ownership/staging/transaction/backup edits, no SQLite writes, no Gateway restart, no provider/model/config mutation, no source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
+No installer/install-over, no lifecycle command, no OpenClaw plugin mutation, no Gateway restart, no ownership/staging/transaction/backup edits, no SQLite writes, no provider/model/config mutation, no product source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
