@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK211_TASK210_INTERRUPTED_ROLLOVER_REENTRY_ADJUDICATION`  
+**Execution mode:** `TASK212_TASK211_NORMAL_UPGRADE_RECOVERY_INSTALL_OVER`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + authenticated Windows read-only evidence through Hermes  
-**Active task:** `CNX-20260901-211`  
-**Parent:** `CNX-20260901-210`  
+**Transport:** GitHub repository + authenticated Windows live install/provenance evidence through Hermes  
+**Active task:** `CNX-20260901-212`  
+**Parent:** `CNX-20260901-211`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK210_PARTIAL_ACCEPTED__INTERRUPTED_ROLLOVER_REENTRY_ADJUDICATION_READY`
+**Disposition:** `TASK211_NORMAL_UPGRADE_RECOVERY_BOUNDARY_ACCEPTED__TASK212_READY`
 
 ## Publication and product authority
 
@@ -21,44 +21,60 @@ Current repaired candidate remains:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Exact-head CI/package proof remain the accepted Task-207 authority.
+Candidate plugin fingerprint:
 
-## Task 210 accepted boundary
+`d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
 
-Task-205 stale recovery cleanup is closed successfully through one supported exact-run session-boundary cancellation. The old Ticket/recovery are cancelled, owner session generation is `1`, the old scheduler selection is empty, and no same-session emittable residue remains.
+Exact-head CI/package proof remain accepted.
 
-The subsequent Task-207 install-over was attempted once but terminal completion is unproven. Retained stage evidence stops at:
+## Task 211 accepted boundary
 
-`CNXCLAW_INSTALL_STAGE_START stage=plugin-rollover-prepare`
+Task-211 report disposition was `BLOCKED_PARTIAL_FOREIGN_OR_MISMATCHED_STATE`; independent review accepts its observations but narrows the interpretation.
 
-Current post-state is not accepted as installed/converged: controller is `passthrough`, startup adapter is not installed/enabled, while Gateway remains healthy. No Discord Send occurred.
+Fresh evidence proves:
 
-Independent historical comparison shows the Task-210 outer observer was shorter than accepted installer timing: `plugin-rollover-prepare` has previously taken ~430–434 seconds, and a full accepted install-over ~819 seconds. This supports a harness-timeout hypothesis but does not itself prove success.
+```text
+live plugin fingerprint = f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1
+candidate fingerprint = d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b
+live registration = canonical cogentnexus-openclaw 0.9.3 root, disabled
+controller = passthrough
+startup adapter = absent
+classifier mode = upgrade
+pendingRollover = false
+pluginAlreadyExact = false
+replacementPluginPath = null
+legacy = []
+Task-210 candidate-bound transaction = absent
+```
 
-## Active Task 211
+No foreign plugin/package/version or unrelated replacement was proven. The mismatch is the expected old accepted generation versus the new Task-207 candidate. Because no candidate rollover transaction was persisted and no candidate plugin replacement occurred, the live state is accepted as a recoverable ordinary same-version upgrade boundary.
+
+Historical accepted Windows evidence also establishes that `plugin-rollover-prepare` can take ~430–434 seconds and full install-over ~819 seconds. Task-210's blocking outer observer was too short to safely host the complete installer.
+
+## Active Task 212
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-211-task210-interrupted-rollover-reentry-adjudication.md`
+`docs/operations/coordination/tasks/CNX-20260901-212-task211-normal-upgrade-recovery-install-over.md`
 
-Task 211 is read-only and must establish the exact post-interruption ownership state using:
+Required model:
 
-- candidate plugin fingerprint from exact Task-207 tooling;
-- exact live OpenClaw plugin inventory;
-- live plugin fingerprint;
-- ownership manifest;
-- install-staging and rollover transaction/backup residue;
-- retired/active path and wrapper/legacy evidence;
-- exact candidate attested `classify-install` with plugin inventory + expected replacement fingerprint.
+- fresh read-only preflight must reproduce the Task-211 normal-upgrade shape;
+- exactly one newly authorized Task-207 installer launch;
+- root installer process launched independently from observation and identified by PID + creation time + executable path;
+- stdout/stderr persisted to evidence files;
+- separate 30–60 second bounded observations of the same PID;
+- no observer timeout may kill or cause a second installer launch;
+- allow at least 20 minutes from installer start before runtime alone is considered anomalous;
+- require natural termination, all seven installer stage pairs with exit 0, and final installer success line;
+- then prove installed fingerprint `d0677581...`, plugin enabled/loaded, ownership exact, OpenClaw pinned, controller managed, startup ready, Gateway/Ollama/delivery/recovery healthy, Task-205 recovery inert, and SQLite integrity `ok`.
 
-No second installer is authorized unless a later task receives explicit coordinator authorization after Task 211 proves supported interrupted-rollover re-entry.
+Task 212 stops for review after install/provenance/health. It does not perform Discord acceptance.
 
 ## Discord budget
 
-Task 211 authorizes `0 Discord Sends`.
-
-Task-207 live acceptance Send remains unconsumed and closed.
+Task 212 authorizes `0 Discord Sends`.
 
 ## Hard fence
 
-No installer replay, no lifecycle enable/disable/start/stop/restart/reset/uninstall, no Gateway restart, no OpenClaw plugin mutation, no ownership/staging/backup/transaction normalization, no manual SQLite mutation, no provider/model/config mutation, no source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
+One installer launch maximum. No lifecycle workaround, no manual plugin/ownership/transaction/SQLite mutation, no provider/model substitution, no OpenClaw upgrade, no source/test/workflow edit, no Release/tag mutation, no force push, and no Discord traffic.
