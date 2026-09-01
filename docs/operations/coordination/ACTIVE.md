@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK218_CROSS_PLATFORM_PAYLOAD_DETERMINISM_TDD_REPAIR`
-Current disposition: `TASK217_NEWLINE_VARIANCE_ACCEPTED__TDD_DETERMINISTIC_PAYLOAD_REPAIR_REQUIRED`
-Task ID: `CNX-20260901-218`
-Parent task: `CNX-20260901-217`
+Execution mode: `TASK219_REAL_BOUNDARY_RED_AND_DIST_CANONICALIZATION_REPAIR`
+Current disposition: `TASK218_FAIL_RED_ACCEPTED__CROSS_PLATFORM_EQUALITY_PROVEN__BOUNDARY_REPAIR_REQUIRED`
+Task ID: `CNX-20260901-219`
+Parent task: `CNX-20260901-218`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
@@ -19,69 +19,76 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Repair base
+## Semantic repair base
 
-Task-207 semantic repair base remains:
+Task-207 semantic repair remains based at:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Historical payload identities:
-
-```text
-Ubuntu CI / retained Task-207 payload: d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b
-Windows Task-216 payload:             3b86b13f6d39996f18687510ab65aa4bba46bdf8d80b1aaeef14fe8d199eb3ed
-```
-
-These are diagnostic references only. Task 218 must establish a **new exact candidate SHA and package fingerprint** after the deterministic-build repair.
-
-## Task 217 accepted result
+## Task-218 accepted result
 
 Report:
 
-`reports/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication.md`
+`reports/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair.md`
 
-Review:
+Independent review:
 
-`reviews/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication-review.md`
+`reviews/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair-review.md`
 
 Accepted disposition:
 
-`ACCEPT_PASS_NEWLINE_VARIANCE_PROVEN__TDD_DETERMINISTIC_PAYLOAD_REPAIR_REQUIRED`
+`ACCEPT_FAIL_RED_NOT_REPRODUCED__CROSS_PLATFORM_EQUALITY_PROVEN__BOUNDARY_REPAIR_REQUIRED`
 
-Accepted facts:
+Experimental Task-218 candidate:
 
-- CI and Windows installable path sets were equal at 192 files;
-- exactly 43 generated `dist` files differed;
-- all differences were CRLF/LF-normalizable byte differences;
-- normalizing Windows generated payload bytes to LF reproduced historical CI `d0677581...` exactly;
-- explicit `tsc --newLine lf` alone did not change the Windows build, so a compiler-flag-only repair is not accepted;
-- the fingerprint algorithm remains byte-exact and must not be weakened;
-- live Windows product remained PASSTHROUGH on the old generation, Gateway healthy, delivery/recovery READY, with no installer/lifecycle/SQLite/Discord mutation.
+`e2dede9a0cb16b8b9536a350e018bfbd7c95c39b`
 
-## Active Task 218
+Accepted experimental evidence:
+
+```text
+Validate 33521283353: success
+PS5.1 Acceptance Smoke 33521283398: success
+Windows Installer Pack Smoke 33521283517: success
+package-proof artifact: 9805795685
+artifact digest: sha256:241846ea60531ebd45f008cf52ff3ebf4689c6887076b5b9bd1f92863c43a5d5
+payload files: 192
+CI fingerprint: 18a9003b47347bd598e58bef54f453313df8032943f5436cb9ed9096fe4bea14
+fresh Windows fingerprint: 18a9003b47347bd598e58bef54f453313df8032943f5436cb9ed9096fe4bea14
+```
+
+The equality is real, but this candidate is not installer-authorized because:
+
+- the required genuine pre-fix RED was not reproduced;
+- the final helper broadened canonicalization from generated `dist` to tracked/static package files;
+- independent source review found no proven no-follow symlink/junction boundary despite the report claim.
+
+## Active Task 219
 
 Hermes must execute:
 
-`tasks/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair.md`
+`tasks/CNX-20260901-219-task218-real-boundary-red-and-dist-canonicalization-repair.md`
 
-Task 218 is repository/build repair only.
+Task 219 must:
 
-Required flow:
+1. forward-revert only the unaccepted Task-218 production/build changes to restore effective pre-fix build behavior without rewriting history;
+2. trace at least one actual Task-217 differing `dist` file back to the real source/output mechanism;
+3. run a whole-real-source LF-vs-CRLF build probe;
+4. establish a genuine assertion RED caused by different generated installable bytes, not harness failure;
+5. commit corrected RED separately;
+6. implement minimal GREEN only at generated `dist`, with sorted no-follow traversal and indirection rejection;
+7. prove normal build does not dirty tracked files;
+8. run full validation and authoritative CI;
+9. establish a new candidate/package proof;
+10. fresh-build the exact new candidate on Windows and require zero payload-byte difference vs CI.
 
-1. create a platform-independent RED regression that builds logically identical LF-source and CRLF-source fixtures through the real build/package path and requires identical payload identity;
-2. prove the pre-fix test fails for generated newline variance and commit the test alone;
-3. implement minimal post-emit `dist` LF canonicalization without modifying fingerprint semantics;
-4. prove focused GREEN + full plugin/build/validation GREEN;
-5. obtain authoritative CI for the exact new GREEN candidate and retain a new package proof;
-6. fresh-build that exact candidate on Windows and require exact fingerprint/path/byte equality with the new CI package proof;
-7. preserve live runtime read-only and publish the Task-218 report.
+The byte-exact fingerprint algorithm must remain unchanged. Do not accept multiple fingerprints.
 
-A `.gitattributes`-only fix is insufficient. Do not accept multiple fingerprints. Do not normalize inside `_plugin_payload()`.
+## Runtime / Discord boundary
 
-## Discord budget
+Task 219 authorizes:
 
-Task 218 authorizes `0 Discord Sends`.
+`0 Discord Sends`
 
-## Hard fence
+No installer/install-over, lifecycle action, live plugin/config mutation, Gateway restart, live SQLite/ownership/transaction mutation, provider/model substitution, or Release/tag mutation is authorized.
 
-No installer/install-over, no `cnxclaw` lifecycle action, no live OpenClaw plugin/config mutation, no Gateway restart, no live ownership/staging/transaction/SQLite mutation, no provider/model substitution, no Release/tag mutation, no force push, and no Discord traffic. Repository test/build/package repair and isolated build validation only.
+Only repository TDD/build/package work, isolated evidence builds, CI, and read-only live preservation checks are allowed.
