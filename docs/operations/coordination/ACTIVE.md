@@ -23,10 +23,6 @@ No Release/tag/asset mutation is authorized.
 
 Task-207 repository-GREEN candidate remains:
 
-`27fe0181b3b65d555a3a0266ad38746e0e6ed2e31`
-
-Correction: the exact Task-207 candidate used by Task 216 is:
-
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
 Candidate plugin fingerprint:
