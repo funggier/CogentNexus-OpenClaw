@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK221_EXACT_FIRST_CHECKOUT_CONTROL_ADJUDICATION`  
+**Execution mode:** `TASK222_STATIC_PAYLOAD_BYTE_GUARD_AND_CANDIDATE_REQUALIFICATION`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + isolated Windows Git materialization evidence through Hermes  
-**Active task:** `CNX-20260901-221`  
-**Parent:** `CNX-20260901-220`  
+**Transport:** GitHub repository + isolated build/CI/Windows exact-first package evidence through Hermes  
+**Active task:** `CNX-20260901-222`  
+**Parent:** `CNX-20260901-221`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK220_STATIC_PRE_NPM_DIVERGENCE_PROVEN__TASK221_EXACT_FIRST_CHECKOUT_CONTROL_READY`
+**Disposition:** `TASK221_TWO_STAGE_CARRYOVER_PROVEN__TASK222_STATIC_BYTE_GUARD_READY`
 
 ## Publication authority
 
@@ -19,50 +19,50 @@ Published `v0.9.3` remains untouched at:
 
 ## Accepted generated-output boundary
 
-Task 219 successfully established the genuine RED for generated output and the bounded `dist` canonicalizer lineage. The remaining determinism failure is not in generated `dist`; Task-219 evidence reduced it to three static package files.
+Task 219 established a genuine real-boundary LF/CRLF RED and a bounded generated-`dist` canonicalizer. The generated-output problem is considered solved at that boundary: 43 pre-fix generated differences reduced to zero after canonicalization, with byte-exact fingerprint semantics unchanged.
 
-## Task 220 reviewed boundary
+## Task 221 accepted boundary
 
-Task-220 report disposition:
+Task-221 report disposition:
 
-`PASS_CHECKOUT_CONFIG_ROOT_CAUSE_PROVEN`
+`PASS_TWO_STAGE_ATTRIBUTE_CARRYOVER_ROOT_CAUSE_PROVEN`
 
-Independent review accepts only the narrower disposition:
+Independent review disposition:
 
-`ACCEPT_PARTIAL__STATIC_DIVERGENCE_PRE_NPM_PROVEN__EXACT_FIRST_CHECKOUT_CONTROL_REQUIRED`
+`ACCEPT_PASS_TWO_STAGE_ATTRIBUTE_CARRYOVER_ROOT_CAUSE_PROVEN__FAIL_CLOSED_STATIC_BYTE_GUARD_REQUIRED`
 
-Accepted Task-220 evidence:
+Exact-first controls at `4e31dbd79cd4c0a7eb161888c14221f0ae03bcc0` produced LF-only static package bytes and clean status under inherited/default `core.autocrlf=true`, explicit true, and explicit false.
 
-- repository object bytes at exact `4e31dbd...` are LF-only;
-- three static working-tree files are CRLF at the first measured D0 checkpoint;
-- npm/build/plugin validation do not create the divergence;
-- an explicit `core.autocrlf=false` control yields LF-only working-tree bytes;
-- `-text` does not establish deterministic CI-equivalent bytes.
+The historical CRLF result reproduced only when a newer branch worktree was materialized first and Git then detached to the older target while the static blobs stayed unchanged across the attribute-policy transition. Therefore direct `core.autocrlf=true` is not the root cause; two-stage attribute/worktree state carry-over is.
 
-Remaining ambiguity:
+The branch still contains the unaccepted `b081d55c4ffa5fcb03931dc320d39bdcf92a6cf5` `-text` experiment, and the current package validator checks package membership but does not fail closed on static CRLF contamination.
 
-Task 220 cloned current branch HEAD before detaching to `4e31dbd...`. Branch ancestry already contained `b081d55...`, which changes only `.gitattributes` from `text eol=lf` to `-text`; the static blobs are unchanged. The evidence therefore does not yet isolate direct first-checkout behavior from working-tree/attribute-state carry-over.
-
-## Active Task 221
+## Active Task 222
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-221-task220-exact-first-checkout-control-adjudication.md`
+`docs/operations/coordination/tasks/CNX-20260901-222-static-payload-byte-guard-and-candidate-requalification.md`
 
 Required outcome:
 
-- exact `4e31dbd...` is the first working-tree materialization in independent no-checkout/init+fetch repositories;
-- test inherited/default, explicit `core.autocrlf=true`, and explicit `core.autocrlf=false` before first checkout;
-- record object/worktree hashes, CRLF/LF counts, effective attributes, `git ls-files --eol`, status, and config origins immediately after checkout;
-- separately reproduce Task-220 two-stage topology;
-- if needed, test one safe explicit Git rematerialization in the disposable tree;
-- identify whether root cause is direct checkout policy, two-stage attribute carry-over, or a mixed materialization effect;
-- publish report and stop.
+- genuine test-only RED proving static CRLF contamination currently passes package validation;
+- RED committed separately;
+- restore `.gitattributes` entries to `text eol=lf` by forward commit;
+- minimal fail-closed static byte validation, with no tracked-file normalization side effect;
+- contaminated input rejected before package identity/packing;
+- generated `dist` canonicalizer remains generated-only;
+- focused/full repository validation GREEN;
+- one new exact candidate SHA;
+- Validate + Windows Installer Pack Smoke + PS5.1 Acceptance Smoke GREEN on that exact SHA;
+- new package-proof artifact recorded;
+- fresh Windows exact-first checkout of the same candidate under inherited Git policy remains LF-only/clean;
+- Windows payload path set and all 192 bytes match CI exactly, fingerprint equal;
+- report and stop for independent review.
 
-A Task-221 PASS is diagnostic closure only. A separate repair task remains required before installer requalification.
+Only after Task 222 PASS + independent review may a later task resume Windows installer requalification using the Task-215 direct Scheduled Task topology.
 
 ## Runtime / Discord boundary
 
 `0 Discord Sends`.
 
-No installer/install-over, lifecycle action, live OpenClaw plugin/config mutation, Gateway restart, live SQLite/ownership/transaction write, provider/model substitution, product/source/test/workflow edit, Release/tag mutation, or force push is authorized.
+No installer/install-over, lifecycle action, live OpenClaw plugin/config mutation, Gateway restart, live SQLite/ownership/transaction write, provider/model substitution, Release/tag mutation, or force push is authorized.
