@@ -1,91 +1,82 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK216_DIRECT_SCHEDULED_TASK_TASK207_INSTALLER_REQUALIFICATION`  
+**Execution mode:** `TASK217_TASK216_CROSS_PLATFORM_PLUGIN_FINGERPRINT_PROVENANCE_ADJUDICATION`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + authenticated Windows installer/provenance evidence through Hermes  
-**Active task:** `CNX-20260901-216`  
-**Parent:** `CNX-20260901-215`  
+**Transport:** GitHub repository + authenticated Windows/CI package-provenance evidence through Hermes  
+**Active task:** `CNX-20260901-217`  
+**Parent:** `CNX-20260901-216`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK215_DIRECT_TERMINAL_PROPAGATION_ACCEPTED_WITH_DURATION_DEVIATION__TASK216_INSTALLER_READY`
+**Disposition:** `TASK216_BLOCKED_AUTHORITY_ACCEPTED__TASK217_CROSS_PLATFORM_PAYLOAD_ADJUDICATION_READY`
 
-## Publication and product authority
+## Publication and source authority
 
 Published `v0.9.3` remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Current repository-GREEN repaired candidate remains:
+Task-207 source commit under adjudication remains:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Task-207 candidate plugin fingerprint:
+Accepted Ubuntu CI package-proof payload fingerprint:
 
 `d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
 
-## Task 215 reviewed boundary
+Fresh Windows exact-commit build fingerprint from Task 216:
 
-Task-215 report disposition:
+`3b86b13f6d39996f18687510ab65aa4bba46bdf8d80b1aaeef14fe8d199eb3ed`
 
-`PASS_DIRECT_SCHEDULED_TASK_TERMINAL_PROPAGATION`
+## Task 216 accepted stop
 
-Independent review accepts the core result but retains two evidence deviations:
+Task-216 report disposition:
 
-`ACCEPT_WITH_DURATION_DEVIATION__DIRECT_TERMINAL_PROPAGATION_PROVEN__INSTALLER_REQUALIFICATION_AUTHORIZED`
+`BLOCKED_AUTHORITY`
 
-Proven direct topology:
+Independent review disposition:
+
+`ACCEPT_BLOCKED_AUTHORITY__CROSS_PLATFORM_PAYLOAD_FINGERPRINT_ADJUDICATION_REQUIRED`
+
+Task 216 correctly stopped before any installer/Scheduled Task/live mutation because the byte-exact payload identity did not reproduce the accepted CI package proof.
+
+Fresh source identity itself was coherent: exact clean `27fe0181...`, matching installer and Task-207 repair hashes, Windows `npm ci` PASS, plugin validation PASS, packed file count 192.
+
+The unresolved discrepancy is payload build identity:
 
 ```text
-Windows Scheduled Task
-  -> one top-level powershell.exe
-  -> direct PowerShell script
+Ubuntu package-dry-run / retained artifact = d0677581...
+Windows fresh build                     = 3b86b13f...
 ```
 
-Observed terminal proof:
+The payload-v2 algorithm includes exact generated `dist/` bytes. CI builds the package proof on `ubuntu-latest`; Windows Task 216 rebuilds locally. `tsconfig.json` currently does not pin TypeScript newline output. This is the primary hypothesis, not yet accepted root cause.
 
-```text
-DIRECT_START: present
-heartbeats: 11
-DIRECT_END: present
-script elapsed: 55.1713166s
-intended exit: 23
-Scheduler terminal state: Ready
-LastTaskResult: 23
-start count: 1
-retry: none
-cleanup: exact task absent
-```
+Retained package-proof artifact `9790881384` remains available and unexpired, bound to exact Task-207 head SHA and digest `sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34`.
 
-The task spec requested >=65 seconds and >=5-minute execution limit; actual values were 55.17 seconds and PT3M. These deviations are not erased. They do not invalidate the proven direct terminal-propagation boundary. Task 216 therefore uses an execution limit >=30 minutes and the real installer as the long-duration execution proof.
-
-## Active Task 216
+## Active Task 217
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-216-task215-direct-scheduled-task-task207-installer-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260901-217-task216-cross-platform-plugin-fingerprint-provenance-adjudication.md`
 
-Task 216 must:
+Task 217 must:
 
-- prepare/fresh-verify exact candidate `27fe0181...` and candidate fingerprint `d067...`;
-- re-prove the ordinary safe upgrade preflight from the preserved PASSTHROUGH old generation `f826...`;
-- register exactly one temporary Task-216 Scheduled Task with `ExecutionTimeLimit >= PT30M`, no recurrence/retry;
-- use one top-level Scheduled Task-owned PowerShell runner and invoke exact candidate `install.ps1` once in that same process;
-- durably capture runner result and all seven installer diagnostic stage pairs plus final terminal line;
-- require Scheduler `LastTaskResult=0` for success;
-- independently prove installed fingerprint `d067...`, plugin enabled/loaded, ownership exact, OpenClaw pinned, controller MANAGED, startup/Gateway/Ollama/delivery/recovery/SQLite healthy;
-- clean only the exact temporary Task-216 installer task;
-- stop for ChatGPT review.
+- preserve live product state read-only;
+- verify/extract the retained CI package-proof payload and independently reproduce `d067...` / 192 files;
+- reproduce fresh Windows-default `3b86...`;
+- compare exact payload path sets and SHA-256 values file-by-file;
+- perform CRLF/LF normalization analysis for every differing text file;
+- run a controlled exact-source Windows build with explicit TypeScript `--newLine lf` in an isolated evidence copy;
+- determine whether that build becomes byte-identical to CI `d067...`;
+- publish the root-cause report and stop.
 
-No installer retry or lifecycle workaround is authorized.
+If newline nondeterminism is proven, no installer retry occurs yet. A separate TDD repair task must canonicalize generated bytes and establish a new candidate/package proof first.
 
 ## Discord budget
 
 `0 Discord Sends`.
 
-Discord semantic requalification remains a separate successor after Task-216 install/provenance/managed health is independently reviewed PASS.
-
 ## Hard fence
 
-One installer invocation maximum. No compensating lifecycle command, manual plugin/ownership/transaction/SQLite mutation, provider/model substitution, OpenClaw upgrade, product source/test/workflow mutation, Release/tag mutation, force push, or Discord traffic.
+No installer/install-over, no lifecycle command, no OpenClaw plugin/config mutation, no Gateway restart, no ownership/staging/transaction/SQLite write, no provider/model substitution, no product source/test/workflow edit/commit, no Release/tag mutation, no force push, and no Discord traffic. Only isolated exact-source builds, CI-artifact extraction, byte comparison, and read-only live checks are authorized.
