@@ -8,7 +8,7 @@ Task 217 closes the Task-216 authority ambiguity without mutating the live produ
 
 ## Accepted facts
 
-- exact source authority remained `27fe0181b3b65d555a3a0266ad38746e0e6ed2e31` is NOT the Task-207 candidate; the Task-207 source under test remained `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`;
+- exact Task-207 source under test remained `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`;
 - retained CI package payload reproduced `d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b` with 192 files;
 - fresh Windows build reproduced `3b86b13f6d39996f18687510ab65aa4bba46bdf8d80b1aaeef14fe8d199eb3ed` with the same 192 paths;
 - exactly 43 `dist` files differed byte-for-byte;
