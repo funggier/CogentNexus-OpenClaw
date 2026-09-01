@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK208_TASK207_WINDOWS_DISCORD_VISIBLE_FINAL_REQUALIFICATION`  
+**Execution mode:** `TASK209_TASK205_RECOVERY_EXECUTABILITY_ADJUDICATION`  
 **Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + authenticated Windows/OpenClaw/Discord live acceptance through Hermes  
-**Active task:** `CNX-20260901-208`  
-**Parent:** `CNX-20260901-207`  
+**Transport:** GitHub repository + authenticated Windows read-only evidence through Hermes  
+**Active task:** `CNX-20260901-209`  
+**Parent:** `CNX-20260901-208`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK207_REPOSITORY_PASS__TASK208_READY`
+**Disposition:** `TASK208_SAFETY_STOP_ACCEPTED__TASK209_READY`
 
 ## Publication and product authority
 
@@ -17,56 +17,68 @@ Published `v0.9.3` remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Current repaired candidate:
+Current repaired candidate remains:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Task-207 exact-head CI is GREEN:
+Task 208 did not install it.
 
-```text
-Validate 33483589170: success
-Windows Installer Pack Smoke 33483589124: success
-PS5.1 Acceptance Smoke 33483589138: success
-```
+## Task 208 reviewed result
 
-Package proof artifact:
+Task-208 report disposition:
 
-`9790881384` / `sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34`
+`BLOCKED_PREEXISTING_TASK205_RECOVERY`
 
-## Task 207 review
+ChatGPT review disposition:
 
-Accepted as:
+`ACCEPTED_SAFETY_STOP__RECOVERY_EXECUTABILITY_UNRESOLVED`
 
-`PASS_REPOSITORY__WINDOWS_REQUALIFICATION_REQUIRED`
+The safety stop is accepted: Task 208 found the historical Task-205 row stored as `pending`, made zero runtime/product mutations, consumed zero Discord Sends, and stopped before install-over.
 
-The production repair is limited to the direct Discord bare-`NO_REPLY` visible-final guard. It does not change delivery correlation or lifecycle behavior.
+However, source review shows that stored `pending` state is not by itself enough to prove the row can execute. Production recovery selection and launch require the owner session to be `active` with `cnx_sessions.generation == recovery.owner_generation`, plus accepted direct-Ticket authority, due time, and a clear active/recovering model-call fence.
 
-A process note remains: the test-only RED commit has no remote Actions run; local RED plus source/commit ordering establish the intended pre-fix failure, while exact implementation GREEN is fully authoritative.
+Task 208 did not capture the exact current owner-session generation, so the row's actual executability is still unresolved.
 
-## Active Task 208
+## Active Task 209
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-208-task207-windows-discord-visible-final-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260901-209-task205-recovery-executability-adjudication.md`
 
-Before install-over or Discord traffic, Task 208 must adjudicate the historical Task-205 recovery row. If it remains capable of delayed output, stop without mutation.
+Task 209 must remain read-only and evaluate the exact production scheduler/claim predicates for:
 
-If that gate passes:
+```text
+Ticket: CNXT-f23e2c11-e630-4319-84c2-c57ed7e7edf6
+owner session: agent:main:discord:channel:1531199905673252946
+observed recovery owner_generation: 0
+```
 
-- install-over exact `27fe0181...` once from validated package proof;
-- verify exact installed provenance and managed health;
-- verify numeric Discord channel `1531199905673252946`;
-- consume exactly one fresh human Send;
-- allow at most one same-run Task-207 finalization revision if first final is bare `NO_REPLY`;
-- require one visible native Discord reply;
-- then require durable `delivery_confirmed -> completed`.
+Required outputs:
 
-If visible reply succeeds but settlement fails, stop and preserve the run-bound hook evidence for a separate correlation repair.
+- exact joined Ticket/session/recovery row;
+- `cnx_sessions.state/generation`;
+- recovery `owner_generation`;
+- active/recovering model-call state;
+- per-predicate `dueDirectRecovery()` truth table;
+- exact constrained production-equivalent scheduler-query result;
+- same-session emittable-residue inventory;
+- SQLite integrity and zero-mutation ledger.
 
-## Human Send budget
+Allowed dispositions:
 
-`0 / 1 consumed; 1 / 1 available`
+- `PASS_INERT_SUPERSEDED_RECOVERY`
+- `BLOCKED_EXECUTABLE_TASK205_RECOVERY`
+- `BLOCKED_OTHER_EMITTABLE_RESIDUE`
+- `BLOCKED_INDETERMINATE_RECOVERY_AUTHORITY`
+
+If executable, no cancellation is authorized in Task 209. Stop and return for a separately scoped supported cancellation task.
+
+## Discord budget
+
+Task 209 authorizes `0 Discord sends`.
+
+The previous acceptance Send remains unconsumed and closed until a later task explicitly reopens it.
 
 ## Hard fence
 
-No second/probe/API/bot Send, no reset/uninstall/fresh reinstall, no installer retry, no provider/model/config/schema/manual-SQLite mutation, no source/test/workflow mutation, no Release/tag mutation, no force push, and no delivery-correlation repair during Task 208.
+No install-over, installer, reset/uninstall/reinstall, Gateway restart, provider/model/config/schema change, session stop/reset/delete, Ticket cancel, recovery launch/update, manual SQLite mutation, Discord traffic, source/test/workflow mutation, Release/tag mutation, or force push.
