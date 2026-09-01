@@ -1,68 +1,79 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK222_STATIC_PAYLOAD_BYTE_GUARD_AND_CANDIDATE_REQUALIFICATION`  
-**Updated:** 2026-09-01 ICT  
-**Transport:** GitHub repository + isolated build/CI/Windows exact-first package evidence through Hermes  
-**Active task:** `CNX-20260901-222`  
-**Parent:** `CNX-20260901-221`  
+**Execution mode:** `TASK223_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
+**Updated:** 2026-09-02 ICT  
+**Transport:** GitHub repository + authenticated Windows install evidence through Hermes  
+**Active task:** `CNX-20260902-223`  
+**Parent:** `CNX-20260901-222`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK221_TWO_STAGE_CARRYOVER_PROVEN__TASK222_STATIC_BYTE_GUARD_READY`
+**Disposition:** `TASK222_PACKAGE_PROVENANCE_ACCEPTED__TASK223_WINDOWS_INSTALL_OVER_READY`
 
 ## Publication authority
 
-Published `v0.9.3` remains untouched at:
+Published public `v0.9.3` remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-## Accepted generated-output boundary
+## Task 222 accepted boundary
 
-Task 219 established a genuine real-boundary LF/CRLF RED and a bounded generated-`dist` canonicalizer. The generated-output problem is considered solved at that boundary: 43 pre-fix generated differences reduced to zero after canonicalization, with byte-exact fingerprint semantics unchanged.
+Task-222 report disposition:
 
-## Task 221 accepted boundary
-
-Task-221 report disposition:
-
-`PASS_TWO_STAGE_ATTRIBUTE_CARRYOVER_ROOT_CAUSE_PROVEN`
+`PASS_STATIC_BYTE_GUARD__CI_WINDOWS_PAYLOAD_IDENTITY_EQUAL`
 
 Independent review disposition:
 
-`ACCEPT_PASS_TWO_STAGE_ATTRIBUTE_CARRYOVER_ROOT_CAUSE_PROVEN__FAIL_CLOSED_STATIC_BYTE_GUARD_REQUIRED`
+`ACCEPT_PASS_STATIC_BYTE_GUARD__CI_WINDOWS_PAYLOAD_IDENTITY_EQUAL__WINDOWS_INSTALLER_REQUALIFICATION_AUTHORIZED`
 
-Exact-first controls at `4e31dbd79cd4c0a7eb161888c14221f0ae03bcc0` produced LF-only static package bytes and clean status under inherited/default `core.autocrlf=true`, explicit true, and explicit false.
+Exact installer candidate:
 
-The historical CRLF result reproduced only when a newer branch worktree was materialized first and Git then detached to the older target while the static blobs stayed unchanged across the attribute-policy transition. Therefore direct `core.autocrlf=true` is not the root cause; two-stage attribute/worktree state carry-over is.
+`a812f27815b3c87b7ca748dc2dea88f987601f70`
 
-The branch still contains the unaccepted `b081d55c4ffa5fcb03931dc320d39bdcf92a6cf5` `-text` experiment, and the current package validator checks package membership but does not fail closed on static CRLF contamination.
+Exact accepted package proof:
 
-## Active Task 222
+```text
+artifact 9810139538
+digest sha256:3164b7770e7d8991691d7bbedced092866c208add72b0c03b4aa3d39d1b50ff0
+file count 192
+fingerprint e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
+```
+
+Exact candidate CI:
+
+```text
+Validate 33532084137 success
+Windows Installer Pack Smoke 33532084225 success
+PS5.1 Acceptance Smoke 33532084092 success
+```
+
+Task 222 independently closes the prior cross-platform package identity blocker: fresh Windows exact-first materialization and authoritative CI had the same 192 payload paths, zero byte differences, exact same fingerprint, and clean tracked state.
+
+## Active Task 223
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-222-static-payload-byte-guard-and-candidate-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260902-223-task222-exact-candidate-windows-install-over-requalification.md`
 
-Required outcome:
+Key execution rules:
 
-- genuine test-only RED proving static CRLF contamination currently passes package validation;
-- RED committed separately;
-- restore `.gitattributes` entries to `text eol=lf` by forward commit;
-- minimal fail-closed static byte validation, with no tracked-file normalization side effect;
-- contaminated input rejected before package identity/packing;
-- generated `dist` canonicalizer remains generated-only;
-- focused/full repository validation GREEN;
-- one new exact candidate SHA;
-- Validate + Windows Installer Pack Smoke + PS5.1 Acceptance Smoke GREEN on that exact SHA;
-- new package-proof artifact recorded;
-- fresh Windows exact-first checkout of the same candidate under inherited Git policy remains LF-only/clean;
-- Windows payload path set and all 192 bytes match CI exactly, fingerprint equal;
-- report and stop for independent review.
+- fresh exact-first candidate source materialization only;
+- reprove candidate package identity before installer;
+- use the direct Scheduled Task PowerShell terminal topology qualified by Task 215;
+- never use the failed detached Popen launcher;
+- one unique temporary Task-223 Scheduled Task;
+- at least 30-minute execution limit;
+- exactly one installer invocation and no retry;
+- passive observation until terminal evidence;
+- installed fingerprint/source must bind exactly to `a812f278...` / `e3bcce04...`;
+- post-install controller/startup/Gateway/Ollama/delivery/recovery/SQLite health must be coherent;
+- stop after report for independent review.
 
-Only after Task 222 PASS + independent review may a later task resume Windows installer requalification using the Task-215 direct Scheduled Task topology.
+If Task 223 passes independent review, a later successor may authorize the final bounded one-Send Discord semantic/durable-delivery requalification.
 
-## Runtime / Discord boundary
+## Discord / mutation boundary
 
 `0 Discord Sends`.
 
-No installer/install-over, lifecycle action, live OpenClaw plugin/config mutation, Gateway restart, live SQLite/ownership/transaction write, provider/model substitution, Release/tag mutation, or force push is authorized.
+No installer retry, reset/uninstall/fresh reinstall, manual lifecycle repair, manual Gateway restart, manual plugin/config/SQLite write, provider/model substitution, unrelated process termination, product/source edit, Release/tag mutation, or force push is authorized.
