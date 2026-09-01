@@ -1,4 +1,4 @@
-plugins/cogentnexus-openclaw/package.json text eol=lf
-plugins/cogentnexus-openclaw/README.md text eol=lf
-plugins/cogentnexus-openclaw/openclaw.plugin.json text eol=lf
-plugins/cogentnexus-openclaw/scripts/bootstrap-ticket-db.mjs text eol=lf
+plugins/cogentnexus-openclaw/package.json -text
+plugins/cogentnexus-openclaw/README.md -text
+plugins/cogentnexus-openclaw/openclaw.plugin.json -text
+plugins/cogentnexus-openclaw/scripts/bootstrap-ticket-db.mjs -text
