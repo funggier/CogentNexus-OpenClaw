@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK210_TASK205_SUPPORTED_CANCELLATION_AND_TASK207_WINDOWS_DISCORD_REQUALIFICATION`
-Current disposition: `TASK209_EXECUTABLE_RECOVERY_ACCEPTED__SUPPORTED_CANCELLATION_THEN_LIVE_REQUALIFICATION`
-Task ID: `CNX-20260901-210`
-Parent task: `CNX-20260901-209`
+Execution mode: `TASK211_TASK210_INTERRUPTED_ROLLOVER_REENTRY_ADJUDICATION`
+Current disposition: `TASK210_PARTIAL_ACCEPTED__TASK207_INTERRUPTED_ROLLOVER_READONLY_ADJUDICATION_REQUIRED`
+Task ID: `CNX-20260901-211`
+Parent task: `CNX-20260901-210`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
@@ -21,78 +21,66 @@ No Release/tag/asset mutation is authorized.
 
 ## Current repaired product candidate
 
-Task-207 repository-GREEN candidate:
+Task-207 repository-GREEN candidate remains:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-Validated package proof:
+Validated package proof remains artifact `9790881384`, digest `sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34`.
 
-```text
-artifact ID: 9790881384
-artifact digest: sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34
-payload-v2: d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b
-zip SHA-256: 0321028fc6214e18dbc965ad79a6d04328a05a84dce6a9efc058fb1122237986
-```
+## Task 210 reviewed result
 
-## Task 209 accepted result
+Report commit:
 
-Report:
-
-`reports/CNX-20260901-209-task205-recovery-executability-adjudication.md`
+`1fb75fe62e21902aadaf044d6d07a216f13bd03f`
 
 Review:
 
-`reviews/CNX-20260901-209-task205-recovery-executability-adjudication-review.md`
+`reviews/CNX-20260901-210-task205-supported-cancellation-and-task207-windows-discord-requalification-review.md`
 
 Accepted review disposition:
 
-`ACCEPT_BLOCKED_EXECUTABLE_RECOVERY__SUPPORTED_CANCELLATION_REQUIRED`
+`ACCEPT_PARTIAL__TASK205_CLOSED__TASK207_INTERRUPTED_ROLLOVER_READONLY_ADJUDICATION_REQUIRED`
 
-Task 209 proved the historical Task-205 direct-redelivery recovery is currently executable under exact production scheduler authority:
+Accepted facts:
 
-```text
-Ticket: CNXT-f23e2c11-e630-4319-84c2-c57ed7e7edf6
-run: b79dbb65-15eb-4b3e-8ffb-4084125e6cb5
-owner session: agent:main:discord:channel:1531199905673252946
-Ticket status: accepted
-session: active / generation 0
-recovery: redeliver / pending / owner_generation 0
-all dueDirectRecovery predicates: true
-production-equivalent exact-Ticket query: selected
-```
+- Task-205 supported cancellation ran exactly once and is PASS;
+- owner session advanced generation `0 -> 1`;
+- historical Task-205 Ticket and recovery are cancelled;
+- old recovery scheduler selection is empty and no emittable same-session residue remains;
+- Task-207 exact package proof was verified;
+- one Task-207 installer attempt began and reached `plugin-rollover-prepare` after prior stages completed exit 0;
+- installer terminal completion/exit is unproven;
+- current runtime is not converged (`passthrough`, startup adapter not installed/enabled);
+- no Discord Send occurred.
 
-Same-session inventory also proved there is no unrelated emittable work: exactly one nonterminal Ticket and one recovery, both belonging to Task 205; no pending assistant delivery, outbox, or active/recovering model call.
+Independent timing review found historical accepted Windows installs where `plugin-rollover-prepare` required roughly 430–434 seconds and a successful full install-over required roughly 819 seconds. Task-210's outer 420-second terminal budget left only about 331 seconds after `plugin-rollover-prepare` started, so timeout mismatch is a strong harness explanation, not proof of a Task-207 source defect.
 
-## Active Task 210
+## Active Task 211
 
 Hermes must execute:
 
-`tasks/CNX-20260901-210-task205-supported-cancellation-and-task207-windows-discord-requalification.md`
+`tasks/CNX-20260901-211-task210-interrupted-rollover-reentry-adjudication.md`
 
-Execution order:
+Task 211 is READ-ONLY.
 
-1. fresh read-only scope gate proving the same-session inventory is still exactly the Task-205 pair;
-2. resolve the currently installed compiled plugin `dist/v090.js` and verify exported `cancelSessionTickets`;
-3. invoke that supported function exactly once with historical run `b79dbb65-15eb-4b3e-8ffb-4084125e6cb5` — no raw SQLite edits;
-4. prove session generation advanced exactly once, Task-205 Ticket/recovery are cancelled, scheduler query no longer selects them, and no emittable residue remains;
-5. verify exact Task-207 artifact/provenance;
-6. perform one supported standalone-child install-over of `27fe0181...` with no retry;
-7. prove exact installed provenance + managed/startup/plugin/Gateway/Ollama/delivery/recovery/SQLite health;
-8. prove numeric Discord channel ID `1531199905673252946`;
-9. allocate one fresh `CNX210-*` human Send;
-10. prove Task-207 visible-final behavior, allowing at most one same-run bounded revision if first final is bare `NO_REPLY`;
-11. require one visible native Discord reply and durable `delivery_confirmed -> completed`.
+It must:
 
-If a visible reply appears but durable settlement fails, stop as correlation defect; do not self-repair in Task 210.
+1. capture fresh runtime/SQLite/Task-205 cancellation persistence;
+2. verify exact Task-207 candidate provenance and compute candidate plugin fingerprint with exact candidate tooling;
+3. capture exact live OpenClaw plugin inventory and compute live plugin fingerprint;
+4. inventory ownership manifest, install-staging, rollover transaction(s), backup proof, retired/active paths, and legacy/wrapper evidence;
+5. run exact candidate `namespace_ownership.py classify-install` using both live plugin-inventory JSON and expected Task-207 candidate plugin fingerprint;
+6. classify current state as supported interrupted re-entry, already converged but unverified, pending rollover, mismatched/foreign partial state, or indeterminate;
+7. publish report and stop.
+
+No installer replay, lifecycle enable, ownership mutation, manual SQLite change, or Discord Send is authorized in Task 211.
 
 ## Discord budget
 
-Task-210 human Send budget:
+Task 211 authorizes `0 Discord Sends`.
 
-`0 / 1 consumed; 1 / 1 available`
-
-No probe/API/bot/injected/second Send.
+The live acceptance Send remains unconsumed but closed until a later task explicitly reopens it.
 
 ## Hard fence
 
-No raw/manual SQLite mutation, no second cancellation invocation, no reset/uninstall/fresh reinstall, no installer retry, no provider/model substitution, no source/test/workflow edit, no Release/tag mutation, no force push, and no delivery-correlation repair during Task 210.
+No install-over, no OpenClaw plugin mutation, no cnxclaw lifecycle action, no Gateway restart, no manual ownership/staging/transaction/backup normalization, no raw SQLite write, no provider/model/config mutation, no source/test/workflow edit, no Release/tag mutation, no force push, and no Discord traffic.
