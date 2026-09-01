@@ -1,14 +1,14 @@
 # Active Coordination Task
 
-Status: `READY_FOR_WINDOWS_REQUALIFICATION`
-Execution mode: `TASK207_DIRECT_DISCORD_NO_REPLY_VISIBLE_FINAL_REPAIR`
-Current disposition: `TASK207_REPOSITORY_GREEN__WINDOWS_DISCORD_REQUALIFICATION_REQUIRED`
-Task ID: `CNX-20260901-207`
-Parent task: `CNX-20260901-206`
+Status: `READY_FOR_HERMES`
+Execution mode: `TASK208_TASK207_WINDOWS_DISCORD_VISIBLE_FINAL_REQUALIFICATION`
+Current disposition: `TASK207_REPOSITORY_PASS__TASK208_LIVE_REQUALIFICATION_READY`
+Task ID: `CNX-20260901-208`
+Parent task: `CNX-20260901-207`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
-Executor: ChatGPT / repository TDD after design approval
+Executor: Hermes / authenticated Windows operator
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -21,65 +21,70 @@ No Release/tag/asset mutation is authorized.
 
 ## Current repaired product candidate
 
-Repository-GREEN Task-207 candidate:
+Task-207 repository-GREEN candidate:
 
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-The installed/live candidate remains the pre-Task-207 candidate until the separate Windows requalification installs this exact candidate.
+Validated package proof:
 
-## Task 206 accepted result
+```text
+artifact ID: 9790881384
+artifact digest: sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34
+payload-v2: d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b
+zip SHA-256: 0321028fc6214e18dbc965ad79a6d04328a05a84dce6a9efc058fb1122237986
+```
 
-Task-206 report:
-
-`reports/CNX-20260901-206-task205-discord-native-delivery-hook-forensics.md`
+## Task 207 accepted result
 
 Review:
 
-`reviews/CNX-20260901-206-task205-discord-native-delivery-hook-forensics-review.md`
+`reviews/CNX-20260901-207-task206-direct-discord-no-reply-visible-final-repair-review.md`
 
-Accepted run-bound facts:
+Accepted disposition:
 
-- Task-205 final assistant text was exact bare `NO_REPLY`;
-- no messaging-tool send occurred;
-- OpenClaw recorded no queued reply payloads for the final Discord channel turn;
-- no native Discord message ID or success/failure receipt was retained;
-- the direct Ticket reached response readiness but later timed out without delivery confirmation.
+`PASS_REPOSITORY__WINDOWS_REQUALIFICATION_REQUIRED`
 
-The observed `reply_dispatch` missing-correlation diagnostic cannot be bound to the Task-205 run because that observer entry precedes the session start. It is therefore retained as a separate integration risk rather than used as the Task-205 production root cause.
+Independent review confirmed:
 
-## Proven root cause
+- RED test commit `7b53a0eadfd640c92f77e48d2d02a162362dcf86` is test-only;
+- implementation `27fe0181...` follows one commit later and changes only `v091-dashboard-verified-delivery.ts`;
+- exact run/session/direct-Ticket/numeric Discord fences are present;
+- Task-191 Dashboard semantics are preserved;
+- no delivery-correlation/lifecycle/schema/provider/release change occurred;
+- Validate `33483589170`, Windows Installer Pack Smoke `33483589124`, and PS5.1 Acceptance Smoke `33483589138` are exact-head `completed/success`;
+- package-proof artifact is exact-head and retained.
 
-Task 191 already protects genuine direct Dashboard Tickets from terminating as bare OpenClaw `NO_REPLY` by requesting one bounded same-run revision in `before_agent_finalize`.
+Evidence note: the test-only RED SHA has no remote Actions run; RED was recorded locally and is independently deterministic from commit/source ordering. This does not alter candidate identity or GREEN acceptance.
 
-That guard is scoped through `dashboardTicket(path, runId)`. A genuine direct Discord owner Ticket does not enter the guard, so Task 205 allowed the small local model's bare `NO_REPLY` to reach OpenClaw silent suppression and produced no channel payload.
+## Active Task 208
 
-## Task 207 design
+Hermes must execute:
 
-Task definition:
+`tasks/CNX-20260901-208-task207-windows-discord-visible-final-requalification.md`
 
-`tasks/CNX-20260901-207-direct-discord-no-reply-visible-final-repair.md`
+Execution order:
 
-Bounded design:
+1. fresh read-only host/runtime/provenance baseline;
+2. adjudicate the historical Task-205 pending direct-recovery row before any mutation;
+3. if the old recovery can still emit delayed Discord output, STOP without install or Send;
+4. otherwise perform exactly one supported install-over of exact `27fe0181...` using the retained validated package proof;
+5. prove terminal installer exit using a standalone explicit `powershell.exe ... -File install.ps1` child process and bounded polling;
+6. prove installed exact provenance + managed/startup/plugin/Gateway/Ollama/delivery/recovery/SQLite health;
+7. prove exact Discord channel ID `1531199905673252946`;
+8. issue one fresh `CNX208-*` nonce and consume exactly one human Send;
+9. prove visible-final semantics, allowing at most one same-run finalization revision if the first natural final is bare `NO_REPLY`;
+10. prove one native visible Discord reply and then durable `delivery_confirmed -> completed`.
 
-1. add focused RED for an accepted direct Discord owner Ticket whose final is bare `NO_REPLY`;
-2. require exact run ID + exact owner session + accepted direct/non-workflow Ticket + canonical Discord channel session shape;
-3. return one bounded same-run finalization revision only for exact bare `NO_REPLY` / `no_reply`;
-4. do not synthesize the user answer;
-5. preserve Dashboard Task-191 staging/marker/settlement semantics unchanged;
-6. do not modify `reply_dispatch` or `message_sent` correlation in Task 207;
-7. GREEN through focused/full plugin tests, Validate matrix, Windows installer pack smoke and PS5.1 smoke;
-8. only after repository GREEN open a separate one-send Windows/Discord requalification.
+If a visible Discord reply occurs but durable settlement does not, stop as `FAIL_VISIBLE_REPLY_UNSETTLED__CORRELATION_DEFECT_CONFIRMED`; do not repair correlation in the live task.
 
 ## Discord budget
 
-Repository Task 207 authorizes:
+Task-208 human Send budget:
 
-`0 Discord sends`
+`0 / 1 consumed; 1 / 1 available`
 
-A new live semantic budget may be allocated only in the separate post-GREEN requalification task.
+No probe/API/bot/injected/second Send is authorized.
 
 ## Hard fence
 
-Until implementation approval: no production/test source mutation.
-
-For Task 207 after approval: no Discord Send, no lifecycle mutation, no live SQLite lock, no provider/model/config/schema change, no installer/uninstall/reset/reinstall, no Release/tag mutation, no force push, and no delivery-correlation production change.
+No reset/uninstall/fresh reinstall, no installer retry, no provider/model/config/schema/manual-SQLite mutation, no source/test/workflow edit, no Release/tag mutation, no force push, and no reply-dispatch/message-sent repair during Task 208.
