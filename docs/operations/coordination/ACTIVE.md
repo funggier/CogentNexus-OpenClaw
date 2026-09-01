@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK212_TASK211_NORMAL_UPGRADE_RECOVERY_INSTALL_OVER`
-Current disposition: `TASK211_ACCEPTED__NORMAL_UPGRADE_RECOVERY_BOUNDARY_PROVEN`
-Task ID: `CNX-20260901-212`
-Parent task: `CNX-20260901-211`
+Execution mode: `TASK213_TASK212_INSTALLER_SOURCE_AND_DETACHED_LAUNCH_ROOT_CAUSE_ADJUDICATION`
+Current disposition: `TASK212_TERMINAL_BLOCK_ACCEPTED__SOURCE_AND_HARNESS_ROOT_CAUSE_REQUIRED`
+Task ID: `CNX-20260901-213`
+Parent task: `CNX-20260901-212`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
@@ -29,63 +29,70 @@ Candidate plugin fingerprint:
 
 `d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
 
-Validated package proof remains artifact `9790881384`, digest `sha256:1733897690890f9adcb12176b79db2b43e27799a4022743c4597fad44d2d5a34`.
+Known old live generation remains:
 
-## Task 211 reviewed result
+`f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`
 
-Report:
+## Task 212 reviewed result
 
-`reports/CNX-20260901-211-task210-interrupted-rollover-reentry-adjudication.md`
+Task-212 report:
 
-Review:
+`reports/CNX-20260901-212-task211-normal-upgrade-recovery-install-over.md`
 
-`reviews/CNX-20260901-211-task210-interrupted-rollover-reentry-adjudication-review.md`
+Task-212 review:
+
+`reviews/CNX-20260901-212-task211-normal-upgrade-recovery-install-over-review.md`
 
 Accepted review disposition:
 
-`ACCEPT_CLASSIFICATION__NORMAL_UPGRADE_RECOVERY_BOUNDARY_PROVEN__FRESH_INSTALL_OVER_AUTHORIZATION_REQUIRED`
+`ACCEPT_BLOCKED_INSTALLER_TERMINAL__LAUNCH_SOURCE_AND_HARNESS_ROOT_CAUSE_REQUIRED`
 
-Accepted facts:
+Accepted Task-212 facts:
 
-- Task-210 did not install the Task-207 candidate plugin generation;
-- live plugin fingerprint remains the pre-Task-210 generation `f82674172a3946e00ddcb3a94fd14c8476bf91abc11ed7d44b5fa53acb74eaf1`;
-- candidate fingerprint is `d0677581...`;
-- live product registration remains canonical id/version/root but disabled;
-- controller remains PASSTHROUGH and startup adapter absent;
-- exact candidate classifier returns `mode=upgrade`, `pendingRollover=false`, `pluginAlreadyExact=false`, `replacementPluginPath=null`, `legacy=[]`;
-- no Task-210 candidate-bound rollover transaction was persisted;
-- Task-205 cancelled recovery remains inert; SQLite is healthy;
-- no current installer/lifecycle process remains.
+- preflight remained the ordinary upgrade boundary;
+- one recorded PowerShell PID `21836` was launched;
+- PID disappeared before the first ~30-second sample;
+- installer stdout/stderr remained 0 bytes;
+- no stage marker, success line, failure line, or exit code was retained;
+- live fingerprint remained old `f826...`;
+- controller remained PASSTHROUGH, startup absent, Gateway healthy, SQLite integrity `ok`;
+- Task-205 cancellation remained inert;
+- no installer retry/lifecycle workaround/Discord Send occurred.
 
-This is not the supported already-exact interrupted-reentry shape. It is accepted as a recoverable ordinary same-version upgrade boundary where the old generation remains intact and the candidate replacement never became active.
+Independent review identified an additional source-authority gap: the command recorded by Task 212 executed
 
-## Active Task 212
+`C:/Users/CDQ-P/AppData/Local/Temp/cnx-successor-204-authority-20260901T/scripts/install.ps1`
+
+rather than a path visibly rooted in the Task-212 verified Task-207 extraction. The report proved Task-207 package identity separately but did not bind the source tree containing the executed installer to `27fe0181...`.
+
+The detached launcher itself is also unproven because Task-212 did not retain an immediate OS identity tuple proving PID/executable/command-line and its 0-byte/rapid-exit shape differs materially from known-good Task-170 behavior.
+
+## Active Task 213
 
 Hermes must execute:
 
-`tasks/CNX-20260901-212-task211-normal-upgrade-recovery-install-over.md`
+`tasks/CNX-20260901-213-task212-installer-source-and-detached-launch-root-cause-adjudication.md`
 
-Task 212 must:
+Task 213 is diagnostic/read-only with one harmless synthetic process-launch test.
 
-1. fresh-check authority and exact Task-207 package provenance;
-2. re-prove the exact normal-upgrade preflight shape from Task 211;
-3. launch exactly one newly authorized candidate installer process;
-4. launch it detached from the observer so the executor can return immediately with exact PID/creation identity;
-5. poll only that exact PID and retained stdout/stderr in separate bounded probes;
-6. never restart or kill the installer merely because an observer call times out;
-7. allow at least 20 minutes from start because historical successful install-over took ~819 seconds and rollover-prepare ~430–434 seconds;
-8. require natural process termination, all seven stage START/COMPLETE pairs exit 0, and final success line;
-9. prove installed fingerprint exactly `d0677581...`, plugin enabled/loaded, ownership coherent, OpenClaw pin preserved, and managed runtime/startup/Gateway/Ollama/delivery/recovery/SQLite health;
-10. publish Task-212 report and stop for review.
+It must:
 
-No Discord Send is authorized in Task 212.
+1. preserve current product/runtime state read-only;
+2. identify the exact source tree behind the Task-212 executed installer path by hashes, metadata/Git identity where available, exact candidate-tool plugin fingerprint, and Task-207 repair-file byte comparison;
+3. inspect/hash the retained Task-212 `launch-installer.py` and `monitor-installer.py` and report exact Popen/creationflags/std-handle/cwd/env behavior;
+4. reproduce the same launcher mechanics with a harmless PowerShell child that writes deterministic stdout/stderr, sleeps >=60s, and exits with known code — no product script or product path access;
+5. capture OS PID + creation time + executable + full argv immediately and during the harmless run;
+6. compare material launch mechanics with known-good Task-170 evidence where provable;
+7. classify source-boundary and/or launcher-harness root cause and publish report.
+
+No CogentNexus installer or lifecycle command is authorized.
 
 ## Discord budget
 
-Task 212 authorizes `0 Discord Sends`.
+Task 213 authorizes `0 Discord Sends`.
 
-Task-207 semantic acceptance remains deferred until recovered install convergence is independently reviewed PASS.
+Task-207 semantic acceptance remains closed until installation/provenance/managed convergence is proven.
 
 ## Hard fence
 
-Exactly one Task-212 installer launch maximum. No compensating `enable/disable/start/stop/restart/reset/uninstall`, no manual plugin/ownership/transaction/SQLite mutation, no provider/model substitution, no OpenClaw upgrade, no source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
+No installer, no install-over, no enable/disable/start/stop/restart/reset/uninstall, no OpenClaw plugin mutation, no ownership/transaction/backup normalization, no manual SQLite mutation, no Gateway restart, no provider/model/config mutation, no product source/test/workflow edit, no Release/tag mutation, no force push, and no Discord traffic.
