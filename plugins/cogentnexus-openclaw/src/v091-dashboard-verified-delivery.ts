@@ -110,6 +110,21 @@ function dashboardTicket(path: string, runId: string): DashboardTicket | undefin
   } finally { db.close(); }
 }
 
+function isDiscordOwnerSession(sessionKey: string) {
+  return /^agent:[^:]+:discord:channel:\d+$/u.test(sessionKey);
+}
+
+function discordOwnerTicket(path: string, runId: string, sessionKey: string): DashboardTicket | undefined {
+  if (!isDiscordOwnerSession(sessionKey)) return undefined;
+  const db = openDb(path, true);
+  try {
+    return db.prepare(`SELECT ticket_id,run_id,owner_session_key,response_ready_at FROM tickets
+      WHERE run_id=? AND owner_session_key=? AND status='accepted'
+        AND workflow_eligible=0 AND workflow_id IS NULL
+      ORDER BY created_at DESC LIMIT 1`).get(runId, sessionKey) as DashboardTicket | undefined;
+  } finally { db.close(); }
+}
+
 function dashboardTicketForSession(path: string, sessionKey: string): DashboardTicket | undefined {
   const db = openDb(path, true);
   try {
@@ -437,14 +452,20 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const sessionKey = typeof event?.sessionKey === "string" ? event.sessionKey : typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
     const candidateMessage = event?.lastAssistantMessage;
     const text = typeof candidateMessage === "string" ? candidateMessage.trim() : messageText(candidateMessage).trim();
-    if (!runId || !sessionKey || !text || !dashboardTicket(path, runId)) return;
+    if (!runId || !sessionKey || !text) return;
+    const dashboard = dashboardTicket(path, runId);
+    const discord = discordOwnerTicket(path, runId, sessionKey);
+    if (!dashboard && !discord) return;
     if (isBareSilentReply(text)) {
+      const isDiscord = Boolean(discord);
       return {
         action: "revise",
-        reason: "direct Dashboard request produced a silent sentinel",
+        reason: isDiscord ? "direct Discord request produced a silent sentinel" : "direct Dashboard request produced a silent sentinel",
         retry: {
-          instruction: "This is a genuine direct Dashboard user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn.",
-          idempotencyKey: `cnxclaw-dashboard-visible-final:${runId}`,
+          instruction: isDiscord
+            ? "This is a genuine direct Discord user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn."
+            : "This is a genuine direct Dashboard user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn.",
+          idempotencyKey: `cnxclaw-${isDiscord ? "discord" : "dashboard"}-visible-final:${runId}`,
           maxAttempts: 1,
         },
       };
