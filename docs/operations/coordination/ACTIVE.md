@@ -1,14 +1,14 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK222_STATIC_PAYLOAD_BYTE_GUARD_AND_CANDIDATE_REQUALIFICATION`
-Current disposition: `TASK221_ACCEPTED__TWO_STAGE_CARRYOVER_PROVEN__FAIL_CLOSED_STATIC_BYTE_GUARD_REQUIRED`
-Task ID: `CNX-20260901-222`
-Parent task: `CNX-20260901-221`
+Execution mode: `TASK223_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK222_ACCEPTED__PACKAGE_IDENTITY_EQUAL__WINDOWS_INSTALLER_REQUALIFICATION_AUTHORIZED`
+Task ID: `CNX-20260902-223`
+Parent task: `CNX-20260901-222`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-01 ICT
-Executor: Hermes / repository engineer + authenticated Windows verifier
+Updated: 2026-09-02 ICT
+Executor: Hermes / authenticated Windows operator
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -19,63 +19,77 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Accepted generated-output repair
+## Accepted installer candidate
 
-Task 219 genuine RED and bounded generated-output repair remain accepted evidence:
+Exact source candidate:
 
-- LF/CRLF real plugin build: 188 generated files each;
-- pre-fix differing generated files: 43;
-- bounded `dist` canonicalizer lineage: `9af329b4de7c02fda35b467d84e76bb0f0bb0944`;
-- post-repair `dist` differences: 0;
-- fingerprint algorithm unchanged.
+`a812f27815b3c87b7ca748dc2dea88f987601f70`
 
-## Task-221 accepted result
+Accepted package identity:
 
-Report:
+```text
+artifact ID: 9810139538
+artifact digest: sha256:3164b7770e7d8991691d7bbedced092866c208add72b0c03b4aa3d39d1b50ff0
+payload files: 192
+payload fingerprint: e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
+tar.gz: 88f1c81d5c68da11e7420388a215bf8b72c55a30e7924f24cf6a83b8912a7494
+zip: 011aaff51462c47440d973a348b938b12a3c2aadcbbe436acf5d54d9f2ad003d
+```
 
-`reports/CNX-20260901-221-task220-exact-first-checkout-control-adjudication.md`
+Exact candidate CI:
 
-Review:
+```text
+Validate 33532084137: success
+Windows Installer Pack Smoke 33532084225: success
+PS5.1 Acceptance Smoke 33532084092: success
+```
 
-`reviews/CNX-20260901-221-task220-exact-first-checkout-control-adjudication-review.md`
+Task-222 report:
+
+`reports/CNX-20260901-222-static-payload-byte-guard-and-candidate-requalification.md`
+
+Task-222 review:
+
+`reviews/CNX-20260901-222-static-payload-byte-guard-and-candidate-requalification-review.md`
 
 Accepted disposition:
 
-`ACCEPT_PASS_TWO_STAGE_ATTRIBUTE_CARRYOVER_ROOT_CAUSE_PROVEN__FAIL_CLOSED_STATIC_BYTE_GUARD_REQUIRED`
+`ACCEPT_PASS_STATIC_BYTE_GUARD__CI_WINDOWS_PAYLOAD_IDENTITY_EQUAL__WINDOWS_INSTALLER_REQUALIFICATION_AUTHORIZED`
 
 Accepted facts:
 
-- exact `4e31dbd79cd4c0a7eb161888c14221f0ae03bcc0` static Git objects are LF-only;
-- exact-first materialization yields LF-only static bytes under inherited/default `core.autocrlf=true`, explicit true, and explicit false;
-- the historical CRLF mismatch is reproduced only by two-stage materialization: newer branch working tree first, then detach to older target whose static blobs are unchanged but attributes differ;
-- direct `core.autocrlf=true` alone is not the root cause;
-- current branch still carries the unaccepted `b081d55c4ffa5fcb03931dc320d39bdcf92a6cf5` `-text` experiment;
-- merely relying on checkout discipline is insufficient as a fail-closed package provenance control.
+- genuine fail-open RED commit `31d8383d3340cda1e175045da7f554f102d44fc9` proved static CRLF contamination previously passed package validation;
+- final candidate restores guarded package paths to `text eol=lf` and rejects noncanonical static bytes without rewriting them;
+- Task-219 generated-`dist` canonicalization remains bounded/generated-only;
+- byte-exact fingerprint semantics remain unchanged;
+- fresh Windows exact-first build and CI both produced 192 files, zero byte differences, and exact fingerprint `e3bcce04...`;
+- tracked Windows status remained clean;
+- no live runtime mutation occurred during Task 222.
 
-## Active Task 222
+## Active Task 223
 
 Hermes must execute:
 
-`tasks/CNX-20260901-222-static-payload-byte-guard-and-candidate-requalification.md`
+`tasks/CNX-20260902-223-task222-exact-candidate-windows-install-over-requalification.md`
 
-Required flow:
+Required high-level boundary:
 
-1. fresh authority/product-drift check;
-2. test-only RED proving current package validation accepts deliberately CRLF-contaminated static package bytes;
-3. commit RED separately;
-4. restore the four `.gitattributes` entries to `text eol=lf` by forward commit, preserving history;
-5. minimally make package validation reject CRLF/noncanonical bytes in the four static package identity files without rewriting them;
-6. prove contaminated two-stage-style input fails closed before package identity/packing;
-7. full repository/build/plugin validation;
-8. establish one exact final candidate SHA;
-9. authoritative CI on that exact SHA and retain its new package proof;
-10. fresh Windows exact-first materialization of that same candidate, build/validate, then require 192-file path equality, zero byte differences, exact CI/Windows fingerprint equality, and clean tracked status;
-11. report and stop.
+1. fresh preflight and prove Task-205 recovery remains inert;
+2. materialize exact candidate before first working-tree checkout; never materialize branch HEAD then detach backward;
+3. reprove exact candidate fingerprint `e3bcce04...` and clean package validation;
+4. register one uniquely named temporary Scheduled Task using the direct PowerShell topology qualified by Task 215;
+5. configure at least 30 minutes execution time, one-shot/no retry;
+6. invoke candidate `scripts/install.ps1` exactly once;
+7. observe without interrupting until terminal Task Scheduler evidence;
+8. require installer success/complete stage evidence and `LastTaskResult=0` or proven equivalent;
+9. clean only the temporary Task-223 task;
+10. prove installed fingerprint/source exact candidate and healthy controller/startup/Gateway/Ollama/delivery/recovery/SQLite state;
+11. report and stop for independent review.
 
-Task 222 is repository/package provenance only. A PASS does not itself authorize installer execution; independent review is required first.
+Do not use the failed detached `Popen` topology from Tasks 212–213.
 
 ## Runtime / Discord boundary
 
-Task 222 authorizes `0 Discord Sends`.
+Task 223 authorizes exactly one installer invocation and `0 Discord Sends`.
 
-No installer/install-over, lifecycle action, live OpenClaw plugin/config mutation, Gateway restart, live SQLite/ownership/transaction mutation, provider/model substitution, Release/tag mutation, or force push is authorized.
+No installer retry, reset/uninstall/fresh reinstall, manual lifecycle repair, manual Gateway restart, manual live plugin/config/SQLite mutation, provider/model substitution, unrelated process kill, source/product edit, Release/tag mutation, or force push is authorized.
