@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-**State:** `AWAITING_IMPLEMENTATION_APPROVAL`  
+**State:** `READY_FOR_WINDOWS_REQUALIFICATION`  
 **Execution mode:** `TASK207_DIRECT_DISCORD_NO_REPLY_VISIBLE_FINAL_REPAIR`  
 **Updated:** 2026-09-01 ICT  
 **Transport:** GitHub repository / bounded TDD after design approval  
@@ -9,7 +9,7 @@
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK206_REVIEWED__TASK207_DESIGN_READY`
+**Disposition:** `TASK207_REPOSITORY_GREEN__WINDOWS_DISCORD_REQUALIFICATION_REQUIRED`
 
 ## Publication and product authority
 
@@ -17,11 +17,11 @@ Published `v0.9.3` remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Current repaired candidate remains:
+Current repaired candidate is the Task-207 repository-GREEN implementation commit:
 
-`9f4eaa429b2540540e7d6f6c2af99067960e45fb`
+`27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
-No post-Task-198 product mutation has occurred yet for Task 207.
+The published `v0.9.3` tag remains immutable. No live install-over or Windows/Discord requalification has occurred.
 
 ## Task 206 review
 
@@ -47,7 +47,7 @@ Planned TDD:
 
 ## Current gate
 
-Implementation is intentionally paused at the bounded-design gate. No test or production source has been changed for Task 207 yet.
+Repository TDD and exact-head CI/package validation are GREEN. The next gate is a separate bounded Windows/Discord one-send requalification task; Task 207 itself authorizes zero Discord sends.
 
 ## Hard fence
 

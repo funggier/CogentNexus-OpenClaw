@@ -1,8 +1,8 @@
 # Active Coordination Task
 
-Status: `AWAITING_IMPLEMENTATION_APPROVAL`
+Status: `READY_FOR_WINDOWS_REQUALIFICATION`
 Execution mode: `TASK207_DIRECT_DISCORD_NO_REPLY_VISIBLE_FINAL_REPAIR`
-Current disposition: `TASK206_ACCEPTED__DISCORD_NO_REPLY_SCOPE_GAP_PROVEN__TASK207_DESIGN_READY`
+Current disposition: `TASK207_REPOSITORY_GREEN__WINDOWS_DISCORD_REQUALIFICATION_REQUIRED`
 Task ID: `CNX-20260901-207`
 Parent task: `CNX-20260901-206`
 Repair parent: `CNX-20260831-198`
@@ -21,9 +21,11 @@ No Release/tag/asset mutation is authorized.
 
 ## Current repaired product candidate
 
-`9f4eaa429b2540540e7d6f6c2af99067960e45fb`
+Repository-GREEN Task-207 candidate:
 
-This remains the installed/live candidate until Task 207 produces a new repository-GREEN candidate.
+`27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
+
+The installed/live candidate remains the pre-Task-207 candidate until the separate Windows requalification installs this exact candidate.
 
 ## Task 206 accepted result
 
