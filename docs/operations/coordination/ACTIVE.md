@@ -1,14 +1,14 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK219_REAL_BOUNDARY_RED_AND_DIST_CANONICALIZATION_REPAIR`
-Current disposition: `TASK218_FAIL_RED_ACCEPTED__CROSS_PLATFORM_EQUALITY_PROVEN__BOUNDARY_REPAIR_REQUIRED`
-Task ID: `CNX-20260901-219`
-Parent task: `CNX-20260901-218`
+Execution mode: `TASK220_STATIC_PAYLOAD_CHECKOUT_BOUNDARY_ADJUDICATION`
+Current disposition: `TASK219_FAIL_ACCEPTED__DIST_REPAIR_PROVEN__STATIC_CHECKOUT_BOUNDARY_REQUIRED`
+Task ID: `CNX-20260901-220`
+Parent task: `CNX-20260901-219`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-01 ICT
-Executor: Hermes / repository engineer
+Executor: Hermes / authenticated Windows repository operator
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -19,76 +19,52 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Semantic repair base
-
-Task-207 semantic repair remains based at:
-
-`27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
-
-## Task-218 accepted result
+## Task-219 reviewed result
 
 Report:
 
-`reports/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair.md`
+`reports/CNX-20260901-219-task218-real-boundary-red-and-dist-canonicalization-repair.md`
 
-Independent review:
+Review:
 
-`reviews/CNX-20260901-218-task217-cross-platform-payload-determinism-tdd-repair-review.md`
+`reviews/CNX-20260901-219-task218-real-boundary-red-and-dist-canonicalization-repair-review.md`
 
 Accepted disposition:
 
-`ACCEPT_FAIL_RED_NOT_REPRODUCED__CROSS_PLATFORM_EQUALITY_PROVEN__BOUNDARY_REPAIR_REQUIRED`
+`ACCEPT_FAIL_CROSS_PLATFORM_DETERMINISM__DIST_REPAIR_PROVEN__STATIC_CHECKOUT_BOUNDARY_ADJUDICATION_REQUIRED`
 
-Experimental Task-218 candidate:
+Accepted facts:
 
-`e2dede9a0cb16b8b9536a350e018bfbd7c95c39b`
+- genuine real-boundary RED reproduced 43 LF/CRLF-generated `dist` differences;
+- bounded generated-`dist` canonicalizer commit `9af329b4de7c02fda35b467d84e76bb0f0bb0944` closes those `dist` differences locally;
+- local/full validation passed and canonicalizer second pass was idempotent;
+- final package mismatch remained outside `dist` in exactly three static payload files: `README.md`, `openclaw.plugin.json`, `scripts/bootstrap-ticket-db.mjs`;
+- Task-219 Windows evidence reported CRLF/dirty working-tree bytes for those files versus LF CI bytes;
+- repository-side inspection shows the reported static files at `4e31dbd...` expose LF object content while `.gitattributes` declares `text eol=lf`, creating an unresolved Git-object-to-working-tree boundary contradiction;
+- no live product/install/lifecycle/SQLite/Discord mutation occurred.
 
-Accepted experimental evidence:
-
-```text
-Validate 33521283353: success
-PS5.1 Acceptance Smoke 33521283398: success
-Windows Installer Pack Smoke 33521283517: success
-package-proof artifact: 9805795685
-artifact digest: sha256:241846ea60531ebd45f008cf52ff3ebf4689c6887076b5b9bd1f92863c43a5d5
-payload files: 192
-CI fingerprint: 18a9003b47347bd598e58bef54f453313df8032943f5436cb9ed9096fe4bea14
-fresh Windows fingerprint: 18a9003b47347bd598e58bef54f453313df8032943f5436cb9ed9096fe4bea14
-```
-
-The equality is real, but this candidate is not installer-authorized because:
-
-- the required genuine pre-fix RED was not reproduced;
-- the final helper broadened canonicalization from generated `dist` to tracked/static package files;
-- independent source review found no proven no-follow symlink/junction boundary despite the report claim.
-
-## Active Task 219
+## Active Task 220
 
 Hermes must execute:
 
-`tasks/CNX-20260901-219-task218-real-boundary-red-and-dist-canonicalization-repair.md`
+`tasks/CNX-20260901-220-task219-static-payload-checkout-boundary-adjudication.md`
 
-Task 219 must:
+Task 220 is diagnostic only. It must trace exact static bytes through:
 
-1. forward-revert only the unaccepted Task-218 production/build changes to restore effective pre-fix build behavior without rewriting history;
-2. trace at least one actual Task-217 differing `dist` file back to the real source/output mechanism;
-3. run a whole-real-source LF-vs-CRLF build probe;
-4. establish a genuine assertion RED caused by different generated installable bytes, not harness failure;
-5. commit corrected RED separately;
-6. implement minimal GREEN only at generated `dist`, with sorted no-follow traversal and indirection rejection;
-7. prove normal build does not dirty tracked files;
-8. run full validation and authoritative CI;
-9. establish a new candidate/package proof;
-10. fresh-build the exact new candidate on Windows and require zero payload-byte difference vs CI.
+1. Git object bytes;
+2. effective `.gitattributes`;
+3. Git config + origin;
+4. immediate fresh Windows checkout;
+5. `npm ci`;
+6. `npm run build`;
+7. `npm run plugin:validate`;
+8. controlled `core.autocrlf` variants;
+9. disposable `git add --renormalize` diagnostics.
 
-The byte-exact fingerprint algorithm must remain unchanged. Do not accept multiple fingerprints.
+No source fix is authorized until the first boundary that converts LF↔CRLF is proven.
 
 ## Runtime / Discord boundary
 
-Task 219 authorizes:
+Task 220 authorizes `0 Discord Sends`.
 
-`0 Discord Sends`
-
-No installer/install-over, lifecycle action, live plugin/config mutation, Gateway restart, live SQLite/ownership/transaction mutation, provider/model substitution, or Release/tag mutation is authorized.
-
-Only repository TDD/build/package work, isolated evidence builds, CI, and read-only live preservation checks are allowed.
+No installer/install-over, lifecycle action, live plugin/config mutation, Gateway restart, live SQLite/ownership/transaction mutation, provider/model substitution, Release/tag mutation, force push, or product/source edit is authorized. Isolated checkout/build diagnostics and report publication only.
