@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK214_DURABLE_WINDOWS_LAUNCHER_QUALIFICATION`  
+**Execution mode:** `TASK215_DIRECT_SCHEDULED_TASK_TERMINAL_PROPAGATION_QUALIFICATION`  
 **Updated:** 2026-09-01 ICT  
 **Transport:** GitHub repository + authenticated Windows harness qualification through Hermes  
-**Active task:** `CNX-20260901-214`  
-**Parent:** `CNX-20260901-213`  
+**Active task:** `CNX-20260901-215`  
+**Parent:** `CNX-20260901-214`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK213_DETACHED_LAUNCH_DEFECT_ACCEPTED__TASK214_DURABLE_LAUNCHER_READY`
+**Disposition:** `TASK214_SCHEDULED_LAUNCH_PARTIAL__TASK215_DIRECT_TERMINAL_QUALIFICATION_READY`
 
 ## Publication and product authority
 
@@ -25,44 +25,36 @@ Task-207 candidate plugin fingerprint:
 
 `d0677581d60d3d5535c65e3261dae6f50d7aeb245b8680adac0cace4c040643b`
 
-## Task 213 accepted boundary
+## Task 214 reviewed boundary
 
-Task-213 report disposition:
+Task-214 report disposition was `PASS_DURABLE_SCHEDULED_TASK_LAUNCH__TERMINAL_PROPAGATION_UNPROVEN`.
 
-`PASS_DETACHED_LAUNCH_HARNESS_DEFECT_PROVEN`
+Independent review narrows acceptance to:
 
-ChatGPT review disposition:
+`ACCEPT_PARTIAL__SCHEDULED_TASK_LAUNCH_PROVEN__TERMINAL_PROPAGATION_NOT_QUALIFIED`
 
-`ACCEPT_PASS_DETACHED_LAUNCH_HARNESS_DEFECT_PROVEN__QUALIFY_DURABLE_WINDOWS_LAUNCHER_BEFORE_INSTALLER`
+The temporary Scheduled Task successfully created a harmless PowerShell process and persisted `CHILD_START`, then was cleaned up exactly. But required terminal evidence was missing: no end marker, no child exit-code file, and Scheduler `LastTaskResult=1` rather than expected/equivalent 23. Product state remained unchanged and healthy at its preserved PASSTHROUGH boundary.
 
-The harmful uncertainty from Task 212 is now localized to the launcher/observer boundary, not CogentNexus product code.
-
-A harmless PowerShell child launched with the exact Task-212 detached `Popen` mechanics disappeared before 10 seconds with zero-byte stdout/stderr despite an intended >=65-second lifetime and known exit code. This reproduces Task-212 behavior without touching product paths.
-
-Live CogentNexus state remains preserved on the old generation: PASSTHROUGH, startup absent, plugin fingerprint `f826...`, Gateway healthy, delivery/recovery READY, SQLite integrity `ok`, and Task-205 recovery cancelled/inert.
-
-## Active Task 214
+## Active Task 215
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260901-214-task213-durable-windows-launcher-qualification.md`
+`docs/operations/coordination/tasks/CNX-20260901-215-task214-direct-scheduled-task-terminal-propagation-qualification.md`
 
-Task 214 must qualify a **temporary uniquely named Windows Scheduled Task** with a harmless PowerShell child only.
+Task 215 removes the wrapper/nested-child boundary entirely. One temporary Scheduled Task runs one harmless PowerShell script directly. The script itself persists start/identity evidence, periodic heartbeat evidence through the intended >=65-second lifetime, terminal marker, `intended-exit-code.txt=23`, then exits 23.
 
-Required outcome for PASS:
+PASS requires:
 
-- task registered/read back exactly;
-- task started exactly once;
-- child OS identity captured immediately and during execution;
-- child alive beyond 10 seconds and reaches intended >=65-second lifetime;
-- stdout/stderr start and terminal markers persist;
-- child exit code `23` is persisted;
-- Scheduled Task reaches terminal state with `LastTaskResult` reconciled to `23`;
-- exact temporary task is unregistered afterward;
-- no harness process/task residue;
-- no CogentNexus/OpenClaw product or semantic state changes.
+- exactly one task start;
+- direct process/task alive beyond 10 seconds and heartbeat through >=55 seconds;
+- `DIRECT_START` and `DIRECT_END` persisted;
+- intended exit-code file equals 23;
+- terminal Scheduler state proven;
+- `LastTaskResult=23` or exactly proven equivalent representation;
+- exact temporary task cleanup;
+- no CogentNexus/OpenClaw/SQLite/Discord product-state mutation.
 
-Task 214 does not authorize the CogentNexus installer. Installer requalification requires a separate successor after independent review of Task 214 PASS.
+No CogentNexus installer is authorized in Task 215. Installer qualification/install-over requires a later successor only after independent Task-215 PASS review.
 
 ## Discord budget
 
@@ -70,4 +62,4 @@ Task 214 does not authorize the CogentNexus installer. Installer requalification
 
 ## Hard fence
 
-No installer/install-over, no lifecycle command, no OpenClaw plugin mutation, no Gateway restart, no ownership/staging/transaction/backup edits, no SQLite writes, no provider/model/config mutation, no product source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
+No installer/install-over, no lifecycle command, no OpenClaw plugin/config mutation, no Gateway restart, no ownership/staging/transaction/backup edits, no SQLite writes, no provider/model/config mutation, no product source/test/workflow mutation, no Release/tag mutation, no force push, and no Discord traffic.
