@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ./scripts/canonicalize-dist.mjs --dist-root ./dist",
     "plugin:build": "npm run build && node ./scripts/verify-v091-schema.mjs",
     "plugin:validate": "npm run plugin:build && node ./scripts/test-ticket-db-bootstrap.mjs && node ./scripts/verify-package-contents.mjs",
     "ticket-db:bootstrap": "node ./scripts/bootstrap-ticket-db.mjs",
