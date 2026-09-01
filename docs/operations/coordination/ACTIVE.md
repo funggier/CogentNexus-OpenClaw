@@ -23,10 +23,6 @@ No Release/tag/asset mutation is authorized.
 
 Exact source commit:
 
-`27fe0181b3b65d555a3a0266ad38746e0e6ed2e31`
-
-Correction / authoritative Task-207 source commit:
-
 `27fe0181b3b65d555a3b0cc8354f6f7945c21c0b`
 
 Accepted Ubuntu CI payload fingerprint:
