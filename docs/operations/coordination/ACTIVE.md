@@ -1,15 +1,14 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK230_SCHEDULER_IDENTITY_RECOVERY_BOUNDED_RETRY_INSTALLER_REENTRY`
-Current disposition: `TASK229_FAIL_CLOSED_PRODUCT_PRESERVED__TOOLING_RETRY_SUCCESSOR_REQUIRED`
-Task ID: `CNX-20260902-230`
-Parent task: `CNX-20260902-229`
+Execution mode: `TASK231_POST_REPAIR_MANAGED_SEMANTIC_DURABLE_DELIVERY_REQUALIFICATION`
+Current disposition: `TASK230_ACCEPTED_PASS__ONE_TURN_SEMANTIC_DURABLE_REQUALIFICATION_AUTHORIZED`
+Task ID: `CNX-20260903-231`
+Parent task: `CNX-20260902-230`
 Repair parent: `CNX-20260902-226`
-Failure parent: `CNX-20260902-223`
-Forensic parents: `CNX-20260902-224`, `CNX-20260902-227`, `CNX-20260902-228`, `CNX-20260902-229`
+Failure lineage: `CNX-20260902-223`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-02 ICT
+Updated: 2026-09-03 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / final reviewer: ChatGPT
 
@@ -21,7 +20,7 @@ Public `v0.9.3` remains immutable at:
 
 No Release/tag/asset mutation is authorized.
 
-## Accepted source authority
+## Accepted source/runtime authority
 
 Exact repaired source remains:
 
@@ -31,98 +30,106 @@ Accepted plugin payload fingerprint:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Task-229 report:
+Task-230 report:
 
-`reports/CNX-20260902-229-already-exact-windows-installer-reentry-completion.md`
+`reports/CNX-20260902-230-scheduler-identity-recovery-bounded-retry-installer-reentry.md`
 
-Task-229 independent review:
+Task-230 independent review:
 
-`reviews/CNX-20260902-229-already-exact-windows-installer-reentry-completion-review.md`
+`reviews/CNX-20260902-230-scheduler-identity-recovery-bounded-retry-installer-reentry-review.md`
 
-Review verdict:
+Accepted disposition:
 
-`REJECT_COMPLIANCE__ACCEPT_FAIL_CLOSED_PRODUCT_PRESERVATION__BOUNDED_TOOLING_RETRY_SUCCESSOR_REQUIRED`
+`ACCEPT_PASS_ALREADY_EXACT_INSTALLER_REENTRY__MANAGED_CONVERGENCE_PROVEN__RETRY_POLICY_EFFECTIVE__REPORTING_GAP_NONBLOCKING`
 
-Task 229 never invoked the installer and preserved product/live state, but its report records multiple scheduler registration attempts despite the old task requiring stop after the first registration failure. Task 230 explicitly authorizes bounded tooling retries so adaptation is finite, auditable and in-contract.
+Accepted parent live baseline after Task 230:
 
-## Active Task 230
+```text
+controller mode: managed
+generation: 38
+startup policy: enabled
+startup adapter: installed / Ready / LastTaskResult=0
+provider: ollama
+Gateway: healthy
+Delivery: READY, pending=0
+Recovery: READY
+SQLite integrity_check: ok
+```
+
+Fresh Task-231 evidence is authoritative; generation 38 is the parent baseline, not a value to force.
+
+## Active Task 231
 
 Execute:
 
-`tasks/CNX-20260902-230-scheduler-identity-recovery-bounded-retry-installer-reentry.md`
+`tasks/CNX-20260903-231-post-repair-managed-semantic-durable-delivery-requalification.md`
 
-Task 230 must first re-prove the already-exact gate:
+Task 231 authorizes exactly one human Dashboard semantic submission:
 
-```text
-mode=upgrade
-pendingRollover=false
-pluginAlreadyExact=true
-installPlugin=false
-rolloverPlugin=false
-```
+`ช่วยสรุปงานที่ฉันควรโฟกัสวันนี้จาก context ล่าสุด และบอกเหตุผลสั้น ๆ`
 
-Then reconstruct the canonical current Windows scheduler identity from live `WindowsIdentity.Name`, SID, `whoami /user`, and retained Task-215 task XML/readback if available.
-
-A harmless direct Scheduled Task canary must qualify the principal/logon topology before any installer task is started.
-
-## Bounded tooling retry trial
-
-Retries are allowed only before installer start and only for harness/tooling/registration/observer failures.
-
-Key budgets:
+Required acceptance lineage:
 
 ```text
-read-only probe/observer retries: up to 2 additional attempts per logical observation
-harmless canary registration attempts: max 4 total
-installer-task registration attempts before start: max 2 total
-installer task starts: exactly 1 maximum
-installer invocations: exactly 1 maximum
-installer retries after start: 0
+one Dashboard human submission
+-> one Ticket
+-> one session/run
+-> one Ollama call
+-> one durable delivery
+-> one logical Dashboard assistant result
 ```
 
-Every tooling retry must change a material hypothesis/method, prove task cleanup/absence as applicable, and be recorded in an attempt ledger with method, identity form, error/HRESULT, cleanup result, remaining budget and rationale for the next method.
+## Semantic retry boundary
 
-Once the installer task starts or an installer process is observed:
+Dashboard human submissions:
 
-`INSTALLER_RETRY_GATE=CLOSED`
+`1 maximum`
 
-It cannot reopen during Task 230.
+Once the submission is accepted or any new semantic lineage is observed:
+
+`SEMANTIC_RETRY_GATE=CLOSED`
+
+It cannot reopen during Task 231. Observer/tool failures are never permission to send the message again.
+
+Read-only tooling/observer retries remain bounded to up to 2 additional evidence-driven attempts per logical observation and must be reported in an attempt ledger with an explicit retry-policy classification.
+
+## Discord/effect boundary
+
+Direct operator Discord/API Sends:
+
+`0`
+
+Product/runtime semantic delivery/effect budget for the one Task-231 test lineage:
+
+`exactly 1 logical delivery/effect maximum`
+
+No direct API Send may be used to manufacture/repair the acceptance result.
 
 ## Historical evidence boundary
 
-Task-223 transaction, matching inventory, ownership manifest and backup remain immutable forensic evidence. They must not be finalized, edited, moved, renamed, deleted, archived, replaced or reused.
+Task-223 transaction, matching inventory, ownership manifest and backup remain immutable forensic evidence. No finalization, cleanup, edit, move, rename, delete, archive, replace or reuse is authorized.
 
-## Runtime / Discord boundary
+## Other hard fences
 
-Task 230 does not permit:
+Task 231 does not permit:
 
-- second installer start/invocation;
-- installer retry after start;
-- skip/link installer override flags;
-- manual plugin/rollover actions;
+- second Dashboard submission or semantic retry;
+- installer/reset/uninstall/reinstall;
+- manual Ticket/outbox/recovery/SQLite writes;
 - manual cnxclaw/Gateway lifecycle repair;
-- stale-evidence cleanup/finalization;
-- manual SQLite write;
-- process termination;
+- manual plugin actions;
+- recovery replay/resend;
 - provider/model substitution;
+- process termination;
+- stale-evidence cleanup/finalization;
+- product/source/test/workflow edits;
 - Release/tag/asset mutation;
-- product/source/test/workflow edit;
-- force push/history rewrite;
-- Discord Send/API semantic traffic.
-
-Discord budget: `0 Sends`.
+- force push/history rewrite.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260902-230-scheduler-identity-recovery-bounded-retry-installer-reentry.md`
+`reports/CNX-20260903-231-post-repair-managed-semantic-durable-delivery-requalification.md`
 
-The report must include the complete retry/attempt ledger and classify retry usefulness as one of:
-
-- `RETRY_POLICY_EFFECTIVE`
-- `RETRY_POLICY_NOT_NEEDED`
-- `RETRY_POLICY_EXHAUSTED_WITHOUT_RECOVERY`
-- `RETRY_POLICY_STOPPED_BY_PRODUCT_BOUNDARY`
-
-Then stop for independent ChatGPT review before any semantic/durable-delivery acceptance, stale-evidence cleanup or additional live mutation.
+Then stop for independent ChatGPT review before any further semantic turn, stale-evidence cleanup, lifecycle mutation or publication action.
