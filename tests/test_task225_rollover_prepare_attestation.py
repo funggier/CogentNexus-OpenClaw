@@ -2,6 +2,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 
 SCRIPT = Path(__file__).parents[1] / "skills" / "cogentnexus-openclaw" / "scripts" / "namespace_ownership.py"
 SPEC = importlib.util.spec_from_file_location("task225_ownership", SCRIPT)
@@ -64,7 +66,7 @@ def _owned_direct_layout(tmp_path: Path) -> dict[str, Path]:
     }
 
 
-def test_prepare_never_returns_internally_inconsistent_tree_attestations_when_nonpayload_source_changes_after_copy(
+def test_prepare_fails_closed_when_nonpayload_source_changes_after_backup_copy(
     tmp_path: Path, monkeypatch
 ):
     paths = _owned_direct_layout(tmp_path)
@@ -90,21 +92,11 @@ def test_prepare_never_returns_internally_inconsistent_tree_attestations_when_no
 
     monkeypatch.setattr(ownership.shutil, "copytree", copy_then_change_source)
 
-    transaction = ownership.prepare_plugin_rollover_transaction(
-        root=paths["state_root"],
-        workspace=paths["workspace"],
-        application_data=paths["app_data"],
-        expected_replacement_fingerprint=expected,
-        backup_token="task225-attestation-race",
-    )
-
-    backup = Path(transaction["backupPath"])
-    source_payload = ownership._plugin_payload(paths["direct"])
-    backup_payload = ownership._plugin_payload(backup)
-    assert source_payload is not None and backup_payload is not None
-    assert source_payload["fingerprint"] == backup_payload["fingerprint"]
-
-    # A successful prepare transaction must be self-consistent with the
-    # finalizer contract; otherwise prepare has authorized an unfinalizable
-    # transaction before the installer performs any replacement mutation.
-    assert transaction["retiredProjectTreeSha256"] == transaction["backupProjectTreeSha256"]
+    with pytest.raises(RuntimeError, match="project-tree attestation mismatch"):
+        ownership.prepare_plugin_rollover_transaction(
+            root=paths["state_root"],
+            workspace=paths["workspace"],
+            application_data=paths["app_data"],
+            expected_replacement_fingerprint=expected,
+            backup_token="task226-attestation-race",
+        )
