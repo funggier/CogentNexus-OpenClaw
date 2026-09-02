@@ -1,15 +1,15 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK224_ROLLOVER_FINALIZE_RETAINED_STATE_ADJUDICATION`  
+**Execution mode:** `TASK225_ROLLOVER_PREPARE_ATTESTATION_PRODUCER_ROOT_CAUSE`  
 **Updated:** 2026-09-02 ICT  
 **Transport:** GitHub repository + authenticated read-only Windows retained-state evidence through Hermes  
-**Active task:** `CNX-20260902-224`  
-**Parent:** `CNX-20260902-223`  
+**Active task:** `CNX-20260902-225`  
+**Parent:** `CNX-20260902-224`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK223_INSTALLER_TERMINAL_FAILURE_ACCEPTED__TASK224_FINALIZE_FORENSICS_READY`
+**Disposition:** `TASK224_ACCEPTED__TASK225_PRODUCER_ROOT_CAUSE_READY`
 
 ## Publication and candidate authority
 
@@ -21,56 +21,55 @@ Exact accepted candidate remains:
 
 `a812f27815b3c87b7ca748dc2dea88f987601f70`
 
-Exact accepted payload fingerprint:
+Exact accepted payload fingerprint remains:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Task 222 package provenance remains accepted and unchanged.
+## Task 224 accepted boundary
 
-## Task 223 accepted boundary
+Task-224 report disposition:
 
-Task-223 report disposition:
-
-`FAIL_INSTALLER_TERMINAL`
+`PASS_FINALIZE_ROOT_CAUSE_PROVEN__STATE_EVIDENCE_REPAIR_REQUIRED`
 
 Independent review disposition:
 
-`ACCEPT_FAIL_INSTALLER_TERMINAL__ROLLOVER_FINALIZE_ROOT_CAUSE_ADJUDICATION_REQUIRED`
+`ACCEPT_PASS_FINALIZE_ROOT_CAUSE_PROVEN__TRANSACTION_INCONSISTENCY_PRODUCER_ADJUDICATION_REQUIRED`
 
-Task 223 established:
+Accepted first failing finalizer predicate:
 
-- one exact-candidate installer invocation through the qualified direct Scheduled Task topology;
-- installer stages through plugin installation and post-install disable completed successfully;
-- installed canonical plugin fingerprint equals exact candidate `e3bcce04...`;
-- `plugin-rollover-finalize` failed exit 1;
-- Scheduled Task terminal `LastTaskResult=1` agrees with installer failure;
-- no final installation-success marker;
-- unresolved rollover transaction retained in install staging;
-- no retry or ad-hoc live repair;
-- zero Discord Sends;
-- preserved post-failure PASSTHROUGH/Gateway/Ollama/Delivery/Recovery/SQLite health.
+```text
+backup_tree == backupProjectTreeSha256   PASS
+backup_tree == retiredProjectTreeSha256  FAIL
+```
 
-The exact Python predicate responsible for the finalizer failure is not established by the Task-223 report. The generic PowerShell message is shared by multiple possible fail-closed conditions.
+Accepted retained values:
 
-## Active Task 224
+```text
+backup tree:               7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
+backupProjectTreeSha256:   7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
+retiredProjectTreeSha256:  ca74a262293d49b058fce6221db2fa5311214cde567ebb331ff845670c5a2cab
+```
+
+The candidate finalizer is safety-correct to fail closed for that transaction. Task 224 does not prove why `rollover-prepare` produced inconsistent source/backup full-tree attestations.
+
+## Active Task 225
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication.md`
+`docs/operations/coordination/tasks/CNX-20260902-225-rollover-prepare-attestation-producer-root-cause.md`
 
 Required outcome:
 
-- recover the retained specific Python error if available;
-- read and hash exact transaction/inventory/manifest/backup/plugin evidence;
-- reconstruct finalizer predicates in candidate source order without invoking the mutating finalizer;
-- identify the first exact failing predicate and expected/observed values;
-- distinguish historical Task-143/144 defects from any new state/inventory shape;
-- classify source defect vs transaction/inventory/manifest/backup/storage/write-verify evidence failure;
-- repeat preservation checks and publish report;
-- stop for independent review.
+- trace exact prepare/copy/hash/serialization ordering;
+- compare project-tree and payload-fingerprint boundaries;
+- inspect retained backup and Task-223 timing evidence;
+- perform isolated offline single-hypothesis reproduction only;
+- classify supported concurrent mutation vs unsupported mutation vs non-atomic attestation defect vs tree/copy semantic mismatch;
+- add a genuine deterministic RED only if a source defect is sufficiently proven;
+- publish report and stop for independent review.
 
 ## Runtime / Discord boundary
 
 `0 Discord Sends`.
 
-Task 224 permits no installer, rollover prepare/finalize, cnxclaw lifecycle, OpenClaw plugin mutation, Gateway restart, ownership/transaction/backup/SQLite write, provider/model substitution, process termination, product/source edit, Release/tag mutation, or force push.
+Task 225 permits no installer retry, live rollover prepare/finalize, lifecycle command, OpenClaw plugin mutation, Gateway restart, ownership/transaction/backup/SQLite write, provider/model substitution, process termination, Release/tag mutation, or force push.
