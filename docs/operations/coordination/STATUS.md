@@ -1,79 +1,76 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK223_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
+**Execution mode:** `TASK224_ROLLOVER_FINALIZE_RETAINED_STATE_ADJUDICATION`  
 **Updated:** 2026-09-02 ICT  
-**Transport:** GitHub repository + authenticated Windows install evidence through Hermes  
-**Active task:** `CNX-20260902-223`  
-**Parent:** `CNX-20260901-222`  
+**Transport:** GitHub repository + authenticated read-only Windows retained-state evidence through Hermes  
+**Active task:** `CNX-20260902-224`  
+**Parent:** `CNX-20260902-223`  
 **Repair parent:** `CNX-20260831-198`  
 **Parent umbrella:** `CNX-20260831-188`  
 **Completed publication:** `CNX-20260831-197`  
-**Disposition:** `TASK222_PACKAGE_PROVENANCE_ACCEPTED__TASK223_WINDOWS_INSTALL_OVER_READY`
+**Disposition:** `TASK223_INSTALLER_TERMINAL_FAILURE_ACCEPTED__TASK224_FINALIZE_FORENSICS_READY`
 
-## Publication authority
+## Publication and candidate authority
 
 Published public `v0.9.3` remains untouched at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-## Task 222 accepted boundary
-
-Task-222 report disposition:
-
-`PASS_STATIC_BYTE_GUARD__CI_WINDOWS_PAYLOAD_IDENTITY_EQUAL`
-
-Independent review disposition:
-
-`ACCEPT_PASS_STATIC_BYTE_GUARD__CI_WINDOWS_PAYLOAD_IDENTITY_EQUAL__WINDOWS_INSTALLER_REQUALIFICATION_AUTHORIZED`
-
-Exact installer candidate:
+Exact accepted candidate remains:
 
 `a812f27815b3c87b7ca748dc2dea88f987601f70`
 
-Exact accepted package proof:
+Exact accepted payload fingerprint:
 
-```text
-artifact 9810139538
-digest sha256:3164b7770e7d8991691d7bbedced092866c208add72b0c03b4aa3d39d1b50ff0
-file count 192
-fingerprint e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
-```
+`e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Exact candidate CI:
+Task 222 package provenance remains accepted and unchanged.
 
-```text
-Validate 33532084137 success
-Windows Installer Pack Smoke 33532084225 success
-PS5.1 Acceptance Smoke 33532084092 success
-```
+## Task 223 accepted boundary
 
-Task 222 independently closes the prior cross-platform package identity blocker: fresh Windows exact-first materialization and authoritative CI had the same 192 payload paths, zero byte differences, exact same fingerprint, and clean tracked state.
+Task-223 report disposition:
 
-## Active Task 223
+`FAIL_INSTALLER_TERMINAL`
+
+Independent review disposition:
+
+`ACCEPT_FAIL_INSTALLER_TERMINAL__ROLLOVER_FINALIZE_ROOT_CAUSE_ADJUDICATION_REQUIRED`
+
+Task 223 established:
+
+- one exact-candidate installer invocation through the qualified direct Scheduled Task topology;
+- installer stages through plugin installation and post-install disable completed successfully;
+- installed canonical plugin fingerprint equals exact candidate `e3bcce04...`;
+- `plugin-rollover-finalize` failed exit 1;
+- Scheduled Task terminal `LastTaskResult=1` agrees with installer failure;
+- no final installation-success marker;
+- unresolved rollover transaction retained in install staging;
+- no retry or ad-hoc live repair;
+- zero Discord Sends;
+- preserved post-failure PASSTHROUGH/Gateway/Ollama/Delivery/Recovery/SQLite health.
+
+The exact Python predicate responsible for the finalizer failure is not established by the Task-223 report. The generic PowerShell message is shared by multiple possible fail-closed conditions.
+
+## Active Task 224
 
 Hermes must execute:
 
-`docs/operations/coordination/tasks/CNX-20260902-223-task222-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication.md`
 
-Key execution rules:
+Required outcome:
 
-- fresh exact-first candidate source materialization only;
-- reprove candidate package identity before installer;
-- use the direct Scheduled Task PowerShell terminal topology qualified by Task 215;
-- never use the failed detached Popen launcher;
-- one unique temporary Task-223 Scheduled Task;
-- at least 30-minute execution limit;
-- exactly one installer invocation and no retry;
-- passive observation until terminal evidence;
-- installed fingerprint/source must bind exactly to `a812f278...` / `e3bcce04...`;
-- post-install controller/startup/Gateway/Ollama/delivery/recovery/SQLite health must be coherent;
-- stop after report for independent review.
+- recover the retained specific Python error if available;
+- read and hash exact transaction/inventory/manifest/backup/plugin evidence;
+- reconstruct finalizer predicates in candidate source order without invoking the mutating finalizer;
+- identify the first exact failing predicate and expected/observed values;
+- distinguish historical Task-143/144 defects from any new state/inventory shape;
+- classify source defect vs transaction/inventory/manifest/backup/storage/write-verify evidence failure;
+- repeat preservation checks and publish report;
+- stop for independent review.
 
-If Task 223 passes independent review, a later successor may authorize the final bounded one-Send Discord semantic/durable-delivery requalification.
-
-## Discord / mutation boundary
+## Runtime / Discord boundary
 
 `0 Discord Sends`.
 
-No installer retry, reset/uninstall/fresh reinstall, manual lifecycle repair, manual Gateway restart, manual plugin/config/SQLite write, provider/model substitution, unrelated process termination, product/source edit, Release/tag mutation, or force push is authorized.
+Task 224 permits no installer, rollover prepare/finalize, cnxclaw lifecycle, OpenClaw plugin mutation, Gateway restart, ownership/transaction/backup/SQLite write, provider/model substitution, process termination, product/source edit, Release/tag mutation, or force push.
