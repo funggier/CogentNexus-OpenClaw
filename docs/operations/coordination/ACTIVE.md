@@ -1,13 +1,13 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK227_TASK223_ALREADY_EXACT_REENTRY_ADJUDICATION`
-Current disposition: `TASK226_ACCEPTED__ALREADY_EXACT_REENTRY_REQUALIFICATION_REQUIRED`
-Task ID: `CNX-20260902-227`
-Parent task: `CNX-20260902-226`
+Execution mode: `TASK228_RETAINED_INVENTORY_PROVENANCE_RECONCILIATION`
+Current disposition: `TASK227_ACCEPTED_BLOCK__PROVENANCE_RECONCILIATION_REQUIRED`
+Task ID: `CNX-20260902-228`
+Parent task: `CNX-20260902-227`
+Repair parent: `CNX-20260902-226`
 Failure parent: `CNX-20260902-223`
 Forensic parent: `CNX-20260902-224`
-Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-02 ICT
 Executor: Hermes / authenticated Windows forensic operator
@@ -27,29 +27,25 @@ Task-226 accepted production repair:
 
 `9a8510f1317c8e53c01c233b080ec20357cd22df`
 
-Accepted plugin payload fingerprint remains:
+Accepted plugin payload fingerprint:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Task-226 report:
+## Task-227 accepted result
 
-`reports/CNX-20260902-226-rollover-prepare-attestation-fail-closed-repair.md`
+Task-227 report:
 
-Task-226 independent review:
+`reports/CNX-20260902-227-task223-already-exact-reentry-adjudication.md`
 
-`reviews/CNX-20260902-226-rollover-prepare-attestation-fail-closed-repair-review.md`
+Independent review:
+
+`reviews/CNX-20260902-227-task223-already-exact-reentry-adjudication-review.md`
 
 Accepted disposition:
 
-`ACCEPT_PASS_REPAIR_GREEN__ALREADY_EXACT_REENTRY_REQUALIFICATION_REQUIRED`
+`ACCEPT_BLOCKED_STALE_EVIDENCE_DRIFT__PROVENANCE_RECONCILIATION_REQUIRED`
 
-## Active Task 227
-
-Execute:
-
-`tasks/CNX-20260902-227-task223-already-exact-reentry-adjudication.md`
-
-Task 227 is read-only Windows/source adjudication. It must prove whether the preserved Task-223 partial state now follows the supported already-exact upgrade path:
+Task 227 re-proved the supported already-exact diagnostic path:
 
 ```text
 mode=upgrade
@@ -59,31 +55,39 @@ installPlugin=false
 rolloverPlugin=false
 ```
 
-The retained Task-223 transaction is obsolete producer-defect evidence and must not be finalized, edited, deleted, moved, or reused.
+but did not authorize installer re-entry because the matching retained Task-223 inventory file was observed present after Task 224 had recorded it absent.
+
+## Active Task 228
+
+Execute:
+
+`tasks/CNX-20260902-228-retained-inventory-provenance-reconciliation.md`
+
+Task 228 is read-only provenance reconciliation. It must determine whether the matching retained inventory is:
+
+- a historical Task-223 artifact;
+- a post-Task223 mutation/restore;
+- or provenance-unresolved.
+
+The observed inventory LastWriteTime equals the historical Task-223 `plugin-rollover-finalize` stage-start instant, but timestamp correlation alone is not authority. Task 228 must inspect metadata, copied contents, Task-223 stage evidence, and the retained Task-224 absence probe before classification.
 
 ## Runtime / Discord boundary
 
-Task 227 authorizes:
+Task 228 authorizes read-only GitHub/source/Windows/evidence inspection, external evidence copies under `%LOCALAPPDATA%\Temp`, pure helper calculations, and coordination report publication.
 
-- fresh GitHub/Actions/source reads;
-- read-only Windows state inspection;
-- read-only retained transaction/backup hashing;
-- read-only `classify-install` with explicit inventory/source fingerprint;
-- pure production action-resolver execution;
-- external evidence capture under `%LOCALAPPDATA%\Temp`;
-- coordination report publication.
-
-Task 227 does **not** authorize:
+Task 228 does **not** authorize:
 
 - installer invocation;
+- stale transaction/inventory/backup cleanup or mutation;
 - rollover prepare/finalize;
-- plugin/config/ownership/transaction/backup mutation;
+- plugin/config/ownership mutation;
 - cnxclaw lifecycle action;
 - Gateway restart;
 - SQLite write;
 - process termination;
 - provider/model substitution;
 - Release/tag/asset mutation;
+- product/source/test/workflow edits;
 - force push/history rewrite;
 - Discord Send/API semantic traffic.
 
@@ -93,6 +97,6 @@ Discord budget: `0 Sends`.
 
 Hermes must publish:
 
-`reports/CNX-20260902-227-task223-already-exact-reentry-adjudication.md`
+`reports/CNX-20260902-228-retained-inventory-provenance-reconciliation.md`
 
-Then stop for independent ChatGPT review before any installer retry.
+Then stop for independent ChatGPT review before any cleanup or installer retry.
