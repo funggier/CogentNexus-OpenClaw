@@ -1,0 +1,63 @@
+name: Task226 Precise Source Repair
+
+on:
+  push:
+    branches:
+      - agent/v0.9.3-full-stabilization
+    paths:
+      - .github/workflows/task226-precise-source-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: agent/v0.9.3-full-stabilization
+          fetch-depth: 0
+      - name: Restore exact source baseline and apply bounded Task 226 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout d8700ff82ba81ba12ba631f76be02d10a297dd9b -- skills/cogentnexus-openclaw/scripts/namespace_ownership.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("skills/cogentnexus-openclaw/scripts/namespace_ownership.py")
+          text = path.read_text(encoding="utf-8")
+          old = '''    backup_path.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copytree(retired_project, backup_path)
+              return {
+          '''.replace("          ", "")
+          new = '''    backup_path.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copytree(retired_project, backup_path)
+              retired_project_tree_sha256 = _project_tree_sha256(retired_project)
+              backup_project_tree_sha256 = _project_tree_sha256(backup_path)
+              if retired_project_tree_sha256 != backup_project_tree_sha256:
+                  raise RuntimeError("pre-install backup project-tree attestation mismatch")
+              return {
+          '''.replace("          ", "")
+          if text.count(old) != 1:
+              raise SystemExit(f"prepare block match count was {text.count(old)}, expected 1")
+          text = text.replace(old, new, 1)
+          old_fields = '''        "retiredProjectTreeSha256": _project_tree_sha256(retired_project),
+                  "backupProjectTreeSha256": _project_tree_sha256(backup_path),
+          '''.replace("          ", "")
+          new_fields = '''        "retiredProjectTreeSha256": retired_project_tree_sha256,
+                  "backupProjectTreeSha256": backup_project_tree_sha256,
+          '''.replace("          ", "")
+          if text.count(old_fields) != 1:
+              raise SystemExit(f"transaction field match count was {text.count(old_fields)}, expected 1")
+          path.write_text(text.replace(old_fields, new_fields, 1), encoding="utf-8")
+          PY
+          git diff --check
+          git diff -- skills/cogentnexus-openclaw/scripts/namespace_ownership.py
+          rm .github/workflows/task226-precise-source-repair.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add skills/cogentnexus-openclaw/scripts/namespace_ownership.py .github/workflows/task226-precise-source-repair.yml
+          git commit -m "fix: apply minimal rollover attestation gate"
+          git push origin HEAD:agent/v0.9.3-full-stabilization
