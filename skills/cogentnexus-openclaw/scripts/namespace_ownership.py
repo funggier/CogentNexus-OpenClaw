@@ -90,7 +90,6 @@ def manifest_path(root: Path) -> Path:
     return root / MANIFEST_NAME
 
 
-# --- Fresh-install transaction/recovery contract (CNX-20260825-067 D2) ---
 TRANSACTION_NAME = "install-transaction.json"
 _TRANSACTION_FIELDS = {
     "schemaVersion", "transactionId", "productId", "installedVersion",
@@ -117,13 +116,6 @@ def _transaction_roots(workspace: Path) -> dict[str, Path]:
 
 
 def begin_fresh_transaction(workspace: Path, *, app_data: Path | None = None) -> dict[str, Any]:
-    """Write the incomplete-installation marker BEFORE any residue-capable mutation.
-
-    CNX-20260826-069: ``app_data`` is authoritative when provided. The marker
-    binds the exact application-data root the installer will use, so record/
-    rollback/recovery validate against it rather than an environment-derived
-    path. The root is recorded for deletion ONLY if it does not preexist.
-    """
     paths = expected_paths(workspace)
     roots = _transaction_roots(workspace)
     if app_data is not None:
@@ -152,8 +144,6 @@ def begin_fresh_transaction(workspace: Path, *, app_data: Path | None = None) ->
     if application_data_preexisting is not None:
         payload["applicationDataPreexisting"] = bool(application_data_preexisting)
     else:
-        # no explicit --app-data: the default root is authoritative and its
-        # preexistence is proven here so the marker schema stays exact.
         payload["applicationDataPreexisting"] = Path(payload["applicationData"]).exists()
     marker = transaction_path(state_root)
     if not marker.exists():
@@ -173,15 +163,12 @@ def load_transaction_marker(workspace: Path) -> dict[str, Any] | None:
 
 
 def _validate_application_data_root(app_data: Path) -> None:
-    """CNX-20260826-069 B2: only the exact canonical product application-data
-    root is a valid transaction boundary — never its parent or siblings."""
     if app_data.name.lower() != DISPLAY_NAME.lower():
         raise RuntimeError(
             f"application-data root must be exactly the {DISPLAY_NAME} product root: {app_data}")
 
 
 def _marker_roots(workspace: Path, payload: dict[str, Any] | None = None) -> dict[str, Path]:
-    """Transaction roots bound by the marker's authoritative application-data."""
     roots = _transaction_roots(workspace)
     if payload and isinstance(payload.get("applicationData"), str):
         roots["applicationData"] = Path(payload["applicationData"]).resolve(strict=False)
@@ -189,13 +176,6 @@ def _marker_roots(workspace: Path, payload: dict[str, Any] | None = None) -> dic
 
 
 def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[str, Path]:
-    """Fail closed unless the marker exactly matches the canonical CNX boundary.
-
-    CNX-20260826-069 B2: the exact application-data product root recorded at
-    begin time is authoritative for this marker (custom isolated test roots
-    included) instead of an environment-derived path, and is allowed inside
-    ``createdPaths`` as a first-class deletion boundary.
-    """
     if set(payload) != _TRANSACTION_FIELDS:
         raise RuntimeError("install transaction marker schema fields are not exact; refusing recovery")
     if payload.get("schemaVersion") != _TRANSACTION_SCHEMA_VERSION:
@@ -224,17 +204,12 @@ def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[
     allowed = {_canonical(roots[key]) for key in ("stateRoot", "skillPath")}
     launchers = expected_paths(workspace)["launchers"]
     allowed.update(_canonical(launcher) for launcher in launchers)
-    # CNX-20260826-069 B2: the exact application-data root participates as a
-    # transaction-owned boundary ONLY when this attempt proved it absent.
     if not payload["applicationDataPreexisting"]:
         allowed.add(_canonical(application_data))
     local_app_data = application_data.parent
     for item in created:
         candidate = Path(item)
         within_owned = any(_contained(candidate, Path(boundary)) for boundary in allowed)
-        # descendants of the exact product application-data root are permitted
-        # only when that root itself was transaction-created; the root's
-        # parent (%LOCALAPPDATA% or any custom parent) is never deletable.
         within_app_data = (
             not payload["applicationDataPreexisting"]
             and _contained(candidate, application_data)
@@ -246,11 +221,6 @@ def _validate_marker_boundary(workspace: Path, payload: dict[str, Any]) -> dict[
 
 
 def record_transaction_path(workspace: Path, path: Path, *, app_data: Path | None = None) -> None:
-    """Record a created path in the active marker so rollback stays bounded.
-
-    CNX-20260826-069 F5: unsafe paths are rejected AT RECORD TIME with the
-    marker left unchanged — never deferred to a later failing deletion.
-    """
     payload = load_transaction_marker(workspace)
     if payload is None or payload.get("state") != "incomplete":
         return
@@ -282,7 +252,6 @@ def record_transaction_path(workspace: Path, path: Path, *, app_data: Path | Non
 
 
 def commit_transaction(workspace: Path) -> None:
-    """After full ownership exists and verifies, retire the marker."""
     state_root = expected_paths(workspace)["stateRoot"]
     marker = transaction_path(state_root)
     payload = load_transaction_marker(workspace)
@@ -295,7 +264,6 @@ def commit_transaction(workspace: Path) -> None:
 
 def rollback_transaction(workspace: Path, *, archive: bool = True,
                          app_data: Path | None = None) -> dict[str, Any]:
-    """Bounded rollback of only marker-recorded paths after a caught failure."""
     payload = load_transaction_marker(workspace)
     if payload is None:
         raise RuntimeError("no install transaction marker; nothing to roll back")
@@ -305,7 +273,6 @@ def rollback_transaction(workspace: Path, *, archive: bool = True,
     roots = _validate_marker_boundary(workspace, payload)
     removed: list[str] = []
     errors: list[str] = []
-    # deepest-first so children are removed before their parents
     for item in sorted(payload["createdPaths"], key=lambda value: len(Path(value).parts), reverse=True):
         candidate = Path(item)
         try:
@@ -317,9 +284,6 @@ def rollback_transaction(workspace: Path, *, archive: bool = True,
             removed.append(item)
         except OSError as error:
             errors.append(f"{item}: {error}")
-    # CNX-20260826-068 (P5/D2c): deletion authority stops at the exact owned
-    # roots. Shared parents such as <workspace>\\skills are NEVER removed,
-    # even when empty.
     marker = transaction_path(roots["stateRoot"])
     result = {"status": "ROLLED_BACK", "removed": removed, "errors": errors}
     if errors:
@@ -335,11 +299,6 @@ def rollback_transaction(workspace: Path, *, archive: bool = True,
 
 
 def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict[str, Any]:
-    """Rerun-installer preflight: detect and recover an incomplete fresh transaction.
-
-    Fail-closed: without a valid incomplete marker, unowned partial residue is
-    never adopted or deleted.
-    """
     payload = load_transaction_marker(workspace)
     paths = expected_paths(workspace)
     inventory = current_inventory(
@@ -347,12 +306,8 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
             Path(payload["applicationData"]) if payload and isinstance(payload.get("applicationData"), str)
             else None))
     if manifest_path(paths["stateRoot"]).exists():
-        # coherent installed state: a committed/retired marker authorizes nothing
         return {"status": "OWNERSHIP_PRESENT", "inventory": inventory}
     if payload is None:
-        # CNX-20260826-073 R1/R2: distinguish a truly clean markerless fresh
-        # state (a successful preflight outcome) from unmarked partial residue
-        # (fail-closed). Neither is adopted, deleted, or mutated here.
         if not inventory["new"]:
             return {"status": "CLEAN_FRESH", "inventory": inventory}
         raise RuntimeError(
@@ -361,18 +316,14 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
         )
     _validate_marker_boundary(workspace, payload)
     if not inventory["new"]:
-        # marker exists but nothing was created yet: still coherent fresh
         return {"status": "RECOVERED_FRESH", "inventory": inventory}
     rollback_transaction(workspace, archive=False)
-    # remove the owned boundary dirs themselves if the bounded rollback left them empty
     roots = _marker_roots(workspace, payload)
-    # CNX-20260826-068 (P5/D2c): exact-root boundary. Owned roots that are now
-    # empty may be removed themselves, but never their shared parents.
     for key in ("skillPath", "stateRoot", "applicationData"):
         boundary = roots[key]
         try:
             if key == "applicationData":
-                continue  # application-data parent chain is never walked upward
+                continue
             if boundary.is_dir() and not any(boundary.iterdir()):
                 boundary.rmdir()
         except OSError:
@@ -381,7 +332,6 @@ def recovery_preflight(workspace: Path, *, app_data: Path | None = None) -> dict
 
 
 def _filesystem_metadata(path: Path, relative: str):
-    """Read non-following metadata and reject every filesystem indirection."""
     try:
         metadata = path.lstat()
     except OSError as error:
@@ -399,11 +349,9 @@ def _filesystem_metadata(path: Path, relative: str):
 
 
 def _package_payload_files(root: Path, package: dict[str, Any]) -> list[tuple[str, Path]]:
-    """Enumerate the exact safe regular files owned by npm's package contract."""
     declared = package.get("files")
     if not isinstance(declared, list) or not declared or any(not isinstance(item, str) for item in declared):
         raise RuntimeError("plugin package.json.files must be a non-empty list of strings")
-
     root = root.resolve(strict=False)
     result: dict[str, Path] = {}
 
@@ -503,7 +451,6 @@ def _json_sha256(value: Any) -> str:
 
 
 def _managed_wrapper_proof(project: Path) -> dict[str, Any]:
-    """Prove the exact OpenClaw-managed npm project wrapper for this product."""
     project_name = project.name
     generation_prefix = f"{PLUGIN_PACKAGE}__openclaw-generation__"
     if project_name != PLUGIN_PACKAGE and not (
@@ -558,7 +505,7 @@ def _managed_wrapper_proof(project: Path) -> dict[str, Any]:
     if lock_dependencies != dependencies or not isinstance(installed, dict) \
             or installed.get("version") != INSTALLED_VERSION:
         raise RuntimeError(f"managed npm wrapper ownership lockfile does not bind the exact package/version: {project}")
-    proof = {
+    return {
         "projectName": project_name,
         "dependencySpec": dependency_spec,
         "managedPeerDependencies": sorted(managed_peers),
@@ -566,11 +513,9 @@ def _managed_wrapper_proof(project: Path) -> dict[str, Any]:
         "packageJsonSha256": _sha256_file(package_path),
         "packageLockSha256": _sha256_file(lock_path),
     }
-    return proof
 
 
 def _wrapper_identifies_product(project: Path) -> bool:
-    """Detect possible product evidence for inventory; never authorizes mutation."""
     package_path = project / "package.json"
     try:
         package = json.loads(package_path.read_text(encoding="utf-8"))
@@ -581,7 +526,6 @@ def _wrapper_identifies_product(project: Path) -> bool:
 
 
 def _project_tree_sha256(root: Path) -> str:
-    """Hash an exact tree without following symlinks or Windows junctions."""
     entries: list[dict[str, Any]] = []
 
     def visit(directory: Path) -> None:
@@ -615,7 +559,6 @@ def _project_tree_sha256(root: Path) -> str:
 
 
 def product_plugin_inventory(openclaw_state: Path) -> dict[str, Path]:
-    """Inventory product evidence without treating unrelated npm projects as ours."""
     items: dict[str, Path] = {}
     direct = openclaw_state / "extensions" / PRODUCT_ID
     if direct.exists():
@@ -773,7 +716,6 @@ def _npm_project_for_plugin(plugin_path: Path, openclaw_state: Path) -> Path:
 
 
 def _retired_storage_root(plugin_path: Path, openclaw_state: Path) -> Path:
-    """Return the owned generation root for direct or managed plugin storage."""
     direct_root = Path(os.path.abspath(str(openclaw_state / "extensions" / PRODUCT_ID)))
     lexical_plugin = Path(os.path.abspath(str(plugin_path)))
     if lexical_plugin == direct_root:
@@ -878,7 +820,6 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
                                         application_data: Path,
                                         expected_replacement_fingerprint: str,
                                         backup_token: str) -> dict[str, Any]:
-    """Prove and snapshot the owned generation before OpenClaw mutates it."""
     root = root.resolve(strict=False)
     workspace = workspace.resolve(strict=False)
     application_data = application_data.resolve(strict=False)
@@ -903,6 +844,10 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         raise RuntimeError("rollover backup destination is invalid or already exists")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(retired_project, backup_path)
+    retired_project_tree_sha256 = _project_tree_sha256(retired_project)
+    backup_project_tree_sha256 = _project_tree_sha256(backup_path)
+    if retired_project_tree_sha256 != backup_project_tree_sha256:
+        raise RuntimeError("pre-install backup project-tree attestation mismatch")
     return {
         "schemaVersion": 1,
         "operation": "cogentnexus-openclaw-plugin-generation-rollover-transaction",
@@ -913,8 +858,8 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         "retiredProjectRoot": _canonical(retired_project),
         "backupPath": _canonical(backup_path),
         "retiredFingerprint": retired_payload["fingerprint"],
-        "retiredProjectTreeSha256": _project_tree_sha256(retired_project),
-        "backupProjectTreeSha256": _project_tree_sha256(backup_path),
+        "retiredProjectTreeSha256": retired_project_tree_sha256,
+        "backupProjectTreeSha256": backup_project_tree_sha256,
         "manifestBefore": manifest,
         "manifestBeforeSha256": _sha256_file(manifest_path(root)),
         "expectedReplacementFingerprint": expected_replacement_fingerprint.lower(),
@@ -924,7 +869,6 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
 
 def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
                                          plugin_inventory: dict[str, Any]) -> dict[str, Any]:
-    """Prove the post-install replacement, then commit ownership atomically."""
     root = Path(transaction["stateRoot"]).resolve(strict=False)
     workspace = Path(transaction["workspace"]).resolve(strict=False)
     openclaw_state = Path(transaction["openclawState"]).resolve(strict=False)
@@ -937,7 +881,6 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         raise RuntimeError("rollover transaction fingerprint attestation is invalid")
     if replacement["fingerprint"].lower() != expected.lower():
         raise RuntimeError("replacement payload does not match the expected source attestation")
-
     manifest_target = manifest_path(root)
     if _sha256_file(manifest_target) != transaction["manifestBeforeSha256"]:
         raise RuntimeError("ownership manifest changed during rollover transaction")
@@ -947,7 +890,6 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         raise RuntimeError("pre-install owned-generation backup proof failed")
     if backup_tree != transaction["retiredProjectTreeSha256"]:
         raise RuntimeError("pre-install backup no longer matches the retired generation")
-
     direct_root = Path(os.path.abspath(str(openclaw_state / "extensions" / PRODUCT_ID)))
     direct_key = os.path.normcase(os.path.abspath(str(direct_root)))
     retired_plugin_key = os.path.normcase(os.path.abspath(str(transaction["retiredPluginPath"])))
@@ -963,7 +905,6 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         and retired_project_key == direct_key
         and manifest_plugin_key == direct_key
     )
-
     registration_root = replacement["record"].get("rootDir")
     registration_key = (
         os.path.normcase(os.path.abspath(str(registration_root)))
@@ -976,7 +917,6 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("direct same-path replacement root must remain a real directory")
         if _canonical(direct_root) != transaction["retiredPluginPath"]:
             raise RuntimeError("direct same-path replacement root identity changed during rollover")
-
     same_path = _canonical(replacement["root"]) == transaction["retiredPluginPath"]
     if same_path:
         if not direct_transaction:
@@ -991,7 +931,6 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             product_evidence["directPlugin"]
         ) != transaction["retiredPluginPath"]:
             raise RuntimeError("direct same-path rollover has conflicting product storage evidence")
-
     manifest_after = dict(transaction["manifestBefore"])
     manifest_after["pluginPath"] = _canonical(replacement["root"])
     manifest_after["installedAt"] = datetime.now(timezone.utc).isoformat()
@@ -1277,7 +1216,6 @@ def _classify_interrupted_rollover_reentry(
         )
     active_root = Path(active["root"])
     direct_root = (paths["openclawState"] / "extensions" / PRODUCT_ID).resolve(strict=False)
-    allowed_product_evidence: set[str]
     if _canonical(active_root) == _canonical(direct_root):
         allowed_product_evidence = {"directPlugin"}
     else:
