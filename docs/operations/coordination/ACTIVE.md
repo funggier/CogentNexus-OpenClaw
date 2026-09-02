@@ -1,14 +1,14 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `TASK225_ROLLOVER_PREPARE_ATTESTATION_PRODUCER_ROOT_CAUSE`
-Current disposition: `TASK224_ACCEPTED__TRANSACTION_INCONSISTENCY_PRODUCER_ADJUDICATION_REQUIRED`
-Task ID: `CNX-20260902-225`
-Parent task: `CNX-20260902-224`
+Status: `IN_PROGRESS`
+Execution mode: `TASK226_ROLLOVER_PREPARE_ATTESTATION_FAIL_CLOSED_REPAIR`
+Current disposition: `TASK225_ACCEPTED__BOUNDED_TDD_REPAIR_AUTHORIZED`
+Task ID: `CNX-20260902-226`
+Parent task: `CNX-20260902-225`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-02 ICT
-Executor: Hermes / authenticated Windows forensic operator
+Executor: ChatGPT repository repair
 Coordinator / final reviewer: ChatGPT
 
 ## Published authority
@@ -21,7 +21,7 @@ No Release/tag/asset mutation is authorized.
 
 ## Accepted candidate authority
 
-Exact source candidate remains:
+Repair baseline source candidate remains:
 
 `a812f27815b3c87b7ca748dc2dea88f987601f70`
 
@@ -29,57 +29,47 @@ Accepted payload fingerprint remains:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-## Task-224 reviewed result
+## Task-225 accepted result
 
 Report:
 
-`reports/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication.md`
+`reports/CNX-20260902-225-rollover-prepare-attestation-producer-root-cause.md`
 
 Independent review:
 
-`reviews/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication-review.md`
+`reviews/CNX-20260902-225-rollover-prepare-attestation-producer-root-cause-review.md`
 
-Accepted review disposition:
+Accepted root cause:
 
-`ACCEPT_PASS_FINALIZE_ROOT_CAUSE_PROVEN__TRANSACTION_INCONSISTENCY_PRODUCER_ADJUDICATION_REQUIRED`
+`SOURCE_DEFECT_NONATOMIC_ATTESTATION`
 
-Accepted first failing finalizer predicate:
-
-```text
-backup_tree == backupProjectTreeSha256        PASS
-backup_tree == retiredProjectTreeSha256       FAIL
-```
-
-Observed retained values:
+Accepted deterministic RED lineage:
 
 ```text
-backup tree actual:       7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
-backupProjectTreeSha256:  7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
-retiredProjectTreeSha256: ca74a262293d49b058fce6221db2fa5311214cde567ebb331ff845670c5a2cab
+f93d78324decf44cdccdeae3a9efe30636b681a8
+Validate run 33616947769
+Ubuntu/Python 3.11 job 100204920420
 ```
 
-The finalizer is safety-correct to reject that retained transaction. However the producer-side origin of the inconsistent attestations is not yet established.
+## Active Task 226
 
-## Active Task 225
+Execute:
 
-Hermes must execute:
+`tasks/CNX-20260902-226-rollover-prepare-attestation-fail-closed-repair.md`
 
-`tasks/CNX-20260902-225-rollover-prepare-attestation-producer-root-cause.md`
+Required behavior:
 
-Task 225 must determine why candidate `rollover-prepare` copied the retired project and then recorded different full-tree hashes for the retired source and backup while the backup payload fingerprint still matched the retired payload fingerprint.
-
-Required focus:
-
-1. exact prepare ordering and helper semantics;
-2. project-tree versus payload-fingerprint inclusion boundaries;
-3. retained backup/tree evidence and Task-223 timing;
-4. isolated offline reproduction of single hypotheses;
-5. distinguish supported concurrent mutation, unsupported mutation, non-atomic attestation source defect, or copy/hash semantic mismatch;
-6. create a deterministic RED only if a source defect is proven enough to justify it;
-7. publish report and stop for independent review.
+- refine the regression to require explicit fail-closed prepare behavior;
+- prove current source RED;
+- minimally compute and compare retired/backup full-tree attestations before transaction success;
+- preserve existing finalizer predicates and full-tree proof coverage;
+- obtain targeted and full CI GREEN;
+- report and stop before any live Windows installer retry.
 
 ## Runtime / Discord boundary
 
-Task 225 authorizes `0 Discord Sends` and no live installer/rollover/lifecycle mutation.
+Task 226 is repository-only.
 
-No installer retry, live rollover prepare/finalize, manual ownership/transaction/backup repair, cnxclaw lifecycle action, OpenClaw plugin mutation, Gateway restart, SQLite write, provider/model substitution, process termination, Release/tag mutation, or force push is authorized.
+`0 Discord Sends`.
+
+No live installer, live rollover prepare/finalize, lifecycle/plugin/Gateway/SQLite mutation, process termination, provider/model substitution, Release/tag mutation, or force push is authorized.
