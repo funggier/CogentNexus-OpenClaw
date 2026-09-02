@@ -77,10 +77,15 @@ def test_prepare_never_returns_internally_inconsistent_tree_attestations_when_no
     mutable_nonpayload.write_text("before-copy", encoding="utf-8")
 
     original_copytree = ownership.shutil.copytree
+    top_level_source = paths["direct"].resolve()
+    mutated = False
 
     def copy_then_change_source(source, destination, *args, **kwargs):
+        nonlocal mutated
         result = original_copytree(source, destination, *args, **kwargs)
-        Path(source, "runtime-state.txt").write_text("after-copy", encoding="utf-8")
+        if not mutated and Path(source).resolve() == top_level_source:
+            mutable_nonpayload.write_text("after-copy", encoding="utf-8")
+            mutated = True
         return result
 
     monkeypatch.setattr(ownership.shutil, "copytree", copy_then_change_source)
