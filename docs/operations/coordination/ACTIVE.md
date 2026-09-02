@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK224_ROLLOVER_FINALIZE_RETAINED_STATE_ADJUDICATION`
-Current disposition: `TASK223_INSTALLER_TERMINAL_FAILURE_ACCEPTED__ROLLOVER_FINALIZE_ROOT_CAUSE_REQUIRED`
-Task ID: `CNX-20260902-224`
-Parent task: `CNX-20260902-223`
+Execution mode: `TASK225_ROLLOVER_PREPARE_ATTESTATION_PRODUCER_ROOT_CAUSE`
+Current disposition: `TASK224_ACCEPTED__TRANSACTION_INCONSISTENCY_PRODUCER_ADJUDICATION_REQUIRED`
+Task ID: `CNX-20260902-225`
+Parent task: `CNX-20260902-224`
 Repair parent: `CNX-20260831-198`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-02 ICT
@@ -21,70 +21,65 @@ No Release/tag/asset mutation is authorized.
 
 ## Accepted candidate authority
 
-Exact source candidate:
+Exact source candidate remains:
 
 `a812f27815b3c87b7ca748dc2dea88f987601f70`
 
-Accepted package identity:
+Accepted payload fingerprint remains:
 
-```text
-artifact ID: 9810139538
-artifact digest: sha256:3164b7770e7d8991691d7bbedced092866c208add72b0c03b4aa3d39d1b50ff0
-payload files: 192
-payload fingerprint: e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
-```
+`e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Task 222 package provenance remains accepted. Task 223 independently reproved this candidate before the single installer launch and the installed canonical plugin payload now reports the same exact fingerprint.
-
-## Task-223 reviewed result
+## Task-224 reviewed result
 
 Report:
 
-`reports/CNX-20260902-223-task222-exact-candidate-windows-install-over-requalification.md`
+`reports/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication.md`
 
 Independent review:
 
-`reviews/CNX-20260902-223-task222-exact-candidate-windows-install-over-requalification-review.md`
+`reviews/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication-review.md`
 
-Accepted disposition:
+Accepted review disposition:
 
-`ACCEPT_FAIL_INSTALLER_TERMINAL__ROLLOVER_FINALIZE_ROOT_CAUSE_ADJUDICATION_REQUIRED`
+`ACCEPT_PASS_FINALIZE_ROOT_CAUSE_PROVEN__TRANSACTION_INCONSISTENCY_PRODUCER_ADJUDICATION_REQUIRED`
 
-Accepted facts:
+Accepted first failing finalizer predicate:
 
-- direct Scheduled Task launcher reached a coherent terminal result;
-- exactly one installer invocation/start occurred;
-- candidate installation itself completed and installed fingerprint is exact `e3bcce04...`;
-- `plugin-disable-post-install` completed exit 0;
-- `plugin-rollover-finalize` completed exit 1;
-- no final installer success marker exists;
-- latest Task-223 rollover transaction remains unresolved;
-- no installer retry, lifecycle repair, Gateway restart, process kill, or Discord traffic occurred;
-- controller remains PASSTHROUGH generation 33, startup adapter absent, Gateway/Ollama healthy, Delivery/Recovery READY, SQLite integrity `ok`.
+```text
+backup_tree == backupProjectTreeSha256        PASS
+backup_tree == retiredProjectTreeSha256       FAIL
+```
 
-The generic PowerShell error does not identify which Python finalizer predicate failed. Historical Tasks 143/144 repaired direct same-path defects, but current evidence does not yet prove either regression.
+Observed retained values:
 
-## Active Task 224
+```text
+backup tree actual:       7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
+backupProjectTreeSha256:  7394401cb0ae9791c1c9b98661a9bf9df47ecb83c0b139b46cd742b17ee7342a
+retiredProjectTreeSha256: ca74a262293d49b058fce6221db2fa5311214cde567ebb331ff845670c5a2cab
+```
+
+The finalizer is safety-correct to reject that retained transaction. However the producer-side origin of the inconsistent attestations is not yet established.
+
+## Active Task 225
 
 Hermes must execute:
 
-`tasks/CNX-20260902-224-task223-rollover-finalize-retained-state-adjudication.md`
+`tasks/CNX-20260902-225-rollover-prepare-attestation-producer-root-cause.md`
 
-Task 224 is read-only forensics. It must:
+Task 225 must determine why candidate `rollover-prepare` copied the retired project and then recorded different full-tree hashes for the retired source and backup while the backup payload fingerprint still matched the retired payload fingerprint.
 
-1. preserve the Task-223 partial live state;
-2. recover the first specific Python exception/traceback from the retained installer transcript if present;
-3. hash/parse the exact retained transaction and matching inventory;
-4. inspect the current ownership manifest, backup, installed plugin and inventory read-only;
-5. reconstruct every `finalize_plugin_rollover_transaction()` pre-write predicate in candidate source order without invoking the finalizer;
-6. identify the first exact failing predicate and compared values;
-7. adjudicate the write/verify boundary read-only only if all pre-write predicates pass;
-8. compare with Task-143/144 invariants without assuming regression;
-9. classify source defect vs invalid transaction/state/inventory/manifest/backup/storage/write-boundary failure;
-10. publish report and stop.
+Required focus:
+
+1. exact prepare ordering and helper semantics;
+2. project-tree versus payload-fingerprint inclusion boundaries;
+3. retained backup/tree evidence and Task-223 timing;
+4. isolated offline reproduction of single hypotheses;
+5. distinguish supported concurrent mutation, unsupported mutation, non-atomic attestation source defect, or copy/hash semantic mismatch;
+6. create a deterministic RED only if a source defect is proven enough to justify it;
+7. publish report and stop for independent review.
 
 ## Runtime / Discord boundary
 
-Task 224 authorizes `0 Discord Sends` and `0 installer/finalizer/lifecycle invocations`.
+Task 225 authorizes `0 Discord Sends` and no live installer/rollover/lifecycle mutation.
 
-No installer retry, rollover prepare/finalize, cnxclaw lifecycle action, OpenClaw plugin mutation, Gateway restart, ownership/transaction/backup/SQLite write, provider/model substitution, process termination, product/source edit, Release/tag mutation, or force push is authorized.
+No installer retry, live rollover prepare/finalize, manual ownership/transaction/backup repair, cnxclaw lifecycle action, OpenClaw plugin mutation, Gateway restart, SQLite write, provider/model substitution, process termination, Release/tag mutation, or force push is authorized.
