@@ -1,19 +1,20 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK231_POST_REPAIR_MANAGED_DASHBOARD_SEMANTIC_DURABLE_REQUALIFICATION`  
+**Execution mode:** `TASK232_EXISTING_SESSION_DASHBOARD_SEMANTIC_DURABLE_REQUALIFICATION`  
 **Updated:** 2026-09-03 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 231 now tests Dashboard-origin routing only  
-**Active task:** `CNX-20260903-231`  
-**Parent:** `CNX-20260902-230`  
+**Transport:** GitHub repository / Actions authoritative; Task 232 retries the unconsumed Dashboard semantic turn on the existing eligible session  
+**Active task:** `CNX-20260903-232`  
+**Parent:** `CNX-20260903-231`  
+**Installer-requalification parent:** `CNX-20260902-230`  
 **Repair parent:** `CNX-20260902-226`  
 **Failure lineage:** `CNX-20260902-223`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK230_ACCEPTED_PASS__DASHBOARD_ORIGIN_ROUTING_SEMANTICS_CORRECTED`
+**Disposition:** `TASK231_PRODUCT_FAILURE_REJECTED__SEMANTIC_BUDGET_UNCONSUMED__EXISTING_SESSION_REEXECUTION_AUTHORIZED`
 
 ## Publication and repair authority
 
-Published public `v0.9.3` remains untouched at:
+Public `v0.9.3` remains unchanged at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
@@ -25,57 +26,68 @@ Accepted plugin payload fingerprint:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-## Task 230 accepted result
+Task-230 managed convergence remains accepted.
 
-Task-230 installer re-entry completed successfully with:
+## Task 231 adjudication
 
-```text
-installer invocations: 1
-openclaw plugins install: 0
-rollover-prepare: 0
-rollover-finalize: 0
-installer execution retries: 0
-controller mode: managed
-generation: 38
-provider: ollama
-Gateway: healthy
-Delivery: READY, pending=0
-Recovery: READY
-SQLite integrity: ok
-```
+Task-231 execution preserved the live system but incorrectly required a fresh empty Dashboard session.
 
-Independent review:
+The corrected Task-231 authority had explicitly stated that a Dashboard-origin message may use a session originally associated with Discord. Therefore its `FAIL_DASHBOARD_TURN` report is not a CogentNexus/OpenClaw product failure.
 
-`ACCEPT_PASS_ALREADY_EXACT_INSTALLER_REENTRY__MANAGED_CONVERGENCE_PROVEN__RETRY_POLICY_EFFECTIVE__REPORTING_GAP_NONBLOCKING`
+Independent review verdict:
 
-## Corrected Task-231 routing semantics
+`REJECT_PRODUCT_FAILURE_CLASSIFICATION__ACCEPT_FAIL_CLOSED_PRESERVATION__SEMANTIC_BUDGET_UNCONSUMED__EXISTING_SESSION_REEXECUTION_AUTHORIZED`
 
-Normal behavior for this environment is treated as:
+Preserved counts:
 
 ```text
-Dashboard-origin turn -> Dashboard result; no Discord reply expected
-Discord-origin turn   -> Discord reply expected
+Dashboard submissions: 0
+Task-231 new Ticket lineages: 0
+Task-231 new model calls: 0
+Task-231 new durable/result lineages: 0
+Task-231 Dashboard results: 0
+Task-231 Discord replies: 0
+operator Discord/API Sends: 0
 ```
 
-A Dashboard turn may use the Discord-associated session, but this does not mean its reply is routed back to Discord.
+Task-231 report HEAD CI is GREEN:
 
-The previous Task-231 expectation that a Dashboard turn must produce a Discord effect has been removed.
+- Validate `33699792847` — SUCCESS
+- Windows Installer Pack Smoke `33699792872` — SUCCESS
+- PS5.1 Acceptance Smoke `33699792895` — SUCCESS
 
-Discord exactly-once delivery will be a separate successor acceptance using a **Discord-origin** human message after Task 231 is accepted.
-
-## Active Task 231
+## Active Task 232
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260903-231-post-repair-managed-semantic-durable-delivery-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260903-232-existing-session-dashboard-semantic-durable-requalification.md`
 
-Exactly one Dashboard human submission is authorized, with no `@Ce` prefix:
+Explicitly eligible Dashboard session:
+
+```text
+agent:main:discord:channel:1531199905673252946
+```
+
+Existing history is allowed. `New session` must not be clicked.
+
+Exact message, no `@Ce` prefix:
 
 `ช่วยสรุปงานที่ฉันควรโฟกัสวันนี้จาก context ล่าสุด และบอกเหตุผลสั้น ๆ`
 
-Required PASS shape:
+If the exact Task-231 draft remains, use it unchanged; if the composer is empty, enter the exact message once; if different content is present, stop without Send.
+
+Dashboard Send activation budget: `1 maximum`.
+
+After one Send activation or first observed semantic lineage:
+
+`SEMANTIC_RETRY_GATE=CLOSED`
+
+No second Send or semantic retry is permitted.
+
+Expected PASS shape:
 
 ```text
+Dashboard Send activations: 1
 Dashboard human submissions: 1
 new Ticket lineage: 1
 new OpenClaw session/run lineage: 1
@@ -86,26 +98,26 @@ product/runtime Discord replies attributable to Dashboard turn: 0
 direct operator Discord/API Sends: 0
 semantic resubmissions: 0
 recovery duplicate/resend: 0
+manual product/data/lifecycle mutations: 0
 ```
 
-Discord channel `1531199905673252946` may be observed read-only as negative-control evidence only.
+## Routing / retry boundary
 
-Once submission is accepted/new lineage observed:
+Environment routing invariant:
 
-`SEMANTIC_RETRY_GATE=CLOSED`
+```text
+Dashboard-origin -> Dashboard result
+Discord-origin   -> Discord result
+```
 
-## Retry boundary
+Discord channel `1531199905673252946` is read-only negative control during Task 232. No Discord-origin semantic message is authorized.
 
-Read-only observer/tool retries may use up to 2 additional evidence-driven attempts per logical observation and must be recorded.
+Read-only observer/tool retries: up to 2 additional evidence-driven attempts per logical observation.
 
-Dashboard semantic retries: `0` after the one authorized submission.
-
-Discord-origin semantic messages during Task 231: `0`.
-
-If a Discord product reply is conclusively attributable to the Dashboard-origin Task-231 turn, fail closed as unexpected cross-surface delivery.
+Semantic Send/submission/model/Ticket/result/effect retries: `0`.
 
 ## Hard fences
 
-No installer/reset/uninstall/reinstall, manual lifecycle/Gateway repair, plugin mutation, manual Ticket/outbox/recovery/SQLite write, recovery replay, provider/model substitution, process kill, stale Task-223 evidence cleanup/finalization, product/source/test/workflow edit, Release/tag/asset mutation, force push, Discord-origin acceptance turn, or second Dashboard semantic turn is authorized.
+No `New session`, second Dashboard Send, Discord-origin acceptance turn, direct Discord/API Send, installer/reset/uninstall/reinstall, manual lifecycle/Gateway repair, plugin mutation, manual Ticket/outbox/recovery/SQLite write, recovery replay, provider/model substitution, process kill, stale Task-223 evidence cleanup/finalization, product/source/test/workflow edit, Release/tag/asset mutation, or force push is authorized.
 
-Task 231 must publish its report and stop for independent ChatGPT review.
+Task 232 must publish its report and stop for independent ChatGPT review.
