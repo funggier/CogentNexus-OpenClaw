@@ -1,10 +1,11 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK234_DASHBOARD_ORIGIN_DISCORD_SESSION_DURABLE_STAGING_TDD_REPAIR`
-Current disposition: `TASK233_REAL_DURABLE_SEMANTIC_FAILURE_ACCEPTED__STAGING_SCOPE_DEFECT_PROVISIONALLY_PROVEN__TDD_REPAIR_REQUIRED`
-Task ID: `CNX-20260903-234`
-Parent task: `CNX-20260903-233`
+Execution mode: `TASK235_TASK234_EXACT_TOPOLOGY_TDD_EVIDENCE_CLOSURE`
+Current disposition: `TASK234_FUNCTIONAL_REPAIR_GREEN__PASS_REJECTED_PENDING_TDD_AND_EXACT_TOPOLOGY_EVIDENCE_CLOSURE`
+Task ID: `CNX-20260903-235`
+Parent task: `CNX-20260903-234`
+Failure parent: `CNX-20260903-233`
 Installer-requalification parent: `CNX-20260902-230`
 Accepted repair parent: `CNX-20260902-226`
 Failure lineage: `CNX-20260902-223`
@@ -19,102 +20,108 @@ Public `v0.9.3` remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Accepted pre-Task-234 production repair authority:
+Accepted pre-Task-234 production authority remains:
 
 `9a8510f1317c8e53c01c233b080ec20357cd22df`
 
-Accepted pre-Task-234 plugin payload fingerprint:
+Task-234 functional candidate repair:
 
-`e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
+`43fd1d6f988431c7a94d24abc8a6811de46f78fa`
 
-## Task 233 independent review
+Candidate plugin payload fingerprint:
+
+`964d471f9e330cfeffd270f2200d563dea8c3e7b9252409660df96f1173f58b7`
+
+The Task-234 candidate is **not yet live-install authority**.
+
+## Task 234 independent review
 
 Review:
 
-`reviews/CNX-20260903-233-human-manual-dashboard-send-semantic-requalification-review.md`
+`reviews/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair-review.md`
 
 Verdict:
 
-`ACCEPT_FAIL_DURABLE_SEMANTIC_TRACE__DASHBOARD_ORIGIN_ON_DISCORD_ASSOCIATED_SESSION_STAGING_SCOPE_DEFECT_PROVISIONALLY_PROVEN__TDD_REPAIR_REQUIRED`
+`REJECT_PASS_TDD_EVIDENCE_INCOMPLETE__FUNCTIONAL_REPAIR_GREEN__EXACT_TOPOLOGY_HARDENING_REQUIRED`
 
-Task 233 is a genuine runtime acceptance failure, unlike Tasks 231/232.
+Accepted from Task 234:
 
-Exact authoritative lineage from the Task-233 report:
+- root-cause direction matches Task-233 durable staging failure;
+- repair preserves owner/session identity instead of globally broadening Discord sessions into Dashboard;
+- true Discord-origin context is kept off the Dashboard staging path;
+- exact candidate SHA `43fd1d6...` has all required GitHub Actions GREEN;
+- live mutation / semantic Send budget remained zero.
+
+## Why PASS is not yet accepted
+
+### 1. Corrected genuine RED is not independently committed/proven
+
+`6b1e496...` is test-only, but corrections needed for the final valid regression harness were committed together with production repair in `278a235...`.
+
+Task 235 must reconstruct the corrected production-shaped test against predecessor `89a0f539...` in a disposable checkout and prove deterministic RED at the intended staging boundary with production byte-identical to predecessor.
+
+### 2. New exact topology test stops at pending staging
+
+The Task-234 regression proves:
 
 ```text
-Ticket: CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4
-run:    e225013e-8d50-4479-b227-ca9a10b89a46
-owner:  agent:main:discord:channel:1531199905673252946
+Dashboard-origin + Discord-associated owner
+-> marker returned
+-> direct_result pending
 ```
 
-The one manual Dashboard Send entered runtime. The run recorded four internal Ollama `qwen3.5:9b` call records and reached `response_ready`; Dashboard displayed assistant content. CogentNexus created no attributable `cnx_assistant_delivery direct_result`, no Ticket outbox row, and no delivery confirmation. The Ticket then emitted `direct_redelivery_timeout` with:
+It does not directly prove on that same owner topology:
 
-`Direct response delivery was not confirmed before deadline`
+```text
+native transcript update
+-> delivered
+-> Ticket completed
+-> exactly one delivery_confirmed
+-> no direct_redelivery_timeout
+-> no recovery regeneration
+```
 
-No attributable Discord reply, direct operator Discord/API Send, semantic resend, manual durable DB/lifecycle mutation, or historical-evidence mutation occurred.
+Existing `v162-dashboard-transcript-authority.test.ts` proves downstream settlement only for an ordinary `agent:main:dashboard:*` owner.
 
-## Provisional source root cause
+### 3. Ambiguous ingress context must be explicitly fail-closed
 
-Accepted source currently allows `before_agent_finalize` to recognize a Discord-associated owner Ticket, but the subsequent Dashboard durable staging path re-enters `stageDashboardDirectResult(...)`, which resolves only through `dashboardTicket(...)` / `isDashboardSession(...)` and therefore rejects owner keys shaped as:
+Candidate source currently checks `webchat` before `discord`. Task 235 must capture the exact OpenClaw `2026.7.1-2` hook-context contract and establish the correct behavior for missing or contradictory recognized ingress fields. Do not infer precedence.
 
-`agent:*:discord:channel:*`
-
-That mismatch closely matches Task 233: native Dashboard result visible, durable `direct_result` absent.
-
-Owner session identity is not the same thing as ingress surface. Real Discord-origin turns on the same owner key must remain Discord/external-channel deliveries.
-
-Task 234 must therefore prove a trusted ingress-surface/correlation signal and must not simply broaden every Discord-associated session into Dashboard.
-
-## Active Task 234
+## Active Task 235
 
 Execute:
 
-`tasks/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair.md`
+`tasks/CNX-20260903-235-task234-exact-topology-tdd-evidence-closure.md`
 
 Required flow:
 
 ```text
 fresh authority
--> read-only exact Task-233 lineage/telemetry correlation
--> trusted ingress-surface contract investigation
--> genuine production-shaped RED
--> minimal production repair
+-> exact OpenClaw 2026.7.1-2 ingress contract proof
+-> disposable predecessor corrected-RED reconstruction
+-> strengthen exact Discord-owner Dashboard settlement regression
+-> same-owner Discord negative control
+-> missing/ambiguous ingress fail-closed proof
+-> production change only if new test exposes a real defect
 -> targeted GREEN
 -> full repository / Actions GREEN
 -> report
 -> STOP before live install/retest
 ```
 
-If OpenClaw `2026.7.1-2` exposes no trustworthy Dashboard-vs-Discord ingress discriminator at the required boundary, stop:
+If strengthened tests pass on `43fd1d6...`, do not edit production source.
 
-`BLOCKED_INGRESS_SURFACE_CONTRACT`
+If a strengthened test exposes a product defect, commit a new test-only RED first, then the smallest production fix, then GREEN.
 
-Do not guess from prompt content, `@Ce`, browser URL, or owner session key alone.
+## Exact candidate CI already independently rechecked
 
-## Required TDD shape
+For `43fd1d6f988431c7a94d24abc8a6811de46f78fa`:
 
-On the same `agent:main:discord:channel:<id>` owner form:
+- Validate `33760819493` — SUCCESS
+- Windows Installer Pack Smoke `33760819324` — SUCCESS
+- PS5.1 Acceptance Smoke `33760819312` — SUCCESS
 
-1. **Dashboard-origin** must durably stage/mark/settle the Dashboard result exactly once and avoid legacy delivery timeout.
-2. **Discord-origin** must stay on existing Discord/external-channel receipt semantics and must not be claimed by Dashboard native staging.
-
-Ordinary `agent:main:dashboard:*`, duplicate handling, NO_REPLY, generation fencing, and durable response-ready immutability must stay GREEN.
-
-Production must remain unchanged until genuine test-only RED is committed and demonstrated.
-
-## Task-233 report-head CI
-
-Task-233 report HEAD:
-
-`827577a053979517a46f419a6f63564bd7420570`
-
-- Windows Installer Pack Smoke — SUCCESS
-- PS5.1 Acceptance Smoke — SUCCESS
-- Validate `33706153188` — FAILURE
-
-Validate failed only in Windows/Python 3.14 plugin tests because `src/v093-response-ready-boundary.test.ts` timed out at 15 seconds (`1 failed / 279 passed`). Other matrix jobs passed, including Windows/Python 3.11; the Task-233 report commit itself is docs-only.
-
-Task 234 must recheck/reproduce this timing anomaly. Do not call the Task-233 report HEAD GREEN and do not increase timeout blindly.
+These GREEN results do not waive the missing TDD/exact-topology evidence.
 
 ## Semantic / live mutation budget
 
@@ -132,19 +139,17 @@ provider/model substitution: 0
 process termination: 0
 Task-223/Task-233 evidence mutation: 0
 Release/tag/asset mutation: 0
-force push: 0
+force push/history rewrite: 0
 ```
 
-Read-only live evidence and repository source/test/CI repair are authorized.
-
-Read-only/tooling retries: up to 2 additional evidence-driven attempts per logical operation. Test/CI retry only for evidenced tooling/timing failure; deterministic failures require diagnosis.
+Read-only inspection of exact installed OpenClaw source/types/docs and disposable repository evidence reconstruction are authorized.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair.md`
+`reports/CNX-20260903-235-task234-exact-topology-tdd-evidence-closure.md`
 
 Then stop for independent ChatGPT review.
 
-Even after repository GREEN, do not install/retest live, perform another Dashboard/Discord semantic turn, replay or manually settle Task 233, clean historical evidence, or mutate public Release/tag/assets.
+Even after PASS, do not install/retest live, perform another Dashboard/Discord semantic turn, replay or manually settle Task 233, clean historical evidence, or mutate public Release/tag/assets.
