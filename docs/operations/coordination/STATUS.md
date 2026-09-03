@@ -3,7 +3,7 @@
 **State:** `READY_FOR_HERMES`  
 **Execution mode:** `TASK234_DASHBOARD_ORIGIN_DISCORD_SESSION_DURABLE_STAGING_TDD_REPAIR`  
 **Updated:** 2026-09-03 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 234 performs read-only live correlation plus repository TDD repair, with zero semantic Sends  
+**Transport:** GitHub repository / Actions authoritative; Task 234 performs read-only live correlation plus repository TDD repair with zero semantic Sends  
 **Active task:** `CNX-20260903-234`  
 **Parent:** `CNX-20260903-233`  
 **Installer-requalification parent:** `CNX-20260902-230`  
@@ -30,21 +30,21 @@ Accepted pre-Task-234 plugin payload fingerprint:
 
 Task 233 is accepted as a genuine runtime durable-delivery failure.
 
-The one physical Dashboard Send entered runtime and created:
+Exact authoritative Task-233 lineage:
 
 ```text
-Ticket: CNXT-57ab3fb4-930e-43a6-bd16-90f5b84620e3
-run:    e225362a-8872-45f8-a914-c90d835880c0
+Ticket: CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4
+run:    e225013e-8d50-4479-b227-ca9a10b89a46
 owner:  agent:main:discord:channel:1531199905673252946
 ```
 
-The run reached Ollama/OpenClaw and produced visible Dashboard assistant content, but no attributable `cnx_assistant_delivery direct_result` was committed. The Ticket later hit:
+The one physical Dashboard Send entered runtime. The run recorded four internal Ollama `qwen3.5:9b` calls and reached `response_ready`. Dashboard showed assistant content, but no attributable `cnx_assistant_delivery direct_result`, no Ticket outbox row, and no delivery confirmation existed. The Ticket then hit:
 
 `Direct response delivery was not confirmed before deadline`
 
 with `direct_redelivery_timeout`.
 
-There was no attributable Discord reply, no operator Discord/API Send, no semantic resubmission, no manual durable DB/lifecycle mutation, and no historical-evidence mutation.
+No attributable Discord reply, operator Discord/API Send, semantic resubmission, recovery replay, manual durable DB/lifecycle mutation, or historical-evidence mutation occurred.
 
 Independent review verdict:
 
@@ -52,19 +52,11 @@ Independent review verdict:
 
 ## Provisional source explanation
 
-Current accepted source distinguishes Dashboard sessions with:
+Current accepted source can correlate a Direct Ticket whose owner is `agent:*:discord:channel:*` in `before_agent_finalize`, but the subsequent Dashboard durable staging path uses `stageDashboardDirectResult(...)`, which resolves through Dashboard-only owner-session classification and therefore rejects that same Discord-associated owner.
 
-`agent:*:dashboard:*`
+This closely matches the live failure: native Dashboard content visible while durable direct-result staging is absent.
 
-but `before_agent_finalize` can also correlate a Direct Ticket whose owner is:
-
-`agent:*:discord:channel:*`
-
-The native transcript candidate can therefore exist, while `stageDashboardDirectResult(...)` subsequently rejects that same run through Dashboard-only owner-session lookup.
-
-This matches the Task-233 shape: native assistant content is visible, but durable direct-result staging is absent.
-
-The repair must not reinterpret every Discord-associated session as Dashboard because actual Discord-origin turns on the same owner key must continue to use Discord/external-channel delivery semantics.
+The repair must preserve true Discord-origin behavior on the same owner key. Owner identity cannot be used as a proxy for ingress surface.
 
 ## Active Task 234
 
@@ -81,26 +73,28 @@ fresh GitHub authority
 -> production-shaped TDD RED
 -> smallest repair
 -> targeted GREEN
--> full validation + all required Actions GREEN
+-> full validation + required Actions GREEN
 -> report and STOP
 ```
 
-If there is no trustworthy ingress discriminator at the relevant hook boundary, stop as:
+If no trustworthy ingress discriminator survives the required hooks/correlation boundary, stop:
 
 `BLOCKED_INGRESS_SURFACE_CONTRACT`
 
-Do not guess from owner key, prompt text, mention text, or browser state.
+Do not infer ingress from owner key, prompt text, mention text, or browser state.
 
-## TDD acceptance shape
+## Required regression boundary
 
-On the same Discord-associated owner-key form, regressions must distinguish:
+On the same Discord-associated owner-key form:
 
 ```text
 Dashboard-origin -> durable Dashboard staging / native transcript settlement exactly once
 Discord-origin   -> existing Discord/external-channel receipt semantics; no Dashboard staging claim
 ```
 
-Ordinary Dashboard sessions and existing duplicate/NO_REPLY/generation/response-ready safety contracts must remain green.
+Ordinary Dashboard sessions and duplicate/NO_REPLY/generation/response-ready safety contracts must remain GREEN.
+
+No production change is allowed before a genuine test-only RED proves the missing topology.
 
 ## Task-233 report-head CI
 
@@ -112,9 +106,9 @@ Task-233 report HEAD:
 - PS5.1 Acceptance Smoke — SUCCESS
 - Validate `33706153188` — FAILURE
 
-The Validate failure is isolated to the Windows/Python 3.14 plugin suite where `v093-response-ready-boundary.test.ts` timed out at 15 seconds. That job had `1 failed / 279 passed`; other matrix jobs passed, including Windows/Python 3.11. The report commit itself is docs-only.
+Validate failed only in Windows/Python 3.14 `npm test`: `v093-response-ready-boundary.test.ts` timed out at 15 seconds (`1 failed / 279 passed`). Other matrix jobs passed, including Windows/Python 3.11, and the report commit is docs-only.
 
-Task 234 must recheck/reproduce the timeout and must not mask a deterministic failure by raising timeouts or rerunning blindly.
+Task 234 must reproduce/recheck this anomaly and must not mask deterministic failure with blind reruns or timeout increases.
 
 ## Budgets / hard fences
 
@@ -135,9 +129,9 @@ Release/tag/asset mutations: 0
 force push: 0
 ```
 
-Repository source/test/CI repair is authorized under TDD. Read-only live evidence collection is authorized.
+Repository source/test/CI repair and read-only live evidence collection are authorized.
 
-Read-only/tooling retries remain bounded to 2 additional evidence-driven attempts per logical operation. Test/CI retries are allowed only for proven tooling/timing failures, not to hide deterministic RED/GREEN failures.
+Read-only/tooling retries remain bounded to 2 additional evidence-driven attempts per logical operation. CI/test retries are allowed only for evidenced tooling/timing failures, not to hide deterministic RED/GREEN failures.
 
 ## Stop boundary
 
@@ -145,4 +139,4 @@ Task 234 must publish:
 
 `docs/operations/coordination/reports/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair.md`
 
-Then stop for independent ChatGPT review before any live installation, Dashboard/Discord semantic retest, replay/settlement of the failed Task-233 Ticket, or public release mutation.
+Then stop for independent ChatGPT review before live installation, Dashboard/Discord semantic retest, replay/settlement of Task 233, or public release mutation.
