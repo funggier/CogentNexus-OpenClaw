@@ -1,126 +1,148 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_USER_MANUAL_SEND`  
-**Execution mode:** `TASK233_HUMAN_MANUAL_DASHBOARD_SEND_SEMANTIC_REQUALIFICATION`  
+**State:** `READY_FOR_HERMES`  
+**Execution mode:** `TASK234_DASHBOARD_ORIGIN_DISCORD_SESSION_DURABLE_STAGING_TDD_REPAIR`  
 **Updated:** 2026-09-03 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 233 changes only the failed Dashboard UI actuation method to one human manual click  
-**Active task:** `CNX-20260903-233`  
-**Parent:** `CNX-20260903-232`  
+**Transport:** GitHub repository / Actions authoritative; Task 234 performs read-only live correlation plus repository TDD repair, with zero semantic Sends  
+**Active task:** `CNX-20260903-234`  
+**Parent:** `CNX-20260903-233`  
 **Installer-requalification parent:** `CNX-20260902-230`  
-**Repair parent:** `CNX-20260902-226`  
+**Accepted repair parent:** `CNX-20260902-226`  
 **Failure lineage:** `CNX-20260902-223`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK232_UI_AUTOMATION_BOUNDARY_ACCEPTED__PRODUCT_SEMANTIC_FAILURE_REJECTED__MANUAL_HUMAN_SEND_AUTHORIZED`
+**Disposition:** `TASK233_REAL_DURABLE_SEMANTIC_FAILURE_ACCEPTED__STAGING_SCOPE_DEFECT_PROVISIONALLY_PROVEN__TDD_REPAIR_REQUIRED`
 
-## Publication and repair authority
+## Publication and source authority
 
 Public `v0.9.3` remains unchanged at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Accepted repaired source:
+Accepted pre-Task-234 production repair:
 
 `9a8510f1317c8e53c01c233b080ec20357cd22df`
 
-Accepted plugin payload fingerprint:
+Accepted pre-Task-234 plugin payload fingerprint:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-## Task 232 adjudication
+## Task 233 adjudication
 
-Task 232 used the correct existing Dashboard session and issued exactly one automated/native click toward `Send message`, then correctly stopped when the driver could not verify the effect.
+Task 233 is accepted as a genuine runtime durable-delivery failure.
 
-Post-click evidence showed:
+The one physical Dashboard Send entered runtime and created:
 
 ```text
-draft still visible
-new Ticket lineage: 0
-new model-call lineage: 0
-new durable semantic/result lineage: 0
-new Dashboard assistant result: 0
-Discord reply attributable to turn: 0
-ticket_outbox: 0
-runtime health: coherent
+Ticket: CNXT-57ab3fb4-930e-43a6-bd16-90f5b84620e3
+run:    e225362a-8872-45f8-a914-c90d835880c0
+owner:  agent:main:discord:channel:1531199905673252946
 ```
 
-Therefore the report's `FAIL_DASHBOARD_TURN` is treated as a UI/tool automation-boundary failure, not proof that CogentNexus/OpenClaw accepted the turn and failed.
+The run reached Ollama/OpenClaw and produced visible Dashboard assistant content, but no attributable `cnx_assistant_delivery direct_result` was committed. The Ticket later hit:
+
+`Direct response delivery was not confirmed before deadline`
+
+with `direct_redelivery_timeout`.
+
+There was no attributable Discord reply, no operator Discord/API Send, no semantic resubmission, no manual durable DB/lifecycle mutation, and no historical-evidence mutation.
 
 Independent review verdict:
 
-`REJECT_PRODUCT_SEMANTIC_FAILURE__ACCEPT_FAIL_CLOSED_UI_AUTOMATION_BOUNDARY__RUNTIME_SUBMISSION_UNPROVEN__MANUAL_HUMAN_SEND_RETRY_AUTHORIZED`
+`ACCEPT_FAIL_DURABLE_SEMANTIC_TRACE__DASHBOARD_ORIGIN_ON_DISCORD_ASSOCIATED_SESSION_STAGING_SCOPE_DEFECT_PROVISIONALLY_PROVEN__TDD_REPAIR_REQUIRED`
 
-The Task-232 report also contains a stale authority SHA (`e7cfe086...`) instead of the Task-232 opening coordination HEAD `9a33dfe...`. This is retained as a reporting/provenance defect; fresh current authority governs Task 233.
+## Provisional source explanation
 
-## Active Task 233
+Current accepted source distinguishes Dashboard sessions with:
+
+`agent:*:dashboard:*`
+
+but `before_agent_finalize` can also correlate a Direct Ticket whose owner is:
+
+`agent:*:discord:channel:*`
+
+The native transcript candidate can therefore exist, while `stageDashboardDirectResult(...)` subsequently rejects that same run through Dashboard-only owner-session lookup.
+
+This matches the Task-233 shape: native assistant content is visible, but durable direct-result staging is absent.
+
+The repair must not reinterpret every Discord-associated session as Dashboard because actual Discord-origin turns on the same owner key must continue to use Discord/external-channel delivery semantics.
+
+## Active Task 234
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260903-233-human-manual-dashboard-send-semantic-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair.md`
 
-Use the existing session:
-
-`agent:main:discord:channel:1531199905673252946`
-
-The composer must still contain exactly, without `@Ce`:
-
-`ช่วยสรุปงานที่ฉันควรโฟกัสวันนี้จาก context ล่าสุด และบอกเหตุผลสั้น ๆ`
-
-### User visual gate
-
-Before clicking, visually verify:
-
-- intended session still open;
-- exact draft still present;
-- no new result for that draft has already appeared;
-- draft has not disappeared or changed.
-
-If any condition fails: do not Send; report the observed state.
-
-If all pass: use the normal physical mouse/pointer to click the visible Dashboard `Send message` button **once**.
-
-Immediately after that one click:
-
-`SEMANTIC_RETRY_GATE=CLOSED`
-
-No second click, Enter fallback, retype/resubmit, Discord-origin message, or alternate API transport.
-
-Then tell ChatGPT that the manual Send was performed. Post-send Hermes observation will be activated only after that confirmation.
-
-## Budgets
+Required sequence:
 
 ```text
-human manual Dashboard Send clicks: 1 maximum
-automated/native/computer-use Send clicks: 0
-Enter-key submissions: 0
-Discord-origin semantic messages: 0
+fresh GitHub authority
+-> read-only exact Task-233 run/telemetry correlation
+-> identify trusted Dashboard-vs-Discord ingress signal in OpenClaw 2026.7.1-2
+-> production-shaped TDD RED
+-> smallest repair
+-> targeted GREEN
+-> full validation + all required Actions GREEN
+-> report and STOP
+```
+
+If there is no trustworthy ingress discriminator at the relevant hook boundary, stop as:
+
+`BLOCKED_INGRESS_SURFACE_CONTRACT`
+
+Do not guess from owner key, prompt text, mention text, or browser state.
+
+## TDD acceptance shape
+
+On the same Discord-associated owner-key form, regressions must distinguish:
+
+```text
+Dashboard-origin -> durable Dashboard staging / native transcript settlement exactly once
+Discord-origin   -> existing Discord/external-channel receipt semantics; no Dashboard staging claim
+```
+
+Ordinary Dashboard sessions and existing duplicate/NO_REPLY/generation/response-ready safety contracts must remain green.
+
+## Task-233 report-head CI
+
+Task-233 report HEAD:
+
+`827577a053979517a46f419a6f63564bd7420570`
+
+- Windows Installer Pack Smoke — SUCCESS
+- PS5.1 Acceptance Smoke — SUCCESS
+- Validate `33706153188` — FAILURE
+
+The Validate failure is isolated to the Windows/Python 3.14 plugin suite where `v093-response-ready-boundary.test.ts` timed out at 15 seconds. That job had `1 failed / 279 passed`; other matrix jobs passed, including Windows/Python 3.11. The report commit itself is docs-only.
+
+Task 234 must recheck/reproduce the timeout and must not mask a deterministic failure by raising timeouts or rerunning blindly.
+
+## Budgets / hard fences
+
+```text
+Dashboard semantic Sends: 0
+Discord semantic Sends: 0
 direct operator Discord/API Sends: 0
-semantic resubmissions after click: 0
-```
-
-Expected PASS after read-only post-send correlation:
-
-```text
-runtime-accepted Dashboard submission: 1
-new Ticket lineage: 1
-new session/run lineage: 1
-new Ollama/model-call lineage: 1
-new durable semantic/result lineage: 1
-new Dashboard assistant result: 1
-Discord reply attributable to Dashboard turn: 0
+semantic retries: 0
 recovery replay/resend: 0
-manual product/data/lifecycle mutations: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
+installer/reset/uninstall/reinstall: 0
+manual lifecycle/Gateway actions: 0
+live plugin mutations: 0
+provider/model substitutions: 0
+process terminations: 0
+Task-223/Task-233 evidence mutations: 0
+Release/tag/asset mutations: 0
+force push: 0
 ```
 
-## CI note
+Repository source/test/CI repair is authorized under TDD. Read-only live evidence collection is authorized.
 
-At Task-232 independent review time:
+Read-only/tooling retries remain bounded to 2 additional evidence-driven attempts per logical operation. Test/CI retries are allowed only for proven tooling/timing failures, not to hide deterministic RED/GREEN failures.
 
-- PS5.1 Acceptance Smoke `33703613337` — SUCCESS
-- Windows Installer Pack Smoke `33703613357` — SUCCESS
-- Validate `33703613319` — still in progress; do not claim it GREEN until freshly observed complete.
+## Stop boundary
 
-## Hard fences
+Task 234 must publish:
 
-No automated Send, second manual Send, Enter fallback, `New session`, Discord-origin acceptance turn, direct Discord/API Send, installer/reset/uninstall/reinstall, manual lifecycle/Gateway repair, plugin mutation, manual Ticket/outbox/recovery/SQLite write, recovery replay, provider/model substitution, process kill, stale Task-223 evidence cleanup/finalization, product/source/test/workflow edit, Release/tag/asset mutation, or force push is authorized.
+`docs/operations/coordination/reports/CNX-20260903-234-dashboard-origin-discord-session-durable-staging-tdd-repair.md`
 
-Current state is `WAITING_FOR_USER_MANUAL_SEND`.
+Then stop for independent ChatGPT review before any live installation, Dashboard/Discord semantic retest, replay/settlement of the failed Task-233 Ticket, or public release mutation.
