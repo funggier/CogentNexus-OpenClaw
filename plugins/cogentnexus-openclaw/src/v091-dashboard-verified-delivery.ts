@@ -63,7 +63,8 @@ type PendingDirectResult = {
   idempotency_key: string;
 };
 
-type NativeTranscriptCandidate = { runId: string; sessionKey: string; text: string; idempotencyKey?: string };
+type IngressSurface = "dashboard" | "discord";
+type NativeTranscriptCandidate = { runId: string; sessionKey: string; text: string; ingressSurface?: IngressSurface; idempotencyKey?: string };
 
 function messageText(message: any): string {
   const content = Array.isArray(message?.content) ? message.content : [];
@@ -114,6 +115,14 @@ function isDiscordOwnerSession(sessionKey: string) {
   return /^agent:[^:]+:discord:channel:\d+$/u.test(sessionKey);
 }
 
+function trustedIngressSurface(context: any): IngressSurface | undefined {
+  const provider = context?.messageProvider;
+  const channel = context?.channel;
+  if (provider === "webchat" || channel === "webchat") return "dashboard";
+  if (provider === "discord" || channel === "discord") return "discord";
+  return undefined;
+}
+
 function discordOwnerTicket(path: string, runId: string, sessionKey: string): DashboardTicket | undefined {
   if (!isDiscordOwnerSession(sessionKey)) return undefined;
   const db = openDb(path, true);
@@ -158,11 +167,13 @@ function nativePayloadText(text: string, idempotencyKey: string) {
 }
 
 /** Commit one replayable Dashboard final before native transport begins. */
-export function stageDashboardDirectResult(path: string, input: { runId: string; text: string; now?: Date }) {
+export function stageDashboardDirectResult(path: string, input: { runId: string; text: string; ownerSessionKey?: string; ingressSurface?: IngressSurface; now?: Date }) {
   const text = input.text.trim();
   if (!text) return { staged: false as const, reason: "empty-text" };
   if (isBareSilentReply(text)) return { staged: false as const, reason: "silent-reply" };
-  const initial = dashboardTicket(path, input.runId);
+  const initial = input.ingressSurface === "dashboard" && input.ownerSessionKey
+    ? (dashboardTicket(path, input.runId) ?? discordOwnerTicket(path, input.runId, input.ownerSessionKey))
+    : dashboardTicket(path, input.runId);
   if (!initial) return { staged: false as const, reason: "not-dashboard-direct" };
 
   // sessionAuthority owns creation/migration of the v0.9 session + assistant-delivery schema.
@@ -175,7 +186,10 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
     const ticket = db.prepare(`SELECT ticket_id,owner_session_key,response_ready_at FROM tickets
       WHERE run_id=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL
       ORDER BY created_at DESC LIMIT 1`).get(input.runId) as DashboardTicket | undefined;
-    if (!ticket?.owner_session_key || !isDashboardSession(ticket.owner_session_key)) {
+    const allowedOwner = input.ingressSurface === "dashboard" && input.ownerSessionKey
+      ? ticket?.owner_session_key === input.ownerSessionKey && (isDashboardSession(ticket.owner_session_key) || isDiscordOwnerSession(ticket.owner_session_key))
+      : Boolean(ticket?.owner_session_key && isDashboardSession(ticket.owner_session_key));
+    if (!ticket?.owner_session_key || !allowedOwner) {
       db.exec("COMMIT");
       return { staged: false as const, reason: "ticket-no-longer-dashboard-direct" };
     }
@@ -453,8 +467,12 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const candidateMessage = event?.lastAssistantMessage;
     const text = typeof candidateMessage === "string" ? candidateMessage.trim() : messageText(candidateMessage).trim();
     if (!runId || !sessionKey || !text) return;
-    const dashboard = dashboardTicket(path, runId);
-    const discord = discordOwnerTicket(path, runId, sessionKey);
+    const ingressSurface = trustedIngressSurface(ctx);
+    const dashboard = ingressSurface === "dashboard"
+      ? (dashboardTicket(path, runId) ?? discordOwnerTicket(path, runId, sessionKey))
+      : ingressSurface === undefined ? dashboardTicket(path, runId) : undefined;
+    const discord = ingressSurface === "discord" || ingressSurface === undefined
+      ? discordOwnerTicket(path, runId, sessionKey) : undefined;
     if (!dashboard && !discord) return;
     if (isBareSilentReply(text)) {
       const isDiscord = Boolean(discord);
@@ -470,7 +488,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
         },
       };
     }
-    nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text });
+    if (dashboard) nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text, ingressSurface });
   }, { priority: 600 });
 
   api.on?.("before_message_write", (event: any, ctx: any) => {
@@ -479,11 +497,19 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const text = messageText(event.message).trim();
     if (!sessionKey || !text) return;
     const candidate = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+      if (trustedIngressSurface(ctx) === "discord") return undefined;
       const ticket = dashboardTicketForSession(path, sessionKey);
       return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
     })();
     if (!candidate || text !== candidate.text) return;
-    const staged = stageDashboardDirectResult(path, { runId: candidate.runId, text: candidate.text });
+    const ingressSurface = trustedIngressSurface(ctx);
+    if (candidate.ingressSurface === "dashboard" && ingressSurface === "discord") return;
+    const staged = stageDashboardDirectResult(path, {
+      runId: candidate.runId,
+      text: candidate.text,
+      ownerSessionKey: candidate.sessionKey,
+      ingressSurface: candidate.ingressSurface ?? ingressSurface,
+    });
     if (!staged.staged) return;
     nativeTranscriptCandidates.set(sessionKey!, { ...candidate, idempotencyKey: staged.idempotencyKey });
     NATIVE_OWNED_RUNS.add(candidate.runId);

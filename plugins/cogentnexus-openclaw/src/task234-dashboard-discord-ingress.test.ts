@@ -5,12 +5,14 @@ import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
 import { installV091DashboardVerifiedDelivery } from "./v091-dashboard-verified-delivery.js";
+import { sessionAuthority } from "./v090.js";
 
 function setup() {
   const root = mkdtempSync(join(tmpdir(), "cnx-task234-ingress-"));
   const path = join(root, "tickets.sqlite3");
   const sessionKey = "agent:main:discord:channel:1531199905673252946";
   const store = new TicketStore(path);
+  sessionAuthority(path, sessionKey);
   return { root, path, sessionKey, store };
 }
 
@@ -29,7 +31,7 @@ function hooks(path: string) {
 }
 
 describe("Task 234 trusted ingress-surface durable staging", () => {
-  it("stages a Dashboard-origin final on a Discord-associated owner", () => {
+  it("stages a Dashboard-origin final on a Discord-associated owner", async () => {
     const { root, path, sessionKey, store } = setup();
     try {
       const ticket = store.accept({
@@ -39,15 +41,15 @@ describe("Task 234 trusted ingress-surface durable staging", () => {
       });
       store.route(ticket.ticketId, false);
       const { finalize, write } = hooks(path);
-      const message = { role: "assistant", content: [{ type: "text", text: "Dashboard answer" }] };
 
-      finalize(
-        { runId: ticket.runId, sessionKey, lastAssistantMessage: message },
-        { runId: ticket.runId, sessionKey, messageProvider: "webchat", channel: "webchat", channelId: "dashboard" },
+      await finalize(
+        { runId: "task234-dashboard-run", sessionKey, lastAssistantMessage: "Dashboard answer" },
+        { runId: "task234-dashboard-run", sessionKey, messageProvider: "webchat", channel: "webchat", channelId: "dashboard" },
       );
+      const message = { role: "assistant", content: [{ type: "text", text: "Dashboard answer" }] };
       const result = write(
         { message },
-        { runId: ticket.runId, sessionKey, messageProvider: "webchat", channel: "webchat", channelId: "dashboard" },
+        { runId: "task234-dashboard-run", sessionKey, messageProvider: "webchat", channel: "webchat", channelId: "dashboard" },
       );
 
       expect(result).toBeDefined();
@@ -61,7 +63,7 @@ describe("Task 234 trusted ingress-surface durable staging", () => {
     }
   });
 
-  it("does not let a real Discord-origin final claim Dashboard staging on the same owner", () => {
+  it("does not let a real Discord-origin final claim Dashboard staging on the same owner", async () => {
     const { root, path, sessionKey, store } = setup();
     try {
       const ticket = store.accept({
@@ -73,13 +75,13 @@ describe("Task 234 trusted ingress-surface durable staging", () => {
       const { finalize, write } = hooks(path);
       const message = { role: "assistant", content: [{ type: "text", text: "Discord answer" }] };
 
-      finalize(
-        { runId: ticket.runId, sessionKey, lastAssistantMessage: message },
-        { runId: ticket.runId, sessionKey, messageProvider: "discord", channel: "discord", channelId: "1531199905673252946" },
+      await finalize(
+        { runId: "task234-discord-run", sessionKey, lastAssistantMessage: "Discord answer" },
+        { runId: "task234-discord-run", sessionKey, messageProvider: "discord", channel: "discord", channelId: "1531199905673252946" },
       );
       const result = write(
         { message },
-        { runId: ticket.runId, sessionKey, messageProvider: "discord", channel: "discord", channelId: "1531199905673252946" },
+        { runId: "task234-discord-run", sessionKey, messageProvider: "discord", channel: "discord", channelId: "1531199905673252946" },
       );
 
       expect(result).toBeUndefined();
