@@ -496,7 +496,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
     const text = messageText(event.message).trim();
     if (!sessionKey || !text) return;
-    const candidate = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+    const candidate: NativeTranscriptCandidate | undefined = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
       if (trustedIngressSurface(ctx) === "discord") return undefined;
       const ticket = dashboardTicketForSession(path, sessionKey);
       return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
