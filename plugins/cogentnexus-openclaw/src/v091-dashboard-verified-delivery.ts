@@ -118,8 +118,12 @@ function isDiscordOwnerSession(sessionKey: string) {
 function trustedIngressSurface(context: any): IngressSurface | undefined {
   const provider = context?.messageProvider;
   const channel = context?.channel;
-  if (provider === "webchat" || channel === "webchat") return "dashboard";
-  if (provider === "discord" || channel === "discord") return "discord";
+  const providerSurface = provider === "webchat" || provider === "discord" ? provider : undefined;
+  const channelSurface = channel === "webchat" || channel === "discord" ? channel : undefined;
+  if (providerSurface && channelSurface && providerSurface !== channelSurface) return undefined;
+  const surface = providerSurface ?? channelSurface;
+  if (surface === "webchat") return "dashboard";
+  if (surface === "discord") return "discord";
   return undefined;
 }
 
