@@ -1,10 +1,11 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK231_POST_REPAIR_MANAGED_DASHBOARD_SEMANTIC_DURABLE_REQUALIFICATION`
-Current disposition: `TASK230_ACCEPTED_PASS__DASHBOARD_ORIGIN_ROUTING_SEMANTICS_CORRECTED`
-Task ID: `CNX-20260903-231`
-Parent task: `CNX-20260902-230`
+Execution mode: `TASK232_EXISTING_SESSION_DASHBOARD_SEMANTIC_DURABLE_REQUALIFICATION`
+Current disposition: `TASK231_PRODUCT_FAILURE_REJECTED__SEMANTIC_BUDGET_UNCONSUMED__EXISTING_SESSION_REEXECUTION_AUTHORIZED`
+Task ID: `CNX-20260903-232`
+Parent task: `CNX-20260903-231`
+Installer-requalification parent: `CNX-20260902-230`
 Repair parent: `CNX-20260902-226`
 Failure lineage: `CNX-20260902-223`
 Parent umbrella: `CNX-20260831-188`
@@ -22,7 +23,7 @@ No Release/tag/asset mutation is authorized.
 
 ## Accepted source/runtime authority
 
-Exact repaired source remains:
+Exact repaired source:
 
 `9a8510f1317c8e53c01c233b080ec20357cd22df`
 
@@ -30,122 +31,105 @@ Accepted plugin payload fingerprint:
 
 `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
-Task-230 accepted review disposition:
+Task-230 managed convergence remains accepted.
 
-`ACCEPT_PASS_ALREADY_EXACT_INSTALLER_REENTRY__MANAGED_CONVERGENCE_PROVEN__RETRY_POLICY_EFFECTIVE__REPORTING_GAP_NONBLOCKING`
+## Task 231 review result
 
-Accepted parent live baseline after Task 230:
+Task-231 report disposition `FAIL_DASHBOARD_TURN` is not accepted as a product failure.
 
-```text
-controller mode: managed
-generation: 38
-startup policy: enabled
-startup adapter: installed / Ready / LastTaskResult=0
-provider: ollama
-Gateway: healthy
-Delivery: READY, pending=0
-Recovery: READY
-SQLite integrity_check: ok
-```
+Independent review:
 
-Fresh Task-231 evidence is authoritative; generation 38 is the parent baseline, not a value to force.
+`reviews/CNX-20260903-231-post-repair-managed-dashboard-semantic-durable-requalification-review.md`
 
-## Corrected Dashboard routing invariant
+Verdict:
 
-Task 231 must follow the actual OpenClaw behavior established for this environment:
+`REJECT_PRODUCT_FAILURE_CLASSIFICATION__ACCEPT_FAIL_CLOSED_PRESERVATION__SEMANTIC_BUDGET_UNCONSUMED__EXISTING_SESSION_REEXECUTION_AUTHORIZED`
 
-```text
-Dashboard-origin message -> Dashboard response
-Discord-origin message   -> Discord response
-```
+Task 231 made zero semantic submissions, zero new Tickets/model calls/results, and zero Discord Sends. It stopped because the executor incorrectly treated the Discord-associated Dashboard session as ineligible and tried to create a fresh empty session, despite task authority explicitly allowing Dashboard turns on sessions originally associated with Discord.
 
-A Dashboard message may use a session originally associated with Discord, but a Dashboard-origin turn is not expected to produce a Discord reply.
-
-Therefore Task 231 must **not** require a Discord product delivery. Discord exactly-once delivery will be tested separately by a successor using Discord-origin ingress after Task 231 passes independent review.
-
-Discord channel `1531199905673252946` is read-only negative-control evidence in Task 231. No operator message may be sent there.
-
-## Active Task 231
+## Active Task 232
 
 Execute:
 
-`tasks/CNX-20260903-231-post-repair-managed-semantic-durable-delivery-requalification.md`
+`tasks/CNX-20260903-232-existing-session-dashboard-semantic-durable-requalification.md`
 
-Task 231 authorizes exactly one human Dashboard semantic submission, with no `@Ce` prefix:
+The intended Dashboard session is explicitly eligible:
+
+```text
+agent:main:discord:channel:1531199905673252946
+```
+
+Existing history is allowed.
+
+`New session` must not be clicked.
+
+Exact one-shot Dashboard message, no `@Ce` prefix:
 
 `ช่วยสรุปงานที่ฉันควรโฟกัสวันนี้จาก context ล่าสุด และบอกเหตุผลสั้น ๆ`
 
-Required acceptance lineage:
+Task-231 left this exact text as an unsent draft. Fresh UI evidence wins: if the exact draft remains, do not retype or alter it; if the composer is empty, enter it once; if composer content differs, stop without Send.
 
-```text
-one Dashboard human submission
--> one Ticket
--> one session/run
--> one Ollama call
--> one durable semantic/result lineage
--> one logical Dashboard assistant result
-```
+## Send / semantic retry boundary
 
-Expected cross-surface result:
-
-```text
-product/runtime Discord replies attributable to the Dashboard turn: 0
-```
-
-## Semantic retry boundary
-
-Dashboard human submissions:
+Dashboard `Send message` activations:
 
 `1 maximum`
 
-Once the submission is accepted or any new semantic lineage is observed:
+After the single Send activation or any observed new semantic lineage:
 
 `SEMANTIC_RETRY_GATE=CLOSED`
 
-It cannot reopen during Task 231. Observer/tool failures are never permission to send the message again.
+It cannot reopen. UI uncertainty, timeout, slow Ollama response, or missing immediate evidence is never permission to click Send again.
 
-Read-only tooling/observer retries remain bounded to up to 2 additional evidence-driven attempts per logical observation and must be reported in an attempt ledger with an explicit retry-policy classification.
+Required PASS shape:
 
-## Discord/effect boundary
+```text
+Dashboard Send activations: 1
+Dashboard human submissions: 1
+new Ticket lineage: 1
+new OpenClaw session/run lineage: 1
+new Ollama/model-call lineage: 1
+new durable semantic/result lineage: 1
+new logical Dashboard assistant result: 1
+Discord replies attributable to Dashboard turn: 0
+direct operator Discord/API Sends: 0
+semantic resubmissions: 0
+recovery replay/resend: 0
+manual product/data/lifecycle mutations: 0
+```
 
-Direct operator Discord/API Sends:
+## Routing / Discord boundary
 
-`0`
+Normal environment invariant:
 
-Discord-origin semantic test messages:
+```text
+Dashboard-origin turn -> Dashboard result
+Discord-origin turn   -> Discord result
+```
 
-`0`
+Discord channel `1531199905673252946` is read-only negative control only during Task 232.
 
-Unexpected product/runtime Discord reply attributable to the Task-231 Dashboard turn:
+Discord-origin test messages: `0`.
+Direct operator Discord/API Sends: `0`.
 
-`FAIL_UNEXPECTED_DISCORD_CROSS_SURFACE_DELIVERY`
+A conclusively attributable Discord reply from the Dashboard-origin Task-232 turn is `FAIL_UNEXPECTED_DISCORD_CROSS_SURFACE_DELIVERY`.
 
-## Historical evidence boundary
+## Retry policy
 
-Task-223 transaction, matching inventory, ownership manifest and backup remain immutable forensic evidence. No finalization, cleanup, edit, move, rename, delete, archive, replace or reuse is authorized.
+Read-only tooling/observer retries remain bounded to up to 2 additional evidence-driven attempts per logical observation and must be recorded.
 
-## Other hard fences
+Semantic Send/submission/model/Ticket/result/effect retries: `0`.
 
-Task 231 does not permit:
+## Historical evidence / other hard fences
 
-- second Dashboard submission or semantic retry;
-- Discord-origin acceptance turn;
-- installer/reset/uninstall/reinstall;
-- manual Ticket/outbox/recovery/SQLite writes;
-- manual cnxclaw/Gateway lifecycle repair;
-- manual plugin actions;
-- recovery replay/resend;
-- provider/model substitution;
-- process termination;
-- stale-evidence cleanup/finalization;
-- product/source/test/workflow edits;
-- Release/tag/asset mutation;
-- force push/history rewrite.
+Task-223 transaction, matching inventory, ownership manifest and backup remain immutable forensic evidence.
+
+No installer/reset/uninstall/reinstall, manual lifecycle/Gateway repair, plugin mutation, manual Ticket/outbox/recovery/SQLite write, recovery replay, provider/model substitution, process kill, stale-evidence cleanup/finalization, product/source/test/workflow edit, Release/tag/asset mutation, force push, Discord-origin acceptance turn, `New session`, or second Dashboard Send is authorized.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260903-231-post-repair-managed-semantic-durable-delivery-requalification.md`
+`reports/CNX-20260903-232-existing-session-dashboard-semantic-durable-requalification.md`
 
-Then stop for independent ChatGPT review before any Discord-origin semantic acceptance, stale-evidence cleanup, lifecycle mutation or publication action.
+Then stop for independent ChatGPT review before any Discord-origin acceptance or further semantic turn.
