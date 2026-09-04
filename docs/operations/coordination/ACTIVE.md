@@ -1,53 +1,65 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK250_EXACT_ROLLOVER_ATTESTATION_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD`
-Current disposition: `TASK249_ACCEPTED_BLOCKED__HISTORICAL_PATH_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_REQUIRED`
-Task ID: `CNX-20260904-250`
-Parent task: `CNX-20260904-249`
+Execution mode: `TASK251_TASK250_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK250_ACCEPTED_PASS__EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_GREEN__ONE_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED`
+Task ID: `CNX-20260904-251`
+Parent task: `CNX-20260904-250`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
-Executor: Hermes / repository-capable implementation agent
+Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-249 result
+## Accepted Task-250 result
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_FORENSIC_EVIDENCE_INSUFFICIENT__TRANSIENT_PATH_AND_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_INSTRUMENTATION_REQUIRED__TASK226_FAIL_CLOSED_INVARIANT_PRESERVED`
+`ACCEPT_PASS_EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD__TASK226_FAIL_CLOSED_PRESERVED__EXACT_CANDIDATE_READY_FOR_ONE_LIVE_INSTALL_REQUALIFICATION`
 
 Reviewed report HEAD:
 
-`85f7afe25c29db59060dafc2d2ce5f3de80942d6`
+`e6e971211cec36af80c66ca3c1f8726ec89d2392`
 
 Review commit:
 
-`67f8865b470fbc7e607b9df4509e1d49c3d3d1d0`
+`86f7596f7f2836744b2f653b1deda0174090fe5d`
 
-Task 249 proved that the retained Task-248 backup and current retired project are equal now, but the available historical USN/log/process evidence cannot reconstruct the exact per-path difference or causal actor at the Task-248 failed attestation boundary.
+Exact candidate:
 
-The Task-226 full-tree fail-closed invariant remains accepted and MUST NOT be weakened.
+`9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96`
 
-## Active Task 250
+Expected plugin fingerprint:
+
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+
+Exact candidate deployment gates are terminal SUCCESS:
+
+```text
+Validate                      33896622009
+Windows Installer Pack Smoke 33896622084
+PS5.1 Acceptance Smoke        33896621985
+```
+
+Task 250 preserves Task-226 fail-closed full-tree attestation and adds bounded per-path diagnostic evidence from the exact source/backup snapshots that produced the compared hashes.
+
+## Active Task 251
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
+`docs/operations/coordination/tasks/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
 
 Required flow:
 
 ```text
 fresh GitHub authority
--> inspect Task226 attestation seam and exact tree-hash producer
--> TEST-ONLY RED with deterministic controlled mutation
--> prove current missing exact hash-input per-path evidence
--> minimal production diagnostic repair
--> source+backup exact entry snapshots from the SAME scans that produce compared hashes
--> mismatch delta from those captured snapshots, not a later primary re-scan
--> preserve exact digest contract + Task226 fail-closed exception
--> focused GREEN
--> full GREEN
--> exact final candidate/fingerprint/Actions evidence
+-> exact detached checkout of 9c3c4e0...
+-> prove clean exact source + installer hash + plugin fingerprint
+-> read-only Windows preflight + delivery/recovery hazard gate
+-> register/start authenticated Scheduled Task
+-> exactly one installer invocation
+-> retry gate closes at product start
+-> if attestation mismatch recurs, preserve complete Task250 diagnostic and STOP
+-> if install succeeds, prove exact installed identity + managed convergence + health
 -> report
 -> STOP for independent review
 ```
@@ -55,26 +67,26 @@ fresh GitHub authority
 ## Hard fences
 
 ```text
-live installer/Scheduled Task/rollover invocations = 0
-live plugin/retired-project/retained-backup mutation = 0
-controller/Gateway/provider/model/DB lifecycle mutation = 0
+installer successful starts <= 1
+installer invocations <= 1
+installer retries after start = 0
+manual plugin/lifecycle/DB repair = 0
 Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
+reset/uninstall/fresh reinstall = 0
 release/tag mutation = 0
+production/source/test/workflow edits = 0
+force push/history rewrite = 0
 ```
 
-Repository source/test changes and ordinary CI are authorized.
+Installer-owned rollover/plugin replacement and normal installer-owned lifecycle convergence are the only authorized live mutations.
 
-Do not ignore/downgrade mismatch, use payload-only fallback, exclude paths merely to pass, retry until equality, or run the live installer.
-
-## CI note inherited from Task 249
-
-Task-249 report-head Validate attempt 1 had one Windows/Python 3.11 Vitest 15-second timeout in `v099-native-restart-ownership.test.ts`; all other matrix jobs passed. One same-SHA failed-job retry was authorized because it has no product/semantic side effects. No repeated retries or timeout inflation are authorized without root-cause evidence. This does not authorize any live deployment.
+Do not weaken or bypass a full-tree mismatch. If the mismatch recurs, retain the exact `diagnostic=` JSON emitted by Task 250 and do not rerun the installer.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
+`docs/operations/coordination/reports/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
 
-Then STOP for independent ChatGPT review. Live installer retry and semantic acceptance remain unauthorized.
+Then STOP for independent ChatGPT review. Semantic durable-delivery acceptance remains a separate future task even if Task 251 passes.
