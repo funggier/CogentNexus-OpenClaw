@@ -1,95 +1,86 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK248_TASK247_REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK247_ACCEPTED_PASS__POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__LIVE_INSTALLER_REQUALIFICATION_REAUTHORIZED`
-Task ID: `CNX-20260904-248`
-Parent task: `CNX-20260904-247`
-Installer failure lineage: `CNX-20260904-245`, `CNX-20260904-246`
-Harness lineage: `CNX-20260904-243`, `CNX-20260904-244`, `CNX-20260904-245`
+Execution mode: `TASK249_TASK248_RETIRED_PROJECT_TRANSIENT_MUTATION_FORENSIC`
+Current disposition: `TASK248_ACCEPTED_FAIL__EXACT_ATTESTATION_MISMATCH_PROVEN__MUTATION_ACTOR_UNPROVEN__READ_ONLY_FORENSIC_REQUIRED`
+Task ID: `CNX-20260904-249`
+Parent task: `CNX-20260904-248`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-247 result
+## Accepted Task-248 result
 
 Independent review verdict:
 
-`ACCEPT_PASS_POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__FINAL_ANCESTRY_RED_PROVEN__REPORT_RED_SHA_STALE_NONBLOCKING__LIVE_INSTALLER_REQUALIFICATION_AUTHORIZED_SEPARATELY`
+`ACCEPT_FAIL_INSTALLER_TERMINAL__TASK247_DIAGNOSTIC_REPAIR_PROVEN__TASK226_FAIL_CLOSED_ATTESTATION_TRIGGERED__TRANSIENT_RETIRED_TREE_MUTATION_ACTOR_UNPROVEN__READ_ONLY_MUTATION_FORENSIC_REQUIRED`
 
-Reviewed Task-247 report HEAD:
+Reviewed report HEAD:
 
-`8cbbe2d405477e7b7c91b3fb649582e3a400e893`
+`06b7bc01161efe2c8bbb97fe0e0511d79ff8d62b`
 
-Accepted repaired executable candidate:
+Exact executed candidate:
 
 `6c11a5e8f417300835e85441b88e0f37e3897353`
 
-Expected plugin fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
-
-Task 247 reproduced the real Windows PowerShell 5.1 `NativeCommandError` truncation under `$ErrorActionPreference='Stop'` and repaired only the native capture boundary. The final-ancestry RED is test-only commit `f5f04a7422be05f446d408d48e949473a113dc36`; the report's pre-rebase RED SHA is stale but nonblocking.
-
-Exact repaired-candidate Actions are GREEN:
+Task 248 invoked the installer exactly once and stopped at:
 
 ```text
-PS5.1 Acceptance Smoke        33884732550 = SUCCESS
-Windows Installer Pack Smoke 33884732528 = SUCCESS
-Validate                      33884732569 = SUCCESS (attempt 2, same SHA)
+RuntimeError: pre-install backup project-tree attestation mismatch
 ```
 
-## Active Task 248
+Task-247 diagnostic preservation is therefore proven in live execution. The mismatch itself is an intentional Task-226 fail-closed safety invariant and must not be weakened. Post-failure source/backup equality does not identify the historical mutation path or actor.
+
+Task-248 report-head Actions are GREEN:
+
+```text
+PS5.1 Acceptance Smoke        33891454875 = SUCCESS
+Windows Installer Pack Smoke 33891454855 = SUCCESS
+Validate                      33891454905 = SUCCESS
+```
+
+## Active Task 249
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260904-249-task248-retired-project-transient-mutation-forensic.md`
 
-Required sequence:
+Required flow:
 
 ```text
-fresh GitHub/live preflight
--> fresh detached exact candidate 6c11a5e8...
--> prove clean source + plugin fingerprint + Task247 repair
--> create fresh non-temp durable evidence root
--> regenerate/hash/direct-qualify frozen hardened runner
--> create/hash/readback frozen launch manifest
--> prove exact installer -File binding
--> register installer Scheduled Task at most once
--> immediately re-prove all bindings
--> start at most once
--> installer child invocation at most once
--> retry gate CLOSED after start
--> terminal evidence
--> full read-only postflight
+fresh GitHub/live read-only authority
+-> preserve/rehash current retired project + retained Task248 rollover backup
+-> complete per-path inventories
+-> inspect bounded historical Windows/filesystem/process/log evidence around Task248 execution
+-> classify candidate changed paths/actors
+-> if needed, bounded passive read-only hash observation only
 -> report
 -> STOP for independent review
 ```
 
-If `plugin-rollover-prepare` fails again, the Task-247 repaired capture must preserve the complete bounded Python diagnostic/type/message or exact failing invariant. Do not retry after observing the failure.
-
-## Hard budgets
+## Hard fences
 
 ```text
-successful installer task registrations <= 1
-installer task starts <= 1
-scripts/install.ps1 child invocations <= 1
-installer retries after start = 0
-manual plugin/lifecycle/Gateway/DB repair = 0
+installer/prepare/rollover invocations = 0
+retired-project writes = 0
+Task248 rollover-backup writes/deletes/renames = 0
+plugin/controller/Gateway/provider/model/DB mutation = 0
 Dashboard/Discord/API semantic sends = 0
-semantic retries = 0
 recovery replay/resend = 0
+process termination = 0
 production/source/test/workflow edits = 0
 release/tag/history mutation = 0
 ```
 
-Installer-owned writes inside the single authorized invocation are allowed.
+Read-only hashing/enumeration/log/event queries and writing Task-249 forensic artifacts under a separate non-temp evidence directory are allowed.
+
+Do not weaken full-tree attestation, ignore mismatch, or retry installer.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260904-249-task248-retired-project-transient-mutation-forensic.md`
 
-Then STOP for independent ChatGPT review. Semantic acceptance remains a separate successor even if Task 248 passes.
+Then STOP for independent ChatGPT review. Installer retry and semantic acceptance remain unauthorized.
