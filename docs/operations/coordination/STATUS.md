@@ -1,101 +1,112 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK246_TASK245_ROLLOVER_PREPARE_TERMINAL_FORENSIC_EVIDENCE_PRESERVATION`  
+**Execution mode:** `TASK247_POWERSHELL51_NATIVE_STDERR_CAPTURE_TDD_DIAGNOSIS_REPAIR`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 246 is forensic-only and must preserve Task-245 temp evidence before analysis  
-**Active task:** `CNX-20260904-246`  
-**Parent:** `CNX-20260904-245`  
+**Transport:** GitHub repository / Actions authoritative; Task 247 is repository/test-only and proves or rejects the Windows PowerShell 5.1 native-stderr capture hypothesis before any repair  
+**Active task:** `CNX-20260904-247`  
+**Parent:** `CNX-20260904-246`  
+**Parent installer failure:** `CNX-20260904-245`  
+**Prior diagnostic repair:** `CNX-20260904-239`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK245_ACCEPTED_FAIL_INSTALLER_TERMINAL__EXACT_EXCEPTION_UNPROVEN__FORENSIC_REQUIRED_BEFORE_RETRY`
+**Disposition:** `TASK246_ACCEPTED_BLOCKED__EVIDENCE_PRESERVED__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
 
-## Accepted Task-245 result
+## Accepted Task-246 result
 
 Reviewed report HEAD:
 
-`5984e3dfe3503bee37c218cb1f34eff16a071bef`
+`18ec3763bdc8c5a6ffdd8815d863f59447e5e7f7`
 
 Independent review verdict:
 
-`ACCEPT_FAIL_INSTALLER_TERMINAL__MANIFEST_BINDING_AND_ONE_SHOT_EXECUTION_PROVEN__ROLLOVER_PREPARE_EXACT_EXCEPTION_UNPROVEN__READ_ONLY_FORENSIC_REQUIRED_BEFORE_ANY_RETRY`
+`ACCEPT_BLOCKED_EXACT_EXCEPTION_UNPROVEN__TASK245_EVIDENCE_PRESERVED_BYTE_IDENTICALLY__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
 
-Task 245 successfully removed the prior scheduler/action-binding uncertainty. The frozen launch manifest bound the child `-File` to exact candidate `18a51b15768fb3d2196e65f1ef470c34aeef7f36/scripts/install.ps1`; the task started once, the child installer started once, and no retry occurred.
-
-Terminal evidence:
+Task 246 successfully preserved the Task-245 temporary evidence before cleanup risk:
 
 ```text
-ticket-db-bootstrap = exit 0
-plugin-npm-pack = exit 0
-plugin-rollover-prepare = terminal failure
-child exit = 1
-LastTaskResult = 1
-new Task-245 rollover transaction JSON = not observed
+artifacts copied = 34
+missing = 0
+source/destination SHA-256 equality = 34/34
 ```
 
-Post-failure live state remained passthrough generation 39 with predecessor plugin fingerprint `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`, disabled. Gateway/provider/storage/recovery/delivery remained healthy. Semantic effects were zero.
+The complete retained stderr proves the failing child crossed the `plugin-rollover-prepare` boundary but contains only the first Python traceback line followed by Windows PowerShell `NativeCommandError` metadata. The Python exception class/message/final traceback line are absent; exact invariant remains unproven.
 
-Report-head Actions are GREEN:
+No new Task-245 rollover transaction was persisted. Workspace install/skill backup and external generation-rollover backup domains remain distinct.
+
+Task-246 report-head Actions are GREEN:
 
 ```text
-Validate                      33876070613 = SUCCESS
-Windows Installer Pack Smoke 33876070664 = SUCCESS
-PS5.1 Acceptance Smoke        33876070529 = SUCCESS
+PS5.1 Acceptance Smoke        33881077771 = SUCCESS
+Windows Installer Pack Smoke 33881077746 = SUCCESS
+Validate                      33881077796 = SUCCESS
 ```
 
-## Why Task 246 is required
+## Why Task 247 is required
 
-The captured report proves the failing stage but not the exact Python exception/invariant. Exact source proves the rollover transaction is persisted only after `prepare_plugin_rollover_transaction()` returns successfully, so absence of a new transaction narrows the failure to the prepare function before successful return.
+The accepted executable candidate uses global:
 
-Task-245 raw runner evidence is under `%LOCALAPPDATA%\Temp`; it may disappear with time. Preserve it first.
+```powershell
+$ErrorActionPreference = "Stop"
+```
 
-## Active Task 246
+while the Task-239 rollover diagnostic capture merges native stderr with `2>&1 | Out-String`.
+
+Task 245 observed a real Windows PowerShell 5.1 `NativeCommandError` wrapper and retained only the first traceback line. Existing Task-239/240 tests do not execute that exact Windows PowerShell 5.1 native-command stderr boundary with a multi-line failing child.
+
+This is a concrete coverage gap and a plausible mechanism, but it must be reproduced before any production edit.
+
+## Active Task 247
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-246-task245-rollover-prepare-terminal-forensic-evidence-preservation.md`
+`docs/operations/coordination/tasks/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
 
 Required flow:
 
 ```text
 fresh authority
--> preserve raw Task-245 temp evidence byte-identically + hash proof
--> read complete stderr/stdout/transcript/result/manifest
--> inventory external plugin-generation-rollover-backups
--> inventory workspace install-backups separately
--> inventory install-staging/transaction residue
--> correlate exact traceback with ordered rollover-prepare invariants
--> read-only live safety checks
+-> test-only RED on actual Windows PowerShell 5.1
+-> harmless multi-line stderr child + deterministic exit code
+-> prove/reject NativeCommandError/truncation hypothesis
+-> hypothesis rejected => no production edit, report, STOP
+-> meaningful RED => minimal owning-boundary repair
+-> RED -> GREEN
+-> targeted/full validation
+-> exact-SHA Actions GREEN
 -> report
 -> STOP
 ```
 
-Do not confuse workspace `.cogentnexus-openclaw/install-backups/cogentnexus-openclaw-20260904-195413` with the external `plugin-generation-rollover-backups` boundary used by rollover prepare.
+A static source assertion or helper-only test is insufficient; the test must execute the native stderr boundary under `$ErrorActionPreference='Stop'`.
 
-## Zero-effect budget
+## Zero live-effect budget
 
 ```text
-scripts/install.ps1 invocations = 0
+live scripts/install.ps1 invocations = 0
 installer task registrations/starts = 0
-rollover-prepare/finalize = 0
-openclaw plugins install = 0
-plugin/controller/Gateway/lifecycle mutation = 0
-manual Ticket/outbox/recovery/SQLite writes = 0
-Dashboard semantic submissions = 0
-Discord semantic submissions = 0
-direct Discord/API sends = 0
+live rollover/plugin/controller/Gateway/DB mutation = 0
+Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
-process termination = 0
-historical evidence deletion = 0
-production/source/test/workflow edits = 0
-force push/history rewrite = 0
+historical evidence cleanup = 0
+release/tag/history mutation = 0
 ```
 
-The only non-report write authorized is byte-identical preservation of Task-245 evidence into the designated non-temp forensic archive with before/after hashes.
+Synthetic disposable PowerShell/Python regression processes are allowed only for isolated test evidence and must not invoke live OpenClaw/CogentNexus commands.
+
+## Expected identity
+
+Accepted executable predecessor:
+
+`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
+
+Expected plugin payload fingerprint:
+
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-246-task245-rollover-prepare-terminal-forensic-evidence-preservation.md`
+`docs/operations/coordination/reports/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
 
-Then stop for independent ChatGPT review. Installer and semantic successors remain unauthorized until that review.
+Then stop for independent ChatGPT review. Live installer and semantic successors remain unauthorized until that review.
