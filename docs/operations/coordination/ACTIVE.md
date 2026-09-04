@@ -1,60 +1,53 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK249_TASK248_RETIRED_PROJECT_TRANSIENT_MUTATION_FORENSIC`
-Current disposition: `TASK248_ACCEPTED_FAIL__EXACT_ATTESTATION_MISMATCH_PROVEN__MUTATION_ACTOR_UNPROVEN__READ_ONLY_FORENSIC_REQUIRED`
-Task ID: `CNX-20260904-249`
-Parent task: `CNX-20260904-248`
+Execution mode: `TASK250_EXACT_ROLLOVER_ATTESTATION_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD`
+Current disposition: `TASK249_ACCEPTED_BLOCKED__HISTORICAL_PATH_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_REQUIRED`
+Task ID: `CNX-20260904-250`
+Parent task: `CNX-20260904-249`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
-Executor: Hermes / authenticated Windows operator
+Executor: Hermes / repository-capable implementation agent
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-248 result
+## Accepted Task-249 result
 
 Independent review verdict:
 
-`ACCEPT_FAIL_INSTALLER_TERMINAL__TASK247_DIAGNOSTIC_REPAIR_PROVEN__TASK226_FAIL_CLOSED_ATTESTATION_TRIGGERED__TRANSIENT_RETIRED_TREE_MUTATION_ACTOR_UNPROVEN__READ_ONLY_MUTATION_FORENSIC_REQUIRED`
+`ACCEPT_BLOCKED_FORENSIC_EVIDENCE_INSUFFICIENT__TRANSIENT_PATH_AND_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_INSTRUMENTATION_REQUIRED__TASK226_FAIL_CLOSED_INVARIANT_PRESERVED`
 
 Reviewed report HEAD:
 
-`06b7bc01161efe2c8bbb97fe0e0511d79ff8d62b`
+`85f7afe25c29db59060dafc2d2ce5f3de80942d6`
 
-Exact executed candidate:
+Review commit:
 
-`6c11a5e8f417300835e85441b88e0f37e3897353`
+`67f8865b470fbc7e607b9df4509e1d49c3d3d1d0`
 
-Task 248 invoked the installer exactly once and stopped at:
+Task 249 proved that the retained Task-248 backup and current retired project are equal now, but the available historical USN/log/process evidence cannot reconstruct the exact per-path difference or causal actor at the Task-248 failed attestation boundary.
 
-```text
-RuntimeError: pre-install backup project-tree attestation mismatch
-```
+The Task-226 full-tree fail-closed invariant remains accepted and MUST NOT be weakened.
 
-Task-247 diagnostic preservation is therefore proven in live execution. The mismatch itself is an intentional Task-226 fail-closed safety invariant and must not be weakened. Post-failure source/backup equality does not identify the historical mutation path or actor.
-
-Task-248 report-head Actions are GREEN:
-
-```text
-PS5.1 Acceptance Smoke        33891454875 = SUCCESS
-Windows Installer Pack Smoke 33891454855 = SUCCESS
-Validate                      33891454905 = SUCCESS
-```
-
-## Active Task 249
+## Active Task 250
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-249-task248-retired-project-transient-mutation-forensic.md`
+`docs/operations/coordination/tasks/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
 
 Required flow:
 
 ```text
-fresh GitHub/live read-only authority
--> preserve/rehash current retired project + retained Task248 rollover backup
--> complete per-path inventories
--> inspect bounded historical Windows/filesystem/process/log evidence around Task248 execution
--> classify candidate changed paths/actors
--> if needed, bounded passive read-only hash observation only
+fresh GitHub authority
+-> inspect Task226 attestation seam and exact tree-hash producer
+-> TEST-ONLY RED with deterministic controlled mutation
+-> prove current missing exact hash-input per-path evidence
+-> minimal production diagnostic repair
+-> source+backup exact entry snapshots from the SAME scans that produce compared hashes
+-> mismatch delta from those captured snapshots, not a later primary re-scan
+-> preserve exact digest contract + Task226 fail-closed exception
+-> focused GREEN
+-> full GREEN
+-> exact final candidate/fingerprint/Actions evidence
 -> report
 -> STOP for independent review
 ```
@@ -62,25 +55,26 @@ fresh GitHub/live read-only authority
 ## Hard fences
 
 ```text
-installer/prepare/rollover invocations = 0
-retired-project writes = 0
-Task248 rollover-backup writes/deletes/renames = 0
-plugin/controller/Gateway/provider/model/DB mutation = 0
+live installer/Scheduled Task/rollover invocations = 0
+live plugin/retired-project/retained-backup mutation = 0
+controller/Gateway/provider/model/DB lifecycle mutation = 0
 Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
-process termination = 0
-production/source/test/workflow edits = 0
-release/tag/history mutation = 0
+release/tag mutation = 0
 ```
 
-Read-only hashing/enumeration/log/event queries and writing Task-249 forensic artifacts under a separate non-temp evidence directory are allowed.
+Repository source/test changes and ordinary CI are authorized.
 
-Do not weaken full-tree attestation, ignore mismatch, or retry installer.
+Do not ignore/downgrade mismatch, use payload-only fallback, exclude paths merely to pass, retry until equality, or run the live installer.
+
+## CI note inherited from Task 249
+
+Task-249 report-head Validate attempt 1 had one Windows/Python 3.11 Vitest 15-second timeout in `v099-native-restart-ownership.test.ts`; all other matrix jobs passed. One same-SHA failed-job retry was authorized because it has no product/semantic side effects. No repeated retries or timeout inflation are authorized without root-cause evidence. This does not authorize any live deployment.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-249-task248-retired-project-transient-mutation-forensic.md`
+`docs/operations/coordination/reports/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
 
-Then STOP for independent ChatGPT review. Installer retry and semantic acceptance remain unauthorized.
+Then STOP for independent ChatGPT review. Live installer retry and semantic acceptance remain unauthorized.
