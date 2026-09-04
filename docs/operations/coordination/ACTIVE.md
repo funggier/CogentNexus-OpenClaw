@@ -1,112 +1,123 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK240_TASK239_CROSS_PLATFORM_POWERSHELL_TEST_HARNESS_PORTABILITY_REPAIR`
-Current disposition: `TASK239_PASS_REJECTED__PRODUCTION_DIAGNOSTIC_REPAIR_FUNCTIONAL__CROSS_PLATFORM_TEST_HARNESS_REGRESSION_REQUIRES_TEST_ONLY_REPAIR`
-Task ID: `CNX-20260904-240`
-Parent task: `CNX-20260904-239`
+Execution mode: `TASK241_TASK240_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK240_ACCEPTED__TASK239_DIAGNOSTIC_REPAIR_VALIDATED__BOUNDED_EXACT_CANDIDATE_INSTALL_OVER_AUTHORIZED`
+Task ID: `CNX-20260904-241`
+Parent task: `CNX-20260904-240`
+Diagnostic parent: `CNX-20260904-239`
 Forensic parent: `CNX-20260904-238`
 Installer-failure parent: `CNX-20260904-237`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
-Executor: Hermes / authenticated repository operator
+Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-239 findings
-
-Task-239 production diagnostic repair candidate:
-
-`ec29020632091aae3b50149b51303a36fde26310`
-
-Task-239 RED commit:
-
-`2c5d68384df11e38b9cea5e565c247324c4c5f44`
-
-Candidate plugin fingerprint remains:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+## Accepted Task-240 boundary
 
 Independent review verdict:
 
-`REJECT_PASS_CROSS_PLATFORM_VALIDATION_REGRESSION__PRODUCTION_DIAGNOSTIC_REPAIR_ACCEPTED_AS_FUNCTIONAL_CANDIDATE__TEST_HARNESS_PORTABILITY_REPAIR_REQUIRED`
+`ACCEPT_PASS_TEST_HARNESS_PORTABILITY_REPAIRED__TASK239_PRODUCTION_DIAGNOSTIC_REPAIR_VALIDATED__EXACT_CANDIDATE_READY_FOR_BOUNDED_LIVE_INSTALL_REQUALIFICATION`
 
-The production repair is not authorized for additional modification in Task 240.
+Exact candidate:
 
-## Authoritative validation regression
+`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
 
-Report HEAD `b70606460c6ea3d8d37a3a8317946aa5b1ceec35`:
+Task-239 production diagnostic repair in candidate lineage:
 
-```text
-PS5.1 Acceptance Smoke = SUCCESS
-Windows Installer Pack Smoke = SUCCESS
-Validate = FAILURE
-```
+`ec29020632091aae3b50149b51303a36fde26310`
 
-Validate run: `33830388146`.
+Candidate plugin fingerprint:
 
-Root cause is proven in the Task-239 regression test: it unconditionally invokes `powershell.exe` on Ubuntu/macOS. Windows Python 3.11 and 3.14 pass; non-Windows matrices fail with `FileNotFoundError` for `powershell.exe`.
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
 
-## Active Task 240
-
-Execute:
-
-`tasks/CNX-20260904-240-task239-cross-platform-powershell-test-harness-portability-repair.md`
-
-Required sequence:
+Exact-candidate Actions:
 
 ```text
-fresh authority
--> retain existing CI failure as RED
--> minimal test-only PowerShell capability/portability repair
--> focused Windows helper execution GREEN
--> non-Windows no false failure from absent powershell.exe
--> full validation
--> fingerprint unchanged
--> exact final SHA Actions GREEN (Validate + Installer Pack + PS5.1)
--> report
--> STOP for independent review
+PS5.1 Acceptance Smoke       33832755287 = SUCCESS
+Windows Installer Pack Smoke 33832755300 = SUCCESS
+Validate                      33832755313 = SUCCESS (attempt 2)
 ```
 
-## Hard source fence
-
-Task 240 must not modify production/runtime source, including `scripts/install.ps1`. It must not change workflows merely to mask the failing test. The authorized change is limited to the Task-239 test harness and directly necessary test support, if any.
+Task 240 was test-only and did not alter production/runtime source or live state.
 
 ## Preserved live boundary
+
+Fresh Windows read-only evidence wins. The retained Task-237/238 boundary is:
 
 ```text
 controller = passthrough
 generation = 39
+candidate plugin not installed
+predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
 Gateway healthy
 provider = ollama
 Delivery READY / pending 0
 Recovery READY
 SQLite integrity = ok
-candidate plugin not installed
-predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
 ```
 
-No live normalization is authorized.
+Task-237 retained backup token:
 
-## Zero-effect budget
+`c6aaf93db7c34f718d01302477a292e1`
+
+Do not mutate or clean it.
+
+## Active Task 241
+
+Execute:
+
+`tasks/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+
+Required sequence:
 
 ```text
-live installer registrations/starts/invocations: 0
-live rollover-prepare/finalize: 0
-manual plugin/lifecycle/Gateway/managed mutation: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
-Dashboard/Discord/API semantic sends: 0
-recovery replay/resend: 0
-process termination: 0
-provider/model substitution: 0
-forensic evidence cleanup/mutation: 0
-release/tag/asset mutation: 0
-force push/history rewrite: 0
+fresh GitHub authority
+-> exact detached candidate checkout + clean/fingerprint proof
+-> fresh read-only Windows preflight + retained evidence inventory
+-> one installer registration/start/invocation maximum
+-> INSTALLER_RETRY_GATE=CLOSED once execution starts
+-> if failure: preserve bounded Task-239 child diagnostic + backup/transaction evidence and STOP
+-> if success: prove installed fingerprint + rollover/finalization + managed convergence + full health
+-> zero semantic side effects
+-> report
+-> STOP for independent review
 ```
+
+## Installer one-shot budget
+
+```text
+installer Scheduled Task registrations: 1 maximum
+installer Scheduled Task starts: 1 maximum
+installer invocations: 1 maximum
+installer execution retries after start: 0
+manual rollover-prepare/finalize: 0
+manual plugin mutation: 0
+manual controller/Gateway/lifecycle normalization: 0
+```
+
+Use only the installer's supported parameter contract. Bind source by invoking `scripts/install.ps1` from the exact detached candidate checkout. Do not invent `--install-source-commit`.
+
+## Semantic zero budget
+
+```text
+Dashboard human semantic submissions: 0
+Dashboard automated/native/computer-use submissions: 0
+Discord-origin semantic submissions: 0
+direct operator Discord/API Sends: 0
+semantic resubmissions: 0
+recovery replay/resend: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
+```
+
+## Hard fences
+
+No reset, uninstall/fresh reinstall, release/tag/asset mutation, force push/history rewrite, product/source/test/workflow edit during live execution, Task-237 backup cleanup, historical evidence cleanup, process termination, provider/model substitution, or manual post-failure repair.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260904-240-task239-cross-platform-powershell-test-harness-portability-repair.md`
+`reports/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. No live installer retry or semantic acceptance is authorized in Task 240.
+Then stop for independent ChatGPT review. Even on PASS, no semantic acceptance is authorized without a separate successor.
