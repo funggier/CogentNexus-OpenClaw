@@ -1,130 +1,126 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK241_TASK240_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
+**Execution mode:** `TASK242_TASK241_SCHEDULED_RUNNER_EVIDENCE_CHANNEL_FORENSIC`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 241 is a bounded Windows installer-only requalification with zero semantic budget  
-**Active task:** `CNX-20260904-241`  
-**Parent:** `CNX-20260904-240`  
+**Transport:** GitHub repository / Actions authoritative; Task 242 is read-only/harmless-canary scheduler-runner forensic with zero installer and zero semantic budget  
+**Active task:** `CNX-20260904-242`  
+**Parent:** `CNX-20260904-241`  
+**Candidate-validation parent:** `CNX-20260904-240`  
 **Diagnostic parent:** `CNX-20260904-239`  
-**Forensic parent:** `CNX-20260904-238`  
+**Earlier forensic parent:** `CNX-20260904-238`  
 **Installer-failure parent:** `CNX-20260904-237`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK240_ACCEPTED__TASK239_DIAGNOSTIC_REPAIR_VALIDATED__BOUNDED_EXACT_CANDIDATE_INSTALL_OVER_AUTHORIZED`
+**Disposition:** `TASK241_BLOCKED_EVIDENCE_ACCEPTED__ONE_SHOT_BUDGET_RESPECTED__RUNNER_EXECUTION_EVIDENCE_FORENSIC_AUTHORIZED`
 
-## Task-240 accepted result
+## Task-241 accepted result
+
+Reviewed report HEAD:
+
+`36490e1f70da7096054f96f33898a6d9577a9187`
 
 Independent review verdict:
 
-`ACCEPT_PASS_TEST_HARNESS_PORTABILITY_REPAIRED__TASK239_PRODUCTION_DIAGNOSTIC_REPAIR_VALIDATED__EXACT_CANDIDATE_READY_FOR_BOUNDED_LIVE_INSTALL_REQUALIFICATION`
+`ACCEPT_BLOCKED_EVIDENCE__ONE_SHOT_BUDGET_RESPECTED__PRODUCT_FAILURE_UNCLASSIFIED__RUNNER_EXECUTION_EVIDENCE_FORENSIC_REQUIRED`
 
-Exact candidate:
-
-`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
-
-Task-239 production diagnostic repair retained in the candidate lineage:
-
-`ec29020632091aae3b50149b51303a36fde26310`
-
-Candidate plugin payload fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
-
-Public `v0.9.3` remains immutable at:
-
-`26ce64a624255278a3a0266ad38746e0e6ed2e31`
-
-Exact-candidate Actions are terminal GREEN:
+Task-241 one-shot ledger:
 
 ```text
-PS5.1 Acceptance Smoke       33832755287 = SUCCESS
-Windows Installer Pack Smoke 33832755300 = SUCCESS
-Validate                      33832755313 = SUCCESS (attempt 2)
+Scheduled Task registrations = 1
+Scheduled Task starts = 1
+second start = 0
+installer retry after start = 0
+LastTaskResult = 1
+fresh runner result/transcript = absent
+child installer invocation proven = 0
 ```
 
-Validate attempt 1 failed at macOS `npm audit --omit=dev` due external registry/security-endpoint timeout; the failed-only rerun on the same SHA completed SUCCESS.
+Because no fresh runner result/transcript exists, `LastTaskResult=1` does not establish a product-side installer stage failure.
 
-Task 240 changed only `tests/test_task239_rollover_diagnostics.py`; it did not alter production/runtime source, workflows, plugin payload, or live state.
+## Preserved Windows boundary
 
-## Preserved Windows evidence boundary
-
-Fresh read-only Windows evidence wins. Entering retained state from Tasks 237/238:
+Task-241 post-state:
 
 ```text
 controller = passthrough
 generation = 39
-candidate plugin not installed
-predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
-Gateway healthy
-provider = ollama
-Delivery READY / pending 0
-Recovery READY
+candidate plugin = not installed
+Gateway = READY
+provider = READY
+model = READY
+storage = READY
+recovery = READY
+delivery = READY
+pending outbox = 0
 SQLite integrity = ok
 ```
 
-Retained Task-237 orphan backup token:
+Retained Task-237 evidence token:
 
 `c6aaf93db7c34f718d01302477a292e1`
 
-It remains evidence and must not be cleaned or mutated.
+Do not mutate or clean it.
 
-## Active Task 241
+## Active Task 242
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260904-242-task241-scheduled-runner-evidence-channel-forensic.md`
 
 Required flow:
 
 ```text
-fresh GitHub authority
--> clean detached exact candidate source proof
--> fresh read-only live preflight and retained-evidence inventory
--> one installer registration/start/invocation maximum
--> close installer retry gate once product execution starts
--> on failure preserve exact bounded child diagnostic + rollover evidence and STOP
--> on success prove installed candidate fingerprint + ownership/finalization + managed convergence + health
--> zero semantic side effects
+fresh authority
+-> read-only Task-241 task/runner/artifact inventory
+-> reconstruct scheduler -> PowerShell -> runner -> artifact chain
+-> inspect action arguments/quoting/CWD/ACL/events
+-> one harmless scheduler canary maximum only if needed
+-> localize runner/evidence-channel cause
+-> preserve live product state
+-> zero installer and zero semantic effects
 -> report
 -> STOP for independent review
 ```
 
-## Installer one-shot fence
+## Harmless canary fence
 
 ```text
-installer Scheduled Task registrations: 1 maximum
-installer Scheduled Task starts: 1 maximum
-installer invocations: 1 maximum
-installer execution retries after start: 0
-manual rollover operations: 0
-manual plugin mutation: 0
-manual controller/Gateway/lifecycle normalization: 0
+harmless canary task registrations: 1 maximum
+harmless canary task starts: 1 maximum
+canary retries after start: 0
 ```
 
-Installer source binding must use the real supported contract: invoke `scripts/install.ps1` from the clean detached exact candidate checkout. Do not invent `--install-source-commit`.
+The canary is limited to proving scheduler-to-runner artifact capture. It must not call CogentNexus/OpenClaw product operations.
 
-If `plugin-rollover-prepare` fails, Task-239's bounded child diagnostic is now part of the required terminal evidence. Do not rerun installer or manually replay the child operation.
+## Product zero-effect budget
+
+```text
+scripts/install.ps1 invocations: 0
+installer Scheduled Task starts: 0
+rollover-prepare/finalize: 0
+openclaw plugins install: 0
+manual plugin mutation: 0
+controller/Gateway/lifecycle mutation: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
+```
 
 ## Semantic zero-effect budget
 
 ```text
-Dashboard human semantic submissions: 0
-Dashboard automated/native/computer-use submissions: 0
-Discord-origin semantic submissions: 0
-direct operator Discord/API Sends: 0
-semantic resubmissions: 0
+Dashboard semantic submissions: 0
+Discord semantic submissions: 0
+direct Discord/API sends: 0
 recovery replay/resend: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
 ```
 
 ## Hard fences
 
-No reset, uninstall/fresh reinstall, release/tag/asset mutation, force push/history rewrite, product/source/test/workflow edits during live execution, Task-237 evidence cleanup, historical evidence cleanup, process termination, provider/model substitution, or manual post-failure repair.
+No installer retry, reset/uninstall/reinstall, managed-state normalization, historical evidence cleanup, product/source/test/workflow edits, release/tag/asset mutation, process termination, provider/model substitution, force push/history rewrite.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260904-242-task241-scheduled-runner-evidence-channel-forensic.md`
 
-Then stop for independent ChatGPT review. Semantic acceptance remains unauthorized even if Task 241 passes.
+Then stop for independent ChatGPT review. A new installer attempt remains unauthorized until a separate reviewed successor explicitly allows it.
