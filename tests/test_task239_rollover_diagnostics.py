@@ -8,6 +8,8 @@ on the fail-closed path.
 from __future__ import annotations
 
 import re
+import subprocess
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).parents[1]
@@ -40,6 +42,47 @@ def test_rollover_prepare_has_bounded_diagnostic_preservation_contract():
     assert failure, "rollover-prepare fail-closed branch is missing"
     failure_region = INSTALL_PS1[failure.start() : failure.end() + 1]
     assert "$prepareOutput" in failure_region
+
+
+def test_bounded_diagnostic_helper_behavior_is_real_and_deterministic():
+    """Execute the owning PowerShell helper against empty/short/long output."""
+    match = re.search(
+        r"function Get-BoundedInstallerDiagnostic\s*\{.*?\n\}",
+        INSTALL_PS1,
+        flags=re.DOTALL,
+    )
+    assert match, "bounded diagnostic helper is missing"
+    script = """$ErrorActionPreference = 'Stop'
+%s
+$long = ('H' * 3000) + ('T' * 1000) + 'PYTHON-TRACEBACK-MARKER' + ('T' * 2000)
+@(
+  [ordered]@{name='empty'; value=(Get-BoundedInstallerDiagnostic -Output '')},
+  [ordered]@{name='short'; value=(Get-BoundedInstallerDiagnostic -Output '  child stderr marker  ')},
+  [ordered]@{name='long'; value=(Get-BoundedInstallerDiagnostic -Output $long)}
+) | ConvertTo-Json -Compress
+""" % match.group(0)
+    with tempfile.NamedTemporaryFile("w", suffix=".ps1", encoding="utf-8", delete=False) as handle:
+        handle.write(script)
+        script_path = handle.name
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        Path(script_path).unlink(missing_ok=True)
+    rows = result.stdout.strip()
+    import json
+    values = {row["name"]: row["value"] for row in json.loads(rows)}
+    assert values["empty"] == "[no child diagnostic output captured]"
+    assert values["short"] == "child stderr marker"
+    assert len(values["long"]) == MAX_DIAGNOSTIC_CHARS
+    assert values["long"].startswith("H")
+    assert values["long"].endswith("T")
+    assert "PYTHON-TRACEBACK-MARKER" in values["long"]
+    assert "[child diagnostic truncated]" in values["long"]
 
 
 def test_rollover_prepare_keeps_nonzero_fail_closed_semantics():

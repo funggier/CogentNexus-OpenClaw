@@ -61,6 +61,21 @@ function Complete-InstallerDiagnosticStage {
     Write-Host ("CNXCLAW_INSTALL_STAGE_COMPLETE stage={0} utc={1} elapsed_ms={2} exit_code={3}" -f $Context.Stage, $completedAt.ToString("o"), $Context.Stopwatch.ElapsedMilliseconds, $ExitCode)
 }
 
+function Get-BoundedInstallerDiagnostic {
+    param([AllowNull()][string]$Output)
+
+    $maximumCharacters = 4096
+    $placeholder = "[no child diagnostic output captured]"
+    $trimmed = if ($null -eq $Output) { "" } else { $Output.Trim() }
+    if ([string]::IsNullOrWhiteSpace($trimmed)) { return $placeholder }
+    if ($trimmed.Length -le $maximumCharacters) { return $trimmed }
+
+    $truncationMarker = "`n...[child diagnostic truncated]...`n"
+    $headCharacters = [Math]::Floor(($maximumCharacters - $truncationMarker.Length) / 2)
+    $tailCharacters = $maximumCharacters - $truncationMarker.Length - $headCharacters
+    return $trimmed.Substring(0, $headCharacters) + $truncationMarker + $trimmed.Substring($trimmed.Length - $tailCharacters)
+}
+
 function Get-ExistingCnxMode {
     $modeController = if ($migrationSource) { $legacyControllerPath } else { $controllerPath }
     if (-not (Test-Path -LiteralPath $modeController)) { return $null }
@@ -383,10 +398,13 @@ if ($actions.installPlugin) {
                 $rolloverId = [guid]::NewGuid().ToString("N")
                 $rolloverTransactionPath = Join-Path $rolloverStaging "plugin-rollover-transaction-$rolloverId.json"
                 $rolloverPrepareDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-rollover-prepare"
-                $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath | Out-String)
+                $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath 2>&1 | Out-String)
                 $rolloverPrepareExit = $LASTEXITCODE
                 Complete-InstallerDiagnosticStage -Context $rolloverPrepareDiagnostic -ExitCode $rolloverPrepareExit
-                if ($rolloverPrepareExit -ne 0) { throw "ownership-safe plugin generation rollover pre-install proof failed" }
+                if ($rolloverPrepareExit -ne 0) {
+                    $boundedPrepareDiagnostic = Get-BoundedInstallerDiagnostic -Output $prepareOutput
+                    throw "ownership-safe plugin generation rollover pre-install proof failed; child diagnostic: $boundedPrepareDiagnostic"
+                }
                 if (-not (Test-Path -LiteralPath $rolloverTransactionPath)) { throw "rollover transaction proof was not persisted" }
             }
             $pluginInstallDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-install-local-package"
