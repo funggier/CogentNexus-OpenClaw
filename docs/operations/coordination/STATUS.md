@@ -1,33 +1,32 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK240_TASK239_CROSS_PLATFORM_POWERSHELL_TEST_HARNESS_PORTABILITY_REPAIR`  
+**Execution mode:** `TASK241_TASK240_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 240 is repository-only, test-only portability repair with zero live installer and zero semantic budget  
-**Active task:** `CNX-20260904-240`  
-**Parent:** `CNX-20260904-239`  
+**Transport:** GitHub repository / Actions authoritative; Task 241 is a bounded Windows installer-only requalification with zero semantic budget  
+**Active task:** `CNX-20260904-241`  
+**Parent:** `CNX-20260904-240`  
+**Diagnostic parent:** `CNX-20260904-239`  
 **Forensic parent:** `CNX-20260904-238`  
 **Installer-failure parent:** `CNX-20260904-237`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK239_PASS_REJECTED__PRODUCTION_DIAGNOSTIC_REPAIR_FUNCTIONAL__CROSS_PLATFORM_TEST_HARNESS_REGRESSION_REQUIRES_TEST_ONLY_REPAIR`
+**Disposition:** `TASK240_ACCEPTED__TASK239_DIAGNOSTIC_REPAIR_VALIDATED__BOUNDED_EXACT_CANDIDATE_INSTALL_OVER_AUTHORIZED`
 
-## Task-239 independent review
-
-Task-239 report disposition `PASS_ROLLOVER_PREPARE_DIAGNOSTIC_PRESERVATION_TDD_REPAIRED` is not accepted as a completed authority gate.
+## Task-240 accepted result
 
 Independent review verdict:
 
-`REJECT_PASS_CROSS_PLATFORM_VALIDATION_REGRESSION__PRODUCTION_DIAGNOSTIC_REPAIR_ACCEPTED_AS_FUNCTIONAL_CANDIDATE__TEST_HARNESS_PORTABILITY_REPAIR_REQUIRED`
+`ACCEPT_PASS_TEST_HARNESS_PORTABILITY_REPAIRED__TASK239_PRODUCTION_DIAGNOSTIC_REPAIR_VALIDATED__EXACT_CANDIDATE_READY_FOR_BOUNDED_LIVE_INSTALL_REQUALIFICATION`
 
-Accepted production repair candidate:
+Exact candidate:
+
+`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
+
+Task-239 production diagnostic repair retained in the candidate lineage:
 
 `ec29020632091aae3b50149b51303a36fde26310`
 
-Test-only RED parent:
-
-`2c5d68384df11e38b9cea5e565c247324c4c5f44`
-
-Candidate plugin payload fingerprint remains:
+Candidate plugin payload fingerprint:
 
 `1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
 
@@ -35,88 +34,97 @@ Public `v0.9.3` remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-## CI evidence requiring Task 240
-
-Task-239 report HEAD:
-
-`b70606460c6ea3d8d37a3a8317946aa5b1ceec35`
-
-Actions:
+Exact-candidate Actions are terminal GREEN:
 
 ```text
-PS5.1 Acceptance Smoke 33830388132 = SUCCESS
-Windows Installer Pack Smoke 33830388125 = SUCCESS
-Validate 33830388146 = FAILURE
+PS5.1 Acceptance Smoke       33832755287 = SUCCESS
+Windows Installer Pack Smoke 33832755300 = SUCCESS
+Validate                      33832755313 = SUCCESS (attempt 2)
 ```
 
-Validate matrix proves the regression is test-harness portability, not the production installer repair:
+Validate attempt 1 failed at macOS `npm audit --omit=dev` due external registry/security-endpoint timeout; the failed-only rerun on the same SHA completed SUCCESS.
 
-```text
-Windows Python 3.11 = PASS
-Windows Python 3.14 = PASS
-Ubuntu Python 3.11/3.14 = FAIL
-macOS Python 3.11/3.14 = FAIL
-```
+Task 240 changed only `tests/test_task239_rollover_diagnostics.py`; it did not alter production/runtime source, workflows, plugin payload, or live state.
 
-The failing Task-239 helper-behavior test hard-codes `powershell.exe`; Ubuntu log confirms `FileNotFoundError: [Errno 2] No such file or directory: 'powershell.exe'`.
+## Preserved Windows evidence boundary
 
-## Active Task 240
-
-Execute:
-
-`docs/operations/coordination/tasks/CNX-20260904-240-task239-cross-platform-powershell-test-harness-portability-repair.md`
-
-Required flow:
-
-```text
-fresh authority
--> use existing CI failure as RED
--> minimal test-only capability-aware PowerShell execution repair
--> retain static Task-239 assertions on all platforms
--> retain real helper execution on Windows
--> focused/full GREEN
--> plugin fingerprint unchanged
--> exact final SHA Actions GREEN: Validate + Installer Pack + PS5.1
--> report
--> STOP for independent review
-```
-
-No production/runtime source change is authorized in Task 240. Do not modify `scripts/install.ps1` or workflows to hide the failing test.
-
-## Preserved live evidence boundary
+Fresh read-only Windows evidence wins. Entering retained state from Tasks 237/238:
 
 ```text
 controller = passthrough
 generation = 39
+candidate plugin not installed
+predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
 Gateway healthy
 provider = ollama
 Delivery READY / pending 0
 Recovery READY
 SQLite integrity = ok
-candidate plugin not installed
-predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
 ```
 
-## Zero-effect budget
+Retained Task-237 orphan backup token:
+
+`c6aaf93db7c34f718d01302477a292e1`
+
+It remains evidence and must not be cleaned or mutated.
+
+## Active Task 241
+
+Execute:
+
+`docs/operations/coordination/tasks/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+
+Required flow:
 
 ```text
-live installer registration/start/invocation: 0
-live rollover-prepare/finalize: 0
-manual plugin/lifecycle/Gateway/managed mutation: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
-Dashboard/Discord/API semantic sends: 0
-recovery replay/resend: 0
-process termination: 0
-provider/model substitution: 0
-forensic evidence cleanup/mutation: 0
-release/tag/asset mutation: 0
-force push/history rewrite: 0
+fresh GitHub authority
+-> clean detached exact candidate source proof
+-> fresh read-only live preflight and retained-evidence inventory
+-> one installer registration/start/invocation maximum
+-> close installer retry gate once product execution starts
+-> on failure preserve exact bounded child diagnostic + rollover evidence and STOP
+-> on success prove installed candidate fingerprint + ownership/finalization + managed convergence + health
+-> zero semantic side effects
+-> report
+-> STOP for independent review
 ```
+
+## Installer one-shot fence
+
+```text
+installer Scheduled Task registrations: 1 maximum
+installer Scheduled Task starts: 1 maximum
+installer invocations: 1 maximum
+installer execution retries after start: 0
+manual rollover operations: 0
+manual plugin mutation: 0
+manual controller/Gateway/lifecycle normalization: 0
+```
+
+Installer source binding must use the real supported contract: invoke `scripts/install.ps1` from the clean detached exact candidate checkout. Do not invent `--install-source-commit`.
+
+If `plugin-rollover-prepare` fails, Task-239's bounded child diagnostic is now part of the required terminal evidence. Do not rerun installer or manually replay the child operation.
+
+## Semantic zero-effect budget
+
+```text
+Dashboard human semantic submissions: 0
+Dashboard automated/native/computer-use submissions: 0
+Discord-origin semantic submissions: 0
+direct operator Discord/API Sends: 0
+semantic resubmissions: 0
+recovery replay/resend: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
+```
+
+## Hard fences
+
+No reset, uninstall/fresh reinstall, release/tag/asset mutation, force push/history rewrite, product/source/test/workflow edits during live execution, Task-237 evidence cleanup, historical evidence cleanup, process termination, provider/model substitution, or manual post-failure repair.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-240-task239-cross-platform-powershell-test-harness-portability-repair.md`
+`docs/operations/coordination/reports/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. No live installer retry or semantic acceptance is authorized in Task 240.
+Then stop for independent ChatGPT review. Semantic acceptance remains unauthorized even if Task 241 passes.
