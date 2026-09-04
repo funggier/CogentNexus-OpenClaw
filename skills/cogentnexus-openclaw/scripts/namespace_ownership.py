@@ -580,8 +580,8 @@ def _wrapper_identifies_product(project: Path) -> bool:
     return isinstance(dependencies, dict) and PLUGIN_PACKAGE in dependencies
 
 
-def _project_tree_sha256(root: Path) -> str:
-    """Hash an exact tree without following symlinks or Windows junctions."""
+def _project_tree_entries(root: Path) -> list[dict[str, Any]]:
+    """Enumerate exact digest inputs without following reparse points."""
     entries: list[dict[str, Any]] = []
 
     def visit(directory: Path) -> None:
@@ -611,7 +611,33 @@ def _project_tree_sha256(root: Path) -> str:
                 raise RuntimeError(f"managed npm project has an unsupported filesystem entry: {child_path}")
 
     visit(root)
-    return _json_sha256(entries)
+    return entries
+
+
+def _project_tree_snapshot(root: Path) -> dict[str, Any]:
+    """Return the exact entry inputs and digest produced by one tree scan."""
+    entries = _project_tree_entries(root)
+    return {"sha256": _json_sha256(entries), "entries": entries}
+
+
+def _project_tree_sha256(root: Path) -> str:
+    """Hash an exact tree without following symlinks or Windows junctions."""
+    return _project_tree_snapshot(root)["sha256"]
+
+
+def _project_tree_snapshot_delta(source: dict[str, Any], backup: dict[str, Any], *, limit: int = 64) -> list[dict[str, Any]]:
+    """Describe bounded digest-input differences from the captured scans."""
+    source_by_path = {entry["path"]: entry for entry in source["entries"]}
+    backup_by_path = {entry["path"]: entry for entry in backup["entries"]}
+    differences: list[dict[str, Any]] = []
+    for path in sorted(set(source_by_path) | set(backup_by_path)):
+        source_entry = source_by_path.get(path)
+        backup_entry = backup_by_path.get(path)
+        if source_entry != backup_entry:
+            differences.append({"path": path, "source": source_entry, "backup": backup_entry})
+            if len(differences) >= limit:
+                break
+    return differences
 
 
 def product_plugin_inventory(openclaw_state: Path) -> dict[str, Path]:
@@ -903,10 +929,22 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         raise RuntimeError("rollover backup destination is invalid or already exists")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(retired_project, backup_path)
-    retired_project_tree_sha256 = _project_tree_sha256(retired_project)
-    backup_project_tree_sha256 = _project_tree_sha256(backup_path)
+    retired_snapshot = _project_tree_snapshot(retired_project)
+    backup_snapshot = _project_tree_snapshot(backup_path)
+    retired_project_tree_sha256 = retired_snapshot["sha256"]
+    backup_project_tree_sha256 = backup_snapshot["sha256"]
     if retired_project_tree_sha256 != backup_project_tree_sha256:
-        raise RuntimeError("pre-install backup project-tree attestation mismatch")
+        differences = _project_tree_snapshot_delta(retired_snapshot, backup_snapshot)
+        diagnostic = {
+            "sourceTreeSha256": retired_project_tree_sha256,
+            "backupTreeSha256": backup_project_tree_sha256,
+            "changedPaths": [item["path"] for item in differences],
+            "differences": differences,
+        }
+        raise RuntimeError(
+            "pre-install backup project-tree attestation mismatch; "
+            f"diagnostic={json.dumps(diagnostic, sort_keys=True, separators=(',', ':'))}"
+        )
     return {
         "schemaVersion": 1,
         "operation": "cogentnexus-openclaw-plugin-generation-rollover-transaction",
