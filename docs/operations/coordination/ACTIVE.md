@@ -1,123 +1,126 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK241_TASK240_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK240_ACCEPTED__TASK239_DIAGNOSTIC_REPAIR_VALIDATED__BOUNDED_EXACT_CANDIDATE_INSTALL_OVER_AUTHORIZED`
-Task ID: `CNX-20260904-241`
-Parent task: `CNX-20260904-240`
+Execution mode: `TASK242_TASK241_SCHEDULED_RUNNER_EVIDENCE_CHANNEL_FORENSIC`
+Current disposition: `TASK241_BLOCKED_EVIDENCE_ACCEPTED__ONE_SHOT_BUDGET_RESPECTED__RUNNER_EXECUTION_EVIDENCE_FORENSIC_AUTHORIZED`
+Task ID: `CNX-20260904-242`
+Parent task: `CNX-20260904-241`
+Candidate-validation parent: `CNX-20260904-240`
 Diagnostic parent: `CNX-20260904-239`
-Forensic parent: `CNX-20260904-238`
+Earlier forensic parent: `CNX-20260904-238`
 Installer-failure parent: `CNX-20260904-237`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-240 boundary
+## Accepted Task-241 review
 
 Independent review verdict:
 
-`ACCEPT_PASS_TEST_HARNESS_PORTABILITY_REPAIRED__TASK239_PRODUCTION_DIAGNOSTIC_REPAIR_VALIDATED__EXACT_CANDIDATE_READY_FOR_BOUNDED_LIVE_INSTALL_REQUALIFICATION`
+`ACCEPT_BLOCKED_EVIDENCE__ONE_SHOT_BUDGET_RESPECTED__PRODUCT_FAILURE_UNCLASSIFIED__RUNNER_EXECUTION_EVIDENCE_FORENSIC_REQUIRED`
 
-Exact candidate:
+Reviewed Task-241 report HEAD:
 
-`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
+`36490e1f70da7096054f96f33898a6d9577a9187`
 
-Task-239 production diagnostic repair in candidate lineage:
-
-`ec29020632091aae3b50149b51303a36fde26310`
-
-Candidate plugin fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
-
-Exact-candidate Actions:
+Task-241 proved:
 
 ```text
-PS5.1 Acceptance Smoke       33832755287 = SUCCESS
-Windows Installer Pack Smoke 33832755300 = SUCCESS
-Validate                      33832755313 = SUCCESS (attempt 2)
+Scheduled Task registrations = 1
+Scheduled Task starts = 1
+second start = 0
+installer retry after start = 0
+LastTaskResult = 1
+fresh runner result/transcript = absent
+child installer invocation proven = 0
 ```
 
-Task 240 was test-only and did not alter production/runtime source or live state.
+The missing runner/transcript evidence prevents a product-specific installer failure classification.
 
 ## Preserved live boundary
 
-Fresh Windows read-only evidence wins. The retained Task-237/238 boundary is:
+Task-241 post-state remained:
 
 ```text
 controller = passthrough
 generation = 39
-candidate plugin not installed
-predecessor plugin fingerprint = e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
-Gateway healthy
-provider = ollama
-Delivery READY / pending 0
-Recovery READY
+candidate plugin = not installed
+Gateway = READY
+provider = READY
+model = READY
+storage = READY
+recovery = READY
+delivery = READY
+pending outbox = 0
 SQLite integrity = ok
 ```
 
-Task-237 retained backup token:
+Task-237 retained backup token remains evidence:
 
 `c6aaf93db7c34f718d01302477a292e1`
 
 Do not mutate or clean it.
 
-## Active Task 241
+## Active Task 242
 
 Execute:
 
-`tasks/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+`tasks/CNX-20260904-242-task241-scheduled-runner-evidence-channel-forensic.md`
 
-Required sequence:
+Required flow:
 
 ```text
 fresh GitHub authority
--> exact detached candidate checkout + clean/fingerprint proof
--> fresh read-only Windows preflight + retained evidence inventory
--> one installer registration/start/invocation maximum
--> INSTALLER_RETRY_GATE=CLOSED once execution starts
--> if failure: preserve bounded Task-239 child diagnostic + backup/transaction evidence and STOP
--> if success: prove installed fingerprint + rollover/finalization + managed convergence + full health
--> zero semantic side effects
+-> preserve/inventory Task-241 scheduler + runner evidence read-only
+-> reconstruct exact scheduler -> PowerShell -> runner -> artifact chain
+-> inspect quoting/path/CWD/ACL/event evidence
+-> if still necessary, one harmless scheduler canary maximum
+-> localize execution/evidence-channel root cause
+-> preserve live state and zero product/semantic effects
 -> report
 -> STOP for independent review
 ```
 
-## Installer one-shot budget
+## Harmless canary budget
 
 ```text
-installer Scheduled Task registrations: 1 maximum
-installer Scheduled Task starts: 1 maximum
-installer invocations: 1 maximum
-installer execution retries after start: 0
-manual rollover-prepare/finalize: 0
-manual plugin mutation: 0
-manual controller/Gateway/lifecycle normalization: 0
+harmless canary Scheduled Task registrations: 1 maximum
+harmless canary Scheduled Task starts: 1 maximum
+canary retries after start: 0
 ```
 
-Use only the installer's supported parameter contract. Bind source by invoking `scripts/install.ps1` from the exact detached candidate checkout. Do not invent `--install-source-commit`.
+The canary may only prove scheduler-to-runner durable artifact capture. It must not invoke CogentNexus/OpenClaw product operations.
+
+## Product zero budget
+
+```text
+scripts/install.ps1 invocations: 0
+installer Scheduled Task starts: 0
+rollover-prepare/finalize: 0
+openclaw plugins install: 0
+manual plugin mutation: 0
+controller/Gateway/lifecycle mutation: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
+```
 
 ## Semantic zero budget
 
 ```text
-Dashboard human semantic submissions: 0
-Dashboard automated/native/computer-use submissions: 0
-Discord-origin semantic submissions: 0
-direct operator Discord/API Sends: 0
-semantic resubmissions: 0
+Dashboard semantic submissions: 0
+Discord semantic submissions: 0
+direct Discord/API Sends: 0
 recovery replay/resend: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
 ```
 
 ## Hard fences
 
-No reset, uninstall/fresh reinstall, release/tag/asset mutation, force push/history rewrite, product/source/test/workflow edit during live execution, Task-237 backup cleanup, historical evidence cleanup, process termination, provider/model substitution, or manual post-failure repair.
+No installer retry, reset/uninstall/reinstall, managed-state normalization, historical evidence cleanup, product/source/test/workflow edit, release/tag/asset mutation, force push/history rewrite, process termination, or provider/model substitution.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260904-241-task240-exact-candidate-windows-install-over-requalification.md`
+`reports/CNX-20260904-242-task241-scheduled-runner-evidence-channel-forensic.md`
 
-Then stop for independent ChatGPT review. Even on PASS, no semantic acceptance is authorized without a separate successor.
+Then stop for independent ChatGPT review. A new installer attempt remains unauthorized in Task 242.
