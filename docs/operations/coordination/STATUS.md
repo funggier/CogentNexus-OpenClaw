@@ -1,149 +1,113 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK237_TASK236_SOURCE_BINDING_CONTRACT_CORRECTION_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
+**Execution mode:** `TASK238_TASK237_ROLLOVER_PREPARE_TERMINAL_FORENSIC_ADJUDICATION`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 237 corrects source binding only and remains installer-only with zero semantic submission budget  
-**Active task:** `CNX-20260904-237`  
-**Parent:** `CNX-20260903-236`  
+**Transport:** GitHub repository / Actions authoritative; Task 238 is read-only forensic adjudication with zero installer and zero semantic budget  
+**Active task:** `CNX-20260904-238`  
+**Parent:** `CNX-20260904-237`  
 **Repository/TDD parent:** `CNX-20260903-235`  
 **Installer safety / attestation repair parent:** `CNX-20260902-226`  
-**Known-good exact-source installer precedent:** `CNX-20260902-230`  
+**Historical direct-extension ownership repair:** `CNX-20260829-140`  
 **Historical installer failure lineage:** `CNX-20260902-223`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK236_BLOCKER_ACCEPTED__COORDINATION_SOURCE_BINDING_CONTRACT_CORRECTED__LIVE_INSTALL_OVER_REAUTHORIZED`
+**Disposition:** `TASK237_INSTALLER_TERMINAL_FAIL_ACCEPTED__EXACT_PREPARE_INVARIANT_FORENSICS_REQUIRED`
 
-## Exact candidate authority
+## Exact authority
 
-Exact source commit:
+Accepted repository candidate remains:
 
 `ffb0dd4ed47affe2e496c17b74ca74d358905bd7`
 
-Expected installed plugin payload fingerprint:
+Expected candidate plugin fingerprint:
 
 `1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+
+Task-237 post-failure predecessor plugin fingerprint:
+
+`e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`
 
 Public `v0.9.3` remains unchanged at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Task-236 report disposition:
+Task-237 report disposition:
 
-`BLOCKED_PREFLIGHT_DRIFT`
+`FAIL_INSTALLER_TERMINAL`
 
-Task-236 independent review verdict:
+Task-237 independent review verdict:
 
-`ACCEPT_BLOCKED_PREFLIGHT_DRIFT__COORDINATION_SOURCE_BINDING_CONTRACT_DEFECT_CONFIRMED__SUCCESSOR_REQUIRED`
+`ACCEPT_FAIL_INSTALLER_TERMINAL__ROLLOVER_PREPARE_EXACT_INVARIANT_UNPROVEN__READ_ONLY_FORENSIC_SUCCESSOR_REQUIRED`
 
-The blocker was not an installer/product failure. Task 236 required a nonexistent source-commit parameter and correctly stopped before any registration/start/mutation. Installer invocation count and semantic effect count remained zero.
+## Preserved live state
 
-## Correct source-binding rule
-
-Task 237 must not pass `--install-source-commit` / `-InstallSourceCommit`.
-
-Instead:
+Task-237 terminal boundary to preserve and re-prove read-only:
 
 ```text
-fresh-fetch repository
--> materialize disposable detached checkout exactly at ffb0dd4...
--> prove exact HEAD + clean worktree + candidate fingerprint
--> invoke scripts/install.ps1 directly from that exact checkout
+controller = passthrough
+generation = 39
+Gateway healthy
+provider = ollama
+Delivery READY, pending = 0
+Recovery READY
+SQLite integrity = ok
+candidate plugin not installed
+semantic submissions = 0
 ```
 
-This matches the source-binding topology already proven by Task 230 and requires no production source change.
+Do not manually re-enable managed mode or repair plugin identity.
 
-## Active Task 237
+## Active Task 238
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-237-task236-source-binding-contract-correction-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260904-238-task237-rollover-prepare-terminal-forensic-adjudication.md`
 
 Required sequence:
 
 ```text
-fresh repository authority
--> exact detached source-binding proof
--> read-only live preflight
--> Delivery/Recovery hazard gate
--> exact candidate install-over
--> installer-owned plugin replacement/rollover if required
--> exact installed fingerprint proof
--> managed convergence/post-install health
+fresh authority + state preservation
+-> inspect/hash Task-237 evidence
+-> recover rollover id/token
+-> inventory backup + transaction artifacts
+-> compare Task-237 backup/current retired identities
+-> eliminate rollover-prepare invariants in source order
+-> prove exact root cause or explicit evidence blocker
+-> classify prepare-output observability defect
 -> report
 -> STOP for independent review
 ```
 
-## Installer retry boundary
-
-Before execution, only bounded evidence-driven registration/tooling retries defined by Task 237 are authorized.
-
-Once the installer task/process starts:
-
-`INSTALLER_RETRY_GATE=CLOSED`
-
-Then:
+## Zero-mutation fence
 
 ```text
-installer execution retries: 0
-second installer start: 0
-second installer invocation: 0
-manual plugin repair: 0
-manual lifecycle repair: 0
-```
-
-## Live / semantic effect budget
-
-```text
+installer registration/start/invocation: 0
+direct rollover-prepare/finalize: 0
+manual plugin lifecycle mutation: 0
+manual managed/lifecycle/Gateway repair: 0
+manual Ticket/outbox/recovery/SQLite writes: 0
 Dashboard human semantic submissions: 0
 Discord-origin semantic submissions: 0
 direct operator Discord/API Sends: 0
-semantic retries/replays: 0
-manual durable delivery: 0
-manual Ticket/outbox/recovery/SQLite mutation: 0
-manual provider/model substitution: 0
-manual process termination: 0
-manual Gateway/lifecycle repair: 0
-manual plugin install/copy/delete/rename/manifest repair: 0
-reset: 0
-uninstall: 0
-fresh reinstall: 0
-installer successful start lineage: <= 1
-installer invocation lineage: <= 1
-installer execution retries after start: 0
-Task-223 retained forensic evidence mutation: 0
-Task-233 replay/settlement/deletion: 0
+recovery replay/resend: 0
+process termination: 0
+provider/model substitution: 0
+Task-237/Task-223/Task-233 evidence mutation: 0
+reset/uninstall/reinstall: 0
 Release/tag/asset mutation: 0
-production/source/test/workflow edits: 0
 force push/history rewrite: 0
 ```
 
-Installer-owned plugin replacement/rollover and normal installer-owned lifecycle/convergence are permitted only as required by the single exact-candidate installer invocation.
+Do not rerun the installer or rollover prepare to improve observability.
 
-## PASS requirements
+## Required outcome
 
-Task 237 must prove at minimum:
-
-- exact detached checkout HEAD is `ffb0dd4...` and clean immediately before installer registration/start;
-- source plugin fingerprint is `1ff69c459...`;
-- exact checkout's `scripts/install.ps1` is the invoked installer;
-- installer terminal success / exit code 0 / task result 0 where applicable;
-- installed canonical plugin fingerprint exactly `1ff69c459...`;
-- Task-226 fail-closed namespace-ownership repair remains present;
-- controller/runtime converges coherently to managed;
-- startup adapter, Supervisor/doctor, Gateway, Ollama/model, Delivery, Recovery, SQLite and process state are healthy/coherent;
-- Delivery pending outbox = 0;
-- no duplicate/recovery replay is introduced;
-- Task-223 and Task-233 retained evidence remains preserved;
-- Dashboard semantic submissions = 0;
-- direct operator Discord/API Sends = 0;
-- installer execution retries after start = 0.
+Task 238 must either prove the exact failing `rollover-prepare` invariant from retained evidence, or stop explicitly as `BLOCKED_EXACT_PREPARE_ERROR_UNPROVEN`/other permitted blocker. It must also classify whether the installer's captured-but-not-emitted `$prepareOutput` is a source-level observability defect.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-237-task236-source-binding-contract-correction-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260904-238-task237-rollover-prepare-terminal-forensic-adjudication.md`
 
-Then stop for independent ChatGPT review.
-
-Even on PASS, do not proceed into the one-human Dashboard semantic/durable-delivery acceptance, Discord semantic testing, old-lineage replay/settlement, historical-evidence cleanup, reset/uninstall/reinstall, or public Release/tag/asset mutation without a separate successor.
+Then stop for independent ChatGPT review. No installer retry or semantic acceptance is authorized from this status.
