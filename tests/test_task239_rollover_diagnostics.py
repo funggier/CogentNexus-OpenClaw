@@ -7,7 +7,9 @@ on the fail-closed path.
 """
 from __future__ import annotations
 
+import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -44,8 +46,18 @@ def test_rollover_prepare_has_bounded_diagnostic_preservation_contract():
     assert "$prepareOutput" in failure_region
 
 
+def _powershell_executable() -> str | None:
+    candidates = ("powershell.exe", "pwsh") if os.name == "nt" else ("pwsh", "powershell")
+    return next((shutil.which(candidate) for candidate in candidates if shutil.which(candidate)), None)
+
+
 def test_bounded_diagnostic_helper_behavior_is_real_and_deterministic():
     """Execute the owning PowerShell helper against empty/short/long output."""
+    import pytest
+
+    powershell = _powershell_executable()
+    if powershell is None:
+        pytest.skip("no PowerShell runtime available for helper execution")
     match = re.search(
         r"function Get-BoundedInstallerDiagnostic\s*\{.*?\n\}",
         INSTALL_PS1,
@@ -66,7 +78,7 @@ $long = ('H' * 3000) + ('T' * 1000) + 'PYTHON-TRACEBACK-MARKER' + ('T' * 2000)
         script_path = handle.name
     try:
         result = subprocess.run(
-            ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path],
+            [powershell, "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path],
             check=True,
             capture_output=True,
             text=True,
