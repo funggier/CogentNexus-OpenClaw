@@ -1,99 +1,107 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK252_TASK251_SCHEDULED_EXECUTION_LIMIT_TIMEOUT_FORENSIC`  
+**Execution mode:** `TASK253_TASK252_STREAMING_DIAGNOSTIC_RUNNER_TDD_QUALIFICATION`  
 **Updated:** 2026-09-05 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task252 is read-only timeout/stall forensic; installer retry and semantic acceptance remain unauthorized  
-**Active task:** `CNX-20260905-252`  
-**Parent:** `CNX-20260904-251`  
+**Transport:** GitHub repository / Actions authoritative; Task253 is repository/test-only streaming-runner TDD; live installer retry and semantic acceptance remain unauthorized  
+**Active task:** `CNX-20260905-253`  
+**Parent:** `CNX-20260905-252`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK251_ACCEPTED_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
+**Disposition:** `TASK252_ACCEPTED_BLOCKED__SCHEDULER_TIMEOUT_AND_BUFFERED_RUNNER_EVIDENCE_LOSS_PROVEN__STREAMING_RUNNER_TDD_REQUIRED`
 
-## Accepted Task-251 result
+## Accepted Task-252 result
 
 Reviewed report HEAD:
 
-`be6be78760fa1071ba2d4749db5ecd20025ac312`
+`c1649f064e22492ac324a1f137fc109cff680c62`
 
 Independent review commit:
 
-`24df69a9d23f8e2b072587109d72f85ac201d674`
+`9318008a9549a264aa28491b0d4d264750a9e168`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__SCHEDULER_EXECUTION_LIMIT_TERMINATION_PROVEN__INSTALLER_CHILD_STAGE_UNPROVEN__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
+`ACCEPT_BLOCKED_TASK251_CHILD_STAGE_UNPROVEN__SCHEDULER_TIMEOUT_AND_BUFFERED_RUNNER_EVIDENCE_LOSS_PROVEN__STREAMING_DIAGNOSTIC_RUNNER_TDD_REQUIRED`
 
-Task251 established:
-
-```text
-exact candidate = 9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96
-successful task registrations = 1
-installer starts = 1
-installer invocations = 1
-retries after start = 0
-runner child start = proven
-terminal scheduler result = 267014 / 0x41306 after execution limit
-runner terminal result = absent
-child stdout/stderr = absent
-last installer stage = unproven
-Task250 diagnostic emission = unproven
-candidate installed = not proven
-postflight plugin = predecessor e3bcce04...
-controller = passthrough generation 39
-semantic sends = 0
-```
-
-Report-head Actions are terminal SUCCESS:
+Task252 established four separate causal layers:
 
 ```text
-PS5.1 Acceptance Smoke        33905872979
-Windows Installer Pack Smoke 33905872955
-Validate                      33905872866
+scheduler termination mechanism = proven: PT45M + AllowHardTerminate + LastTaskResult 0x41306
+runner evidence-loss mechanism = proven: ReadToEnd()/WaitForExit() + post-completion artifact writes
+last installer stage = unproven beyond child-start boundary
+underlying child stall cause = unproven
 ```
 
-Public `v0.9.3` remains `26ce64a624255278a3a0266ad38746e0e6ed2e31`.
+Retained Task251 runner SHA-256:
 
-## Active Task 252
+`0c2da0cb5877ca9493e4921c3a7b5492dd884841a2bd68c3fb63032b6e42eb98`
+
+The runner can lose all child stdout/stderr if the outer PowerShell process is hard-terminated before child completion. Task252 made no live product/source/test/workflow mutation and does not authorize an installer retry or timeout increase.
+
+Public `v0.9.3` remains immutable at:
+
+`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+
+## Active Task 253
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
+`docs/operations/coordination/tasks/CNX-20260905-253-task252-streaming-diagnostic-runner-tdd-qualification.md`
 
-Task252 must separate four questions:
+Task253 must use TDD to create and qualify a repository-owned Windows PowerShell 5.1 manifest streaming runner whose emitted child output is durable while the child is still alive.
+
+Mandatory behavior includes:
 
 ```text
-1. scheduler termination mechanism
-2. runner evidence-loss mechanism
-3. last provable installer stage
-4. underlying reason the child did not return before the task limit
+runner-start marker before child launch
+child-start/PID evidence immediately after launch
+stdout/stderr files visible and flushed while child is alive
+forced outer-runner termination preserves already-emitted output
+known nonzero child exit preserved on normal completion
+launch failure distinct from child nonzero
+manifest arguments preserved exactly
 ```
 
-Required evidence includes exact Scheduled Task XML/settings and `ExecutionTimeLimit`, TaskScheduler/PowerShell/process events, Task251 runner+manifest hashes and static persistence behavior, detached-checkout residue, installer-owned workspace/app-data residue, rollover backup/transaction inventory, and a residue-to-stage map against exact candidate source.
+Required topology:
 
-Do not infer installer failure stage from absent stdout/stderr. Do not increase the task time limit or rerun the installer in this task.
+```text
+fresh authority
+-> test-only RED
+-> minimal streaming runner implementation
+-> focused GREEN
+-> full GREEN
+-> exact candidate + runner SHA + installer SHA + plugin fingerprint proof
+-> exact-SHA Validate / Windows Installer Pack Smoke / PS5.1 Acceptance Smoke SUCCESS
+-> report
+-> STOP for independent review
+```
+
+Preferred production location:
+
+`scripts/manifest-streaming-runner.ps1`
+
+Do not modify installer/ownership/plugin/lifecycle/dashboard semantics as part of Task253.
 
 ## Hard fences
 
 ```text
-live installer invocation = 0
-Task251 task start = 0
-new installer task registration = 0
-rollover prepare/finalize = 0
-plugin/retired-tree/backup mutation = 0
+live scripts/install.ps1 = 0
+live installer task registration/start = 0
+live rollover prepare/finalize = 0
+live plugin/retired-tree/rollover-backup mutation = 0
 controller/Gateway/provider/model/DB mutation = 0
 Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
-manual process termination = 0
-production/source/test/workflow edits = 0
-release/tag/history mutation = 0
+release/tag mutation = 0
+force push/history rewrite = 0
 ```
 
-Evidence-only writes to the Task252 forensic root and report publication are authorized.
+Repository source/test edits for the streaming runner and ordinary CI are authorized. Synthetic test children must not call product/runtime surfaces.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
+`docs/operations/coordination/reports/CNX-20260905-253-task252-streaming-diagnostic-runner-tdd-qualification.md`
 
-Then STOP for independent ChatGPT review. No installer retry or semantic acceptance before that review.
+Then STOP for independent ChatGPT review. Live installer requalification and semantic acceptance require separate successor authority even if Task253 passes.
