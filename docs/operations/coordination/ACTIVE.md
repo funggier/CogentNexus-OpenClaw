@@ -1,103 +1,95 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK247_POWERSHELL51_NATIVE_STDERR_CAPTURE_TDD_DIAGNOSIS_REPAIR`
-Current disposition: `TASK246_ACCEPTED_BLOCKED__EVIDENCE_PRESERVED__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
-Task ID: `CNX-20260904-247`
-Parent task: `CNX-20260904-246`
-Parent installer failure: `CNX-20260904-245`
-Prior diagnostic repair: `CNX-20260904-239`
-Candidate-validation parent: `CNX-20260904-240`
+Execution mode: `TASK248_TASK247_REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK247_ACCEPTED_PASS__POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__LIVE_INSTALLER_REQUALIFICATION_REAUTHORIZED`
+Task ID: `CNX-20260904-248`
+Parent task: `CNX-20260904-247`
+Installer failure lineage: `CNX-20260904-245`, `CNX-20260904-246`
+Harness lineage: `CNX-20260904-243`, `CNX-20260904-244`, `CNX-20260904-245`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-246 result
+## Accepted Task-247 result
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_EXACT_EXCEPTION_UNPROVEN__TASK245_EVIDENCE_PRESERVED_BYTE_IDENTICALLY__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
+`ACCEPT_PASS_POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__FINAL_ANCESTRY_RED_PROVEN__REPORT_RED_SHA_STALE_NONBLOCKING__LIVE_INSTALLER_REQUALIFICATION_AUTHORIZED_SEPARATELY`
 
-Reviewed Task-246 report HEAD:
+Reviewed Task-247 report HEAD:
 
-`18ec3763bdc8c5a6ffdd8815d863f59447e5e7f7`
+`8cbbe2d405477e7b7c91b3fb649582e3a400e893`
 
-Accepted facts:
+Accepted repaired executable candidate:
 
-```text
-Task-245 temp evidence preserved outside Temp = 34/34 byte-identical
-Task-245 installer child = exact candidate / one invocation
-terminal stage = plugin-rollover-prepare
-child exit = 1
-new Task-245 rollover transaction = not observed
-complete retained Python exception = unavailable
-live repair/semantic effects in Task 246 = 0
-```
+`6c11a5e8f417300835e85441b88e0f37e3897353`
 
-Task-246 report-head Actions are GREEN:
+Expected plugin fingerprint:
+
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+
+Task 247 reproduced the real Windows PowerShell 5.1 `NativeCommandError` truncation under `$ErrorActionPreference='Stop'` and repaired only the native capture boundary. The final-ancestry RED is test-only commit `f5f04a7422be05f446d408d48e949473a113dc36`; the report's pre-rebase RED SHA is stale but nonblocking.
+
+Exact repaired-candidate Actions are GREEN:
 
 ```text
-PS5.1 Acceptance Smoke        33881077771 = SUCCESS
-Windows Installer Pack Smoke 33881077746 = SUCCESS
-Validate                      33881077796 = SUCCESS
+PS5.1 Acceptance Smoke        33884732550 = SUCCESS
+Windows Installer Pack Smoke 33884732528 = SUCCESS
+Validate                      33884732569 = SUCCESS (attempt 2, same SHA)
 ```
 
-The exact Python exception must not be guessed.
-
-## Active Task 247
+## Active Task 248
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
+`docs/operations/coordination/tasks/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
 
 Required sequence:
 
 ```text
-fresh GitHub authority
--> test-only Windows PowerShell 5.1 RED with harmless multi-line native stderr child
--> prove or reject NativeCommandError/truncation hypothesis
--> if hypothesis rejected: no production edit, report, STOP
--> if meaningful RED: minimal owning-boundary repair only
--> exact RED becomes GREEN
--> targeted + full repository validation
--> exact-SHA Actions GREEN
+fresh GitHub/live preflight
+-> fresh detached exact candidate 6c11a5e8...
+-> prove clean source + plugin fingerprint + Task247 repair
+-> create fresh non-temp durable evidence root
+-> regenerate/hash/direct-qualify frozen hardened runner
+-> create/hash/readback frozen launch manifest
+-> prove exact installer -File binding
+-> register installer Scheduled Task at most once
+-> immediately re-prove all bindings
+-> start at most once
+-> installer child invocation at most once
+-> retry gate CLOSED after start
+-> terminal evidence
+-> full read-only postflight
 -> report
 -> STOP for independent review
 ```
 
-The RED must exercise `$ErrorActionPreference='Stop'` and the actual installer-relevant native stderr capture semantics. A helper-only or static-string test is insufficient.
+If `plugin-rollover-prepare` fails again, the Task-247 repaired capture must preserve the complete bounded Python diagnostic/type/message or exact failing invariant. Do not retry after observing the failure.
 
-## Hard boundaries
-
-Task 247 is repository/test work only.
+## Hard budgets
 
 ```text
-live installer invocations = 0
-installer Scheduled Task registrations/starts = 0
-live rollover/plugin/controller/Gateway/DB mutation = 0
+successful installer task registrations <= 1
+installer task starts <= 1
+scripts/install.ps1 child invocations <= 1
+installer retries after start = 0
+manual plugin/lifecycle/Gateway/DB repair = 0
 Dashboard/Discord/API semantic sends = 0
+semantic retries = 0
 recovery replay/resend = 0
-historical evidence cleanup = 0
+production/source/test/workflow edits = 0
 release/tag/history mutation = 0
 ```
 
-No production edit is allowed before a meaningful test-only RED. Do not change `namespace_ownership.py`, rollover ownership semantics, plugin payload behavior, lifecycle ordering, or semantic-delivery behavior.
-
-## Expected payload identity
-
-Accepted predecessor executable candidate:
-
-`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
-
-Expected plugin payload fingerprint remains:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+Installer-owned writes inside the single authorized invocation are allowed.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
+`docs/operations/coordination/reports/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
 
-Then STOP for independent ChatGPT review. A live installer retry and semantic acceptance remain separate, unauthorized successors.
+Then STOP for independent ChatGPT review. Semantic acceptance remains a separate successor even if Task 248 passes.
