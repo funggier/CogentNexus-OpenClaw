@@ -1,104 +1,97 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK243_TASK242_HARDENED_SCHEDULED_RUNNER_HARNESS_QUALIFICATION`
-Current disposition: `TASK242_ACCEPTED__EXECUTION_CHANNEL_PROVEN__TASK241_RUNNER_CHILD_BOUNDARY_UNRESOLVED__HARDENED_HARNESS_QUALIFICATION_AUTHORIZED`
-Task ID: `CNX-20260904-243`
-Parent task: `CNX-20260904-242`
-Installer parent: `CNX-20260904-241`
+Execution mode: `TASK244_TASK243_HARDENED_RUNNER_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK243_ACCEPTED__HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__FRESH_RUNNER_REGENERATION_GATE_REQUIRED__ONE_SHOT_INSTALLER_REQUALIFICATION_AUTHORIZED`
+Task ID: `CNX-20260904-244`
+Parent task: `CNX-20260904-243`
+Installer evidence parent: `CNX-20260904-241`
+Runner forensic parent: `CNX-20260904-242`
 Candidate-validation parent: `CNX-20260904-240`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-242 boundary
+## Accepted Task-243 review
 
 Independent review verdict:
 
-`ACCEPT_PASS_HARMLESS_CANARY_PROVES_EXECUTION_CHANNEL__TASK241_SPECIFIC_RUNNER_CHILD_BOUNDARY_UNRESOLVED__HARDENED_RUNNER_HARNESS_QUALIFICATION_REQUIRED`
+`ACCEPT_PASS_HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__PRECREATE_REGISTRATION_CORRECTION_ACCEPTED__RUNNER_SHA_REPORT_GAP_NONBLOCKING_WITH_FRESH_REGENERATION_GATE__SEPARATE_BOUNDED_INSTALLER_REQUALIFICATION_AUTHORIZED`
 
-Reviewed Task-242 report HEAD:
+Reviewed Task-243 report HEAD:
 
-`1420fb8ae3c53deb0f99e1ce20c5192822ae91ba`
+`ad94e992fec3cbf414bf82a3dd5073b229e6b5b8`
 
-Task 242 proved the general Scheduled Task -> Windows PowerShell 5.1 -> durable artifact channel works with one harmless canary:
-
-```text
-registration = 1
-start = 1
-retry = 0
-LastTaskResult = 0
-artifact = present
-identity = CDQ-P\CDQ-P
-```
-
-Task 241 remains product-unclassified because its child installer invocation was never durably proven.
-
-## Preserved live boundary
-
-Fresh Windows read-only evidence wins. Retained state remains:
+Task 243 proved the hardened operator runner can durably distinguish and capture:
 
 ```text
-controller = passthrough
-generation = 39
-candidate plugin not installed
-Gateway = READY
-provider/model/storage/recovery/delivery = READY
-pending outbox = 0
-SQLite integrity = ok
+child nonzero exit -> stdout/stderr/transcript/result + exact exit 37
+child launch exception -> started marker + exception + fallback + finally result
+Scheduled Task path -> one successful registration, one start, LastTaskResult 37
 ```
 
-Retained Task-237 evidence token:
+The first Task-243 registration method failed before task creation and `TaskPresent=false` was proven before the materially different fully-qualified-principal correction. That pre-start tooling correction is accepted.
+
+Task-243 report omitted the qualified hardened-runner SHA. Therefore Task 244 must not rely on the old temp runner; it must regenerate, hash, qualify, freeze, and use one byte-identical fresh runner.
+
+## Exact executable candidate
+
+```text
+candidate SHA = 18a51b15768fb3d2196e65f1ef470c34aeef7f36
+plugin fingerprint = 1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f
+public v0.9.3 = 26ce64a624255278a3a0266ad38746e0e6ed2e31 (immutable)
+```
+
+Exact-candidate required Actions were previously GREEN; Task 244 must fetch and prove all three fresh before live mutation.
+
+## Preserved live/evidence boundary
+
+Fresh Windows read-only evidence wins over older reports. Do not assume current installed fingerprint or rollover state.
+
+Retained Task-237 backup token:
 
 `c6aaf93db7c34f718d01302477a292e1`
 
-Do not mutate or clean it.
+Do not clean or mutate Task-223/237/241/242/243 historical evidence.
 
-## Active Task 243
+## Active Task 244
 
 Execute:
 
-`tasks/CNX-20260904-243-task242-hardened-scheduled-runner-harness-qualification.md`
+`tasks/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
 
 Required flow:
 
 ```text
-fresh GitHub authority
--> confirm Task-241 runner evidence weakness
--> build new disposable hardened PowerShell 5.1 runner
--> durable runner-started before child
--> explicit transcript/fallback + stdout/stderr + finally result
--> direct harmless nonzero-child test
--> direct harmless child-launch-exception test
--> one scheduled harmless failure-path canary maximum
--> prove exit-code propagation + durable artifacts
--> prove live state unchanged
+fresh GitHub/exact-candidate authority
+-> clean detached exact source
+-> fresh read-only live plugin/runtime/rollover inventory
+-> derive expected installer classifier/resolver path
+-> create new unique hardened runner/evidence root
+-> persist runner source + SHA
+-> direct synthetic nonzero + launch-exception qualification
+-> rehash/freeze runner byte-identically
+-> register installer Scheduled Task once with CDQ-P\CDQ-P
+-> read back task definition
+-> start installer once
+-> consume hardened runner evidence
+-> classify terminal result
+-> if child exit 0, prove exact plugin/runtime/rollover/DB postflight
 -> report
 -> STOP for independent review
 ```
 
-## Harmless qualification budget
+## Installer one-shot budget
 
 ```text
-Task-243 harmless Scheduled Task registrations: 1 maximum
-Task-243 harmless Scheduled Task starts: 1 maximum
-scheduled canary retries after start: 0
+successful installer Scheduled Task registrations: 1 maximum
+installer Scheduled Task starts: 1 maximum
+installer child invocations: 1 maximum
+installer retries after start: 0
 ```
 
-Direct local synthetic-child qualification may be repeated only to correct the new disposable Task-243 harness and must remain product/semantic side-effect free.
-
-## Product zero budget
-
-```text
-scripts/install.ps1 invocations: 0
-installer Scheduled Task registrations/starts: 0
-rollover-prepare/finalize: 0
-openclaw plugins install: 0
-plugin mutation: 0
-controller/Gateway/lifecycle mutation: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
-```
+If registration fails before task creation, prove `TaskPresent=false` and STOP; do not attempt a second installer registration in Task 244.
 
 ## Semantic zero budget
 
@@ -112,12 +105,12 @@ recovery replay/resend: 0
 
 ## Hard fences
 
-No installer retry, reset/uninstall/reinstall, managed-state normalization, product/source/test/workflow edits, historical evidence cleanup, release/tag/asset mutation, process termination, provider/model substitution, or force push/history rewrite.
+No reset/uninstall/reinstall sequence, second installer attempt, manual plugin replacement, manual rollover prepare/finalize, manual controller/Gateway/lifecycle normalization, manual Ticket/outbox/recovery/SQLite writes, provider/model substitution, process termination to coerce outcome, historical evidence cleanup, release/tag/asset mutation, force push/history rewrite, or semantic message.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260904-243-task242-hardened-scheduled-runner-harness-qualification.md`
+`reports/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. Even on PASS, another installer attempt remains unauthorized until a separate successor explicitly allows it.
+Then stop for independent ChatGPT review. Even on installer PASS, semantic requalification is a separate successor task.
