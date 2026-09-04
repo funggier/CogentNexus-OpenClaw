@@ -1,135 +1,105 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK243_TASK242_HARDENED_SCHEDULED_RUNNER_HARNESS_QUALIFICATION`  
+**Execution mode:** `TASK244_TASK243_HARDENED_RUNNER_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 243 is tooling-only hardened runner qualification with zero installer and zero semantic budget  
-**Active task:** `CNX-20260904-243`  
-**Parent:** `CNX-20260904-242`  
-**Installer parent:** `CNX-20260904-241`  
+**Transport:** GitHub repository / Actions authoritative; Task 244 authorizes one exact-candidate live installer attempt through a freshly regenerated, hashed, directly-qualified, frozen hardened runner; semantic budget remains zero  
+**Active task:** `CNX-20260904-244`  
+**Parent:** `CNX-20260904-243`  
+**Installer evidence parent:** `CNX-20260904-241`  
+**Runner forensic parent:** `CNX-20260904-242`  
 **Candidate-validation parent:** `CNX-20260904-240`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK242_ACCEPTED__EXECUTION_CHANNEL_PROVEN__TASK241_RUNNER_CHILD_BOUNDARY_UNRESOLVED__HARDENED_HARNESS_QUALIFICATION_AUTHORIZED`
+**Disposition:** `TASK243_ACCEPTED__HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__FRESH_RUNNER_REGENERATION_GATE_REQUIRED__ONE_SHOT_INSTALLER_REQUALIFICATION_AUTHORIZED`
 
-## Task-242 accepted result
+## Task-243 accepted result
 
 Reviewed report HEAD:
 
-`1420fb8ae3c53deb0f99e1ce20c5192822ae91ba`
+`ad94e992fec3cbf414bf82a3dd5073b229e6b5b8`
 
 Independent review verdict:
 
-`ACCEPT_PASS_HARMLESS_CANARY_PROVES_EXECUTION_CHANNEL__TASK241_SPECIFIC_RUNNER_CHILD_BOUNDARY_UNRESOLVED__HARDENED_RUNNER_HARNESS_QUALIFICATION_REQUIRED`
+`ACCEPT_PASS_HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__PRECREATE_REGISTRATION_CORRECTION_ACCEPTED__RUNNER_SHA_REPORT_GAP_NONBLOCKING_WITH_FRESH_REGENERATION_GATE__SEPARATE_BOUNDED_INSTALLER_REQUALIFICATION_AUTHORIZED`
 
-Task 242 proved:
+Task 243 proved a hardened disposable runner can durably capture both a synthetic child nonzero exit and a child-launch exception, and can propagate a deterministic exit code through Task Scheduler with one successful registration and one start.
 
-```text
-harmless Scheduled Task registrations = 1
-harmless Scheduled Task starts = 1
-retry after start = 0
-LastTaskResult = 0
-PowerShell 5.1 started
-identity = CDQ-P\CDQ-P
-artifact = present
-product installer calls = 0
-semantic actions = 0
-```
+The failed first registration method in Task 243 created no task (`TaskPresent=false`) and was accepted as a pre-start tooling correction. The report did not record the qualified runner SHA, so Task 244 must regenerate and persist a fresh runner identity rather than reuse temp state.
 
-The general scheduler/PowerShell/artifact channel is therefore functional. Task 241 remains unclassified at the runner/child boundary because it lacked durable pre-child and finally evidence.
-
-Task-242 report-head Actions:
+## Exact executable candidate
 
 ```text
-PS5.1 Acceptance Smoke        33837768138 = SUCCESS
-Windows Installer Pack Smoke 33837767959 = SUCCESS
-Validate                      33837767905 = FAILURE
+candidate SHA = 18a51b15768fb3d2196e65f1ef470c34aeef7f36
+plugin fingerprint = 1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f
+public v0.9.3 = 26ce64a624255278a3a0266ad38746e0e6ed2e31 (immutable)
 ```
 
-The Validate failure was isolated to macOS/Python 3.14 `npm audit --omit=dev` after a five-minute npm registry security-endpoint timeout. Repository tests/build/evaluation passed before that step, including Python `480 passed, 33 skipped, 4 subtests passed` and plugin `58 files / 284 tests`. Other matrix jobs passed. This is treated as an external CI anomaly, not Task-242 product drift.
+Task 244 must fresh-prove the exact candidate's three required Actions before live mutation.
 
-## Preserved Windows boundary
-
-Fresh Windows evidence wins. Retained state remains:
-
-```text
-controller = passthrough
-generation = 39
-candidate plugin not installed
-Gateway = READY
-provider/model/storage/recovery/delivery = READY
-pending outbox = 0
-SQLite integrity = ok
-```
-
-Retained Task-237 evidence token:
-
-`c6aaf93db7c34f718d01302477a292e1`
-
-Do not mutate or clean it.
-
-## Active Task 243
+## Active Task 244
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-243-task242-hardened-scheduled-runner-harness-qualification.md`
+`docs/operations/coordination/tasks/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
 
 Required flow:
 
 ```text
-fresh authority
--> preserve Task-241/242 evidence
--> build new unique disposable hardened PowerShell 5.1 runner
--> durable runner-started before child
--> transcript/fallback + stdout/stderr + finally result
--> direct synthetic nonzero-child qualification
--> direct synthetic child-launch-exception qualification
--> one scheduled harmless failure-path canary maximum
--> prove Task Scheduler exit-code propagation and durable artifacts
--> read-only live-state preservation proof
+fresh GitHub authority + exact-candidate Actions
+-> detached exact source
+-> fresh read-only live inventory
+-> derive installer classifier/resolver path
+-> new unique hardened runner/evidence root
+-> persist runner source + SHA
+-> direct synthetic nonzero + launch-exception qualification
+-> byte-identical rehash and freeze
+-> one installer Scheduled Task registration with CDQ-P\CDQ-P
+-> one installer start
+-> hardened evidence classification
+-> if exit 0, exact plugin/rollover/runtime/DB postflight
 -> report
 -> STOP for independent review
 ```
 
-## Harmless scheduled budget
+## One-shot installer budget
 
 ```text
-Task-243 harmless task registrations: 1 maximum
-Task-243 harmless task starts: 1 maximum
-scheduled canary retries after start: 0
+successful installer Scheduled Task registrations: 1 maximum
+installer Scheduled Task starts: 1 maximum
+installer child invocations: 1 maximum
+installer retries after start: 0
 ```
 
-Direct synthetic-child qualification may be repeated only to correct the new Task-243 disposable harness and may not invoke product/runtime/network/semantic operations.
+If installer task registration fails before creation, prove `TaskPresent=false` and stop; no second installer registration is allowed in Task 244.
 
-## Product zero-effect budget
+## Preserved evidence
 
-```text
-scripts/install.ps1 invocations: 0
-installer Scheduled Task registrations/starts: 0
-rollover-prepare/finalize: 0
-openclaw plugins install: 0
-plugin mutation: 0
-controller/Gateway/lifecycle mutation: 0
-manual Ticket/outbox/recovery/SQLite writes: 0
-```
+Fresh Windows inventory wins. Do not assume old live plugin/rollover state.
+
+Retained Task-237 backup token:
+
+`c6aaf93db7c34f718d01302477a292e1`
+
+Do not mutate or clean historical Task-223/237/241/242/243 evidence.
 
 ## Semantic zero-effect budget
 
 ```text
 Dashboard semantic submissions: 0
 Discord semantic submissions: 0
-direct Discord/API Sends: 0
+direct Discord/API sends: 0
 semantic retries: 0
 recovery replay/resend: 0
 ```
 
 ## Hard fences
 
-No installer retry, reset/uninstall/reinstall, managed-state normalization, product/source/test/workflow edits, historical evidence cleanup, release/tag/asset mutation, process termination, provider/model substitution, or force push/history rewrite.
+No reset/uninstall/reinstall sequence, second installer attempt, manual plugin replacement, manual rollover prepare/finalize, manual controller/Gateway/lifecycle normalization, manual Ticket/outbox/recovery/SQLite writes, provider/model substitution, process termination to coerce outcome, historical evidence cleanup, release/tag/asset mutation, force push/history rewrite, or semantic message.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-243-task242-hardened-scheduled-runner-harness-qualification.md`
+`docs/operations/coordination/reports/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. Another installer attempt remains unauthorized even if Task 243 passes.
+Then stop for independent ChatGPT review. Semantic requalification remains a separate successor even if installer PASSes.
