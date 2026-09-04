@@ -1,92 +1,76 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK251_TASK250_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK250_ACCEPTED_PASS__EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_GREEN__ONE_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED`
-Task ID: `CNX-20260904-251`
-Parent task: `CNX-20260904-250`
+Execution mode: `TASK252_TASK251_SCHEDULED_EXECUTION_LIMIT_TIMEOUT_FORENSIC`
+Current disposition: `TASK251_ACCEPTED_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
+Task ID: `CNX-20260905-252`
+Parent task: `CNX-20260904-251`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-04 ICT
+Updated: 2026-09-05 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-250 result
+## Accepted Task-251 result
 
 Independent review verdict:
 
-`ACCEPT_PASS_EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD__TASK226_FAIL_CLOSED_PRESERVED__EXACT_CANDIDATE_READY_FOR_ONE_LIVE_INSTALL_REQUALIFICATION`
+`ACCEPT_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__SCHEDULER_EXECUTION_LIMIT_TERMINATION_PROVEN__INSTALLER_CHILD_STAGE_UNPROVEN__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
 
 Reviewed report HEAD:
 
-`e6e971211cec36af80c66ca3c1f8726ec89d2392`
+`be6be78760fa1071ba2d4749db5ecd20025ac312`
 
 Review commit:
 
-`86f7596f7f2836744b2f653b1deda0174090fe5d`
+`24df69a9d23f8e2b072587109d72f85ac201d674`
 
-Exact candidate:
+Task251 consumed exactly one installer start/invocation and zero execution retries. The child was observed starting, but the Scheduled Task remained Running until its execution limit and terminated with `LastTaskResult=267014 (0x41306)`. Runner result, child stdout/stderr, and complete transcript were absent, so the last installer stage and any Task250 attestation diagnostic remain unproven.
 
-`9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96`
+Postflight remained predecessor plugin identity, passthrough generation 39, Ollama selected, Gateway healthy, Delivery READY/pending 0, Recovery READY, SQLite integrity OK, and semantic sends = 0.
 
-Expected plugin fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
-
-Exact candidate deployment gates are terminal SUCCESS:
-
-```text
-Validate                      33896622009
-Windows Installer Pack Smoke 33896622084
-PS5.1 Acceptance Smoke        33896621985
-```
-
-Task 250 preserves Task-226 fail-closed full-tree attestation and adds bounded per-path diagnostic evidence from the exact source/backup snapshots that produced the compared hashes.
-
-## Active Task 251
+## Active Task 252
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
 
 Required flow:
 
 ```text
 fresh GitHub authority
--> exact detached checkout of 9c3c4e0...
--> prove clean exact source + installer hash + plugin fingerprint
--> read-only Windows preflight + delivery/recovery hazard gate
--> register/start authenticated Scheduled Task
--> exactly one installer invocation
--> retry gate closes at product start
--> if attestation mismatch recurs, preserve complete Task250 diagnostic and STOP
--> if install succeeds, prove exact installed identity + managed convergence + health
--> report
+-> preserve/hash surviving Task251 runner/manifest/evidence
+-> export/read Task251 Scheduled Task XML/settings + exact execution limit
+-> correlate Scheduler/PowerShell/process events with start/termination
+-> statically prove runner output buffering/flush behavior
+-> inspect detached checkout and installer-owned residues read-only
+-> map residues/timestamps to exact candidate stage order
+-> identify last provable installer stage and timeout/evidence-loss mechanism
+-> report uncertainty explicitly
 -> STOP for independent review
 ```
 
 ## Hard fences
 
 ```text
-installer successful starts <= 1
-installer invocations <= 1
-installer retries after start = 0
-manual plugin/lifecycle/DB repair = 0
+scripts/install.ps1 invocations = 0
+Task251 Scheduled Task starts = 0
+new installer Scheduled Task registrations = 0
+rollover prepare/finalize invocations = 0
+plugin/retired-tree/backup mutation = 0
+controller/Gateway/provider/model/DB mutation = 0
 Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
-reset/uninstall/fresh reinstall = 0
-release/tag mutation = 0
+manual process termination = 0
 production/source/test/workflow edits = 0
-force push/history rewrite = 0
+release/tag/history mutation = 0
 ```
 
-Installer-owned rollover/plugin replacement and normal installer-owned lifecycle convergence are the only authorized live mutations.
-
-Do not weaken or bypass a full-tree mismatch. If the mismatch recurs, retain the exact `diagnostic=` JSON emitted by Task 250 and do not rerun the installer.
+Evidence-only writes under the separate Task252 forensic root are authorized.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
 
-Then STOP for independent ChatGPT review. Semantic durable-delivery acceptance remains a separate future task even if Task 251 passes.
+Then STOP for independent ChatGPT review. Installer retry and semantic acceptance remain unauthorized.
