@@ -1,15 +1,16 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK236_TASK235_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK235_ACCEPTED_PASS__EXACT_CANDIDATE_LIVE_INSTALL_OVER_AUTHORIZED`
-Task ID: `CNX-20260903-236`
-Parent task: `CNX-20260903-235`
+Execution mode: `TASK237_TASK236_SOURCE_BINDING_CONTRACT_CORRECTION_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK236_BLOCKER_ACCEPTED__COORDINATION_SOURCE_BINDING_CONTRACT_CORRECTED__LIVE_INSTALL_OVER_REAUTHORIZED`
+Task ID: `CNX-20260904-237`
+Parent task: `CNX-20260903-236`
+Repository/TDD parent: `CNX-20260903-235`
 Installer safety / attestation repair parent: `CNX-20260902-226`
-Known-good installer re-entry precedent: `CNX-20260902-230`
+Known-good exact-source installer precedent: `CNX-20260902-230`
 Historical installer failure lineage: `CNX-20260902-223`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-03 ICT
+Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
@@ -27,31 +28,47 @@ Public `v0.9.3` remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-Task-235 independent review:
+Task-236 report:
 
-`reviews/CNX-20260903-235-task234-exact-topology-tdd-evidence-closure-review.md`
+`reports/CNX-20260903-236-task235-exact-candidate-windows-install-over-requalification.md`
 
-Verdict:
+Task-236 independent review:
 
-`ACCEPT_PASS_REPOSITORY_TDD_EVIDENCE_CLOSED__CANDIDATE_READY_FOR_LIVE_REQUALIFICATION`
+`reviews/CNX-20260903-236-task235-exact-candidate-windows-install-over-requalification-review.md`
 
-Exact candidate Actions accepted GREEN:
+Review verdict:
 
-- Validate `33688878141` — SUCCESS
-- Windows Installer Pack Smoke `33688878183` — SUCCESS
-- PS5.1 Acceptance Smoke `33688878240` — SUCCESS
+`ACCEPT_BLOCKED_PREFLIGHT_DRIFT__COORDINATION_SOURCE_BINDING_CONTRACT_DEFECT_CONFIRMED__SUCCESSOR_REQUIRED`
 
-## Active Task 236
+Task 236 consumed zero installer/product/semantic mutation budget. The blocker was the coordination task's invented source-commit argument, not a production installer defect.
+
+## Corrected Task-237 source binding
+
+Do not pass `--install-source-commit` / `-InstallSourceCommit`.
+
+Use:
+
+```text
+fresh fetch
+-> disposable detached checkout at exact ffb0dd4...
+-> prove exact HEAD + clean checkout + exact plugin fingerprint
+-> invoke that checkout's scripts/install.ps1 directly
+```
+
+This is the exact-source topology proven by Task 230.
+
+## Active Task 237
 
 Execute:
 
-`tasks/CNX-20260903-236-task235-exact-candidate-windows-install-over-requalification.md`
+`tasks/CNX-20260904-237-task236-source-binding-contract-correction-exact-candidate-windows-install-over-requalification.md`
 
 Required high-level flow:
 
 ```text
 fresh GitHub authority
--> read-only managed runtime preflight
+-> exact detached source-binding proof
+-> read-only live preflight
 -> Delivery/Recovery hazard gate
 -> exact candidate installer task registration
 -> one installer start / one installer invocation maximum
@@ -62,30 +79,27 @@ fresh GitHub authority
 -> STOP for independent review
 ```
 
-The installer must use exact source candidate `ffb0dd4...`, including the installer contract's temporary `--install-source-commit` override.
-
 ## Retry / execution boundary
 
-Before installer execution, bounded evidence-driven registration/tooling retries are permitted only within Task-236 budgets.
+Before installer execution, only bounded evidence-driven registration/tooling retries within Task-237 budgets are allowed.
 
 As soon as the installer task/process starts:
 
 `INSTALLER_RETRY_GATE=CLOSED`
 
-After that boundary:
+After that:
 
 ```text
 installer execution retries: 0
 second installer start: 0
 second installer invocation: 0
 manual plugin repair: 0
+manual lifecycle repair: 0
 ```
-
-If installer-owned rollover/finalization fails, collect evidence and stop fail-closed. Do not retry the installer.
 
 ## Semantic and direct-effect fence
 
-Task 236 is installer-only.
+Task 237 remains installer-only.
 
 ```text
 Dashboard human semantic submissions: 0
@@ -100,19 +114,20 @@ manual process termination: 0
 manual Gateway/lifecycle repair: 0
 manual plugin install/copy/delete/rename/manifest repair: 0
 Task-223 retained forensic evidence mutation: 0
+Task-233 replay/settlement/deletion: 0
 Release/tag/asset mutation: 0
-source/test/workflow production edits: 0
+production/source/test/workflow edits: 0
 force push/history rewrite: 0
 ```
 
-Installer-owned plugin replacement/rollover and normal installer-owned lifecycle/convergence operations are allowed only as required by this exact candidate installation.
+Installer-owned plugin replacement/rollover and normal installer-owned lifecycle/convergence are allowed only as required by the single exact-candidate installer invocation.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260903-236-task235-exact-candidate-windows-install-over-requalification.md`
+`reports/CNX-20260904-237-task236-source-binding-contract-correction-exact-candidate-windows-install-over-requalification.md`
 
 Then stop for independent ChatGPT review.
 
-Even after PASS, do **not** perform the one-human Dashboard semantic/durable-delivery turn. That acceptance effect remains a separate successor after Task 236 is independently accepted.
+Even after PASS, do **not** perform the one-human Dashboard semantic/durable-delivery turn. That remains a separate successor after Task 237 is independently accepted.
