@@ -1,114 +1,112 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK250_EXACT_ROLLOVER_ATTESTATION_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD`  
+**Execution mode:** `TASK251_TASK250_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 250 is repository-only TDD instrumentation; live installer and semantic retries remain unauthorized  
-**Active task:** `CNX-20260904-250`  
-**Parent:** `CNX-20260904-249`  
+**Transport:** GitHub repository / Actions authoritative; Task 251 authorizes one bounded exact-candidate Windows install-over only; semantic acceptance remains unauthorized  
+**Active task:** `CNX-20260904-251`  
+**Parent:** `CNX-20260904-250`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK249_ACCEPTED_BLOCKED__HISTORICAL_PATH_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_REQUIRED`
+**Disposition:** `TASK250_ACCEPTED_PASS__EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_GREEN__ONE_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED`
 
-## Accepted Task-249 result
+## Accepted Task-250 result
 
 Reviewed report HEAD:
 
-`85f7afe25c29db59060dafc2d2ce5f3de80942d6`
+`e6e971211cec36af80c66ca3c1f8726ec89d2392`
 
 Independent review commit:
 
-`67f8865b470fbc7e607b9df4509e1d49c3d3d1d0`
+`86f7596f7f2836744b2f653b1deda0174090fe5d`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_FORENSIC_EVIDENCE_INSUFFICIENT__TRANSIENT_PATH_AND_ACTOR_UNPROVEN__EXACT_HASH_INPUT_SNAPSHOT_TDD_INSTRUMENTATION_REQUIRED__TASK226_FAIL_CLOSED_INVARIANT_PRESERVED`
+`ACCEPT_PASS_EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD__TASK226_FAIL_CLOSED_PRESERVED__EXACT_CANDIDATE_READY_FOR_ONE_LIVE_INSTALL_REQUALIFICATION`
 
-Task 249 established:
+Exact candidate:
+
+`9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96`
+
+Expected installed plugin payload fingerprint:
+
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+
+Exact candidate installer SHA-256:
+
+`c0779d9bae69d850a44073134e7799a48a1856935b09aae1ae8c7da9f57e0629`
+
+Required exact-SHA Actions are terminal SUCCESS:
 
 ```text
-current retired project tree hash = 900ac13f85a6de75e40a632a534f2b0ceef53def1e8387fc3530c02a7413de58
-current Task248 backup tree hash    = 900ac13f85a6de75e40a632a534f2b0ceef53def1e8387fc3530c02a7413de58
-current digest-relevant entries     = 35,693 / 35,693
-current content/object differences  = 0
-historical exact changed path       = unproven
-historical causal actor/process     = unproven
+Validate                      33896622009
+Windows Installer Pack Smoke 33896622084
+PS5.1 Acceptance Smoke        33896621985
 ```
 
-The later equality does not reconstruct the exact source and backup inputs at the Task-248 failed attestation instant. Retained USN/log/process evidence cannot prove the historical path/actor.
+Task-250 TDD chronology is accepted: test-only RED `ea5d8446...` is a direct child of the opening authority and production commit `9c3c4e0...` is its direct child. Production changes are limited to `namespace_ownership.py` and preserve Task-226 fail-closed semantics while adding a deterministic bounded delta from the same captured hash-input snapshots.
 
-Task-226 full-tree fail-closed semantics remain accepted and unchanged.
+Public `v0.9.3` remains immutable at:
 
-## Active Task 250
+`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+
+## Active Task 251
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
+`docs/operations/coordination/tasks/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
 
-Task 250 must use TDD to add behavior-preserving mismatch diagnostics at the exact hash-input boundary:
-
-```text
-source scan -> source hash + exact entry snapshot
-backup scan -> backup hash + exact entry snapshot
-compare precomputed hashes
-on mismatch -> diff those captured snapshots -> fail closed as before
-```
-
-The per-path evidence must come from the same captured scans used to produce the compared hashes. A later re-scan must not be the primary evidence source.
-
-Required TDD topology:
+Task 251 must use the Task-237 exact-source topology:
 
 ```text
-fresh authority
--> test-only deterministic RED
--> minimal production repair
--> focused GREEN
--> full GREEN
--> exact candidate/fingerprint/Actions proof
--> report
--> STOP for independent review
+fresh fetch
+-> disposable detached checkout exact 9c3c4e0...
+-> prove clean exact source/fingerprint/installer hash
+-> read-only live preflight and delivery/recovery hazard gate
+-> authenticated Scheduled Task
+-> exactly one installer invocation
+-> close installer retry gate at product start
 ```
 
-## Safety invariants
+If the Task-248 attestation mismatch recurs, Task 251 must retain the complete raw child diagnostics and exact Task-250 `diagnostic=` JSON generated from the compared snapshots, then stop without installer retry or tree mutation.
 
-Task 250 must preserve:
+If installation succeeds, Task 251 must prove exact installed fingerprint, coherent ownership/generation, managed convergence, Gateway/Ollama health, Delivery READY/pending 0, Recovery READY, SQLite integrity, and semantic submissions = 0.
+
+## Accepted prior live boundary
+
+Tasks 249–250 were read-only/repository-only, so the accepted pre-Task251 live boundary remains the Task-248 failed-install state until fresh Task-251 preflight proves otherwise:
 
 ```text
-RuntimeError: pre-install backup project-tree attestation mismatch
+controller = passthrough generation 39
+candidate installed = no
+live canonical plugin = predecessor e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
+Task248 failure = pre-install backup project-tree attestation mismatch
 ```
 
-and MUST NOT:
-
-- ignore/downgrade the mismatch;
-- reduce proof to package payload only;
-- exclude a path merely to make installation pass;
-- add sleeps/retries until equality;
-- modify source/backup trees to generate evidence;
-- change ownership/backup/transaction/plugin-order/lifecycle/retry semantics;
-- run the live installer.
+Task-249 later found current retired tree and retained Task-248 backup equal at `900ac13f...`, but that was post-failure evidence and must not be treated as proof of historical equality.
 
 ## Hard fences
 
 ```text
-live scripts/install.ps1 = 0
-live installer task registration/start = 0
-live rollover prepare/finalize = 0
-live plugin/retired-tree/backup mutation = 0
-controller/Gateway/provider/model/DB mutation = 0
-Dashboard/Discord/API semantic sends = 0
+installer successful starts <= 1
+installer invocations <= 1
+installer execution retries after start = 0
+manual plugin/lifecycle/DB repair = 0
+Dashboard semantic sends = 0
+Discord semantic sends = 0
+direct API semantic sends = 0
 recovery replay/resend = 0
+reset/uninstall/fresh reinstall = 0
 release/tag mutation = 0
+production/source/test/workflow edits = 0
+force push/history rewrite = 0
 ```
 
-Repository source/test changes and normal CI are authorized.
-
-## CI note
-
-Task-249 report HEAD had successful PS5.1 Acceptance Smoke and Windows Installer Pack Smoke. Validate attempt 1 had one Windows/Python 3.11 Vitest 15-second timeout while the other matrix jobs passed. One same-SHA failed-job rerun was authorized because it has no product/semantic side effects; no repeated retry or timeout inflation is authorized without root-cause evidence. No live deployment is authorized from this CI note.
+Installer-owned plugin replacement/rollover and normal installer-owned lifecycle convergence are the only authorized live mutations.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-250-task249-exact-rollover-attestation-hash-input-snapshot-diagnostic-tdd.md`
+`docs/operations/coordination/reports/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
 
-Then STOP for independent ChatGPT review. Live installer retry and semantic acceptance remain unauthorized.
+Then STOP for independent ChatGPT review. Even on PASS, do not perform Dashboard/Discord semantic acceptance, replay/settlement, reset/uninstall/fresh reinstall, or release/tag mutation without a separate successor task.
