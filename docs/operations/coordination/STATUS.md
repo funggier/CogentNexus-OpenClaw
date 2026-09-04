@@ -1,112 +1,87 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK247_POWERSHELL51_NATIVE_STDERR_CAPTURE_TDD_DIAGNOSIS_REPAIR`  
+**Execution mode:** `TASK248_TASK247_REPAIRED_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
 **Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 247 is repository/test-only and proves or rejects the Windows PowerShell 5.1 native-stderr capture hypothesis before any repair  
-**Active task:** `CNX-20260904-247`  
-**Parent:** `CNX-20260904-246`  
-**Parent installer failure:** `CNX-20260904-245`  
-**Prior diagnostic repair:** `CNX-20260904-239`  
+**Transport:** GitHub repository / Actions authoritative; Task 248 is a one-shot live installer requalification with non-temp durable evidence capture and zero semantic budget  
+**Active task:** `CNX-20260904-248`  
+**Parent:** `CNX-20260904-247`  
+**Installer failure lineage:** `CNX-20260904-245`, `CNX-20260904-246`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK246_ACCEPTED_BLOCKED__EVIDENCE_PRESERVED__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
+**Disposition:** `TASK247_ACCEPTED_PASS__POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__LIVE_INSTALLER_REQUALIFICATION_REAUTHORIZED`
 
-## Accepted Task-246 result
+## Accepted Task-247 result
 
 Reviewed report HEAD:
 
-`18ec3763bdc8c5a6ffdd8815d863f59447e5e7f7`
+`8cbbe2d405477e7b7c91b3fb649582e3a400e893`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_EXACT_EXCEPTION_UNPROVEN__TASK245_EVIDENCE_PRESERVED_BYTE_IDENTICALLY__POWERSHELL51_NATIVE_STDERR_CAPTURE_HYPOTHESIS_REQUIRES_TDD_PROOF`
+`ACCEPT_PASS_POWERSHELL51_NATIVE_STDERR_CAPTURE_REPAIRED__FINAL_ANCESTRY_RED_PROVEN__REPORT_RED_SHA_STALE_NONBLOCKING__LIVE_INSTALLER_REQUALIFICATION_AUTHORIZED_SEPARATELY`
 
-Task 246 successfully preserved the Task-245 temporary evidence before cleanup risk:
+Final-ancestry test-only RED:
+
+`f5f04a7422be05f446d408d48e949473a113dc36`
+
+Accepted repaired executable candidate:
+
+`6c11a5e8f417300835e85441b88e0f37e3897353`
+
+Expected plugin payload fingerprint remains:
+
+`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
+
+Task 247 proved that Windows PowerShell 5.1 with `$ErrorActionPreference='Stop'` could turn native stderr into a terminating `NativeCommandError`, truncating diagnostics and preventing reliable exit-code capture. The repair scopes `ErrorActionPreference='Continue'` only around the native child capture and restores the caller preference in `finally`.
+
+Exact repaired-candidate Actions:
 
 ```text
-artifacts copied = 34
-missing = 0
-source/destination SHA-256 equality = 34/34
+PS5.1 Acceptance Smoke        33884732550 = SUCCESS
+Windows Installer Pack Smoke 33884732528 = SUCCESS
+Validate                      33884732569 = SUCCESS on attempt 2 / same SHA
 ```
 
-The complete retained stderr proves the failing child crossed the `plugin-rollover-prepare` boundary but contains only the first Python traceback line followed by Windows PowerShell `NativeCommandError` metadata. The Python exception class/message/final traceback line are absent; exact invariant remains unproven.
-
-No new Task-245 rollover transaction was persisted. Workspace install/skill backup and external generation-rollover backup domains remain distinct.
-
-Task-246 report-head Actions are GREEN:
-
-```text
-PS5.1 Acceptance Smoke        33881077771 = SUCCESS
-Windows Installer Pack Smoke 33881077746 = SUCCESS
-Validate                      33881077796 = SUCCESS
-```
-
-## Why Task 247 is required
-
-The accepted executable candidate uses global:
-
-```powershell
-$ErrorActionPreference = "Stop"
-```
-
-while the Task-239 rollover diagnostic capture merges native stderr with `2>&1 | Out-String`.
-
-Task 245 observed a real Windows PowerShell 5.1 `NativeCommandError` wrapper and retained only the first traceback line. Existing Task-239/240 tests do not execute that exact Windows PowerShell 5.1 native-command stderr boundary with a multi-line failing child.
-
-This is a concrete coverage gap and a plausible mechanism, but it must be reproduced before any production edit.
-
-## Active Task 247
+## Active Task 248
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
+`docs/operations/coordination/tasks/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
 
-Required flow:
+Task 248 must use a fresh detached exact checkout plus a fresh frozen hardened runner and frozen launch manifest. Execution evidence must be written under the non-temp task archive from the start, not depend on `%TEMP%` for forensic retention.
+
+One-shot cardinality:
 
 ```text
-fresh authority
--> test-only RED on actual Windows PowerShell 5.1
--> harmless multi-line stderr child + deterministic exit code
--> prove/reject NativeCommandError/truncation hypothesis
--> hypothesis rejected => no production edit, report, STOP
--> meaningful RED => minimal owning-boundary repair
--> RED -> GREEN
--> targeted/full validation
--> exact-SHA Actions GREEN
--> report
--> STOP
+successful installer Scheduled Task registrations <= 1
+installer starts <= 1
+scripts/install.ps1 child invocations <= 1
+installer retry after start = 0
 ```
 
-A static source assertion or helper-only test is insufficient; the test must execute the native stderr boundary under `$ErrorActionPreference='Stop'`.
+If `plugin-rollover-prepare` still fails, preserve the full bounded child diagnostic now enabled by Task 247 and STOP. Do not perform a second installer attempt in Task 248.
 
-## Zero live-effect budget
+PASS additionally requires exact installed plugin identity, coherent rollover/finalize evidence if used, managed convergence, healthy Gateway/Ollama/storage/delivery/recovery, SQLite integrity, and zero semantic/direct sends.
+
+## Zero semantic/manual-repair budget
 
 ```text
-live scripts/install.ps1 invocations = 0
-installer task registrations/starts = 0
-live rollover/plugin/controller/Gateway/DB mutation = 0
-Dashboard/Discord/API semantic sends = 0
-recovery replay/resend = 0
-historical evidence cleanup = 0
+Dashboard semantic submissions = 0
+Discord semantic submissions = 0
+direct Discord/API sends = 0
+semantic retries = 0
+manual Ticket/outbox/recovery/SQLite writes = 0
+manual plugin/manifest/lifecycle/Gateway repair = 0
+manual provider/model substitution = 0
+process termination as repair = 0
+production/source/test/workflow edits = 0
 release/tag/history mutation = 0
 ```
-
-Synthetic disposable PowerShell/Python regression processes are allowed only for isolated test evidence and must not invoke live OpenClaw/CogentNexus commands.
-
-## Expected identity
-
-Accepted executable predecessor:
-
-`18a51b15768fb3d2196e65f1ef470c34aeef7f36`
-
-Expected plugin payload fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-247-task246-powershell51-native-stderr-capture-tdd-diagnosis-repair.md`
+`docs/operations/coordination/reports/CNX-20260904-248-task247-repaired-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. Live installer and semantic successors remain unauthorized until that review.
+Then stop for independent ChatGPT review. A Dashboard semantic acceptance turn remains unauthorized until Task 248 passes and is independently accepted.
