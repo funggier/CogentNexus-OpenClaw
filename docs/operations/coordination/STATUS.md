@@ -1,112 +1,99 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK251_TASK250_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`  
-**Updated:** 2026-09-04 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task 251 authorizes one bounded exact-candidate Windows install-over only; semantic acceptance remains unauthorized  
-**Active task:** `CNX-20260904-251`  
-**Parent:** `CNX-20260904-250`  
+**Execution mode:** `TASK252_TASK251_SCHEDULED_EXECUTION_LIMIT_TIMEOUT_FORENSIC`  
+**Updated:** 2026-09-05 ICT  
+**Transport:** GitHub repository / Actions authoritative; Task252 is read-only timeout/stall forensic; installer retry and semantic acceptance remain unauthorized  
+**Active task:** `CNX-20260905-252`  
+**Parent:** `CNX-20260904-251`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK250_ACCEPTED_PASS__EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_GREEN__ONE_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED`
+**Disposition:** `TASK251_ACCEPTED_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
 
-## Accepted Task-250 result
+## Accepted Task-251 result
 
 Reviewed report HEAD:
 
-`e6e971211cec36af80c66ca3c1f8726ec89d2392`
+`be6be78760fa1071ba2d4749db5ecd20025ac312`
 
 Independent review commit:
 
-`86f7596f7f2836744b2f653b1deda0174090fe5d`
+`24df69a9d23f8e2b072587109d72f85ac201d674`
 
 Independent review verdict:
 
-`ACCEPT_PASS_EXACT_HASH_INPUT_SNAPSHOT_DIAGNOSTIC_TDD__TASK226_FAIL_CLOSED_PRESERVED__EXACT_CANDIDATE_READY_FOR_ONE_LIVE_INSTALL_REQUALIFICATION`
+`ACCEPT_BLOCKED_EVIDENCE__ONE_SHOT_BOUNDARY_RESPECTED__SCHEDULER_EXECUTION_LIMIT_TERMINATION_PROVEN__INSTALLER_CHILD_STAGE_UNPROVEN__READ_ONLY_TIMEOUT_FORENSIC_REQUIRED`
 
-Exact candidate:
-
-`9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96`
-
-Expected installed plugin payload fingerprint:
-
-`1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f`
-
-Exact candidate installer SHA-256:
-
-`c0779d9bae69d850a44073134e7799a48a1856935b09aae1ae8c7da9f57e0629`
-
-Required exact-SHA Actions are terminal SUCCESS:
+Task251 established:
 
 ```text
-Validate                      33896622009
-Windows Installer Pack Smoke 33896622084
-PS5.1 Acceptance Smoke        33896621985
+exact candidate = 9c3c4e0fe0afbedf9233c25c0dd36e4209fb9d96
+successful task registrations = 1
+installer starts = 1
+installer invocations = 1
+retries after start = 0
+runner child start = proven
+terminal scheduler result = 267014 / 0x41306 after execution limit
+runner terminal result = absent
+child stdout/stderr = absent
+last installer stage = unproven
+Task250 diagnostic emission = unproven
+candidate installed = not proven
+postflight plugin = predecessor e3bcce04...
+controller = passthrough generation 39
+semantic sends = 0
 ```
 
-Task-250 TDD chronology is accepted: test-only RED `ea5d8446...` is a direct child of the opening authority and production commit `9c3c4e0...` is its direct child. Production changes are limited to `namespace_ownership.py` and preserve Task-226 fail-closed semantics while adding a deterministic bounded delta from the same captured hash-input snapshots.
+Report-head Actions are terminal SUCCESS:
 
-Public `v0.9.3` remains immutable at:
+```text
+PS5.1 Acceptance Smoke        33905872979
+Windows Installer Pack Smoke 33905872955
+Validate                      33905872866
+```
 
-`26ce64a624255278a3a0266ad38746e0e6ed2e31`
+Public `v0.9.3` remains `26ce64a624255278a3a0266ad38746e0e6ed2e31`.
 
-## Active Task 251
+## Active Task 252
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
 
-Task 251 must use the Task-237 exact-source topology:
-
-```text
-fresh fetch
--> disposable detached checkout exact 9c3c4e0...
--> prove clean exact source/fingerprint/installer hash
--> read-only live preflight and delivery/recovery hazard gate
--> authenticated Scheduled Task
--> exactly one installer invocation
--> close installer retry gate at product start
-```
-
-If the Task-248 attestation mismatch recurs, Task 251 must retain the complete raw child diagnostics and exact Task-250 `diagnostic=` JSON generated from the compared snapshots, then stop without installer retry or tree mutation.
-
-If installation succeeds, Task 251 must prove exact installed fingerprint, coherent ownership/generation, managed convergence, Gateway/Ollama health, Delivery READY/pending 0, Recovery READY, SQLite integrity, and semantic submissions = 0.
-
-## Accepted prior live boundary
-
-Tasks 249–250 were read-only/repository-only, so the accepted pre-Task251 live boundary remains the Task-248 failed-install state until fresh Task-251 preflight proves otherwise:
+Task252 must separate four questions:
 
 ```text
-controller = passthrough generation 39
-candidate installed = no
-live canonical plugin = predecessor e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386
-Task248 failure = pre-install backup project-tree attestation mismatch
+1. scheduler termination mechanism
+2. runner evidence-loss mechanism
+3. last provable installer stage
+4. underlying reason the child did not return before the task limit
 ```
 
-Task-249 later found current retired tree and retained Task-248 backup equal at `900ac13f...`, but that was post-failure evidence and must not be treated as proof of historical equality.
+Required evidence includes exact Scheduled Task XML/settings and `ExecutionTimeLimit`, TaskScheduler/PowerShell/process events, Task251 runner+manifest hashes and static persistence behavior, detached-checkout residue, installer-owned workspace/app-data residue, rollover backup/transaction inventory, and a residue-to-stage map against exact candidate source.
+
+Do not infer installer failure stage from absent stdout/stderr. Do not increase the task time limit or rerun the installer in this task.
 
 ## Hard fences
 
 ```text
-installer successful starts <= 1
-installer invocations <= 1
-installer execution retries after start = 0
-manual plugin/lifecycle/DB repair = 0
-Dashboard semantic sends = 0
-Discord semantic sends = 0
-direct API semantic sends = 0
+live installer invocation = 0
+Task251 task start = 0
+new installer task registration = 0
+rollover prepare/finalize = 0
+plugin/retired-tree/backup mutation = 0
+controller/Gateway/provider/model/DB mutation = 0
+Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
-reset/uninstall/fresh reinstall = 0
-release/tag mutation = 0
+manual process termination = 0
 production/source/test/workflow edits = 0
-force push/history rewrite = 0
+release/tag/history mutation = 0
 ```
 
-Installer-owned plugin replacement/rollover and normal installer-owned lifecycle convergence are the only authorized live mutations.
+Evidence-only writes to the Task252 forensic root and report publication are authorized.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260904-251-task250-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260905-252-task251-scheduled-execution-limit-timeout-forensic.md`
 
-Then STOP for independent ChatGPT review. Even on PASS, do not perform Dashboard/Discord semantic acceptance, replay/settlement, reset/uninstall/fresh reinstall, or release/tag mutation without a separate successor task.
+Then STOP for independent ChatGPT review. No installer retry or semantic acceptance before that review.
