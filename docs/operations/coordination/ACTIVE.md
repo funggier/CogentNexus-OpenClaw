@@ -1,39 +1,42 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK244_TASK243_HARDENED_RUNNER_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK243_ACCEPTED__HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__FRESH_RUNNER_REGENERATION_GATE_REQUIRED__ONE_SHOT_INSTALLER_REQUALIFICATION_AUTHORIZED`
-Task ID: `CNX-20260904-244`
-Parent task: `CNX-20260904-243`
-Installer evidence parent: `CNX-20260904-241`
-Runner forensic parent: `CNX-20260904-242`
+Execution mode: `TASK245_TASK244_MANIFEST_BOUND_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK244_ACCEPTED_FAIL_CLOSED__INSTALLER_UNEXECUTED__ACTION_BINDING_DEFECT_ISOLATED__ONE_FRESH_MANIFEST_BOUND_INSTALLER_SUCCESSOR_ALLOWED`
+Task ID: `CNX-20260904-245`
+Parent task: `CNX-20260904-244`
+Runner qualification parent: `CNX-20260904-243`
+Installer evidence parents: `CNX-20260904-241`, `CNX-20260904-244`
 Candidate-validation parent: `CNX-20260904-240`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-04 ICT
 Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Accepted Task-243 review
+## Accepted Task-244 boundary
 
 Independent review verdict:
 
-`ACCEPT_PASS_HARDENED_RUNNER_FUNCTIONALLY_QUALIFIED__PRECREATE_REGISTRATION_CORRECTION_ACCEPTED__RUNNER_SHA_REPORT_GAP_NONBLOCKING_WITH_FRESH_REGENERATION_GATE__SEPARATE_BOUNDED_INSTALLER_REQUALIFICATION_AUTHORIZED`
+`ACCEPT_FAIL_CLOSED_PRESTART_ACTION_BINDING_BLOCK__NO_INSTALLER_OR_PRODUCT_EXECUTION__FRESH_MANIFEST_BOUND_SUCCESSOR_AUTHORIZED`
 
-Reviewed Task-243 report HEAD:
+Reviewed Task-244 report HEAD:
 
-`ad94e992fec3cbf414bf82a3dd5073b229e6b5b8`
+`2da9be61abd1da7ea36c508af640e1732853e2b1`
 
-Task 243 proved the hardened operator runner can durably distinguish and capture:
+Task 244 registered one installer Scheduled Task but deliberately did not start it because pre-start readback proved the nested `-ChildArguments` binding was wrong: the nested `-File` target resolved to `powershell.exe` instead of the exact candidate `scripts/install.ps1`.
+
+Accepted effect boundary:
 
 ```text
-child nonzero exit -> stdout/stderr/transcript/result + exact exit 37
-child launch exception -> started marker + exception + fallback + finally result
-Scheduled Task path -> one successful registration, one start, LastTaskResult 37
+installer task registrations = 1
+installer task starts = 0
+installer child invocations = 0
+scripts/install.ps1 invocations = 0
+plugin/rollover/runtime mutation = 0
+semantic actions = 0
 ```
 
-The first Task-243 registration method failed before task creation and `TaskPresent=false` was proven before the materially different fully-qualified-principal correction. That pre-start tooling correction is accepted.
-
-Task-243 report omitted the qualified hardened-runner SHA. Therefore Task 244 must not rely on the old temp runner; it must regenerate, hash, qualify, freeze, and use one byte-identical fresh runner.
+The old live plugin remained `e3bcce04c3af57a7c0dd596203464e197c80e9d2c903593f73e032caa96f9386`; candidate remained not installed; `pendingRollover=false`; fresh Task-245 preflight must re-prove all live state.
 
 ## Exact executable candidate
 
@@ -43,55 +46,59 @@ plugin fingerprint = 1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1b
 public v0.9.3 = 26ce64a624255278a3a0266ad38746e0e6ed2e31 (immutable)
 ```
 
-Exact-candidate required Actions were previously GREEN; Task 244 must fetch and prove all three fresh before live mutation.
+Task 245 must fresh-prove all three exact-candidate Actions before live mutation.
 
-## Preserved live/evidence boundary
-
-Fresh Windows read-only evidence wins over older reports. Do not assume current installed fingerprint or rollover state.
-
-Retained Task-237 backup token:
-
-`c6aaf93db7c34f718d01302477a292e1`
-
-Do not clean or mutate Task-223/237/241/242/243 historical evidence.
-
-## Active Task 244
+## Active Task 245
 
 Execute:
 
-`tasks/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260904-245-task244-manifest-bound-exact-candidate-windows-install-over-requalification.md`
 
 Required flow:
 
 ```text
-fresh GitHub/exact-candidate authority
--> clean detached exact source
--> fresh read-only live plugin/runtime/rollover inventory
--> derive expected installer classifier/resolver path
--> create new unique hardened runner/evidence root
--> persist runner source + SHA
--> direct synthetic nonzero + launch-exception qualification
--> rehash/freeze runner byte-identically
--> register installer Scheduled Task once with CDQ-P\CDQ-P
--> read back task definition
--> start installer once
--> consume hardened runner evidence
--> classify terminal result
--> if child exit 0, prove exact plugin/runtime/rollover/DB postflight
+fresh GitHub/candidate authority
+-> fresh detached exact source
+-> fresh read-only live inventory
+-> derive current installer state machine
+-> create fresh manifest-aware hardened runner
+-> direct harmless nonzero + launch-exception qualification
+-> freeze/hash runner
+-> create/hash/freeze production launch manifest
+-> manifest proves child -File == exact candidate scripts/install.ps1
+-> register one unique installer Scheduled Task
+-> pre-start task readback + runner/manifest rehash
+-> re-prove manifest child -File binding
+-> start once only if every gate passes
+-> classify hardened runner/scheduler result
+-> if exit 0, prove plugin/rollover/runtime/DB convergence
 -> report
 -> STOP for independent review
 ```
 
-## Installer one-shot budget
+## Manifest-bound topology
+
+Do not pass the nested installer argument vector through Task Scheduler. Scheduler action may reference only:
 
 ```text
-successful installer Scheduled Task registrations: 1 maximum
-installer Scheduled Task starts: 1 maximum
-installer child invocations: 1 maximum
-installer retries after start: 0
+Windows PowerShell 5.1
++ frozen runner
++ frozen launch manifest
++ evidence root
 ```
 
-If registration fails before task creation, prove `TaskPresent=false` and STOP; do not attempt a second installer registration in Task 244.
+The production launch manifest owns the child executable and distinct child argument array. The unique `-File` value must equal the exact detached candidate `scripts/install.ps1` before start.
+
+## One-shot installer budget
+
+```text
+successful Task-245 installer task registrations: 1 maximum
+Task-245 installer task starts: 1 maximum
+installer child invocations: 1 maximum
+retries after start: 0
+```
+
+If registration fails before task creation, prove `TaskPresent=false` and STOP. If post-registration binding/readback differs, STOP without update, unregister, repair, or re-registration.
 
 ## Semantic zero budget
 
@@ -103,14 +110,18 @@ semantic retries: 0
 recovery replay/resend: 0
 ```
 
+## Preserved evidence
+
+Do not mutate or clean Task-223/237/241/242/243/244 evidence or registered task definitions. Retained Task-237 token: `c6aaf93db7c34f718d01302477a292e1`.
+
 ## Hard fences
 
-No reset/uninstall/reinstall sequence, second installer attempt, manual plugin replacement, manual rollover prepare/finalize, manual controller/Gateway/lifecycle normalization, manual Ticket/outbox/recovery/SQLite writes, provider/model substitution, process termination to coerce outcome, historical evidence cleanup, release/tag/asset mutation, force push/history rewrite, or semantic message.
+No reset/uninstall/reinstall sequence, second installer attempt, direct installer fallback, manual plugin replacement, manual rollover prepare/finalize, manual controller/Gateway/lifecycle normalization, manual Ticket/outbox/recovery/SQLite writes, provider/model substitution, process termination to coerce outcome, historical evidence cleanup, release/tag/asset mutation, force push/history rewrite, or semantic message.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`reports/CNX-20260904-244-task243-hardened-runner-exact-candidate-windows-install-over-requalification.md`
+`docs/operations/coordination/reports/CNX-20260904-245-task244-manifest-bound-exact-candidate-windows-install-over-requalification.md`
 
-Then stop for independent ChatGPT review. Even on installer PASS, semantic requalification is a separate successor task.
+Then stop for independent ChatGPT review. Semantic durable-delivery requalification remains a separate successor even if installer PASSes.
