@@ -61,6 +61,26 @@ function Complete-InstallerDiagnosticStage {
     Write-Host ("CNXCLAW_INSTALL_STAGE_COMPLETE stage={0} utc={1} elapsed_ms={2} exit_code={3}" -f $Context.Stage, $completedAt.ToString("o"), $Context.Stopwatch.ElapsedMilliseconds, $ExitCode)
 }
 
+function Invoke-NativeInstallerDiagnostic {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 promotes native stderr to a terminating
+        # NativeCommandError under Stop, truncating the child diagnostic.
+        $ErrorActionPreference = "Continue"
+        $output = (& $Executable @Arguments 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
+    }
+    return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+}
+
 function Get-BoundedInstallerDiagnostic {
     param([AllowNull()][string]$Output)
 
@@ -398,8 +418,15 @@ if ($actions.installPlugin) {
                 $rolloverId = [guid]::NewGuid().ToString("N")
                 $rolloverTransactionPath = Join-Path $rolloverStaging "plugin-rollover-transaction-$rolloverId.json"
                 $rolloverPrepareDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-rollover-prepare"
-                $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath 2>&1 | Out-String)
-                $rolloverPrepareExit = $LASTEXITCODE
+                $prepareCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments @(
+                    (Join-Path $targetSkill "scripts\namespace_ownership.py"), "rollover-prepare",
+                    "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace,
+                    "--app-data", $applicationDataRoot,
+                    "--expected-replacement-fingerprint", $expectedPluginFingerprint,
+                    "--backup-token", $rolloverId, "--transaction", $rolloverTransactionPath
+                )
+                $prepareOutput = [string]$prepareCapture.Output
+                $rolloverPrepareExit = [int]$prepareCapture.ExitCode
                 Complete-InstallerDiagnosticStage -Context $rolloverPrepareDiagnostic -ExitCode $rolloverPrepareExit
                 if ($rolloverPrepareExit -ne 0) {
                     $boundedPrepareDiagnostic = Get-BoundedInstallerDiagnostic -Output $prepareOutput

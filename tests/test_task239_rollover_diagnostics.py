@@ -20,7 +20,7 @@ MAX_DIAGNOSTIC_CHARS = 4096
 
 
 def _rollover_prepare_line() -> str:
-    match = re.search(r"\$prepareOutput\s*=.*rollover-prepare.*", INSTALL_PS1)
+    match = re.search(r"Invoke-NativeInstallerDiagnostic[\s\S]{0,900}?rollover-prepare", INSTALL_PS1)
     assert match, "rollover-prepare capture boundary is missing"
     return match.group(0)
 
@@ -28,8 +28,9 @@ def _rollover_prepare_line() -> str:
 def test_rollover_prepare_merges_child_stderr_and_stdout():
     """A Python traceback on stderr must enter the retained diagnostic."""
     line = _rollover_prepare_line()
-    assert "2>&1" in line
-    assert "Out-String" in line
+    assert "2>&1" in INSTALL_PS1
+    assert "Out-String" in INSTALL_PS1
+    assert "Invoke-NativeInstallerDiagnostic" in line
 
 
 def test_rollover_prepare_has_bounded_diagnostic_preservation_contract():
@@ -99,7 +100,7 @@ $long = ('H' * 3000) + ('T' * 1000) + 'PYTHON-TRACEBACK-MARKER' + ('T' * 2000)
 
 def test_rollover_prepare_keeps_nonzero_fail_closed_semantics():
     """Diagnostic preservation must not turn child failure into success."""
-    assert "$rolloverPrepareExit = $LASTEXITCODE" in INSTALL_PS1
+    assert "$rolloverPrepareExit = [int]$prepareCapture.ExitCode" in INSTALL_PS1
     assert re.search(
         r"if\s*\(\$rolloverPrepareExit\s*-ne\s*0\).*?throw",
         INSTALL_PS1,
