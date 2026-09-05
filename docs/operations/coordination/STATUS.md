@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK270_DELETING_OWNER_REGRESSION_PROOF`
-**Updated:** 2026-09-06 ICT — Task269 independently reviewed; one explicit deleting-owner test-contract gap remains
+**Updated:** 2026-09-06 ICT — Hermes closed Task270 with explicit deleting-owner and supervisor-idle proofs; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-270`
 **Parent:** `CNX-20260906-269`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK269_REVIEW_REWORK_REQUIRED__TASK270_OPEN`
+**Disposition:** `TASK270_TEST_CONTRACT_CLOSED__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -40,3 +40,9 @@ Expected change is test-only. Production source must not change unless the new t
 No live/runtime/destructive/semantic action is authorized.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
+
+Task270 report:
+
+`docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
+
+Disposition: `PASS__TEST_CONTRACT_CLOSED`. Test-only commit `6a491d1a95394bba7b70735fbaf9cebf4d619ea6`; exact-SHA CI passed after one bounded rerun of an unrelated Windows timeout.

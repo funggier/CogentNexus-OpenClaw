@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK270_DELETING_OWNER_REGRESSION_PROOF`
-Current disposition: `TASK269_REVIEW_REWORK_REQUIRED__TASK270_OPEN`
+Current disposition: `TASK270_TEST_CONTRACT_CLOSED__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-270`
 Parent task: `CNX-20260906-269`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT reviewed Task269; production direction accepted provisionally, one explicit deleting-owner regression proof is still missing
+Updated: 2026-09-06 ICT — Hermes closed Task270 with explicit deleting-owner and supervisor-idle proofs; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -55,3 +55,9 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
+
+## Task270 report
+
+`docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
+
+Disposition: `PASS__TEST_CONTRACT_CLOSED`; test-only commit `6a491d1a95394bba7b70735fbaf9cebf4d619ea6`; exact-SHA CI passed after one bounded rerun of an unrelated Windows timeout.
