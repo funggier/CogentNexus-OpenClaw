@@ -1,31 +1,73 @@
 # Coordination Channel Status
 
-**State:** `BLOCKED_DEPLOYMENT_TRANSITION_RISK`
-**Execution mode:** `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
+**State:** `READY_FOR_LUNA`
+**Execution mode:** `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
 **Updated:** 2026-09-05 ICT
-**Active task:** `CNX-20260905-260`
-**Parent:** `CNX-20260905-259`
+**Transport:** GitHub repository / Actions authoritative; Task261 is a bounded source/test repair of the Task260 transition gap; live installer, Gateway restart, recovery disposition, and semantic actions remain unauthorized
+**Active task:** `CNX-20260905-261`
+**Parent:** `CNX-20260905-260`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK260_BLOCKED_DEPLOYMENT_TRANSITION_RISK__REVIEW_REQUIRED`
+**Disposition:** `TASK260_ACCEPTED_BLOCKED__PROCESS_BOUNDARY_REPAIR_REQUIRED`
 
 **Assigned executor:** `Luna`
 **Handoff from:** `Musethree`
 **Next actor after report:** `Musethree`
 **Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-## Accepted candidate
+## Accepted Task260 result
 
-`d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
+Reviewed report HEAD:
 
-Task259 review accepted the stale-owner direct-recovery contract repair and independently verified exact-SHA CI 9/9 success.
+`74fc4ae713c8e61b9730942e2c4b2d37f5907eb6`
 
-## Current work
+Independent review:
 
-Luna completed Task260 read-only deployment-transition safety requalification with `BLOCKED_DEPLOYMENT_TRANSITION_RISK`. The supported install-over path lacks a mandatory fresh Gateway process boundary after replacement; no live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send was authorized or performed.
+`docs/operations/coordination/reviews/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification-review.md`
 
-After the report, Luna hands the baton to Musethree. Musethree independently reviews and continues with the next bounded authorized task when the decision is deterministic. The pair continues alternating until either:
+Independent review verdict:
 
-1. a decision/authority boundary requires ChatGPT -> `WAITING_FOR_CHATGPT`; or
-2. the overall project goal is complete -> `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`.
+`ACCEPT_BLOCKED_TRANSITION_RISK__CI_GREEN_VERIFIED__REPAIR_SUCCESSOR_REQUIRED`
 
-In either case, the active agent tells the human operator to notify ChatGPT.
+Report-commit CI reached terminal success 9/9 with no rerun. The
+transition-gap finding stands: no mandatory fresh Gateway process
+boundary exists on the install-over success path.
+
+## Repair authority
+
+Task260 and its independent review authorize a new repository/source/test
+successor for the process-boundary repair. They do not authorize a live
+install-over, recovery disposition, Gateway restart, or semantic send,
+and they do not weaken any Task258/Task259 semantic fence.
+
+## Active Task261
+
+Execute:
+
+`docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
+
+Task261 must add the mandatory post-replacement process boundary with
+regression coverage and fingerprint binding under TDD, without touching
+live state. Then STOP for independent review by Musethree.
+
+## Cardinality / hard fences
+
+```text
+installer registration/start = 0
+scripts/install.ps1 live starts = 0
+Gateway/controller/provider lifecycle mutation = 0
+live DB/recovery mutation = 0
+recovery dispose/claim/replay/redeliver/resend = 0
+semantic sends = 0
+release/tag mutation = 0
+force push/history rewrite = 0
+```
+
+Repository/source/test/docs repair and non-live tests/build/CI are
+authorized when required by Task261.
+
+## Stop boundary
+
+Luna must publish the Task261 report and hand the baton to Musethree.
+Live recovery disposition, installer requalification, and semantic
+acceptance remain parked until a separately reviewed successor explicitly
+authorizes them.

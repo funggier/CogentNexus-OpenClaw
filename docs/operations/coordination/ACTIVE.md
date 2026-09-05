@@ -1,55 +1,74 @@
 # Active Coordination Task
 
-Status: `BLOCKED_DEPLOYMENT_TRANSITION_RISK`
-Execution mode: `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
-Current disposition: `TASK260_BLOCKED_DEPLOYMENT_TRANSITION_RISK__REVIEW_REQUIRED`
-Task ID: `CNX-20260905-260`
-Parent task: `CNX-20260905-259`
+Status: `READY_FOR_LUNA`
+Execution mode: `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
+Current disposition: `TASK260_ACCEPTED_BLOCKED__PROCESS_BOUNDARY_REPAIR_REQUIRED`
+Task ID: `CNX-20260905-261`
+Parent task: `CNX-20260905-260`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — Task260 report published
+Updated: 2026-09-05 ICT
 
 Assigned executor: `Luna`
 Handoff from: `Musethree`
 Next actor after report: `Musethree`
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-## Accepted predecessor
+## Accepted Task260 result
 
-Task259 review verdict:
+Reviewed report HEAD:
 
-`ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
+`74fc4ae713c8e61b9730942e2c4b2d37f5907eb6`
 
-Reviewed candidate:
+Independent review:
 
-`d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
+`docs/operations/coordination/reviews/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification-review.md`
 
-Task259 source/test repair is accepted and exact-SHA CI was verified 9/9 success. Baseline `6822af4...` is retired as an executable candidate.
+Independent review verdict:
 
-## Active Task260
+`ACCEPT_BLOCKED_TRANSITION_RISK__CI_GREEN_VERIFIED__REPAIR_SUCCESSOR_REQUIRED`
+
+Task260 correctly failed closed: the install-over path has no mandatory
+fresh Gateway process boundary after replacement, so a healthy predecessor
+process can remain the observed runtime. Report-commit CI reached 9/9
+success with no rerun. That forensic verdict is preserved.
+
+## New repair authority
+
+Task260 plus independent review authorizes repository/source/test repair
+of the transition gap only. It is not authorization to run the installer
+against the live installation, restart the live Gateway, mutate live
+recovery state, redeliver or dispose the old Discord response, or perform
+semantic acceptance.
+
+## Active Task261
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
 
-Task260 is evidence/read-only requalification of the deployment transition. It must prove that supported install-over cannot start the predecessor emittable runtime during the transition and that candidate startup would apply the repaired freshness predicate to the stale recovery row.
+Add the mandatory post-replacement managed Gateway process boundary
+(reusing the proven `activate_current_config()` contract or equivalent),
+plus a regression test and candidate fingerprint binding, under TDD. The
+live subject row remains strictly untouched.
 
-Task260 result: `BLOCKED_DEPLOYMENT_TRANSITION_RISK`. The install-over path has no mandatory fresh Gateway process boundary after replacement; `lifecycle start` may skip when the native Gateway is healthy. No live successor is eligible until the smallest source/test repair and independent review are complete.
-
-## Live hard fences
+## Cardinality / hard fences
 
 ```text
-installer registration/start = 0
+installer Scheduled Task registration/start = 0
 scripts/install.ps1 live starts = 0
 Gateway/controller/provider lifecycle mutation = 0
-live DB/recovery mutation = 0
-recovery dispose/replay/redeliver/resend = 0
+live DB/recovery row mutation = 0
+recovery dispose/claim/replay/redeliver/resend = 0
 semantic sends = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
-## Baton rule
+## Stop boundary
 
-Luna owns Task260. After publishing the matching report, Luna must hand off to Musethree and invoke/call Musethree when available. Musethree must independently review Task260 before selecting any successor.
+Luna must publish:
 
-If Musethree can determine one safe authorized successor, Musethree may open/execute it under the standing baton protocol. If not, set `WAITING_FOR_CHATGPT` and tell the human operator to notify ChatGPT.
+`docs/operations/coordination/reports/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
+
+Then hand the baton to Musethree and STOP for independent review.
+Installer requalification remains parked until the repair is accepted.
