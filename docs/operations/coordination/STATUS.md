@@ -1,86 +1,65 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`  
-**Execution mode:** `TASK253_TASK252_STREAMING_DIAGNOSTIC_RUNNER_TDD_QUALIFICATION`  
+**Execution mode:** `TASK254_TASK253_TARGET_CHILD_IDENTITY_BINDING_TDD_REPAIR`  
 **Updated:** 2026-09-05 ICT  
-**Transport:** GitHub repository / Actions authoritative; Task253 is repository/test-only streaming-runner TDD; live installer retry and semantic acceptance remain unauthorized  
-**Active task:** `CNX-20260905-253`  
-**Parent:** `CNX-20260905-252`  
+**Transport:** GitHub repository / Actions authoritative; Task254 is repository/test-only; live installer retry and semantic acceptance remain unauthorized  
+**Active task:** `CNX-20260905-254`  
+**Parent:** `CNX-20260905-253`  
 **Parent umbrella:** `CNX-20260831-188`  
-**Disposition:** `TASK252_ACCEPTED_BLOCKED__SCHEDULER_TIMEOUT_AND_BUFFERED_RUNNER_EVIDENCE_LOSS_PROVEN__STREAMING_RUNNER_TDD_REQUIRED`
+**Disposition:** `TASK253_PASS_REJECTED__DURABLE_STREAMING_PROVEN__TARGET_CHILD_PID_BINDING_CONTRACT_NOT_MET__TDD_REPAIR_REQUIRED`
 
-## Accepted Task-252 result
+## Reviewed Task-253 result
 
 Reviewed report HEAD:
 
-`c1649f064e22492ac324a1f137fc109cff680c62`
+`92870320e10f2a53f477561f5c4c4d24e6439875`
 
 Independent review commit:
 
-`9318008a9549a264aa28491b0d4d264750a9e168`
+`1674407f0cd3e0b7a77cf0a40cc41a5ae29ab7a8`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_TASK251_CHILD_STAGE_UNPROVEN__SCHEDULER_TIMEOUT_AND_BUFFERED_RUNNER_EVIDENCE_LOSS_PROVEN__STREAMING_DIAGNOSTIC_RUNNER_TDD_REQUIRED`
+`REJECT_PASS_STREAMING_RUNNER_TARGET_PID_CONTRACT_NOT_MET__DURABLE_STREAMING_PROVEN__TDD_IDENTITY_BINDING_REPAIR_REQUIRED`
 
-Task252 established four separate causal layers:
+Task253 successfully proved the durable streaming objective that Task252 required, and its exact implementation candidate `cc35ce506b6a9ffee3223ec79ddb0373a898e4a5` had terminal-success validation gates. However, its `child-started.json` binds `pid` to the `cmd.exe` redirection launcher while `executable` names the manifest target. The runner also writes that child-start artifact before it knows whether the target executable actually launched; an invalid target can later become `child_launch_exception` even though `child-started.json` already exists.
+
+This violates the required actual-child identity contract and prevents use of the runner as the next live forensic boundary.
+
+Nonblocking Task253 reporting gaps also recorded by review:
 
 ```text
-scheduler termination mechanism = proven: PT45M + AllowHardTerminate + LastTaskResult 0x41306
-runner evidence-loss mechanism = proven: ReadToEnd()/WaitForExit() + post-completion artifact writes
-last installer stage = unproven beyond child-start boundary
-underlying child stall cause = unproven
+final streaming-runner SHA-256 omitted from report
+PS5.1 serializer job 101231503736 belongs to run 33938651865, not 33938651855
 ```
-
-Retained Task251 runner SHA-256:
-
-`0c2da0cb5877ca9493e4921c3a7b5492dd884841a2bd68c3fb63032b6e42eb98`
-
-The runner can lose all child stdout/stderr if the outer PowerShell process is hard-terminated before child completion. Task252 made no live product/source/test/workflow mutation and does not authorize an installer retry or timeout increase.
 
 Public `v0.9.3` remains immutable at:
 
 `26ce64a624255278a3a0266ad38746e0e6ed2e31`
 
-## Active Task 253
+## Active Task 254
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-253-task252-streaming-diagnostic-runner-tdd-qualification.md`
+`docs/operations/coordination/tasks/CNX-20260905-254-task253-target-child-identity-binding-tdd-repair.md`
 
-Task253 must use TDD to create and qualify a repository-owned Windows PowerShell 5.1 manifest streaming runner whose emitted child output is durable while the child is still alive.
-
-Mandatory behavior includes:
+Task254 must use strict TDD to bind durable child-start evidence to the actual manifest target process. Required regressions include:
 
 ```text
-runner-start marker before child launch
-child-start/PID evidence immediately after launch
-stdout/stderr files visible and flushed while child is alive
-forced outer-runner termination preserves already-emitted output
-known nonzero child exit preserved on normal completion
-launch failure distinct from child nonzero
-manifest arguments preserved exactly
+synthetic target self-reports PID
+child-started.json.pid equals that exact target PID
+child-started executable identity matches the same target
+invalid executable leaves no target child-start artifact
+launcher metadata is separate if retained
+stdout/stderr remain durable while target is alive
+forced outer-runner termination preserves emitted output
+test cleans up target/launcher process tree deterministically
+exit 23 and launch-failure classification remain exact
+argument vector includes a quoting edge, not only spaces
 ```
 
-Required topology:
-
-```text
-fresh authority
--> test-only RED
--> minimal streaming runner implementation
--> focused GREEN
--> full GREEN
--> exact candidate + runner SHA + installer SHA + plugin fingerprint proof
--> exact-SHA Validate / Windows Installer Pack Smoke / PS5.1 Acceptance Smoke SUCCESS
--> report
--> STOP for independent review
-```
-
-Preferred production location:
-
-`scripts/manifest-streaming-runner.ps1`
-
-Do not modify installer/ownership/plugin/lifecycle/dashboard semantics as part of Task253.
+Do not modify `scripts/install.ps1`, ownership/backup/transaction semantics, plugin payload, lifecycle/provider/model logic, or Dashboard/Discord delivery semantics.
 
 ## Hard fences
 
@@ -96,12 +75,12 @@ release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
-Repository source/test edits for the streaming runner and ordinary CI are authorized. Synthetic test children must not call product/runtime surfaces.
+Repository source/test edits for the streaming runner and ordinary CI are authorized.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260905-253-task252-streaming-diagnostic-runner-tdd-qualification.md`
+`docs/operations/coordination/reports/CNX-20260905-254-task253-target-child-identity-binding-tdd-repair.md`
 
-Then STOP for independent ChatGPT review. Live installer requalification and semantic acceptance require separate successor authority even if Task253 passes.
+Then STOP for independent ChatGPT review. Live installer requalification and semantic acceptance require separate successor authority even if Task254 passes.
