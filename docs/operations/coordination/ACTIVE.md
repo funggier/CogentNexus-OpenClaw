@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK266_LIVE_ACCEPTANCE_READONLY_PREFLIGHT`
-Current disposition: `TASK265_CHATGPT_ACCEPTED_SOURCE__TASK266_OPEN`
+Current disposition: `TASK266_READONLY_PREFLIGHT_BLOCKED__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260905-266`
 Parent task: `CNX-20260905-265`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT accepted Task265 source repair and opened read-only live preflight
+Updated: 2026-09-05 ICT — Hermes completed Task266 read-only preflight; live acceptance blocked by installed mismatch and nonterminal durable work
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -67,3 +67,15 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260905-266-task265-live-acceptance-readonly-preflight.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
+
+## Task266 Hermes report handoff
+
+Report: `docs/operations/coordination/reports/CNX-20260905-266-task265-live-acceptance-readonly-preflight.md`
+
+Starting remote HEAD: `aa4a8123dad55866d7b57a4dde6aaa5c42ab4a61`
+
+Disposition: `BLOCKED` — installed payload fingerprint differs from accepted Task265 candidate; target Discord owner has accepted nonterminal Ticket and pending direct recovery; provider recovery is `READY_WITH_WARNINGS` with incident `ollama:1` at 3/3 attempts.
+
+Hard fences: all zero; no install/restart/delete/reset/send/recovery/DB mutation performed.
+
+Next authority: ChatGPT independent review and successor-task framing. Hermes must perform no further Task266 mutation.
