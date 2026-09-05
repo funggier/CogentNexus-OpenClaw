@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
+import * as v090 from "./v090.js";
 import {
   boundedOwnerContext,
   cancelSessionByKey,
@@ -167,6 +168,35 @@ describe("v0.9 session ownership isolation", () => {
       } as any);
       expect(runs).toBe(0);
       expect(result).toMatchObject({queued:false,suppressed:true,reason:"session generation superseded"});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("reactivates a genuinely new lifecycle on the same deleted session key", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v090-session-recreate-"));
+    try {
+      const path = join(root, "tickets.sqlite3");
+      const key = "agent:main:discord:channel:K";
+      const store = new TicketStore(path);
+      const old = store.accept({runId:"old",ownerSessionKey:key,prompt:"old work"});
+      store.route(old.ticketId,true);
+      const before = sessionAuthority(path,key);
+      v090.deleteSessionByKey(path,{sessionKey:key,message:"deleted",sessionId:"A"} as any);
+      v090.finalizeSessionDeletion(path,key,"deleted");
+      const deleted = sessionAuthority(path,key);
+      expect(deleted.state).toBe("deleted");
+
+      const reactivate = (v090 as any).reactivateSessionForLifecycle;
+      expect(reactivate).toBeTypeOf("function");
+      expect(reactivate(path,{sessionKey:key,sessionId:"B"})).toMatchObject({state:"active"});
+      expect(sessionAuthority(path,key)).toEqual({state:"active",generation:deleted.generation+1});
+      expect((v090 as any).reactivateSessionForLifecycle(path,{sessionKey:key,sessionId:"B"}))
+        .toMatchObject({state:"active",generation:deleted.generation+1});
+      expect((v090 as any).reactivateSessionForLifecycle(path,{sessionKey:key,sessionId:"A"}).state).toBe("active");
+      const verify = new DatabaseSync(path,{readOnly:true});
+      expect(verify.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(old.ticketId)).toEqual({status:"cancelled"});
+      verify.close();
+      expect(() => store.accept({runId:"new",ownerSessionKey:key,prompt:"fresh work"})).not.toThrow();
+      expect(before.generation).toBe(deleted.generation-1);
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
