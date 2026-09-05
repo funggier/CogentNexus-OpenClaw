@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK270_DELETING_OWNER_REGRESSION_PROOF`
-Current disposition: `TASK270_TEST_CONTRACT_CLOSED__AWAITING_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-270`
-Parent task: `CNX-20260906-269`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK271_LIVE_DEPLOYMENT_CURSOR_REQUALIFICATION`
+Current disposition: `TASK271_HUMAN_AUTHORIZED__READY_FOR_BOUNDED_LIVE_EXECUTION`
+Task ID: `CNX-20260906-271`
+Parent task: `CNX-20260906-270`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Hermes closed Task270 with explicit deleting-owner and supervisor-idle proofs; awaiting ChatGPT review
+Updated: 2026-09-06 ICT — human explicitly authorized bounded Task271 live install-over and cursor requalification
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -14,50 +14,34 @@ Handoff from: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task269 ChatGPT review
+## Accepted Task269/270 review
 
-Review:
-
-`docs/operations/coordination/reviews/CNX-20260906-269-chatgpt-actionability-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-270-chatgpt-final-source-review.md`
 
 Verdict:
 
-`REWORK_REQUIRED__MINIMUM_DELETING_OWNER_PROOF_MISSING`
+`ACCEPT_TASK269_270_SOURCE_TEST_CI__LIVE_DEPLOYMENT_AUTHORITY_REQUIRED`
 
-Accepted final source candidate under review:
+Accepted exact candidate:
 
-`08a25a66b17ccea73f22fde6ca00ccdd63fe15e4`
+`6a491d1a95394bba7b70735fbaf9cebf4d619ea6`
 
-Exact candidate CI already verified:
+## Human authorization
 
-- Validate `33983861309` — success
-- PS5.1 Acceptance Smoke `33983861333` — success
-- Windows Installer Pack Smoke `33983861332` — success
+`docs/operations/coordination/reviews/CNX-20260906-271-human-live-authorization.md`
 
-## Active Task270
+Decision:
 
-Task:
+`AUTHORIZED_BOUNDED_LIVE_INSTALL_OVER_AND_CURSOR_REQUALIFICATION`
 
-`docs/operations/coordination/tasks/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
+## Active Task271
 
-Objective: add the missing explicit `deleting` owner-state proof and supervisor idle assertion. Production code must remain unchanged unless the new test exposes a real defect.
+`docs/operations/coordination/tasks/CNX-20260906-271-live-candidate-deployment-busy-cursor-requalification.md`
 
-## Hard fences
+Hermes is authorized to execute exactly one supported install-over of the exact candidate, require/verify the supported fresh Gateway process boundary, and perform read-only natural `PT1M` cursor/process requalification.
 
-Source/test/docs/CI only. No install, runtime lifecycle mutation, session Delete/reset, semantic send, live DB/recovery action, Scheduled Task mutation, process kill, release mutation, or force push.
+No blind live retry. If installer/process-boundary proof is ambiguous, stop and report.
 
-Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence.
+Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence. No cancel/redeliver/dispose/replay, session Delete/reset, or semantic-send authority exists.
 
-## Completion
-
-Hermes publishes:
-
-`docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
-
-Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
-
-## Task270 report
-
-`docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
-
-Disposition: `PASS__TEST_CONTRACT_CLOSED`; test-only commit `6a491d1a95394bba7b70735fbaf9cebf4d619ea6`; exact-SHA CI passed after one bounded rerun of an unrelated Windows timeout.
+After completion Hermes publishes the Task271 report, sets `WAITING_FOR_CHATGPT_REVIEW`, and stops mutation.
