@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK268_READONLY_BUSY_CURSOR_CAUSAL_CORRELATION`
-Current disposition: `TASK268_READONLY_CAUSAL_MATCH__AWAITING_CHATGPT_REVIEW`
-Task ID: `CNX-20260905-268`
-Parent task: `CNX-20260905-267`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK269_HOST_ACTIONABLE_DURABLE_WORK_HINT_REPAIR`
+Current disposition: `TASK268_CHATGPT_ACCEPTED_CAUSAL_PROOF__TASK269_OPEN`
+Task ID: `CNX-20260906-269`
+Parent task: `CNX-20260905-268`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Hermes completed Task268 cursor causal-correlation diagnostic; source repair and live acceptance remain separately gated
+Updated: 2026-09-06 ICT — ChatGPT accepted Task268 causal proof and opened bounded source repair
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -15,49 +15,61 @@ Next execution actor after review: `Hermes` if a bounded successor is opened
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## ChatGPT Task267 review
+## ChatGPT Task268 review
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260905-267-chatgpt-readonly-diagnostic-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-268-chatgpt-causal-root-review.md`
 
 Verdict:
 
-`ACCEPT_READONLY_DIAGNOSTIC__BUSY_CURSOR_CAUSAL_PROOF_REQUIRED`
+`ACCEPT_CAUSAL_PROOF__SOURCE_ACTIONABILITY_REPAIR_REQUIRED`
 
-Accepted evidence:
+Accepted causal evidence:
 
-- `CogentNexus-OpenClaw-Supervisor` repeats at `PT1M`;
-- natural waves spawn supervisor/lifecycle/gateway-status process trees at roughly one-minute cadence;
-- Gateway and Ollama processes stayed stable;
-- current Ollama is healthy but durable recovery incident `ollama:1` remains open at 3/3;
-- installed plugin payload still differs from accepted Task265 candidate;
-- old target Ticket/recovery remains unresolved and read-only.
+- APPSTARTING aligned with 6/6 natural `PT1M` supervisor waves;
+- each run lasted roughly 8.0–8.3 seconds;
+- no APPSTARTING off-cycle;
+- foreground app was substantially unchanged;
+- Gateway/Ollama PIDs stayed stable.
 
-## Active Task268
+Narrowed source defect:
+
+`host_v091.py::durable_work_hint()` treats stored nonterminal/direct-recovery state as actionable more broadly than the plugin Direct-recovery due contract. The stale target Ticket/recovery is not eligible under the 15-minute owner-session liveness fence, but it still forces the Host into heavy reconciliation every minute.
+
+## Active Task269
 
 Task:
 
-`docs/operations/coordination/tasks/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
+`docs/operations/coordination/tasks/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
 
 Objective:
 
-Capture the actual Windows WAIT/APPSTARTING cursor state at high frequency and correlate it with natural supervisor process-start waves over at least five PT1M ticks. Distinguish causal match from mere temporal correlation without disabling or changing the Scheduled Task.
+Make Host durable-work hints represent actually actionable work while preserving hard-hang recovery and the one-minute supervisor cadence. Use TDD and keep the old stale Ticket/recovery untouched.
 
 ## Hard fences
 
-Task268 is read-only live diagnostics only. No install, service/Gateway/provider mutation, session Delete/reset, semantic send, DB/recovery disposition, Scheduled Task mutation/run, unrelated process termination, input injection, release mutation, or force push is authorized.
+Task269 is source/test/docs/CI only.
+
+```text
+installer/install-over/uninstall/reset           = 0
+Gateway/provider/service lifecycle mutation      = 0
+live OpenClaw session delete/reset                = 0
+live Discord/Dashboard/API semantic send         = 0
+manual live Ticket/session/SQLite mutation       = 0
+recovery replay/redelivery/disposition            = 0
+Scheduled Task enable/disable/create/delete/run   = 0
+stop/kill/restart unrelated live processes        = 0
+release/tag/default-branch promotion             = 0
+force push/history rewrite                       = 0
+```
+
+Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence; owner intent is unproven.
 
 ## Completion
 
 Hermes publishes:
 
-`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
+`docs/operations/coordination/reports/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
-
-## Task268 report
-
-`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
-
-Disposition: `STRONG_CAUSAL_MATCH` for the supervisor process wave: APPSTARTING cursor state aligned with 6/6 natural PT1M waves for approximately 8.0–8.3 seconds each. The evidence does not isolate the `pythonw.exe` supervisor from its child `cmd.exe`/`node.exe gateway status` chain. No live repair or acceptance is authorized.

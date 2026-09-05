@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK268_READONLY_BUSY_CURSOR_CAUSAL_CORRELATION`
-**Updated:** 2026-09-06 ICT — Hermes completed Task268 cursor causal-correlation diagnostic; source repair and live acceptance remain separately gated
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK269_HOST_ACTIONABLE_DURABLE_WORK_HINT_REPAIR`
+**Updated:** 2026-09-06 ICT — ChatGPT accepted Task268 causal proof and opened Task269 source repair
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260905-268`
-**Parent:** `CNX-20260905-267`
+**Active task:** `CNX-20260906-269`
+**Parent:** `CNX-20260905-268`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK268_READONLY_CAUSAL_MATCH__AWAITING_CHATGPT_REVIEW`
+**Disposition:** `TASK268_CHATGPT_ACCEPTED_CAUSAL_PROOF__TASK269_OPEN`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -15,41 +15,40 @@
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task267 accepted
+## Task268 accepted
 
-ChatGPT review:
+Review:
 
-`docs/operations/coordination/reviews/CNX-20260905-267-chatgpt-readonly-diagnostic-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-268-chatgpt-causal-root-review.md`
 
 Verdict:
 
-`ACCEPT_READONLY_DIAGNOSTIC__BUSY_CURSOR_CAUSAL_PROOF_REQUIRED`
+`ACCEPT_CAUSAL_PROOF__SOURCE_ACTIONABILITY_REPAIR_REQUIRED`
 
-Task267 established a strong one-minute temporal correlation between `CogentNexus-OpenClaw-Supervisor` and short-lived supervisor/lifecycle/gateway-status process waves, while Gateway PID `23596` and Ollama PID `8560` stayed stable. The user-visible cursor itself was not instrumented, so causation remains unproven.
+The user's recurring APPSTARTING/busy cursor is causally bound to the one-minute supervisor process wave: 6/6 natural ticks aligned, no off-cycle APPSTARTING occurred, and Gateway/Ollama PIDs remained stable.
 
-Ollama is currently reachable/healthy/ready, but durable recovery incident `ollama:1` remains open at attempts `3/3`. Installed Task265 candidate identity remains mismatched. The old target Ticket/recovery remains an unresolved semantic-intent boundary and must not be mutated.
+The cadence is not itself the defect. The Host already has a lightweight idle fast path. The narrowed defect is that `durable_work_hint()` treats stale/non-due Direct durable state as actionable more broadly than the plugin's Direct-recovery eligibility contract.
 
-## Task268
+Current Direct-recovery contract includes a 15-minute owner-session liveness fence, exact owner generation, active owner state, Direct-lane shape, due `next_attempt_at`, and model-call recovery fence. The live stale Ticket/recovery does not satisfy that recovery liveness contract but still wakes Host heavy reconciliation every minute.
 
-`docs/operations/coordination/tasks/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
+## Task269
 
-Required work:
+`docs/operations/coordination/tasks/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
 
-- at least ~6 minutes / >=5 natural PT1M supervisor ticks;
-- high-frequency read-only Win32 cursor-state capture (WAIT and APPSTARTING where reliable);
-- process create/exit correlation with PID, parent, executable, command line and timestamps;
-- Scheduled Task last/next run correlation;
-- foreground process/window identity read-only where practical;
-- on-cycle versus off-cycle comparison;
-- detect `conhost.exe`/console/shell helpers despite intended windowless execution;
-- classify STRONG_CAUSAL_MATCH / CORRELATED_NOT_PROVEN / NOT_SUPERVISOR / INCONCLUSIVE.
+Required repair:
 
-No Scheduled Task disable/stop/reconfiguration or other live mutation is authorized.
+- TDD RED first;
+- stale/non-due Direct state must not wake heavy Host reconciliation;
+- fresh exact-generation due Direct recovery must still wake;
+- genuine durable workflow/delivery/recovery work must remain actionable;
+- healthy steady state with only stale Direct evidence must return Host `idle` fast path;
+- hard-hang recovery must not regress;
+- preserve `PT1M` supervisor cadence.
+
+The old Ticket remains read-only evidence. No cancel/redeliver/dispose/replay is authorized.
+
+## Hard fences
+
+No install, Gateway/provider lifecycle mutation, session Delete/reset, semantic send, live DB/recovery mutation, Scheduled Task mutation, process kill, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task269.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
-
-Task268 report:
-
-`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
-
-Disposition: `STRONG_CAUSAL_MATCH` for the supervisor wave. APPSTARTING cursor transitions aligned with 6/6 natural PT1M waves; no WAIT cursor state occurred. The exact causal executable remains unresolved, and deployment/recovery/Ticket blockers remain unchanged.
