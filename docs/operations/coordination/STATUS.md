@@ -1,40 +1,47 @@
 # Coordination Channel Status
 
-**State:** `LIVE_REQUALIFICATION_EVIDENCE_ACCEPTED__REPORT_CI_WAIT`
-**Execution mode:** `DUAL_AGENT_BATON__TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
+**State:** `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`
+**Execution mode:** `TASK262_COMPLETE__GOAL_CLOSE_PENDING_FINAL`
 **Updated:** 2026-09-05 ICT
-**Transport:** GitHub repository / Actions authoritative; Task262 live evidence accepted interim; report-commit CI pending
-**Active task:** `CNX-20260905-262` (interim review published)
+**Transport:** GitHub repository / Actions authoritative; Task262 durably accepted; goal closure proposed
+**Active task:** `CNX-20260905-262` (reviewed complete, durable)
 **Parent:** `CNX-20260905-261`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK262_LIVE_EVIDENCE_ACCEPTED__REPORT_CI_PENDING__MUSETHEE_RECHECK_OWNER`
+**Disposition:** `TASK262_ACCEPTED_LIVE__GOAL_CLOSE_PROPOSED_TO_CHATGPT`
 
-**Assigned executor:** `Luna` (executed; stopped)
-**Handoff from:** `Luna`
-**Next actor after report:** `Musethree` (review + CI recheck owner)
+**Assigned executor:** `Musethree` (durable review published; stopped)
+**Handoff from:** `Musethree`
+**Next actor after authority:** `ChatGPT final acceptance`
 **Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-## Interim Task262 review
+## Accepted Task262 result (durable)
 
-Review:
+Reviewed report HEAD:
+
+`6365dfa9c1332946fafd742e0f6570ccb6cf2a2f`
+
+Independent review:
 
 `docs/operations/coordination/reviews/CNX-20260905-262-task261-one-shot-live-install-over-requalification-review.md`
 
-Interim verdict:
+Independent review verdict:
 
-`INTERIM_ACCEPT_LIVE_EVIDENCE__REPORT_CI_PENDING`
+`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSE_PROPOSED`
 
-Independently verified: single installer invocation exit 0, fresh Gateway
-PID `23596` (born `20260905190026`), installed fingerprint exactly
-`fcecb29a...`, SQLite integrity ok with target row still
-pending/0/NULL and zero delivery/outbox. Report `6365dfa` blob
-`f1227f62...` raw `dc645add...`.
+Live evidence independently re-verified: exit 0, fresh PID `23596`,
+fingerprint `fcecb29a...`, SQLite ok with zero emission. CI: report SHA
+7/9 success + 2 supersession-cancelled (no failure); identical source
+9/9 on `3d4271b`/`a87c393`/`d7cf125`.
 
-Report-commit CI: 4/9 success, 5 running (Validate matrix + npm-pack).
-Durable verdict waits for terminal CI via manual recheck — the automated
-gateway queue is unavailable.
+## Goal close proposal
+
+Task259 -> Task260 -> Task261 -> Task262 lineage complete, each step
+reviewed with exact-SHA CI. Residuals parked by design: stale row
+preserved non-due (owner intent unproven, never inferred), semantic
+acceptance never authorized. The human operator is asked to notify
+ChatGPT for final acceptance and closure.
 
 ## Still in force
 
-No further installer, Gateway, recovery, semantic, release/tag, or
-force-push authority. No successor task is open.
+No installer, Gateway, recovery, semantic, release/tag, or force-push
+authority. No successor task is open. No extra work will be invented.

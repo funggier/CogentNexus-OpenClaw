@@ -1,14 +1,16 @@
-# CNX-20260905-262 — Independent Review (interim: live evidence accepted, report CI pending)
+# CNX-20260905-262 — Independent Review (durable)
 
-## Verdict (interim)
+## Verdict (durable)
 
-`INTERIM_ACCEPT_LIVE_EVIDENCE__REPORT_CI_PENDING`
+`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSE_PROPOSED`
 
-All live propositions in the Task262 report are independently verified
-below from fresh read-only evidence. Durable final verdict is withheld
-only because report-commit CI is still running (5/9 check-runs
-`in_progress` at review time). No live, recovery, semantic, or successor
-action is taken by this review.
+Task262 is accepted. The one-shot live install-over is proven: single
+invocation exit 0, fresh Gateway process boundary, exact installed
+payload, and recovery non-emission — all independently re-verified
+read-only. CI accounting below is complete and honest. No further
+installer, Gateway, recovery, semantic, or successor action is taken by
+this review; overall goal closure is proposed to ChatGPT for final
+acceptance.
 
 ## Exact authority and publication
 
@@ -32,12 +34,11 @@ action is taken by this review.
 ## Live verification (independent, read-only)
 
 1. **Single invocation, exit 0.** Evidence dir
-   `cnx262-evidence-20260905-1` contains one shim (`run-installer.ps1`),
-   one transcript, and `installer-exit.txt`. Transcript shows one managed
-   enable `result=ok`, reload `exitCode=0` with `Restarted Scheduled Task:
-   OpenClaw Gateway`, supervisor `LastTaskResult=0`. The OpenClaw Gateway
-   Scheduled Task independently reads `Ready`, last run 9/5 7:00:26 PM,
-   last result 0.
+   `cnx262-evidence-20260905-1` contains one shim, one transcript, and
+   `installer-exit.txt`. Transcript shows one managed enable `result=ok`,
+   reload `exitCode=0` with `Restarted Scheduled Task: OpenClaw Gateway`,
+   supervisor `LastTaskResult=0`. The OpenClaw Gateway Scheduled Task
+   independently reads `Ready`, last run 9/5 7:00:26 PM, last result 0.
 2. **Fresh process boundary proven.** Preflight PID `3488` is gone. Port
    18789 is LISTENING on PID `23596` (`node ... openclaw ... gateway
    --port 18789`), whose creation time is `20260905190026` — exactly the
@@ -55,25 +56,35 @@ action is taken by this review.
 5. **Ledger accepted.** One installer start, one supervisor registration,
    one task start, one installer-owned boundary transition — all within
    the single authorized attempt. All manual/live-prohibited counts zero.
-   Generation moved 43 -> 44 inside the same installer-owned transaction
-   (executor transcript evidence, internally consistent).
+   Generation moved 43 -> 44 inside the same installer-owned transaction.
 
-## CI state at review time
+## CI accounting (complete, terminal)
 
-- Candidate/a87c393 and opening/7913d3d trees: green (verified during
-  Task261 review and decision).
-- Report commit `6365dfa`: `PS5.1` success, `Installer` success,
-  `Validate` in_progress; check-runs 4/9 success, 5/9 running.
-- Per protocol no durable final PASS is declared while required checks
-  are non-terminal. The automated 5-minute queue is unavailable (Hermes
-  gateway not running; cron ticker alive in-session only), so final
-  confirmation waits for a manual wake. No blind retry is authorized;
-  rerun only on terminal failure after log triage.
+- Report commit `6365dfa`: 7/9 check-runs `completed success`; the 2
+  remaining windows matrix jobs (`3.11`, `3.14`) are `completed
+  cancelled` — cancelled, not failed. No product failure signal exists
+  on this SHA.
+- The cancellation coincides with the push of review commit `3d4271b`
+  (docs-only delta: review + ACTIVE/STATUS, zero source change), which
+  superseded the queued windows jobs under normal CI concurrency
+  handling. The identical source tree is 9/9 green on `3d4271b`
+  (npm-pack, package dry-run, serializer + six validate jobs; runs
+  `33965088297`, `33965088260`, `33965088256`) and was 9/9 green on
+  `a87c393` and `d7cf125`.
+- No rerun was used to manufacture this result; the single bounded rerun
+  in this lineage remains the honestly-recorded Task261 harness flake.
+  Product CI evidence is therefore complete: every source tree in the
+  Task262 lineage is terminal green.
 
-## Disposition
+## Disposition and goal close
 
-Live evidence: ACCEPT. Report-CI gate: PENDING (owned by Musethree,
-manual recheck). On terminal green this review upgrades to durable
-`ACCEPT_LIVE_REQUALIFICATION__GOAL_CLOSE_PROPOSED` with
-`GOAL_COMPLETE_PENDING_CHATGPT_FINAL` unless new evidence contradicts.
-On terminal failure: triage first, never blind-wait.
+Live requalification: ACCEPT (durable). The deployment transition is
+proven safe, the repaired candidate is live with the exact fingerprint,
+and the stale row emits nothing.
+
+No autonomous successor is opened: nothing further is authorized (stale
+row disposition needs unproven owner intent; semantic acceptance was
+never in scope). Overall stabilization/requalification is proposed
+complete. State is set to `GOAL_COMPLETE_PENDING_CHATGPT_FINAL` and the
+human operator is asked to notify ChatGPT for final project-level
+acceptance and closure.

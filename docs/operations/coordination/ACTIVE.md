@@ -1,62 +1,64 @@
 # Active Coordination Task
 
-Status: `LIVE_REQUALIFICATION_EVIDENCE_ACCEPTED__REPORT_CI_WAIT`
-Execution mode: `DUAL_AGENT_BATON__TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK262_LIVE_EVIDENCE_ACCEPTED__REPORT_CI_PENDING__MUSETHEE_RECHECK_OWNER`
-Task ID: `CNX-20260905-262` (interim review published)
+Status: `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`
+Execution mode: `TASK262_COMPLETE__GOAL_CLOSE_PENDING_FINAL`
+Current disposition: `TASK262_ACCEPTED_LIVE__GOAL_CLOSE_PROPOSED_TO_CHATGPT`
+Task ID: `CNX-20260905-262` (reviewed complete, durable)
 Parent task: `CNX-20260905-261`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — interim independent review published
+Updated: 2026-09-05 ICT
 
-Assigned executor: `Luna` (task executed; stopped per boundary)
-Handoff from: `Luna`
-Next actor after report: `Musethree` (review owner; CI recheck owner)
+Assigned executor: `Musethree` (durable review published; stopped)
+Handoff from: `Musethree`
+Next actor after authority: `ChatGPT final acceptance`
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
-Delayed wait protocol: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Accepted predecessor
+## Accepted Task262 result (durable)
 
-ChatGPT decision `AUTHORIZE_TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
-and Task261 repair review remain authoritative. One bounded live attempt
-was the full extent of the authorization.
+Reviewed report HEAD:
 
-Retained authority references (unchanged from Task262 execution state):
+`6365dfa9c1332946fafd742e0f6570ccb6cf2a2f`
 
-- decision artifact: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
-- exact source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
-- Task262 task: `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
-
-## Interim Task262 review
-
-Review:
+Independent review:
 
 `docs/operations/coordination/reviews/CNX-20260905-262-task261-one-shot-live-install-over-requalification-review.md`
 
-Interim verdict:
+Independent review verdict:
 
-`INTERIM_ACCEPT_LIVE_EVIDENCE__REPORT_CI_PENDING`
+`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSE_PROPOSED`
 
-Fresh boundary (PID `3488` -> `23596`, creation `20260905190026`),
-exact installed fingerprint (`fcecb29a...`), and recovery non-emission
-were all independently re-verified read-only. Report-commit CI stands at
-4/9 success with 5 jobs running; durable final verdict waits for terminal
-CI. Re-check owner is Musethree via manual wake (automated gateway queue
-unavailable).
+One-shot live install-over proven: single invocation exit 0, fresh
+Gateway PID `23596` (born `20260905190026`), installed fingerprint
+exactly `fcecb29a...`, recovery non-emission with SQLite integrity ok.
+CI complete: report SHA 7/9 success + 2 windows jobs cancelled by
+review-commit supersession (no failure signal); identical source 9/9
+green on `3d4271b`, `a87c393`, and `d7cf125`.
 
-## Live hard fences (still in force)
+Retained authority references:
 
-```text
-further installer starts = 0
-Gateway/controller/provider manual mutation = 0
-live DB/recovery mutation = 0
-recovery dispose/claim/replay/redeliver/resend = 0
-semantic sends = 0
-release/tag mutation = 0
-force push/history rewrite = 0
-```
+- ChatGPT decision: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
+- exact source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
+- Task262 task: `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
+
+## Completion summary (lineage)
+
+Task259 repaired the stale-owner disposition contract; Task260 proved the
+transition gap and failed closed; Task261 implemented the mandatory
+process boundary with fingerprint binding; Task262 deployed it live in
+one bounded attempt with a verified fresh boundary and zero emission.
+Each step was independently reviewed with exact-SHA CI.
+
+## Residuals (parked by design, not open work)
+
+- Subject row `CNXT-dc11c9a0...` stays `pending/redeliver`, non-due under
+  the live 15-minute fence; disposition needs explicit owner intent that
+  remains unproven — no agent may infer it.
+- Semantic acceptance was never authorized and is not proposed here.
+- No invented extra work exists to keep the loop running.
 
 ## Stop boundary
 
-Musethree finalizes this review to durable PASS (or triages failure)
-when report-commit CI reaches terminal state. No new installer, Gateway,
-recovery, semantic, or successor action is authorized by this state.
+Both agents stop all project mutation here. The human operator is asked
+to notify ChatGPT for final project-level acceptance and closure. No
+agent continues past this boundary until ChatGPT/human authority is
+published durably.
