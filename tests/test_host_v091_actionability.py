@@ -144,6 +144,10 @@ class HostActionabilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
             self.make_db(root, session_age=16, next_attempt="2026-09-06T17:00:00+00:00")
+            cnx.legacy.save_state(root, {
+                "schemaVersion": 1, "mode": "managed", "desiredGateway": "running",
+                "desiredProvider": "running", "generation": 1,
+            })
             original = cnx.LEGACY_SUPERVISOR_TICK
             cnx.gateway_fast_probe = lambda: True
             cnx.ollama_fast_probe = lambda: True

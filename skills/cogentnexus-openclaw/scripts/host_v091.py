@@ -20,6 +20,7 @@ import os
 import socket
 import sqlite3
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -123,25 +124,52 @@ def _db_table_exists(db: sqlite3.Connection, name: str) -> bool:
     return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
 
-def durable_work_hint(root: Path) -> bool:
-    """Read-only fallback hint for committed work that should wake recovery.
+DIRECT_RECOVERY_SESSION_LIVENESS_SECONDS = 15 * 60
 
-    The scheduled supervisor must not assume that healthy TCP endpoints imply
-    healthy workers. If a Ticket/outbox/recovery/delivery row remains actionable,
-    enter the proven heavy reconciliation path even while Gateway and Ollama respond.
+
+def _parse_iso_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def durable_work_hint(root: Path, now: str | None = None) -> bool:
+    """Return true only for durable work actionable under Host contracts.
+
+    Direct recovery deliberately mirrors ``dueDirectRecovery``: the owner must
+    be active, exact-generation, recently updated, due, and outside the model
+    call fence. Stored nonterminal Direct rows alone are not a wake signal.
     """
     path = legacy.ticket_db(root)
     if not path.exists():
         return False
+    current = _parse_iso_timestamp(now) if now else datetime.now(timezone.utc)
+    if current is None:
+        current = datetime.now(timezone.utc)
+    cutoff = current - timedelta(seconds=DIRECT_RECOVERY_SESSION_LIVENESS_SECONDS)
     try:
         db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.25)
+        db.row_factory = sqlite3.Row
     except sqlite3.Error:
         return True
     try:
         if not _db_table_exists(db, "tickets"):
             return False
-        if db.execute("SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1").fetchone():
+
+        # Workflow Tickets remain actionable only when explicitly admitted to
+        # workflow; an accepted Direct Ticket is not a workflow wake signal.
+        if db.execute(
+            """SELECT 1 FROM tickets
+               WHERE status NOT IN ('completed','failed','cancelled')
+                 AND (workflow_eligible <> 0 OR workflow_id IS NOT NULL)
+               LIMIT 1"""
+        ).fetchone():
             return True
+
         if _db_table_exists(db, "ticket_outbox") and db.execute(
             "SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
         ).fetchone():
@@ -150,13 +178,38 @@ def durable_work_hint(root: Path) -> bool:
             "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
         ).fetchone():
             return True
-        if _db_table_exists(db, "cnx_direct_recovery") and db.execute(
-            "SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded','awaiting_delivery') LIMIT 1"
-        ).fetchone():
-            return True
         if _db_table_exists(db, "cnx_context_maintenance") and db.execute(
             "SELECT 1 FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
         ).fetchone():
+            return True
+
+        required = {"cnx_direct_recovery", "cnx_sessions"}
+        if not required.issubset({row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}):
+            return False
+        model_fenced = _db_table_exists(db, "cnx_direct_model_call")
+        rows = db.execute(
+            """SELECT r.ticket_id,r.state,r.next_attempt_at,r.owner_generation,
+                      t.status,t.workflow_eligible,t.workflow_id,s.state AS session_state,
+                      s.generation,s.updated_at AS session_updated_at
+               FROM cnx_direct_recovery r
+               JOIN tickets t ON t.ticket_id=r.ticket_id
+               JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+               WHERE r.state='pending' AND t.status='accepted'
+                 AND t.workflow_eligible=0 AND t.workflow_id IS NULL
+                 AND s.state='active' AND s.generation=r.owner_generation"""
+        ).fetchall()
+        for row in rows:
+            session_updated = _parse_iso_timestamp(row["session_updated_at"])
+            if session_updated is None or session_updated < cutoff:
+                continue
+            due_at = _parse_iso_timestamp(row["next_attempt_at"])
+            if due_at is not None and due_at > current:
+                continue
+            if model_fenced and db.execute(
+                "SELECT 1 FROM cnx_direct_model_call WHERE ticket_id=? AND state IN ('active','recovering') LIMIT 1",
+                (row["ticket_id"],),
+            ).fetchone():
+                continue
             return True
         return False
     except sqlite3.Error:
