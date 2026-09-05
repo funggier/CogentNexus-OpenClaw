@@ -315,6 +315,49 @@ export function cancelSessionTickets(path: string, input: { runId: string; messa
   } finally { db.close(); }
 }
 
+export function disposeDirectRecoveryTicket(path: string, input: {
+  ticketId: string;
+  ownerSessionKey: string;
+  ownerGeneration: number;
+  message?: string;
+  now?: Date;
+}) {
+  const db = openDb(path), stamp = (input.now ?? new Date()).toISOString();
+  const reason = (input.message ?? "Direct recovery dispositioned").slice(0, 2000);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const row = db.prepare(`SELECT t.status,t.owner_session_key,s.generation,r.state
+      FROM tickets t JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+      LEFT JOIN cnx_direct_recovery r ON r.ticket_id=t.ticket_id
+      WHERE t.ticket_id=?`).get(input.ticketId) as any;
+    if (!row || !row.state || row.owner_session_key !== input.ownerSessionKey || Number(row.generation) !== input.ownerGeneration) {
+      throw new Error("exact Ticket owner generation fence failed");
+    }
+    if (row.state === "cancelled" && row.status === "cancelled") {
+      db.exec("COMMIT");
+      return { ticketId: input.ticketId, dispositioned: true, alreadyDispositioned: true };
+    }
+    db.prepare(`UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,
+      heartbeat_at=NULL,response_ready_at=NULL,delivery_last_error=?,updated_at=?
+      WHERE ticket_id=? AND owner_session_key=? AND status IN ('accepted','planned','running','waiting')`)
+      .run(reason, stamp, input.ticketId, input.ownerSessionKey);
+    db.prepare(`UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=?
+      WHERE ticket_id=? AND owner_generation=? AND state<>'cancelled'`)
+      .run(reason, stamp, input.ticketId, input.ownerGeneration);
+    db.prepare("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'").run(input.ticketId);
+    db.prepare("DELETE FROM cnx_assistant_delivery WHERE ticket_id=? AND status='pending'").run(input.ticketId);
+    addEvent(db, input.ticketId, "direct_recovery_dispositioned", {
+      source: "direct-recovery-disposition", ownerSessionKey: input.ownerSessionKey,
+      ownerGeneration: input.ownerGeneration, message: reason,
+    }, stamp);
+    db.exec("COMMIT");
+    return { ticketId: input.ticketId, dispositioned: true, alreadyDispositioned: false };
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch {}
+    throw error;
+  } finally { db.close(); }
+}
+
 function suppressWorkflowCompletion(workspace: string, workflowId: string, reason: string) {
   const path = resolve(workspace, ".cogentnexus-openclaw", "workflows", workflowId, "completion.json");
   if (!existsSync(path)) return;

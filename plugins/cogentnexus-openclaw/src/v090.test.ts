@@ -7,6 +7,7 @@ import { TicketStore, ticketIntakeEligible } from "./ticket-store.js";
 import {
   cancelSessionByKey,
   cancelSessionTickets,
+  disposeDirectRecoveryTicket,
   directRecoveryBackoffMs,
   isExplicitUserCancellation,
   markDirectRecovery,
@@ -142,5 +143,29 @@ describe("CogentNexus-OpenClaw v0.9.0 intent boundary", () => {
       expect(cancelled.cancelled.sort()).toEqual([a.ticketId,b.ticketId].sort());
       expect(cancelled.workflowIds).toEqual(["WF-CANCELLED"]);
     } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("disposes exactly one recovery Ticket with an auditable idempotent fence", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v090-disposition-"));
+    try {
+      const path = join(root, "tickets.sqlite3"), store = new TicketStore(path);
+      const target = store.accept({ runId:"target", ownerSessionKey:"agent:main:dashboard:owner", prompt:"target" });
+      const sibling = store.accept({ runId:"sibling", ownerSessionKey:"agent:main:dashboard:owner", prompt:"sibling" });
+      store.route(target.ticketId, false); store.route(sibling.ticketId, true);
+      expect(markDirectRecovery(path, { runId:"target", mode:"redeliver", message:"provider interrupted" })).toBe(true);
+      const authDb = new DatabaseSync(path, { readOnly:true });
+      const auth = authDb.prepare("SELECT generation FROM cnx_sessions WHERE session_key=?").get("agent:main:dashboard:owner") as any;
+      authDb.close();
+      const first = disposeDirectRecoveryTicket(path, { ticketId:target.ticketId, ownerSessionKey:"agent:main:dashboard:owner", ownerGeneration:Number(auth.generation), message:"owner intent unproven" });
+      expect(first).toMatchObject({ ticketId:target.ticketId, dispositioned:true, alreadyDispositioned:false });
+      const second = disposeDirectRecoveryTicket(path, { ticketId:target.ticketId, ownerSessionKey:"agent:main:dashboard:owner", ownerGeneration:Number(auth.generation), message:"owner intent unproven" });
+      expect(second).toMatchObject({ ticketId:target.ticketId, dispositioned:true, alreadyDispositioned:true });
+      const db = new DatabaseSync(path, { readOnly:true });
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(target.ticketId)).toEqual({ status:"cancelled" });
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(sibling.ticketId)).toEqual({ status:"accepted" });
+      expect(db.prepare("SELECT state FROM cnx_direct_recovery WHERE ticket_id=?").get(target.ticketId)).toEqual({ state:"cancelled" });
+      expect(db.prepare("SELECT COUNT(*) AS count FROM ticket_events WHERE ticket_id=? AND event_type='direct_recovery_dispositioned'").get(target.ticketId)).toEqual({ count:1 });
+      db.close();
+    } finally { rmSync(root, { recursive:true, force:true }); }
   });
 });

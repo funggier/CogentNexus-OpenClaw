@@ -7,6 +7,7 @@ import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 export const DIRECT_RECOVERY_ID = "cogentnexus-openclaw-direct-recovery-v090";
 export const ASSISTANT_DELIVERY_RETRY_MS = 30_000;
+export const DIRECT_RECOVERY_SESSION_LIVENESS_MS = 15 * 60_000;
 
 type Config = {
   cogentNexusOpenClawRoot?:string;
@@ -54,6 +55,11 @@ function deliveryLeaseSupported(db:DatabaseSync) {
   return columnExists(db,"cnx_assistant_delivery","claim_token")&&columnExists(db,"cnx_assistant_delivery","claim_expires_at");
 }
 
+function sessionLivenessFence(db:DatabaseSync, alias="s", now=new Date()) {
+  if(!columnExists(db,"cnx_sessions","updated_at"))return {sql:"",params:[] as string[]};
+  return {sql:` AND ${alias}.updated_at>=?`,params:[new Date(now.getTime()-DIRECT_RECOVERY_SESSION_LIVENESS_MS).toISOString()]};
+}
+
 export function resetStaleDirectRecovery(path:string,cfg:Config,now=new Date()):number {
   if(!existsSync(path))return 0;
   const db=openDb(path),stamp=now.toISOString();
@@ -75,13 +81,14 @@ export function dueDirectRecovery(path:string,now=new Date()):Recovery|undefined
   try {
     if(!tableExists(db,"cnx_direct_recovery")||!tableExists(db,"tickets")||!tableExists(db,"cnx_sessions"))return undefined;
     const modelFence=modelCallRecoveryFence(db,"r");
+    const liveness=sessionLivenessFence(db,"s",now);
     return db.prepare(`SELECT r.ticket_id,t.owner_session_key,t.prompt,r.mode,r.attempt_count,r.owner_generation
       FROM cnx_direct_recovery r JOIN tickets t ON t.ticket_id=r.ticket_id
       JOIN cnx_sessions s ON s.session_key=t.owner_session_key
       WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
         AND s.state='active' AND s.generation=r.owner_generation
-        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)${modelFence}
-      ORDER BY COALESCE(r.next_attempt_at,r.created_at) LIMIT 1`).get(now.toISOString()) as Recovery|undefined;
+        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)${liveness.sql}${modelFence}
+      ORDER BY COALESCE(r.next_attempt_at,r.created_at) LIMIT 1`).get(now.toISOString(),...liveness.params) as Recovery|undefined;
   } finally {db.close();}
 }
 
@@ -130,11 +137,12 @@ export function nextDirectRecoveryWakeMs(path:string,cfg:Config,now=new Date()):
     const hasRecoveryTables=tableExists(db,"cnx_direct_recovery")&&tableExists(db,"tickets")&&tableExists(db,"cnx_sessions");
     if(hasRecoveryTables) {
       const modelFence=modelCallRecoveryFence(db,"r");
+      const liveness=sessionLivenessFence(db,"s",now);
       const pending=db.prepare(`SELECT r.next_attempt_at FROM cnx_direct_recovery r
         JOIN tickets t ON t.ticket_id=r.ticket_id JOIN cnx_sessions s ON s.session_key=t.owner_session_key
         WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
-          AND s.state='active' AND s.generation=r.owner_generation${modelFence}
-        ORDER BY CASE WHEN r.next_attempt_at IS NULL THEN 0 ELSE 1 END,r.next_attempt_at LIMIT 1`).get() as {next_attempt_at?:string|null}|undefined;
+          AND s.state='active' AND s.generation=r.owner_generation${liveness.sql}${modelFence}
+        ORDER BY CASE WHEN r.next_attempt_at IS NULL THEN 0 ELSE 1 END,r.next_attempt_at LIMIT 1`).get(...liveness.params) as {next_attempt_at?:string|null}|undefined;
       if(pending) {
         if(!pending.next_attempt_at)delays.push(0);
         else {
