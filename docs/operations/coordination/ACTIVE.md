@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK268_READONLY_BUSY_CURSOR_CAUSAL_CORRELATION`
-Current disposition: `TASK267_CHATGPT_REVIEW_ACCEPTED__TASK268_OPEN`
+Current disposition: `TASK268_READONLY_CAUSAL_MATCH__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260905-268`
 Parent task: `CNX-20260905-267`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task267 read-only diagnostics and opened cursor causal-correlation diagnostic
+Updated: 2026-09-06 ICT — Hermes completed Task268 cursor causal-correlation diagnostic; source repair and live acceptance remain separately gated
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -55,3 +55,9 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
+
+## Task268 report
+
+`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
+
+Disposition: `STRONG_CAUSAL_MATCH` for the supervisor process wave: APPSTARTING cursor state aligned with 6/6 natural PT1M waves for approximately 8.0–8.3 seconds each. The evidence does not isolate the `pythonw.exe` supervisor from its child `cmd.exe`/`node.exe gateway status` chain. No live repair or acceptance is authorized.

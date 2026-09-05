@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK268_READONLY_BUSY_CURSOR_CAUSAL_CORRELATION`
-**Updated:** 2026-09-06 ICT — ChatGPT accepted Task267 diagnostics and opened read-only cursor causal proof
+**Updated:** 2026-09-06 ICT — Hermes completed Task268 cursor causal-correlation diagnostic; source repair and live acceptance remain separately gated
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-268`
 **Parent:** `CNX-20260905-267`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK267_ACCEPTED__TASK268_READY_FOR_HERMES`
+**Disposition:** `TASK268_READONLY_CAUSAL_MATCH__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -47,3 +47,9 @@ Required work:
 No Scheduled Task disable/stop/reconfiguration or other live mutation is authorized.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
+
+Task268 report:
+
+`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
+
+Disposition: `STRONG_CAUSAL_MATCH` for the supervisor wave. APPSTARTING cursor transitions aligned with 6/6 natural PT1M waves; no WAIT cursor state occurred. The exact causal executable remains unresolved, and deployment/recovery/Ticket blockers remain unchanged.
