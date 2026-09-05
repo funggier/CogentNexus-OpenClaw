@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK264_LIFECYCLE_IDENTITY_FENCE_REWORK`
-**Updated:** 2026-09-05 ICT — Hermes published Task264 source repair report; awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK265_FIRST_TURN_LIFECYCLE_ORDERING_REPAIR`
+**Updated:** 2026-09-05 ICT — ChatGPT reviewed Task264 and opened Task265 rework
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260905-264`
-**Parent:** `CNX-20260905-263`
+**Active task:** `CNX-20260905-265`
+**Parent:** `CNX-20260905-264`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK264_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
+**Disposition:** `TASK264_REWORK_REQUIRED__TASK265_READY_FOR_HERMES`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -15,50 +15,45 @@
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task263 ChatGPT review
+## Task264 ChatGPT review
 
 Review artifact:
 
-`docs/operations/coordination/reviews/CNX-20260905-263-chatgpt-lifecycle-recreation-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-264-chatgpt-first-turn-lifecycle-ordering-review.md`
 
 Verdict:
 
-`REWORK_REQUIRED__LIFECYCLE_IDENTITY_FENCE_INCOMPLETE`
+`REWORK_REQUIRED__FIRST_TURN_SESSION_START_ORDERING_RACE`
 
-Accepted evidence remains valid: Task263 migration/delete/recreation direction, TDD lineage, full local validation, exact-candidate CI 3/3, and no-live hard-fence compliance.
+Accepted Task264 evidence remains valid:
 
-Blocking defect: once lifecycle `B` is active, `reactivateSessionForLifecycle()` returns the active owner state even for stale/different lifecycle `A`/`C`, while `session_start` treats active state as non-refusal. The test also expects stale `A` to see `state=active`, so it does not establish the required identity fence.
+- RED correctly exposed stale/different active lifecycle acceptance;
+- candidate `cad96fad3d1cef07fac4173425f15714b33240d6` explicitly rejects active B + A/C;
+- exact `before_agent_run` lifecycle gate exists;
+- focused/full local validation passed;
+- exact candidate CI passed 3/3:
+  - PS5.1 `33976180547`
+  - Windows Pack `33976180585`
+  - Validate `33976180571`;
+- source-only hard fences were respected.
 
-## Active Task264
+Blocking issue: OpenClaw wires `session_start` as a void hook and fires it asynchronously without awaiting completion before returning the new session to the reply pipeline. Task264's `before_agent_run` gate uses read-only `isCurrentSessionLifecycle()`, so a legitimate first B turn can arrive before `session_start(B)` binds B and be incorrectly blocked.
 
-`docs/operations/coordination/tasks/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
+## Active Task265
+
+`docs/operations/coordination/tasks/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
 
 Required repair:
 
-- explicit lifecycle match/acceptance predicate;
-- active B + B accepted idempotently;
-- active B + A/C rejected without mutation;
-- deleted A + B reactivates exactly once;
-- deleted A + A rejected;
-- migration-safe active NULL lifecycle behavior;
-- `before_agent_run` fails closed when `ctx.sessionId` is not the current lifecycle for `ctx.sessionKey`;
-- current lifecycle remains admitted;
-- old-generation Ticket/recovery/delivery/workflow suppression unchanged.
+- admission boundary reconciles + decides exact lifecycle atomically;
+- first B owner turn after deleted A succeeds even if `session_start(B)` has not run;
+- stale A/C still fail closed without mutation;
+- delayed/duplicate `session_start(B)` remains idempotent;
+- active NULL migration behavior remains deterministic;
+- existing generation/recovery/delivery/workflow fences do not regress.
 
-Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`; no peer-bot review exists under the new standing model.
-
-## Task264 Hermes report handoff
-
-Report: `docs/operations/coordination/reports/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
-
-Candidate/source SHA: `cad96fad3d1cef07fac4173425f15714b33240d6`
-
-Exact-SHA CI: PS5.1 `33976180547`, Windows Pack `33976180585`, Validate `33976180571` — all success
-
-Hard fences: all zero; no live/runtime/semantic/destructive action performed
-
-Next authority: ChatGPT independent review. Hermes has stopped Task264 mutation.
+Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`.
 
 ## Hard fences
 
-No live OpenClaw session delete/reset, Discord/Dashboard semantic sends, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task264.
+No live OpenClaw session delete/reset, Discord/Dashboard semantic sends, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task265.
