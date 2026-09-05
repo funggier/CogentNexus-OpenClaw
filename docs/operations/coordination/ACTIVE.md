@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK265_FIRST_TURN_LIFECYCLE_ORDERING_REPAIR`
-Current disposition: `TASK264_CHATGPT_REVIEW_REWORK_REQUIRED__TASK265_OPEN`
+Current disposition: `TASK265_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260905-265`
 Parent task: `CNX-20260905-264`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT reviewed Task264 and opened bounded first-turn lifecycle ordering rework
+Updated: 2026-09-05 ICT — Hermes published Task265 first-turn lifecycle ordering repair report; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -71,3 +71,15 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation. There is no peer-bot handoff.
+
+## Task265 Hermes report handoff
+
+Report: `docs/operations/coordination/reports/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
+
+Candidate/source SHA: `ec1fdbb2ea036c6dcd1c375b8171868335d63fc8`
+
+Exact-SHA CI: PS5.1 `33977733180`, Windows Pack `33977733182`, Validate `33977733191` — all success
+
+Hard fences: all zero; no live/runtime/semantic/destructive action performed
+
+Next authority: ChatGPT independent review; Hermes must perform no further Task265 mutation.

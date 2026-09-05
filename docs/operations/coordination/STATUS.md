@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK265_FIRST_TURN_LIFECYCLE_ORDERING_REPAIR`
-**Updated:** 2026-09-05 ICT — ChatGPT reviewed Task264 and opened Task265 rework
+**Updated:** 2026-09-05 ICT — Hermes published Task265 first-turn lifecycle ordering repair report; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-265`
 **Parent:** `CNX-20260905-264`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK264_REWORK_REQUIRED__TASK265_READY_FOR_HERMES`
+**Disposition:** `TASK265_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -53,6 +53,18 @@ Required repair:
 - existing generation/recovery/delivery/workflow fences do not regress.
 
 Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`.
+
+## Task265 Hermes report handoff
+
+Report: `docs/operations/coordination/reports/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
+
+Candidate/source SHA: `ec1fdbb2ea036c6dcd1c375b8171868335d63fc8`
+
+Exact-SHA CI: PS5.1 `33977733180`, Windows Pack `33977733182`, Validate `33977733191` — all success
+
+Hard fences: all zero; no live/runtime/semantic/destructive action performed
+
+Next authority: ChatGPT independent review. Hermes has stopped Task265 mutation.
 
 ## Hard fences
 
