@@ -1,51 +1,53 @@
-# Dual-Agent Executor / Peer-Review Model
+# Hermes Executor / ChatGPT Review Model
 
 Updated: 2026-09-05 ICT
 
 ## Purpose
 
-Use Luna and Musethree as an alternating executor/reviewer pair so routine technical work can continue without routing every completed task through ChatGPT, while preserving independent evidence review and hard safety boundaries.
+Use one Hermes executor for routine technical work and ChatGPT as the independent reviewer/coordinator so work quality does not depend on a second Hermes peer being available or capable.
 
-The authoritative detailed transition rules are in `HERMES_DUAL_AGENT_BATON_PROTOCOL.md`.
+The authoritative transition rules are in `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`.
 
 ## Core model
 
 ```text
-Human / ChatGPT establishes goal or resolves escalation
-    -> Luna normally receives the first baton
-    -> assigned actor investigates + implements + validates + reports
-    -> peer actor independently reviews predecessor report
-    -> if clear/authorized: peer opens and executes next bounded task
-    -> peer reports and hands back
+Human / ChatGPT establishes goal or resolves authority
+    -> Hermes investigates + implements + validates + reports
+    -> ChatGPT independently reviews Hermes report
+    -> if accepted and continuation is bounded/authorized:
+         ChatGPT opens next task for Hermes
+    -> if rework needed:
+         ChatGPT opens rework for Hermes
+    -> if fresh human authority needed:
+         wait for human decision
     -> repeat
-    -> ambiguity/new authority/final completion -> ChatGPT
 ```
 
 ## Reviewer depth
 
-The receiving peer reviews using progressive depth:
+ChatGPT reviews using progressive depth:
 
 1. contract/lineage check;
 2. targeted verification of critical claims;
 3. focused technical expansion for weak/high-risk evidence;
 4. full reconstruction only if required for a safe disposition.
 
-PASS is never accepted solely because the predecessor says PASS.
+PASS is never accepted solely because Hermes says PASS.
 
 ## Evidence-rich reporting
 
-Reports state facts, evidence references, causal conclusions, material alternatives, uncertainty, risk, tests, hashes/runs, hard-fence compliance, and a small verification packet. Do not publish private chain-of-thought.
+Hermes reports facts, evidence references, causal conclusions, material alternatives, uncertainty, risk, tests, hashes/runs, hard-fence compliance, and a compact verification packet. Do not publish private chain-of-thought.
 
-## Peer successor decision
+## Successor decision
 
-After review, the receiving peer may continue automatically when a single bounded successor is clearly supported by evidence and existing authority. It may also open bounded rework or diagnostics.
+ChatGPT may continue the approved project by opening a bounded successor for Hermes when one continuation is clearly supported by evidence and existing authority.
 
-It must not autonomously choose among materially different architecture/semantic directions, infer missing user intent, or widen live/destructive authority.
+ChatGPT must not infer missing human semantic intent or silently widen live/destructive authority. When fresh consent is required, surface the exact missing authority to the human operator.
 
-## Escalation
+## Asynchronous waits
 
-When no safe uniquely authorized continuation exists, publish the review/decision packet and set `WAITING_FOR_CHATGPT`. At terminal project completion set `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`. In either case tell the human operator to notify ChatGPT.
+Hermes retains ownership during queued/in-progress deterministic CI/external waits and follows `DELAYED_RECHECK_QUEUE.md`. Waiting does not create a ChatGPT review handoff until the required gate is terminal or a real decision boundary is reached.
 
 ## Historical compatibility
 
-Historical tasks and reviews remain governed by the policy under which they were produced. For future work, any older statement that ChatGPT is required to review every task or create every successor is superseded by the dual-agent baton protocol.
+Historical tasks/reviews produced by Luna/Musethree remain valid. For future work, the single Hermes + ChatGPT review model supersedes the dual-agent peer-review model.

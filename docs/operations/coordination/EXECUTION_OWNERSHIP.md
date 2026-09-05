@@ -4,34 +4,17 @@ Updated: 2026-09-05 ICT
 
 ## Standing model
 
-Future Hermes coordination uses the dual-agent baton model in `HERMES_DUAL_AGENT_BATON_PROTOCOL.md`.
+Future Hermes coordination uses the single-agent model in `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`.
 
-- **Luna:** primary/default entry agent.
-- **Musethree:** supporting/alternate agent.
-- **Current baton holder:** sole task-mutation owner for the assigned task.
-- **Peer actor:** independent reviewer of the predecessor actor's report and next baton holder.
-- **ChatGPT:** escalation/adjudication/final-acceptance layer, not a mandatory reviewer between every task.
-- **Human operator:** final authority.
+- **Hermes:** sole routine execution agent for new tasks.
+- **ChatGPT:** independent reviewer, coordinator, successor/rework task framer, and technical adjudication layer.
+- **Human operator:** final authority for fresh intent and ungranted live/destructive/semantic decisions.
 
-Historical reports/reviews remain valid. Where older coordination files say that ChatGPT must review/open every successor, the dual-agent baton protocol supersedes that rule for future tasks.
-
-## Alternating ownership
-
-A task executed by Luna must hand off to Musethree. A task executed by Musethree must hand off to Luna.
-
-The receiving peer:
-
-1. fetches fresh remote authority;
-2. independently reviews the predecessor report;
-3. publishes the durable review;
-4. if the next action is clear and already authorized, creates a bounded successor assigned to itself and continues;
-5. after its own report, hands the baton back.
-
-No actor may independently accept its own report.
+Historical Luna/Musethree tasks and reviews remain valid evidence. The old alternating dual-agent baton is retained only for historical interpretation.
 
 ## Primary technical ownership
 
-The assigned actor may perform the full technical loop authorized by the task:
+When `ACTIVE.md` assigns a task to Hermes, Hermes may perform the full technical loop authorized by that task:
 
 - fresh remote synchronization;
 - source/repository/upstream investigation;
@@ -44,42 +27,53 @@ The assigned actor may perform the full technical loop authorized by the task:
 - risk and residual-uncertainty analysis;
 - matching evidence-rich report publication.
 
-## Successor autonomy
+## Review ownership
 
-The peer may open and execute a successor without ChatGPT only when it is a deterministic continuation of approved intent, bounded by existing authority, and does not require guessing semantic/user intent or widening disruptive authority.
+Hermes cannot independently accept its own completed report.
 
-Safe rework and bounded diagnostics may also continue in the peer loop.
+After required gates are terminal, Hermes publishes its report and hands the task to ChatGPT using `WAITING_FOR_CHATGPT_REVIEW` or an equivalent state.
+
+ChatGPT owns independent acceptance/rework review by checking current remote authority, lineage, task contract, critical diff/evidence, required tests/CI, hard-fence compliance, and live evidence where claimed.
+
+## Successor framing
+
+After accepting a Hermes report, ChatGPT may create the next bounded task for Hermes when it is a deterministic continuation of already-approved intent and stays inside established authority.
+
+If rework is needed, ChatGPT opens a bounded repair/rework task for Hermes.
+
+If the next step requires new human intent or authority, ChatGPT records the missing decision and asks the human operator rather than inventing consent.
 
 ## ChatGPT lane
 
-ChatGPT is called when:
+ChatGPT is a routine review hop under this model, not merely an exceptional escalation layer.
 
-- the peer cannot determine one safe authorized successor;
-- evidence or contracts conflict materially;
-- a new architecture/policy/semantic choice is required;
-- fresh human intent/consent is needed;
-- a disruptive/live/semantic boundary lacks explicit authority;
-- project-level final acceptance/closure is reached.
+ChatGPT handles:
 
-The escalation must be durable in `ACTIVE.md` / `STATUS.md` and include a concise decision packet.
+- independent review of every completed Hermes task report;
+- acceptance/rework disposition;
+- bounded successor task framing;
+- contradictory evidence adjudication;
+- architecture/policy/semantic decisions when sufficient authority already exists;
+- project-level final acceptance;
+- identification of any missing human consent/intent.
 
 ## Local/live authority
 
-The baton protocol does not broaden side-effect authority. Explicit task authorization is still required for install/update/uninstall/reset, Gateway/provider/controller/service mutation, recovery replay/redelivery/disposition, DB/durable-state mutation, Dashboard/Discord/API semantic sends, releases/tags, hardware/permission changes, and similar operations.
+The coordination model does not broaden side-effect authority. Explicit task authorization is still required for install/update/uninstall/reset, Gateway/provider/controller/service mutation, recovery replay/redelivery/disposition, DB/durable-state mutation, OpenClaw session delete/reset, Dashboard/Discord/API semantic sends, releases/tags/default-branch promotion, hardware/permission changes, and similar operations.
 
 ## Race prevention
 
 - remote branch is authoritative;
-- only current baton holder mutates the active task;
+- only the currently assigned execution/review actor mutates its assigned coordination phase;
 - fetch before every write/push;
 - preserve fast-forward history;
 - never force-push;
-- never reset away unknown peer/local work;
-- if remote moved, re-read baton ownership before continuing;
+- never reset away unknown local/remote work;
+- if remote moved, re-read `ACTIVE.md` / `STATUS.md` before continuing;
 - a matching completed report prevents repeating external side effects.
 
 ## Evidence ownership
 
-The executing actor owns implementation and the primary evidence package. The receiving peer owns independent review of that predecessor report. Evidence, not actor identity, determines acceptance.
+Hermes owns implementation and the primary evidence package. ChatGPT owns independent review and acceptance/rework disposition. Evidence, not actor identity, determines acceptance.
 
-If an actor must review work it authored, it must be labeled self-review and cannot satisfy a requirement for independent peer review.
+A Hermes self-review may be included for quality control but never replaces ChatGPT independent review.

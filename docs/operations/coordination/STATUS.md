@@ -1,67 +1,61 @@
 # Coordination Channel Status
 
-**State:** `TASK263_REPAIRED__REVIEW_REQUIRED`
-**Execution mode:** `TASK263_DISCORD_MANUAL_SESSION_DELETE_RECREATION_SOURCE_REPAIR`
-**Updated:** 2026-09-05 ICT — Task263 report published
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__CHATGPT_ROUTINE_REVIEW`
+**Updated:** 2026-09-05 ICT — human switched coordination to single Hermes + ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-263`
 **Parent:** `CNX-20260905-262`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK263_SOURCE_REPAIR_PASS__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`
+**Disposition:** `TASK263_SOURCE_REPAIR_PASS__CI_GREEN__CHATGPT_REVIEW_REQUIRED`
 
-**Assigned executor:** `Luna`
-**Handoff from:** `ChatGPT`
-**Next actor after report:** `Musethree`
-**Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
+**Routine executor:** `Hermes`
+**Current review owner:** `ChatGPT`
+**Historical Task263 executor:** `Luna`
+**Next execution actor after review:** `Hermes`
+**Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
+**Human decision:** `docs/operations/coordination/reviews/CNX-20260905-single-hermes-chatgpt-coordination-decision.md`
 
-## Fresh root cause
+## Coordination-model transition
 
-OpenClaw's session-delete lifecycle emits `session_end` with
-`reason="deleted"`, the deleted `sessionId`, canonical `sessionKey`, and no
-replacement. CogentNexus already handles that event by cancelling/suppressing
-old-generation durable work and tombstoning `cnx_sessions`.
+The prior Luna/Musethree alternating baton is superseded prospectively. Historical dual-agent evidence remains valid, but new work follows:
 
-The remaining defect is recreation: a later Discord message may cause OpenClaw
-to create a new lifecycle instance at the same canonical key. The current
-CogentNexus `session_start` hook calls `sessionAuthority()` and only warns when
-the row is `deleted`; it does not establish a fresh active generation. The new
-session can therefore remain fenced by the old tombstone.
+`Hermes -> report -> ChatGPT review -> successor/rework -> Hermes`
 
-## Published result
+Hermes does not independently accept its own report. ChatGPT is now the routine independent review hop for completed Hermes work.
 
-`PASS_SOURCE_REPAIR__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`
+## Current Task263 packet
+
+Root cause repaired in candidate:
+
+`4a5907af212c0b8c6f913036c6853523d7bab872`
 
 Report:
 
 `docs/operations/coordination/reports/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
 
-Candidate `4a5907af212c0b8c6f913036c6853523d7bab872` passed focused/full local
-verification and exact-SHA CI 3/3. Source repair is complete; live Delete ->
-later Discord recreation requires a separate explicitly authorized successor.
+Report publication HEAD before this policy transition:
 
+`9c1391d535b14fc4e3ed35f3f9448bdf5e9c0c33`
 
-TDD repair must prove all of the following:
+Reported evidence:
 
-1. delete keeps old-generation cancellation/suppression semantics;
-2. a new OpenClaw `sessionId` on the same key reactivates exactly one fresh
-   CogentNexus generation;
-3. repeated start for the same new lifecycle is idempotent;
-4. stale start for the deleted lifecycle cannot reactivate it;
-5. old recovery/outbox/assistant delivery remains fenced and is not rebound;
-6. new owner requests can be admitted under the fresh generation;
-7. existing reset/new/session-succession contracts stay green.
+- TDD RED recorded before production repair;
+- focused lifecycle ownership tests 7/7;
+- full plugin tests 287/287;
+- build and plugin validation PASS;
+- exact candidate GitHub Actions 3/3 success;
+- no live session deletion/reset or semantic send performed.
 
-Task file:
+## Review objective
 
-`docs/operations/coordination/tasks/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
+ChatGPT must independently review Task263 source semantics, migration safety, lifecycle-identity/idempotency fences, RED/GREEN evidence, exact-SHA CI, and hard-fence compliance.
 
-## Hard fences
+If accepted, the likely next phase is a separate bounded live Delete -> later Discord recreation acceptance task assigned to Hermes. That live task is not yet authorized by this state.
 
-Task263 is source/test/docs only. No live session deletion/reset, semantic send,
-SQLite mutation, installer, Gateway lifecycle, release/tag/default-branch
-mutation, force push, or history rewrite is authorized.
+## Hard fences still in force
 
-Luna reports then hands off to Musethree. Musethree reviews and continues under
-the dual-agent baton protocol. Any Actions-only wait must use the persistent
-five-minute delayed recheck queue.
+No current authority for actual OpenClaw session delete/reset, Discord/Dashboard semantic message, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch promotion, force push, or history rewrite.
+
+Hermes must remain idle on Task263 until ChatGPT publishes the review/next-task decision.
