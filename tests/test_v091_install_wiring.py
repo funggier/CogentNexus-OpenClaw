@@ -85,6 +85,14 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn('HERE.with_name("host_control_v091.py")', startup)
         self.assertIn('HERE.with_name("startup_v091.py")', host)
 
+    def test_install_over_forces_fresh_boundary_and_binds_installed_fingerprint(self):
+        ps = (ROOT / "scripts/install.ps1").read_text(encoding="utf-8")
+        host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
+        self.assertIn("activate_current_config", host)
+        self.assertIn("expectedPluginFingerprint", ps)
+        self.assertIn("installedPluginFingerprint", ps)
+        self.assertIn("installedPluginFingerprint.ToLowerInvariant() -ne $expectedPluginFingerprint.ToLowerInvariant()", ps)
+
 
 if __name__ == "__main__":
     unittest.main()
