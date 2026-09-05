@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK269_HOST_ACTIONABLE_DURABLE_WORK_HINT_REPAIR`
-**Updated:** 2026-09-06 ICT — Hermes completed Task269 source repair, tests, and exact-SHA CI; awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK270_DELETING_OWNER_REGRESSION_PROOF`
+**Updated:** 2026-09-06 ICT — Task269 independently reviewed; one explicit deleting-owner test-contract gap remains
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-269`
-**Parent:** `CNX-20260905-268`
+**Active task:** `CNX-20260906-270`
+**Parent:** `CNX-20260906-269`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK269_SOURCE_REPAIR_PASS__AWAITING_CHATGPT_REVIEW`
+**Disposition:** `TASK269_REVIEW_REWORK_REQUIRED__TASK270_OPEN`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -15,46 +15,28 @@
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task268 accepted
+## Task269 review
 
-Review:
+ChatGPT independently verified:
 
-`docs/operations/coordination/reviews/CNX-20260906-268-chatgpt-causal-root-review.md`
+- RED commit `518e6aaa401b0031bf630566551bffe994d4ed3e`;
+- production repair `454643bf3615f8cec88cc9b64566ae9e243ad2f5`;
+- compatibility correction `08a25a66b17ccea73f22fde6ca00ccdd63fe15e4`;
+- final exact-SHA CI 3/3 success;
+- stale Direct owner, due/fresh owner, generation mismatch, future retry, deleted owner, accepted Direct-only, workflow, transport delivery, active model-call, and supervisor idle cases are covered.
+
+Blocking gap: Task269 explicitly required proof for `deleted/deleting`; the new suite proves only `deleted`. Current production predicate appears to reject `deleting` via `s.state='active'`, but the safety contract requires an explicit regression proof.
 
 Verdict:
 
-`ACCEPT_CAUSAL_PROOF__SOURCE_ACTIONABILITY_REPAIR_REQUIRED`
+`REWORK_REQUIRED__MINIMUM_DELETING_OWNER_PROOF_MISSING`
 
-The user's recurring APPSTARTING/busy cursor is causally bound to the one-minute supervisor process wave: 6/6 natural ticks aligned, no off-cycle APPSTARTING occurred, and Gateway/Ollama PIDs remained stable.
+## Task270
 
-The cadence is not itself the defect. The Host already has a lightweight idle fast path. The narrowed defect is that `durable_work_hint()` treats stale/non-due Direct durable state as actionable more broadly than the plugin's Direct-recovery eligibility contract.
+`docs/operations/coordination/tasks/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
 
-Current Direct-recovery contract includes a 15-minute owner-session liveness fence, exact owner generation, active owner state, Direct-lane shape, due `next_attempt_at`, and model-call recovery fence. The live stale Ticket/recovery does not satisfy that recovery liveness contract but still wakes Host heavy reconciliation every minute.
+Expected change is test-only. Production source must not change unless the new test demonstrates a real defect.
 
-## Task269
-
-`docs/operations/coordination/tasks/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
-
-Required repair:
-
-- TDD RED first;
-- stale/non-due Direct state must not wake heavy Host reconciliation;
-- fresh exact-generation due Direct recovery must still wake;
-- genuine durable workflow/delivery/recovery work must remain actionable;
-- healthy steady state with only stale Direct evidence must return Host `idle` fast path;
-- hard-hang recovery must not regress;
-- preserve `PT1M` supervisor cadence.
-
-The old Ticket remains read-only evidence. No cancel/redeliver/dispose/replay is authorized.
-
-## Hard fences
-
-No install, Gateway/provider lifecycle mutation, session Delete/reset, semantic send, live DB/recovery mutation, Scheduled Task mutation, process kill, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task269.
+No live/runtime/destructive/semantic action is authorized.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
-
-Task269 report:
-
-`docs/operations/coordination/reports/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
-
-Disposition: `PASS`. Final candidate `08a25a66b17ccea73f22fde6ca00ccdd63fe15e4` passed local and exact-SHA CI validation. The first Validate failure was corrected in a follow-up candidate; no live runtime mutation occurred.
