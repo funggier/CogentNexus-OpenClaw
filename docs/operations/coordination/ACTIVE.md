@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_LUNA`
+Status: `BLOCKED_DEPLOYMENT_TRANSITION_RISK`
 Execution mode: `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
-Current disposition: `TASK259_ACCEPTED__DUAL_AGENT_BATON_ENABLED__TASK260_READY`
+Current disposition: `TASK260_BLOCKED_DEPLOYMENT_TRANSITION_RISK__REVIEW_REQUIRED`
 Task ID: `CNX-20260905-260`
 Parent task: `CNX-20260905-259`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT
+Updated: 2026-09-05 ICT — Task260 report published
 
 Assigned executor: `Luna`
 Handoff from: `Musethree`
@@ -32,6 +32,8 @@ Execute:
 `docs/operations/coordination/tasks/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification.md`
 
 Task260 is evidence/read-only requalification of the deployment transition. It must prove that supported install-over cannot start the predecessor emittable runtime during the transition and that candidate startup would apply the repaired freshness predicate to the stale recovery row.
+
+Task260 result: `BLOCKED_DEPLOYMENT_TRANSITION_RISK`. The install-over path has no mandatory fresh Gateway process boundary after replacement; `lifecycle start` may skip when the native Gateway is healthy. No live successor is eligible until the smallest source/test repair and independent review are complete.
 
 ## Live hard fences
 

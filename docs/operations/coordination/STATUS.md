@@ -1,12 +1,12 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_LUNA`
+**State:** `BLOCKED_DEPLOYMENT_TRANSITION_RISK`
 **Execution mode:** `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
 **Updated:** 2026-09-05 ICT
 **Active task:** `CNX-20260905-260`
 **Parent:** `CNX-20260905-259`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK259_ACCEPTED__DUAL_AGENT_BATON_ENABLED__TASK260_READY`
+**Disposition:** `TASK260_BLOCKED_DEPLOYMENT_TRANSITION_RISK__REVIEW_REQUIRED`
 
 **Assigned executor:** `Luna`
 **Handoff from:** `Musethree`
@@ -21,7 +21,7 @@ Task259 review accepted the stale-owner direct-recovery contract repair and inde
 
 ## Current work
 
-Luna executes Task260 read-only deployment-transition safety requalification. No live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send is authorized in Task260.
+Luna completed Task260 read-only deployment-transition safety requalification with `BLOCKED_DEPLOYMENT_TRANSITION_RISK`. The supported install-over path lacks a mandatory fresh Gateway process boundary after replacement; no live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send was authorized or performed.
 
 After the report, Luna hands the baton to Musethree. Musethree independently reviews and continues with the next bounded authorized task when the decision is deterministic. The pair continues alternating until either:
 
