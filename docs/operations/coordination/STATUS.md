@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_LUNA`
+**State:** `TASK263_REPAIRED__REVIEW_REQUIRED`
 **Execution mode:** `TASK263_DISCORD_MANUAL_SESSION_DELETE_RECREATION_SOURCE_REPAIR`
-**Updated:** 2026-09-05 ICT — user-authorized post-acceptance lifecycle repair opened by ChatGPT
+**Updated:** 2026-09-05 ICT — Task263 report published
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-263`
 **Parent:** `CNX-20260905-262`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `USER_AUTHORIZED_POST_ACCEPTANCE_SESSION_LIFECYCLE_REPAIR`
+**Disposition:** `TASK263_SOURCE_REPAIR_PASS__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`
 
 **Assigned executor:** `Luna`
 **Handoff from:** `ChatGPT`
@@ -28,7 +28,18 @@ CogentNexus `session_start` hook calls `sessionAuthority()` and only warns when
 the row is `deleted`; it does not establish a fresh active generation. The new
 session can therefore remain fenced by the old tombstone.
 
-## Task263 acceptance target
+## Published result
+
+`PASS_SOURCE_REPAIR__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`
+
+Report:
+
+`docs/operations/coordination/reports/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
+
+Candidate `4a5907af212c0b8c6f913036c6853523d7bab872` passed focused/full local
+verification and exact-SHA CI 3/3. Source repair is complete; live Delete ->
+later Discord recreation requires a separate explicitly authorized successor.
+
 
 TDD repair must prove all of the following:
 

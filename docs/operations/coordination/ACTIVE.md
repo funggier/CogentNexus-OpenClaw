@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_LUNA`
+Status: `TASK263_REPAIRED__REVIEW_REQUIRED`
 Execution mode: `TASK263_DISCORD_MANUAL_SESSION_DELETE_RECREATION_SOURCE_REPAIR`
-Current disposition: `USER_AUTHORIZED_POST_ACCEPTANCE_SESSION_LIFECYCLE_REPAIR`
+Current disposition: `TASK263_SOURCE_REPAIR_PASS__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`
 Task ID: `CNX-20260905-263`
 Parent task: `CNX-20260905-262`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT reopened coordination for manual Discord-session delete/recreation hardening
+Updated: 2026-09-05 ICT — Task263 report published
 
 Assigned executor: `Luna`
 Handoff from: `ChatGPT`
@@ -14,7 +14,7 @@ Next actor after report: `Musethree`
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Active objective
+## Completed objective
 
 Repair the lifecycle gap where OpenClaw `sessions.delete` correctly emits
 `session_end(reason="deleted")` and CogentNexus tombstones/cancels the old
@@ -25,6 +25,15 @@ CogentNexus owner row remains permanently tombstoned.
 Task contract:
 
 `docs/operations/coordination/tasks/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
+
+Report:
+
+`docs/operations/coordination/reports/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
+
+Result: `PASS_SOURCE_REPAIR__CI_GREEN__LIVE_ACCEPTANCE_REQUIRED`. Exact repair
+candidate `4a5907af212c0b8c6f913036c6853523d7bab872` passed local focused/full
+validation and 3/3 exact-SHA GitHub workflows. Baton is handed to Musethree;
+no live acceptance is authorized by Task263.
 
 ## Required semantics
 
