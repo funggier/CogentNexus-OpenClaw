@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_LUNA`
+Status: `LIVE_REQUALIFICATION_PASS__REVIEW_REQUIRED`
 Execution mode: `DUAL_AGENT_BATON__TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `CHATGPT_AUTHORIZED_TASK262_LIVE_INSTALL_OVER__RECOVERY_AND_SEMANTIC_FENCES_REMAIN`
+Current disposition: `TASK262_LIVE_INSTALL_OVER_PASS__FRESH_BOUNDARY_AND_RECOVERY_NON_EMISSION_VERIFIED`
 Task ID: `CNX-20260905-262`
 Parent task: `CNX-20260905-261`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT
+Updated: 2026-09-05 ICT — Task262 report published
 
 Assigned executor: `Luna`
 Handoff from: `ChatGPT`
@@ -34,13 +34,15 @@ Task261 repair is accepted and live deployment requalification is authorized as 
 - candidate host boundary blob: `77d3ad291ce6b2e9109066a0367d5115810c3965`
 - reviewed publication CI: 9/9 terminal success
 
-## Active Task262
+## Completed Task262
 
-Execute:
+Report:
 
 `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
 
 Luna may execute exactly one supported live install-over attempt from the exact candidate after all preflight identity/CI/recovery gates pass. The successful path must prove the installed fingerprint and a fresh managed Gateway process boundary.
+
+Final result: `PASS_LIVE_INSTALL_OVER_REQUALIFICATION__FRESH_BOUNDARY_VERIFIED__RECOVERY_NON_EMISSION_VERIFIED` at exact execution candidate `a87c3930651eecf4563d5d8bafe897e058bbdfe0`; report publication is at the path above. Installer attempt cardinality was 1/1, installer exit was 0, Gateway PID changed `3488` to `23596`, candidate fingerprint matched, and target recovery/semantic emission remained unchanged. Baton is handed to Musethree for independent review; no further live action is authorized.
 
 ## Hard fences
 
