@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK264_LIFECYCLE_IDENTITY_FENCE_REWORK`
-**Updated:** 2026-09-05 ICT — ChatGPT completed Task263 review and opened Task264 rework
+**Updated:** 2026-09-05 ICT — Hermes published Task264 source repair report; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-264`
 **Parent:** `CNX-20260905-263`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK263_REWORK_REQUIRED__TASK264_READY_FOR_HERMES`
+**Disposition:** `TASK264_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -46,6 +46,18 @@ Required repair:
 - old-generation Ticket/recovery/delivery/workflow suppression unchanged.
 
 Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`; no peer-bot review exists under the new standing model.
+
+## Task264 Hermes report handoff
+
+Report: `docs/operations/coordination/reports/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
+
+Candidate/source SHA: `cad96fad3d1cef07fac4173425f15714b33240d6`
+
+Exact-SHA CI: PS5.1 `33976180547`, Windows Pack `33976180585`, Validate `33976180571` — all success
+
+Hard fences: all zero; no live/runtime/semantic/destructive action performed
+
+Next authority: ChatGPT independent review. Hermes has stopped Task264 mutation.
 
 ## Hard fences
 

@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK264_LIFECYCLE_IDENTITY_FENCE_REWORK`
-Current disposition: `TASK263_CHATGPT_REVIEW_REWORK_REQUIRED__TASK264_OPEN`
+Current disposition: `TASK264_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260905-264`
 Parent task: `CNX-20260905-263`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT reviewed Task263 and opened bounded lifecycle-identity rework
+Updated: 2026-09-05 ICT — Hermes published Task264 source repair report; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -60,3 +60,17 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
 
 Then set state to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation. There is no peer-bot handoff.
+
+## Task264 Hermes report handoff
+
+Report: `docs/operations/coordination/reports/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
+
+Candidate/source SHA: `cad96fad3d1cef07fac4173425f15714b33240d6`
+
+Publication commit: recorded in the report publication commit
+
+Exact-SHA CI: PS5.1 `33976180547`, Windows Pack `33976180585`, Validate `33976180571` — all success
+
+Hard fences: all zero; no live/runtime/semantic/destructive action performed
+
+Next authority: ChatGPT independent review; Hermes must perform no further Task264 mutation.
