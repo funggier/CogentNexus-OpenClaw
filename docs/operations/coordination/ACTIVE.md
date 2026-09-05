@@ -1,65 +1,62 @@
 # Active Coordination Task
 
-Status: `LIVE_REQUALIFICATION_PASS__REVIEW_REQUIRED`
+Status: `LIVE_REQUALIFICATION_EVIDENCE_ACCEPTED__REPORT_CI_WAIT`
 Execution mode: `DUAL_AGENT_BATON__TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
-Current disposition: `TASK262_LIVE_INSTALL_OVER_PASS__FRESH_BOUNDARY_AND_RECOVERY_NON_EMISSION_VERIFIED`
-Task ID: `CNX-20260905-262`
+Current disposition: `TASK262_LIVE_EVIDENCE_ACCEPTED__REPORT_CI_PENDING__MUSETHEE_RECHECK_OWNER`
+Task ID: `CNX-20260905-262` (interim review published)
 Parent task: `CNX-20260905-261`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — Task262 report published
+Updated: 2026-09-05 ICT — interim independent review published
 
-Assigned executor: `Luna`
-Handoff from: `ChatGPT`
-Next actor after report: `Musethree`
+Assigned executor: `Luna` (task executed; stopped per boundary)
+Handoff from: `Luna`
+Next actor after report: `Musethree` (review owner; CI recheck owner)
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 Delayed wait protocol: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## ChatGPT decision
+## Accepted predecessor
 
-Decision artifact:
+ChatGPT decision `AUTHORIZE_TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
+and Task261 repair review remain authoritative. One bounded live attempt
+was the full extent of the authorization.
 
-`docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
+Retained authority references (unchanged from Task262 execution state):
 
-Decision:
+- decision artifact: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
+- exact source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
+- Task262 task: `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
 
-`AUTHORIZE_TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
+## Interim Task262 review
 
-Task261 repair is accepted and live deployment requalification is authorized as one bounded attempt. This does not infer owner intent for the stale Discord response.
+Review:
 
-## Exact candidate
+`docs/operations/coordination/reviews/CNX-20260905-262-task261-one-shot-live-install-over-requalification-review.md`
 
-- source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
-- reviewed publication: `d7cf125393994444178644732d50ffbfb3cb8e03`
-- candidate installer blob: `383f1bd05197381ffd6b4f3fa054ee11ab365c1a`
-- candidate host boundary blob: `77d3ad291ce6b2e9109066a0367d5115810c3965`
-- reviewed publication CI: 9/9 terminal success
+Interim verdict:
 
-## Completed Task262
+`INTERIM_ACCEPT_LIVE_EVIDENCE__REPORT_CI_PENDING`
 
-Report:
+Fresh boundary (PID `3488` -> `23596`, creation `20260905190026`),
+exact installed fingerprint (`fcecb29a...`), and recovery non-emission
+were all independently re-verified read-only. Report-commit CI stands at
+4/9 success with 5 jobs running; durable final verdict waits for terminal
+CI. Re-check owner is Musethree via manual wake (automated gateway queue
+unavailable).
 
-`docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
-
-Luna may execute exactly one supported live install-over attempt from the exact candidate after all preflight identity/CI/recovery gates pass. The successful path must prove the installed fingerprint and a fresh managed Gateway process boundary.
-
-Final result: `PASS_LIVE_INSTALL_OVER_REQUALIFICATION__FRESH_BOUNDARY_VERIFIED__RECOVERY_NON_EMISSION_VERIFIED` at exact execution candidate `a87c3930651eecf4563d5d8bafe897e058bbdfe0`; report publication is at the path above. Installer attempt cardinality was 1/1, installer exit was 0, Gateway PID changed `3488` to `23596`, candidate fingerprint matched, and target recovery/semantic emission remained unchanged. Baton is handed to Musethree for independent review; no further live action is authorized.
-
-## Hard fences
+## Live hard fences (still in force)
 
 ```text
-scripts/install.ps1 live starts <= 1
-privileged runner/Scheduled Task registration/start <= 1 each only if required
-manual Gateway/controller/provider mutation outside installer = 0
-manual DB/recovery mutation = 0
-recovery dispose/clear/cancel/claim/replay/redeliver/resend = 0
+further installer starts = 0
+Gateway/controller/provider manual mutation = 0
+live DB/recovery mutation = 0
+recovery dispose/claim/replay/redeliver/resend = 0
 semantic sends = 0
-live retry after failure/ambiguity = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
-## Baton rule
+## Stop boundary
 
-Luna owns Task262. Pending asynchronous GitHub checks retain Luna's baton and use the five-minute persistent delayed recheck queue.
-
-After the matching report, Luna hands off to Musethree for independent review. Musethree may continue only within the standing baton protocol and may not infer authorization to dispose or redeliver the stale recovery row.
+Musethree finalizes this review to durable PASS (or triages failure)
+when report-commit CI reaches terminal state. No new installer, Gateway,
+recovery, semantic, or successor action is authorized by this state.
