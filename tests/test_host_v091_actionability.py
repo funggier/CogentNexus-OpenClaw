@@ -107,6 +107,12 @@ class HostActionabilityTests(unittest.TestCase):
             self.make_db(root, session_state="deleted", next_attempt="2026-09-06T17:00:00+00:00")
             self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
 
+    def test_deleting_owner_does_not_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.make_db(root, session_state="deleting", next_attempt="2026-09-06T17:00:00+00:00")
+            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
     def test_accepted_direct_ticket_alone_does_not_wake(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
@@ -144,6 +150,23 @@ class HostActionabilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
             self.make_db(root, session_age=16, next_attempt="2026-09-06T17:00:00+00:00")
+            cnx.legacy.save_state(root, {
+                "schemaVersion": 1, "mode": "managed", "desiredGateway": "running",
+                "desiredProvider": "running", "generation": 1,
+            })
+            original = cnx.LEGACY_SUPERVISOR_TICK
+            cnx.gateway_fast_probe = lambda: True
+            cnx.ollama_fast_probe = lambda: True
+            cnx.LEGACY_SUPERVISOR_TICK = lambda *_args, **_kwargs: self.fail("heavy path must stay asleep")
+            try:
+                result = cnx.supervisor_tick(root, True)
+            finally:
+                cnx.LEGACY_SUPERVISOR_TICK = original
+            self.assertEqual(result["result"], "idle")
+    def test_supervisor_healthy_deleting_direct_state_stays_idle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.make_db(root, session_state="deleting", next_attempt="2026-09-06T17:00:00+00:00")
             cnx.legacy.save_state(root, {
                 "schemaVersion": 1, "mode": "managed", "desiredGateway": "running",
                 "desiredProvider": "running", "generation": 1,
