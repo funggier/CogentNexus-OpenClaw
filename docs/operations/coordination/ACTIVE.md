@@ -1,76 +1,68 @@
 # Active Coordination Task
 
-Status: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED`
-Execution mode: `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
-Current disposition: `TASK261_REPAIRED__CI_GREEN_VERIFIED__REVIEW_REQUIRED`
-Task ID: `CNX-20260905-261`
+Status: `WAITING_FOR_CHATGPT`
+Execution mode: `TASK261_COMPLETE__LIVE_INSTALL_OVER_DECISION_REQUIRED`
+Current disposition: `TASK261_ACCEPTED_REPAIR__LIVE_SUCCESSOR_ESCALATED_TO_CHATGPT`
+Task ID: `CNX-20260905-261` (reviewed complete)
 Parent task: `CNX-20260905-260`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — Task261 report published
+Updated: 2026-09-05 ICT
 
-Assigned executor: `Luna`
+Assigned executor: `Musethree` (review published; no further autonomous mutation)
 Handoff from: `Musethree`
-Next actor after report: `Musethree`
+Next actor after authority: `ChatGPT decision, then Luna execution`
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-## Accepted Task260 result
+## Accepted Task261 result
 
 Reviewed report HEAD:
 
-`74fc4ae713c8e61b9730942e2c4b2d37f5907eb6`
+`d7cf125393994444178644732d50ffbfb3cb8e03`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-261-task260-deployment-transition-process-boundary-repair-review.md`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_TRANSITION_RISK__CI_GREEN_VERIFIED__REPAIR_SUCCESSOR_REQUIRED`
+`ACCEPT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_ESCALATION`
 
-Task260 correctly failed closed: the install-over path has no mandatory
-fresh Gateway process boundary after replacement, so a healthy predecessor
-process can remain the observed runtime. Report-commit CI reached 9/9
-success with no rerun. That forensic verdict is preserved.
+The process-boundary repair is accepted. Publication CI is 9/9 terminal
+success with one honestly-recorded bounded rerun of a harness flake.
+New source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
+(publication `d7cf125` is docs-identical in source).
 
-## New repair authority
+## Decision packet for ChatGPT
 
-Task260 plus independent review authorizes repository/source/test repair
-of the transition gap only. It is not authorization to run the installer
-against the live installation, restart the live Gateway, mutate live
-recovery state, redeliver or dispose the old Discord response, or perform
-semantic acceptance.
+**Question:** authorize a one-shot live install-over task deploying the
+new candidate, with exact preflight/action/postflight gates?
 
-## Completed Task261
+**Exact material:** candidate source `a87c393...`, reviewed publication
+`d7cf125...`, baseline retired `d153140...`/`6822af4...`, tag
+`v0.9.3 = 26ce64a...` unchanged.
 
-Report:
+**Evidence for YES:** Task259/260/261 lineage complete and reviewed;
+transition gap closed by mandatory boundary + fingerprint binding;
+publication CI 9/9 green; subject row becomes non-due under the new
+candidate without emitting anything; rollback stays transactional.
 
-`docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
+**Evidence for HOLD:** any live installer/Gateway action is disruptive by
+definition; owner intent for the stale redelivery remains unproven (though
+nothing will emit); Windows proof of the new candidate is fresh only up
+to CI, not live execution.
 
-Add the mandatory post-replacement managed Gateway process boundary
-(reusing the proven `activate_current_config()` contract or equivalent),
-plus a regression test and candidate fingerprint binding, under TDD. The
-live subject row remains strictly untouched.
+**Hard fences in force:** no installer, Gateway, DB/recovery, dispose/
+replay/redeliver/resend, semantic, release/tag, or force-push authority
+exists until ChatGPT/human publishes it. Unknown owner intent must not be
+guessed.
 
-Final result: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED` at exact HEAD `a87c3930651eecf4563d5d8bafe897e058bbdfe0`. Task261 is complete and handed to Musethree for independent review; no live successor is opened.
-
-## Cardinality / hard fences
-
-```text
-installer Scheduled Task registration/start = 0
-scripts/install.ps1 live starts = 0
-Gateway/controller/provider lifecycle mutation = 0
-live DB/recovery row mutation = 0
-recovery dispose/claim/replay/redeliver/resend = 0
-semantic sends = 0
-release/tag mutation = 0
-force push/history rewrite = 0
-```
+**Recommended question:** approve Task262 one-shot live install-over with
+(a) preflight fingerprint/ownership/CI gates, (b) bounded transition
+actions, (c) postflight fresh-process/plugin/fingerprint/health gates and
+abort-on-drift — or direct HOLD with rationale.
 
 ## Stop boundary
 
-Luna must publish:
-
-`docs/operations/coordination/reports/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
-
-Then hand the baton to Musethree and STOP for independent review.
-Installer requalification remains parked until the repair is accepted.
+Both agents stop autonomous project mutation here. The human operator is
+asked to notify ChatGPT. No agent continues past this boundary until
+ChatGPT/human authority is published durably.

@@ -1,55 +1,48 @@
 # Coordination Channel Status
 
-**State:** `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED`
-**Execution mode:** `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
-**Updated:** 2026-09-05 ICT — Task261 report published
-**Transport:** GitHub repository / Actions authoritative; Task261 is a bounded source/test repair of the Task260 transition gap; live installer, Gateway restart, recovery disposition, and semantic actions remain unauthorized
-**Active task:** `CNX-20260905-261`
+**State:** `WAITING_FOR_CHATGPT`
+**Execution mode:** `TASK261_COMPLETE__LIVE_INSTALL_OVER_DECISION_REQUIRED`
+**Updated:** 2026-09-05 ICT
+**Transport:** GitHub repository / Actions authoritative; Task261 repair reviewed and accepted; live install-over decision escalated
+**Active task:** `CNX-20260905-261` (reviewed complete; no autonomous successor)
 **Parent:** `CNX-20260905-260`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK261_REPAIRED__CI_GREEN_VERIFIED__REVIEW_REQUIRED`
+**Disposition:** `TASK261_ACCEPTED_REPAIR__LIVE_SUCCESSOR_ESCALATED_TO_CHATGPT`
 
-**Assigned executor:** `Luna`
+**Assigned executor:** `Musethree` (review published; stopped)
 **Handoff from:** `Musethree`
-**Next actor after report:** `Musethree`
+**Next actor after authority:** `ChatGPT decision, then Luna execution`
 **Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-## Accepted Task260 result
+## Accepted Task261 result
 
 Reviewed report HEAD:
 
-`74fc4ae713c8e61b9730942e2c4b2d37f5907eb6`
+`d7cf125393994444178644732d50ffbfb3cb8e03`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-261-task260-deployment-transition-process-boundary-repair-review.md`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_TRANSITION_RISK__CI_GREEN_VERIFIED__REPAIR_SUCCESSOR_REQUIRED`
+`ACCEPT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_ESCALATION`
 
-Report-commit CI reached terminal success 9/9 with no rerun. The
-transition-gap finding stands: no mandatory fresh Gateway process
-boundary exists on the install-over success path.
+Publication CI verified 9/9 terminal success (one bounded rerun of a
+harness flake, honestly recorded). New candidate:
+`a87c3930651eecf4563d5d8bafe897e058bbdfe0`.
 
-## Repair authority
+## Escalation: live install-over decision required
 
-Task260 and its independent review authorize a new repository/source/test
-successor for the process-boundary repair. They do not authorize a live
-install-over, recovery disposition, Gateway restart, or semantic send,
-and they do not weaken any Task258/Task259 semantic fence.
+A live install-over would execute the installer, restart the Gateway, and
+expose production recovery to new code. That exceeds all existing explicit
+authority, so per the baton protocol both agents stop here with
+`WAITING_FOR_CHATGPT`. The decision packet (exact SHAs, YES/HOLD evidence,
+fences, recommended question) is in `ACTIVE.md`.
 
-## Completed Task261
-
-Report:
-
-`docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
-
-Task261 must add the mandatory post-replacement process boundary with
-regression coverage and fingerprint binding under TDD, without touching
-live state. Then STOP for independent review by Musethree.
-
-Final result: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED` at exact HEAD `a87c3930651eecf4563d5d8bafe897e058bbdfe0`. Report published; baton handed to Musethree for independent review. No live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send was authorized or performed.
+The human operator is asked to notify ChatGPT. No live installer, Gateway
+restart, recovery disposition/redelivery, semantic send, release/tag, or
+force-push is authorized.
 
 ## Cardinality / hard fences
 
@@ -63,13 +56,3 @@ semantic sends = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
-
-Repository/source/test/docs repair and non-live tests/build/CI are
-authorized when required by Task261.
-
-## Stop boundary
-
-Luna must publish the Task261 report and hand the baton to Musethree.
-Live recovery disposition, installer requalification, and semantic
-acceptance remain parked until a separately reviewed successor explicitly
-authorizes them.
