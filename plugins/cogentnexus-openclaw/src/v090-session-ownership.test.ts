@@ -249,6 +249,38 @@ describe("v0.9 session ownership isolation", () => {
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 
+  it("admits the first owner turn before asynchronous session_start", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v090-first-turn-order-"));
+    try {
+      const path = join(root, "tickets.sqlite3"), key = "agent:main:discord:ordered";
+      const store = new TicketStore(path);
+      const old = store.accept({runId:"old",ownerSessionKey:key,prompt:"old work"});
+      store.route(old.ticketId,true);
+      v090.deleteSessionByKey(path,{sessionKey:key,message:"deleted",sessionId:"A"} as any);
+      v090.finalizeSessionDeletion(path,key,"deleted");
+      const deleted = sessionAuthority(path,key);
+      const hooks = new Map<string, any[]>();
+      const api:any = {
+        pluginConfig:{ticketFirst:false,preInferenceAdmission:false,ticketDatabasePath:path,workspaceDir:root},
+        registerTool:()=>{}, registerService:()=>{},
+        on:(name:string, handler:any)=>{ const list=hooks.get(name) ?? []; list.push(handler); hooks.set(name,list); },
+        logger:{warn:()=>{},error:()=>{},info:()=>{}}, session:{workflow:{}}, runtime:{tasks:{managedFlows:{}}},
+      };
+      (v090Entry as any).register(api);
+      const before = hooks.get("before_agent_run") ?? [];
+      const invoke = (sessionId:string) => before.map((handler) => handler({prompt:"ordinary owner prompt"},{sessionKey:key,sessionId,workspaceDir:root}));
+      expect(invoke("B").some((result:any) => result?.category === "cnxclaw_lifecycle_identity")).toBe(false);
+      const verify = new DatabaseSync(path,{readOnly:true});
+      expect(verify.prepare("SELECT state,session_id,generation FROM cnx_sessions WHERE session_key=?").get(key))
+        .toEqual({state:"active",session_id:"B",generation:deleted.generation+1});
+      verify.close();
+      expect(invoke("A").some((result:any) => result?.category === "cnxclaw_lifecycle_identity")).toBe(true);
+      expect(invoke("C").some((result:any) => result?.category === "cnxclaw_lifecycle_identity")).toBe(true);
+      for (const handler of hooks.get("session_start") ?? []) handler({sessionKey:key,sessionId:"B"},{sessionKey:key,sessionId:"B",workspaceDir:root});
+      expect(sessionAuthority(path,key)).toEqual({state:"active",generation:deleted.generation+1});
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
   it("cross-session context is read-only and internal synthetic turns are excluded", () => {
     const context = boundedOwnerContext([
       {role:"user",content:"real message from another session"},
