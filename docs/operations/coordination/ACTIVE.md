@@ -1,81 +1,57 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK267_READONLY_BUSY_CURSOR_PROVIDER_DEPLOYMENT_DIAGNOSTIC`
-Current disposition: `TASK267_READONLY_DIAGNOSTIC_BLOCKED__AWAITING_CHATGPT_REVIEW`
-Task ID: `CNX-20260905-267`
-Parent task: `CNX-20260905-266`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK268_READONLY_BUSY_CURSOR_CAUSAL_CORRELATION`
+Current disposition: `TASK267_CHATGPT_REVIEW_ACCEPTED__TASK268_OPEN`
+Task ID: `CNX-20260905-268`
+Parent task: `CNX-20260905-267`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — Hermes completed Task267 read-only diagnostics; live acceptance/deployment remains blocked
+Updated: 2026-09-06 ICT — ChatGPT accepted Task267 read-only diagnostics and opened cursor causal-correlation diagnostic
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
 Handoff from: `ChatGPT`
-Next execution actor after review: `Hermes` if a bounded successor is explicitly authorized
+Next execution actor after review: `Hermes` if a bounded successor is opened
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## ChatGPT Task266 review
+## ChatGPT Task267 review
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260905-266-chatgpt-readonly-preflight-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-267-chatgpt-readonly-diagnostic-review.md`
 
 Verdict:
 
-`ACCEPT_READONLY_PREFLIGHT__BLOCKERS_CONFIRMED__SUCCESSOR_DIAGNOSTIC_REQUIRED`
+`ACCEPT_READONLY_DIAGNOSTIC__BUSY_CURSOR_CAUSAL_PROOF_REQUIRED`
 
-Confirmed blockers:
+Accepted evidence:
 
-- installed CogentNexus-OpenClaw payload does not match accepted Task265 candidate `ec1fdbb2ea036c6dcd1c375b8171868335d63fc8`;
-- target Discord owner still has nonterminal Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and pending direct recovery;
-- provider recovery reports `READY_WITH_WARNINGS` with incident `ollama:1` at 3/3 attempts.
+- `CogentNexus-OpenClaw-Supervisor` repeats at `PT1M`;
+- natural waves spawn supervisor/lifecycle/gateway-status process trees at roughly one-minute cadence;
+- Gateway and Ollama processes stayed stable;
+- current Ollama is healthy but durable recovery incident `ollama:1` remains open at 3/3;
+- installed plugin payload still differs from accepted Task265 candidate;
+- old target Ticket/recovery remains unresolved and read-only.
 
-The old Ticket/recovery remains read-only. Owner intent is unproven; no redelivery/cancel/dispose/replay is authorized.
-
-## Active Task267
+## Active Task268
 
 Task:
 
-`docs/operations/coordination/tasks/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
+`docs/operations/coordination/tasks/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
 
-Objectives:
+Objective:
 
-1. investigate the user's Windows busy-circle cursor appearing approximately every one minute by bounded read-only process/Scheduled-Task/event correlation;
-2. diagnose the `ollama:1` recovery warning without resetting/retrying/restarting anything;
-3. refine exact-candidate deployment prerequisites without deploying.
-
-The cursor investigation must capture process creation timestamps, cadence, parent process, command line, Scheduled Task correlation, and relevant CPU/disk evidence where available. Do not infer causation from process name alone.
+Capture the actual Windows WAIT/APPSTARTING cursor state at high frequency and correlate it with natural supervisor process-start waves over at least five PT1M ticks. Distinguish causal match from mere temporal correlation without disabling or changing the Scheduled Task.
 
 ## Hard fences
 
-Task267 authorizes read-only inspection and temporary diagnostic capture only.
-
-```text
-installer/install-over/uninstall/reset           = 0
-Gateway/provider/service lifecycle mutation      = 0
-live OpenClaw session delete/reset                = 0
-live Discord/Dashboard/API semantic send         = 0
-manual live Ticket/session/SQLite mutation       = 0
-recovery replay/redelivery/disposition            = 0
-Scheduled Task enable/disable/create/delete       = 0
-stop/kill/restart unrelated live processes        = 0
-release/tag/default-branch promotion             = 0
-force push/history rewrite                       = 0
-```
-
-Only a temporary diagnostic capture process started by Task267 may be stopped after capture completes.
+Task268 is read-only live diagnostics only. No install, service/Gateway/provider mutation, session Delete/reset, semantic send, DB/recovery disposition, Scheduled Task mutation/run, unrelated process termination, input injection, release mutation, or force push is authorized.
 
 ## Completion
 
 Hermes publishes:
 
-`docs/operations/coordination/reports/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
+`docs/operations/coordination/reports/CNX-20260905-268-readonly-busy-cursor-causal-correlation-diagnostic.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
-
-## Task267 report
-
-`docs/operations/coordination/reports/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
-
-Disposition: `BLOCKED` — one-minute supervisor/process churn was correlated, Ollama is healthy now but recovery incident `ollama:1` remains open at 3/3 attempts, and installed payload identity remains a deployment prerequisite blocker.
