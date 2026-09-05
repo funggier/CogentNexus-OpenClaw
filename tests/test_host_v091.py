@@ -60,6 +60,7 @@ class HostV091Tests(unittest.TestCase):
         self.patch(cnx.legacy, "startup", lambda *_args, **_kwargs: self.completed('{"enabled":true}'))
         self.patch(cnx.legacy, "runtime", lambda *_args, **_kwargs: self.completed('{"ok":true}'))
         self.patch(cnx.legacy, "gateway_status", lambda: {"healthy": True})
+        self.patch(cnx.runtime_boundary, "activate_current_config", lambda: {"ok": True, "phase": "verified"})
         self.patch(cnx.legacy, "reconcile_default_session", lambda: {"ok": True, "created": False})
         self.patch(cnx.legacy, "promote_interrupted_direct", lambda *_args, **_kwargs: [])
 
