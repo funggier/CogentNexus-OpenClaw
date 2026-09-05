@@ -1,58 +1,57 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT`
-**Execution mode:** `TASK261_COMPLETE__LIVE_INSTALL_OVER_DECISION_REQUIRED`
+**State:** `READY_FOR_LUNA`
+**Execution mode:** `DUAL_AGENT_BATON__TASK262_ONE_SHOT_LIVE_INSTALL_OVER_REQUALIFICATION`
 **Updated:** 2026-09-05 ICT
-**Transport:** GitHub repository / Actions authoritative; Task261 repair reviewed and accepted; live install-over decision escalated
-**Active task:** `CNX-20260905-261` (reviewed complete; no autonomous successor)
-**Parent:** `CNX-20260905-260`
+**Active task:** `CNX-20260905-262`
+**Parent:** `CNX-20260905-261`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK261_ACCEPTED_REPAIR__LIVE_SUCCESSOR_ESCALATED_TO_CHATGPT`
+**Disposition:** `CHATGPT_AUTHORIZED_TASK262_LIVE_INSTALL_OVER__RECOVERY_AND_SEMANTIC_FENCES_REMAIN`
 
-**Assigned executor:** `Musethree` (review published; stopped)
-**Handoff from:** `Musethree`
-**Next actor after authority:** `ChatGPT decision, then Luna execution`
+**Assigned executor:** `Luna`
+**Handoff from:** `ChatGPT`
+**Next actor after report:** `Musethree`
 **Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
+**Delayed waits:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Accepted Task261 result
+## Accepted predecessor
 
-Reviewed report HEAD:
-
-`d7cf125393994444178644732d50ffbfb3cb8e03`
-
-Independent review:
-
-`docs/operations/coordination/reviews/CNX-20260905-261-task260-deployment-transition-process-boundary-repair-review.md`
-
-Independent review verdict:
+Task261 independent review verdict:
 
 `ACCEPT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_ESCALATION`
 
-Publication CI verified 9/9 terminal success (one bounded rerun of a
-harness flake, honestly recorded). New candidate:
-`a87c3930651eecf4563d5d8bafe897e058bbdfe0`.
+Exact source candidate:
 
-## Escalation: live install-over decision required
+`a87c3930651eecf4563d5d8bafe897e058bbdfe0`
 
-A live install-over would execute the installer, restart the Gateway, and
-expose production recovery to new code. That exceeds all existing explicit
-authority, so per the baton protocol both agents stop here with
-`WAITING_FOR_CHATGPT`. The decision packet (exact SHAs, YES/HOLD evidence,
-fences, recommended question) is in `ACTIVE.md`.
+Reviewed publication:
 
-The human operator is asked to notify ChatGPT. No live installer, Gateway
-restart, recovery disposition/redelivery, semantic send, release/tag, or
-force-push is authorized.
+`d7cf125393994444178644732d50ffbfb3cb8e03`
 
-## Cardinality / hard fences
+Publication CI was independently verified 9/9 terminal success. The Task261 repair binds installed plugin fingerprint before managed activation and forces a fresh managed Gateway process boundary on successful install-over.
 
-```text
-installer registration/start = 0
-scripts/install.ps1 live starts = 0
-Gateway/controller/provider lifecycle mutation = 0
-live DB/recovery mutation = 0
-recovery dispose/claim/replay/redeliver/resend = 0
-semantic sends = 0
-release/tag mutation = 0
-force push/history rewrite = 0
-```
+## ChatGPT authority
+
+ChatGPT has resolved the Task261 escalation in favor of a bounded one-shot live requalification. The human operator explicitly requested inspection and continuation of the current work.
+
+Execute:
+
+`docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
+
+## Live boundary
+
+Task262 permits one supported install-over attempt and installer-owned lifecycle/process-boundary actions required by that transaction.
+
+It still forbids:
+
+- recovery disposition/clear/cancel/claim/replay/redelivery/resend;
+- manual database mutation;
+- semantic Dashboard/Discord/API Send;
+- source repair inside the live task;
+- release/tag/default-branch mutation;
+- live automatic retry after installer failure/ambiguity;
+- force push/history rewrite.
+
+If required GitHub checks are temporarily pending, Luna must use the persistent five-minute delayed recheck queue and retain the baton rather than becoming dormant.
+
+After the Task262 report, hand off to Musethree for independent review.
