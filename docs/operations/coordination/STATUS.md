@@ -1,13 +1,18 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `REVIEWED_ACCEPTED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
 **Execution mode:** `TASK259_TASK258_STALE_OWNER_RECOVERY_DISPOSITION_CONTRACT_REPAIR`
 **Updated:** 2026-09-05 ICT
 **Transport:** GitHub repository / Actions authoritative; Task259 reopens repository/source/test diagnosis and repair of the Task258 stale-owner recovery coordination dead-end; live recovery, installer, Gateway restart, and semantic actions remain unauthorized
 **Active task:** `CNX-20260905-259`
 **Parent:** `CNX-20260905-258`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK258_ACCEPTED_BLOCKED__COORDINATION_DEAD_END_REOPENED_FOR_SOURCE_CONTRACT_REPAIR`
+**Disposition:** `TASK259_ACCEPTED_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
+
+**Task259 review:** `docs/operations/coordination/reviews/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair-review.md`
+
+**Review verdict:** `ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
+**Reviewed candidate:** `d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
 
 ## Accepted Task258 result
 
@@ -65,6 +70,6 @@ when required by Task259.
 
 ## Stop boundary
 
-Hermes must publish the Task259 report and stop for independent review. Live
-recovery disposition, installer requalification, and semantic acceptance remain
-parked until a separately reviewed successor explicitly authorizes them.
+Task259 review is complete. Live recovery disposition, installer
+requalification, and semantic acceptance remain parked until a separately
+authorized successor explicitly authorizes them.

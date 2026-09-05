@@ -1,14 +1,25 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `REVIEWED_ACCEPTED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
 Execution mode: `TASK259_TASK258_STALE_OWNER_RECOVERY_DISPOSITION_CONTRACT_REPAIR`
-Current disposition: `TASK258_ACCEPTED_BLOCKED__COORDINATION_DEAD_END_REOPENED_FOR_SOURCE_CONTRACT_REPAIR`
+Current disposition: `TASK259_ACCEPTED_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
 Task ID: `CNX-20260905-259`
 Parent task: `CNX-20260905-258`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-05 ICT
 Executor: Hermes / authenticated repository operator
 Coordinator / independent reviewer: Musethree
+
+## Task259 review
+
+Review: `docs/operations/coordination/reviews/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair-review.md`
+
+Review verdict: `ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
+Reviewed candidate: `d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
+
+Task259 repository repair is accepted. No live successor is authorized by this
+review; live disposition, redelivery, installer, Gateway, and semantic actions
+remain parked pending a separately authorized successor task.
 
 ## Accepted Task258 result
 
