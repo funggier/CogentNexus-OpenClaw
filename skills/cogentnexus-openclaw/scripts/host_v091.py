@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 import host as legacy
+import openclaw_runtime_boundary_v092 as runtime_boundary
 
 HERE = Path(__file__).resolve()
 LEGACY_SUPERVISOR_TICK = legacy.supervisor_tick
@@ -476,6 +477,13 @@ def enable(root: Path) -> dict[str, Any]:
         runtime_start_attempted = True
         lifecycle = legacy.runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
 
+        # lifecycle start may intentionally skip an already-healthy Gateway.
+        # Force a process boundary after install-over replacement so the
+        # enabled process cannot remain a predecessor runtime.
+        managed_boundary = runtime_boundary.activate_current_config()
+        if not managed_boundary.get("ok"):
+            raise RuntimeError(f"Gateway failed managed process-boundary verification: {managed_boundary}")
+
         gateway = legacy.gateway_status()
         if not gateway.get("healthy"):
             raise RuntimeError(f"Gateway failed managed health verification: {gateway}")
@@ -548,6 +556,7 @@ def enable(root: Path) -> dict[str, Any]:
         "policy": legacy.policy_info(root),
         "startup": legacy.parse_json_output(startup_result.stdout),
         "lifecycle": legacy.parse_json_output(lifecycle.stdout),
+        "gatewayBoundary": managed_boundary,
         "sessionBootstrap": session_bootstrap,
         "terminalFences": terminal_fences,
         "directDeliveryFences": direct_delivery_fences,
