@@ -1,61 +1,52 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__CHATGPT_ROUTINE_REVIEW`
-**Updated:** 2026-09-05 ICT — human switched coordination to single Hermes + ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK264_LIFECYCLE_IDENTITY_FENCE_REWORK`
+**Updated:** 2026-09-05 ICT — ChatGPT completed Task263 review and opened Task264 rework
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260905-263`
-**Parent:** `CNX-20260905-262`
+**Active task:** `CNX-20260905-264`
+**Parent:** `CNX-20260905-263`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK263_SOURCE_REPAIR_PASS__CI_GREEN__CHATGPT_REVIEW_REQUIRED`
+**Disposition:** `TASK263_REWORK_REQUIRED__TASK264_READY_FOR_HERMES`
 
 **Routine executor:** `Hermes`
-**Current review owner:** `ChatGPT`
-**Historical Task263 executor:** `Luna`
-**Next execution actor after review:** `Hermes`
+**Current execution owner:** `Hermes`
+**Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
-**Human decision:** `docs/operations/coordination/reviews/CNX-20260905-single-hermes-chatgpt-coordination-decision.md`
 
-## Coordination-model transition
+## Task263 ChatGPT review
 
-The prior Luna/Musethree alternating baton is superseded prospectively. Historical dual-agent evidence remains valid, but new work follows:
+Review artifact:
 
-`Hermes -> report -> ChatGPT review -> successor/rework -> Hermes`
+`docs/operations/coordination/reviews/CNX-20260905-263-chatgpt-lifecycle-recreation-review.md`
 
-Hermes does not independently accept its own report. ChatGPT is now the routine independent review hop for completed Hermes work.
+Verdict:
 
-## Current Task263 packet
+`REWORK_REQUIRED__LIFECYCLE_IDENTITY_FENCE_INCOMPLETE`
 
-Root cause repaired in candidate:
+Accepted evidence remains valid: Task263 migration/delete/recreation direction, TDD lineage, full local validation, exact-candidate CI 3/3, and no-live hard-fence compliance.
 
-`4a5907af212c0b8c6f913036c6853523d7bab872`
+Blocking defect: once lifecycle `B` is active, `reactivateSessionForLifecycle()` returns the active owner state even for stale/different lifecycle `A`/`C`, while `session_start` treats active state as non-refusal. The test also expects stale `A` to see `state=active`, so it does not establish the required identity fence.
 
-Report:
+## Active Task264
 
-`docs/operations/coordination/reports/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
+`docs/operations/coordination/tasks/CNX-20260905-264-task263-lifecycle-identity-fence-rework.md`
 
-Report publication HEAD before this policy transition:
+Required repair:
 
-`9c1391d535b14fc4e3ed35f3f9448bdf5e9c0c33`
+- explicit lifecycle match/acceptance predicate;
+- active B + B accepted idempotently;
+- active B + A/C rejected without mutation;
+- deleted A + B reactivates exactly once;
+- deleted A + A rejected;
+- migration-safe active NULL lifecycle behavior;
+- `before_agent_run` fails closed when `ctx.sessionId` is not the current lifecycle for `ctx.sessionKey`;
+- current lifecycle remains admitted;
+- old-generation Ticket/recovery/delivery/workflow suppression unchanged.
 
-Reported evidence:
+Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`; no peer-bot review exists under the new standing model.
 
-- TDD RED recorded before production repair;
-- focused lifecycle ownership tests 7/7;
-- full plugin tests 287/287;
-- build and plugin validation PASS;
-- exact candidate GitHub Actions 3/3 success;
-- no live session deletion/reset or semantic send performed.
+## Hard fences
 
-## Review objective
-
-ChatGPT must independently review Task263 source semantics, migration safety, lifecycle-identity/idempotency fences, RED/GREEN evidence, exact-SHA CI, and hard-fence compliance.
-
-If accepted, the likely next phase is a separate bounded live Delete -> later Discord recreation acceptance task assigned to Hermes. That live task is not yet authorized by this state.
-
-## Hard fences still in force
-
-No current authority for actual OpenClaw session delete/reset, Discord/Dashboard semantic message, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch promotion, force push, or history rewrite.
-
-Hermes must remain idle on Task263 until ChatGPT publishes the review/next-task decision.
+No live OpenClaw session delete/reset, Discord/Dashboard semantic sends, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task264.
