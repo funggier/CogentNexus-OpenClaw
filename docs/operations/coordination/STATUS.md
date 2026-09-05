@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK265_FIRST_TURN_LIFECYCLE_ORDERING_REPAIR`
-**Updated:** 2026-09-05 ICT — Hermes published Task265 first-turn lifecycle ordering repair report; awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK266_LIVE_ACCEPTANCE_READONLY_PREFLIGHT`
+**Updated:** 2026-09-05 ICT — ChatGPT accepted Task265 source repair and opened read-only live preflight
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260905-265`
-**Parent:** `CNX-20260905-264`
+**Active task:** `CNX-20260905-266`
+**Parent:** `CNX-20260905-265`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK265_HERMES_REPORT_PUBLISHED__AWAITING_CHATGPT_REVIEW`
+**Disposition:** `TASK265_SOURCE_ACCEPTED__TASK266_READONLY_PREFLIGHT_READY`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -15,57 +15,28 @@
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 **Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task264 ChatGPT review
+## Task265 accepted
 
-Review artifact:
+ChatGPT review:
 
-`docs/operations/coordination/reviews/CNX-20260905-264-chatgpt-first-turn-lifecycle-ordering-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-265-chatgpt-source-review.md`
 
 Verdict:
 
-`REWORK_REQUIRED__FIRST_TURN_SESSION_START_ORDERING_RACE`
+`ACCEPT_SOURCE_REPAIR__LIVE_PREFLIGHT_REQUIRED`
 
-Accepted Task264 evidence remains valid:
+Accepted candidate `ec1fdbb2ea036c6dcd1c375b8171868335d63fc8` closes the first-turn ordering race by reconciling lifecycle identity transactionally at `before_agent_run`. RED/production lineage was independently inspected and exact-candidate CI passed 3/3:
 
-- RED correctly exposed stale/different active lifecycle acceptance;
-- candidate `cad96fad3d1cef07fac4173425f15714b33240d6` explicitly rejects active B + A/C;
-- exact `before_agent_run` lifecycle gate exists;
-- focused/full local validation passed;
-- exact candidate CI passed 3/3:
-  - PS5.1 `33976180547`
-  - Windows Pack `33976180585`
-  - Validate `33976180571`;
-- source-only hard fences were respected.
+- PS5.1 `33977733180`
+- Windows Pack `33977733182`
+- Validate `33977733191`
 
-Blocking issue: OpenClaw wires `session_start` as a void hook and fires it asynchronously without awaiting completion before returning the new session to the reply pipeline. Task264's `before_agent_run` gate uses read-only `isCurrentSessionLifecycle()`, so a legitimate first B turn can arrive before `session_start(B)` binds B and be incorrectly blocked.
+## Task266
 
-## Active Task265
+`docs/operations/coordination/tasks/CNX-20260905-266-task265-live-acceptance-readonly-preflight.md`
 
-`docs/operations/coordination/tasks/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
+Hermes must read-only inspect installed plugin/runtime/Gateway/Discord session/CNX durable state, compare installed identity with the accepted Task265 candidate, and prepare the exact later live acceptance action packet.
 
-Required repair:
+No deployment, process restart, session deletion, semantic test message, durable-state mutation, recovery action, release mutation, or force push is authorized by Task266.
 
-- admission boundary reconciles + decides exact lifecycle atomically;
-- first B owner turn after deleted A succeeds even if `session_start(B)` has not run;
-- stale A/C still fail closed without mutation;
-- delayed/duplicate `session_start(B)` remains idempotent;
-- active NULL migration behavior remains deterministic;
-- existing generation/recovery/delivery/workflow fences do not regress.
-
-Hermes must use RED -> minimal fix -> GREEN and exact-SHA CI. After report, state returns to `WAITING_FOR_CHATGPT_REVIEW`.
-
-## Task265 Hermes report handoff
-
-Report: `docs/operations/coordination/reports/CNX-20260905-265-first-turn-lifecycle-admission-ordering-repair.md`
-
-Candidate/source SHA: `ec1fdbb2ea036c6dcd1c375b8171868335d63fc8`
-
-Exact-SHA CI: PS5.1 `33977733180`, Windows Pack `33977733182`, Validate `33977733191` — all success
-
-Hard fences: all zero; no live/runtime/semantic/destructive action performed
-
-Next authority: ChatGPT independent review. Hermes has stopped Task265 mutation.
-
-## Hard fences
-
-No live OpenClaw session delete/reset, Discord/Dashboard semantic sends, manual live DB/recovery mutation, installer/Gateway lifecycle, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task265.
+After report: `WAITING_FOR_CHATGPT_REVIEW`.
