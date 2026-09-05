@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK267_READONLY_BUSY_CURSOR_PROVIDER_DEPLOYMENT_DIAGNOSTIC`
-**Updated:** 2026-09-05 ICT — ChatGPT accepted Task266 read-only blocker report and opened Task267 diagnostics
+**Updated:** 2026-09-05 ICT — Hermes completed Task267 read-only diagnostics; live acceptance/deployment remains blocked
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260905-267`
 **Parent:** `CNX-20260905-266`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK266_BLOCKERS_CONFIRMED__TASK267_READY_FOR_HERMES`
+**Disposition:** `TASK267_READONLY_DIAGNOSTIC_BLOCKED__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -49,3 +49,9 @@ Required work:
 No install, restart, session Delete/reset, Discord send, recovery action, DB edit, Scheduled Task change, process kill, release mutation, or force push is authorized.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
+
+Task267 report:
+
+`docs/operations/coordination/reports/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
+
+Disposition: `BLOCKED`. The one-minute supervisor/process churn is correlated but not proven causal; current Ollama health does not clear the open `ollama:1` recovery fence; exact-candidate deployment remains unperformed and required before live acceptance.

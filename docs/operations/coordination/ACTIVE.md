@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK267_READONLY_BUSY_CURSOR_PROVIDER_DEPLOYMENT_DIAGNOSTIC`
-Current disposition: `TASK266_CHATGPT_ACCEPTED_BLOCKERS__TASK267_OPEN`
+Current disposition: `TASK267_READONLY_DIAGNOSTIC_BLOCKED__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260905-267`
 Parent task: `CNX-20260905-266`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT accepted Task266 read-only blocker report and opened Task267 diagnostics
+Updated: 2026-09-05 ICT — Hermes completed Task267 read-only diagnostics; live acceptance/deployment remains blocked
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -73,3 +73,9 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
+
+## Task267 report
+
+`docs/operations/coordination/reports/CNX-20260905-267-readonly-busy-cursor-provider-deployment-diagnostic.md`
+
+Disposition: `BLOCKED` — one-minute supervisor/process churn was correlated, Ollama is healthy now but recovery incident `ollama:1` remains open at 3/3 attempts, and installed payload identity remains a deployment prerequisite blocker.
