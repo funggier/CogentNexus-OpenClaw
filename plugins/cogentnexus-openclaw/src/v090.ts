@@ -62,6 +62,7 @@ type AssistantDeliveryTarget =
   | { kind: "notice" };
 
 type SessionAuthority = { state: "active" | "deleting" | "deleted"; generation: number };
+type SessionLifecycleResult = SessionAuthority & { accepted: boolean; lifecycleMatches: boolean; sessionId?: string | null };
 type ActiveSynthetic = { childSessionKey: string; generation: number };
 
 const PATCH = Symbol.for("cogentnexus-openclaw.v090.ticket-patch");
@@ -151,7 +152,7 @@ export function sessionAuthority(path: string, sessionKey: string): SessionAutho
   finally { db.close(); }
 }
 
-export function reactivateSessionForLifecycle(path: string, input: { sessionKey: string; sessionId: string }) {
+export function reactivateSessionForLifecycle(path: string, input: { sessionKey: string; sessionId: string }): SessionLifecycleResult {
   const sessionKey = input.sessionKey.trim(), sessionId = input.sessionId.trim();
   if (!sessionKey || !sessionId) throw new Error("session key and lifecycle session id required");
   const db = openDb(path);
@@ -163,22 +164,49 @@ export function reactivateSessionForLifecycle(path: string, input: { sessionKey:
       db.prepare(`INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id)
         VALUES (?,'active',0,?,?,?)`).run(sessionKey, stamp, stamp, sessionId);
       db.exec("COMMIT");
-      return { state: "active" as const, generation: 0 };
+      return { state: "active", generation: 0, accepted: true, lifecycleMatches: true, sessionId };
     }
     const currentGeneration = Number(row.generation);
-    if (row.state !== "deleted" || row.session_id === sessionId) {
+    const currentSessionId = typeof row.session_id === "string" ? row.session_id : null;
+    if (row.state === "active") {
+      if (currentSessionId === null) {
+        const stamp = now();
+        db.prepare("UPDATE cnx_sessions SET session_id=?,updated_at=? WHERE session_key=? AND state='active' AND session_id IS NULL")
+          .run(sessionId, stamp, sessionKey);
+        db.exec("COMMIT");
+        return { state: "active", generation: currentGeneration, accepted: true, lifecycleMatches: true, sessionId };
+      }
+      const matches = currentSessionId === sessionId;
       db.exec("COMMIT");
-      return { state: row.state as SessionAuthority["state"], generation: currentGeneration };
+      return { state: "active", generation: currentGeneration, accepted: matches, lifecycleMatches: matches, sessionId: currentSessionId };
+    }
+    if (row.state === "deleted" && currentSessionId === sessionId) {
+      db.exec("COMMIT");
+      return { state: "deleted", generation: currentGeneration, accepted: false, lifecycleMatches: false, sessionId: currentSessionId };
+    }
+    if (row.state !== "deleted") {
+      db.exec("COMMIT");
+      return { state: row.state as SessionAuthority["state"], generation: currentGeneration, accepted: false, lifecycleMatches: false, sessionId: currentSessionId };
     }
     const stamp = now(), generation = currentGeneration + 1;
     db.prepare(`UPDATE cnx_sessions SET state='active',generation=?,updated_at=?,deleted_at=NULL,delete_reason=NULL,session_id=?
       WHERE session_key=? AND state='deleted' AND (session_id IS NULL OR session_id<>?)`)
       .run(generation, stamp, sessionId, sessionKey, sessionId);
     db.exec("COMMIT");
-    return { state: "active" as const, generation };
+    return { state: "active", generation, accepted: true, lifecycleMatches: true, sessionId };
   } catch (error) {
     try { db.exec("ROLLBACK"); } catch {}
     throw error;
+  } finally { db.close(); }
+}
+
+export function isCurrentSessionLifecycle(path: string, input: { sessionKey: string; sessionId: string }): boolean {
+  const sessionKey = input.sessionKey.trim(), sessionId = input.sessionId.trim();
+  if (!sessionKey || !sessionId) return false;
+  const db = openDb(path);
+  try {
+    const row = db.prepare("SELECT state,session_id FROM cnx_sessions WHERE session_key=?").get(sessionKey) as any;
+    return Boolean(row?.state === "active" && row.session_id && row.session_id === sessionId);
   } finally { db.close(); }
 }
 
@@ -1276,6 +1304,16 @@ function wrap() {
     };
 
     api.on?.("before_agent_run", (event: any, ctx: any) => {
+      const sessionKey = String(ctx?.sessionKey ?? "").trim();
+      if (!sessionKey || sessionKey.includes(":subagent:")) return { outcome: "pass" };
+      const sessionId = String(ctx?.sessionId ?? "").trim();
+      const workspace = resolve(ctx?.workspaceDir ?? cfg.workspaceDir ?? process.cwd());
+      if (!isCurrentSessionLifecycle(dbPath(cfg, workspace), { sessionKey, sessionId })) {
+        return { outcome: "block", reason: "OpenClaw lifecycle identity is not current for owner session", category: "cnxclaw_lifecycle_identity" };
+      }
+    }, { priority: 6000, timeoutMs: 5000 });
+
+    api.on?.("before_agent_run", (event: any, ctx: any) => {
       if (!ctx.sessionKey || ctx.sessionKey.includes(":subagent:")) return { outcome: "pass" };
       if (!isInternalControlText(String(event.prompt ?? ""))) return { outcome: "pass" };
       return { outcome: "block", reason: "CogentNexus-OpenClaw internal control prompt is forbidden in an owner session", category: "cnxclaw_internal_owner_fence" };
@@ -1295,7 +1333,10 @@ function wrap() {
       const workspace = resolve(ctx?.workspaceDir ?? cfg.workspaceDir ?? process.cwd());
       const path = dbPath(cfg, workspace);
       const authority = reactivateSessionForLifecycle(path, { sessionKey, sessionId });
-      if (authority.state !== "active") api.logger.warn?.(`CogentNexus-OpenClaw refused stale lifecycle ${sessionId} for ${sessionKey} (${authority.state})`);
+      if (!authority.accepted) {
+        api.logger.warn?.(`CogentNexus-OpenClaw refused stale lifecycle ${sessionId} for ${sessionKey} (current=${authority.sessionId ?? "none"})`);
+        return { outcome:"block", reason:"OpenClaw lifecycle identity is not current for owner session", category:"cnxclaw_lifecycle_identity" };
+      }
     }, { priority: 1500, timeoutMs: 5000 });
 
     api.on?.("agent_end", async (event: any, ctx: any) => {
