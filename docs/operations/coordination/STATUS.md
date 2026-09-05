@@ -1,75 +1,31 @@
 # Coordination Channel Status
 
-**State:** `REVIEWED_ACCEPTED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
-**Execution mode:** `TASK259_TASK258_STALE_OWNER_RECOVERY_DISPOSITION_CONTRACT_REPAIR`
+**State:** `READY_FOR_LUNA`
+**Execution mode:** `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
 **Updated:** 2026-09-05 ICT
-**Transport:** GitHub repository / Actions authoritative; Task259 reopens repository/source/test diagnosis and repair of the Task258 stale-owner recovery coordination dead-end; live recovery, installer, Gateway restart, and semantic actions remain unauthorized
-**Active task:** `CNX-20260905-259`
-**Parent:** `CNX-20260905-258`
+**Active task:** `CNX-20260905-260`
+**Parent:** `CNX-20260905-259`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK259_ACCEPTED_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
+**Disposition:** `TASK259_ACCEPTED__DUAL_AGENT_BATON_ENABLED__TASK260_READY`
 
-**Task259 review:** `docs/operations/coordination/reviews/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair-review.md`
+**Assigned executor:** `Luna`
+**Handoff from:** `Musethree`
+**Next actor after report:** `Musethree`
+**Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-**Review verdict:** `ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
-**Reviewed candidate:** `d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
+## Accepted candidate
 
-## Accepted Task258 result
+`d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
 
-Reviewed report HEAD:
+Task259 review accepted the stale-owner direct-recovery contract repair and independently verified exact-SHA CI 9/9 success.
 
-`f44cf675bcbd9e6944cd6635861236637f3eb22f`
+## Current work
 
-Independent review:
+Luna executes Task260 read-only deployment-transition safety requalification. No live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send is authorized in Task260.
 
-`docs/operations/coordination/reviews/CNX-20260905-258-task257-explicit-pending-redeliver-disposition-review.md`
+After the report, Luna hands the baton to Musethree. Musethree independently reviews and continues with the next bounded authorized task when the decision is deterministic. The pair continues alternating until either:
 
-Independent review verdict:
+1. a decision/authority boundary requires ChatGPT -> `WAITING_FOR_CHATGPT`; or
+2. the overall project goal is complete -> `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`.
 
-`ACCEPT_FORENSIC_BLOCKED__PENDING_EXACT_SHA_CI_GREEN`
-
-Exact-SHA CI for the Task258 report was green. Task258's read-only forensic
-remains authoritative: the subject row is pending/redeliver and emittable;
-current owner intent and genuine owner-session liveness are not proven.
-
-## Repair authority
-
-The user's explicit request to inspect and fix the stopped coordination state
-authorizes a new repository/source/test successor. It does not authorize a live
-redelivery or cancellation of the old Discord response and does not weaken any
-Task258 semantic fence.
-
-## Active Task259
-
-Execute:
-
-`docs/operations/coordination/tasks/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair.md`
-
-Task259 must determine whether stale durable `active` session state is a valid
-automatic-redelivery liveness contract and whether a proper auditable
-exact-ticket disposition/cancellation mechanism exists. If a source contract
-is defective or missing, repair it under TDD; otherwise prove the existing path.
-Do not exercise any such path against the live subject row in this task.
-
-## Cardinality / hard fences
-
-```text
-subject live DB/recovery row mutation = 0
-live recovery clear/cancel/reset/claim = 0
-recovery execution/replay/resend = 0
-Gateway restart/lifecycle mutation = 0
-installer registration/start = 0
-scripts/install.ps1 start = 0
-semantic sends = 0
-release/tag mutation = 0
-force push/history rewrite = 0
-```
-
-Repository/source/test/docs repair and non-live tests/build/CI are authorized
-when required by Task259.
-
-## Stop boundary
-
-Task259 review is complete. Live recovery disposition, installer
-requalification, and semantic acceptance remain parked until a separately
-authorized successor explicitly authorizes them.
+In either case, the active agent tells the human operator to notify ChatGPT.

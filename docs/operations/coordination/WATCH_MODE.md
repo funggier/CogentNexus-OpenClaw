@@ -1,71 +1,45 @@
-# Hermes/Codex Continuous Coordination Watch Mode
+# Luna / Musethree Continuous Coordination Watch Mode
 
-This file defines the standing unattended polling mode for CogentNexus-OpenClaw GitHub coordination.
+Updated: 2026-09-05 ICT
 
 ## Purpose
 
-After one explicit operator setup/enable action, an authorized Hermes/Codex scheduled executor checks the coordination branch repeatedly and executes newly authorized tasks without requiring the operator to send `ต่อ` for every handoff.
+Allow the two Hermes agents to consume durable baton handoffs without requiring the human operator to relay every task.
 
-This mode removes repeated human relay work. It does not remove task-specific safety gates or allow the executor to invent project work.
-
-## Current coordination target
-
-- Repository: `funggier/CogentNexus-OpenClaw`
-- Branch: `agent/v0.9.3-full-stabilization`
-- READY gate: `READY_FOR_HERMES`
-- Executor role: `Hermes/Codex`
-
-## Supported execution model
-
-Use an authorized Scheduled task in the ChatGPT desktop app when local Windows access is required.
-
-- Run inside the CogentNexus-OpenClaw local project or a dedicated Git worktree.
-- Prefer a dedicated worktree so unfinished local changes are isolated.
-- Use the narrowest sandbox/permissions that satisfy the active task.
-- Do not claim the watch is active until the Scheduled task is confirmed enabled.
-
-A normal interactive chat does not remain a permanent background watcher merely because it was told to wait.
+This mode never bypasses task-specific safety gates.
 
 ## Poll cycle
 
-On every scheduled run:
+Each agent polls/synchronizes independently but executes only when the current remote coordination state names that agent as `Assigned executor` or `Next actor`.
 
-1. fetch `origin/agent/v0.9.3-full-stabilization` safely;
-2. read this file, `CODEX_BOOTSTRAP.md`, `SIGNALS.md`, and the current remote `ACTIVE.md`;
-3. if `ACTIVE.md` is not `READY_FOR_HERMES`, exit without changes;
-4. if `Execution mode` is not `AUTO`, exit without executing the task;
-5. read the exact active task, matching report state, and task-specific safety gates;
-6. if a matching completed report already exists, do not repeat any side effect; exit awaiting ChatGPT review;
-7. execute only the exact active task;
-8. publish the matching executor-owned report/evidence references, including the full problem contract for any `BLOCKED`, `FAIL`, or partial result;
-9. stop the current run after the report is pushed; ChatGPT owns review, remediation-task selection, and human notification.
+On every run:
 
-A later scheduled run begins a fresh synchronization cycle. Hermes/Codex must never carry a stale task pointer across cycles.
+1. fetch `origin/agent/v0.9.3-full-stabilization`;
+2. read `HERMES_DUAL_AGENT_BATON_PROTOCOL.md`, `CODEX_BOOTSTRAP.md`, `ACTIVE.md`, `STATUS.md`, and the referenced task/report/review;
+3. identify local actor as `Luna` or `Musethree`;
+4. if baton is assigned to the peer, exit without mutation;
+5. if state is `HANDOFF_TO_<this actor>`, review predecessor evidence first;
+6. if review supports a clear authorized successor, publish review, open the bounded successor assigned to this actor, and execute it;
+7. if state is `READY_FOR_<this actor>`, execute the exact active task;
+8. publish the matching report;
+9. hand off to the peer and invoke/call the peer through Hermes when available;
+10. stop the completed task.
 
-## Automatic execution authority
+## Escalation/no-op states
 
-`Execution mode: AUTO` in `ACTIVE.md` means the operator authorizes the scheduled executor to begin that exact task automatically when the watcher detects it.
+Do not execute project work when state is:
 
-It does not authorize:
+- `WAITING_FOR_CHATGPT`;
+- `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`;
+- an explicit operator pause/stop state;
+- assigned to the peer.
 
-- bypassing a precondition;
-- widening task scope;
-- force-pushing;
-- discarding unrelated local work;
-- repeating completed external side effects;
-- inventing a successor task;
-- overriding a task's explicit confirmation or safety requirements.
+No-op polls create no commits.
 
-If a task cannot complete safely, follow [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md): publish the matching problem report with evidence, classification, safe remediation options, and `Human decision required: YES|NO`, then stop that run.
+## Automatic authority
 
-## Stop and pause
+Automatic pickup means the actor may consume an already-authorized baton/task. It does not grant new live/destructive/semantic authority. Successor creation is permitted only under the deterministic peer-successor rules in the baton protocol.
 
-The operator can pause the Scheduled task from the Scheduled view.
+## Race handling
 
-The signal `หยุดเฝ้า` means disable or pause the continuous Scheduled task. It does not issue runtime lifecycle commands and does not alter CogentNexus-OpenClaw runtime state.
-
-## Reporting
-
-No-op polling cycles should not create commits or reports.
-
-A run creates/updates the matching report only when it actually begins an authorized task or must record a meaningful `BLOCKED` result.
+Fetch before every coordination write. If the peer advanced the branch, stop using stale assumptions, re-read current baton ownership, and never force-push.

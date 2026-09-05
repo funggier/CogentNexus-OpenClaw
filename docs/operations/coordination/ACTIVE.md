@@ -1,81 +1,53 @@
 # Active Coordination Task
 
-Status: `REVIEWED_ACCEPTED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
-Execution mode: `TASK259_TASK258_STALE_OWNER_RECOVERY_DISPOSITION_CONTRACT_REPAIR`
-Current disposition: `TASK259_ACCEPTED_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
-Task ID: `CNX-20260905-259`
-Parent task: `CNX-20260905-258`
+Status: `READY_FOR_LUNA`
+Execution mode: `DUAL_AGENT_BATON__TASK260_DEPLOYMENT_TRANSITION_SAFETY_REQUALIFICATION`
+Current disposition: `TASK259_ACCEPTED__DUAL_AGENT_BATON_ENABLED__TASK260_READY`
+Task ID: `CNX-20260905-260`
+Parent task: `CNX-20260905-259`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-05 ICT
-Executor: Hermes / authenticated repository operator
-Coordinator / independent reviewer: Musethree
 
-## Task259 review
+Assigned executor: `Luna`
+Handoff from: `Musethree`
+Next actor after report: `Musethree`
+Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
 
-Review: `docs/operations/coordination/reviews/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair-review.md`
+## Accepted predecessor
 
-Review verdict: `ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
-Reviewed candidate: `d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
+Task259 review verdict:
 
-Task259 repository repair is accepted. No live successor is authorized by this
-review; live disposition, redelivery, installer, Gateway, and semantic actions
-remain parked pending a separately authorized successor task.
+`ACCEPT_CONTRACT_REPAIR__CI_GREEN_VERIFIED__LIVE_SUCCESSOR_REVIEW_REQUIRED`
 
-## Accepted Task258 result
+Reviewed candidate:
 
-Reviewed report HEAD:
+`d1531404d3eb8e7349a2058484c2fbc7ec9f1bf6`
 
-`f44cf675bcbd9e6944cd6635861236637f3eb22f`
+Task259 source/test repair is accepted and exact-SHA CI was verified 9/9 success. Baseline `6822af4...` is retired as an executable candidate.
 
-Independent review:
-
-`docs/operations/coordination/reviews/CNX-20260905-258-task257-explicit-pending-redeliver-disposition-review.md`
-
-Independent review verdict:
-
-`ACCEPT_FORENSIC_BLOCKED__PENDING_EXACT_SHA_CI_GREEN`
-
-Task258 correctly stopped because the old pending redelivery is still emittable
-while explicit owner intent and genuine owner-session liveness are unproven.
-That forensic verdict is preserved.
-
-## New repair authority
-
-The user has explicitly requested inspection and repair of the `STOPPED` / no-
-successor coordination dead-end. This reopens **repository/source/test repair
-only**. It is not authorization to redeliver or cancel the old Discord response,
-mutate the live recovery row, restart Gateway, run the installer, or perform
-semantic acceptance.
-
-## Active Task259
+## Active Task260
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-259-task258-stale-owner-recovery-disposition-contract-repair.md`
+`docs/operations/coordination/tasks/CNX-20260905-260-task259-candidate-deployment-transition-safety-requalification.md`
 
-Root-cause both the stale-session liveness contract and the missing/available
-product disposition path. If a production defect is proven, use TDD RED →
-minimal repair → GREEN. The live subject row remains strictly untouched.
+Task260 is evidence/read-only requalification of the deployment transition. It must prove that supported install-over cannot start the predecessor emittable runtime during the transition and that candidate startup would apply the repaired freshness predicate to the stale recovery row.
 
-## Cardinality / hard fences
+## Live hard fences
 
 ```text
-subject live DB/recovery row mutation = 0
-live recovery clear/cancel/reset/claim = 0
-recovery execution/replay/resend = 0
-Gateway restart/lifecycle mutation = 0
 installer registration/start = 0
-scripts/install.ps1 start = 0
+scripts/install.ps1 live starts = 0
+Gateway/controller/provider lifecycle mutation = 0
+live DB/recovery mutation = 0
+recovery dispose/replay/redeliver/resend = 0
 semantic sends = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
-Repository/source/test/docs repair and non-live tests/build/CI are authorized by
-Task259 when required.
+## Baton rule
 
-## Stop boundary
+Luna owns Task260. After publishing the matching report, Luna must hand off to Musethree and invoke/call Musethree when available. Musethree must independently review Task260 before selecting any successor.
 
-Hermes must publish the matching Task259 report, then STOP for independent
-review. No live disposition or installer successor is authorized by Task259
-itself.
+If Musethree can determine one safe authorized successor, Musethree may open/execute it under the standing baton protocol. If not, set `WAITING_FOR_CHATGPT` and tell the human operator to notify ChatGPT.
