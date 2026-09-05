@@ -1,91 +1,98 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `TASK254_TASK253_TARGET_CHILD_IDENTITY_BINDING_TDD_REPAIR`
-Current disposition: `TASK253_PASS_REJECTED__DURABLE_STREAMING_PROVEN__TARGET_CHILD_PID_BINDING_CONTRACT_NOT_MET__TDD_REPAIR_REQUIRED`
-Task ID: `CNX-20260905-254`
-Parent task: `CNX-20260905-253`
+Execution mode: `TASK255_TASK254_STREAMING_RUNNER_EXACT_CANDIDATE_WINDOWS_INSTALL_OVER_REQUALIFICATION`
+Current disposition: `TASK254_ACCEPTED_PASS__TARGET_CHILD_IDENTITY_AND_DURABLE_STREAMING_QUALIFIED__ONE_SHOT_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED`
+Task ID: `CNX-20260905-255`
+Parent task: `CNX-20260905-254`
 Parent umbrella: `CNX-20260831-188`
 Updated: 2026-09-05 ICT
-Executor: Hermes / repository-capable implementation agent
+Executor: Hermes / authenticated Windows operator
 Coordinator / independent reviewer: ChatGPT
 
-## Reviewed Task-253 result
+## Accepted Task-254 result
 
 Reviewed report HEAD:
 
-`92870320e10f2a53f477561f5c4c4d24e6439875`
+`6fe7e19f22ac586120be351e0ef68e658bf5642e`
 
 Independent review commit:
 
-`1674407f0cd3e0b7a77cf0a40cc41a5ae29ab7a8`
+`04cfa3ede2d21855e8ecdbe1c3a6fdaf79c078fc`
 
 Independent review verdict:
 
-`REJECT_PASS_STREAMING_RUNNER_TARGET_PID_CONTRACT_NOT_MET__DURABLE_STREAMING_PROVEN__TDD_IDENTITY_BINDING_REPAIR_REQUIRED`
+`ACCEPT_PASS_TARGET_CHILD_IDENTITY_BINDING_TDD_REPAIRED__DURABLE_STREAMING_FORENSIC_BOUNDARY_QUALIFIED__ONE_SHOT_LIVE_INSTALL_REQUALIFICATION_AUTHORIZED_SEPARATELY`
 
-Accepted Task253 evidence:
+Accepted exact executable candidate:
 
-```text
-durable stdout/stderr while target alive = proven
-pre-kill stream bytes survive outer-runner termination = proven
-normal exit 23 = proven
-basic invalid-target terminal classification = proven
-exact candidate CI gates = green
-live prohibited effects = 0
-```
+`6822af464fe7a5cb3f93305d0263dfc86b56ac68`
 
-Blocking defect:
+Accepted identities:
 
 ```text
-child-started.json.pid = cmd.exe launcher PID, not actual manifest target PID
-child-started.json.executable = target executable
-invalid target can still create child-started.json before cmd.exe returns 9009
+streaming runner SHA-256 = 729fba4552e28cd6f53e62f10c8f3bd098d5ca5dfb8d0e3bf4ba3ba1a6250f3e
+scripts/install.ps1 SHA-256 = c0779d9bae69d850a44073134e7799a48a1856935b09aae1ae8c7da9f57e0629
+plugin fingerprint = 1ff69c459517b6ea0bd35bf6e21fed0bb2f21f716168653fecad4160b1babb5f
 ```
 
-Therefore Task253 is not authorized as the live forensic boundary.
+Task254 proved actual target PID binding, invalid-target no-child-start evidence, durable stdout/stderr while target is alive, forced outer-runner termination preservation, exact nonzero exit, and quoting-edge argument binding. Exact candidate Validate / Windows Installer Pack Smoke / PS5.1 Acceptance Smoke are terminal SUCCESS.
 
-## Active Task 254
+## Active Task 255
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-254-task253-target-child-identity-binding-tdd-repair.md`
+`docs/operations/coordination/tasks/CNX-20260905-255-task254-streaming-runner-exact-candidate-windows-install-over-requalification.md`
 
 Required flow:
 
 ```text
 fresh GitHub authority
--> TEST-ONLY RED for actual target PID binding + invalid-target no-child-start evidence
--> preserve durable streaming + forced-termination behavior
--> minimal target-identity production repair
--> focused GREEN including quoting edge + deterministic synthetic cleanup
--> full GREEN
--> final runner SHA + installer SHA + plugin fingerprint
--> exact-SHA Actions GREEN
+-> fresh detached exact candidate checkout
+-> prove runner/installer/plugin identities
+-> read-only live preflight
+-> create durable non-temp evidence root
+-> freeze manifest
+-> register one Scheduled Task with runner+manifest only
+-> prove action/principal/PT45M readback
+-> one start / one installer target start maximum
+-> streaming observation
+-> success: prove installed candidate + managed convergence
+   OR
+-> failure/timeout: preserve exact last stage + target PID + streaming evidence and STOP
+-> semantic sends remain zero
 -> report
 -> STOP for independent review
 ```
 
-## Hard fences
+Known scheduler settings remain:
 
 ```text
-live scripts/install.ps1 invocations = 0
-live installer Scheduled Task registrations/starts = 0
-rollover prepare/finalize invocations = 0
-live plugin/retired-tree/rollover-backup mutation = 0
-controller/Gateway/provider/model/DB mutation = 0
+ExecutionTimeLimit = PT45M
+AllowHardTerminate = true
+```
+
+Do not increase the timeout in this task. A repeated stall must be diagnosed by the Task254 streaming evidence boundary.
+
+## Cardinality / hard fences
+
+```text
+successful installer Scheduled Task registrations <= 1
+installer Scheduled Task starts <= 1
+actual scripts/install.ps1 target starts <= 1
+installer retries after start = 0
 Dashboard/Discord/API semantic sends = 0
 recovery replay/resend = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
-Repository source/test edits limited to the streaming runner and its qualification coverage are authorized.
+Do not weaken Task226/250 full-tree attestation. If mismatch recurs, preserve the exact `diagnostic=` payload and STOP.
 
 ## Stop boundary
 
 Hermes must publish:
 
-`docs/operations/coordination/reports/CNX-20260905-254-task253-target-child-identity-binding-tdd-repair.md`
+`docs/operations/coordination/reports/CNX-20260905-255-task254-streaming-runner-exact-candidate-windows-install-over-requalification.md`
 
-Then STOP for independent ChatGPT review. Even on PASS, live installer retry and semantic acceptance remain unauthorized until a separate successor task.
+Then STOP for independent ChatGPT review. Even if installer requalification passes, semantic acceptance requires a separate successor task.
