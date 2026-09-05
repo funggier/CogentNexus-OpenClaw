@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK269_HOST_ACTIONABLE_DURABLE_WORK_HINT_REPAIR`
-**Updated:** 2026-09-06 ICT — ChatGPT accepted Task268 causal proof and opened Task269 source repair
+**Updated:** 2026-09-06 ICT — Hermes completed Task269 source repair, tests, and exact-SHA CI; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-269`
 **Parent:** `CNX-20260905-268`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK268_CHATGPT_ACCEPTED_CAUSAL_PROOF__TASK269_OPEN`
+**Disposition:** `TASK269_SOURCE_REPAIR_PASS__AWAITING_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
@@ -52,3 +52,9 @@ The old Ticket remains read-only evidence. No cancel/redeliver/dispose/replay is
 No install, Gateway/provider lifecycle mutation, session Delete/reset, semantic send, live DB/recovery mutation, Scheduled Task mutation, process kill, release/tag/default-branch mutation, force push, or history rewrite is authorized by Task269.
 
 After report: `WAITING_FOR_CHATGPT_REVIEW`.
+
+Task269 report:
+
+`docs/operations/coordination/reports/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
+
+Disposition: `PASS`. Final candidate `08a25a66b17ccea73f22fde6ca00ccdd63fe15e4` passed local and exact-SHA CI validation. The first Validate failure was corrected in a follow-up candidate; no live runtime mutation occurred.

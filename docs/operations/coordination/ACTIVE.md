@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK269_HOST_ACTIONABLE_DURABLE_WORK_HINT_REPAIR`
-Current disposition: `TASK268_CHATGPT_ACCEPTED_CAUSAL_PROOF__TASK269_OPEN`
+Current disposition: `TASK269_SOURCE_REPAIR_PASS__AWAITING_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-269`
 Parent task: `CNX-20260905-268`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task268 causal proof and opened bounded source repair
+Updated: 2026-09-06 ICT — Hermes completed Task269 source repair, tests, and exact-SHA CI; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -73,3 +73,9 @@ Hermes publishes:
 `docs/operations/coordination/reports/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
 
 Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
+
+## Task269 report
+
+`docs/operations/coordination/reports/CNX-20260906-269-host-actionable-durable-work-hint-repair.md`
+
+Disposition: `PASS` — final candidate `08a25a66b17ccea73f22fde6ca00ccdd63fe15e4`; local full Python suite `527 passed, 5 skipped, 4 subtests`; all required exact-SHA GitHub Actions passed. Installed runtime and live state remain untouched.
