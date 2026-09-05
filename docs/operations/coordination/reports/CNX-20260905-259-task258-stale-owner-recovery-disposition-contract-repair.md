@@ -7,6 +7,10 @@ Status: `REPAIRED_STALE_OWNER_RECOVERY_CONTRACT__NEW_CANDIDATE_REVIEW_REQUIRED`
 - Opening authority: Task259 `READY_FOR_HERMES`, fetched from GitHub before work.
 - Opening source HEAD: `fad7dbb98b9238bad00dcf2c1ba43fc0de949c32`.
 - Required review ancestor `500f74d3c6b00de0add6311f75d784b0d45f1dfd`: verified with `git merge-base --is-ancestor` (exit 0).
+- Post-repair candidate commit: `a41e4550977c9ebe4cd8b578c259ca67199f8d64` (local branch `agent/v0.9.3-full-stabilization`).
+- Post-repair source blob SHA-256: `v090.ts` = `8aceb9264a3d4c760c17b13501c87810d8093b865a523572d0676c2512be47af`; `v091-direct-recovery.ts` = `987ea31a124041d6bf4bd1972c56b68302b02265f31ac22c1252cc48739cfe26`.
+- Report blob SHA-256 at first candidate commit: `dd9225055a609a5d9ef18c8625c84e982460f14307f96ad62b44e15f4ea82a41`.
+- The report identity update is documentation-only and will be recorded in the closing commit below.
 - Task258 forensic report: `f44cf675bcbd9e6944cd6635861236637f3eb22f`.
 - Task258 review commit: `500f74d3c6b00de0add6311f75d784b0d45f1dfd`.
 - Subject Ticket: `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`.
