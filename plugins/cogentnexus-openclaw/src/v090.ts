@@ -1308,7 +1308,8 @@ function wrap() {
       if (!sessionKey || sessionKey.includes(":subagent:")) return { outcome: "pass" };
       const sessionId = String(ctx?.sessionId ?? "").trim();
       const workspace = resolve(ctx?.workspaceDir ?? cfg.workspaceDir ?? process.cwd());
-      if (!isCurrentSessionLifecycle(dbPath(cfg, workspace), { sessionKey, sessionId })) {
+      const authority = reactivateSessionForLifecycle(dbPath(cfg, workspace), { sessionKey, sessionId });
+      if (!authority.accepted) {
         return { outcome: "block", reason: "OpenClaw lifecycle identity is not current for owner session", category: "cnxclaw_lifecycle_identity" };
       }
     }, { priority: 6000, timeoutMs: 5000 });
