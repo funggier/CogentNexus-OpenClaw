@@ -1,80 +1,57 @@
 # Coordination Channel Status
 
 **State:** `READY_FOR_HERMES`
-**Execution mode:** `TASK257_TASK256_PENDING_REDELIVER_RECOVERY_RECONCILIATION_FORENSIC`
+**Execution mode:** `TASK258_TASK257_EXPLICIT_PENDING_REDELIVER_DISPOSITION`
 **Updated:** 2026-09-05 ICT
-**Transport:** GitHub repository / Actions authoritative; Task257 is a read-only forensic reconciliation of the Task256 pending-redeliver blocker; installer and semantic acceptance remain unauthorized
-**Active task:** `CNX-20260905-257`
-**Parent:** `CNX-20260905-256`
+**Transport:** GitHub repository / Actions authoritative; Task258 is a read-only explicit owner-intent/session-liveness disposition task for the Task257 pending-redeliver blocker; installer, recovery execution, and semantic acceptance remain unauthorized
+**Active task:** `CNX-20260905-258`
+**Parent:** `CNX-20260905-257`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK256_ACCEPTED_BLOCKED__PENDING_REDELIVER_EMITTABLE_FENCE_ENDED__RECOVERY_RECONCILIATION_REQUIRED`
+**Disposition:** `TASK257_ACCEPTED_RECONCILED_FORENSIC__EXPLICIT_OWNER_DISPOSITION_REQUIRED`
 
-## Accepted Task-256 result
+## Accepted Task257 result
 
 Reviewed report HEAD:
 
-`5b4baa5145e8d245608291923b279184d9fb12bd`
+`1f7a25589614184b6a91bbeb1046dfb629088ef6`
 
 Independent review:
 
-`docs/operations/coordination/reviews/CNX-20260905-256-task255-canonical-identity-reconciled-windows-install-over-requalification-review.md`
+`docs/operations/coordination/reviews/CNX-20260905-257-task256-pending-redeliver-recovery-reconciliation-review.md`
 
 Independent review verdict:
 
-`ACCEPT_BLOCKED_PREFLIGHT_DRIFT__FAIL_CLOSED_CORRECT__PENDING_REDELIVER_EMITTABLE__RECOVERY_RECONCILIATION_REQUIRED`
+`ACCEPT_RECONCILED_FORENSIC__PENDING_EXACT_SHA_CI_GREEN__EXPLICIT_DISPOSITION_SUCCESSOR_REQUIRED`
 
-Task256 correctly never started the installer. Canonical gate passed
-(`9d53a427...` / `729fba45...` recomputed; `1ff69c45...` consistent). The
-`CNXT-dc11c9a0` redeliver row is confirmed emittable: all
-`dueDirectRecovery()` predicates hold and the model-call fence row is `'ended'`
-(non-blocking). No installer successor may be armed until reconciliation.
+Task257 report and forensic are accepted. Exact-SHA CI run `33950606305`
+settled terminal `success` with nine successful check-runs. The subject
+pending/redeliver row remains emittable; owner intent and genuine liveness are
+not proved. Installer requalification stays parked.
 
-Final executable candidate (unchanged, parked):
-
-`6822af464fe7a5cb3f93305d0263dfc86b56ac68`
-
-Task254 TDD lineage remains valid; Task255 canonical-vs-CRLF root cause stands
-corrected; Task256 added no source/test changes (single report file).
-
-Exact candidate workflows are terminal SUCCESS (nine check-runs; report-HEAD
-docs workflows noted separately in the review).
-
-Task256 remained fail-closed with all prohibited live effects zero.
-
-Public `v0.9.3` remains immutable at:
-
-`26ce64a624255278a3a0266ad38746e0e6ed2e31`
-
-## Active Task 257
+## Active Task258
 
 Execute:
 
-`docs/operations/coordination/tasks/CNX-20260905-257-task256-pending-redeliver-recovery-reconciliation.md`
+`docs/operations/coordination/tasks/CNX-20260905-258-task257-explicit-pending-redeliver-disposition.md`
 
-Read-only forensic on the pending redeliver row: payload/transport trace,
-owner-session liveness, why-pending analysis, disposition options (unexecuted),
-and the exact predicate set a future live gate must require.
+Read-only explicit disposition diagnosis. No cancel/clear/claim/replay/resend,
+installer registration/start, Gateway restart, or semantic send is authorized.
 
 ## Cardinality / hard fences
 
 ```text
-DB writes/vacuum/replay/resend = 0
-recovery row mutation (clear/cancel/reset) = 0
-installer task registration = 0
-installer task start = 0
-scripts/install.ps1 target start = 0
-retry after start = 0
-semantic sends = 0
+DB writes/vacuum/recovery mutation = 0
+recovery clear/cancel/reset/claim = 0
 recovery replay/resend = 0
+installer task registration/start = 0
+scripts/install.ps1 start = 0
+semantic sends = 0
+Gateway restart/lifecycle mutation = 0
 release/tag mutation = 0
 force push/history rewrite = 0
 ```
 
 ## Stop boundary
 
-Hermes must publish:
-
-`docs/operations/coordination/reports/CNX-20260905-257-task256-pending-redeliver-recovery-reconciliation.md`
-
-Then STOP for independent review. Installer requalification stays parked until
-reconciliation is accepted.
+Hermes must publish the Task258 report, then STOP for independent review.
+Installer requalification remains parked.
