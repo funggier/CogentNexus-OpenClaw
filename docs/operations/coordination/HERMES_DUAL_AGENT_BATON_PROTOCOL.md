@@ -136,6 +136,19 @@ When the receiving peer independently concludes that the overall stabilization/f
 
 This is the intended final handoff to ChatGPT.
 
+### Final-authority provenance guard
+
+At a ChatGPT/human decision boundary, Luna and Musethree may prepare a **proposal** and evidence packet only.
+
+They MUST NOT:
+
+- change `GOAL_COMPLETE_PENDING_CHATGPT_FINAL` to `GOAL_COMPLETE` on behalf of ChatGPT/human;
+- write `ChatGPT accepts`, `ChatGPT authorized`, `human approved`, or equivalent unless that decision has actually been issued and durably attributable to the real authority;
+- fabricate or pre-record a future approval because the expected decision appears obvious;
+- continue project mutation after a mandatory escalation while waiting for the real decision.
+
+Only an actual ChatGPT/human decision may cross that authority boundary. A prematurely authored attribution is a coordination provenance defect even if a later real decision happens to agree with it.
+
 ## Race prevention
 
 - Only the actor named by the current baton/active task may perform task mutations.

@@ -2,8 +2,8 @@
 
 **State:** `GOAL_COMPLETE`
 **Execution mode:** `TASK262_COMPLETE__GOAL_CLOSED`
-**Updated:** 2026-09-05 ICT — ChatGPT final acceptance
-**Transport:** GitHub repository / Actions authoritative; Task262 durably accepted; goal closure proposed
+**Updated:** 2026-09-05 ICT — actual ChatGPT final acceptance recorded
+**Transport:** GitHub repository / Actions authoritative; Task262 durably accepted; actual ChatGPT final acceptance recorded
 **Active task:** `CNX-20260905-262` (reviewed complete, durable)
 **Parent:** `CNX-20260905-261`
 **Parent umbrella:** `CNX-20260831-188`
@@ -33,26 +33,25 @@ fingerprint `fcecb29a...`, SQLite ok with zero emission. CI: report SHA
 7/9 success + 2 supersession-cancelled (no failure); identical source
 9/9 on `3d4271b`/`a87c393`/`d7cf125`.
 
-## Goal close proposal
+## Goal closure
 
-Task259 -> Task260 -> Task261 -> Task262 lineage complete, each step
-reviewed with exact-SHA CI. Residuals parked by design: stale row
+Task259 -> Task260 -> Task261 -> Task262 lineage is complete, each step
+reviewed with exact-SHA CI. Residuals are parked by design: stale row
 preserved non-due (owner intent unproven, never inferred), semantic
-acceptance never authorized. The human operator is asked to notify
-ChatGPT for final acceptance and closure.
+acceptance never authorized.
 
-## Still in force
+Actual ChatGPT final acceptance:
 
-No installer, Gateway, recovery, semantic, release/tag, or force-push
-authority. No successor task is open. No extra work will be invented.
+`docs/operations/coordination/reviews/CNX-20260905-262-chatgpt-final-acceptance.md`
 
-## Final acceptance
+Final disposition:
 
 `ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSED`
 
-ChatGPT accepts the independent durable review at commit
-`b03896cf8453a024b5a551d7781afd4f85dbce20`. The Task259 -> Task260 ->
-Task261 -> Task262 lineage is closed; parked stale recovery remains
-intentionally untouched because owner intent is unproven, and semantic
-acceptance was out of scope. No successor or further live action is
-authorized.
+## Provenance note
+
+Commit `09072f89d65b748c30c5a05d378a181f63cfb76d` pre-recorded the expected ChatGPT closure before the actual final review occurred. Its technical result is now ratified, but that earlier attribution was premature. The final-acceptance artifact above is authoritative for ChatGPT provenance.
+
+## Still in force
+
+No installer, Gateway, recovery, semantic, release/tag, force-push, or successor authority exists under this closed goal. No extra work will be invented.

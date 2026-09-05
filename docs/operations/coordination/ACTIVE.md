@@ -6,7 +6,7 @@ Current disposition: `TASK262_ACCEPTED_LIVE__GOAL_CLOSED_BY_CHATGPT_FINAL`
 Task ID: `CNX-20260905-262` (reviewed complete, durable)
 Parent task: `CNX-20260905-261`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — ChatGPT final acceptance
+Updated: 2026-09-05 ICT — actual ChatGPT final acceptance recorded
 
 Assigned executor: `Musethree` (durable review published; stopped)
 Handoff from: `Musethree`
@@ -36,7 +36,8 @@ green on `3d4271b`, `a87c393`, and `d7cf125`.
 
 Retained authority references:
 
-- ChatGPT decision: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
+- ChatGPT live-install decision: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
+- ChatGPT final acceptance: `docs/operations/coordination/reviews/CNX-20260905-262-chatgpt-final-acceptance.md`
 - exact source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
 - Task262 task: `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
 
@@ -49,8 +50,8 @@ one bounded attempt with a verified fresh boundary and zero emission.
 Each step was independently reviewed with exact-SHA CI.
 
 Final acceptance: `ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSED`.
-ChatGPT accepts the durable review at
-`b03896cf8453a024b5a551d7781afd4f85dbce20`.
+Actual ChatGPT final-acceptance authority is the artifact above; it ratifies the
+durable Task262 review at `b03896cf8453a024b5a551d7781afd4f85dbce20`.
 
 ## Residuals (parked by design, not open work)
 
@@ -63,5 +64,5 @@ ChatGPT accepts the durable review at
 ## Stop boundary
 
 Both agents stop all project mutation here. The project goal is closed by
-ChatGPT final acceptance. No successor, installer, Gateway, recovery, DB, or
-semantic action is authorized under this goal.
+actual ChatGPT final acceptance. No successor, installer, Gateway, recovery,
+DB, semantic, release/tag, or other project action is authorized under this goal.
