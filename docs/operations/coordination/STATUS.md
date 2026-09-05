@@ -1,48 +1,34 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK270_DELETING_OWNER_REGRESSION_PROOF`
-**Updated:** 2026-09-06 ICT — Hermes closed Task270 with explicit deleting-owner and supervisor-idle proofs; awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK271_LIVE_DEPLOYMENT_CURSOR_REQUALIFICATION`
+**Updated:** 2026-09-06 ICT — human authorized bounded live Task271
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-270`
-**Parent:** `CNX-20260906-269`
+**Active task:** `CNX-20260906-271`
+**Parent:** `CNX-20260906-270`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK270_TEST_CONTRACT_CLOSED__AWAITING_CHATGPT_REVIEW`
+**Disposition:** `TASK271_HUMAN_AUTHORIZED__READY_FOR_BOUNDED_LIVE_EXECUTION`
 
 **Routine executor:** `Hermes`
-**Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
-**Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task269 review
+## Accepted Task269/270
 
-ChatGPT independently verified:
+Review:
+`docs/operations/coordination/reviews/CNX-20260906-270-chatgpt-final-source-review.md`
 
-- RED commit `518e6aaa401b0031bf630566551bffe994d4ed3e`;
-- production repair `454643bf3615f8cec88cc9b64566ae9e243ad2f5`;
-- compatibility correction `08a25a66b17ccea73f22fde6ca00ccdd63fe15e4`;
-- final exact-SHA CI 3/3 success;
-- stale Direct owner, due/fresh owner, generation mismatch, future retry, deleted owner, accepted Direct-only, workflow, transport delivery, active model-call, and supervisor idle cases are covered.
+Accepted candidate:
+`6a491d1a95394bba7b70735fbaf9cebf4d619ea6`
 
-Blocking gap: Task269 explicitly required proof for `deleted/deleting`; the new suite proves only `deleted`. Current production predicate appears to reject `deleting` via `s.state='active'`, but the safety contract requires an explicit regression proof.
+## Human live authorization
 
-Verdict:
+`docs/operations/coordination/reviews/CNX-20260906-271-human-live-authorization.md`
 
-`REWORK_REQUIRED__MINIMUM_DELETING_OWNER_PROOF_MISSING`
+Authorized: exactly one supported install-over of the exact candidate, supported managed Gateway process boundary, and read-only cursor/process requalification over natural supervisor ticks.
 
-## Task270
+Still forbidden: uninstall/reset, session Delete/reset, semantic send, manual live DB/Ticket/recovery mutation, recovery disposition/replay, Scheduled Task cadence/enablement changes, ad-hoc process kills, release/tag/default-branch promotion, force push.
 
-`docs/operations/coordination/tasks/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
+Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence.
 
-Expected change is test-only. Production source must not change unless the new test demonstrates a real defect.
-
-No live/runtime/destructive/semantic action is authorized.
-
-After report: `WAITING_FOR_CHATGPT_REVIEW`.
-
-Task270 report:
-
-`docs/operations/coordination/reports/CNX-20260906-270-task269-deleting-owner-regression-proof.md`
-
-Disposition: `PASS__TEST_CONTRACT_CLOSED`. Test-only commit `6a491d1a95394bba7b70735fbaf9cebf4d619ea6`; exact-SHA CI passed after one bounded rerun of an unrelated Windows timeout.
+After Task271 report: `WAITING_FOR_CHATGPT_REVIEW`.
