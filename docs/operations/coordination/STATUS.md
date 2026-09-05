@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_LUNA`
+**State:** `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED`
 **Execution mode:** `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
-**Updated:** 2026-09-05 ICT
+**Updated:** 2026-09-05 ICT — Task261 report published
 **Transport:** GitHub repository / Actions authoritative; Task261 is a bounded source/test repair of the Task260 transition gap; live installer, Gateway restart, recovery disposition, and semantic actions remain unauthorized
 **Active task:** `CNX-20260905-261`
 **Parent:** `CNX-20260905-260`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK260_ACCEPTED_BLOCKED__PROCESS_BOUNDARY_REPAIR_REQUIRED`
+**Disposition:** `TASK261_REPAIRED__CI_GREEN_VERIFIED__REVIEW_REQUIRED`
 
 **Assigned executor:** `Luna`
 **Handoff from:** `Musethree`
@@ -39,15 +39,17 @@ successor for the process-boundary repair. They do not authorize a live
 install-over, recovery disposition, Gateway restart, or semantic send,
 and they do not weaken any Task258/Task259 semantic fence.
 
-## Active Task261
+## Completed Task261
 
-Execute:
+Report:
 
 `docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
 
 Task261 must add the mandatory post-replacement process boundary with
 regression coverage and fingerprint binding under TDD, without touching
 live state. Then STOP for independent review by Musethree.
+
+Final result: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED` at exact HEAD `a87c3930651eecf4563d5d8bafe897e058bbdfe0`. Report published; baton handed to Musethree for independent review. No live installer, Gateway restart, recovery disposition/redelivery, DB mutation, or semantic send was authorized or performed.
 
 ## Cardinality / hard fences
 

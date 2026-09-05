@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_LUNA`
+Status: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED`
 Execution mode: `TASK261_TASK260_DEPLOYMENT_TRANSITION_PROCESS_BOUNDARY_REPAIR`
-Current disposition: `TASK260_ACCEPTED_BLOCKED__PROCESS_BOUNDARY_REPAIR_REQUIRED`
+Current disposition: `TASK261_REPAIRED__CI_GREEN_VERIFIED__REVIEW_REQUIRED`
 Task ID: `CNX-20260905-261`
 Parent task: `CNX-20260905-260`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT
+Updated: 2026-09-05 ICT — Task261 report published
 
 Assigned executor: `Luna`
 Handoff from: `Musethree`
@@ -40,9 +40,9 @@ against the live installation, restart the live Gateway, mutate live
 recovery state, redeliver or dispose the old Discord response, or perform
 semantic acceptance.
 
-## Active Task261
+## Completed Task261
 
-Execute:
+Report:
 
 `docs/operations/coordination/tasks/CNX-20260905-261-task260-deployment-transition-process-boundary-repair.md`
 
@@ -50,6 +50,8 @@ Add the mandatory post-replacement managed Gateway process boundary
 (reusing the proven `activate_current_config()` contract or equivalent),
 plus a regression test and candidate fingerprint binding, under TDD. The
 live subject row remains strictly untouched.
+
+Final result: `REPAIRED_DEPLOYMENT_TRANSITION_BOUNDARY__NEW_CANDIDATE_REVIEW_REQUIRED` at exact HEAD `a87c3930651eecf4563d5d8bafe897e058bbdfe0`. Task261 is complete and handed to Musethree for independent review; no live successor is opened.
 
 ## Cardinality / hard fences
 
