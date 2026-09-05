@@ -1,57 +1,56 @@
 # Coordination Channel Status
 
-**State:** `GOAL_COMPLETE`
-**Execution mode:** `TASK262_COMPLETE__GOAL_CLOSED`
-**Updated:** 2026-09-05 ICT — actual ChatGPT final acceptance recorded
-**Transport:** GitHub repository / Actions authoritative; Task262 durably accepted; actual ChatGPT final acceptance recorded
-**Active task:** `CNX-20260905-262` (reviewed complete, durable)
-**Parent:** `CNX-20260905-261`
+**State:** `READY_FOR_LUNA`
+**Execution mode:** `TASK263_DISCORD_MANUAL_SESSION_DELETE_RECREATION_SOURCE_REPAIR`
+**Updated:** 2026-09-05 ICT — user-authorized post-acceptance lifecycle repair opened by ChatGPT
+**Transport:** GitHub repository / Actions authoritative
+**Active task:** `CNX-20260905-263`
+**Parent:** `CNX-20260905-262`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK262_ACCEPTED_LIVE__GOAL_CLOSED_BY_CHATGPT_FINAL`
+**Disposition:** `USER_AUTHORIZED_POST_ACCEPTANCE_SESSION_LIFECYCLE_REPAIR`
 
-**Assigned executor:** `Musethree` (durable review published; stopped)
-**Handoff from:** `Musethree`
-**Next actor after authority:** `None — goal closed`
+**Assigned executor:** `Luna`
+**Handoff from:** `ChatGPT`
+**Next actor after report:** `Musethree`
 **Protocol:** `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
+**Delayed recheck:** `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Accepted Task262 result (durable)
+## Fresh root cause
 
-Reviewed report HEAD:
+OpenClaw's session-delete lifecycle emits `session_end` with
+`reason="deleted"`, the deleted `sessionId`, canonical `sessionKey`, and no
+replacement. CogentNexus already handles that event by cancelling/suppressing
+old-generation durable work and tombstoning `cnx_sessions`.
 
-`6365dfa9c1332946fafd742e0f6570ccb6cf2a2f`
+The remaining defect is recreation: a later Discord message may cause OpenClaw
+to create a new lifecycle instance at the same canonical key. The current
+CogentNexus `session_start` hook calls `sessionAuthority()` and only warns when
+the row is `deleted`; it does not establish a fresh active generation. The new
+session can therefore remain fenced by the old tombstone.
 
-Independent review:
+## Task263 acceptance target
 
-`docs/operations/coordination/reviews/CNX-20260905-262-task261-one-shot-live-install-over-requalification-review.md`
+TDD repair must prove all of the following:
 
-Independent review verdict:
+1. delete keeps old-generation cancellation/suppression semantics;
+2. a new OpenClaw `sessionId` on the same key reactivates exactly one fresh
+   CogentNexus generation;
+3. repeated start for the same new lifecycle is idempotent;
+4. stale start for the deleted lifecycle cannot reactivate it;
+5. old recovery/outbox/assistant delivery remains fenced and is not rebound;
+6. new owner requests can be admitted under the fresh generation;
+7. existing reset/new/session-succession contracts stay green.
 
-`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSE_PROPOSED`
+Task file:
 
-Live evidence independently re-verified: exit 0, fresh PID `23596`,
-fingerprint `fcecb29a...`, SQLite ok with zero emission. CI: report SHA
-7/9 success + 2 supersession-cancelled (no failure); identical source
-9/9 on `3d4271b`/`a87c393`/`d7cf125`.
+`docs/operations/coordination/tasks/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
 
-## Goal closure
+## Hard fences
 
-Task259 -> Task260 -> Task261 -> Task262 lineage is complete, each step
-reviewed with exact-SHA CI. Residuals are parked by design: stale row
-preserved non-due (owner intent unproven, never inferred), semantic
-acceptance never authorized.
+Task263 is source/test/docs only. No live session deletion/reset, semantic send,
+SQLite mutation, installer, Gateway lifecycle, release/tag/default-branch
+mutation, force push, or history rewrite is authorized.
 
-Actual ChatGPT final acceptance:
-
-`docs/operations/coordination/reviews/CNX-20260905-262-chatgpt-final-acceptance.md`
-
-Final disposition:
-
-`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSED`
-
-## Provenance note
-
-Commit `09072f89d65b748c30c5a05d378a181f63cfb76d` pre-recorded the expected ChatGPT closure before the actual final review occurred. Its technical result is now ratified, but that earlier attribution was premature. The final-acceptance artifact above is authoritative for ChatGPT provenance.
-
-## Still in force
-
-No installer, Gateway, recovery, semantic, release/tag, force-push, or successor authority exists under this closed goal. No extra work will be invented.
+Luna reports then hands off to Musethree. Musethree reviews and continues under
+the dual-agent baton protocol. Any Actions-only wait must use the persistent
+five-minute delayed recheck queue.

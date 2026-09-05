@@ -1,68 +1,71 @@
 # Active Coordination Task
 
-Status: `GOAL_COMPLETE`
-Execution mode: `TASK262_COMPLETE__GOAL_CLOSED`
-Current disposition: `TASK262_ACCEPTED_LIVE__GOAL_CLOSED_BY_CHATGPT_FINAL`
-Task ID: `CNX-20260905-262` (reviewed complete, durable)
-Parent task: `CNX-20260905-261`
+Status: `READY_FOR_LUNA`
+Execution mode: `TASK263_DISCORD_MANUAL_SESSION_DELETE_RECREATION_SOURCE_REPAIR`
+Current disposition: `USER_AUTHORIZED_POST_ACCEPTANCE_SESSION_LIFECYCLE_REPAIR`
+Task ID: `CNX-20260905-263`
+Parent task: `CNX-20260905-262`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-05 ICT — actual ChatGPT final acceptance recorded
+Updated: 2026-09-05 ICT — ChatGPT reopened coordination for manual Discord-session delete/recreation hardening
 
-Assigned executor: `Musethree` (durable review published; stopped)
-Handoff from: `Musethree`
-Next actor after authority: `None — goal closed`
+Assigned executor: `Luna`
+Handoff from: `ChatGPT`
+Next actor after report: `Musethree`
 Coordination protocol: `docs/operations/coordination/HERMES_DUAL_AGENT_BATON_PROTOCOL.md`
+Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Accepted Task262 result (durable)
+## Active objective
 
-Reviewed report HEAD:
+Repair the lifecycle gap where OpenClaw `sessions.delete` correctly emits
+`session_end(reason="deleted")` and CogentNexus tombstones/cancels the old
+owner generation, but a later Discord message can recreate the OpenClaw
+session at the same canonical session key with a new `sessionId` while the
+CogentNexus owner row remains permanently tombstoned.
 
-`6365dfa9c1332946fafd742e0f6570ccb6cf2a2f`
+Task contract:
 
-Independent review:
+`docs/operations/coordination/tasks/CNX-20260905-263-discord-manual-session-delete-recreation-source-repair.md`
 
-`docs/operations/coordination/reviews/CNX-20260905-262-task261-one-shot-live-install-over-requalification-review.md`
+## Required semantics
 
-Independent review verdict:
+- Explicit web-session Delete remains an abandonment boundary for the old
+  generation: old nonterminal Tickets, pending outbox/assistant delivery,
+  direct recovery, owned workflow completion and synthetic work must not be
+  rebound into the recreated session.
+- A genuine new OpenClaw lifecycle instance on the same Discord session key
+  must be able to become a fresh active CogentNexus owner generation.
+- Reactivation must be lifecycle-identity-aware and idempotent. A stale or
+  duplicate `session_start` from the deleted lifecycle must not reopen it.
+- Old-generation recovery/delivery must remain permanently fenced after the
+  new generation becomes active.
+- Normal `reset`, same-key `new`, and explicit deletion semantics must not
+  regress.
 
-`ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSE_PROPOSED`
+## Authority
 
-One-shot live install-over proven: single invocation exit 0, fresh
-Gateway PID `23596` (born `20260905190026`), installed fingerprint
-exactly `fcecb29a...`, recovery non-emission with SQLite integrity ok.
-CI complete: report SHA 7/9 success + 2 windows jobs cancelled by
-review-commit supersession (no failure signal); identical source 9/9
-green on `3d4271b`, `a87c393`, and `d7cf125`.
+Repository/source/test/docs diagnosis and repair are authorized. TDD is
+mandatory: focused RED -> minimal production repair -> focused/full GREEN.
 
-Retained authority references:
+Live runtime mutation is not authorized in Task263. In particular:
 
-- ChatGPT live-install decision: `docs/operations/coordination/reviews/CNX-20260905-261-live-install-over-chatgpt-decision.md`
-- ChatGPT final acceptance: `docs/operations/coordination/reviews/CNX-20260905-262-chatgpt-final-acceptance.md`
-- exact source candidate: `a87c3930651eecf4563d5d8bafe897e058bbdfe0`
-- Task262 task: `docs/operations/coordination/tasks/CNX-20260905-262-task261-one-shot-live-install-over-requalification.md`
+```text
+live OpenClaw session delete/reset = 0
+live Discord/Dashboard semantic sends = 0
+live Ticket/session/SQLite mutation = 0
+installer/install-over/uninstall/reset = 0
+Gateway restart/stop/start = 0
+release/tag/default-branch mutation = 0
+force push/history rewrite = 0
+```
 
-## Completion summary (lineage)
+If source repair and CI are accepted, Musethree should review and then open or
+propose a separate bounded live acceptance successor. If that successor needs
+actual user-session deletion or a semantic Discord message and existing
+contract does not already authorize it, fail closed and escalate to ChatGPT.
 
-Task259 repaired the stale-owner disposition contract; Task260 proved the
-transition gap and failed closed; Task261 implemented the mandatory
-process boundary with fingerprint binding; Task262 deployed it live in
-one bounded attempt with a verified fresh boundary and zero emission.
-Each step was independently reviewed with exact-SHA CI.
+## Baton
 
-Final acceptance: `ACCEPT_LIVE_REQUALIFICATION__CI_GREEN_VERIFIED__GOAL_CLOSED`.
-Actual ChatGPT final-acceptance authority is the artifact above; it ratifies the
-durable Task262 review at `b03896cf8453a024b5a551d7781afd4f85dbce20`.
-
-## Residuals (parked by design, not open work)
-
-- Subject row `CNXT-dc11c9a0...` stays `pending/redeliver`, non-due under
-  the live 15-minute fence; disposition needs explicit owner intent that
-  remains unproven — no agent may infer it.
-- Semantic acceptance was never authorized and is not proposed here.
-- No invented extra work exists to keep the loop running.
-
-## Stop boundary
-
-Both agents stop all project mutation here. The project goal is closed by
-actual ChatGPT final acceptance. No successor, installer, Gateway, recovery,
-DB, semantic, release/tag, or other project action is authorized under this goal.
+Luna owns Task263 implementation/report. When the report is published, Luna
+must hand off to Musethree. Musethree independently reviews exact source diff,
+RED/GREEN evidence and exact-SHA CI. CI waits use the persistent five-minute
+recheck queue; do not stop merely because Actions are queued/in-progress.
