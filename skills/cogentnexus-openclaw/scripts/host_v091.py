@@ -160,14 +160,22 @@ def durable_work_hint(root: Path, now: str | None = None) -> bool:
         if not _db_table_exists(db, "tickets"):
             return False
 
-        # Workflow Tickets remain actionable only when explicitly admitted to
-        # workflow; an accepted Direct Ticket is not a workflow wake signal.
-        if db.execute(
-            """SELECT 1 FROM tickets
-               WHERE status NOT IN ('completed','failed','cancelled')
-                 AND (workflow_eligible <> 0 OR workflow_id IS NOT NULL)
-               LIMIT 1"""
+        ticket_columns = {row["name"] for row in db.execute("PRAGMA table_info(tickets)")}
+        if {"workflow_eligible", "workflow_id"}.issubset(ticket_columns):
+            # Workflow Tickets remain actionable only when explicitly admitted;
+            # an accepted Direct Ticket is not a workflow wake signal.
+            if db.execute(
+                """SELECT 1 FROM tickets
+                   WHERE status NOT IN ('completed','failed','cancelled')
+                     AND (workflow_eligible <> 0 OR workflow_id IS NOT NULL)
+                   LIMIT 1"""
+            ).fetchone():
+                return True
+        elif db.execute(
+            "SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
         ).fetchone():
+            # Legacy schemas cannot identify Direct ownership; preserve their
+            # historical nonterminal workflow fallback.
             return True
 
         if _db_table_exists(db, "ticket_outbox") and db.execute(
@@ -184,7 +192,16 @@ def durable_work_hint(root: Path, now: str | None = None) -> bool:
             return True
 
         required = {"cnx_direct_recovery", "cnx_sessions"}
-        if not required.issubset({row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}):
+        table_names = {row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "cnx_direct_recovery" in table_names and not required.issubset(table_names):
+            # Legacy delivery-only rows predate owner/session fences but remain
+            # Host-owned transport work; preserve this narrow fallback.
+            recovery_columns = {row["name"] for row in db.execute("PRAGMA table_info(cnx_direct_recovery)")}
+            if recovery_columns == {"state"} and db.execute(
+                "SELECT 1 FROM cnx_direct_recovery WHERE state='awaiting_delivery' LIMIT 1"
+            ).fetchone():
+                return True
+        if not required.issubset(table_names):
             return False
         model_fenced = _db_table_exists(db, "cnx_direct_model_call")
         rows = db.execute(
