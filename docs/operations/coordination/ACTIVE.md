@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK283_SOURCE_ONLY_DELETE_BOUNDARY_VERIFICATION`
-Current disposition: `SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
+Current disposition: `SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__READY_FOR_HERMES`
 Task ID: `CNX-20260906-283`
 Parent task: `CNX-20260906-281`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task283 created after independent review of Task281 and source-first verification of OpenClaw sessions.delete
+Updated: 2026-09-06 ICT — ChatGPT review complete; Task283 may proceed as bounded source/read-only verification
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -23,7 +23,7 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task283 is repository/source/read-only only. It must verify the exact installed `2026.7.1-2` `sessions.delete` contract, authorization/client boundary, fencing, and transcript semantics, then publish a bounded proposal for any future live Delete task. No live Delete/reset is authorized.
+Task283 is authorized only for repository/source/read-only verification of the exact installed `2026.7.1-2` `sessions.delete` contract, authorization/client boundary, fencing, and transcript semantics. It must publish a report and stop. No live Delete/reset is authorized.
 
 ## Hard fences
 
