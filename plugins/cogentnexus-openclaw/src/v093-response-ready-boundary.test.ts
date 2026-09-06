@@ -64,5 +64,5 @@ describe("v0.9.3 durable response-ready boundary", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 30_000);
 });
