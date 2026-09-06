@@ -1,35 +1,20 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK277_LIVE_DEPLOYMENT_READONLY_PREFLIGHT`
-**Updated:** 2026-09-06 ICT — Task277 read-only preflight complete; installed payload differs from accepted candidate and sacrificial session is not clean; awaiting review
+**State:** `WAITING_FOR_HUMAN_AUTHORIZATION`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER_GATE`
+**Updated:** 2026-09-06 ICT — Task277 accepted; exact-candidate install-over requires fresh explicit human authorization
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-277`
-**Parent:** `CNX-20260906-276`
+**Active task:** `CNX-20260906-278`
+**Parent:** `CNX-20260906-277`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `PREFLIGHT_COMPLETE__INSTALL_AUTHORITY_REQUIRED__SACRIFICIAL_SESSION_NOT_CLEAN__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK277_ACCEPTED__INSTALL_OVER_AUTHORITY_REQUIRED`
 
-**Routine executor:** `Hermes`
-**Current execution owner:** `Hermes`
+**Routine executor after authorization:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Accepted source/test/CI chain
+Accepted candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
 
-Task273-276 are accepted through exact candidate:
+Task277 proved the installed runtime fingerprint differs from the accepted candidate while Gateway/Ollama/Supervisor are healthy and the protected old Ticket remains untouched. The Task272 sacrificial session is not clean and must not be Deleted/reset before the accepted candidate is deployed and reviewed.
 
-`36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
-
-Independent review confirmed exact-SHA green:
-
-- Validate `34030428754`: success;
-- PS5.1 Acceptance Smoke `34030428770`: success;
-- Windows Installer Pack Smoke `34030428738`: success.
-
-## Current work
-
-Task277 performs read-only live deployment preflight only. It must compare installed and candidate identities, inspect runtime health and durable state, and report the exact next live action required.
-
-Hard fences remain: no semantic sends, no live session Delete/reset, no installer/install-over/uninstall/reset, no Gateway/provider lifecycle mutation, no manual DB/Ticket/recovery mutation, no Scheduled Task mutation, no release promotion, and no force push.
-
-Task272 live session Delete/test-message authority remains parked and unconsumed; it does not authorize install-over.
+Task278 requests exactly one supported install-over with installer-owned managed Gateway transition, followed only by read-only fingerprint/health/durable-state verification. No semantic send, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, uninstall/reset, Scheduled Task mutation, release promotion, or force push is authorized unless separately granted.
