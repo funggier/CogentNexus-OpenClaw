@@ -1,39 +1,36 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK271_LIVE_REQUALIFICATION`
-**Updated:** 2026-09-06 ICT — Hermes completed one authorized exact-candidate install-over and six-minute cursor/process requalification; awaiting ChatGPT review
+**State:** `WAITING_FOR_USER_AUTHORITY`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK272_GATED_LIVE_SESSION_RECREATION`
+**Updated:** 2026-09-06 ICT — Task271 accepted; Task272 opened but gated on fresh live session/semantic authority
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-271`
-**Parent:** `CNX-20260906-270`
+**Active task:** `CNX-20260906-272`
+**Parent:** `CNX-20260906-271`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK271_PASS_WITH_REVIEW__NO_RECURRING_SUPERVISOR_CURSOR_WAVE`
+**Disposition:** `TASK271_ACCEPTED__TASK272_WAITING_FOR_USER_AUTHORITY`
 
-**Routine executor:** `Hermes`
-**Current execution owner:** `Hermes`
+**Routine executor after authorization:** `Hermes`
+**Current execution owner:** `none — gated`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Accepted Task269/270 review
+## Task271 accepted
 
 Review:
-`docs/operations/coordination/reviews/CNX-20260906-270-chatgpt-final-source-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-271-chatgpt-live-requalification-review.md`
 
-Accepted candidate:
-`6a491d1a95394bba7b70735fbaf9cebf4d619ea6`
+Verdict:
+`ACCEPT_LIVE_DEPLOYMENT__CURSOR_WAVE_REMOVED__SESSION_RECREATION_AUTHORITY_REQUIRED`
 
-## Human live authorization
+The accepted candidate is live. The prior recurring supervisor-correlated APPSTARTING/busy-cursor wave is no longer reproduced while `PT1M` supervision remains enabled. The supported installer's provider incident closure is consistent with its verified manual-transition contract.
 
-`docs/operations/coordination/reviews/CNX-20260906-271-human-live-authorization.md`
+## Task272 gate
 
-Authorized: exactly one supported install-over of the exact candidate, supported managed Gateway process boundary, and read-only cursor/process requalification over natural supervisor ticks.
+Task:
+`docs/operations/coordination/tasks/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
 
-Still forbidden: uninstall/reset, session Delete/reset, semantic send, manual live DB/Ticket/recovery mutation, recovery disposition/replay, Scheduled Task cadence/enablement changes, ad-hoc process kills, release/tag/default-branch promotion, force push.
+Task272 requires fresh human authority for one live OpenClaw session Delete/reset and one bounded semantic Discord owner message. No such authority is recorded yet.
 
-Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence.
+Prefer a sacrificial owner session without nonterminal historical work if an exact supported topology is available. Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains unproven-intent read-only evidence; deleting its current owner session requires explicit human acknowledgement that old session work will be abandoned/cancelled.
 
-## Task271 completion
-
-`docs/operations/coordination/reports/CNX-20260906-271-live-candidate-deployment-busy-cursor-requalification.md`
-
-Disposition: `PASS_WITH_REVIEW__NO_RECURRING_SUPERVISOR_CURSOR_WAVE`. Exactly one authorized install-over completed successfully; installed fingerprint matched the exact candidate; post-install Gateway/Ollama and supervisor checks passed; six-minute observation found no recurring healthy-tick APPSTARTING wave. The installer-owned recovery incident transition is recorded as an anomaly in the report. Coordination is now handed to ChatGPT; Hermes performs no further mutation.
+No install, semantic send, session Delete/reset, manual DB/Ticket mutation, replay/redelivery/disposition, Scheduled Task mutation, release promotion, or force push is authorized while gated.
