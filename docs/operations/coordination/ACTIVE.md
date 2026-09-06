@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `NEEDS_CHATGPT`
 Execution mode: `ALTERNATING_LUNA_SUNA__TASK286_OPERATOR_ADMIN_BOUNDARY`
-Current disposition: `BOUNDED_READ_ONLY_AUTH_BOUNDARY_DIAGNOSTIC__LUNA_READY`
+Current disposition: `NEEDS_CHATGPT__CREDENTIAL_OR_AUTHORITY_BOUNDARY__NO_MUTATION`
 Task ID: `CNX-20260906-286`
 Parent task: `CNX-20260906-285`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task286 assigned to Luna: resolve operator-admin Gateway client boundary read-only; Suna is next
+Updated: 2026-09-07 ICT — Task286 stopped: paired operator-admin identity exists but selecting/using credential requires ChatGPT authority; no mutation
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -23,7 +23,7 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task286 is read-only and assigned to Luna. It must not call sessions.delete. On normal completion Suna receives the next bounded task; credential/authority ambiguity must be escalated to ChatGPT.
+Task286 was read-only and assigned to Luna. It did not call sessions.delete. The supported operator-admin boundary is identified, but selecting or using a paired credential requires ChatGPT authority; Suna does not receive a successor task until that authority is provided.
 
 ## Hard fences
 
