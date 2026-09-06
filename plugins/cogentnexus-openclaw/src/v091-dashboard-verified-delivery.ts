@@ -119,7 +119,9 @@ function trustedIngressSurface(context: any): IngressSurface | undefined {
   const provider = context?.messageProvider;
   const channel = context?.channel;
   const providerSurface = provider === "webchat" || provider === "discord" ? provider : undefined;
-  const channelSurface = channel === "webchat" || channel === "discord" ? channel : undefined;
+  const channelSurface = channel === "webchat" || channel === "discord"
+    ? channel
+    : context?.channelId === "webchat" ? "webchat" : undefined;
   if (providerSurface && channelSurface && providerSurface !== channelSurface) return undefined;
   const surface = providerSurface ?? channelSurface;
   if (surface === "webchat") return "dashboard";
@@ -157,6 +159,13 @@ function pendingDirectResult(path: string, runId: string): PendingDirectResult |
       WHERE t.run_id=? AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
         AND d.kind='direct_result' AND d.status='pending'
       ORDER BY d.delivery_id DESC LIMIT 1`).get(runId) as PendingDirectResult | undefined;
+  } finally { db.close(); }
+}
+
+function hasPendingDirectResult(path: string) {
+  const db = openDb(path, true);
+  try {
+    return Boolean(db.prepare("SELECT 1 FROM cnx_assistant_delivery WHERE kind='direct_result' AND status='pending' LIMIT 1").get());
   } finally { db.close(); }
 }
 
@@ -450,7 +459,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     // A pending direct_result is already the exact assistant answer. Whether the
     // native append is still active or its receipt is delayed, never delegate to
     // legacy recovery, which would otherwise create a competing recovery claim.
-    if (NATIVE_OWNED_RUNS.size > 0) return [];
+    if (NATIVE_OWNED_RUNS.size > 0 || hasPendingDirectResult(this.databasePath)) return [];
     return recover.call(this, { ...input, now });
   };
 
@@ -674,6 +683,17 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     if (!runId) return;
     const fallback = publicHookFallbacks.get(runId);
     if (!fallback) return;
+    // Consume-time owner/context fence: possession of runId alone is not
+    // authority to consume a fallback armed for another session or surface.
+    const consumeSessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+    const consumeSurface = trustedIngressSurface(ctx);
+    if (consumeSessionKey !== fallback.sessionKey || consumeSurface !== fallback.ingressSurface) {
+      observeDelivery(api.logger, "public-hook-skip", {
+        reason: "owner-context-mismatch",
+        correlation: correlationDigest(event, ctx),
+      });
+      return;
+    }
     const payload = event?.payload;
     const kind = event?.kind;
     if (kind !== "final") return;
