@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK285_FENCED_DELETE_WITHOUT_LIFECYCLE_REVISION`
-Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__EXPECTED_SESSION_ID_UPDATED_AT_ONLY__READY_FOR_HERMES`
+Current disposition: `BLOCKED_PREFLIGHT_GATEWAY_CLIENT_MISSING_OPERATOR_ADMIN__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-285`
 Parent task: `CNX-20260906-284`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task285 authorized after Task284 preflight block: use available expectedSessionId and expectedSessionUpdatedAt fencing only; one Delete maximum
+Updated: 2026-09-06 ICT — Task285 preflight blocked: Gateway client connected without operator scope; no live Delete; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`

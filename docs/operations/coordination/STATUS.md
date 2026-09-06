@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK285_FENCED_DELETE_WITHOUT_LIFECYCLE_REVISION`
-**Updated:** 2026-09-06 ICT — Task285 authorized with available runtime fencing fields after Task284 preflight block
+**Updated:** 2026-09-06 ICT — Task285 preflight blocked: Gateway client connected without operator scope; no live Delete; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-285`
 **Parent:** `CNX-20260906-284`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_LIVE_DELETE_AUTHORIZED__EXPECTED_SESSION_ID_UPDATED_AT_ONLY__READY_FOR_HERMES`
+**Disposition:** `BLOCKED_PREFLIGHT_GATEWAY_CLIENT_MISSING_OPERATOR_ADMIN__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
