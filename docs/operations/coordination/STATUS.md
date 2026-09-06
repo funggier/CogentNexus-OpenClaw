@@ -1,26 +1,28 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER`
-**Updated:** 2026-09-06 ICT — Task278 one-shot installer reached partial install state but terminal evidence was not produced; candidate fingerprint matches installed payload; awaiting ChatGPT review
+**State:** `WAITING_FOR_HUMAN_AUTHORIZATION`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK279_MANAGED_REENTRY_GATE`
+**Updated:** 2026-09-06 ICT — Task278 accepted as exact-payload partial install; Task279 waits for fresh explicit authority for one canonical MANAGED enable
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-278`
-**Parent:** `CNX-20260906-277`
+**Active task:** `CNX-20260906-279`
+**Parent:** `CNX-20260906-278`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `BLOCKED_EVIDENCE__INSTALLER_TERMINAL_UNPROVEN__PARTIAL_INSTALL_STATE__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK278_PARTIAL_INSTALL_ACCEPTED__EXACT_PAYLOAD_INSTALLED__ENABLE_AUTHORITY_REQUIRED`
 
-**Routine executor:** `Hermes`
-**Current execution owner:** `Hermes`
+**Routine executor after authorization:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
 Accepted candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
 
-Human authorization is recorded at:
-`docs/operations/coordination/reviews/CNX-20260906-278-human-live-authorization.md`
+Task278 installer authority is consumed. The exact candidate payload is installed and fingerprint-matched, but plugin/Host remain disabled/PASSTHROUGH because installer terminal completion was not proven before timeout.
 
-Hermes may execute exactly one supported install-over from an exact candidate checkout/artifact, including only installer-owned managed Gateway transition required by the supported installer. Afterward Hermes must verify installed fingerprint and Gateway/Ollama/Host/Supervisor health read-only, verify the protected old Ticket and Task272 sacrificial session were not semantically disposed or manually mutated, publish PASS/FAIL/BLOCKED, and stop for ChatGPT review.
+Task279 requests fresh authority for exactly one supported canonical MANAGED re-entry:
 
-Not authorized: semantic sends, OpenClaw session Delete/reset, Ticket cancellation/disposition/replay/redelivery, manual SQLite mutation, uninstall/reset, ad-hoc process kills outside the supported installer, Scheduled Task mutation, release/tag/default-branch promotion, or force push/history rewrite.
+`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable`
+
+Before consuming authority Hermes must prove the exact payload/ownership/PASSTHROUGH preconditions read-only. If authorized and preconditions hold, invoke enable once only, do not retry on failure, then prove plugin loaded, Host managed, supervisor/Gateway/Ollama health, SQLite integrity, and protected durable-state preservation.
+
+Not authorized without fresh Task279 approval: installer rerun, semantic sends, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, uninstall/reset, release/tag/default-branch promotion, or force push/history rewrite.
 
 Task272 live session Delete/test-message authority remains parked and unconsumed.
