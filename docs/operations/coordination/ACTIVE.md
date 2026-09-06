@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_USER_SETUP_MESSAGE`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK272_PHASE_A_DISCOVERY`
-Current disposition: `TASK272_AUTHORIZED__DISCOVER_EXISTING_CLEAN_SACRIFICIAL_SESSION`
+Current disposition: `TASK272_NO_CLEAN_DISCORD_SESSION__SETUP_MESSAGE_REQUIRED`
 Task ID: `CNX-20260906-272`
 Parent task: `CNX-20260906-271`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human authorized Task272; topology corrected so Hermes first discovers a previously-used but currently clean Discord owner session
+Updated: 2026-09-06 ICT — Phase A discovery found no eligible clean existing Discord owner session; awaiting human setup message
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -45,3 +45,9 @@ If such a clean sacrificial session exists, Hermes may Delete exactly that sessi
 If no clean existing session exists, Hermes must perform no Delete and set `WAITING_FOR_USER_SETUP_MESSAGE` so the human can create a sacrificial session with a setup message first.
 
 The old-Ticket session remains excluded from deletion under current authority. Hermes must not generate semantic Discord messages itself.
+
+## Phase A result
+
+Report: `docs/operations/coordination/reports/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
+
+No clean existing Discord owner session was available. No Delete or semantic send occurred. State is `WAITING_FOR_USER_SETUP_MESSAGE`; Hermes performs no further mutation until the human creates a disposable session with a setup message.
