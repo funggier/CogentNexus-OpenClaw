@@ -6,7 +6,7 @@ Current disposition: `BLOCKED_EVIDENCE__INSTALLER_TERMINAL_UNPROVEN__PARTIAL_INS
 Task ID: `CNX-20260906-278`
 Parent task: `CNX-20260906-277`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human explicitly authorized Task278; one supported exact-candidate install-over is now ready for Hermes within the recorded bounded scope
+Updated: 2026-09-06 ICT — Task278 one-shot installer reached partial install state but terminal evidence was not produced; candidate fingerprint matches installed payload; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`

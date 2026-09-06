@@ -2,7 +2,7 @@
 
 **State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER`
-**Updated:** 2026-09-06 ICT — human explicitly authorized Task278 for one supported install-over of the exact accepted candidate
+**Updated:** 2026-09-06 ICT — Task278 one-shot installer reached partial install state but terminal evidence was not produced; candidate fingerprint matches installed payload; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-278`
 **Parent:** `CNX-20260906-277`
