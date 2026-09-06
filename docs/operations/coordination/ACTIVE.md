@@ -1,8 +1,8 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-Execution mode: `ALTERNATING_LUNA_SUNA__TASK287_PAIRED_ADMIN_FENCED_DELETE`
-Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__SUNA_READY__ONE_ATTEMPT`
+Execution mode: `ALTERNATING_SUNA_PREFLIGHT_LUNA_DELETE__TASK287_288`
+Current disposition: `SUNA_PREFLIGHT_THEN_LUNA_ONE_SHOT_DELETE__READY_FOR_HERMES`
 Task ID: `CNX-20260907-287`
 Parent task: `CNX-20260906-286`
 Resumes acceptance context: `CNX-20260906-272`
@@ -23,7 +23,7 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task287 is assigned to Suna and may use only the existing paired Windows Node (CDQ-P) operator-admin identity without exposing or changing credentials. It may call sessions.delete exactly once after fresh fencing preflight. Any uncertainty means stop.
+Task287 assigns Suna only the short read-only preflight. On successful handoff, Task288 assigns Luna the one-shot sessions.delete and postconditions. Suna must not call sessions.delete.
 
 ## Hard fences
 
