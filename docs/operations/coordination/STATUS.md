@@ -1,37 +1,37 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK275_DISCORD_DIRECT_OWNER_CONTEXT_STALE_SETTLEMENT_PROOF`
-**Updated:** 2026-09-06 ICT — Task275 source/test proofs passed; exact-SHA Validate remains blocked by two unrelated Windows matrix test timeouts
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK276_WINDOWS_VITEST_TIMING_STABILIZATION`
+**Updated:** 2026-09-06 ICT — Task275 source/test accepted; Windows Validate timing instability remains the exact-SHA blocker and Task276 is ready for Hermes
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-275`
-**Parent:** `CNX-20260906-274`
+**Active task:** `CNX-20260906-276`
+**Parent:** `CNX-20260906-275`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `BLOCKED_CI_UNRESOLVED__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK275_SOURCE_ACCEPTED__CI_TIMING_GATE_BLOCKED__TASK276_READY_FOR_HERMES`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Task274 review
+## Task275 review
 
 Review:
-`docs/operations/coordination/reviews/CNX-20260906-274-chatgpt-discord-direct-safety-completion-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-275-chatgpt-source-acceptance-ci-timing-review.md`
 
 Verdict:
-`REWORK_REQUIRED__OWNER_CONTEXT_AND_STALE_SETTLEMENT_PROOFS_INCOMPLETE`
+`ACCEPT_SOURCE_TEST_REPAIR__CI_TIMING_STABILITY_BLOCKS_DEPLOYMENT`
 
-Accepted: Task274 removes newest-run inference for runId-less canonical Discord `message_sent` receipts and exact-SHA CI is green.
+Task275 candidate `9d3000e3d8d09d712f621c1985d7bde66c2519ef` is accepted for source/test semantics. Its focused owner-context/stale-settlement proofs and local full suite are green; exact-SHA PS5.1 and Installer Pack are green.
 
-Remaining: prove/fence consume-time `reply_payload_sending` owner context, release a stale registered waiter after Delete/reset and prove no old completion, and extend the timeout proof through later exactly-once settlement.
+Validate `34027500017` remains red after two inconsistent Windows Vitest timeout failures on different pre-existing tests. Evidence strongly indicates hosted-runner/suite timing instability, but the exact-SHA green gate is not waived.
 
-## Task275
+## Task276
 
 Task:
-`docs/operations/coordination/tasks/CNX-20260906-275-discord-direct-owner-context-and-stale-settlement-proof.md`
+`docs/operations/coordination/tasks/CNX-20260906-276-windows-vitest-timing-stabilization.md`
 
-TDD source/test/CI only. Preserve Task273/274 accepted repairs; add production source only if the new RED tests expose a concrete authority gap.
+Root-cause and stabilize the Windows Vitest timing boundary; do not blind-rerun, globally inflate timeouts without evidence, skip Windows, or weaken assertions. Preserve Task273-275 behavior and require one exact SHA with Validate + PS5.1 + Installer Pack all green.
 
 Hard fences remain: no live semantic sends, no live session Delete/reset, no installer/Gateway/provider mutation, no manual DB/Ticket mutation, no recovery disposition/replay/redelivery, no Scheduled Task mutation, no release promotion, and no force push.
 

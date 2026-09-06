@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK275_DISCORD_DIRECT_OWNER_CONTEXT_STALE_SETTLEMENT_PROOF`
-Current disposition: `BLOCKED_CI_UNRESOLVED__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-275`
-Parent task: `CNX-20260906-274`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK276_WINDOWS_VITEST_TIMING_STABILIZATION`
+Current disposition: `TASK275_SOURCE_ACCEPTED__CI_TIMING_GATE_BLOCKED__TASK276_OPEN`
+Task ID: `CNX-20260906-276`
+Parent task: `CNX-20260906-275`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task275 source/test proofs passed; exact-SHA Validate remains blocked by two unrelated Windows matrix test timeouts
+Updated: 2026-09-06 ICT — ChatGPT accepted Task275 source/test repair, classified the two inconsistent Windows Validate timeouts as strong CI timing-instability evidence, preserved the exact-SHA green requirement, and opened Task276
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -14,37 +14,30 @@ Handoff from: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task274 review
+## Task275 review
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260906-274-chatgpt-discord-direct-safety-completion-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-275-chatgpt-source-acceptance-ci-timing-review.md`
 
 Verdict:
 
-`REWORK_REQUIRED__OWNER_CONTEXT_AND_STALE_SETTLEMENT_PROOFS_INCOMPLETE`
+`ACCEPT_SOURCE_TEST_REPAIR__CI_TIMING_STABILITY_BLOCKS_DEPLOYMENT`
 
-Accepted from Task274:
+Accepted source candidate: `9d3000e3d8d09d712f621c1985d7bde66c2519ef`.
 
-- canonical Discord `message_sent` without exact runId now fails closed instead of selecting the newest session run;
-- two-run ambiguity regression passes;
-- helper-level delete/recreation and durable-timeout evidence is directionally correct;
-- exact candidate `35839a26673b35866334a36891a12d1c6d12e8ed` passed Validate, PS5.1 Acceptance Smoke and Windows Installer Pack Smoke.
+Task275 closes consume-time owner/surface mismatch, stale waiter after lifecycle deletion, and timeout-surviving exactly-once settlement. Local source/test/build/package evidence is green. PS5.1 and Installer Pack are green on the exact SHA.
 
-Remaining blockers before live deployment:
+Validate remains red because two attempts failed on two different pre-existing Windows Vitest wall-clock timeouts; Task275 tests passed and the second runner showed broad slowdown. This does not justify waiving the exact-SHA gate.
 
-- `reply_payload_sending` consume-time owner/session/surface mismatch is not explicitly fenced/proven;
-- stale registered native waiter released after session Delete/reset is not directly proven unable to complete old work;
-- timeout-local proof does not yet perform later exact settlement and prove exactly-once completion.
-
-## Active Task275
+## Active Task276
 
 Task:
 
-`docs/operations/coordination/tasks/CNX-20260906-275-discord-direct-owner-context-and-stale-settlement-proof.md`
+`docs/operations/coordination/tasks/CNX-20260906-276-windows-vitest-timing-stabilization.md`
 
-Objective: close those final production-shaped Discord Direct authority proofs using RED -> minimal repair -> GREEN while preserving the accepted Task273/274 behavior.
+Objective: diagnose and stabilize the Windows Vitest timing boundary without weakening assertions or Task275 semantics, then produce one exact candidate SHA with Validate + PS5.1 + Installer Pack all green.
 
-Hermes may perform source/test/docs/CI work only. No live semantic send, live session Delete/reset, install-over, Gateway/provider mutation, Ticket/recovery disposition, manual SQLite mutation, Scheduled Task mutation, release promotion, or force push is authorized.
+Hermes may perform source/test/CI/docs work only. No live semantic send, live session Delete/reset, install-over, Gateway/provider mutation, Ticket/recovery disposition, manual SQLite mutation, Scheduled Task mutation, release promotion, or force push is authorized.
 
 Task272 live Delete/test-message authority remains parked and unconsumed.
