@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK283_SOURCE_ONLY_DELETE_BOUNDARY_VERIFICATION`
-Current disposition: `PASS_SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-283`
-Parent task: `CNX-20260906-281`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK284_BOUNDED_DISPOSABLE_OPENCLAW_SESSION_DELETE`
+Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__EXACTLY_ONE_ATTEMPT__READY_FOR_HERMES`
+Task ID: `CNX-20260906-284`
+Parent task: `CNX-20260906-283`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task283 source/read-only verification report published; awaiting ChatGPT review before any successor live task
+Updated: 2026-09-06 ICT — Task284 authorized: exactly one fenced disposable sessions.delete attempt; no retry
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task283
+## Active Task284
 
-`docs/operations/coordination/tasks/CNX-20260906-283-verify-supported-openclaw-session-delete-boundary.md`
+`docs/operations/coordination/tasks/CNX-20260906-284-bounded-disposable-openclaw-session-delete.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task283 is authorized only for repository/source/read-only verification of the exact installed `2026.7.1-2` `sessions.delete` contract, authorization/client boundary, fencing, and transcript semantics. It must publish a report and stop. No live Delete/reset is authorized.
+Task284 authorizes exactly one supported Gateway sessions.delete attempt against the exact disposable target, only after same-run fresh fencing preflight. Any mismatch/error/timeout means stop without retry. No reset or post-delete semantic send is authorized.
 
 ## Hard fences
 
