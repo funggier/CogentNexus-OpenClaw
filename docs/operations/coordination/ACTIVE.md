@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK279_MANAGED_REENTRY_OR_BOUNDED_REINSTALL_RECOVERY`
-Current disposition: `HUMAN_AUTHORIZED__PREFER_ENABLE__REINSTALL_IF_PROVEN_NECESSARY`
+Current disposition: `PASS_MANAGED_REENTRY_EXACT_PAYLOAD_PRESERVED__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-279`
 Parent task: `CNX-20260906-278`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human authorized Task279 recovery, including supported reinstall/install-over of the exact candidate only if evidence proves it necessary; human also directed final release after all acceptance gates pass
+Updated: 2026-09-06 ICT — Task279 managed re-entry passed exact payload/health/preservation gates; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
