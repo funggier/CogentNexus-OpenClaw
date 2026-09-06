@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK274_DISCORD_DIRECT_CONCURRENT_RECEIPT_LIFECYCLE_FENCE_COMPLETION`
-Current disposition: `TASK273_REWORK_REQUIRED__TASK274_OPEN`
+Current disposition: `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-274`
 Parent task: `CNX-20260906-273`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT reviewed Task273, accepted the single-run repair evidence, found unresolved same-session no-runId receipt ambiguity and missing lifecycle-generation proofs, and opened Task274
+Updated: 2026-09-06 ICT — Task274 concurrent receipt/lifecycle fence repair and exact-SHA CI passed; report published and awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
