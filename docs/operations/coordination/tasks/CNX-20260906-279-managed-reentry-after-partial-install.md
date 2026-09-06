@@ -2,10 +2,10 @@
 
 ## Status
 
-`WAITING_FOR_HUMAN_AUTHORIZATION`
+`READY_FOR_HERMES`
 
 Parent: `CNX-20260906-278`
-Executor after authorization: `Hermes`
+Executor: `Hermes`
 Reviewer: `ChatGPT`
 
 ## Accepted candidate
@@ -22,7 +22,7 @@ Task278 consumed exactly one authorized install-over. Terminal completion was no
 - Gateway and Ollama are reachable;
 - protected durable state remained intact.
 
-Task278 must not be retried.
+Task278's one-shot installer authority is consumed and must not be replayed as Task278.
 
 ChatGPT review:
 
@@ -32,19 +32,15 @@ Verdict:
 
 `ACCEPT_EXACT_PAYLOAD_INSTALLED__MANAGED_ACTIVATION_INCOMPLETE__FRESH_ENABLE_AUTHORITY_REQUIRED`
 
-## Requested live authority
+Human authorization:
 
-After fresh explicit human approval, Hermes may perform exactly one supported MANAGED re-entry through the installed canonical launcher:
+`docs/operations/coordination/reviews/CNX-20260906-279-human-recovery-and-final-release-authorization.md`
 
-```text
-C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable
-```
+## Preferred recovery path
 
-No installer invocation is authorized.
+Hermes must use root-cause-first / smallest-supported-action ordering.
 
-## Mandatory read-only preconditions
-
-Immediately before enable, prove all of the following:
+Immediately before mutation, prove read-only:
 
 1. installed plugin fingerprint still exactly equals the accepted candidate;
 2. ownership verification passes against the installed canonical plugin/skill/launcher;
@@ -52,21 +48,41 @@ Immediately before enable, prove all of the following:
 4. Gateway and Ollama are reachable;
 5. SQLite integrity is `ok`;
 6. protected old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` is untouched;
-7. Task272 sacrificial lineage remains untouched/non-clean and is not selected for any mutation.
+7. Task272 sacrificial lineage remains untouched/non-clean and is not selected for mutation.
 
-If any precondition fails or is ambiguous, do not invoke enable; publish BLOCKED evidence and stop.
+If these predicates establish that canonical MANAGED re-entry is valid, invoke exactly once:
 
-## Authorized action if approved
+```text
+C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable
+```
 
-- invoke `cnxclaw.cmd enable` exactly once;
-- allow only lifecycle effects owned by that supported enable command;
-- if enable returns nonzero or fails to produce trustworthy terminal evidence, do not retry and do not repair manually.
+Allow only lifecycle effects owned by that supported command. Capture trustworthy terminal evidence. Do not blindly retry `enable`.
+
+## Supported reinstall fallback authority
+
+The human explicitly authorized reinstall if necessary.
+
+A supported reinstall/install-over of the same exact accepted candidate is authorized only if evidence proves one of these conditions:
+
+- the preconditions show that `enable` alone is not a valid/sufficient supported recovery from the Task278 partial state; or
+- the single supported `enable` attempt fails and post-failure readback proves a coherent state for supported reinstall.
+
+If fallback is necessary:
+
+- perform at most one supported reinstall/install-over;
+- bind it to exact candidate `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`;
+- use the repository-supported installer path only;
+- allow installer-owned lifecycle transitions only;
+- capture terminal evidence with a runner boundary long enough for the known Windows install duration;
+- do not combine this with uninstall/reset, broad cleanup, manual plugin repair, manual SQLite mutation, or ad-hoc process kills.
+
+Reinstall is a fallback, not the default.
 
 ## Post-action proof
 
-Read-only verify:
+After whichever supported recovery path succeeds, verify read-only:
 
-- exact candidate fingerprint unchanged;
+- exact candidate fingerprint unchanged/matched;
 - plugin `enabled=true` and `status=loaded` at the canonical root;
 - Host controller mode `managed`;
 - Gateway reachable/healthy;
@@ -74,22 +90,25 @@ Read-only verify:
 - CogentNexus supervisor present/enabled/healthy as expected by MANAGED mode;
 - SQLite integrity `ok`;
 - protected old Ticket unchanged;
-- Task272 sacrificial lineage unchanged except for installer/enable-owned non-semantic runtime bookkeeping, with no Ticket disposition/replay/redelivery/Delete/reset;
+- Task272 sacrificial lineage not disposed/replayed/redelivered/Deleted/reset;
 - no semantic send occurred.
 
 Publish PASS/FAIL/BLOCKED and stop for ChatGPT review.
 
-## Not authorized
+## Not authorized in Task279
 
-- rerun `install.ps1` or any installer;
 - Discord/Dashboard semantic sends;
 - OpenClaw session Delete/reset;
 - Ticket cancellation/disposition/replay/redelivery;
 - manual SQLite mutation;
-- uninstall/reset;
+- clean uninstall/reset;
+- broad cleanup or manual plugin mutation;
 - ad-hoc process kills;
-- Scheduled Task mutation outside the supported `enable` lifecycle;
-- release/tag/default-branch promotion;
+- release/tag/default-branch promotion during Task279;
 - force push/history rewrite.
 
 Task272's earlier Delete/test-message authority remains parked and separate and must not be consumed during Task279.
+
+## Conditional final release direction
+
+The human has explicitly directed that after all stabilization/final-acceptance gates are independently accepted, release is the final closing action and no additional yes/no release confirmation is required. The release must be a later bounded task after final acceptance; Task279 itself does not perform it.
