@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `NEEDS_CHATGPT`
-Execution mode: `ALTERNATING_LUNA_SUNA__TASK286_OPERATOR_ADMIN_BOUNDARY`
-Current disposition: `NEEDS_CHATGPT__CREDENTIAL_OR_AUTHORITY_BOUNDARY__NO_MUTATION`
-Task ID: `CNX-20260906-286`
-Parent task: `CNX-20260906-285`
+Status: `READY_FOR_HERMES`
+Execution mode: `ALTERNATING_LUNA_SUNA__TASK287_PAIRED_ADMIN_FENCED_DELETE`
+Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__SUNA_READY__ONE_ATTEMPT`
+Task ID: `CNX-20260907-287`
+Parent task: `CNX-20260906-286`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task286 stopped: paired operator-admin identity exists but selecting/using credential requires ChatGPT authority; no mutation
+Updated: 2026-09-07 ICT — ChatGPT authorized existing paired Windows Node (CDQ-P) operator-admin identity; Task287 assigned to Suna for one-shot fenced delete
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task286
+## Active Task287
 
-`docs/operations/coordination/tasks/CNX-20260906-286-resolve-operator-admin-gateway-client.md`
+`docs/operations/coordination/tasks/CNX-20260907-287-use-paired-admin-identity-fenced-delete.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task286 was read-only and assigned to Luna. It did not call sessions.delete. The supported operator-admin boundary is identified, but selecting or using a paired credential requires ChatGPT authority; Suna does not receive a successor task until that authority is provided.
+Task287 is assigned to Suna and may use only the existing paired Windows Node (CDQ-P) operator-admin identity without exposing or changing credentials. It may call sessions.delete exactly once after fresh fencing preflight. Any uncertainty means stop.
 
 ## Hard fences
 
