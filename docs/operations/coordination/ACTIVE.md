@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_USER_SETUP_MESSAGE`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK280_TASK272_POST_REPAIR_SACRIFICIAL_BOOTSTRAP`
-Current disposition: `TASK279_ACCEPTED__TASK272_REQUIRES_NEW_CLEAN_POST_REPAIR_SACRIFICIAL_SESSION`
+Current disposition: `BLOCKED_SETUP_DURABLE_DELIVERY_UNCONFIRMED__NO_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-280`
 Resumes task: `CNX-20260906-272`
 Parent acceptance: `CNX-20260906-279`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task279 MANAGED re-entry; Task272 now requires one new human-created disposable Discord setup session under the repaired live candidate before its already-authorized Delete can be consumed
+Updated: 2026-09-06 ICT — setup session discovered but durable delivery was unconfirmed; no Delete performed; awaiting ChatGPT review
 
 Assigned executor after user setup message: `Hermes`
 Review owner after reports: `ChatGPT`

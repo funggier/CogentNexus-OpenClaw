@@ -1,14 +1,14 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_USER_SETUP_MESSAGE`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK280_TASK272_POST_REPAIR_SACRIFICIAL_BOOTSTRAP`
-**Updated:** 2026-09-06 ICT — Task279 accepted; Task272 continuation now waits for one new human-created disposable Discord setup session under the repaired live candidate
+**Updated:** 2026-09-06 ICT — setup session discovered but durable delivery was unconfirmed; no Delete performed; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-280`
 **Resumes:** `CNX-20260906-272`
 **Parent acceptance:** `CNX-20260906-279`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK279_ACCEPTED__TASK272_REQUIRES_NEW_CLEAN_POST_REPAIR_SACRIFICIAL_SESSION`
+**Disposition:** `BLOCKED_SETUP_DURABLE_DELIVERY_UNCONFIRMED__NO_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor after user setup message:** `Hermes`
 **Review owner after report:** `ChatGPT`
