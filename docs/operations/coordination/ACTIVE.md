@@ -1,36 +1,30 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK281_NONCLEAN_DISCORD_SESSION_DELETE_OBSERVATION`
-Current disposition: `BLOCKED_DELETE_NOT_PERFORMED_BY_SUPPORTED_BOUNDARY__NO_RETRY__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-281`
-Parent task: `CNX-20260906-280`
+Status: `READY_FOR_CHATGPT_REVIEW`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK283_SOURCE_ONLY_DELETE_BOUNDARY_VERIFICATION`
+Current disposition: `SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
+Task ID: `CNX-20260906-283`
+Parent task: `CNX-20260906-281`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — session handoff checkpoint published after Task281 review discovery; Task281 remains waiting for independent ChatGPT review and exact installed OpenClaw session-delete boundary identification
+Updated: 2026-09-06 ICT — Task283 created after independent review of Task281 and source-first verification of OpenClaw sessions.delete
 
 Assigned executor: `Hermes`
-Review owner after report: `ChatGPT`
+Review owner: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
 ## Accepted live candidate
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Human authorization
+## Active Task283
 
-`docs/operations/coordination/reviews/CNX-20260906-280-human-nonclean-delete-experiment-authorization.md`
+`docs/operations/coordination/tasks/CNX-20260906-283-verify-supported-openclaw-session-delete-boundary.md`
 
-## Active Task281
+Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-`docs/operations/coordination/tasks/CNX-20260906-281-nonclean-discord-session-delete-observation.md`
+Task283 is repository/source/read-only only. It must verify the exact installed `2026.7.1-2` `sessions.delete` contract, authorization/client boundary, fencing, and transcript semantics, then publish a bounded proposal for any future live Delete task. No live Delete/reset is authorized.
 
-Hermes shall first capture a fresh read-only snapshot because Task280's report may predate the later terminal transition/announcement. If and only if the current OpenClaw session identity still exactly matches `agent:main:discord:channel:1391855033993138217` / `5438cad2-52b1-4fcf-9145-2d3c65f6ddf2`, Hermes may perform exactly one supported Delete/reset on that disposable session even though its Ticket is non-clean, then observe lifecycle consequences read-only and stop.
+## Hard fences
 
-This experiment does not count as the original clean-session Task272 acceptance proof. No Hermes semantic send, protected Ticket/session mutation, manual SQLite/Ticket mutation, replay/redelivery, installer, uninstall/reset, release promotion, or force push is authorized.
-
-## Session handoff
-
-`docs/operations/coordination/reports/CNX-20260906-282-session-handoff-checkpoint.md`
-
-The next ChatGPT session must fresh-read repository state, review Task281, and identify/prove the real supported OpenClaw session deletion boundary for exact installed OpenClaw `2026.7.1-2` before any successor live Delete attempt. Do not retry `cnxclaw.cmd session cancel` as a Delete substitute.
+No Hermes semantic send, protected Ticket/session mutation, manual SQLite/Ticket/session mutation, replay/redelivery/disposition, installer, uninstall/reset, release promotion, or force push. Do not touch protected Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` or its owner session.
