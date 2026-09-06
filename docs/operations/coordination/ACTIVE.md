@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK277_LIVE_DEPLOYMENT_READONLY_PREFLIGHT`
-Current disposition: `TASK276_ACCEPTED__TASK277_READONLY_PREFLIGHT_READY`
+Current disposition: `PREFLIGHT_COMPLETE__INSTALL_AUTHORITY_REQUIRED__SACRIFICIAL_SESSION_NOT_CLEAN__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-277`
 Parent task: `CNX-20260906-276`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task276 and the Task273-276 source/test/CI chain; Task277 opened for read-only live deployment preflight before any new install-over authority
+Updated: 2026-09-06 ICT — Task277 read-only preflight complete; installed payload differs from accepted candidate and sacrificial session is not clean; awaiting review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`

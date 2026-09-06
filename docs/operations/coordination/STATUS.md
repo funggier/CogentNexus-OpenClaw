@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK277_LIVE_DEPLOYMENT_READONLY_PREFLIGHT`
-**Updated:** 2026-09-06 ICT — Task276 accepted; Task277 opened for read-only live deployment preflight
+**Updated:** 2026-09-06 ICT — Task277 read-only preflight complete; installed payload differs from accepted candidate and sacrificial session is not clean; awaiting review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-277`
 **Parent:** `CNX-20260906-276`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK276_ACCEPTED__TASK277_READONLY_PREFLIGHT_READY`
+**Disposition:** `PREFLIGHT_COMPLETE__INSTALL_AUTHORITY_REQUIRED__SACRIFICIAL_SESSION_NOT_CLEAN__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
