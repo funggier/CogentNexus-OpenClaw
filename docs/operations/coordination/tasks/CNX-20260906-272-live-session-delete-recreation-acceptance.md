@@ -2,60 +2,81 @@
 
 ## Status
 
-`WAITING_FOR_USER_AUTHORITY`
+`READY_FOR_HERMES_PHASE_A_DISCOVERY`
 
 Parent: `CNX-20260906-271`
-Executor after authorization: `Hermes`
+Executor: `Hermes`
 Reviewer: `ChatGPT`
+Authorization: `docs/operations/coordination/reviews/CNX-20260906-272-human-live-authorization.md`
 
 ## Objective
 
 Live-accept the Tasks263–265 lifecycle repair on Windows/OpenClaw by proving that a manually deleted OpenClaw Discord owner session is tombstoned safely and that the first owner message in the genuinely new lifecycle is admitted successfully without requiring a second-message workaround.
 
-## Required acceptance semantics
+## Correct Discord topology
 
-A successful bounded live proof must establish:
+Do not assume an unused/never-used Discord session can already exist. A Discord/OpenClaw session necessarily exists because at least one inbound message created it.
 
-1. pre-state exact `sessionKey`, current `sessionId`, generation, and relevant Ticket/recovery/delivery counts;
-2. one authorized manual OpenClaw session Delete/reset boundary for the chosen sacrificial owner session;
-3. old lifecycle becomes tombstoned/revoked and cannot regain authority;
-4. one authorized first semantic owner message after recreation creates/uses a genuinely new OpenClaw `sessionId` on the same canonical key;
-5. that first message is admitted on its first attempt and gets a fresh Ticket/reply path; no second-message workaround is allowed;
-6. CNX generation advances exactly once for the new lifecycle;
-7. delayed/stale old lifecycle identity cannot hijack the new active lifecycle;
-8. no old recovery/delivery/workflow evidence leaks into the new lifecycle;
-9. Gateway/provider remain healthy and no unrelated lifecycle mutation is performed.
+The preferred sacrificial target is therefore an **existing previously-used Discord owner session that is now clean**:
 
-## Safety topology requirement
+- current exact `sessionKey` and `sessionId` are observable;
+- CNX session authority is known;
+- nonterminal Tickets = 0;
+- pending direct recovery = 0;
+- pending assistant/Ticket delivery or outbox = 0;
+- active workflow/durable completion awaiting delivery = 0;
+- it is not the session that owns old unproven-intent Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`.
 
-Prefer an isolated/sacrificial Discord owner session with no nonterminal historical work if an exact supported topology is available. Do not manufacture a different topology that fails to exercise the same OpenClaw `session_end(reason="deleted")` -> new `sessionId` -> first-turn `before_agent_run` contract.
+If no such existing clean session exists, do not manufacture one silently and do not delete the old-Ticket session. Stop at `WAITING_FOR_USER_SETUP_MESSAGE`; the human can then send a setup message in a suitable disposable Discord topology to create a sacrificial session first.
 
-The existing session containing old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` must NOT be deleted unless the human operator explicitly authorizes abandoning/cancelling that old session work as an unavoidable consequence of deleting that exact owner session. Its owner intent remains unproven.
+## Phase A — discovery and bounded Delete
 
-## Authority required
+1. Fresh-read branch, ACTIVE/STATUS, this task and authorization.
+2. Read-only enumerate supported Discord owner sessions and correlate OpenClaw session identity with CNX session/Ticket/recovery/delivery/workflow state.
+3. Select a sacrificial session only if all clean-session predicates above are proven.
+4. Capture pre-state exact `sessionKey`, current `sessionId`, CNX generation and relevant zero/pending counts.
+5. Perform exactly one supported live OpenClaw session Delete/reset on that exact proven-clean sacrificial session.
+6. Prove the old lifecycle became tombstoned/revoked and cannot regain authority.
+7. Do not send any semantic message on behalf of the human.
+8. Set coordination to `WAITING_FOR_USER_TEST_MESSAGE` and publish enough evidence for ChatGPT/human to know exactly where to send the message.
 
-No live execution is authorized by opening this task.
+If no clean session is found, set `WAITING_FOR_USER_SETUP_MESSAGE` without any Delete.
 
-Fresh explicit human authority is required for whichever exact topology is selected, including:
+## Phase B — human first message and verification
 
-- one live OpenClaw session Delete/reset;
-- the resulting CNX lifecycle/session/Ticket state changes;
-- one bounded semantic Discord owner message needed to prove first-turn recreation;
-- if the chosen existing owner session contains the old unproven-intent Ticket, explicit acknowledgement that deleting that session will cancel/abandon its old nonterminal work.
+After coordination explicitly reaches `WAITING_FOR_USER_TEST_MESSAGE`, the human sends exactly one benign Discord message in the same canonical Discord topology/key.
 
-## Still forbidden unless explicitly included in fresh authority
+Hermes then verifies read-only that:
+
+1. the message creates/uses a genuinely new OpenClaw `sessionId` on the same canonical key;
+2. the very first message is admitted on its first attempt and receives a fresh Ticket/reply path;
+3. no second-message workaround occurs;
+4. CNX generation advances exactly once for the new lifecycle;
+5. delayed/stale old lifecycle identity cannot hijack the new active lifecycle;
+6. no old recovery/delivery/workflow evidence leaks into the new lifecycle;
+7. Gateway/provider remain healthy.
+
+## Hard fences
+
+The old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and its current owner session remain excluded from deletion.
 
 ```text
-uninstall/reset product-wide                     = 0
-extra semantic sends beyond bounded proof        = 0
-manual SQLite edits                              = 0
-manual Ticket dispose/redeliver/replay            = 0
-Scheduled Task cadence/enablement changes        = 0
-ad-hoc process/service kills                     = 0
-release/tag/default-branch promotion             = 0
-force push/history rewrite                       = 0
+product uninstall/reset                         = 0
+Hermes-generated semantic Discord send          = 0
+extra semantic sends beyond bounded proof       = 0
+manual SQLite edits                             = 0
+manual Ticket dispose/redeliver/replay           = 0
+recovery disposition                            = 0
+Scheduled Task cadence/enablement changes       = 0
+ad-hoc process/service kills                    = 0
+release/tag/default-branch promotion            = 0
+force push/history rewrite                      = 0
 ```
 
-## Completion after authorization
+## Completion
 
-Hermes publishes a bounded live report and sets coordination to `WAITING_FOR_CHATGPT_REVIEW`. If the selected safe topology cannot be proven before mutation, stop without deleting or sending and report the blocker.
+After Phase B evidence is complete, publish:
+
+`docs/operations/coordination/reports/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
+
+Then set `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop mutation.
