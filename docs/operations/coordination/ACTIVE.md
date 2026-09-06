@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK281_NONCLEAN_DISCORD_SESSION_DELETE_OBSERVATION`
-Current disposition: `HUMAN_AUTHORIZED__NONCLEAN_DELETE_EXPERIMENT_READY`
+Current disposition: `BLOCKED_DELETE_NOT_PERFORMED_BY_SUPPORTED_BOUNDARY__NO_RETRY__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-281`
 Parent task: `CNX-20260906-280`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human confirmed normal reply reached Discord while later CNX terminal announcement appeared only in Web Chat, and explicitly authorized one bounded Delete experiment on the current non-clean disposable session
+Updated: 2026-09-06 ICT — Task281 supported cancel returned cancelled=[] with no session deletion effect; no retry; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
