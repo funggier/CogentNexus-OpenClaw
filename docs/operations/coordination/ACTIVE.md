@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK285_FENCED_DELETE_WITHOUT_LIFECYCLE_REVISION`
-Current disposition: `BLOCKED_PREFLIGHT_GATEWAY_CLIENT_MISSING_OPERATOR_ADMIN__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-285`
-Parent task: `CNX-20260906-284`
+Status: `READY_FOR_HERMES`
+Execution mode: `ALTERNATING_LUNA_SUNA__TASK286_OPERATOR_ADMIN_BOUNDARY`
+Current disposition: `BOUNDED_READ_ONLY_AUTH_BOUNDARY_DIAGNOSTIC__LUNA_READY`
+Task ID: `CNX-20260906-286`
+Parent task: `CNX-20260906-285`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task285 preflight blocked: Gateway client connected without operator scope; no live Delete; awaiting ChatGPT review
+Updated: 2026-09-06 ICT — Task286 assigned to Luna: resolve operator-admin Gateway client boundary read-only; Suna is next
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task285
+## Active Task286
 
-`docs/operations/coordination/tasks/CNX-20260906-285-fenced-delete-without-lifecycle-revision.md`
+`docs/operations/coordination/tasks/CNX-20260906-286-resolve-operator-admin-gateway-client.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task285 authorizes exactly one supported Gateway sessions.delete attempt using fresh expectedSessionId and expectedSessionUpdatedAt; lifecycleRevision must remain absent. Any mismatch/error/timeout means stop without retry. No reset or post-delete semantic send is authorized.
+Task286 is read-only and assigned to Luna. It must not call sessions.delete. On normal completion Suna receives the next bounded task; credential/authority ambiguity must be escalated to ChatGPT.
 
 ## Hard fences
 
