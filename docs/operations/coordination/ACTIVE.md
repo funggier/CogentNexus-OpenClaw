@@ -2,12 +2,12 @@
 
 Status: `READY_FOR_HERMES`
 Execution mode: `ALTERNATING_SUNA_PREFLIGHT_LUNA_DELETE__TASK287_288`
-Current disposition: `SUNA_PREFLIGHT_THEN_LUNA_ONE_SHOT_DELETE__READY_FOR_HERMES`
-Task ID: `CNX-20260907-287`
+Current disposition: `LUNA_ONE_SHOT_DELETE__READY_FOR_HERMES`
+Task ID: `CNX-20260907-288`
 Parent task: `CNX-20260906-286`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — ChatGPT authorized existing paired Windows Node (CDQ-P) operator-admin identity; Task287 assigned to Suna for one-shot fenced delete
+Updated: 2026-09-07 ICT — Suna fresh preflight passed; Task288 assigned to Luna for one-shot fenced delete
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task287
+## Active Task288
 
-`docs/operations/coordination/tasks/CNX-20260907-287-use-paired-admin-identity-fenced-delete.md`
+`docs/operations/coordination/tasks/CNX-20260907-288-luna-one-shot-fenced-session-delete.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task287 assigns Suna only the short read-only preflight. On successful handoff, Task288 assigns Luna the one-shot sessions.delete and postconditions. Suna must not call sessions.delete.
+Task287 preflight passed and the immutable handoff report is published. Task288 assigns Luna the one-shot sessions.delete and postconditions using only that handoff. Suna must not call sessions.delete.
 
 ## Hard fences
 
