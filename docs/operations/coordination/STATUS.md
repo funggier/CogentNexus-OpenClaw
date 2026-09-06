@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `ALTERNATING_SUNA_PREFLIGHT_LUNA_DELETE__TASK287_288`
-**Updated:** 2026-09-07 ICT — Suna fresh preflight passed; Task288 ready for Luna
+**Updated:** 2026-09-07 ICT — Luna stopped after a misrouted UI input was rejected by cogentnexus-openclaw; no Delete call
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-288`
-**Parent:** `CNX-20260906-286`
+**Parent:** `CNX-20260907-287`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `LUNA_ONE_SHOT_DELETE__READY_FOR_HERMES`
+**Disposition:** `BLOCKED__CHAT_UI_INPUT_MISROUTED_AND_PLUGIN_REJECTED__NO_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
