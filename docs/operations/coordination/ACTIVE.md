@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK283_SOURCE_ONLY_DELETE_BOUNDARY_VERIFICATION`
-Current disposition: `SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__READY_FOR_HERMES`
+Current disposition: `PASS_SOURCE_BOUNDARY_DEFINED__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-283`
 Parent task: `CNX-20260906-281`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT review complete; Task283 may proceed as bounded source/read-only verification
+Updated: 2026-09-06 ICT — Task283 source/read-only verification report published; awaiting ChatGPT review before any successor live task
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
