@@ -1,68 +1,83 @@
 # CNX-20260906-272 — Live Session Delete/Recreation Acceptance
 
-## Phase A disposition
+## Phase A2 disposition
 
-`WAITING_FOR_USER_SETUP_MESSAGE`
+`BLOCKED_SETUP_TURN_DELIVERY_UNCONFIRMED__NO_DELETE`
 
-No supported Delete was executed because no existing clean Discord owner session satisfied the required predicates. Task272 is therefore stopped at the authorized Phase A discovery gate.
+The human setup message created the newly identified disposable Discord lifecycle, but its setup turn did not settle into a clean terminal delivery state. The authorized Delete was therefore **not executed**. No recovery, replay, redelivery, manual mutation, or Hermes-generated semantic message was used to compensate.
 
-## Authority
+## Authority and re-anchor
 
 - Task: `CNX-20260906-272`
 - Parent: `CNX-20260906-271`
-- Human authorization: `AUTHORIZED_BOUNDED_TASK272_EXISTING_CLEAN_SESSION_DELETE_AND_USER_FIRST_MESSAGE`
 - Executor: Hermes
-- Remote authority at discovery re-anchor: `9c0b0895a35bd47c714c7f46efbe3f7372c9160b`
+- Remote coordination HEAD at continuation re-anchor: `5aa113f9575e71be94d983e87e9a73cba6d0b19d`
+- Human setup artifact: `docs/operations/coordination/reviews/CNX-20260906-272-human-setup-message-submitted.md`
+- Evidence root: `C:\Users\CDQ-P\AppData\Local\Temp\cnx-task272-post-setup-20260906\`
 
-## Read-only discovery
+## Newly created session and setup settlement
 
-Evidence root:
+Read-only OpenClaw discovery identified the new Discord owner session:
 
-`C:\Users\CDQ-P\AppData\Local\Temp\cnx-task272-discovery-20260906\`
+- Session key: `agent:main:discord:channel:1366635842554036314`
+- OpenClaw sessionId: `68ad6250-1d3a-4dac-a1b1-f1da84a10cda`
+- OpenClaw status at discovery: `running`
+- CNX state: `active`
+- CNX generation: `0`
+- CNX session created: `2026-09-06T04:14:03.473Z`
 
-OpenClaw session inventory reported `7` sessions total and `2` Discord owner sessions:
+The setup lifecycle produced:
 
-1. `agent:main:discord:channel:1531199905673252946`
-   - OpenClaw sessionId: `60bed85d-5b84-4834-84cb-592044f87b1e`
-   - OpenClaw status: `done`
-   - CNX state: `active`
-   - This is the owner of excluded old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`
+- Ticket: `CNXT-195f626e-88b8-403d-a994-918fee9ec09c`
+- Run: `0b1ee637-969a-461e-8f62-87ed297abdfd`
+- Prompt recorded by CNX: `setup`
+- Accepted/routed: `2026-09-06T04:38:13.080Z` / `2026-09-06T04:38:13.085Z`
+- Model call: `0b1ee637-969a-461e-8f62-87ed297abdfd:model:1`
+- Model call state/outcome: `ended` / `completed`
+- Model call end: `2026-09-06T04:52:37.304Z`
+- Model duration: `864107 ms`
+- The human reported seeing a reply in Discord.
 
-2. `agent:main:discord:channel:1531201432861282405`
-   - OpenClaw sessionId: `721c4df3-cf42-419c-8d80-fd051c98cb6a`
-   - OpenClaw status: `failed`
-   - CNX state: `deleted`, generation `5`, `session_id=null`
-   - Related Tickets are terminal (`completed`/`cancelled`); no active CNX lifecycle authority remains to prove as a valid existing clean sacrificial target.
+The durable settlement did not confirm delivery:
 
-No other Discord owner session was present in the OpenClaw inventory.
+- Ticket status after bounded observation: `accepted`
+- `failure_class`: `interrupted`
+- `failure_message`: `Direct response delivery was not confirmed before deadline`
+- `response_ready_at`: cleared to `null` by the deadline failure path
+- `delivery_confirmed_at`: `null`
+- `delivery_last_error`: `Direct response delivery was not confirmed before deadline`
+- `cnx_assistant_delivery` rows for the session: `0`
+- `ticket_outbox` rows for the session: `0`
+- `cnx_direct_recovery` rows for the setup Ticket: `0`
 
-## CNX read-only state
+The model completed before its recorded deadline (`2026-09-06T04:53:13.198Z`), but the durable direct-delivery boundary did not settle. A visible Discord reply does not override this durable failure state.
 
-- SQLite integrity: `ok`
-- CNX sessions: `20` total; only one Discord session was `active`, and it is the excluded old-Ticket owner
-- Tickets: `13` total; the only `accepted` Ticket is the excluded old Ticket
-- Direct recovery: `2` rows; the only `pending` recovery belongs to the excluded old Ticket
-- Assistant deliveries: `8`, all terminal `delivered`
-- Ticket outbox: `0`
-- No clean active Discord owner session with zero relevant nonterminal/pending work was available.
+## Exclusion and clean-gate result
 
-The live host remained managed and healthy during discovery. No semantic message was sent by Hermes.
+The session was not the owner of excluded old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`; that Ticket remains owned by `agent:main:discord:channel:1531199905673252946` and was not touched.
 
-## Safety result
+The exact sacrificial session nevertheless failed the required clean predicate because its setup Ticket remained `accepted` with an interrupted/unconfirmed delivery outcome. Therefore the following preconditions could not all be proven:
 
-Because the only active Discord CNX lifecycle owns the excluded old Ticket, and the other Discord record is already tombstoned/deleted in CNX, selecting either as a sacrificial target would violate the task predicates. Hermes therefore performed:
+- terminal OpenClaw/CNX turn with durable completion;
+- zero nonterminal Tickets;
+- clean durable delivery settlement;
+- unambiguous clean lifecycle authority suitable for destructive deletion.
+
+## Safety ledger for this continuation
 
 - session Delete/reset: `0`
 - Hermes-generated Discord semantic sends: `0`
 - manual SQLite/Ticket edits: `0`
 - recovery disposition/replay/redelivery: `0`
 - Scheduled Task mutation: `0`
-- process kill/service mutation: `0`
-- release/tag promotion: `0`
+- ad-hoc process/service kill: `0`
+- release/tag/default-branch promotion: `0`
 - force push/history rewrite: `0`
 
-## Required next human action
+SQLite integrity remained `ok` during read-only inspection. Gateway and Ollama were reachable/healthy in the captured status, but host health does not waive the failed session clean gate.
 
-The human must send one benign setup message through a suitable disposable Discord topology/key to create a new previously-used sacrificial session. Hermes must not generate that setup message. After a fresh coordination continuation, Hermes can repeat read-only discovery and, only if the new session is proven clean, consume the single authorized Delete before stopping at `WAITING_FOR_USER_TEST_MESSAGE`.
+## Required disposition
 
-Coordination is handed back to ChatGPT/user setup. No further live mutation was performed.
+Stop without Delete. Do not retry the setup message, press Send again, replay/recover/redeliver, or manually alter Ticket/session state. The setup session remains preserved as evidence and is not a valid sacrificial Delete target under the current durable outcome.
+
+Coordination is handed back to ChatGPT for review. A new successor authority is required before any further live action; the current Task272 authorized Delete was not consumed because its clean precondition failed.

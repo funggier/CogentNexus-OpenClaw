@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK272_SETUP_SETTLEMENT_AND_DELETE`
-Current disposition: `TASK272_SETUP_MESSAGE_SUBMITTED__WAIT_FOR_CLEAN_THEN_DELETE`
+Current disposition: `BLOCKED_SETUP_TURN_DELIVERY_UNCONFIRMED__NO_DELETE`
 Task ID: `CNX-20260906-272`
 Parent task: `CNX-20260906-271`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human sent sacrificial Discord setup message `สวัสดีครับ`; Hermes may now verify settlement/cleanliness and consume the single authorized Delete only after exact clean proof
+Updated: 2026-09-06 ICT — setup model completed, but durable delivery was not confirmed before deadline; Hermes stopped without Delete and reported the blocker
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`

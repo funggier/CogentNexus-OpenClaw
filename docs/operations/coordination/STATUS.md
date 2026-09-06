@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK272_SETUP_SETTLEMENT_AND_DELETE`
-**Updated:** 2026-09-06 ICT — human setup message submitted; Hermes may identify the new sacrificial session, wait read-only for clean settlement, then consume exactly one authorized Delete and stop for the human first-post-delete test message
+**Updated:** 2026-09-06 ICT — setup model completed, but durable delivery was not confirmed before deadline; Hermes stopped without Delete and reported the blocker
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-272`
 **Parent:** `CNX-20260906-271`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK272_SETUP_MESSAGE_SUBMITTED__HERMES_CONTINUATION_READY`
+**Disposition:** `BLOCKED_SETUP_TURN_DELIVERY_UNCONFIRMED__NO_DELETE`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
