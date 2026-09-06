@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK284_BOUNDED_DISPOSABLE_OPENCLAW_SESSION_DELETE`
-Current disposition: `BLOCKED_PREFLIGHT_MISSING_LIFECYCLE_REVISION__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-284`
-Parent task: `CNX-20260906-283`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK285_FENCED_DELETE_WITHOUT_LIFECYCLE_REVISION`
+Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__EXPECTED_SESSION_ID_UPDATED_AT_ONLY__READY_FOR_HERMES`
+Task ID: `CNX-20260906-285`
+Parent task: `CNX-20260906-284`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task284 preflight blocked: fresh session entry has no lifecycleRevision; no live Delete; awaiting ChatGPT review
+Updated: 2026-09-06 ICT — Task285 authorized after Task284 preflight block: use available expectedSessionId and expectedSessionUpdatedAt fencing only; one Delete maximum
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task284
+## Active Task285
 
-`docs/operations/coordination/tasks/CNX-20260906-284-bounded-disposable-openclaw-session-delete.md`
+`docs/operations/coordination/tasks/CNX-20260906-285-fenced-delete-without-lifecycle-revision.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task284 authorizes exactly one supported Gateway sessions.delete attempt against the exact disposable target, only after same-run fresh fencing preflight. Any mismatch/error/timeout means stop without retry. No reset or post-delete semantic send is authorized.
+Task285 authorizes exactly one supported Gateway sessions.delete attempt using fresh expectedSessionId and expectedSessionUpdatedAt; lifecycleRevision must remain absent. Any mismatch/error/timeout means stop without retry. No reset or post-delete semantic send is authorized.
 
 ## Hard fences
 
