@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK275_DISCORD_DIRECT_OWNER_CONTEXT_STALE_SETTLEMENT_PROOF`
-**Updated:** 2026-09-06 ICT — Task274 partially accepted; targeted Task275 opened for remaining Discord Direct owner-context/stale-settlement proofs
+**Updated:** 2026-09-06 ICT — Task275 source/test proofs passed; exact-SHA Validate remains blocked by two unrelated Windows matrix test timeouts
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-275`
 **Parent:** `CNX-20260906-274`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK274_PARTIAL_ACCEPT__TASK275_READY_FOR_HERMES`
+**Disposition:** `BLOCKED_CI_UNRESOLVED__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`

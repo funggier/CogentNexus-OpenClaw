@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK275_DISCORD_DIRECT_OWNER_CONTEXT_STALE_SETTLEMENT_PROOF`
-Current disposition: `TASK274_PARTIAL_ACCEPT__TASK275_OPEN`
+Current disposition: `BLOCKED_CI_UNRESOLVED__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-275`
 Parent task: `CNX-20260906-274`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task274's no-runId Discord receipt fence and exact-SHA CI, found remaining consume-time owner-context and stale-settlement proof gaps, and opened Task275
+Updated: 2026-09-06 ICT — Task275 source/test proofs passed; exact-SHA Validate remains blocked by two unrelated Windows matrix test timeouts
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
