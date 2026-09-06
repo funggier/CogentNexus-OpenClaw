@@ -834,6 +834,11 @@ entry.register = (api) => {
   if (config.ticketFirst === true) api.on("message_sent", (event, ctx) => {
     const sessionKey=event.sessionKey ?? ctx.sessionKey;
     let runId=event.runId;
+    const isDiscordSession = typeof sessionKey === "string" && /^agent:[^:]+:discord:channel:\d+$/u.test(sessionKey);
+    if(!runId && isDiscordSession){
+      api.logger.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt");
+      return;
+    }
     if(!runId && sessionKey){
       const candidates=[...runSessions.entries()].filter(([,key])=>key===sessionKey);
       runId=candidates.at(-1)?.[0];
