@@ -1,14 +1,14 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_HUMAN_AUTHORIZATION`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER_GATE`
-Current disposition: `TASK277_ACCEPTED__INSTALL_OVER_AUTHORITY_REQUIRED`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER`
+Current disposition: `HUMAN_AUTHORIZED__EXACT_CANDIDATE_INSTALL_OVER_READY`
 Task ID: `CNX-20260906-278`
 Parent task: `CNX-20260906-277`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task277 read-only preflight; installed payload differs from accepted candidate and Task278 now waits for explicit human authorization for one supported exact-candidate install-over
+Updated: 2026-09-06 ICT — human explicitly authorized Task278; one supported exact-candidate install-over is now ready for Hermes within the recorded bounded scope
 
-Assigned executor after authorization: `Hermes`
+Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
@@ -16,16 +16,18 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Review
+## Human authorization
 
-`docs/operations/coordination/reviews/CNX-20260906-277-chatgpt-readonly-preflight-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-278-human-live-authorization.md`
 
-Verdict:
+Decision:
 
-`ACCEPT_PREFLIGHT__EXACT_CANDIDATE_INSTALL_OVER_AUTHORITY_REQUIRED`
+`AUTHORIZED_BOUNDED_EXACT_CANDIDATE_INSTALL_OVER`
 
 ## Active Task278
 
 `docs/operations/coordination/tasks/CNX-20260906-278-exact-candidate-live-install-over-authorization-gate.md`
 
-Do not execute Task278 until explicit fresh human authorization is recorded. Task272 session Delete/test-message authority remains parked and separate.
+Hermes may now execute exactly one supported install-over of the accepted candidate, including only the installer-owned managed Gateway transition required by the supported installer, followed by read-only fingerprint/health/durable-state verification.
+
+Task272 session Delete/test-message authority remains parked and separate. No semantic send, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, uninstall/reset, Scheduled Task mutation, release promotion, or force push is authorized by Task278.

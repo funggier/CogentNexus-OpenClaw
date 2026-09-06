@@ -2,29 +2,43 @@
 
 ## Status
 
-`WAITING_FOR_HUMAN_AUTHORIZATION`
+`READY_FOR_HERMES`
 
 Parent: `CNX-20260906-277`
-Executor after authorization: `Hermes`
+Executor: `Hermes`
 Reviewer: `ChatGPT`
 
 ## Candidate
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Requested live authority
+## Human authorization
 
-After explicit human approval, perform exactly one supported install-over of the accepted candidate from an exact candidate checkout/artifact.
+Fresh human approval was explicitly granted in chat on 2026-09-06 ICT with the instruction:
 
-Authorized scope, if approved:
+`อนุญาต Task278`
 
-1. one supported install-over only;
-2. installer-owned managed Gateway transition only as required by the supported installer;
-3. post-install read-only fingerprint verification;
-4. post-install read-only Gateway/Ollama/Host/Supervisor health checks;
-5. read-only durable-state verification that the protected old Ticket and Task272 sacrificial session were not semantically disposed or manually mutated.
+Authorization record:
 
-## Not authorized by this gate
+`docs/operations/coordination/reviews/CNX-20260906-278-human-live-authorization.md`
+
+Decision:
+
+`AUTHORIZED_BOUNDED_EXACT_CANDIDATE_INSTALL_OVER`
+
+## Authorized live scope
+
+Hermes may now:
+
+1. perform exactly one supported install-over of the accepted candidate from an exact candidate checkout/artifact;
+2. allow only the installer-owned managed Gateway transition required by the supported installer;
+3. perform post-install read-only installed-payload fingerprint verification;
+4. perform post-install read-only Gateway/Ollama/Host/Supervisor health checks;
+5. perform read-only durable-state verification that the protected old Ticket and Task272 sacrificial session were not semantically disposed, replayed, redelivered, cancelled, reset, Deleted, or manually mutated;
+6. publish a live deployment report with exact candidate, installer result, installed fingerprint, runtime health, preservation evidence, and PASS/FAIL/BLOCKED;
+7. stop for ChatGPT review before any Task272 Delete/recreation acceptance resumes.
+
+## Not authorized
 
 - semantic Discord/Dashboard sends;
 - OpenClaw session Delete/reset;
@@ -36,8 +50,12 @@ Authorized scope, if approved:
 - release/tag/default-branch promotion;
 - force push/history rewrite.
 
-Task272's prior Delete/test-message authority remains parked and separate.
+Task272's prior Delete/test-message authority remains parked and separate. Do not consume it during Task278.
 
-## Completion after authorization
+## Completion
 
-Hermes publishes a live deployment report with exact candidate, installer result, installed fingerprint, runtime health, durable-state preservation, and PASS/FAIL/BLOCKED, then stops for ChatGPT review before any Task272 session Delete/test message.
+Publish:
+
+`docs/operations/coordination/reports/CNX-20260906-278-exact-candidate-live-install-over.md`
+
+Then set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
