@@ -175,9 +175,11 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
   const text = input.text.trim();
   if (!text) return { staged: false as const, reason: "empty-text" };
   if (isBareSilentReply(text)) return { staged: false as const, reason: "silent-reply" };
-  const initial = input.ingressSurface === "dashboard" && input.ownerSessionKey
-    ? (dashboardTicket(path, input.runId) ?? discordOwnerTicket(path, input.runId, input.ownerSessionKey))
-    : dashboardTicket(path, input.runId);
+  const initial = input.ingressSurface === "discord" && input.ownerSessionKey
+    ? discordOwnerTicket(path, input.runId, input.ownerSessionKey)
+    : input.ingressSurface === "dashboard" && input.ownerSessionKey
+      ? (dashboardTicket(path, input.runId) ?? discordOwnerTicket(path, input.runId, input.ownerSessionKey))
+      : dashboardTicket(path, input.runId);
   if (!initial) return { staged: false as const, reason: "not-dashboard-direct" };
 
   // sessionAuthority owns creation/migration of the v0.9 session + assistant-delivery schema.
@@ -192,7 +194,9 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
       ORDER BY created_at DESC LIMIT 1`).get(input.runId) as DashboardTicket | undefined;
     const allowedOwner = input.ingressSurface === "dashboard" && input.ownerSessionKey
       ? ticket?.owner_session_key === input.ownerSessionKey && (isDashboardSession(ticket.owner_session_key) || isDiscordOwnerSession(ticket.owner_session_key))
-      : Boolean(ticket?.owner_session_key && isDashboardSession(ticket.owner_session_key));
+      : input.ingressSurface === "discord" && input.ownerSessionKey
+        ? ticket?.owner_session_key === input.ownerSessionKey && isDiscordOwnerSession(ticket.owner_session_key)
+        : Boolean(ticket?.owner_session_key && isDashboardSession(ticket.owner_session_key));
     if (!ticket?.owner_session_key || !allowedOwner) {
       db.exec("COMMIT");
       return { staged: false as const, reason: "ticket-no-longer-dashboard-direct" };
@@ -458,6 +462,8 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     dispatcher: any;
     workspace: string;
     path: string;
+    sessionKey: string;
+    ingressSurface: IngressSurface;
     owned: boolean;
     waiterStarted: boolean;
   }>();
@@ -550,11 +556,18 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
     if (!hasAppendBeforeDeliver) {
       observeDelivery(api.logger, "handler-skip", { reason: "missing-append-before-deliver" });
-      if (dashboardTicket(path, runId)) {
+      const ingressSurface = trustedIngressSurface(ctx);
+      const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+      const ticket = ingressSurface === "discord" && sessionKey
+        ? discordOwnerTicket(path, runId, sessionKey)
+        : dashboardTicket(path, runId);
+      if (ticket) {
         publicHookFallbacks.set(runId, {
           dispatcher: ctx.dispatcher,
           workspace,
           path,
+          sessionKey: ticket.owner_session_key,
+          ingressSurface: ingressSurface === "discord" ? "discord" : "dashboard",
           owned: false,
           waiterStarted: false,
         });
@@ -682,7 +695,12 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     observeDelivery(api.logger, "stage-attempt", { correlation: correlationDigest(event, ctx), hasText: true });
     let staged: ReturnType<typeof stageDashboardDirectResult>;
     try {
-      staged = stageDashboardDirectResult(fallback.path, { runId, text });
+      staged = stageDashboardDirectResult(fallback.path, {
+        runId,
+        text,
+        ownerSessionKey: fallback.sessionKey,
+        ingressSurface: fallback.ingressSurface,
+      });
     } catch (error) {
       observeDelivery(api.logger, "stage-exception", { category: "stage", exception: exceptionCategory(error) });
       throw error;
