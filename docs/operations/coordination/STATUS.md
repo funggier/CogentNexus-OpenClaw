@@ -1,35 +1,34 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK272_SETUP_SETTLEMENT_AND_DELETE`
-**Updated:** 2026-09-06 ICT — setup model completed, but durable delivery was not confirmed before deadline; Hermes stopped without Delete and reported the blocker
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK273_DISCORD_DIRECT_DURABLE_DELIVERY_REPAIR`
+**Updated:** 2026-09-06 ICT — Task272 safe stop accepted; Task273 source/test repair opened
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-272`
-**Parent:** `CNX-20260906-271`
+**Active task:** `CNX-20260906-273`
+**Parent:** `CNX-20260906-272`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `BLOCKED_SETUP_TURN_DELIVERY_UNCONFIRMED__NO_DELETE`
+**Disposition:** `TASK272_DISCORD_DELIVERY_BLOCKER_CONFIRMED__TASK273_READY_FOR_HERMES`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Setup event
+## Accepted Task272 blocker
 
-`docs/operations/coordination/reviews/CNX-20260906-272-human-setup-message-submitted.md`
+Review:
+`docs/operations/coordination/reviews/CNX-20260906-272-chatgpt-setup-settlement-blocker-review.md`
 
-The human sent setup message `สวัสดีครับ` in a disposable Discord topology. At handoff time the reply was still in progress.
+Verdict:
+`ACCEPT_BLOCKED_STOP__DISCORD_DIRECT_DELIVERY_BOUNDARY_DEFECT__SOURCE_REPAIR_REQUIRED`
 
-This setup message is not the Task272 first-post-delete acceptance message.
+The sacrificial Discord setup turn produced a visible reply and a completed model call, but CNX could not durably confirm that exact final. The Ticket remained nonterminal/interrupted and no session Delete occurred.
 
-## Task272 continuation
+## Task273
 
-`docs/operations/coordination/tasks/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
+Task:
+`docs/operations/coordination/tasks/CNX-20260906-273-discord-direct-durable-delivery-boundary-repair.md`
 
-Hermes now performs read-only discovery/rechecks until the new session is terminal and clean. Before any Delete it must prove exact `sessionKey`, `sessionId`, generation, zero nonterminal Tickets, zero pending recovery/delivery/outbox/workflow state, and exclusion from the old Ticket owner session.
+TDD source/test/CI repair only. Discord Direct must gain exact pre-transport durable final ownership with session-generation/idempotency fencing and must not rely on outbound `message_sent.runId`.
 
-Only after exact clean proof may Hermes perform exactly one supported session Delete/reset. It then proves tombstoning/revocation and sets `WAITING_FOR_USER_TEST_MESSAGE` without sending any semantic Discord message itself.
-
-If clean settlement cannot be proven, stop without Delete and report the blocker.
-
-Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and its owner session remain excluded. No manual DB/Ticket mutation, recovery disposition/replay/redelivery, Scheduled Task mutation, process kill, release promotion, or force push is authorized.
+Hard fences remain: no live semantic sends, no live session Delete/reset, no installer/Gateway/provider mutation, no manual DB/Ticket mutation, no recovery disposition/replay/redelivery, no Scheduled Task mutation, no release promotion, and no force push.
