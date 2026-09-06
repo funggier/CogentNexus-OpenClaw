@@ -1,27 +1,31 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK280_TASK272_POST_REPAIR_SACRIFICIAL_BOOTSTRAP`
-**Updated:** 2026-09-06 ICT — setup session discovered but durable delivery was unconfirmed; no Delete performed; awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK281_NONCLEAN_DISCORD_SESSION_DELETE_OBSERVATION`
+**Updated:** 2026-09-06 ICT — human authorized one bounded Delete experiment on the current non-clean disposable Discord session after confirming the normal reply reached Discord but the later CNX terminal announcement appeared only in Web Chat
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-280`
-**Resumes:** `CNX-20260906-272`
-**Parent acceptance:** `CNX-20260906-279`
+**Active task:** `CNX-20260906-281`
+**Parent:** `CNX-20260906-280`
+**Resumes acceptance context:** `CNX-20260906-272`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `BLOCKED_SETUP_DURABLE_DELIVERY_UNCONFIRMED__NO_DELETE__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `HUMAN_AUTHORIZED__NONCLEAN_DELETE_EXPERIMENT_READY`
 
-**Routine executor after user setup message:** `Hermes`
+**Routine executor:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
 Accepted live candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
 
-Task279 passed: canonical `cnxclaw.cmd enable` succeeded once, reinstall fallback was not used, plugin is enabled/loaded, Host is MANAGED, Gateway/Ollama/Supervisor are healthy, and protected durable state was preserved.
+Exact experimental target:
 
-The previous Task272 sacrificial session remains non-clean from the pre-repair delivery defect and must not be disposed merely to satisfy the clean-session gate. The protected old Ticket owner remains excluded.
+- `agent:main:discord:channel:1391855033993138217`
+- expected session ID `5438cad2-52b1-4fcf-9145-2d3c65f6ddf2`
+- setup Ticket `CNXT-e25a0459-6f72-41ab-961f-661432cf6d0a`
 
-Required next human action: create/use a NEW disposable Discord channel/thread visible to the bot and send exactly one benign setup message. That message only creates the sacrificial session; it is not the post-Delete acceptance message.
+Human-observed transport facts must be preserved: the normal assistant reply was visible in Discord, while the later CogentNexus terminal-status announcement appeared only in Web Chat. Therefore the experiment must not classify the original Discord send as absent merely because durable confirmation failed.
 
-After the setup message, Hermes may observe/recheck read-only. If and only if the session reaches a durably clean state, Hermes may consume the already-recorded Task272 authority for exactly one supported session Delete, prove tombstone/revocation, then stop at `WAITING_FOR_USER_TEST_MESSAGE`.
+Hermes must fresh-snapshot the target because Task280 may predate the later terminal transition. If the identity still matches exactly, perform one supported Delete/reset and observe all lifecycle-owned consequences read-only. If identity differs or is ambiguous, do not delete another session.
 
-No release occurs yet. The human's conditional final-release direction remains parked until Task272 recreation/durable-delivery acceptance and final repository acceptance both pass.
+Still forbidden: Hermes semantic sends, protected old Ticket/session mutation, prior sacrificial mutation, manual SQLite/Ticket/session edits, recovery replay/redelivery/disposition, uninstall/reset/broad cleanup, installer/install-over, unrelated service mutation, release/tag/default-branch promotion, and force push/history rewrite.
+
+Conditional final-release direction remains parked until the required final acceptance gates pass.
