@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK278_EXACT_CANDIDATE_LIVE_INSTALL_OVER`
 **Updated:** 2026-09-06 ICT — human explicitly authorized Task278 for one supported install-over of the exact accepted candidate
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-278`
 **Parent:** `CNX-20260906-277`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `HUMAN_AUTHORIZED__EXACT_CANDIDATE_INSTALL_OVER_READY`
+**Disposition:** `BLOCKED_EVIDENCE__INSTALLER_TERMINAL_UNPROVEN__PARTIAL_INSTALL_STATE__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
