@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_USER_SETUP_MESSAGE`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK272_PHASE_A_DISCOVERY`
-Current disposition: `TASK272_NO_CLEAN_DISCORD_SESSION__SETUP_MESSAGE_REQUIRED`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK272_SETUP_SETTLEMENT_AND_DELETE`
+Current disposition: `TASK272_SETUP_MESSAGE_SUBMITTED__WAIT_FOR_CLEAN_THEN_DELETE`
 Task ID: `CNX-20260906-272`
 Parent task: `CNX-20260906-271`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Phase A discovery found no eligible clean existing Discord owner session; awaiting human setup message
+Updated: 2026-09-06 ICT — human sent sacrificial Discord setup message `สวัสดีครับ`; Hermes may now verify settlement/cleanliness and consume the single authorized Delete only after exact clean proof
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -14,40 +14,37 @@ Handoff from: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task271 accepted
+## Accepted Task271 / Task272 Phase A
 
-Review:
+Task271 live candidate/cursor repair is accepted. Task272 Phase A discovery was accepted with disposition `ACCEPT_PHASE_A_DISCOVERY__USER_SETUP_MESSAGE_REQUIRED`.
 
-`docs/operations/coordination/reviews/CNX-20260906-271-chatgpt-live-requalification-review.md`
+Phase A found no eligible clean active Discord owner session and performed zero Delete/semantic mutation.
 
-Verdict:
+## Human setup event
 
-`ACCEPT_LIVE_DEPLOYMENT__CURSOR_WAVE_REMOVED__SESSION_RECREATION_AUTHORITY_REQUIRED`
+`docs/operations/coordination/reviews/CNX-20260906-272-human-setup-message-submitted.md`
 
-The accepted candidate is live and the prior recurring supervisor-correlated busy-cursor wave is no longer reproduced.
+The human has now sent exactly one setup message, `สวัสดีครับ`, in a disposable Discord topology and reported that the reply was still running when continuation was opened.
 
-## Task272 authorization
+This message is setup-only. It is not the first-post-delete acceptance message.
 
-Authorization:
-
-`docs/operations/coordination/reviews/CNX-20260906-272-human-live-authorization.md`
+## Active continuation
 
 Task:
-
 `docs/operations/coordination/tasks/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
 
-The human explicitly authorized Task272 and offered to send the required Discord test message.
+Hermes must:
 
-Discord topology correction: a session cannot be both never-used and already available for Delete. Hermes must first perform read-only discovery for an existing previously-used Discord owner session that is now clean: zero nonterminal Tickets, zero pending direct recovery/delivery/outbox/workflow state, and not the owner of old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`.
+1. read-only identify the newly created session by diffing against Phase A inventory;
+2. if the setup reply is still running, continue bounded read-only rechecks without requiring another human wake-up;
+3. prove the exact sacrificial session is terminal and clean: zero nonterminal Tickets, zero pending direct recovery/delivery/outbox/workflow state;
+4. prove it is not the owner session of old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4`;
+5. only then perform exactly one supported OpenClaw session Delete/reset on that proven-clean sacrificial session;
+6. prove tombstoning/revocation and stop at `WAITING_FOR_USER_TEST_MESSAGE`;
+7. Hermes sends no semantic Discord messages.
 
-If such a clean sacrificial session exists, Hermes may Delete exactly that session once, prove tombstoning, then set `WAITING_FOR_USER_TEST_MESSAGE`. The human will send the single first post-delete message.
+If the setup turn fails and leaves ambiguous/nonterminal state, stop without Delete and report.
 
-If no clean existing session exists, Hermes must perform no Delete and set `WAITING_FOR_USER_SETUP_MESSAGE` so the human can create a sacrificial session with a setup message first.
+## Hard fences
 
-The old-Ticket session remains excluded from deletion under current authority. Hermes must not generate semantic Discord messages itself.
-
-## Phase A result
-
-Report: `docs/operations/coordination/reports/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
-
-No clean existing Discord owner session was available. No Delete or semantic send occurred. State is `WAITING_FOR_USER_SETUP_MESSAGE`; Hermes performs no further mutation until the human creates a disposable session with a setup message.
+Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and its owner session remain excluded from deletion. No manual DB/Ticket edits, recovery disposition/replay/redelivery, Scheduled Task mutation, ad-hoc process kill, release/tag promotion, force push, or Hermes-generated semantic send is authorized.
