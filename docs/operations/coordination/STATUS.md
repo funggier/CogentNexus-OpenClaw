@@ -1,28 +1,25 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_HUMAN_AUTHORIZATION`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK279_MANAGED_REENTRY_GATE`
-**Updated:** 2026-09-06 ICT — Task278 accepted as exact-payload partial install; Task279 waits for fresh explicit authority for one canonical MANAGED enable
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK279_MANAGED_REENTRY_OR_BOUNDED_REINSTALL_RECOVERY`
+**Updated:** 2026-09-06 ICT — human authorized Task279 recovery with exact-candidate reinstall fallback only if proven necessary, and conditionally authorized final release after all acceptance gates pass
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-279`
 **Parent:** `CNX-20260906-278`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK278_PARTIAL_INSTALL_ACCEPTED__EXACT_PAYLOAD_INSTALLED__ENABLE_AUTHORITY_REQUIRED`
+**Disposition:** `HUMAN_AUTHORIZED__PREFER_ENABLE__REINSTALL_IF_PROVEN_NECESSARY`
 
-**Routine executor after authorization:** `Hermes`
+**Routine executor:** `Hermes`
+**Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
 Accepted candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
 
-Task278 installer authority is consumed. The exact candidate payload is installed and fingerprint-matched, but plugin/Host remain disabled/PASSTHROUGH because installer terminal completion was not proven before timeout.
+Task278 installer authority is consumed. Task279 now has fresh human authority to recover the partial activation using the smallest supported path. Hermes must first re-prove live state read-only. Prefer one canonical `cnxclaw.cmd enable` when valid. If evidence proves enable alone is not a valid/sufficient recovery, or the single enable attempt fails into a coherent supported-reinstall state, Hermes may perform at most one supported reinstall/install-over of the same exact candidate.
 
-Task279 requests fresh authority for exactly one supported canonical MANAGED re-entry:
-
-`C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd enable`
-
-Before consuming authority Hermes must prove the exact payload/ownership/PASSTHROUGH preconditions read-only. If authorized and preconditions hold, invoke enable once only, do not retry on failure, then prove plugin loaded, Host managed, supervisor/Gateway/Ollama health, SQLite integrity, and protected durable-state preservation.
-
-Not authorized without fresh Task279 approval: installer rerun, semantic sends, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, uninstall/reset, release/tag/default-branch promotion, or force push/history rewrite.
+Task279 does not authorize semantic sends, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, clean uninstall/reset, broad cleanup, ad-hoc kills, release promotion, or force push.
 
 Task272 live session Delete/test-message authority remains parked and unconsumed.
+
+The human has explicitly directed that once source/CI, live MANAGED health, Task272 recreation/durable-delivery acceptance, and final repository acceptance all pass, a later bounded release task should execute the supported release path as the final closing action without asking again whether release is desired. Release version/tag/provenance must be resolved from authoritative repository state at that time; no version/tag may be invented or unreviewed candidate promoted.
