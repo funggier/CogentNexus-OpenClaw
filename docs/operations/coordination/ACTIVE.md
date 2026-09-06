@@ -1,36 +1,30 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK280_TASK272_POST_REPAIR_SACRIFICIAL_BOOTSTRAP`
-Current disposition: `BLOCKED_SETUP_DURABLE_DELIVERY_UNCONFIRMED__NO_DELETE__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-280`
-Resumes task: `CNX-20260906-272`
-Parent acceptance: `CNX-20260906-279`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK281_NONCLEAN_DISCORD_SESSION_DELETE_OBSERVATION`
+Current disposition: `HUMAN_AUTHORIZED__NONCLEAN_DELETE_EXPERIMENT_READY`
+Task ID: `CNX-20260906-281`
+Parent task: `CNX-20260906-280`
+Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — setup session discovered but durable delivery was unconfirmed; no Delete performed; awaiting ChatGPT review
+Updated: 2026-09-06 ICT — human confirmed normal reply reached Discord while later CNX terminal announcement appeared only in Web Chat, and explicitly authorized one bounded Delete experiment on the current non-clean disposable session
 
-Assigned executor after user setup message: `Hermes`
-Review owner after reports: `ChatGPT`
+Assigned executor: `Hermes`
+Review owner after report: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
 ## Accepted live candidate
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Task279 review
+## Human authorization
 
-`docs/operations/coordination/reviews/CNX-20260906-279-chatgpt-managed-reentry-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-280-human-nonclean-delete-experiment-authorization.md`
 
-Verdict:
+## Active Task281
 
-`ACCEPT_TASK279_MANAGED_REENTRY__RETURN_TO_TASK272_CLEAN_SACRIFICIAL_SETUP_REQUIRED`
+`docs/operations/coordination/tasks/CNX-20260906-281-nonclean-discord-session-delete-observation.md`
 
-## Active Task280
+Hermes shall first capture a fresh read-only snapshot because Task280's report may predate the later terminal transition/announcement. If and only if the current OpenClaw session identity still exactly matches `agent:main:discord:channel:1391855033993138217` / `5438cad2-52b1-4fcf-9145-2d3c65f6ddf2`, Hermes may perform exactly one supported Delete/reset on that disposable session even though its Ticket is non-clean, then observe lifecycle consequences read-only and stop.
 
-`docs/operations/coordination/tasks/CNX-20260906-280-task272-post-repair-clean-sacrificial-session-bootstrap.md`
-
-The human must create/use a NEW disposable Discord channel/thread visible to the bot and send exactly one benign setup message. Do not use the protected old owner channel or the previous non-clean sacrificial channel.
-
-After the human reports the setup message was sent, Hermes may fresh-read and boundedly observe the new setup turn. Only if the new session is proven durably clean may Hermes consume the existing Task272 authority for exactly one supported session Delete, then stop at `WAITING_FOR_USER_TEST_MESSAGE`.
-
-No Hermes semantic send, protected Ticket/session mutation, prior non-clean sacrificial disposition, release promotion, or force push is authorized. Final-release direction remains conditional on Task272 and final repository acceptance.
+This experiment does not count as the original clean-session Task272 acceptance proof. No Hermes semantic send, protected Ticket/session mutation, manual SQLite/Ticket mutation, replay/redelivery, installer, uninstall/reset, release promotion, or force push is authorized.
