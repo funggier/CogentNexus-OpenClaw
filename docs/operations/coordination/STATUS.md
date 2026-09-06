@@ -1,25 +1,27 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK279_MANAGED_REENTRY_OR_BOUNDED_REINSTALL_RECOVERY`
-**Updated:** 2026-09-06 ICT — Task279 managed re-entry passed exact payload/health/preservation gates; awaiting ChatGPT review
+**State:** `WAITING_FOR_USER_SETUP_MESSAGE`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK280_TASK272_POST_REPAIR_SACRIFICIAL_BOOTSTRAP`
+**Updated:** 2026-09-06 ICT — Task279 accepted; Task272 continuation now waits for one new human-created disposable Discord setup session under the repaired live candidate
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-279`
-**Parent:** `CNX-20260906-278`
+**Active task:** `CNX-20260906-280`
+**Resumes:** `CNX-20260906-272`
+**Parent acceptance:** `CNX-20260906-279`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `PASS_MANAGED_REENTRY_EXACT_PAYLOAD_PRESERVED__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK279_ACCEPTED__TASK272_REQUIRES_NEW_CLEAN_POST_REPAIR_SACRIFICIAL_SESSION`
 
-**Routine executor:** `Hermes`
-**Current execution owner:** `Hermes`
+**Routine executor after user setup message:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-Accepted candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
+Accepted live candidate: `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`.
 
-Task278 installer authority is consumed. Task279 now has fresh human authority to recover the partial activation using the smallest supported path. Hermes must first re-prove live state read-only. Prefer one canonical `cnxclaw.cmd enable` when valid. If evidence proves enable alone is not a valid/sufficient recovery, or the single enable attempt fails into a coherent supported-reinstall state, Hermes may perform at most one supported reinstall/install-over of the same exact candidate.
+Task279 passed: canonical `cnxclaw.cmd enable` succeeded once, reinstall fallback was not used, plugin is enabled/loaded, Host is MANAGED, Gateway/Ollama/Supervisor are healthy, and protected durable state was preserved.
 
-Task279 does not authorize semantic sends, session Delete/reset, Ticket/recovery disposition, manual SQLite mutation, clean uninstall/reset, broad cleanup, ad-hoc kills, release promotion, or force push.
+The previous Task272 sacrificial session remains non-clean from the pre-repair delivery defect and must not be disposed merely to satisfy the clean-session gate. The protected old Ticket owner remains excluded.
 
-Task272 live session Delete/test-message authority remains parked and unconsumed.
+Required next human action: create/use a NEW disposable Discord channel/thread visible to the bot and send exactly one benign setup message. That message only creates the sacrificial session; it is not the post-Delete acceptance message.
 
-The human has explicitly directed that once source/CI, live MANAGED health, Task272 recreation/durable-delivery acceptance, and final repository acceptance all pass, a later bounded release task should execute the supported release path as the final closing action without asking again whether release is desired. Release version/tag/provenance must be resolved from authoritative repository state at that time; no version/tag may be invented or unreviewed candidate promoted.
+After the setup message, Hermes may observe/recheck read-only. If and only if the session reaches a durably clean state, Hermes may consume the already-recorded Task272 authority for exactly one supported session Delete, prove tombstone/revocation, then stop at `WAITING_FOR_USER_TEST_MESSAGE`.
+
+No release occurs yet. The human's conditional final-release direction remains parked until Task272 recreation/durable-delivery acceptance and final repository acceptance both pass.
