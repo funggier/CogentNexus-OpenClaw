@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK284_BOUNDED_DISPOSABLE_OPENCLAW_SESSION_DELETE`
-Current disposition: `BOUNDED_LIVE_DELETE_AUTHORIZED__EXACTLY_ONE_ATTEMPT__READY_FOR_HERMES`
+Current disposition: `BLOCKED_PREFLIGHT_MISSING_LIFECYCLE_REVISION__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-284`
 Parent task: `CNX-20260906-283`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task284 authorized: exactly one fenced disposable sessions.delete attempt; no retry
+Updated: 2026-09-06 ICT — Task284 preflight blocked: fresh session entry has no lifecycleRevision; no live Delete; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`

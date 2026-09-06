@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK284_BOUNDED_DISPOSABLE_OPENCLAW_SESSION_DELETE`
-**Updated:** 2026-09-06 ICT — Task284 bounded live Delete authorization published
+**Updated:** 2026-09-06 ICT — Task284 preflight blocked: fresh session entry has no lifecycleRevision; no live Delete; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-284`
 **Parent:** `CNX-20260906-283`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_LIVE_DELETE_AUTHORIZED__EXACTLY_ONE_ATTEMPT__READY_FOR_HERMES`
+**Disposition:** `BLOCKED_PREFLIGHT_MISSING_LIFECYCLE_REVISION__NO_LIVE_DELETE__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
