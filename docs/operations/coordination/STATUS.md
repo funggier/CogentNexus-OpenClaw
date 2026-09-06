@@ -1,46 +1,35 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_USER_SETUP_MESSAGE`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK272_PHASE_A_DISCOVERY`
-**Updated:** 2026-09-06 ICT — Phase A discovery found no eligible clean existing Discord owner session; awaiting human setup message
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK272_SETUP_SETTLEMENT_AND_DELETE`
+**Updated:** 2026-09-06 ICT — human setup message submitted; Hermes may identify the new sacrificial session, wait read-only for clean settlement, then consume exactly one authorized Delete and stop for the human first-post-delete test message
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-272`
 **Parent:** `CNX-20260906-271`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK272_NO_CLEAN_DISCORD_SESSION__SETUP_MESSAGE_REQUIRED`
+**Disposition:** `TASK272_SETUP_MESSAGE_SUBMITTED__HERMES_CONTINUATION_READY`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Task271 accepted
+## Setup event
 
-Review:
-`docs/operations/coordination/reviews/CNX-20260906-271-chatgpt-live-requalification-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-272-human-setup-message-submitted.md`
 
-Verdict:
-`ACCEPT_LIVE_DEPLOYMENT__CURSOR_WAVE_REMOVED__SESSION_RECREATION_AUTHORITY_REQUIRED`
+The human sent setup message `สวัสดีครับ` in a disposable Discord topology. At handoff time the reply was still in progress.
 
-## Task272 authorization and topology correction
+This setup message is not the Task272 first-post-delete acceptance message.
 
-Authorization:
-`docs/operations/coordination/reviews/CNX-20260906-272-human-live-authorization.md`
+## Task272 continuation
 
-Task:
 `docs/operations/coordination/tasks/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
 
-A Discord/OpenClaw session only exists after prior inbound traffic, so the sacrificial target is not a never-used session. Hermes first performs read-only discovery for an existing previously-used session with zero nonterminal/pending CNX work.
+Hermes now performs read-only discovery/rechecks until the new session is terminal and clean. Before any Delete it must prove exact `sessionKey`, `sessionId`, generation, zero nonterminal Tickets, zero pending recovery/delivery/outbox/workflow state, and exclusion from the old Ticket owner session.
 
-If a clean existing session is proven, exactly one Delete is authorized. Hermes must then stop at `WAITING_FOR_USER_TEST_MESSAGE`; the human sends exactly one benign first post-delete Discord message and Hermes verifies the recreation path read-only.
+Only after exact clean proof may Hermes perform exactly one supported session Delete/reset. It then proves tombstoning/revocation and sets `WAITING_FOR_USER_TEST_MESSAGE` without sending any semantic Discord message itself.
 
-If no clean existing session exists, Hermes must not Delete anything. Set `WAITING_FOR_USER_SETUP_MESSAGE` and request a human setup message to create a disposable sacrificial session before continuing.
+If clean settlement cannot be proven, stop without Delete and report the blocker.
 
-Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and its current owner session remain excluded from deletion. No Hermes-generated semantic send, manual DB/Ticket mutation, recovery disposition, Scheduled Task mutation, process kill, release promotion, or force push is authorized.
-
-## Phase A result
-
-Report:
-`docs/operations/coordination/reports/CNX-20260906-272-live-session-delete-recreation-acceptance.md`
-
-No clean existing Discord owner session was available. No Delete or semantic send occurred. State is `WAITING_FOR_USER_SETUP_MESSAGE`; Hermes performs no further mutation until the human creates a disposable session with a setup message.
+Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` and its owner session remain excluded. No manual DB/Ticket mutation, recovery disposition/replay/redelivery, Scheduled Task mutation, process kill, release promotion, or force push is authorized.
