@@ -1,38 +1,35 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK276_WINDOWS_VITEST_TIMING_STABILIZATION`
-**Updated:** 2026-09-06 ICT — Task276 targeted Windows Vitest timing stabilization passed full exact-SHA CI; report published and awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK277_LIVE_DEPLOYMENT_READONLY_PREFLIGHT`
+**Updated:** 2026-09-06 ICT — Task276 accepted; Task277 opened for read-only live deployment preflight
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-276`
-**Parent:** `CNX-20260906-275`
+**Active task:** `CNX-20260906-277`
+**Parent:** `CNX-20260906-276`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK276_ACCEPTED__TASK277_READONLY_PREFLIGHT_READY`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Task275 review
+## Accepted source/test/CI chain
 
-Review:
-`docs/operations/coordination/reviews/CNX-20260906-275-chatgpt-source-acceptance-ci-timing-review.md`
+Task273-276 are accepted through exact candidate:
 
-Verdict:
-`ACCEPT_SOURCE_TEST_REPAIR__CI_TIMING_STABILITY_BLOCKS_DEPLOYMENT`
+`36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-Task275 candidate `9d3000e3d8d09d712f621c1985d7bde66c2519ef` is accepted for source/test semantics. Its focused owner-context/stale-settlement proofs and local full suite are green; exact-SHA PS5.1 and Installer Pack are green.
+Independent review confirmed exact-SHA green:
 
-Validate `34027500017` remains red after two inconsistent Windows Vitest timeout failures on different pre-existing tests. Evidence strongly indicates hosted-runner/suite timing instability, but the exact-SHA green gate is not waived.
+- Validate `34030428754`: success;
+- PS5.1 Acceptance Smoke `34030428770`: success;
+- Windows Installer Pack Smoke `34030428738`: success.
 
-## Task276
+## Current work
 
-Task:
-`docs/operations/coordination/tasks/CNX-20260906-276-windows-vitest-timing-stabilization.md`
+Task277 performs read-only live deployment preflight only. It must compare installed and candidate identities, inspect runtime health and durable state, and report the exact next live action required.
 
-Root-cause and stabilize the Windows Vitest timing boundary; do not blind-rerun, globally inflate timeouts without evidence, skip Windows, or weaken assertions. Preserve Task273-275 behavior and require one exact SHA with Validate + PS5.1 + Installer Pack all green.
+Hard fences remain: no semantic sends, no live session Delete/reset, no installer/install-over/uninstall/reset, no Gateway/provider lifecycle mutation, no manual DB/Ticket/recovery mutation, no Scheduled Task mutation, no release promotion, and no force push.
 
-Hard fences remain: no live semantic sends, no live session Delete/reset, no installer/Gateway/provider mutation, no manual DB/Ticket mutation, no recovery disposition/replay/redelivery, no Scheduled Task mutation, no release promotion, and no force push.
-
-Task272 live authority remains parked and unconsumed.
+Task272 live session Delete/test-message authority remains parked and unconsumed; it does not authorize install-over.
