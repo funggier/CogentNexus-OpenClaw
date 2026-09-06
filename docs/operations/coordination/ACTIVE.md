@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK273_DISCORD_DIRECT_DURABLE_DELIVERY_REPAIR`
-Current disposition: `TASK272_BLOCKED_STOP_ACCEPTED__TASK273_OPEN`
+Current disposition: `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260906-273`
 Parent task: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — ChatGPT accepted Task272 safe stop and opened source/test repair for Discord Direct durable delivery
+Updated: 2026-09-06 ICT — Task273 source/test repair and exact-SHA CI passed; report published and awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`

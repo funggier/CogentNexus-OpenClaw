@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK273_DISCORD_DIRECT_DURABLE_DELIVERY_REPAIR`
-**Updated:** 2026-09-06 ICT — Task272 safe stop accepted; Task273 source/test repair opened
+**Updated:** 2026-09-06 ICT — Task273 source/test repair and exact-SHA CI passed; report published and awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260906-273`
 **Parent:** `CNX-20260906-272`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `TASK272_DISCORD_DELIVERY_BLOCKER_CONFIRMED__TASK273_READY_FOR_HERMES`
+**Disposition:** `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
