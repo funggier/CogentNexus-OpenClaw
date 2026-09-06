@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK271_LIVE_DEPLOYMENT_CURSOR_REQUALIFICATION`
-Current disposition: `TASK271_HUMAN_AUTHORIZED__READY_FOR_BOUNDED_LIVE_EXECUTION`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK271_LIVE_REQUALIFICATION`
+Current disposition: `TASK271_PASS_WITH_REVIEW__NO_RECURRING_SUPERVISOR_CURSOR_WAVE`
 Task ID: `CNX-20260906-271`
 Parent task: `CNX-20260906-270`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — human explicitly authorized bounded Task271 live install-over and cursor requalification
+Updated: 2026-09-06 ICT — Hermes completed one authorized exact-candidate install-over and six-minute cursor/process requalification; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -38,10 +38,14 @@ Decision:
 
 `docs/operations/coordination/tasks/CNX-20260906-271-live-candidate-deployment-busy-cursor-requalification.md`
 
-Hermes is authorized to execute exactly one supported install-over of the exact candidate, require/verify the supported fresh Gateway process boundary, and perform read-only natural `PT1M` cursor/process requalification.
+Hermes executed exactly one supported install-over of the exact candidate, verified the supported fresh Gateway process boundary, and performed read-only natural `PT1M` cursor/process requalification.
 
-No blind live retry. If installer/process-boundary proof is ambiguous, stop and report.
+No blind live retry was performed. Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence. No cancel/redeliver/dispose/replay, session Delete/reset, or semantic-send authority exists.
 
-Old Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` remains read-only evidence. No cancel/redeliver/dispose/replay, session Delete/reset, or semantic-send authority exists.
+## Completion
 
-After completion Hermes publishes the Task271 report, sets `WAITING_FOR_CHATGPT_REVIEW`, and stops mutation.
+Hermes published:
+
+`docs/operations/coordination/reports/CNX-20260906-271-live-candidate-deployment-busy-cursor-requalification.md`
+
+Disposition: `PASS_WITH_REVIEW__NO_RECURRING_SUPERVISOR_CURSOR_WAVE`. Exactly one authorized install-over completed successfully; installed fingerprint matched the exact candidate; post-install Gateway/Ollama and supervisor checks passed; six-minute observation found no recurring healthy-tick APPSTARTING wave. The installer-owned recovery incident transition is recorded as an anomaly in the report. Coordination is now handed to ChatGPT; Hermes performs no further mutation.
