@@ -1,34 +1,38 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK273_DISCORD_DIRECT_DURABLE_DELIVERY_REPAIR`
-**Updated:** 2026-09-06 ICT — Task273 source/test repair and exact-SHA CI passed; report published and awaiting ChatGPT review
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK274_DISCORD_DIRECT_CONCURRENT_RECEIPT_LIFECYCLE_FENCE_COMPLETION`
+**Updated:** 2026-09-06 ICT — Task273 requires targeted safety rework before live deployment
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260906-273`
-**Parent:** `CNX-20260906-272`
+**Active task:** `CNX-20260906-274`
+**Parent:** `CNX-20260906-273`
 **Parent umbrella:** `CNX-20260831-188`
-**Disposition:** `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
+**Disposition:** `TASK273_REWORK_REQUIRED__TASK274_READY_FOR_HERMES`
 
 **Routine executor:** `Hermes`
 **Current execution owner:** `Hermes`
 **Review owner after report:** `ChatGPT`
 **Protocol:** `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Accepted Task272 blocker
+## Task273 review
 
 Review:
-`docs/operations/coordination/reviews/CNX-20260906-272-chatgpt-setup-settlement-blocker-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-273-chatgpt-discord-direct-durable-delivery-review.md`
 
 Verdict:
-`ACCEPT_BLOCKED_STOP__DISCORD_DIRECT_DELIVERY_BOUNDARY_DEFECT__SOURCE_REPAIR_REQUIRED`
+`REWORK_REQUIRED__CONCURRENT_MESSAGE_SENT_AND_GENERATION_PROOFS_MISSING`
 
-The sacrificial Discord setup turn produced a visible reply and a completed model call, but CNX could not durably confirm that exact final. The Ticket remained nonterminal/interrupted and no session Delete occurred.
+Accepted: the Task273 single-run Discord Direct path durably stages the exact final before native completion and exact-SHA CI is green.
 
-## Task273
+Blocking: the generic no-runId `message_sent` fallback still infers the newest run for a session and Task273 did not prove same-session concurrency safety. Delete/reset/generation late-callback and Discord-local timeout proofs are also missing from the new repair suite.
+
+## Task274
 
 Task:
-`docs/operations/coordination/tasks/CNX-20260906-273-discord-direct-durable-delivery-boundary-repair.md`
+`docs/operations/coordination/tasks/CNX-20260906-274-discord-direct-concurrent-receipt-lifecycle-fence-completion.md`
 
-TDD source/test/CI repair only. Discord Direct must gain exact pre-transport durable final ownership with session-generation/idempotency fencing and must not rely on outbound `message_sent.runId`.
+TDD source/test/CI rework only. Preserve Task273's good path while closing concurrent outbound receipt ambiguity and lifecycle-generation races.
 
 Hard fences remain: no live semantic sends, no live session Delete/reset, no installer/Gateway/provider mutation, no manual DB/Ticket mutation, no recovery disposition/replay/redelivery, no Scheduled Task mutation, no release promotion, and no force push.
+
+Task272 live authority remains parked and unconsumed.
