@@ -1,12 +1,12 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK274_DISCORD_DIRECT_CONCURRENT_RECEIPT_LIFECYCLE_FENCE_COMPLETION`
-Current disposition: `PASS_SOURCE_TEST_CI__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260906-274`
-Parent task: `CNX-20260906-273`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK275_DISCORD_DIRECT_OWNER_CONTEXT_STALE_SETTLEMENT_PROOF`
+Current disposition: `TASK274_PARTIAL_ACCEPT__TASK275_OPEN`
+Task ID: `CNX-20260906-275`
+Parent task: `CNX-20260906-274`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-06 ICT — Task274 concurrent receipt/lifecycle fence repair and exact-SHA CI passed; report published and awaiting ChatGPT review
+Updated: 2026-09-06 ICT — ChatGPT accepted Task274's no-runId Discord receipt fence and exact-SHA CI, found remaining consume-time owner-context and stale-settlement proof gaps, and opened Task275
 
 Assigned executor: `Hermes`
 Review owner after report: `ChatGPT`
@@ -14,30 +14,37 @@ Handoff from: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 Delayed recheck policy: `docs/operations/coordination/DELAYED_RECHECK_QUEUE.md`
 
-## Task273 review
+## Task274 review
 
 Review:
 
-`docs/operations/coordination/reviews/CNX-20260906-273-chatgpt-discord-direct-durable-delivery-review.md`
+`docs/operations/coordination/reviews/CNX-20260906-274-chatgpt-discord-direct-safety-completion-review.md`
 
 Verdict:
 
-`REWORK_REQUIRED__CONCURRENT_MESSAGE_SENT_AND_GENERATION_PROOFS_MISSING`
+`REWORK_REQUIRED__OWNER_CONTEXT_AND_STALE_SETTLEMENT_PROOFS_INCOMPLETE`
 
-Task273 candidate `04a566aa66e7812a52385fb70e0e4a5834f2f931` has a promising production-shaped Discord Direct durable staging repair and exact-SHA CI green, but the task's explicit safety contract is not complete.
+Accepted from Task274:
 
-The generic `message_sent` fallback still infers a no-runId outbound receipt from the latest run mapped to the same session. The exact installed OpenClaw contract cannot guarantee outbound runId and warns sessionKey-only correlation cannot disambiguate concurrent turns. Task273 did not test this two-run case.
+- canonical Discord `message_sent` without exact runId now fails closed instead of selecting the newest session run;
+- two-run ambiguity regression passes;
+- helper-level delete/recreation and durable-timeout evidence is directionally correct;
+- exact candidate `35839a26673b35866334a36891a12d1c6d12e8ed` passed Validate, PS5.1 Acceptance Smoke and Windows Installer Pack Smoke.
 
-Task273 also did not directly prove delete/reset/wrong-generation late-callback behavior or the Discord-local durable timeout boundary.
+Remaining blockers before live deployment:
 
-## Active Task274
+- `reply_payload_sending` consume-time owner/session/surface mismatch is not explicitly fenced/proven;
+- stale registered native waiter released after session Delete/reset is not directly proven unable to complete old work;
+- timeout-local proof does not yet perform later exact settlement and prove exactly-once completion.
+
+## Active Task275
 
 Task:
 
-`docs/operations/coordination/tasks/CNX-20260906-274-discord-direct-concurrent-receipt-lifecycle-fence-completion.md`
+`docs/operations/coordination/tasks/CNX-20260906-275-discord-direct-owner-context-and-stale-settlement-proof.md`
 
-Objective: close same-session receipt ambiguity, stale lifecycle/generation races, and Discord-local timeout proof using RED -> minimal repair -> GREEN while preserving Task273's accepted single-run durable staging.
+Objective: close those final production-shaped Discord Direct authority proofs using RED -> minimal repair -> GREEN while preserving the accepted Task273/274 behavior.
 
-Hermes may perform source/test/docs/CI work only. No live semantic send, session Delete/reset, install-over, Gateway/provider mutation, Ticket/recovery disposition, manual SQLite mutation, Scheduled Task mutation, release promotion, or force push is authorized.
+Hermes may perform source/test/docs/CI work only. No live semantic send, live session Delete/reset, install-over, Gateway/provider mutation, Ticket/recovery disposition, manual SQLite mutation, Scheduled Task mutation, release promotion, or force push is authorized.
 
 Task272 live Delete/test-message authority remains parked and unconsumed.
