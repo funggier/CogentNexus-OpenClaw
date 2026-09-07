@@ -1,28 +1,23 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK301_SUPPORTED_SUPERVISOR_QUIESCENCE_REPAIR`
-Current disposition: `NEEDS_CHATGPT__REPOSITORY_TDD_QUIESCENCE_REPAIR_GREEN__LIVE_REQUALIFICATION_NOT_AUTHORIZED`
-Task ID: `CNX-20260907-301`
-Parent task: `CNX-20260907-300`
+Status: `READY_FOR_HERMES`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK302_LIVE_QUIESCENCE_ENABLE_REQUALIFICATION`
+Current disposition: `BOUNDED_LIVE_REQUALIFICATION__ONE_ENABLE__HERMES_READY`
+Task ID: `CNX-20260907-302`
+Parent task: `CNX-20260907-301`
 Resumes acceptance context: `CNX-20260906-272`
-Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task301 authorized repository-level technical improvement; live mutation remains prohibited
+Updated: 2026-09-07 ICT — Task301 repository repair reviewed; Task302 authorizes one bounded live requalification
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
 Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
 
-## Accepted live candidate
+## Active Task302
 
-`36cd4c800ded28bdb7165fcad6e0bfb48b4e9335`
+`docs/operations/coordination/tasks/CNX-20260907-302-live-quiescence-enable-requalification.md`
 
-## Active Task301
-
-`docs/operations/coordination/tasks/CNX-20260907-301-build-supported-supervisor-quiescence.md`
-
-Task300 established that no supported Supervisor quiescence mechanism was available for the requested bounded enable requalification. Task301 authorizes Hermes to design and implement the minimal repository/source/test/CI repair, using TDD, for a supported task-scoped quiescence/coordination mechanism.
+Task301 reported GREEN repository repair. Task302 authorizes Hermes to verify exact installed wiring and, only after all preflight gates pass, invoke the canonical `cnxclaw enable` exactly once and report readback.
 
 ## Hard fences
 
-No live `cnxclaw enable`, Scheduled Task mutation, service restart/reload, Hermes semantic send, protected Ticket/session mutation, manual SQLite/Ticket/session/transcript/config mutation in the live installation, replay/redelivery/disposition, installer, uninstall/reset, release promotion, credential action, or force push. Do not touch protected Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` or its owner session.
+No semantic send, replay/redelivery/disposition, manual Ticket/SQLite/session/transcript mutation, installer/install-over/uninstall/reset, unrelated Scheduled Task/service mutation, credential action, release promotion, or force push. Do not touch protected Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` or its owner session.
