@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `NEEDS_CHATGPT__NO_DETERMINISTIC_REPOSITORY_DEFECT_PROVEN__DETACHED_WORKER_TRANSPORT_DIAGNOSIS_REQUIRED__NO_MUTATION`
-Task ID: `CNX-20260907-294`
-Parent task: `CNX-20260907-293`
+Current disposition: `BOUNDED_READ_ONLY_DETACHED_WORKER_INSTRUMENTATION__HERMES_READY`
+Task ID: `CNX-20260907-295`
+Parent task: `CNX-20260907-294`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task294 assigned to Hermes for read-only chat.history no-JSON diagnosis
+Updated: 2026-09-07 ICT — Task295 assigned to Hermes for read-only detached-worker instrumentation
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,11 +17,11 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task294
+## Active Task295
 
-`docs/operations/coordination/tasks/CNX-20260907-294-diagnose-gateway-chat-history-no-json.md`
+`docs/operations/coordination/tasks/CNX-20260907-295-instrument-detached-delivery-worker.md`
 
-Task293 found generation-2 recreation but durable delivery pending due chat.history no-JSON. Task294 assigns Hermes read-only root-cause diagnosis; no retry or mutation.
+Task294 found healthy direct transport but unresolved detached-worker output capture. Task295 assigns Hermes bounded read-only instrumentation; no retry or mutation.
 
 ## Hard fences
 
