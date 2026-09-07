@@ -1,11 +1,11 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK304_TDD_INSTALLER_REPAIR`
-Current disposition: `BOUNDED_REPOSITORY_REPAIR__HERMES_TECHNICAL_AUTONOMY`
+Current disposition: `PASS_REPOSITORY_TDD_REPAIR_GREEN__LIVE_RETRY_FORBIDDEN`
 Task ID: `CNX-20260907-304`
 Parent task: `CNX-20260907-303`
-Updated: 2026-09-07 ICT — Task303 found supported staging installer null-fingerprint defect; Task304 authorized TDD repair
+Updated: 2026-09-07 ICT — Task304 repository TDD repair GREEN; live retry/enable remain forbidden
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`

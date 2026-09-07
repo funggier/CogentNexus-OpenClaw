@@ -216,12 +216,16 @@ EOF
 chmod +x "$LAUNCHER"
 echo "Installed CogentNexus-OpenClaw launcher to $LAUNCHER"
 
-PLUGIN_RESOLUTION=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION")
-INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])')
-set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
-if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
-python "$@" >/dev/null
-python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
+if [ "$SKIP_PLUGIN" -eq 1 ]; then
+  echo "Skipped plugin resolution and ownership mutation; staging payload is adopted without plugin activation."
+else
+  PLUGIN_RESOLUTION=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION")
+  INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])')
+  set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
+  if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
+  python "$@" >/dev/null
+  python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
+fi
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable

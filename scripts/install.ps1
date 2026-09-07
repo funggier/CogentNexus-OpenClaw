@@ -498,20 +498,25 @@ if ($isFreshTransaction) {
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 
-$pluginResolutionJson = (& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
-if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
-$installedPlugin = $pluginResolutionJson | ConvertFrom-Json
-$installedPluginPath = [string]$installedPlugin.root
-$installedPluginFingerprint = [string]$installedPlugin.fingerprint
-if ($installedPluginFingerprint -notmatch '^[0-9a-fA-F]{64}$' -or $installedPluginFingerprint.ToLowerInvariant() -ne $expectedPluginFingerprint.ToLowerInvariant()) {
-    throw "Installed plugin fingerprint does not match the expected candidate fingerprint; refusing managed activation."
+if ($SkipPlugin) {
+    Write-Host "Skipped plugin resolution and ownership mutation; staging payload is adopted without plugin activation."
 }
-$ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
-if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
-& $ownedPython @ownershipArguments | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
-& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+else {
+    $pluginResolutionJson = (& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
+    $installedPlugin = $pluginResolutionJson | ConvertFrom-Json
+    $installedPluginPath = [string]$installedPlugin.root
+    $installedPluginFingerprint = [string]$installedPlugin.fingerprint
+    if ($installedPluginFingerprint -notmatch '^[0-9a-fA-F]{64}$' -or $installedPluginFingerprint.ToLowerInvariant() -ne $expectedPluginFingerprint.ToLowerInvariant()) {
+        throw "Installed plugin fingerprint does not match the expected candidate fingerprint; refusing managed activation."
+    }
+    $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
+    if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
+    & $ownedPython @ownershipArguments | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
+    & $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+}
 if ($isFreshTransaction) {
     # CNX-20260826-068: commit only AFTER ownership create + exact verify.
     & python $ownershipScript transaction-commit --workspace $Workspace | Out-Null

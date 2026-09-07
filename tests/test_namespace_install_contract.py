@@ -50,6 +50,31 @@ def test_windows_installer_applies_verified_rollover_before_single_candidate_res
     assert "$rolloverTransactionPath" in source
 
 
+def test_windows_skip_plugin_short_circuits_post_copy_plugin_resolution():
+    source = read("scripts/install.ps1")
+    launcher = source.index('Write-Host "Installed CogentNexus-OpenClaw launcher')
+    resolve = source.index(" resolve-plugin --openclaw-state", launcher)
+    verify = source.index('namespace_ownership.py") verify --root', resolve)
+    guard = source.find("if ($SkipPlugin) {", launcher, resolve)
+    assert guard > launcher, "SkipPlugin must guard post-copy plugin resolution"
+    assert guard < resolve
+    close = source.find("\n}\n", resolve)
+    assert close > resolve
+    assert "installedPluginFingerprint.ToLowerInvariant()" in source[resolve:close]
+    assert "staging" in source[guard:close + 3].lower()
+    assert verify < close, "normal plugin verification remains inside the else path"
+
+
+def test_posix_skip_plugin_short_circuits_post_copy_plugin_resolution():
+    source = read("scripts/install.sh")
+    launcher = source.index('echo "Installed CogentNexus-OpenClaw launcher')
+    resolve = source.index(" resolve-plugin --openclaw-state", launcher)
+    guard = source.find('if [ "$SKIP_PLUGIN" -eq 1 ]; then', launcher, resolve)
+    assert guard > launcher, "skip-plugin must guard post-copy plugin resolution"
+    assert guard < resolve
+    assert "staging" in source[launcher:source.index("fi", resolve) + 2].lower()
+
+
 def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report():
     source = read("scripts/install.sh")
     assert 'LAUNCHER="$WORKSPACE/cnxclaw"' in source

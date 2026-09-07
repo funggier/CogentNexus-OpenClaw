@@ -1,12 +1,12 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK304_TDD_INSTALLER_REPAIR`
-**Updated:** 2026-09-07 ICT — Task304 authorized bounded repository TDD repair with Hermes technical autonomy
+**Updated:** 2026-09-07 ICT — Task304 repository TDD repair GREEN; live retry/enable remain forbidden
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-304`
 **Parent:** `CNX-20260907-303`
-**Disposition:** `BOUNDED_REPOSITORY_REPAIR__HERMES_TECHNICAL_AUTONOMY`
+**Disposition:** `PASS_REPOSITORY_TDD_REPAIR_GREEN__LIVE_RETRY_FORBIDDEN`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
