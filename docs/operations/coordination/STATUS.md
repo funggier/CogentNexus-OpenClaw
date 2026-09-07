@@ -1,12 +1,12 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK303_SUPPORTED_REPAIR_ADOPTION`
-**Updated:** 2026-09-07 ICT — Task303 authorizes supported adoption with technical autonomy
+**Updated:** 2026-09-07 ICT — staging adoption copied exact Task301 wiring; installer failed at post-stage null fingerprint; no retry/enable
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-303`
 **Parent:** `CNX-20260907-302`
-**Disposition:** `BOUNDED_ADOPTION__HERMES_TECHNICAL_AUTONOMY`
+**Disposition:** `BLOCKED_INSTALLER_POST_STAGE_FAILURE__TASK301_WIRING_ADOPTED__NO_RETRY__ENABLE_NOT_AUTHORIZED`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`

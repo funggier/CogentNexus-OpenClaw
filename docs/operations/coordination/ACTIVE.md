@@ -1,11 +1,11 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK303_SUPPORTED_REPAIR_ADOPTION`
-Current disposition: `BOUNDED_ADOPTION__HERMES_TECHNICAL_AUTONOMY`
+Current disposition: `BLOCKED_INSTALLER_POST_STAGE_FAILURE__TASK301_WIRING_ADOPTED__NO_RETRY__ENABLE_NOT_AUTHORIZED`
 Task ID: `CNX-20260907-303`
 Parent task: `CNX-20260907-302`
-Updated: 2026-09-07 ICT — Task302 blocked at missing installed wiring; Task303 authorizes supported adoption
+Updated: 2026-09-07 ICT — staging adoption copied exact Task301 wiring; installer failed at post-stage null fingerprint; no retry/enable
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
