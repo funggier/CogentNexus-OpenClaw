@@ -12,6 +12,31 @@ import host_control_v092 as control
 
 
 class HostControlV092Tests(unittest.TestCase):
+    def test_periodic_supervisor_runs_composed_host_in_process(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            (root / "host").mkdir(parents=True)
+            (root / "host" / "controller.json").write_text(
+                '{"schemaVersion":1,"mode":"managed","desiredGateway":"running"}',
+                encoding="utf-8",
+            )
+            argv = [
+                "host_control_v092.py",
+                "--root",
+                str(root),
+                "supervisor",
+                "tick",
+                "--execute-safe",
+            ]
+            with mock.patch.object(control.v091.legacy.sys, "argv", argv), \
+                 mock.patch.object(control.v091, "_repair_managed_plugin_activation", return_value=None), \
+                 mock.patch.object(control.v091.legacy, "delegate", side_effect=AssertionError("periodic tick must not spawn a Host delegate")), \
+                 mock.patch.object(control, "_run_periodic_supervisor_in_process", return_value=0, create=True) as run_in_process:
+                code = control.main()
+
+            self.assertEqual(code, 0)
+            run_in_process.assert_called_once_with()
+
     def test_verified_stop_waits_for_ownership_release(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
