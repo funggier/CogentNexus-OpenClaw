@@ -1,12 +1,12 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK305_BOUNDED_STAGING_INSTALLER`
-**Updated:** 2026-09-07 ICT — Task305 authorizes one repaired staging installer retry
+**Updated:** 2026-09-07 ICT — Task305 staging retry succeeded; managed enable remains separately gated
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-305`
 **Parent:** `CNX-20260907-304`
-**Disposition:** `BOUNDED_STAGING_RETRY__EXACTLY_ONE__HERMES_READY`
+**Disposition:** `PASS_STAGING_INSTALLER_RETRY_GREEN__MANAGED_ENABLE_NOT_AUTHORIZED`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`

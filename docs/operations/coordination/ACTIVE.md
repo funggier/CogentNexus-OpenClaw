@@ -1,11 +1,11 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK305_BOUNDED_STAGING_INSTALLER`
-Current disposition: `BOUNDED_STAGING_RETRY__EXACTLY_ONE__HERMES_READY`
+Current disposition: `PASS_STAGING_INSTALLER_RETRY_GREEN__MANAGED_ENABLE_NOT_AUTHORIZED`
 Task ID: `CNX-20260907-305`
 Parent task: `CNX-20260907-304`
-Updated: 2026-09-07 ICT — Task304 GREEN; Task305 authorizes one repaired staging installer retry
+Updated: 2026-09-07 ICT — Task305 staging retry succeeded; managed enable remains separately gated
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
