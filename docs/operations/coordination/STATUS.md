@@ -2,8 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 State: `READY_FOR_HERMES`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK312_ACTIONABLE_DELIVERY_WAKE_REPAIR`
-Task ID: `CNX-20260907-312`
-Parent: `CNX-20260907-311`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK313_EXACT_TASK312_CANDIDATE_LIVE_REQUALIFICATION`
+Task ID: `CNX-20260907-313`
+Parent: `CNX-20260907-312`
 
-Task311 installed exact candidate `79ddec2190b226b2f5cc906144a04859b3eca748` successfully and preserved durable state, but disposition is `BLOCKED_RESIDUAL_DURABLE_HINT_HEAVY_WAKE`. Task312 is source-only and must repair the broad pending-delivery wake predicate before another live install.
+Task312 source repair candidate `1ae54317bd753b2d54f423979d8a968a8c3053da` passed independent review, focused/full local tests, and all three exact-SHA required workflows. Task313 authorizes one supported install and bounded live process requalification; no release dispatch occurs until live evidence passes.
