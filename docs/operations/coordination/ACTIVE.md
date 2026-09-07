@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `ALTERNATING_SUNA_VERIFY_LUNA_LIFECYCLE__TASK290_291`
-Current disposition: `USER_DELETE_REPORTED__SUNA_READ_ONLY_VERIFY_READY`
+Current disposition: `TASK290_READ_ONLY_VERIFY_PASS__TASK291_LUNA_HANDOFF_PENDING`
 Task ID: `CNX-20260907-290`
 Parent task: `CNX-20260907-289`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — User manually deleted the latest target through Control UI; Task290 assigns Suna read-only verification
+Updated: 2026-09-07 ICT — Suna confirmed user deletion read-only; Task291 lifecycle handoff pending successor authority
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -23,7 +23,7 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task287 preflight passed; Task288/289 made no Delete call. User reported manual Control UI deletion. Task290 is read-only Suna verification; if confirmed, Task291 assigns Luna lifecycle analysis.
+Task287 preflight passed; Task288/289 made no Delete call. User reported manual Control UI deletion, and Task290 read-only verification now confirms the exact pre-delete session is deleted with no replacement and protected state untouched. Task291 lifecycle analysis is pending a freshly published successor task; do not invent authority.
 
 ## Hard fences
 
