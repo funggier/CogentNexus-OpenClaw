@@ -1,5 +1,6 @@
 import json
 import importlib.util
+import multiprocessing
 import sys
 import threading
 import time
@@ -16,6 +17,48 @@ HOST_SPEC = importlib.util.spec_from_file_location("host_quiescence_under_test",
 assert HOST_SPEC and HOST_SPEC.loader
 host = importlib.util.module_from_spec(HOST_SPEC)
 HOST_SPEC.loader.exec_module(host)
+
+
+def _hold_operation_lock(root, ready, release):
+    with q._operation_lock(Path(root)):
+        ready.set()
+        release.wait(3.0)
+
+
+def _acquire_with_timeout(root, result):
+    try:
+        q.acquire(Path(root), "owner-b", now=101.0, ttl=30.0, timeout=0.05, poll=0.005)
+    except BaseException as exc:
+        result.put(type(exc).__name__)
+    else:
+        result.put("acquired")
+
+
+def _release_with_barrier(root, token, checked, proceed, result):
+    original_read = q._read_raw
+
+    def delayed_read(path):
+        value = original_read(path)
+        checked.set()
+        proceed.wait(2.0)
+        return value
+
+    q._read_raw = delayed_read
+    try:
+        q.release(Path(root), "owner-a", token=token, now=112.0)
+    except BaseException as exc:
+        result.put(type(exc).__name__)
+    else:
+        result.put("released")
+
+
+def _acquire_replacement(root, result):
+    try:
+        q.acquire(Path(root), "owner-b", now=111.0, ttl=30.0)
+    except BaseException as exc:
+        result.put(type(exc).__name__)
+    else:
+        result.put("acquired")
 
 
 class SupervisorQuiescenceTests(unittest.TestCase):
@@ -49,47 +92,38 @@ class SupervisorQuiescenceTests(unittest.TestCase):
         with TemporaryDirectory() as d:
             root = Path(d) / ".cogentnexus-openclaw"
             lease_a = q.acquire(root, "owner-a", now=100.0, ttl=10.0)
-            checked = threading.Event()
-            continue_release = threading.Event()
-            replacement_done = threading.Event()
-            errors = []
-            original_read = q._read_raw
+            context = multiprocessing.get_context("spawn")
+            checked = context.Event()
+            proceed = context.Event()
+            release_result = context.Queue()
+            acquire_result = context.Queue()
+            old_process = context.Process(
+                target=_release_with_barrier,
+                args=(str(root), lease_a["token"], checked, proceed, release_result),
+            )
+            replacement_process = context.Process(
+                target=_acquire_replacement, args=(str(root), acquire_result)
+            )
+            old_process.start()
+            try:
+                self.assertTrue(checked.wait(2.0))
+                replacement_process.start()
+                time.sleep(0.1)
+                self.assertTrue(replacement_process.is_alive())
+                proceed.set()
+                old_process.join(2.0)
+                replacement_process.join(2.0)
+            finally:
+                proceed.set()
+                for process in (old_process, replacement_process):
+                    if process.is_alive():
+                        process.terminate()
+                    process.join(2.0)
 
-            def delayed_read(path):
-                value = original_read(path)
-                if threading.current_thread().name == "old-release":
-                    checked.set()
-                    if not continue_release.wait(2.0):
-                        errors.append("release test barrier timed out")
-                return value
-
-            def release_old():
-                try:
-                    q.release(root, "owner-a", token=lease_a["token"], now=112.0)
-                except BaseException as exc:
-                    errors.append(exc)
-
-            def acquire_replacement():
-                try:
-                    q.acquire(root, "owner-b", now=111.0, ttl=30.0)
-                    replacement_done.set()
-                except BaseException as exc:
-                    errors.append(exc)
-
-            with mock.patch.object(q, "_read_raw", side_effect=delayed_read):
-                old_thread = threading.Thread(target=release_old, name="old-release")
-                old_thread.start()
-                self.assertTrue(checked.wait(1.0))
-                replacement_thread = threading.Thread(target=acquire_replacement, name="replacement")
-                replacement_thread.start()
-                self.assertFalse(replacement_done.wait(0.1))
-                continue_release.set()
-                old_thread.join(2.0)
-                replacement_thread.join(2.0)
-
-            self.assertFalse(old_thread.is_alive())
-            self.assertFalse(replacement_thread.is_alive())
-            self.assertEqual(errors, [])
+            self.assertFalse(old_process.is_alive())
+            self.assertFalse(replacement_process.is_alive())
+            self.assertIn(release_result.get(timeout=1.0), {"released", "QuiescenceOwnerError"})
+            self.assertEqual(acquire_result.get(timeout=1.0), "acquired")
             self.assertEqual(q.read(root, now=112.0)["owner"], "owner-b")
 
 
@@ -107,6 +141,45 @@ class SupervisorQuiescenceTests(unittest.TestCase):
             q.acquire(root, "owner-a", now=100.0, ttl=30.0)
             self.assertTrue(q.release(root, "owner-a", now=101.0)["released"])
             self.assertFalse(q.release(root, "owner-a", now=102.0)["released"])
+
+    def test_release_absent_is_side_effect_free(self):
+        with TemporaryDirectory() as d:
+            root = Path(d) / ".cogentnexus-openclaw"
+            self.assertFalse(root.exists())
+            released = q.release(root, "owner-a", now=101.0)
+            self.assertFalse(released["released"])
+            self.assertFalse(root.exists())
+
+    def test_acquire_timeout_is_bounded_when_operation_lock_is_held(self):
+        with TemporaryDirectory() as d:
+            root = Path(d) / ".cogentnexus-openclaw"
+            context = multiprocessing.get_context("spawn")
+            ready = context.Event()
+            release = context.Event()
+            result = context.Queue()
+            holder = context.Process(target=_hold_operation_lock, args=(str(root), ready, release))
+            waiter = context.Process(target=_acquire_with_timeout, args=(str(root), result))
+            holder.start()
+            try:
+                self.assertTrue(ready.wait(2.0))
+                waiter.start()
+                waiter.join(0.5)
+                if waiter.is_alive():
+                    waiter.terminate()
+                    waiter.join(2.0)
+                    self.fail("acquire(timeout=0.05) blocked on the operation lock")
+                release.set()
+                holder.join(2.0)
+            finally:
+                release.set()
+                if holder.is_alive():
+                    holder.terminate()
+                holder.join(2.0)
+                if waiter.is_alive():
+                    waiter.terminate()
+                waiter.join(2.0)
+            self.assertFalse(holder.is_alive())
+            self.assertEqual(result.get(timeout=1.0), "QuiescenceTimeoutError")
 
     def test_supervisor_tick_is_quiesced_before_any_runtime_probe(self):
         with TemporaryDirectory() as d:
