@@ -67,6 +67,8 @@ def root_from_argv(argv: list[str]) -> Path:
     for index, value in enumerate(argv):
         if value == "--root" and index + 1 < len(argv):
             return Path(argv[index + 1]).resolve()
+        if value.startswith("--root="):
+            return Path(value.split("=", 1)[1]).resolve()
     return DEFAULT_ROOT.resolve()
 
 
