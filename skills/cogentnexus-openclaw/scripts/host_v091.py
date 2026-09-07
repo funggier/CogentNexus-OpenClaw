@@ -182,10 +182,27 @@ def durable_work_hint(root: Path, now: str | None = None) -> bool:
             "SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
         ).fetchone():
             return True
-        if _db_table_exists(db, "cnx_assistant_delivery") and db.execute(
-            "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
-        ).fetchone():
-            return True
+        if _db_table_exists(db, "cnx_assistant_delivery"):
+            delivery_columns = {row["name"] for row in db.execute("PRAGMA table_info(cnx_assistant_delivery)")}
+            authority_columns = {"ticket_id", "owner_session_key", "owner_generation", "updated_at"}
+            if authority_columns.issubset(delivery_columns) and _db_table_exists(db, "cnx_sessions"):
+                if db.execute(
+                    """SELECT 1 FROM cnx_assistant_delivery d
+                       JOIN tickets t ON t.ticket_id=d.ticket_id
+                       JOIN cnx_sessions s ON s.session_key=d.owner_session_key
+                       WHERE d.status='pending'
+                         AND t.status NOT IN ('completed','failed','cancelled')
+                         AND s.state='active' AND s.generation=d.owner_generation
+                         AND s.updated_at>=? AND d.updated_at>=?
+                       LIMIT 1""",
+                    (cutoff.isoformat(), cutoff.isoformat()),
+                ).fetchone():
+                    return True
+            elif db.execute(
+                "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
+            ).fetchone():
+                # Legacy schemas lack the owner/session authority columns.
+                return True
         if _db_table_exists(db, "cnx_context_maintenance") and db.execute(
             "SELECT 1 FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
         ).fetchone():
