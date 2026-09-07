@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `NEEDS_CHATGPT__CONFIG_WRITE_RACE_CONFIRMED__ACTOR_NOT_UNIQUELY_ATTRIBUTED__QUIESCENCE_AUTHORITY_REQUIRED__NO_RETRY`
-Task ID: `CNX-20260907-299`
-Parent task: `CNX-20260907-298`
+Current disposition: `BOUNDED_SUPERVISOR_QUIESCENCE_AUTHORIZED__ONE_ENABLE__HERMES_READY`
+Task ID: `CNX-20260907-300`
+Parent task: `CNX-20260907-299`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task298 rolled back after config conflict; Task299 assigned for read-only race diagnosis
+Updated: 2026-09-07 ICT — human authorized bounded Supervisor quiescence for one enable requalification
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,11 +17,11 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task299
+## Active Task300
 
-`docs/operations/coordination/tasks/CNX-20260907-299-diagnose-enable-config-mutation-race.md`
+`docs/operations/coordination/tasks/CNX-20260907-300-quiesce-supervisor-requalify-enable.md`
 
-Task298 consumed the one authorized enable and rolled back transactionally on config conflict. Task299 diagnoses the race read-only; no retry is authorized.
+Task299 confirmed an in-window config writer race. Task300 authorizes supported Supervisor quiescence, one enable, restore, and requalification.
 
 ## Hard fences
 
