@@ -58,7 +58,7 @@ def _release_with_barrier(root, token, checked, proceed, result):
 
 def _acquire_replacement(root, result):
     try:
-        q.acquire(Path(root), "owner-b", now=111.0, ttl=30.0)
+        q.acquire(Path(root), "owner-b", now=111.0, ttl=30.0, timeout=2.0, poll=0.005)
     except BaseException as exc:
         result.put(type(exc).__name__)
     else:
