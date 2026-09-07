@@ -36,11 +36,15 @@ def _acquire_with_timeout(root, result):
 
 def _release_with_barrier(root, token, checked, proceed, result):
     original_read = q._read_raw
+    reads = 0
 
     def delayed_read(path):
+        nonlocal reads
         value = original_read(path)
-        checked.set()
-        proceed.wait(2.0)
+        reads += 1
+        if reads == 2:
+            checked.set()
+            proceed.wait(2.0)
         return value
 
     q._read_raw = delayed_read
