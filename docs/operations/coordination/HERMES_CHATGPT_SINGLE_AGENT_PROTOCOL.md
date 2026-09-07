@@ -6,7 +6,7 @@ Updated: 2026-09-06 ICT
 
 This is the standing coordination policy requested by the human operator for future CogentNexus-OpenClaw work.
 
-For work after this policy is published, this protocol defines the active Luna/Suna alternating executor model. Historical tasks, reports, reviews, and actor names remain valid evidence under the contract that produced them.
+For work after this policy is published, this protocol defines Hermes as the sole routine executor. Historical tasks, reports, reviews, and actor names remain valid evidence under the contract that produced them.
 
 GitHub remote state is authoritative. The human operator remains final authority.
 
@@ -14,7 +14,7 @@ Read `DELAYED_RECHECK_QUEUE.md` together with this protocol for asynchronous CI/
 
 ## Roles
 
-- **Luna / Suna — alternating routine execution agents.** Only the actor named by `ACTIVE.md` may mutate the active task. On normal completion, the next bounded task is assigned to the other actor and receives the published handoff.
+- **Hermes — sole routine execution agent.** Hermes owns the bounded task named by `ACTIVE.md` and may continue deterministic successor tasks.
 - **ChatGPT — independent reviewer, coordinator, and decision layer.** ChatGPT is invoked when a task reaches a review/decision boundary, evidence is contradictory, or authority is missing. ChatGPT reviews evidence, decides acceptance/rework, and frames bounded successor tasks.
 - **Human operator — final authority.** Human intent controls new semantic/product direction and any live/destructive/semantic authority that is not already explicit.
 
@@ -24,20 +24,20 @@ Luna and Musethree are historical Hermes actor labels only after this protocol. 
 
 ```text
 Human / ChatGPT establishes or updates the goal
-  -> assign a bounded task to Luna or Suna
-Luna/Suna executes the assigned task
-  -> if CI/external gate pending: same actor rechecks until terminal
-  -> actor publishes evidence-rich report and handoff
-  -> if normal continuation is deterministic: assign the next task to the other actor
+  -> assign a bounded task to Hermes
+Hermes executes the assigned task
+  -> if CI/external gate pending: Hermes rechecks until terminal
+  -> Hermes publishes evidence-rich report and handoff
+  -> if continuation is deterministic: assign the next bounded task to Hermes
   -> if review/decision/authority boundary: set NEEDS_CHATGPT and notify the human
 ChatGPT independently reviews only when invoked
-  -> ACCEPT: close task and assign the next bounded task to the other actor
-  -> REWORK: assign bounded repair to the other actor
+  -> ACCEPT: close task and assign the next bounded task to Hermes
+  -> REWORK: assign bounded repair to Hermes
   -> BLOCKED: record decision packet and ask the human to call ChatGPT when ChatGPT input is required
   -> FINAL: perform project-level final acceptance when appropriate
 ```
 
-Luna and Suna MUST NOT independently review or accept their own report or silently replace the other actor. A Hermes self-check may support evidence quality but cannot satisfy independent acceptance.
+Hermes MUST NOT independently review or accept its own report. A Hermes self-check may support evidence quality but cannot satisfy independent acceptance.
 
 ## Hermes task authority
 
@@ -64,10 +64,10 @@ When an assigned task is complete, including required asynchronous gates:
 3. Hermes updates `ACTIVE.md` / `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` or a more specific ChatGPT-review state.
 4. The handoff records exact Task ID, report path/publication HEAD, exact candidate/source SHA, required CI status, hard fences, and residual uncertainty.
 5. The active actor stops mutation of the completed task.
-6. If the next step is deterministic and inside existing authority, assign it to the other actor with a durable handoff.
+6. If the next step is deterministic and inside existing authority, assign it to Hermes with a durable handoff.
 7. If independent review, a material decision, uncertainty, or new authority is required, set `NEEDS_CHATGPT` and notify the human: **tell the human to call ChatGPT**. Do not continue by guessing.
 
-Routine peer-bot handoff is required: alternate Luna and Suna after each completed bounded task. The handoff must include exact task/report/HEAD, fences, residual uncertainty, and the next actor. ChatGPT is not called for routine deterministic continuation.
+There is no routine Luna/Suna peer-bot handoff. Hermes remains the sole routine executor; the handoff must include exact task/report/HEAD, fences, and residual uncertainty. ChatGPT is called only at review, decision, or authority boundaries.
 
 ## ChatGPT review and successor authority
 
@@ -80,7 +80,7 @@ ChatGPT independently verifies the report using progressive depth:
 5. exact-SHA CI terminal result;
 6. live evidence when the task claims live acceptance.
 
-If accepted, ChatGPT may create the next bounded task for Luna or Suna when it is a deterministic continuation of already-approved intent and does not require inventing new human authority.
+If accepted, ChatGPT may create the next bounded task for Hermes when it is a deterministic continuation of already-approved intent and does not require inventing new human authority.
 
 If a source/report defect is found, ChatGPT may open a bounded rework task for Hermes.
 
@@ -90,7 +90,7 @@ If the next step requires fresh user intent or new live/destructive/semantic aut
 
 Queued/in-progress GitHub Actions or another deterministic asynchronous dependency is an in-task wait, not task completion.
 
-The active Luna/Suna actor retains task ownership and follows `DELAYED_RECHECK_QUEUE.md`:
+Hermes retains task ownership and follows `DELAYED_RECHECK_QUEUE.md`:
 
 - default GitHub Actions cadence about 5 minutes;
 - persistent delayed wake when available;
@@ -104,7 +104,7 @@ The active actor does not hand the task to ChatGPT merely because CI is still ru
 
 ## Mandatory ChatGPT / human boundaries
 
-Luna or Suna must stop and request ChatGPT when:
+Hermes must stop and request ChatGPT when:
 
 - the assigned task is complete and needs independent acceptance;
 - evidence is materially contradictory and no safe bounded diagnostic remains;
@@ -118,7 +118,7 @@ ChatGPT may resolve technical/review decisions itself. When the missing input is
 
 ## Final-authority provenance guard
 
-Luna or Suna may prepare an acceptance proposal and evidence packet but MUST NOT write that ChatGPT or the human approved something unless that real authority has actually issued the decision.
+Hermes may prepare an acceptance proposal and evidence packet but MUST NOT write that ChatGPT or the human approved something unless that real authority has actually issued the decision.
 
 Hermes MUST NOT:
 
