@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — Task296 assigned: TDD runtime alignment followed by actual worker instrumentation
+**Updated:** 2026-09-07 ICT — Task296 TDD runtime alignment GREEN; aligned-runtime read-only probe passed; live worker not installed; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-296`
 **Parent:** `CNX-20260907-295`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `TDD_RUNTIME_ALIGNMENT_THEN_ACTUAL_WORKER_INSTRUMENTATION__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__TDD_REPAIR_GREEN__ALIGNED_RUNTIME_READONLY_PROBE_PASS__LIVE_WORKER_NOT_INSTALLED`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`

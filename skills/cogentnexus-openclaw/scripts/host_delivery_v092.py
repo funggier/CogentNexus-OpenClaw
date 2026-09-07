@@ -23,10 +23,23 @@ from typing import Any
 import host_delivery as base
 
 
-def _openclaw_node_command() -> list[str]:
+def _resolve_node_executable() -> str:
+    configured = os.environ.get("OPENCLAW_GATEWAY_NODE_PATH", "").strip()
+    if configured:
+        path = Path(configured).expanduser()
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"OPENCLAW_GATEWAY_NODE_PATH does not point to a Node executable: {path}"
+            )
+        return str(path)
     node = shutil.which("node.exe" if os.name == "nt" else "node") or shutil.which("node")
     if not node:
         raise FileNotFoundError("Node executable not found on PATH")
+    return node
+
+
+def _openclaw_node_command() -> list[str]:
+    node = _resolve_node_executable()
 
     shim = base.openclaw_executable()
     shim_path = Path(shim).resolve()
