@@ -2,10 +2,8 @@
 
 Status: `READY_FOR_HERMES`
 State: `READY_FOR_HERMES`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK311_LIVE_SPINNER_REQUALIFICATION`
-Task ID: `CNX-20260907-311`
-Parent: `CNX-20260907-310`
-Exact candidate: `79ddec2190b226b2f5cc906144a04859b3eca748`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK312_ACTIONABLE_DELIVERY_WAKE_REPAIR`
+Task ID: `CNX-20260907-312`
+Parent: `CNX-20260907-311`
 
-Task310 result: `PASS_SOURCE_REPAIR_EXACT_SHA_CI_GREEN`.
-Validate `34162550062` attempt 2, Windows Installer `34162550066`, and PS5.1 `34162550044` succeeded on the exact candidate. Task311 permits one supported install-over and bounded live requalification only.
+Task311 installed exact candidate `79ddec2190b226b2f5cc906144a04859b3eca748` successfully and preserved durable state, but disposition is `BLOCKED_RESIDUAL_DURABLE_HINT_HEAVY_WAKE`. Task312 is source-only and must repair the broad pending-delivery wake predicate before another live install.
