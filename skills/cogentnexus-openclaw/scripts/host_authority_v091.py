@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import host_v091 as v091
+import supervisor_quiescence
 
 legacy = v091.legacy
 BASE_DIRECT_DELIVERY_FENCE = v091.reconcile_direct_delivery_before_recovery
@@ -106,6 +107,8 @@ def enable(root: Path) -> dict[str, Any]:
     agents_path = workspace / "AGENTS.md"
     agents_snapshot = v091._snapshot_file(agents_path)
     started = legacy.now_iso()
+    lease_owner = f"enable:{__import__('os').getpid()}:{started}"
+    lease = supervisor_quiescence.acquire(root, lease_owner, ttl=900.0, timeout=0.0)
 
     # These classifiers are authoritative before any plugin surface may execute.
     terminal_fences = legacy.reconcile_terminal_fences(root)
@@ -213,6 +216,7 @@ def enable(root: Path) -> dict[str, Any]:
             rollback.append({"stage": "host-state-rollback", "error": str(rollback_error)})
 
         current = legacy.load_state(root)
+        supervisor_quiescence.release(root, lease_owner, token=lease["token"])
         raise RuntimeError(
             "CogentNexus-OpenClaw transactional enable failed; native passthrough rollback executed. "
             f"cause={error}; priorMode={prior.get('mode')}; currentMode={current.get('mode')}; "
@@ -231,6 +235,7 @@ def enable(root: Path) -> dict[str, Any]:
     except Exception as error:
         recovery_error = str(error)
 
+    supervisor_quiescence.release(root, lease_owner, token=lease["token"])
     return {
         "mode": state["mode"],
         "authorityCommit": {

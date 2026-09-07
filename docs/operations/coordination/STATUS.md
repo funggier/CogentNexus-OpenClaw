@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK301_SUPPORTED_SUPERVISOR_QUIESCENCE_REPAIR`
-**Updated:** 2026-09-07 ICT — Task301 authorized bounded repository/source/test/CI repair; live mutation remains prohibited
+**Updated:** 2026-09-07 ICT — Task301 repository TDD quiescence repair GREEN; live requalification not authorized
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-301`
 **Parent:** `CNX-20260907-300`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_REPOSITORY_TDD_QUIESCENCE_REPAIR__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__REPOSITORY_TDD_QUIESCENCE_REPAIR_GREEN__LIVE_REQUALIFICATION_NOT_AUTHORIZED`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`

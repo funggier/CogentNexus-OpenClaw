@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import supervisor_quiescence
+
 HERE = Path(__file__).resolve()
 SKILL = HERE.parents[1]
 WORKSPACE = SKILL.parents[1]
@@ -669,6 +671,13 @@ def restart_managed(root: Path) -> dict[str, Any]:
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     initialize(root)
+    if supervisor_quiescence.supervisor_is_quiesced(root):
+        return {
+            "result": "quiesced",
+            "mode": load_state(root).get("mode"),
+            "action": "none",
+            "quiescence": supervisor_quiescence.read(root),
+        }
     state = load_state(root)
     if state.get("mode") != "managed":
         return {"result": "passthrough", "mode": state.get("mode"), "action": "none"}
