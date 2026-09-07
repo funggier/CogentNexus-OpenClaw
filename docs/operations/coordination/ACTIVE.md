@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `PASS_READONLY_RECREATION_PREFLIGHT__PROPOSAL_ONLY__WAITING_FOR_CHATGPT_REVIEW`
-Task ID: `CNX-20260907-292`
-Parent task: `CNX-20260907-291`
+Current disposition: `HUMAN_MESSAGE_SENT__HERMES_READ_ONLY_VERIFICATION_READY`
+Task ID: `CNX-20260907-293`
+Parent task: `CNX-20260907-292`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task292 read-only recreation preflight passed; proposal-only; awaiting ChatGPT review
+Updated: 2026-09-07 ICT — user sent benign Discord message; Task293 assigned to Hermes for read-only verification
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,11 +17,11 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task292
+## Active Task293
 
-`docs/operations/coordination/tasks/CNX-20260907-292-suna-read-only-recreation-preflight.md`
+`docs/operations/coordination/tasks/CNX-20260907-293-verify-human-initiated-clean-recreation.md`
 
-Task291 completed the read-only post-delete lifecycle analysis. Task292 assigns Hermes a fresh read-only preflight for a possible future clean recreation; no recreation is authorized.
+Task292 passed proposal-only. User has now sent the benign Discord message; Task293 assigns Hermes read-only verification. Hermes must not send or create anything.
 
 ## Hard fences
 
