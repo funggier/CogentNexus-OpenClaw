@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — Task295 assigned to Hermes for detached-worker instrumentation
+**Updated:** 2026-09-07 ICT — Task295 read-only instrumentation confirmed worker/Gateway Node-path divergence; causality unresolved; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-295`
 **Parent:** `CNX-20260907-294`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_READ_ONLY_DETACHED_WORKER_INSTRUMENTATION__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__ENVIRONMENT_DIVERGENCE_CONFIRMED__CAUSALITY_NOT_PROVEN__NO_MUTATION`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
