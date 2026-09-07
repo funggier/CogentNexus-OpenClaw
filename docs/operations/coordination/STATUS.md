@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — human authorized bounded Supervisor quiescence for one enable requalification
+**Updated:** 2026-09-07 ICT — Task300 blocked: no supported Supervisor quiescence mechanism; no enable or mutation
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-300`
 **Parent:** `CNX-20260907-299`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_SUPERVISOR_QUIESCENCE_AUTHORIZED__ONE_ENABLE__HERMES_READY`
+**Disposition:** `BLOCKED_UNSUPPORTED_SUPERVISOR_QUIESCENCE_MECHANISM__NO_ENABLE__NO_MUTATION`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
