@@ -1,16 +1,16 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK303_SUPPORTED_REPAIR_ADOPTION`
-**Updated:** 2026-09-07 ICT — staging adoption copied exact Task301 wiring; installer failed at post-stage null fingerprint; no retry/enable
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK304_TDD_INSTALLER_REPAIR`
+**Updated:** 2026-09-07 ICT — Task304 authorized bounded repository TDD repair with Hermes technical autonomy
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260907-303`
-**Parent:** `CNX-20260907-302`
-**Disposition:** `BLOCKED_INSTALLER_POST_STAGE_FAILURE__TASK301_WIRING_ADOPTED__NO_RETRY__ENABLE_NOT_AUTHORIZED`
+**Active task:** `CNX-20260907-304`
+**Parent:** `CNX-20260907-303`
+**Disposition:** `BOUNDED_REPOSITORY_REPAIR__HERMES_TECHNICAL_AUTONOMY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
 
-Task302 stopped correctly because Task301 wiring was absent from the live installation. Task303 authorizes Hermes to identify and execute the supported canonical adoption/deployment path, make bounded technical corrections when evidence supports them, and report the method, rationale, hashes, tests, and result. A future enable invocation requires a separate explicit successor boundary after adoption is proven.
+Task303 adopted the Task301 wiring through the supported staging installer, but exposed a null-fingerprint defect at `install.ps1:506` when `-SkipPlugin` is used. Task304 authorizes Hermes to repair this contract with TDD, make bounded technical decisions, and continue through related repository defects within scope. After GREEN, Hermes must stop before live retry or `cnxclaw enable`.
 
-Still forbidden: guessed commands, manual file copying, semantic send, replay/redelivery/disposition, manual Ticket/SQLite/session/transcript mutation, protected-state mutation, uncontrolled cleanup, unrelated Scheduled Task/service mutation, credential action, release/tag/default-branch promotion, and force push. Do not touch protected Ticket `CNXT-dc11c9a0-8a89-4df5-9c48-345260725be4` or its owner session.
+Still forbidden: live installer retry, `cnxclaw enable`, plugin install/replace, service/Scheduled Task mutation, semantic send, replay/redelivery/disposition, manual Ticket/SQLite/session/transcript mutation, protected-state mutation, release promotion, and force push.
