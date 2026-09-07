@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — Task299 assigned for read-only enable config race diagnosis after Task298 rollback
+**Updated:** 2026-09-07 ICT — Task299 confirmed in-window native config mutation race; actor not uniquely attributed; no retry
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-299`
 **Parent:** `CNX-20260907-298`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_READ_ONLY_ENABLE_CONFIG_RACE_DIAGNOSIS__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__CONFIG_WRITE_RACE_CONFIRMED__ACTOR_NOT_UNIQUELY_ATTRIBUTED__QUIESCENCE_AUTHORITY_REQUIRED__NO_RETRY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
