@@ -2,15 +2,14 @@
 
 Status: `READY_FOR_HERMES`
 State: `READY_FOR_HERMES`
-Execution mode: `SINGLE_HERMES_EXECUTOR__TASK310_PERIODIC_SUPERVISOR_PROCESS_CHAIN_REPAIR`
-Task ID: `CNX-20260907-310`
-Parent: `CNX-20260907-309`
-Assigned executor: `Hermes`
-Updated: `2026-09-07T20:24:09Z`
-Disposition: `READY_FOR_PERIODIC_SUPERVISOR_PROCESS_CHAIN_REPAIR`
+Execution mode: `SINGLE_HERMES_EXECUTOR__TASK311_LIVE_SPINNER_REQUALIFICATION`
+Task ID: `CNX-20260907-311`
+Parent: `CNX-20260907-310`
 
-Active task: `docs/operations/coordination/tasks/CNX-20260907-310-periodic-supervisor-process-chain-repair.md`
-Prior report: `docs/operations/coordination/reports/CNX-20260907-309-quiescence-release-race-repair.md`
-Baseline: `aac898f18395b3a05b290e5d547c40306a4fe5a4`
+Authority: operator authorized continuous execution through verified release.
 
-Task310 is source-only TDD repair of the every-minute Windows supervisor nested-process/cursor-busy defect. No live install/re-entry or release metadata mutation is authorized until successor gates.
+Exact candidate: `79ddec2190b226b2f5cc906144a04859b3eca748`
+Task: `docs/operations/coordination/tasks/CNX-20260907-311-exact-candidate-live-spinner-requalification.md`
+Prior report: `docs/operations/coordination/reports/CNX-20260907-310-periodic-supervisor-process-chain-repair.md`
+
+Next action: re-anchor, preserve live checkpoint, invoke one supported installer from detached exact candidate, and perform bounded live spinner/process/durable requalification.
