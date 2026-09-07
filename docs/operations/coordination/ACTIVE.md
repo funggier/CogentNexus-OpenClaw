@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `NEEDS_CHATGPT`
 Execution mode: `ALTERNATING_SUNA_DIRECT_PREFLIGHT_LUNA_DELETE__TASK289_290`
-Current disposition: `BOUNDED_DIRECT_GATEWAY_PREFLIGHT__SUNA_READY__NO_CHAT_UI`
+Current disposition: `NEEDS_CHATGPT__DIRECT_PATH_REQUIRES_CREDENTIAL_AND_FENCE_DRIFT__NO_DELETE`
 Task ID: `CNX-20260907-289`
 Parent task: `CNX-20260907-288`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Suna fresh preflight passed; Task288 assigned to Luna for one-shot fenced delete
+Updated: 2026-09-07 ICT — Task289 stopped by Suna: direct path requires credential and inherited session fence drifted; ChatGPT review required
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -23,7 +23,7 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task287 preflight passed. Task288 did not call sessions.delete because browser navigation was misrouted into Chat and rejected. Task289 assigns Suna a direct Gateway invocation preflight; Task290 will assign Luna the one-shot Delete. Do not use Chat UI input.
+Task287 preflight passed. Task288 did not call sessions.delete because browser navigation was misrouted into Chat and rejected. Task289 direct Gateway preflight found stale immutable fence values and no non-secret operator-admin CLI path. Stop and require ChatGPT; Task290 is not authorized.
 
 ## Hard fences
 
