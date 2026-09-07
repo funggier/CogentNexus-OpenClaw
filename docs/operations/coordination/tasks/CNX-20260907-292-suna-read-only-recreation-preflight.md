@@ -5,7 +5,7 @@
 `READY_FOR_HERMES`
 
 Parent: `CNX-20260907-291`  
-Executor: `Suna`  
+Executor: `Hermes`  
 Reviewer/escalation: `ChatGPT`
 
 ## Objective
@@ -32,4 +32,4 @@ No session creation, `sessions.delete`, reset, semantic send, Ticket/session/SQL
 
 ## Completion
 
-Publish a read-only evidence report. If preflight is clean, hand off a separately bounded recreation proposal to ChatGPT for authority; do not authorize or execute it in Task292.
+Publish a read-only evidence report. If preflight is clean, publish a separately bounded recreation proposal for ChatGPT review; do not authorize or execute it in Task292.
