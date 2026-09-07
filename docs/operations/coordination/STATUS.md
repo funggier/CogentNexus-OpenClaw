@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — normal Hermes execution restored; Task292 assigned to Hermes
+**Updated:** 2026-09-07 ICT — Task292 read-only recreation preflight passed; proposal-only; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-292`
 **Parent:** `CNX-20260907-291`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `TASK291_PASS__TASK292_SUNA_READ_ONLY_RECREATION_PREFLIGHT`
+**Disposition:** `PASS_READONLY_RECREATION_PREFLIGHT__PROPOSAL_ONLY__WAITING_FOR_CHATGPT_REVIEW`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`

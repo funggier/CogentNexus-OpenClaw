@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `TASK292_HERMES_READ_ONLY_RECREATION_PREFLIGHT`
+Current disposition: `PASS_READONLY_RECREATION_PREFLIGHT__PROPOSAL_ONLY__WAITING_FOR_CHATGPT_REVIEW`
 Task ID: `CNX-20260907-292`
 Parent task: `CNX-20260907-291`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — normal Hermes execution restored; Task292 assigned to Hermes
+Updated: 2026-09-07 ICT — Task292 read-only recreation preflight passed; proposal-only; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
