@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — human authorized one bounded cnxclaw enable for Task298
+**Updated:** 2026-09-07 ICT — Task298 enable invoked once; config conflict caused transactional rollback; live repair not adopted; no retry
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-298`
 **Parent:** `CNX-20260907-297`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_ENABLE_DEPLOY_AUTHORIZED__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__ENABLE_FAILED_TRANSACTIONAL_ROLLBACK__LIVE_REPAIR_NOT_ADOPTED__NO_RETRY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
