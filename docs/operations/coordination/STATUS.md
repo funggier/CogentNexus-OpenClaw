@@ -1,16 +1,16 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
-**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK304_TDD_INSTALLER_REPAIR`
-**Updated:** 2026-09-07 ICT — Task304 repository TDD repair GREEN; live retry/enable remain forbidden
+**State:** `READY_FOR_HERMES`
+**Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK305_BOUNDED_STAGING_INSTALLER`
+**Updated:** 2026-09-07 ICT — Task305 authorizes one repaired staging installer retry
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260907-304`
-**Parent:** `CNX-20260907-303`
-**Disposition:** `PASS_REPOSITORY_TDD_REPAIR_GREEN__LIVE_RETRY_FORBIDDEN`
+**Active task:** `CNX-20260907-305`
+**Parent:** `CNX-20260907-304`
+**Disposition:** `BOUNDED_STAGING_RETRY__EXACTLY_ONE__HERMES_READY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
 
-Task303 adopted the Task301 wiring through the supported staging installer, but exposed a null-fingerprint defect at `install.ps1:506` when `-SkipPlugin` is used. Task304 authorizes Hermes to repair this contract with TDD, make bounded technical decisions, and continue through related repository defects within scope. After GREEN, Hermes must stop before live retry or `cnxclaw enable`.
+Task304 passed repository TDD validation: focused 10 passed, installer/ownership regression 48 passed, full suite 539 passed, 5 skipped, 4 subtests passed. Task305 authorizes exactly one supported staging installer retry with the repaired `-SkipPlugin` contract. Hermes may choose preflight/postflight details and must report exact identities and outcome. Stop before `cnxclaw enable`.
 
-Still forbidden: live installer retry, `cnxclaw enable`, plugin install/replace, service/Scheduled Task mutation, semantic send, replay/redelivery/disposition, manual Ticket/SQLite/session/transcript mutation, protected-state mutation, release promotion, and force push.
+Still forbidden: second installer retry, `cnxclaw enable`, plugin install/replace, service/Scheduled Task mutation, semantic send, replay/redelivery/disposition, manual Ticket/SQLite/session/transcript mutation, protected-state mutation, release promotion, and force push.
