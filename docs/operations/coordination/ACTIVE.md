@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `NEEDS_CHATGPT__CANONICAL_WORKER_UPDATE_MECHANISM_UNAVAILABLE__NO_LIVE_MUTATION`
-Task ID: `CNX-20260907-297`
-Parent task: `CNX-20260907-296`
+Current disposition: `BOUNDED_ENABLE_DEPLOY_AUTHORIZED__HERMES_READY`
+Task ID: `CNX-20260907-298`
+Parent task: `CNX-20260907-297`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Task297 authorized: deploy tested runtime alignment and requalify live worker
+Updated: 2026-09-07 ICT — human authorized one bounded cnxclaw enable for tested repair deployment/requalification
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,11 +17,11 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task297
+## Active Task298
 
-`docs/operations/coordination/tasks/CNX-20260907-297-live-worker-runtime-alignment-requalification.md`
+`docs/operations/coordination/tasks/CNX-20260907-298-bounded-enable-deploy-requalification.md`
 
-Task296 TDD and aligned probe passed, but live worker adoption was not performed. Task297 authorizes bounded deployment/requalification only.
+Task297 stopped because no worker-only mechanism existed. Human now explicitly authorizes one bounded cnxclaw enable for Task298.
 
 ## Hard fences
 
