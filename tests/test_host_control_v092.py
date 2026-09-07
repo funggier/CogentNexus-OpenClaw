@@ -12,6 +12,36 @@ import host_control_v092 as control
 
 
 class HostControlV092Tests(unittest.TestCase):
+    def test_periodic_supervisor_honors_equals_root_without_delegate(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir).resolve()
+            (root / "host").mkdir(parents=True)
+            (root / "host" / "controller.json").write_text('{"mode":"managed"}', encoding="utf-8")
+            argv = ["host_control_v092.py", f"--root={root}", "supervisor", "tick", "--execute-safe"]
+            with mock.patch.object(control.v091.legacy.sys, "argv", argv), \
+                    mock.patch.object(control.v091, "_repair_managed_plugin_activation", return_value={"ok": True}) as repair, \
+                    mock.patch.object(control, "_run_periodic_supervisor_in_process", return_value=0) as run_in_process, \
+                    mock.patch.object(control.v091.legacy, "delegate", side_effect=AssertionError("periodic tick must not delegate")):
+                code = control.main()
+
+            self.assertEqual(code, 0)
+            repair.assert_called_once_with(root, True)
+            run_in_process.assert_called_once_with()
+
+    def test_periodic_supervisor_without_controller_runs_in_process(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir).resolve()
+            argv = ["host_control_v092.py", "--root", str(root), "supervisor", "tick", "--execute-safe"]
+            with mock.patch.object(control.v091.legacy.sys, "argv", argv), \
+                    mock.patch.object(control.v091, "_repair_managed_plugin_activation") as repair, \
+                    mock.patch.object(control, "_run_periodic_supervisor_in_process", return_value=0) as run_in_process, \
+                    mock.patch.object(control.v091.legacy, "delegate", side_effect=AssertionError("periodic tick must not delegate")):
+                code = control.main()
+
+            self.assertEqual(code, 0)
+            repair.assert_not_called()
+            run_in_process.assert_called_once_with()
+
     def test_periodic_supervisor_runs_composed_host_in_process(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
