@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-Current disposition: `HUMAN_MESSAGE_SENT__HERMES_READ_ONLY_VERIFICATION_READY`
+Current disposition: `NEEDS_CHATGPT__RECREATION_CREATED__DURABLE_DELIVERY_UNCONFIRMED__NO_RETRY`
 Task ID: `CNX-20260907-293`
 Parent task: `CNX-20260907-292`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — user sent benign Discord message; Task293 assigned to Hermes for read-only verification
+Updated: 2026-09-07 ICT — Task293 recreation observed at generation 2 but durable delivery remained pending after bounded window; no retry; awaiting ChatGPT review
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`

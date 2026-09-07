@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — user sent benign Discord message; Task293 ready for Hermes read-only verification
+**Updated:** 2026-09-07 ICT — Task293 recreation observed at generation 2 but durable delivery remained pending after bounded window; no retry; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-293`
 **Parent:** `CNX-20260907-292`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `HUMAN_MESSAGE_SENT__HERMES_READ_ONLY_VERIFICATION_READY`
+**Disposition:** `NEEDS_CHATGPT__RECREATION_CREATED__DURABLE_DELIVERY_UNCONFIRMED__NO_RETRY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
