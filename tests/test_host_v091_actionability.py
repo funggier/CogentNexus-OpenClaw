@@ -41,7 +41,8 @@ CREATE TABLE ticket_outbox(
 );
 CREATE TABLE cnx_assistant_delivery(
  delivery_id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id TEXT NOT NULL,
- kind TEXT NOT NULL, status TEXT NOT NULL
+ owner_session_key TEXT, owner_generation INTEGER, kind TEXT NOT NULL,
+ status TEXT NOT NULL, updated_at TEXT
 );
 CREATE TABLE cnx_context_maintenance(
  id INTEGER PRIMARY KEY AUTOINCREMENT, state TEXT NOT NULL
@@ -138,6 +139,59 @@ class HostActionabilityTests(unittest.TestCase):
             db.execute("INSERT INTO ticket_outbox(ticket_id,delivery_status) VALUES (?, 'pending')", ("other",))
             db.commit(); db.close()
             self.assertTrue(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
+    def add_pending_delivery(self, path: Path, *, session_key=None,
+                             generation=7, updated_age=5, ticket_id=None):
+        db = sqlite3.connect(path)
+        stamp = (self.NOW - timedelta(minutes=updated_age)).isoformat()
+        db.execute(
+            """INSERT INTO cnx_assistant_delivery(
+                 ticket_id,owner_session_key,owner_generation,kind,status,updated_at)
+               VALUES (?,?,?,?,?,?)""",
+            (ticket_id or self.TICKET, session_key, generation,
+             "direct_result", "pending", stamp),
+        )
+        db.commit()
+        db.close()
+
+    def test_fresh_exact_generation_pending_delivery_wakes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = self.make_db(root, next_attempt="2026-09-06T19:00:00+00:00")
+            self.add_pending_delivery(path, session_key=self.OWNER)
+            self.assertTrue(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
+    def test_stale_pending_delivery_does_not_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = self.make_db(root, next_attempt="2026-09-06T19:00:00+00:00")
+            self.add_pending_delivery(path, session_key=self.OWNER, updated_age=16)
+            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
+    def test_inactive_pending_delivery_does_not_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = self.make_db(root, session_state="deleted", next_attempt="2026-09-06T19:00:00+00:00")
+            self.add_pending_delivery(path, session_key=self.OWNER)
+            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
+    def test_generation_mismatch_pending_delivery_does_not_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = self.make_db(root, next_attempt="2026-09-06T19:00:00+00:00")
+            self.add_pending_delivery(path, session_key=self.OWNER, generation=6)
+            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
+
+    def test_missing_session_pending_delivery_does_not_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = self.make_db(root, next_attempt="2026-09-06T19:00:00+00:00")
+            db = sqlite3.connect(path)
+            db.execute("DELETE FROM cnx_sessions WHERE session_key=?", (self.OWNER,))
+            db.commit()
+            db.close()
+            self.add_pending_delivery(path, session_key=self.OWNER)
+            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
 
     def test_active_model_call_blocks_direct_wake(self):
         with tempfile.TemporaryDirectory() as tmp:
