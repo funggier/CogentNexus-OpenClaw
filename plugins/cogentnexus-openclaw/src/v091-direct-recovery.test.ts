@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
-import { nextDirectRecoveryWakeMs, resetStaleDirectRecovery, dueDirectRecovery } from "./v091-direct-recovery.js";
+import { assistantDeliveryDue, nextDirectRecoveryWakeMs, resetStaleDirectRecovery, dueDirectRecovery } from "./v091-direct-recovery.js";
 
 function seed(path:string) {
   const store=new TicketStore(path);
@@ -92,6 +92,38 @@ describe("v0.9.1 Direct Recovery wake authority",()=>{
       updateDb.close();
       expect(dueDirectRecovery(path,now)).toBeUndefined();
       expect(nextDirectRecoveryWakeMs(path,{},now)).toBeUndefined();
+    } finally { rmSync(root,{recursive:true,force:true}); }
+  });
+
+  it("does not activate a pre-existing pending delivery for a stale session",()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-v091-stale-delivery-"));
+    try {
+      const path=join(root,"tickets.sqlite3");
+      const {db,ticketId}=seed(path);
+      db.exec(`CREATE TABLE cnx_assistant_delivery(
+        delivery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id TEXT, owner_session_key TEXT NOT NULL, owner_generation INTEGER NOT NULL,
+        kind TEXT NOT NULL, text TEXT NOT NULL, idempotency_key TEXT NOT NULL,
+        status TEXT NOT NULL, attempt_count INTEGER NOT NULL, updated_at TEXT NOT NULL,
+        claim_token TEXT, claim_expires_at TEXT
+      );`);
+      db.prepare("UPDATE cnx_direct_recovery SET state='awaiting_delivery'").run();
+      db.prepare(`INSERT INTO cnx_assistant_delivery(
+        ticket_id,owner_session_key,owner_generation,kind,text,idempotency_key,status,attempt_count,updated_at
+      ) VALUES (?,?,?,?,?,?, 'pending',1,?)`).run(
+        ticketId,"agent:main:test",7,"direct_result","retained","delivery-key","2026-08-18T08:50:00.000Z"
+      );
+      const now=new Date("2026-08-18T09:00:00.000Z");
+      const freshDue=assistantDeliveryDue(path,now);
+      const freshWake=nextDirectRecoveryWakeMs(path,{},now);
+      db.prepare("UPDATE cnx_sessions SET updated_at=?").run("2026-08-18T08:00:00.000Z");
+      const staleDue=assistantDeliveryDue(path,now);
+      const staleWake=nextDirectRecoveryWakeMs(path,{},now);
+      db.close();
+      expect(freshDue).toBe(true);
+      expect(freshWake).toBe(25);
+      expect(staleDue).toBe(false);
+      expect(staleWake).toBeUndefined();
     } finally { rmSync(root,{recursive:true,force:true}); }
   });
 });
