@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `WAITING_FOR_CHATGPT_REVIEW`
+**State:** `READY_FOR_HERMES`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — Task294 read-only diagnosis found healthy contract/direct transport; detached-worker cause unresolved; awaiting ChatGPT review
+**Updated:** 2026-09-07 ICT — Task295 assigned to Hermes for detached-worker instrumentation
 **Transport:** GitHub repository / Actions authoritative
-**Active task:** `CNX-20260907-294`
-**Parent:** `CNX-20260907-293`
+**Active task:** `CNX-20260907-295`
+**Parent:** `CNX-20260907-294`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `NEEDS_CHATGPT__NO_DETERMINISTIC_REPOSITORY_DEFECT_PROVEN__DETACHED_WORKER_TRANSPORT_DIAGNOSIS_REQUIRED__NO_MUTATION`
+**Disposition:** `BOUNDED_READ_ONLY_DETACHED_WORKER_INSTRUMENTATION__HERMES_READY`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
