@@ -471,16 +471,22 @@ def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) ->
     db = sqlite3.connect(path, timeout=5)
     try:
         db.execute("PRAGMA foreign_keys=ON")
-        if not _db_table_exists(db, "tickets") or not _db_table_exists(db, "ticket_events"):
+        if not all(_db_table_exists(db, table) for table in ("tickets", "ticket_events", "cnx_sessions")):
+            return []
+        session_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(cnx_sessions)").fetchall()}
+        if not {"session_key", "state", "generation", "updated_at", "session_id"}.issubset(session_columns):
             return []
         db.execute("BEGIN IMMEDIATE")
+        stamp = legacy.now_iso()
         rows = db.execute(
-            "SELECT ticket_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL "
-            "AND response_ready_at IS NULL AND created_at<? ORDER BY created_at,ticket_id",
-            (cutoff_iso,),
+            "SELECT t.ticket_id FROM tickets AS t JOIN cnx_sessions AS s ON s.session_key=t.owner_session_key "
+            "WHERE t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.response_ready_at IS NULL AND t.created_at<? "
+            "AND s.state='active' AND s.generation>=0 AND s.session_id IS NOT NULL AND TRIM(s.session_id)<>'' "
+            "AND julianday(s.updated_at)>=julianday(?)-(15.0/1440.0) ORDER BY t.created_at,t.ticket_id",
+            (cutoff_iso, stamp),
         ).fetchall()
         updated: list[str] = []
-        stamp = legacy.now_iso()
         for (ticket_id,) in rows:
             changed = db.execute(
                 "UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? "

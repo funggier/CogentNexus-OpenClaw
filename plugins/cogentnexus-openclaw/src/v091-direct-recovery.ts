@@ -60,6 +60,19 @@ function sessionLivenessFence(db:DatabaseSync, alias="s", now=new Date()) {
   return {sql:` AND ${alias}.updated_at>=?`,params:[new Date(now.getTime()-DIRECT_RECOVERY_SESSION_LIVENESS_MS).toISOString()]};
 }
 
+function assistantDeliveryAuthority(db:DatabaseSync,now=new Date()) {
+  const deliveryColumns=["owner_session_key","owner_generation","status","attempt_count","updated_at"];
+  const sessionColumns=["session_key","state","generation","updated_at","session_id"];
+  if(!tableExists(db,"cnx_assistant_delivery")||!tableExists(db,"cnx_sessions"))return undefined;
+  if(!deliveryColumns.every((column)=>columnExists(db,"cnx_assistant_delivery",column)))return undefined;
+  if(!sessionColumns.every((column)=>columnExists(db,"cnx_sessions",column)))return undefined;
+  return {
+    join:" JOIN cnx_sessions s ON s.session_key=d.owner_session_key",
+    where:" AND s.state='active' AND s.generation=d.owner_generation AND s.session_id IS NOT NULL AND TRIM(s.session_id)<>'' AND s.updated_at>=?",
+    params:[new Date(now.getTime()-DIRECT_RECOVERY_SESSION_LIVENESS_MS).toISOString()],
+  };
+}
+
 export function resetStaleDirectRecovery(path:string,cfg:Config,now=new Date()):number {
   if(!existsSync(path))return 0;
   const db=openDb(path),stamp=now.toISOString();
@@ -99,18 +112,21 @@ function staleDelayMs(updatedAt:string,cfg:Config,nowMs:number) {
 }
 
 function nextAssistantDeliveryWakeMs(db:DatabaseSync,now=new Date()):number|undefined {
-  if(!tableExists(db,"cnx_assistant_delivery"))return undefined;
+  const authority=assistantDeliveryAuthority(db,now);
+  if(!authority)return undefined;
   const nowMs=now.getTime();
   if(!deliveryLeaseSupported(db)) {
-    const row=db.prepare("SELECT attempt_count,updated_at FROM cnx_assistant_delivery WHERE status='pending' ORDER BY updated_at LIMIT 1")
-      .get() as {attempt_count?:number;updated_at?:string}|undefined;
+    const row=db.prepare(`SELECT d.attempt_count,d.updated_at FROM cnx_assistant_delivery d${authority.join}
+      WHERE d.status='pending'${authority.where} ORDER BY d.updated_at LIMIT 1`)
+      .get(...authority.params) as {attempt_count?:number;updated_at?:string}|undefined;
     if(!row?.updated_at)return undefined;
     if(Number(row.attempt_count??0)===0)return 25;
     const updated=Date.parse(row.updated_at);
     return Number.isFinite(updated)?Math.max(25,updated+ASSISTANT_DELIVERY_RETRY_MS-nowMs):25;
   }
-  const rows=db.prepare(`SELECT attempt_count,updated_at,claim_token,claim_expires_at
-    FROM cnx_assistant_delivery WHERE status='pending' ORDER BY owner_session_key,delivery_id LIMIT 32`).all() as Array<{
+  const rows=db.prepare(`SELECT d.attempt_count,d.updated_at,d.claim_token,d.claim_expires_at
+    FROM cnx_assistant_delivery d${authority.join} WHERE d.status='pending'${authority.where}
+    ORDER BY d.owner_session_key,d.delivery_id LIMIT 32`).all(...authority.params) as Array<{
       attempt_count?:number;updated_at?:string;claim_token?:string|null;claim_expires_at?:string|null;
     }>;
   let best:number|undefined;
@@ -168,17 +184,19 @@ export function assistantDeliveryDue(path:string,now=new Date()):boolean {
   if(!existsSync(path))return false;
   const db=openDb(path,true);
   try {
-    if(!tableExists(db,"cnx_assistant_delivery"))return false;
+    const authority=assistantDeliveryAuthority(db,now);
+    if(!authority)return false;
     const stamp=now.toISOString();
     const cutoff=new Date(now.getTime()-ASSISTANT_DELIVERY_RETRY_MS).toISOString();
     if(!deliveryLeaseSupported(db)) {
-      return Boolean(db.prepare(`SELECT 1 FROM cnx_assistant_delivery
-        WHERE status='pending' AND (attempt_count=0 OR updated_at<=?) LIMIT 1`).get(cutoff));
+      return Boolean(db.prepare(`SELECT 1 FROM cnx_assistant_delivery d${authority.join}
+        WHERE d.status='pending'${authority.where} AND (d.attempt_count=0 OR d.updated_at<=?) LIMIT 1`)
+        .get(...authority.params,cutoff));
     }
-    return Boolean(db.prepare(`SELECT 1 FROM cnx_assistant_delivery
-      WHERE status='pending'
-        AND (claim_token IS NULL OR claim_expires_at IS NULL OR claim_expires_at<=?)
-        AND (attempt_count=0 OR updated_at<=?) LIMIT 1`).get(stamp,cutoff));
+    return Boolean(db.prepare(`SELECT 1 FROM cnx_assistant_delivery d${authority.join}
+      WHERE d.status='pending'${authority.where}
+        AND (d.claim_token IS NULL OR d.claim_expires_at IS NULL OR d.claim_expires_at<=?)
+        AND (d.attempt_count=0 OR d.updated_at<=?) LIMIT 1`).get(...authority.params,stamp,cutoff));
   } finally {db.close();}
 }
 

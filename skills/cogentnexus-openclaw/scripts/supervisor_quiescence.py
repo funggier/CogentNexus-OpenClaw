@@ -118,3 +118,16 @@ def release(root: Path, owner: str, *, token: str | None = None, now: float | No
 
 def supervisor_is_quiesced(root: Path, now: float | None = None) -> bool:
     return read(root, now=now)["status"] == "active"
+
+
+def supervisor_quiesced_result(root: Path, now: float | None = None) -> dict[str, Any] | None:
+    """Return a state-free Supervisor result while an activation lease is active."""
+    current = read(root, now=now)
+    if current["status"] != "active":
+        return None
+    return {
+        "result": "quiesced",
+        "mode": None,
+        "action": "none",
+        "quiescence": current,
+    }

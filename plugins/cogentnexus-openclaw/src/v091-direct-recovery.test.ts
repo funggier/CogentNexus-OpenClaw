@@ -15,7 +15,8 @@ function seed(path:string) {
       session_key TEXT PRIMARY KEY,
       state TEXT NOT NULL,
       generation INTEGER NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      session_id TEXT
     );
     CREATE TABLE cnx_direct_recovery(
       ticket_id TEXT PRIMARY KEY,
@@ -30,7 +31,7 @@ function seed(path:string) {
       owner_generation INTEGER NOT NULL
     );
   `);
-  db.prepare("INSERT INTO cnx_sessions VALUES (?,?,?,?)").run("agent:main:test","active",7,"2026-08-18T08:50:00.000Z");
+  db.prepare("INSERT INTO cnx_sessions VALUES (?,?,?,?,?)").run("agent:main:test","active",7,"2026-08-18T08:50:00.000Z","physical-current");
   const stamp=new Date().toISOString();
   db.prepare("INSERT INTO cnx_direct_recovery VALUES (?,?,?,?,?,?,?,?,?,?)")
     .run(ticket.ticketId,"resume","pending",0,null,null,null,stamp,stamp,7);

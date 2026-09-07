@@ -333,6 +333,9 @@ def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict
 
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
+    quiesced = authority.supervisor_quiescence.supervisor_quiesced_result(root)
+    if quiesced is not None:
+        return quiesced
     state = legacy.load_state(root)
     if state.get("mode") != "managed" or state.get("desiredGateway") != "running":
         return BASE_SUPERVISOR_TICK(root, execute_safe)
