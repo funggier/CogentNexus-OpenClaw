@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK292_RECREATION_PREFLIGHT`
-**Updated:** 2026-09-07 ICT — Task297 authorized for bounded live worker runtime requalification
+**Updated:** 2026-09-07 ICT — Task297 blocked before mutation: no canonical worker-only update/configuration mechanism; awaiting ChatGPT review
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-297`
 **Parent:** `CNX-20260907-296`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_LIVE_WORKER_REQUALIFICATION_AUTHORIZED__HERMES_READY`
+**Disposition:** `NEEDS_CHATGPT__CANONICAL_WORKER_UPDATE_MECHANISM_UNAVAILABLE__NO_LIVE_MUTATION`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
