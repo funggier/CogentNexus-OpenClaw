@@ -1,13 +1,13 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
+Status: `READY_FOR_HERMES`
 Execution mode: `ALTERNATING_SUNA_VERIFY_LUNA_LIFECYCLE__TASK290_291`
-Current disposition: `TASK290_READ_ONLY_VERIFY_PASS__TASK291_LUNA_HANDOFF_PENDING`
-Task ID: `CNX-20260907-290`
-Parent task: `CNX-20260907-289`
+Current disposition: `TASK290_PASS__TASK291_LUNA_READY_READ_ONLY`
+Task ID: `CNX-20260907-291`
+Parent task: `CNX-20260907-290`
 Resumes acceptance context: `CNX-20260906-272`
 Parent umbrella: `CNX-20260831-188`
-Updated: 2026-09-07 ICT — Suna confirmed user deletion read-only; Task291 lifecycle handoff pending successor authority
+Updated: 2026-09-07 ICT — Task290 confirmed user deletion; Task291 assigned to Luna for read-only lifecycle analysis
 
 Assigned executor: `Hermes`
 Review owner: `ChatGPT`
@@ -17,13 +17,13 @@ Coordination protocol: `docs/operations/coordination/HERMES_CHATGPT_SINGLE_AGENT
 
 `36cd4c800ded28bdb7165fcad6e0bfb48b4e933b`
 
-## Active Task290
+## Active Task291
 
-`docs/operations/coordination/tasks/CNX-20260907-290-verify-user-session-deletion.md`
+`docs/operations/coordination/tasks/CNX-20260907-291-luna-post-delete-lifecycle-analysis.md`
 
 Task281 is accepted as a no-op supported cancel observation: exactly one `cnxclaw.cmd session cancel` invocation returned `cancelled=[]`; it did not delete the OpenClaw session. Do not retry it as a Delete substitute.
 
-Task287 preflight passed; Task288/289 made no Delete call. User reported manual Control UI deletion, and Task290 read-only verification now confirms the exact pre-delete session is deleted with no replacement and protected state untouched. Task291 lifecycle analysis is pending a freshly published successor task; do not invent authority.
+Task290 read-only verification confirms the user's deletion: exact target is deleted, no replacement exists, and protected state is untouched. Task291 assigns Luna read-only lifecycle analysis; no Delete, session creation, or semantic send is authorized.
 
 ## Hard fences
 
