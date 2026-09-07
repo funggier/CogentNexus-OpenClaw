@@ -1,13 +1,13 @@
 # Coordination Channel Status
 
-**State:** `READY_FOR_HERMES`
+**State:** `WAITING_FOR_CHATGPT_REVIEW`
 **Execution mode:** `SINGLE_HERMES_EXECUTOR__TASK302_LIVE_QUIESCENCE_ENABLE_REQUALIFICATION`
-**Updated:** 2026-09-07 ICT — Task301 repository repair GREEN; Task302 bounded live requalification authorized
+**Updated:** 2026-09-07 ICT — Task302 blocked at installed-wiring gate; no enable or mutation
 **Transport:** GitHub repository / Actions authoritative
 **Active task:** `CNX-20260907-302`
 **Parent:** `CNX-20260907-301`
 **Resumes acceptance context:** `CNX-20260906-272`
-**Disposition:** `BOUNDED_LIVE_REQUALIFICATION__ONE_ENABLE__HERMES_READY`
+**Disposition:** `BLOCKED_MISSING_INSTALLED_QUIESCENCE_WIRING__NO_ENABLE__NO_MUTATION`
 
 **Routine executor:** `Hermes`
 **Review owner:** `ChatGPT`
