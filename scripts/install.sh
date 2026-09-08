@@ -60,9 +60,14 @@ APPLICATION_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw
 
 INSTALL_CLASSIFICATION=$(python "$OWNERSHIP_SCRIPT" classify-install --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT")
 INSTALL_MODE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; print(json.load(sys.stdin)["mode"])')
+PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
+EXPECTED_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$PLUGIN_DIR" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])')
 PLUGIN_ALREADY_EXACT=0
-if [ "$INSTALL_MODE" = upgrade ] && python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" >/dev/null 2>&1; then
-  PLUGIN_ALREADY_EXACT=1
+if [ "$INSTALL_MODE" = upgrade ]; then
+  if CURRENT_PLUGIN_ROOT=$(python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["pluginPath"])' 2>/dev/null); then
+    CURRENT_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$CURRENT_PLUGIN_ROOT" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])' 2>/dev/null || true)
+    [ "$CURRENT_PLUGIN_FINGERPRINT" = "$EXPECTED_PLUGIN_FINGERPRINT" ] && PLUGIN_ALREADY_EXACT=1
+  fi
 fi
 MIGRATION_SOURCE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
 if [ "$LINK_PLUGIN" -eq 1 ]; then
