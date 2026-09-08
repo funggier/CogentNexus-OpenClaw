@@ -164,7 +164,7 @@ When such an event intersects an active Direct model call, the durable model-cal
 
 Automatic recovery is bounded per failure incident, not merely by a rolling time window. An incident opens from failure evidence and closes only when stronger success or explicit/manual transition evidence establishes a new stable generation.
 
-Historical v0.9.2 limits were provider-specific. In the current unreleased v0.9.4 line, managed provider selection remains Ollama-only, while Cloud routes are OpenClaw-owned pass-through and are outside CogentNexus provider lifecycle, probing, and recovery. Accepted behavior is defined by the current runtime code and tests rather than the historical LM Studio table.
+Historical v0.9.2 limits were provider-specific. In the current unreleased v0.9.4 line, managed provider selection remains Ollama-only, while Cloud routes are OpenClaw-owned pass-through and are outside CogentNexus-OpenClaw provider lifecycle, probing, and recovery. Accepted behavior is defined by the current runtime code and tests rather than the historical LM Studio table.
 
 ## OpenClaw timeout boundary
 
