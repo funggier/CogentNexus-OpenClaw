@@ -1002,9 +1002,10 @@ def recover_quarantined_plugin_rollover(*, transaction_bytes: bytes,
     for label, value in (
         ("transaction digest", transaction_sha256),
         ("expected transaction digest", expected_transaction_sha256),
+        ("historical manifest digest", transaction.get("manifestBeforeSha256")),
         ("expected replacement fingerprint", expected_replacement_fingerprint),
     ):
-        if not re.fullmatch(r"[0-9a-fA-F]{64}", value):
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", value):
             raise RuntimeError(f"rollover recovery {label} is invalid")
     if transaction.get("expectedReplacementFingerprint", "").lower() != expected_replacement_fingerprint.lower():
         raise RuntimeError("rollover recovery replacement fingerprint does not match source authority")
@@ -1069,10 +1070,16 @@ def recover_quarantined_plugin_rollover(*, transaction_bytes: bytes,
         raise RuntimeError("rollover recovery requires a quarantined ownership manifest")
     try:
         write_manifest(root, manifest_before)
-        if _sha256_file(target) != transaction.get("manifestBeforeSha256"):
-            raise RuntimeError("rollover recovery manifestBefore hash proof failed")
+        restored = verify_manifest(
+            root, workspace=workspace, verify_plugin=False,
+            allow_upgrade_from=UPGRADE_FROM_VERSIONS,
+        )
+        if restored != manifest_before:
+            raise RuntimeError("rollover recovery restored manifest does not preserve prior ownership semantics")
+        recovery_transaction = dict(transaction)
+        recovery_transaction["manifestBeforeSha256"] = _sha256_file(target)
         result = finalize_plugin_rollover_transaction(
-            transaction=transaction, plugin_inventory=plugin_inventory,
+            transaction=recovery_transaction, plugin_inventory=plugin_inventory,
         )
         _require_passthrough(root)
     except Exception:

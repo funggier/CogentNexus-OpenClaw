@@ -437,6 +437,26 @@ def test_recovery_binds_digest_to_the_exact_bytes_it_parses(tmp_path: Path):
     assert not ownership.manifest_path(paths["root"]).exists()
 
 
+def test_quarantined_recovery_accepts_semantic_manifest_with_unreproducible_historical_bytes(tmp_path: Path):
+    paths = _task142_direct_layout(tmp_path)
+    manifest_file = ownership.manifest_path(paths["root"])
+    semantic_manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    manifest_file.write_bytes(json.dumps(semantic_manifest, separators=(",", ":")).encode("utf-8"))
+    candidate = _write_plugin(tmp_path / "candidate-payload", marker="replacement-B")
+    expected = ownership._plugin_payload(candidate)["fingerprint"]
+    transaction = ownership.prepare_plugin_rollover_transaction(
+        root=paths["root"], workspace=paths["workspace"], application_data=paths["app_data"],
+        expected_replacement_fingerprint=expected, backup_token="semantic-bytes",
+    )
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+
+    result = _recover(paths, transaction)
+
+    assert result["status"] == "ROLLOVER_RECOVERED_PASSTHROUGH"
+    assert ownership.manifest_path(paths["root"]).exists()
+
+
 def test_direct_same_path_rejects_no_fingerprint_transition(tmp_path: Path):
     paths = _task142_direct_layout(tmp_path)
     retired = ownership._plugin_payload(paths["direct"])["fingerprint"]
