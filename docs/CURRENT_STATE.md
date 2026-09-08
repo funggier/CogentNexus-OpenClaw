@@ -1,6 +1,6 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Release line:** v0.9.4
+**Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release exists yet**)
 **Core version:** 0.9.4
 **OpenClaw Bridge package:** 0.9.4
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
@@ -16,7 +16,7 @@
 
 ## Classification
 
-CogentNexus-OpenClaw v0.9.4 has completed the repository and real-Windows acceptance gates required for final publication.
+CogentNexus-OpenClaw v0.9.4 remains an unreleased candidate under hardening. Earlier repository and real-Windows evidence is retained, but current source changes require their own review and exact-candidate validation before publication.
 
 The historical implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the broad lifecycle sequence through Tasks 182–186: install-over/provenance, reset/fresh-state reconstruction, uninstall with external preservation, fresh reinstall, and a final Dashboard semantic/durable-delivery turn.
 
@@ -99,7 +99,7 @@ The repaired source is inside the plugin surface, so the earlier statement that 
 | `reset` explicit-`y` fresh-state reconstruction | Accepted |
 | `uninstall` explicit-`y` ownership-safe external preservation | Accepted |
 | Fresh reinstall after uninstall | Accepted |
-| Public v0.9.4 GitHub Release | Determined only by GitHub Releases/tag and exact Release-workflow evidence |
+| Public v0.9.4 GitHub Release | **Not released/tagged** |
 | Real abrupt power-loss/cold-boot acceptance | Deferred |
 | Newer OpenClaw compatibility | Deferred |
 | High-concurrency/long-soak hardening | Not fully accepted |
@@ -108,7 +108,7 @@ The repaired source is inside the plugin surface, so the earlier statement that 
 
 ## Provider state semantics
 
-Current v0.9.4 lifecycle operations target Ollama. Cloud provider conversation turns may run through OpenClaw-owned pass-through mode; CogentNexus-OpenClaw does not control Cloud provider lifecycle, authentication, probing, or recovery.
+Current v0.9.4 managed lifecycle operations target Ollama, including health, lifecycle, and recovery. Cloud conversation turns use OpenClaw-owned pass-through: OpenClaw owns authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket/session/generation continuity and durable delivery only; it never reads, copies, persists, refreshes, or logs Cloud credentials.
 
 Historical v0.9.2 LM Studio state can remain relevant in migration/history. That does not re-open LM Studio as a current v0.9.4 managed provider.
 
@@ -128,7 +128,7 @@ Current examples:
 
 ## Publication boundary
 
-Task 192 is accepted `PASS`, so final publication may proceed only through the guarded repository path:
+Task 192 remains accepted evidence for its exact historical candidate. The current v0.9.4 working tree is unreleased and may proceed to publication only after its changed surfaces pass the guarded repository path:
 
 1. reconcile the current stabilization branch with fresh `main` without force;
 2. rerun validation on the merged/reconciled branch HEAD and prove package-sensitive identity remains correct;

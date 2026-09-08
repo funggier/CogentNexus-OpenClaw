@@ -974,9 +974,22 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     }
 
 
-def recover_quarantined_plugin_rollover(*, transaction: dict[str, Any],
-                                        plugin_inventory: dict[str, Any]) -> dict[str, Any]:
+def recover_quarantined_plugin_rollover(*, transaction_bytes: bytes,
+                                        plugin_inventory: dict[str, Any],
+                                        workspace: Path,
+                                        application_data: Path,
+                                        expected_transaction_sha256: str,
+                                        expected_replacement_fingerprint: str) -> dict[str, Any]:
     """Resume only an attested rollover whose prior manifest was quarantined."""
+    if not isinstance(transaction_bytes, bytes):
+        raise RuntimeError("rollover recovery transaction bytes are required")
+    transaction_sha256 = hashlib.sha256(transaction_bytes).hexdigest()
+    if transaction_sha256.lower() != expected_transaction_sha256.lower():
+        raise RuntimeError("rollover recovery transaction digest does not match operator authority")
+    try:
+        transaction = json.loads(transaction_bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("rollover recovery transaction bytes are not valid JSON") from exc
     expected_fields = {
         "schemaVersion", "operation", "workspace", "stateRoot", "openclawState",
         "applicationData", "controllerMode", "retiredPluginPath", "retiredProjectRoot",
@@ -986,26 +999,74 @@ def recover_quarantined_plugin_rollover(*, transaction: dict[str, Any],
     }
     if not isinstance(transaction, dict) or set(transaction) != expected_fields:
         raise RuntimeError("rollover recovery transaction schema fields are not exact")
+    for label, value in (
+        ("transaction digest", transaction_sha256),
+        ("expected transaction digest", expected_transaction_sha256),
+        ("expected replacement fingerprint", expected_replacement_fingerprint),
+    ):
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", value):
+            raise RuntimeError(f"rollover recovery {label} is invalid")
+    if transaction.get("expectedReplacementFingerprint", "").lower() != expected_replacement_fingerprint.lower():
+        raise RuntimeError("rollover recovery replacement fingerprint does not match source authority")
     if transaction.get("schemaVersion") != 1 or transaction.get("operation") != "cogentnexus-openclaw-plugin-generation-rollover-transaction":
         raise RuntimeError("rollover recovery transaction identity is invalid")
-    workspace = Path(transaction["workspace"]).resolve(strict=False)
-    root = Path(transaction["stateRoot"]).resolve(strict=False)
-    if root != expected_paths(workspace)["stateRoot"].resolve(strict=False):
-        raise RuntimeError("rollover recovery state root does not match the workspace")
+    workspace = workspace.resolve(strict=False)
+    application_data = application_data.resolve(strict=False)
+    paths = expected_paths(workspace)
+    root = paths["stateRoot"].resolve(strict=False)
+    exact_path_bindings = {
+        "workspace": _canonical(workspace),
+        "stateRoot": _canonical(root),
+        "openclawState": _canonical(paths["openclawState"]),
+    }
+    for field, expected_path in exact_path_bindings.items():
+        if transaction.get(field) != expected_path:
+            raise RuntimeError(f"rollover recovery {field} does not match the trusted workspace binding")
     if transaction.get("controllerMode") != "passthrough":
         raise RuntimeError("rollover recovery requires PASSTHROUGH transaction authority")
+    _require_passthrough(root)
     marker = load_transaction_marker(workspace)
     if marker is None or marker.get("state") != "committed":
         raise RuntimeError("rollover recovery requires an exact committed install marker")
     marker_boundary = dict(marker)
     marker_boundary["state"] = "incomplete"
     _validate_marker_boundary(workspace, marker_boundary)
-    target = manifest_path(root)
-    if target.exists():
-        raise RuntimeError("rollover recovery requires a quarantined ownership manifest")
+    if marker.get("applicationData") != _canonical(application_data):
+        raise RuntimeError("rollover recovery applicationData does not match the trusted application-data root")
+    if transaction.get("applicationData") != _canonical(application_data):
+        raise RuntimeError("rollover recovery applicationData does not match the committed installation binding")
     manifest_before = transaction.get("manifestBefore")
     if not isinstance(manifest_before, dict) or set(manifest_before) != MANIFEST_FIELDS:
         raise RuntimeError("rollover recovery manifestBefore schema is not exact")
+    retired_plugin_text = manifest_before.get("pluginPath")
+    if not isinstance(retired_plugin_text, str) or transaction.get("retiredPluginPath") != retired_plugin_text:
+        raise RuntimeError("rollover recovery retired plugin does not match prior ownership")
+    retired_plugin = Path(retired_plugin_text)
+    retired_project = _retired_storage_root(retired_plugin, paths["openclawState"])
+    direct = (paths["openclawState"] / "extensions" / PRODUCT_ID).resolve(strict=False)
+    if _canonical(retired_project) != _canonical(direct):
+        generation_prefix = f"{PLUGIN_PACKAGE}__openclaw-generation__"
+        suffix = retired_project.name[len(generation_prefix):] if retired_project.name.startswith(generation_prefix) else ""
+        if not re.fullmatch(r"g-[a-f0-9]{16}", suffix):
+            raise RuntimeError("rollover recovery retired managed project is not an exact generation")
+    if transaction.get("retiredProjectRoot") != _canonical(retired_project):
+        raise RuntimeError("rollover recovery retired project ownership binding is invalid")
+    backup_root = (application_data / "plugin-generation-rollover-backups").resolve(strict=False)
+    backup_path = Path(transaction["backupPath"])
+    if (backup_path.parent.resolve(strict=False) != backup_root
+            or not backup_path.name.startswith(retired_project.name + "-")
+            or backup_path.name == retired_project.name + "-"):
+        raise RuntimeError("rollover recovery backup path is outside the exact rollover backup root")
+    for boundary in (workspace, root, paths["openclawState"], application_data,
+                     retired_plugin, retired_project, backup_path):
+        probe = Path(boundary)
+        while probe.parent != probe and probe.exists():
+            if _is_reparse_point(probe):
+                raise RuntimeError(f"rollover recovery boundary contains filesystem indirection: {probe}")
+            probe = probe.parent
+    target = manifest_path(root)
+    if target.exists():
+        raise RuntimeError("rollover recovery requires a quarantined ownership manifest")
     try:
         write_manifest(root, manifest_before)
         if _sha256_file(target) != transaction.get("manifestBeforeSha256"):
@@ -1013,6 +1074,7 @@ def recover_quarantined_plugin_rollover(*, transaction: dict[str, Any],
         result = finalize_plugin_rollover_transaction(
             transaction=transaction, plugin_inventory=plugin_inventory,
         )
+        _require_passthrough(root)
     except Exception:
         target.unlink(missing_ok=True)
         raise
@@ -1554,6 +1616,10 @@ def main() -> int:
     rollover_recover = sub.add_parser("rollover-recover")
     rollover_recover.add_argument("--transaction", type=Path, required=True)
     rollover_recover.add_argument("--inventory-json", type=Path, required=True)
+    rollover_recover.add_argument("--workspace", type=Path, required=True)
+    rollover_recover.add_argument("--app-data", type=Path, required=True)
+    rollover_recover.add_argument("--expected-transaction-sha256", required=True)
+    rollover_recover.add_argument("--expected-replacement-fingerprint", required=True)
     rollover_apply = sub.add_parser("rollover-apply")
     rollover_apply.add_argument("--plan", type=Path, required=True)
     rollover_apply.add_argument("--plan-sha256", required=True)
@@ -1614,10 +1680,13 @@ def main() -> int:
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = finalize_plugin_rollover_transaction(transaction=transaction, plugin_inventory=plugin_inventory)
     elif args.command == "rollover-recover":
-        transaction = json.loads(args.transaction.read_text(encoding="utf-8"))
+        transaction_bytes = args.transaction.read_bytes()
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = recover_quarantined_plugin_rollover(
-            transaction=transaction, plugin_inventory=plugin_inventory,
+            transaction_bytes=transaction_bytes, plugin_inventory=plugin_inventory,
+            workspace=args.workspace, application_data=args.app_data,
+            expected_transaction_sha256=args.expected_transaction_sha256,
+            expected_replacement_fingerprint=args.expected_replacement_fingerprint,
         )
     elif args.command == "rollover-apply":
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))

@@ -1,6 +1,6 @@
 # ติดตั้ง CogentNexus-OpenClaw v0.9.4 บน Windows
 
-CogentNexus-OpenClaw v0.9.4 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
+CogentNexus-OpenClaw v0.9.4 ยังไม่ release/tag และใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` โดย CogentNexus-OpenClaw จัดการ health/lifecycle/recovery เฉพาะ Ollama ส่วน Cloud เป็น OpenClaw-owned pass-through: OpenClaw เป็นเจ้าของ credentials, routing/model selection, runtime, lifecycle, probing และ recovery; CogentNexus-OpenClaw ดูแลเฉพาะ Ticket/continuity/durable delivery และจะไม่อ่าน คัดลอก เก็บ refresh หรือ log Cloud credentials
 
 implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว หลังจากนั้น Task 188 แก้ current-facing documentation ภายใน npm package และ installed skill surface โดยไม่เปลี่ยน executable/runtime source โดย corrected package payload-v2 identity คือ `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files และ installed skill-tree identity คือ `a1e873ba404205507a1623961b49f1b1a0689f9f`
 
@@ -40,6 +40,19 @@ python -m pip install 'PyYAML>=6.0,<7'
 Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
 
 LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.4 ส่วน runtime/operator target ของ v0.9.4 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
+
+### Installer parameters และ quarantined plugin rollover recovery
+
+Windows installer รองรับ `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy` และ `-LinkPlugin` และไม่มี parameter `-InstallSourceCommit` การ recovery ต้องได้รับอนุญาตแยกต่างหากและระบุ transaction file พร้อม expected SHA-256 จากอำนาจภายนอก:
+
+```powershell
+.\scripts\install.ps1 `
+  -Workspace "$HOME\.openclaw\workspace" `
+  -RecoverRolloverTransaction "C:\path\to\plugin-rollover-transaction.json" `
+  -RecoverRolloverTransactionSha256 "<SHA-256 64 hex ของ transaction file นั้น>"
+```
+
+installer คำนวณ expected replacement fingerprint จาก exact candidate plugin source, capture inventory สด และ forward transaction path, expected transaction SHA-256 และ source-derived expected replacement fingerprint ไปยัง lower-level recovery ถ้า file ไม่มีอยู่ ค่าไม่ครบ รูปแบบไม่ถูก หรือ hash/fingerprint ไม่ตรง ต้อง fail closed ก่อน preflight/classification และก่อน installation mutation
 
 ## Artifact identity และ acceptance lineage
 

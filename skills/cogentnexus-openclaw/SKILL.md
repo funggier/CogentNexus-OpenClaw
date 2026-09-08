@@ -7,8 +7,8 @@ description: "Durable Host-managed recovery, lifecycle control, and verified exe
 
 CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
 
-Release line: **v0.9.4**.
-Current managed provider: **Ollama**; Cloud providers are available through OpenClaw-owned pass-through mode.
+Development line: **v0.9.4 (unreleased)**.
+Current managed provider: **Ollama** (health/lifecycle/recovery). Cloud providers are OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw preserves continuity/durable delivery and never handles Cloud credentials.
 Validated OpenClaw baseline: `2026.7.1-2`.
 
 Keep private reasoning private. Expose useful status, evidence, decisions, and results.

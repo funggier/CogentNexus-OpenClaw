@@ -4,7 +4,7 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Release line:** v0.9.4
+- **Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release yet**)
 - **Core / Bridge version:** 0.9.4
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** Ollama
@@ -77,7 +77,7 @@ Delivery confirmed -> completed
 
 ## Provider contract
 
-CogentNexus-OpenClaw v0.9.4 manages Ollama and supports Cloud providers through an OpenClaw-owned pass-through route. Cloud authentication, lifecycle, and recovery remain owned by OpenClaw.
+CogentNexus-OpenClaw v0.9.4 manages Ollama health, lifecycle, and recovery. Cloud routes are OpenClaw-owned pass-through: OpenClaw owns authentication, model routing, provider runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw keeps only its provider-independent continuity boundary (Ticket admission, session/generation fences, durable results, and delivery), and never reads, copies, persists, refreshes, or logs Cloud credentials.
 
 ```powershell
 .\cnxclaw.cmd start
@@ -126,7 +126,7 @@ See [Transient Model-Call Stall Recovery](docs/TRANSIENT_STALL_RECOVERY.md) for 
 
 There is intentionally no `cnxclaw.cmd install` command. Installation is performed from a reviewed source/archive through the repository installer.
 
-For pre-publication validation, use an exact reviewed candidate rather than a moving branch. For a published release, use the exact release archive and verify it against `SHA256SUMS.txt`.
+For pre-publication validation, use an exact reviewed candidate rather than a moving branch. v0.9.4 is not yet released or tagged. After publication, use the exact release archive and verify it against `SHA256SUMS.txt`.
 
 See:
 

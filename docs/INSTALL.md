@@ -1,6 +1,6 @@
 # Install CogentNexus-OpenClaw v0.9.4
 
-CogentNexus-OpenClaw v0.9.4 targets OpenClaw `2026.7.1-2 (0790d9f)` and manages Ollama lifecycle operations. Configured Cloud providers use OpenClaw-owned pass-through; their authentication, routing, lifecycle, and recovery remain outside CogentNexus-OpenClaw.
+CogentNexus-OpenClaw v0.9.4 is currently unreleased (no v0.9.4 tag or GitHub Release yet). It targets OpenClaw `2026.7.1-2 (0790d9f)` and manages Ollama health, lifecycle, and recovery. Configured Cloud providers use OpenClaw-owned pass-through: OpenClaw owns authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket continuity and durable delivery but never handles Cloud credentials.
 
 The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Task 188 subsequently corrected current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files and the installed skill-tree identity is `a1e873ba404205507a1623961b49f1b1a0689f9f`.
 
@@ -40,6 +40,21 @@ python -m pip install 'PyYAML>=6.0,<7'
 The installer is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
 
 LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.4 does not manage it. The v0.9.4 runtime/operator boundary manages Ollama lifecycle operations and supports configured Cloud conversation routes through OpenClaw-owned pass-through.
+
+### Installer parameters and quarantined rollover recovery
+
+The Windows installer implements `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy`, and `-LinkPlugin`. The skip switches are staging-only as enforced by the installer, and `-LinkPlugin` is rejected for ownership-safe managed installation. There is no `-InstallSourceCommit`; candidate authority comes from the exact verified checkout/archive used to run the installer.
+
+Recovery of a previously quarantined plugin-generation rollover is separately authorized and fail-closed. Supply the explicit transaction file and its independently expected SHA-256:
+
+```powershell
+.\scripts\install.ps1 `
+  -Workspace "$HOME\.openclaw\workspace" `
+  -RecoverRolloverTransaction "C:\path\to\plugin-rollover-transaction.json" `
+  -RecoverRolloverTransactionSha256 "<64-hex SHA-256 of that exact transaction file>"
+```
+
+The installer computes the expected replacement fingerprint from the exact candidate plugin source, captures fresh OpenClaw plugin inventory, and forwards the transaction path, expected transaction SHA-256, and source-derived expected replacement fingerprint to the lower-level recovery command. The transaction must exist; both supplied hashes and the computed fingerprint must be 64 hexadecimal characters and must match the attested transaction/current source. Missing, malformed, or mismatched proof fails before ordinary recovery preflight/classification and before installation mutation.
 
 ## Artifact identity and acceptance lineage
 

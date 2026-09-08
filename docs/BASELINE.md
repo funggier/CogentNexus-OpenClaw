@@ -2,8 +2,8 @@
 
 This document records accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current public-release identity.
 
-Current release line: **v0.9.4**.
-Current managed provider: **Ollama**. Cloud providers use an OpenClaw-owned **pass-through** route.
+Current development line: **v0.9.4 (unreleased; no tag or GitHub Release yet)**.
+Current managed provider: **Ollama** (health, lifecycle, and recovery). Cloud providers use an OpenClaw-owned **pass-through** route: OpenClaw owns credentials, routing, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw owns only Ticket/session continuity and durable delivery and never handles Cloud credentials.
 Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
 Historical broad-lifecycle implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.  

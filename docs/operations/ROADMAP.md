@@ -1,6 +1,6 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-08-31
+**Updated:** 2026-09-08
 
 This roadmap is directional, not contractual. Movement is evidence-driven: a phase advances because its gate passes, not merely because code was written.
 
@@ -16,9 +16,9 @@ Before adding a parameter, default, configuration field, dependency check, or po
 
 If all three answers are no, the value should not exist in that layer.
 
-For v0.9.3 this means, among other things, that installation remains provider-neutral while the current managed runtime/operator provider contract is Ollama only.
+For v0.9.4 this means installation remains provider-neutral while the managed runtime/operator contract owns Ollama health, lifecycle, and recovery only. Cloud is OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw owns continuity/Ticket/durable delivery and never handles Cloud credentials.
 
-## Current position — repaired v0.9.3 candidate accepted
+## Current position — v0.9.4 hardening, unreleased
 
 The broad lifecycle implementation baseline completed the bounded real-Windows sequence through Tasks 182–186.
 
@@ -39,22 +39,22 @@ Current candidate identities include:
 
 Task 192 then performed exactly one supported install-over of that candidate on the accepted Windows host and exactly one genuine human Dashboard Send. The real runtime produced one Ticket, one logical run, one Ollama model call, one durable delivery, and one logical visible nonce result with no duplicate, no recovery, no pending outbox, and no bare `NO_REPLY`. Task 192 is accepted `PASS`.
 
-The next gate is final repository reconciliation and publication, not another lifecycle test cycle.
+That exact-candidate evidence remains historical. The current v0.9.4 working candidate includes later hardening and is not released or tagged. Its changed surfaces must pass focused contracts, full relevant validation, independent review, and exact-SHA CI before publication.
 
-## Short term — final v0.9.3 publication
+## Short term — v0.9.4 candidate completion
 
 ### 1. Task-191/192 repaired candidate — complete
 
 Repository RED/GREEN and real-Windows requalification are accepted for exact candidate `050ab53f...`.
 
-### 2. Reconcile current `main` history — in progress
+### 2. Complete current hardening — in progress
 
-Fresh `main` contains two documentation-only commits beyond the stabilization merge base. The stabilization branch independently added/changed the same transient-stall documentation surface, so final publication must reconcile those histories explicitly rather than relying on an ambiguous PR conflict.
+Keep managed Ollama and OpenClaw-owned Cloud pass-through responsibilities explicit. Qualify quarantined rollover recovery only through an explicit transaction file, its independently expected SHA-256, and the independently expected replacement fingerprint. Do not add or document an unsupported installer source-commit parameter.
 
 Requirements:
 
 - no force push;
-- preserve the current v0.9.3/Ollama-only semantics;
+- preserve managed Ollama semantics and the Cloud credential/control boundary;
 - preserve useful historical transient-stall evidence;
 - keep Task-191/192 product candidate identity separate from later living-document/coordination commits;
 - rerun CI/package proof on the reconciled branch HEAD.
@@ -87,22 +87,22 @@ After reconciled-HEAD validation:
 Freeze exact merged `main` SHA, then dispatch `.github/workflows/release.yml` with:
 
 ```text
-version = 0.9.3
+version = 0.9.4
 candidate_sha = <exact merged publication SHA>
 ```
 
 Require successful package/publish jobs and verify:
 
-- tag `v0.9.3` targets the exact merged SHA;
+- tag `v0.9.4` targets the exact merged SHA;
 - GitHub Release is public and non-draft/non-prerelease unless intentionally specified otherwise;
-- `cogentnexus-openclaw-v0.9.3.tar.gz`;
-- `cogentnexus-openclaw-v0.9.3.zip`;
+- `cogentnexus-openclaw-v0.9.4.tar.gz`;
+- `cogentnexus-openclaw-v0.9.4.zip`;
 - `SHA256SUMS.txt`;
 - published archive checksums independently match `SHA256SUMS.txt`.
 
 ## Medium term — extend continuity evidence
 
-After v0.9.3 publication, continue proving work continuity rather than only process recovery.
+After v0.9.4 publication, continue proving work continuity rather than only process recovery.
 
 Priority scenarios include:
 

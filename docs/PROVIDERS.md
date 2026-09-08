@@ -1,8 +1,8 @@
 # Provider lifecycle — CogentNexus-OpenClaw v0.9.4
 
-CogentNexus-OpenClaw v0.9.4 has a managed Ollama mode and an OpenClaw-owned Cloud pass-through mode.
+CogentNexus-OpenClaw v0.9.4 (currently unreleased) has a managed Ollama mode and an OpenClaw-owned Cloud pass-through mode.
 
-The accepted Recovery Core remains responsible for Ticket, recovery-authority, durable-result, and delivery fences. Managed provider selection remains Ollama-only for lifecycle operations; Cloud routes are accepted only as OpenClaw-owned pass-through and are never started, stopped, probed, or recovered by CogentNexus-OpenClaw.
+The accepted Recovery Core remains responsible for Ticket, session/generation, durable-result, and delivery fences. Managed provider selection remains Ollama-only: CogentNexus-OpenClaw owns Ollama health, lifecycle, and recovery. Cloud routes are OpenClaw-owned pass-through. OpenClaw owns their authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw never reads, copies, persists, refreshes, or logs Cloud credentials and never starts, stops, probes, or recovers a Cloud provider.
 
 ## Current managed provider
 
@@ -37,7 +37,7 @@ Before lifecycle mutation, the system performs read-only preflight. A successful
 
 v0.9.4 does not invent credentials or an unknown model. The managed route must resolve to Ollama from the current/verified OpenClaw model configuration and supported local model evidence.
 
-A non-Ollama model route is outside the current v0.9.4 managed-provider contract.
+A non-Ollama model route is outside the managed-provider contract, but may be used through OpenClaw-owned Cloud pass-through when configured in OpenClaw. Provider/model failure stays an OpenClaw model-call outcome: it does not authorize Ollama recovery or implicit fallback.
 
 ## Recovery authority
 

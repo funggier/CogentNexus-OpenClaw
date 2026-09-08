@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -132,6 +133,37 @@ def _replace_payload(destination: Path, candidate: Path) -> None:
     shutil.copytree(candidate, destination)
 
 
+def _quarantine_with_committed_marker(paths: dict[str, Path]) -> None:
+    ownership.manifest_path(paths["root"]).unlink()
+    marker = {
+        "schemaVersion": ownership._TRANSACTION_SCHEMA_VERSION,
+        "transactionId": f"{ownership.PRODUCT_ID}-test-recovery",
+        "productId": ownership.PRODUCT_ID,
+        "installedVersion": ownership.INSTALLED_VERSION,
+        "workspace": ownership._canonical(paths["workspace"]),
+        "stateRoot": ownership._canonical(paths["root"]),
+        "skillPath": ownership._canonical(paths["workspace"] / "skills" / ownership.PRODUCT_ID),
+        "applicationData": ownership._canonical(paths["app_data"]),
+        "state": "committed",
+        "createdAt": "2026-09-08T00:00:00+00:00",
+        "createdPaths": [],
+        "applicationDataPreexisting": False,
+    }
+    ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
+
+
+def _recover(paths: dict[str, Path], transaction: dict, inventory: dict | None = None):
+    transaction_bytes = json.dumps(transaction).encode("utf-8")
+    return ownership.recover_quarantined_plugin_rollover(
+        transaction_bytes=transaction_bytes,
+        plugin_inventory=inventory or _inventory(paths, paths["direct"]),
+        workspace=paths["workspace"],
+        application_data=paths["app_data"],
+        expected_transaction_sha256=hashlib.sha256(transaction_bytes).hexdigest(),
+        expected_replacement_fingerprint=transaction["expectedReplacementFingerprint"],
+    )
+
+
 def _prepare_direct_transition(tmp_path: Path) -> tuple[dict[str, Path], Path, dict, str, str]:
     paths = _task142_direct_layout(tmp_path)
     candidate = _write_plugin(tmp_path / "candidate-payload", marker="replacement-B")
@@ -187,9 +219,14 @@ def test_quarantined_direct_rollover_recovers_only_from_transaction_proof(tmp_pa
     }
     ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
 
+    transaction_bytes = json.dumps(transaction).encode("utf-8")
     result = ownership.recover_quarantined_plugin_rollover(
-        transaction=transaction,
+        transaction_bytes=transaction_bytes,
         plugin_inventory=_inventory(paths, paths["direct"]),
+        workspace=paths["workspace"],
+        application_data=paths["app_data"],
+        expected_transaction_sha256=hashlib.sha256(transaction_bytes).hexdigest(),
+        expected_replacement_fingerprint=transaction["expectedReplacementFingerprint"],
     )
 
     assert result["status"] == "ROLLOVER_RECOVERED_PASSTHROUGH"
@@ -220,9 +257,14 @@ def test_quarantined_rollover_recovery_rejects_tampered_backup_without_adoption(
     (Path(transaction["backupPath"]) / "dist" / "ticket-store.js").write_text("tampered", encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="backup"):
+        transaction_bytes = json.dumps(transaction).encode("utf-8")
         ownership.recover_quarantined_plugin_rollover(
-            transaction=transaction,
+            transaction_bytes=transaction_bytes,
             plugin_inventory=_inventory(paths, paths["direct"]),
+            workspace=paths["workspace"],
+            application_data=paths["app_data"],
+            expected_transaction_sha256=hashlib.sha256(transaction_bytes).hexdigest(),
+            expected_replacement_fingerprint=transaction["expectedReplacementFingerprint"],
         )
 
     assert not ownership.manifest_path(paths["root"]).exists()
@@ -251,14 +293,148 @@ def test_quarantined_rollover_cli_recovers_from_exact_transaction(tmp_path: Path
     inventory_path = tmp_path / "inventory.json"
     transaction_path.write_text(json.dumps(transaction), encoding="utf-8")
     inventory_path.write_text(json.dumps(_inventory(paths, paths["direct"])), encoding="utf-8")
+    transaction_sha256 = ownership._sha256_file(transaction_path)
 
     result = subprocess.run([
         "python", str(SCRIPT), "rollover-recover",
         "--transaction", str(transaction_path), "--inventory-json", str(inventory_path),
+        "--workspace", str(paths["workspace"]), "--app-data", str(paths["app_data"]),
+        "--expected-transaction-sha256", transaction_sha256,
+        "--expected-replacement-fingerprint", transaction["expectedReplacementFingerprint"],
     ], text=True, capture_output=True, check=False)
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["status"] == "ROLLOVER_RECOVERED_PASSTHROUGH"
+
+
+@pytest.mark.parametrize("field", [
+    "workspace", "stateRoot", "openclawState", "applicationData",
+    "backupPath", "retiredPluginPath", "retiredProjectRoot",
+])
+def test_quarantined_recovery_rejects_attacker_controlled_path_fields(tmp_path: Path, field: str):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+    outside = tmp_path / "attacker" / field
+    outside.mkdir(parents=True)
+    transaction[field] = ownership._canonical(outside)
+
+    with pytest.raises(RuntimeError, match="workspace|state|application|backup|retired|boundary|binding"):
+        _recover(paths, transaction)
+
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+@pytest.mark.parametrize("mode", ["managed", "maintenance"])
+def test_quarantined_recovery_requires_live_passthrough_controller(tmp_path: Path, mode: str):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+    (paths["root"] / "host" / "controller.json").write_text(json.dumps({"mode": mode}), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="PASSTHROUGH|controller"):
+        _recover(paths, transaction)
+
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+@pytest.mark.parametrize("controller", [None, "not-json"])
+def test_quarantined_recovery_rejects_missing_or_unreadable_live_controller(tmp_path: Path, controller: str | None):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+    controller_path = paths["root"] / "host" / "controller.json"
+    if controller is None:
+        controller_path.unlink()
+    else:
+        controller_path.write_text(controller, encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="controller.*missing|unreadable"):
+        _recover(paths, transaction)
+
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+def test_quarantined_recovery_rechecks_live_controller_after_finalization(tmp_path: Path, monkeypatch):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+    real_require = ownership._require_passthrough
+    calls = 0
+
+    def changing_controller(root: Path) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            (root / "host" / "controller.json").write_text(
+                json.dumps({"mode": "managed"}), encoding="utf-8"
+            )
+        return real_require(root)
+
+    monkeypatch.setattr(ownership, "_require_passthrough", changing_controller)
+    with pytest.raises(RuntimeError, match="PASSTHROUGH"):
+        _recover(paths, transaction)
+
+    assert calls == 2
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+def test_rollover_recovery_cli_rejects_wrong_out_of_band_transaction_digest(tmp_path: Path):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    ownership.manifest_path(paths["root"]).unlink()
+    marker = {
+        "schemaVersion": ownership._TRANSACTION_SCHEMA_VERSION,
+        "transactionId": f"{ownership.PRODUCT_ID}-digest-test",
+        "productId": ownership.PRODUCT_ID,
+        "installedVersion": ownership.INSTALLED_VERSION,
+        "workspace": ownership._canonical(paths["workspace"]),
+        "stateRoot": ownership._canonical(paths["root"]),
+        "skillPath": ownership._canonical(paths["workspace"] / "skills" / ownership.PRODUCT_ID),
+        "applicationData": ownership._canonical(paths["app_data"]),
+        "state": "committed",
+        "createdAt": "2026-09-08T00:00:00+00:00",
+        "createdPaths": [],
+        "applicationDataPreexisting": False,
+    }
+    ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
+    transaction_path = tmp_path / "rollover.json"
+    inventory_path = tmp_path / "inventory.json"
+    transaction_path.write_text(json.dumps(transaction), encoding="utf-8")
+    inventory_path.write_text(json.dumps(_inventory(paths, paths["direct"])), encoding="utf-8")
+
+    result = subprocess.run([
+        "python", str(SCRIPT), "rollover-recover",
+        "--transaction", str(transaction_path), "--inventory-json", str(inventory_path),
+        "--workspace", str(paths["workspace"]), "--app-data", str(paths["app_data"]),
+        "--expected-transaction-sha256", "0" * 64,
+        "--expected-replacement-fingerprint", transaction["expectedReplacementFingerprint"],
+    ], text=True, capture_output=True, check=False)
+
+    assert result.returncode != 0
+    assert "transaction digest" in (result.stdout + result.stderr)
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+def test_recovery_binds_digest_to_the_exact_bytes_it_parses(tmp_path: Path):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    _quarantine_with_committed_marker(paths)
+    transaction_bytes = json.dumps(transaction).encode("utf-8")
+    different_bytes = json.dumps({**transaction, "createdAt": "forged-after-authorization"}).encode("utf-8")
+    expected_digest = hashlib.sha256(different_bytes).hexdigest()
+
+    with pytest.raises(RuntimeError, match="transaction digest"):
+        ownership.recover_quarantined_plugin_rollover(
+            transaction_bytes=transaction_bytes,
+            plugin_inventory=_inventory(paths, paths["direct"]),
+            workspace=paths["workspace"],
+            application_data=paths["app_data"],
+            expected_transaction_sha256=expected_digest,
+            expected_replacement_fingerprint=transaction["expectedReplacementFingerprint"],
+        )
+
+    assert not ownership.manifest_path(paths["root"]).exists()
 
 
 def test_direct_same_path_rejects_no_fingerprint_transition(tmp_path: Path):

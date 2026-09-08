@@ -4,6 +4,8 @@ param(
 
  [string]$RecoverRolloverTransaction,
 
+ [string]$RecoverRolloverTransactionSha256,
+
  [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
@@ -161,16 +163,37 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
+if ([bool]$RecoverRolloverTransaction -ne [bool]$RecoverRolloverTransactionSha256) {
+    throw "-RecoverRolloverTransaction and -RecoverRolloverTransactionSha256 must be supplied together."
+}
 if ($RecoverRolloverTransaction) {
     if (-not (Test-Path -LiteralPath $RecoverRolloverTransaction -PathType Leaf)) {
         throw "-RecoverRolloverTransaction requires an existing transaction file."
+    }
+    if ($RecoverRolloverTransactionSha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "-RecoverRolloverTransactionSha256 must be an exact SHA-256 digest."
+    }
+    $recoveryFingerprintJson = (& python $ownershipScript plugin-fingerprint --plugin-root $pluginDir --version $version | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "Recovery source plugin fingerprint could not be proven: $recoveryFingerprintJson" }
+    $recoverySourceFingerprint = [string](($recoveryFingerprintJson | ConvertFrom-Json).fingerprint)
+    if ($recoverySourceFingerprint -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Recovery source plugin fingerprint is invalid."
     }
     $recoveryInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-rollover-recovery-inventory-" + [guid]::NewGuid().ToString("N") + ".json")
     try {
         $recoveryInventory = (& openclaw plugins list --json | Out-String)
         if ($LASTEXITCODE -ne 0) { throw "Could not prove live plugin inventory for rollover recovery." }
         [IO.File]::WriteAllText($recoveryInventoryPath, $recoveryInventory, (New-Object Text.UTF8Encoding($false)))
-        $rolloverRecoveryJson = (& python $ownershipScript "rollover-recover" "--transaction" $RecoverRolloverTransaction "--inventory-json" $recoveryInventoryPath 2>&1 | Out-String)
+        $rolloverRecoveryArgs = @(
+            "rollover-recover",
+            "--transaction", $RecoverRolloverTransaction,
+            "--inventory-json", $recoveryInventoryPath,
+            "--workspace", $Workspace,
+            "--app-data", $applicationDataRoot,
+            "--expected-transaction-sha256", $RecoverRolloverTransactionSha256,
+            "--expected-replacement-fingerprint", $recoverySourceFingerprint
+        )
+        $rolloverRecoveryJson = (& python $ownershipScript @rolloverRecoveryArgs 2>&1 | Out-String)
         $rolloverRecoveryExit = $LASTEXITCODE
         if ($rolloverRecoveryExit -ne 0) {
             throw "Attested rollover recovery failed (exit $rolloverRecoveryExit): $rolloverRecoveryJson"

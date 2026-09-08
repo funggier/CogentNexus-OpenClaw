@@ -6,8 +6,8 @@ Release line: **v0.9.4**.
 Validated OpenClaw baseline: `2026.7.1-2`.  
 CogentNexus-OpenClaw v0.9.4 supports two provider boundaries:
 
-- Managed Ollama for provider lifecycle and local recovery.
-- OpenClaw-owned pass-through for Cloud routes such as Codex OAuth and API-key providers. CogentNexus-OpenClaw preserves continuity and delivery but never owns Cloud credentials, lifecycle, probing, or recovery.
+- Managed Ollama for provider health, lifecycle, and local recovery.
+- OpenClaw-owned pass-through for Cloud routes such as Codex OAuth and API-key providers. OpenClaw owns authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket continuity and durable delivery but never reads, copies, persists, refreshes, or logs Cloud credentials.
 
 The package peer range `>=2026.5.17` expresses package-install compatibility only. It does not extend the operational guarantee: v0.9.4 runtime behavior is validated and guaranteed only against the OpenClaw `2026.7.1-2` baseline unless a separate compatibility test explicitly proves another runtime version.
 
