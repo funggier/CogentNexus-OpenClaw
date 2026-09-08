@@ -863,11 +863,15 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
     mode = _require_passthrough(root)
     manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
-    retired = _plugin_payload(retired_root)
+    retired = next((payload for version in UPGRADE_FROM_VERSIONS
+                    if (payload := _plugin_payload(retired_root, expected_version=version)) is not None), None)
+    if retired is None:
+        retired = _plugin_payload(retired_root)
     if retired is None:
         raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
     candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
-                  if (payload := _plugin_payload(candidate)) is not None]
+                  for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS)
+                  if (payload := _plugin_payload(candidate, expected_version=version)) is not None]
     if len(candidates) != 2:
         raise RuntimeError(f"rollover requires exactly two canonical payload candidates; observed {len(candidates)}")
     candidate_keys = {_canonical(item["root"]) for item in candidates}
@@ -913,9 +917,12 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     application_data = application_data.resolve(strict=False)
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
-    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
+    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"])
-    retired_payload = _plugin_payload(retired_root)
+    retired_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                            if (payload := _plugin_payload(retired_root, expected_version=version)) is not None), None)
+    if retired_payload is None:
+        retired_payload = _plugin_payload(retired_root)
     if retired_payload is None:
         raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
     if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
@@ -1383,7 +1390,8 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
                 )
         attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
         candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
-                      if (payload := _plugin_payload(candidate)) is not None]
+                      for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS)
+                      if (payload := _plugin_payload(candidate, expected_version=version)) is not None]
         if len(candidates) == 1 and _canonical(candidates[0]["root"]) == attested_manifest["pluginPath"]:
             plugin_exact = candidates[0]["fingerprint"].lower() == expected_replacement_fingerprint.lower()
             return {
