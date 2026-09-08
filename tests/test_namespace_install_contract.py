@@ -99,7 +99,7 @@ def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
     assert fingerprint < prepare < install < inventory < finalize < resolve
     plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then')
     upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then')
-    assert plugin_guard < fingerprint < upgrade_guard < prepare
+    assert fingerprint < upgrade_guard < plugin_guard < prepare
     assert "--expected-replacement-fingerprint" in source[prepare:finalize]
     assert "--link-plugin is incompatible with ownership-safe managed installation" in source
     assert source.count("openclaw plugins list --json", install, finalize) == 1
