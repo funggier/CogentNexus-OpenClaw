@@ -105,6 +105,7 @@ def test_windows_installer_exposes_explicit_attested_rollover_recovery_before_pr
     assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in recovery_window
     assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in recovery_window
     assert "Invoke-NativeInstallerDiagnostic -Executable \"python\" -Arguments $rolloverRecoveryArgs" in recovery_window
+    assert '$rolloverRecoveryArgs = @(\n            $ownershipScript,\n            "rollover-recover"' in recovery_window
     assert "plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version" in source[parameter:recovery]
 
 

@@ -191,6 +191,7 @@ if ($RecoverRolloverTransaction) {
         if ($LASTEXITCODE -ne 0) { throw "Could not prove live plugin inventory for rollover recovery." }
         [IO.File]::WriteAllText($recoveryInventoryPath, $recoveryInventory, (New-Object Text.UTF8Encoding($false)))
         $rolloverRecoveryArgs = @(
+            $ownershipScript,
             "rollover-recover",
             "--transaction", $RecoverRolloverTransaction,
             "--inventory-json", $recoveryInventoryPath,
