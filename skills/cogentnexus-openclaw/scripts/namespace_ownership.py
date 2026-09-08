@@ -1381,7 +1381,7 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
                     plugin_inventory=plugin_inventory,
                     expected_replacement_fingerprint=expected_replacement_fingerprint,
                 )
-        attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False)
+        attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
         candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
                       if (payload := _plugin_payload(candidate)) is not None]
         if len(candidates) == 1 and _canonical(candidates[0]["root"]) == attested_manifest["pluginPath"]:
