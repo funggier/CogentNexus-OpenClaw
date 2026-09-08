@@ -60,6 +60,10 @@ APPLICATION_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw
 
 INSTALL_CLASSIFICATION=$(python "$OWNERSHIP_SCRIPT" classify-install --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT")
 INSTALL_MODE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; print(json.load(sys.stdin)["mode"])')
+PLUGIN_ALREADY_EXACT=0
+if [ "$INSTALL_MODE" = upgrade ] && python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" >/dev/null 2>&1; then
+  PLUGIN_ALREADY_EXACT=1
+fi
 MIGRATION_SOURCE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
 if [ "$LINK_PLUGIN" -eq 1 ]; then
   echo "--link-plugin is incompatible with ownership-safe managed installation; linked and npm-managed roots must not be mixed." >&2
@@ -161,7 +165,7 @@ if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
   python "$HOST_SCRIPT" --root "$COGENT_ROOT" policy apply
 fi
 
-if [ "$SKIP_PLUGIN" -eq 0 ]; then
+if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then
   PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
   if CURRENT_PLUGIN_LOAD_PATHS=$(openclaw config get plugins.load.paths 2>/dev/null); then
     FILTERED_PLUGIN_LOAD_PATHS=$(printf '%s' "$CURRENT_PLUGIN_LOAD_PATHS" | \

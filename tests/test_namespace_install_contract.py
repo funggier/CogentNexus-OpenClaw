@@ -97,7 +97,7 @@ def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
     finalize = source.index("rollover-finalize", inventory)
     resolve = source.index(" resolve-plugin --openclaw-state", finalize)
     assert fingerprint < prepare < install < inventory < finalize < resolve
-    plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ]; then')
+    plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then')
     upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then')
     assert plugin_guard < fingerprint < upgrade_guard < prepare
     assert "--expected-replacement-fingerprint" in source[prepare:finalize]
