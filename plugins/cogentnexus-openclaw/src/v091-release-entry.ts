@@ -12,7 +12,7 @@ import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boun
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
 import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
-import { cloudPassThroughPolicy } from "./cloud-passthrough.js";
+
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -110,11 +110,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       ...((api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig),
       ...(authority.reason === "passthrough" ? { providerMode: "passthrough" as const } : { providerMode: "managed" as const }),
     };
-    const resolvedModel = String((api as any)?.config?.agents?.defaults?.model?.primary ?? "").trim();
-    const route = authority.reason === "passthrough"
-      ? cloudPassThroughPolicy({hostMode: authority.reason, providerId: resolvedModel.split("/", 1)[0] ?? "", modelRef: resolvedModel})
-      : undefined;
-    if (route) api.logger.debug?.(`CogentNexus-OpenClaw Cloud pass-through route accepted: ${route.providerId}/${route.modelRef}`);
+
     const runtimeApi = authority.reason === "passthrough"
       ? ({
           ...api,

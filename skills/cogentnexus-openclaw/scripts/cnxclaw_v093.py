@@ -11,7 +11,10 @@ import sys
 from typing import Any
 
 import cnxclaw as legacy
+import host
 import provider_v093 as ollama_provider
+
+openclaw_route = legacy.openclaw_route
 
 # Narrow the v0.9.2 facade/check modules without rewriting accepted lifecycle
 # internals.  Host-control receives CNXCLAW_PROVIDER_TARGET=ollama from transitions.
@@ -56,11 +59,13 @@ Lifecycle:
   cnxclaw.cmd restart
   cnxclaw.cmd enable
   cnxclaw.cmd disable
+  cnxclaw.cmd cloud
   cnxclaw.cmd reset
   cnxclaw.cmd uninstall
 
 Provider:
-  Ollama is the only supported inference provider in v0.9.4.
+  Ollama is the only provider managed by CogentNexus-OpenClaw in v0.9.4.
+  Configured Cloud routes use OpenClaw-owned pass-through via 'cnxclaw cloud'.
   Explicit '--provider ollama' remains accepted for compatibility.
   LM Studio is not started, stopped, probed, selected, or managed by CogentNexus-OpenClaw.
 
@@ -76,6 +81,58 @@ Existing Ticket/session/policy/gateway/supervisor commands remain available.
 """
 
 
+def cloud_transition(root: Any) -> tuple[int, dict[str, Any]]:
+    """Leave provider ownership with OpenClaw while retaining passive hooks."""
+    try:
+        restored = openclaw_route.restore_native(root)
+    except Exception:
+        return 1, {
+            "result": "error",
+            "phase": "restore-native-openclaw-route",
+            "safety": "Cloud transition stopped before Host or plugin mutation",
+        }
+    if not restored.get("ok"):
+        return 1, {
+            "result": "error",
+            "phase": "restore-native-openclaw-route",
+            "safety": "Cloud transition stopped before Host or plugin mutation",
+        }
+
+    try:
+        host.startup(root, "disable", check=True)
+        policy_changed = host.remove_policy(root.parent)
+        host.configure_cloud_plugin()
+        state = host.transition(
+            root,
+            mode="passthrough",
+            desiredGateway="running",
+            desiredProvider="unchanged",
+        )
+        host.plugin_enabled(True)
+        host.run(
+            [host.openclaw_executable(), "gateway", "restart"],
+            timeout=180,
+            check=True,
+        )
+    except Exception:
+        return 1, {
+            "result": "error",
+            "phase": "cloud-transition",
+            "safety": "Cloud transition failed without exposing provider or credential details",
+        }
+
+    return 0, {
+        "result": "ok",
+        "action": "cloud",
+        "mode": state.get("mode"),
+        "desiredGateway": state.get("desiredGateway"),
+        "desiredProvider": state.get("desiredProvider"),
+        "pluginEnabled": True,
+        "policyChanged": policy_changed,
+        "gatewayRestarted": True,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     # Preserve global --root/--json parsing in the accepted backend while finding
@@ -86,6 +143,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     command = cleaned[0].lower()
+
+    if command == "cloud":
+        if len(cleaned) != 1:
+            return _emit_error("Usage: cnxclaw cloud")
+        root, _, _ = legacy.parse_globals(args)
+        code, result = cloud_transition(root)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return code
 
     try:
         explicit = _provider_option(cleaned[1:])

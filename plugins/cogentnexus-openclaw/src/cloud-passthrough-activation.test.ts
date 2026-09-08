@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { hostPluginAuthority } from "./v091-release-entry.js";
 
 describe("Cloud pass-through activation boundary", () => {
@@ -28,5 +29,15 @@ describe("Cloud pass-through activation boundary", () => {
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
+  });
+
+  it("does not inspect or log the OpenClaw-owned provider or model", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "v091-release-entry.ts"),
+      "utf8",
+    );
+    expect(source).not.toContain("agents?.defaults?.model?.primary");
+    expect(source).not.toContain("Cloud pass-through route accepted");
+    expect(source).not.toContain("cloudPassThroughPolicy(");
   });
 });

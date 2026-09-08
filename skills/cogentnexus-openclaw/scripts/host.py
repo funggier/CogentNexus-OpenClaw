@@ -232,6 +232,7 @@ def plugin_enabled(enabled: bool) -> None:
 
 def configure_managed_plugin() -> None:
     settings = [
+        ("providerMode", "managed"),
         ("ticketFirst", "true"),
         ("preInferenceAdmission", "true"),
         ("autoWorkflowCompletion", "true"),
@@ -248,6 +249,14 @@ def configure_managed_plugin() -> None:
     for key, value in settings:
         run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.config.{key}", value], timeout=60, check=True)
     run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.hooks.allowConversationAccess", "true"], timeout=60, check=True)
+
+
+def configure_cloud_plugin() -> None:
+    """Select passive hooks without reading or changing OpenClaw's route/auth."""
+    run([
+        openclaw_executable(), "config", "set",
+        f"plugins.entries.{PLUGIN_ID}.config.providerMode", "passthrough",
+    ], timeout=60, check=True)
 
 
 def normalize_policy(text: str) -> str:

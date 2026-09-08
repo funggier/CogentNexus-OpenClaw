@@ -29,7 +29,13 @@ Before lifecycle mutation, the system performs read-only preflight. A successful
 
 ## Native/PASSTHROUGH boundary
 
-`disable` is a runtime boundary, not merely a configuration edit. Native OpenClaw must remain usable when CogentNexus-OpenClaw is disabled or uninstalled.
+`cnxclaw cloud` is the supported non-destructive transition for a configured Cloud route. It accepts no provider, model, or credential arguments. The command restores the OpenClaw-owned route, removes the managed `AGENTS.md` policy block, disables supervisor startup, commits Host `mode=passthrough`, `desiredGateway=running`, and `desiredProvider=unchanged`, keeps the CogentNexus-OpenClaw plugin enabled in passive mode, and restarts the Gateway once so continuity hooks load. It never starts, stops, probes, or recovers Ollama or a Cloud provider.
+
+```powershell
+.\cnxclaw.cmd cloud
+```
+
+`disable` is a runtime boundary, not merely a configuration edit. Unlike `cloud`, it disables the plugin; its existing semantics are unchanged. Native OpenClaw must remain usable when CogentNexus-OpenClaw is disabled or uninstalled.
 
 `reset` and `uninstall` reuse the supported PASSTHROUGH/native boundary and must fail closed before destructive cleanup if native OpenClaw cannot be restored/verified safely.
 
