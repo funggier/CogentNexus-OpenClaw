@@ -1035,7 +1035,10 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("replacement still points to the retired generation")
         if expected.lower() == retired_fingerprint.lower():
             raise RuntimeError("direct same-path rollover requires a fingerprint transition from the retired fingerprint")
-        backup_payload = _plugin_payload(backup_path)
+        backup_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                               if (payload := _plugin_payload(backup_path, expected_version=version)) is not None), None)
+        if backup_payload is None:
+            backup_payload = _plugin_payload(backup_path)
         if backup_payload is None or backup_payload["fingerprint"].lower() != retired_fingerprint.lower():
             raise RuntimeError("direct same-path retired backup fingerprint proof failed")
         product_evidence = product_plugin_inventory(openclaw_state)
@@ -1057,10 +1060,14 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         retired_exact = False
         if retired_project.exists():
             try:
+                retired_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                                        if (payload := _plugin_payload(Path(transaction["retiredPluginPath"]), expected_version=version)) is not None), None)
+                if retired_payload is None:
+                    retired_payload = _plugin_payload(Path(transaction["retiredPluginPath"]))
                 retired_exact = (
                     _project_tree_sha256(retired_project) == transaction["retiredProjectTreeSha256"]
-                    and _plugin_payload(Path(transaction["retiredPluginPath"]))["fingerprint"].lower()
-                    == transaction["retiredFingerprint"].lower()
+                    and retired_payload is not None
+                    and retired_payload["fingerprint"].lower() == transaction["retiredFingerprint"].lower()
                 )
             except (OSError, KeyError, TypeError):
                 retired_exact = False
