@@ -99,10 +99,12 @@ def test_windows_installer_exposes_explicit_attested_rollover_recovery_before_pr
     classification = source.index("classify-install --workspace", preflight)
     assert parameter < digest_parameter < source_parameter < inventory < recovery < preflight < classification
     assert "-RecoverRolloverTransaction requires" in source
-    assert '"--workspace", $Workspace' in source[recovery - 1000:recovery + 1000]
-    assert '"--app-data", $applicationDataRoot' in source[recovery - 1000:recovery + 1000]
-    assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in source[recovery - 1000:recovery + 1000]
-    assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in source[recovery - 1000:recovery + 1000]
+    recovery_window = source[recovery - 1200:recovery + 1400]
+    assert '"--workspace", $Workspace' in recovery_window
+    assert '"--app-data", $applicationDataRoot' in recovery_window
+    assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in recovery_window
+    assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in recovery_window
+    assert "Invoke-NativeInstallerDiagnostic -Executable \"python\" -Arguments $rolloverRecoveryArgs" in recovery_window
     assert "plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version" in source[parameter:recovery]
 
 

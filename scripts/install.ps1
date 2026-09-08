@@ -199,8 +199,9 @@ if ($RecoverRolloverTransaction) {
             "--expected-transaction-sha256", $RecoverRolloverTransactionSha256,
             "--expected-replacement-fingerprint", $recoverySourceFingerprint
         )
-        $rolloverRecoveryJson = (& python $ownershipScript @rolloverRecoveryArgs 2>&1 | Out-String)
-        $rolloverRecoveryExit = $LASTEXITCODE
+        $rolloverRecoveryCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments $rolloverRecoveryArgs
+        $rolloverRecoveryJson = [string]$rolloverRecoveryCapture.Output
+        $rolloverRecoveryExit = [int]$rolloverRecoveryCapture.ExitCode
         if ($rolloverRecoveryExit -ne 0) {
             throw "Attested rollover recovery failed (exit $rolloverRecoveryExit): $rolloverRecoveryJson"
         }
