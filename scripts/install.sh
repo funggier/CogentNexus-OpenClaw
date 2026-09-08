@@ -172,39 +172,39 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
       echo "Failed to remove an existing linked CogentNexus-OpenClaw plugin path" >&2; exit 1;
     }
   fi
+  EXPECTED_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$PLUGIN_DIR" --version "$VERSION" | python -c 'import json,sys; x=json.load(sys.stdin); print(x["fingerprint"])')
+  ROLLOVER_TRANSACTION=""
+  ROLLOVER_STAGING="$COGENT_ROOT/install-staging"
+  PACKAGE_FILE=""
+  if [ "$INSTALL_MODE" = upgrade ]; then
+    mkdir -p "$ROLLOVER_STAGING"
+    ROLLOVER_ID="$$-$(date +%Y%m%d%H%M%S)"
+    ROLLOVER_TRANSACTION="$ROLLOVER_STAGING/plugin-rollover-transaction-$ROLLOVER_ID.json"
+    python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-prepare \
+      --root "$COGENT_ROOT" --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT" \
+      --expected-replacement-fingerprint "$EXPECTED_PLUGIN_FINGERPRINT" \
+      --backup-token "$ROLLOVER_ID" --transaction "$ROLLOVER_TRANSACTION"
+  fi
   (
+    trap 'rm -f "$PLUGIN_DIR/$PACKAGE_FILE"' EXIT HUP INT TERM
     cd "$PLUGIN_DIR"
     npm ci
     npm run plugin:validate
     node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     PACKAGE_JSON=$(npm pack --json)
     PACKAGE_FILE=$(printf '%s' "$PACKAGE_JSON" | python -c 'import json,sys; x=json.load(sys.stdin); assert isinstance(x,list) and len(x)==1 and x[0].get("filename"); print(x[0]["filename"])')
-    trap 'rm -f "$PLUGIN_DIR/$PACKAGE_FILE"' EXIT HUP INT TERM
     openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force
     rm -f "$PLUGIN_DIR/$PACKAGE_FILE"
     trap - EXIT HUP INT TERM
     openclaw plugins disable cogentnexus-openclaw
   )
-
-  if [ "$INSTALL_MODE" = upgrade ]; then
-    ROLLOVER_STAGING="$COGENT_ROOT/install-staging"
-    mkdir -p "$ROLLOVER_STAGING"
-    ROLLOVER_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-$$.json"
-    ROLLOVER_APPLY_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-apply-$$.json"
-    ROLLOVER_PLAN="$ROLLOVER_STAGING/plugin-rollover-plan-$$.json"
-    (
-      trap 'rm -f "$ROLLOVER_INVENTORY" "$ROLLOVER_APPLY_INVENTORY" "$ROLLOVER_PLAN"' EXIT HUP INT TERM
-      openclaw plugins list --json > "$ROLLOVER_INVENTORY"
-      ROLLOVER_PLAN_OUTPUT=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-plan \
-        --root "$COGENT_ROOT" --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT" \
-        --inventory-json "$ROLLOVER_INVENTORY" --plan "$ROLLOVER_PLAN")
-      ROLLOVER_PLAN_SHA256=$(printf '%s' "$ROLLOVER_PLAN_OUTPUT" | python -c 'import json,sys; value=json.load(sys.stdin).get("planSha256"); assert isinstance(value,str) and value; print(value)')
-      openclaw plugins list --json > "$ROLLOVER_APPLY_INVENTORY"
-      python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-apply \
-        --plan "$ROLLOVER_PLAN" --plan-sha256 "$ROLLOVER_PLAN_SHA256" \
-        --inventory-json "$ROLLOVER_APPLY_INVENTORY" >/dev/null
-      echo "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
-    )
+  if [ -n "$ROLLOVER_TRANSACTION" ]; then
+    ROLLOVER_APPLY_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-apply-$ROLLOVER_ID.json"
+    openclaw plugins list --json > "$ROLLOVER_APPLY_INVENTORY"
+    python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-finalize \
+      --transaction "$ROLLOVER_TRANSACTION" --inventory-json "$ROLLOVER_APPLY_INVENTORY"
+    rm -f "$ROLLOVER_APPLY_INVENTORY"
+    echo "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
   fi
 fi
 
