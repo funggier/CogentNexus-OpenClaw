@@ -87,11 +87,11 @@ openclaw models set openai/<model-id>
 .\cnxclaw.cmd provider status
 ```
 
-ใน Cloud pass-through ให้ตรวจ route/model/provider ด้วย OpenClaw-owned commands และตรวจ CogentNexus state จาก passive/durable evidence โดยอย่าเรียก CNX managed-provider probe
+ใน Cloud pass-through ให้ตรวจ route/model/provider ด้วย OpenClaw-owned commands และตรวจ CogentNexus-OpenClaw state จาก passive/durable evidence โดยอย่าเรียก CogentNexus-OpenClaw managed-provider probe
 
 ## Gateway
 
-คำสั่งเหล่านี้เป็น lifecycle ของ Gateway ภายใต้ CogentNexus managed control:
+คำสั่งเหล่านี้เป็น lifecycle ของ Gateway ภายใต้ CogentNexus-OpenClaw managed control:
 
 ```powershell
 .\cnxclaw.cmd gateway start
@@ -126,8 +126,8 @@ openclaw models set openai/<model-id>
 ```
 
 - `disable` คืน native/PASSTHROUGH และปิด plugin ทั้งหมด ต่างจาก `cloud` ที่คง passive plugin enabled
-- `reset` ล้างเฉพาะ CogentNexus-owned runtime state แล้วสร้างใหม่ ต้องยืนยัน `y`
-- `uninstall` ถอนเฉพาะ CogentNexus-owned surfaces ต้องยืนยัน `y`
+- `reset` ล้างเฉพาะ CogentNexus-OpenClaw-owned runtime state แล้วสร้างใหม่ ต้องยืนยัน `y`
+- `uninstall` ถอนเฉพาะ CogentNexus-OpenClaw-owned surfaces ต้องยืนยัน `y`
 - ก่อนใช้คำสั่ง destructive ให้ backup และตรวจ ownership boundary เสมอ
 - ห้ามใช้ `session cancel` เป็น Delete substitute
 
