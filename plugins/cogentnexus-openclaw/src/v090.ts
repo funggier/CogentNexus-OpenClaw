@@ -62,6 +62,7 @@ type AssistantDeliveryTarget =
   | { kind: "notice" };
 
 type SessionAuthority = { state: "active" | "deleting" | "deleted"; generation: number };
+type SessionLifecycleResult = SessionAuthority & { accepted: boolean; lifecycleMatches: boolean; sessionId?: string | null };
 type ActiveSynthetic = { childSessionKey: string; generation: number };
 
 const PATCH = Symbol.for("cogentnexus-openclaw.v090.ticket-patch");
@@ -87,7 +88,8 @@ function openDb(path: string) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       deleted_at TEXT,
-      delete_reason TEXT
+      delete_reason TEXT,
+      session_id TEXT
     );
     CREATE TABLE IF NOT EXISTS cnx_direct_recovery(
       ticket_id TEXT PRIMARY KEY REFERENCES tickets(ticket_id) ON DELETE CASCADE,
@@ -126,6 +128,7 @@ function openDb(path: string) {
   `);
   ensureColumn(db, "cnx_direct_recovery", "owner_generation", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "cnx_assistant_delivery", "owner_generation", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "cnx_sessions", "session_id", "TEXT");
   return db;
 }
 
@@ -147,6 +150,64 @@ export function sessionAuthority(path: string, sessionKey: string): SessionAutho
   const db = openDb(path);
   try { return ensureSession(db, sessionKey); }
   finally { db.close(); }
+}
+
+export function reactivateSessionForLifecycle(path: string, input: { sessionKey: string; sessionId: string }): SessionLifecycleResult {
+  const sessionKey = input.sessionKey.trim(), sessionId = input.sessionId.trim();
+  if (!sessionKey || !sessionId) throw new Error("session key and lifecycle session id required");
+  const db = openDb(path);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const row = db.prepare("SELECT state,generation,session_id FROM cnx_sessions WHERE session_key=?").get(sessionKey) as any;
+    if (!row) {
+      const stamp = now();
+      db.prepare(`INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id)
+        VALUES (?,'active',0,?,?,?)`).run(sessionKey, stamp, stamp, sessionId);
+      db.exec("COMMIT");
+      return { state: "active", generation: 0, accepted: true, lifecycleMatches: true, sessionId };
+    }
+    const currentGeneration = Number(row.generation);
+    const currentSessionId = typeof row.session_id === "string" ? row.session_id : null;
+    if (row.state === "active") {
+      if (currentSessionId === null) {
+        const stamp = now();
+        db.prepare("UPDATE cnx_sessions SET session_id=?,updated_at=? WHERE session_key=? AND state='active' AND session_id IS NULL")
+          .run(sessionId, stamp, sessionKey);
+        db.exec("COMMIT");
+        return { state: "active", generation: currentGeneration, accepted: true, lifecycleMatches: true, sessionId };
+      }
+      const matches = currentSessionId === sessionId;
+      db.exec("COMMIT");
+      return { state: "active", generation: currentGeneration, accepted: matches, lifecycleMatches: matches, sessionId: currentSessionId };
+    }
+    if (row.state === "deleted" && currentSessionId === sessionId) {
+      db.exec("COMMIT");
+      return { state: "deleted", generation: currentGeneration, accepted: false, lifecycleMatches: false, sessionId: currentSessionId };
+    }
+    if (row.state !== "deleted") {
+      db.exec("COMMIT");
+      return { state: row.state as SessionAuthority["state"], generation: currentGeneration, accepted: false, lifecycleMatches: false, sessionId: currentSessionId };
+    }
+    const stamp = now(), generation = currentGeneration + 1;
+    db.prepare(`UPDATE cnx_sessions SET state='active',generation=?,updated_at=?,deleted_at=NULL,delete_reason=NULL,session_id=?
+      WHERE session_key=? AND state='deleted' AND (session_id IS NULL OR session_id<>?)`)
+      .run(generation, stamp, sessionId, sessionKey, sessionId);
+    db.exec("COMMIT");
+    return { state: "active", generation, accepted: true, lifecycleMatches: true, sessionId };
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch {}
+    throw error;
+  } finally { db.close(); }
+}
+
+export function isCurrentSessionLifecycle(path: string, input: { sessionKey: string; sessionId: string }): boolean {
+  const sessionKey = input.sessionKey.trim(), sessionId = input.sessionId.trim();
+  if (!sessionKey || !sessionId) return false;
+  const db = openDb(path);
+  try {
+    const row = db.prepare("SELECT state,session_id FROM cnx_sessions WHERE session_key=?").get(sessionKey) as any;
+    return Boolean(row?.state === "active" && row.session_id && row.session_id === sessionId);
+  } finally { db.close(); }
 }
 
 function sessionAuthorityFromDb(db: DatabaseSync, sessionKey: string): SessionAuthority {
@@ -188,7 +249,7 @@ function queueRecovery(
 
 function revokeSession(
   path: string,
-  input: { sessionKey: string; message: string; source: string; deleting: boolean; now?: Date },
+  input: { sessionKey: string; message: string; source: string; deleting: boolean; sessionId?: string; now?: Date },
 ) {
   const db = openDb(path);
   const stamp = (input.now ?? new Date()).toISOString();
@@ -197,9 +258,9 @@ function revokeSession(
     db.exec("BEGIN IMMEDIATE");
     const prior = sessionAuthorityFromDb(db, input.sessionKey);
     const nextGeneration = prior.generation + 1;
-    db.prepare(`UPDATE cnx_sessions SET state=?,generation=?,updated_at=?,delete_reason=?
+    db.prepare(`UPDATE cnx_sessions SET state=?,generation=?,updated_at=?,delete_reason=?,session_id=COALESCE(?,session_id)
       WHERE session_key=?`).run(input.deleting ? "deleting" : "active", nextGeneration, stamp,
-        input.deleting ? reason : null, input.sessionKey);
+        input.deleting ? reason : null, input.sessionId ?? null, input.sessionKey);
     const rows = db.prepare(`SELECT ticket_id,status,run_id,workflow_id FROM tickets
       WHERE owner_session_key=? AND status IN ('accepted','planned','running','waiting') ORDER BY created_at,ticket_id`)
       .all(input.sessionKey) as any[];
@@ -278,12 +339,13 @@ export function resetSessionByKey(path: string, input: { sessionKey: string; mes
   });
 }
 
-export function deleteSessionByKey(path: string, input: { sessionKey: string; message?: string; now?: Date }) {
+export function deleteSessionByKey(path: string, input: { sessionKey: string; message?: string; sessionId?: string; now?: Date }) {
   return revokeSession(path, {
     sessionKey: input.sessionKey,
     message: input.message ?? "Owner session deleted",
     source: "openclaw-session-delete",
     deleting: true,
+    sessionId: input.sessionId,
     now: input.now,
   });
 }
@@ -312,6 +374,49 @@ export function cancelSessionTickets(path: string, input: { runId: string; messa
       outboxTags: [] as string[],
     };
     return cancelSessionByKey(path, { sessionKey: owner.owner_session_key, message: input.message, now: input.now });
+  } finally { db.close(); }
+}
+
+export function disposeDirectRecoveryTicket(path: string, input: {
+  ticketId: string;
+  ownerSessionKey: string;
+  ownerGeneration: number;
+  message?: string;
+  now?: Date;
+}) {
+  const db = openDb(path), stamp = (input.now ?? new Date()).toISOString();
+  const reason = (input.message ?? "Direct recovery dispositioned").slice(0, 2000);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const row = db.prepare(`SELECT t.status,t.owner_session_key,s.generation,r.state
+      FROM tickets t JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+      LEFT JOIN cnx_direct_recovery r ON r.ticket_id=t.ticket_id
+      WHERE t.ticket_id=?`).get(input.ticketId) as any;
+    if (!row || !row.state || row.owner_session_key !== input.ownerSessionKey || Number(row.generation) !== input.ownerGeneration) {
+      throw new Error("exact Ticket owner generation fence failed");
+    }
+    if (row.state === "cancelled" && row.status === "cancelled") {
+      db.exec("COMMIT");
+      return { ticketId: input.ticketId, dispositioned: true, alreadyDispositioned: true };
+    }
+    db.prepare(`UPDATE tickets SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,
+      heartbeat_at=NULL,response_ready_at=NULL,delivery_last_error=?,updated_at=?
+      WHERE ticket_id=? AND owner_session_key=? AND status IN ('accepted','planned','running','waiting')`)
+      .run(reason, stamp, input.ticketId, input.ownerSessionKey);
+    db.prepare(`UPDATE cnx_direct_recovery SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=?
+      WHERE ticket_id=? AND owner_generation=? AND state<>'cancelled'`)
+      .run(reason, stamp, input.ticketId, input.ownerGeneration);
+    db.prepare("DELETE FROM ticket_outbox WHERE ticket_id=? AND delivery_status='pending'").run(input.ticketId);
+    db.prepare("DELETE FROM cnx_assistant_delivery WHERE ticket_id=? AND status='pending'").run(input.ticketId);
+    addEvent(db, input.ticketId, "direct_recovery_dispositioned", {
+      source: "direct-recovery-disposition", ownerSessionKey: input.ownerSessionKey,
+      ownerGeneration: input.ownerGeneration, message: reason,
+    }, stamp);
+    db.exec("COMMIT");
+    return { ticketId: input.ticketId, dispositioned: true, alreadyDispositioned: false };
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch {}
+    throw error;
   } finally { db.close(); }
 }
 
@@ -1199,6 +1304,17 @@ function wrap() {
     };
 
     api.on?.("before_agent_run", (event: any, ctx: any) => {
+      const sessionKey = String(ctx?.sessionKey ?? "").trim();
+      if (!sessionKey || sessionKey.includes(":subagent:")) return { outcome: "pass" };
+      const sessionId = String(ctx?.sessionId ?? "").trim();
+      const workspace = resolve(ctx?.workspaceDir ?? cfg.workspaceDir ?? process.cwd());
+      const authority = reactivateSessionForLifecycle(dbPath(cfg, workspace), { sessionKey, sessionId });
+      if (!authority.accepted) {
+        return { outcome: "block", reason: "OpenClaw lifecycle identity is not current for owner session", category: "cnxclaw_lifecycle_identity" };
+      }
+    }, { priority: 6000, timeoutMs: 5000 });
+
+    api.on?.("before_agent_run", (event: any, ctx: any) => {
       if (!ctx.sessionKey || ctx.sessionKey.includes(":subagent:")) return { outcome: "pass" };
       if (!isInternalControlText(String(event.prompt ?? ""))) return { outcome: "pass" };
       return { outcome: "block", reason: "CogentNexus-OpenClaw internal control prompt is forbidden in an owner session", category: "cnxclaw_internal_owner_fence" };
@@ -1213,11 +1329,15 @@ function wrap() {
 
     api.on?.("session_start", (event: any, ctx: any) => {
       const sessionKey = event?.sessionKey ?? ctx?.sessionKey;
-      if (!sessionKey) return;
+      const sessionId = event?.sessionId;
+      if (!sessionKey || !sessionId) return;
       const workspace = resolve(ctx?.workspaceDir ?? cfg.workspaceDir ?? process.cwd());
       const path = dbPath(cfg, workspace);
-      const authority = sessionAuthority(path, sessionKey);
-      if (authority.state !== "active") api.logger.warn?.(`CogentNexus-OpenClaw refused to reactivate tombstoned session ${sessionKey} (${authority.state})`);
+      const authority = reactivateSessionForLifecycle(path, { sessionKey, sessionId });
+      if (!authority.accepted) {
+        api.logger.warn?.(`CogentNexus-OpenClaw refused stale lifecycle ${sessionId} for ${sessionKey} (current=${authority.sessionId ?? "none"})`);
+        return { outcome:"block", reason:"OpenClaw lifecycle identity is not current for owner session", category:"cnxclaw_lifecycle_identity" };
+      }
     }, { priority: 1500, timeoutMs: 5000 });
 
     api.on?.("agent_end", async (event: any, ctx: any) => {
@@ -1262,7 +1382,7 @@ function wrap() {
       if (!sessionKey) return;
       const workspace = resolve(ctx.workspaceDir ?? cfg.workspaceDir ?? process.cwd()), path = dbPath(cfg, workspace);
       const reason = "OpenClaw owner session deleted";
-      const deletion = deleteSessionByKey(path, { sessionKey, message: reason });
+      const deletion = deleteSessionByKey(path, { sessionKey, message: reason, sessionId: event?.sessionId });
       compat.cancelSessionTimers(sessionKey);
       const completionTags = suppressSessionWorkflowCompletions(workspace, sessionKey, reason);
       for (const tag of [...deletion.outboxTags, ...completionTags]) {

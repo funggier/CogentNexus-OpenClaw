@@ -40,7 +40,7 @@ class HostSingleAuthorityTests(unittest.TestCase):
         self.assertNotIn("host-activation-staged", source)
         self.assertNotIn("POLICY_BEGIN", source)
         self.assertNotIn("POLICY_END", source)
-        self.assertIn('if (mode === "managed") return { authorized: true', source)
+        assert 'if (mode === "managed" || mode === "passthrough") return { authorized: true' in source
         self.assertIn('return { authorized: false, reason: "passthrough"', source)
 
     def test_power_loss_semantics_are_explicit(self):

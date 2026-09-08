@@ -1,6 +1,6 @@
 # ล้าง CogentNexus-OpenClaw และติดตั้งใหม่แบบสะอาดบน Windows
 
-ใช้ `scripts/clean-reinstall.ps1` เมื่ออยากเอา CogentNexus-OpenClaw ที่ติดตั้งอยู่ใน workspace ปัจจุบันออกให้สะอาด แล้วติดตั้ง v0.9.3 ใหม่จาก candidate/source package ปัจจุบัน
+ใช้ `scripts/clean-reinstall.ps1` เมื่ออยากเอา CogentNexus-OpenClaw ที่ติดตั้งอยู่ใน workspace ปัจจุบันออกให้สะอาด แล้วติดตั้ง v0.9.4 ใหม่จาก candidate/source package ปัจจุบัน
 
 ## คำเตือนสำคัญ
 

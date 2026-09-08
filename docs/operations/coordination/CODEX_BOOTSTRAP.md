@@ -1,84 +1,90 @@
-# Hermes/Codex Coordination Bootstrap
+# Hermes Coordination Bootstrap — Single-Agent + ChatGPT Review Mode
 
-Updated: 2026-08-31 ICT
+Updated: 2026-09-05 ICT
 
-This is the standing instruction for an authorized Hermes or Codex session/Scheduled task that executes CogentNexus-OpenClaw work through the GitHub coordination layer.
+This is the standing startup instruction for authorized Hermes sessions executing CogentNexus-OpenClaw work through GitHub coordination.
 
-## Standing instruction
+Repository: `funggier/CogentNexus-OpenClaw`
+Branch: `agent/v0.9.3-full-stabilization`
 
-Use repository `funggier/CogentNexus-OpenClaw` and current stabilization branch `agent/v0.9.3-full-stabilization` as the durable coordination channel with ChatGPT.
-
-Executor role: `Hermes/Codex`.
+## Read order
 
 Before work, read:
 
-1. `README.md`
-2. `EXECUTION_OWNERSHIP.md`
-3. `EXECUTOR_ANALYSIS_REVIEW_MODEL.md`
-4. `EXECUTOR_REPORT_CONTRACT.md`
-5. `SIGNALS.md`
-6. `WATCH_MODE.md`
+1. `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`
+2. `DELAYED_RECHECK_QUEUE.md`
+3. `README.md`
+4. `EXECUTION_OWNERSHIP.md`
+5. `EXECUTOR_ANALYSIS_REVIEW_MODEL.md`
+6. `EXECUTOR_REPORT_CONTRACT.md`
+7. `SIGNALS.md`
+8. `WATCH_MODE.md`
+9. current remote `ACTIVE.md`, `STATUS.md`, and exact active task/report/review
 
-Hermes/Codex is the default primary technical investigator and implementer for delegated tasks, including repository/source/test/CI work when the active task authorizes technical execution. ChatGPT defines the task boundary and performs targeted evidence review afterward.
+The historical `HERMES_DUAL_AGENT_BATON_PROTOCOL.md` is not the current execution model. Use it only when interpreting older Luna/Musethree artifacts.
 
-## Coordination rules
+## Identity and ownership
 
-1. The current **remote working branch** outranks stale conversational memory and any stale local checkout.
-2. On every manual signal or scheduled poll, fetch/synchronize the named remote branch and verify remote HEAD first.
-3. Read remote `ACTIVE.md`, `STATUS.md`, the exact active task, and current report state from that revision.
-4. Compare local checkout/worktree to remote HEAD. If stale or uncertain, do not claim the remote gate is stale.
-5. If local state contains uncommitted/uncertain work, do not reset or overwrite it merely to synchronize. Prefer a fresh clone/worktree from verified remote HEAD.
-6. Execute only when the current remote `ACTIVE.md` explicitly authorizes Hermes/Codex work. The exact state token and execution mode are defined by the active coordination files; do not rely on an older canonical token copied from bootstrap documentation.
-7. Manual `ต่อ` means execute the exact currently authorized READY delegated task. Continuous watch mode may execute only when the current active mode explicitly authorizes automatic pickup.
-8. Read the task's objective, success criteria, hard fences, accepted parent/candidate, and mandatory evidence before mutation.
-9. Perform the full primary technical loop needed by the task: investigate, analyze root cause, inspect relevant repository/upstream source, implement within scope, validate, inspect CI, collect machine/live proof when authorized, and assess risks/uncertainty.
-10. Do not wait for ChatGPT to rediscover or prescribe routine investigation steps that are safely inside the task's authority.
-11. Obey every task-specific safety/precondition gate. If a broader live/destructive/semantic authority is required, stop and report the exact scope expansion needed rather than improvising.
-12. Use TDD RED -> minimal fix -> GREEN for production/source repairs unless the active task is explicitly evidence-only or another validation model is more appropriate.
-13. Use `EXECUTOR_REPORT_CONTRACT.md` for the matching report. The report must contain an acceptance matrix and a 3-10 item reviewer verification packet with exact evidence pointers.
-14. Report technical rationale and causal conclusions, not private chain-of-thought. Include material alternatives, risk, contradictions, and residual uncertainty.
-15. Commit and push only changes authorized by the active task plus the matching executor report. Never force-push.
-16. Before every push/write, re-fetch/race-check the remote branch. Do not overwrite concurrent coordination work.
-17. After the matching report is pushed, stop that run. Do not invent, open, or execute a successor task. ChatGPT performs the final review and publishes the next disposition/task.
-18. Never repeat completed side effects when a matching report already establishes completion.
-19. `สถานะ` means synchronize/read/report status only.
-20. `หยุด` means do not begin a new coordination task.
-21. `หยุดเฝ้า` means pause/disable continuous Scheduled execution without altering CogentNexus-OpenClaw runtime state.
+The routine execution actor is `Hermes`.
 
-## Technical ownership
+- Only work when current remote coordination state assigns the task/wait to Hermes.
+- Do not impersonate ChatGPT or the human operator.
+- Do not independently accept a report authored by Hermes.
+- Historical reports may name Luna or Musethree; preserve those names as historical evidence only.
 
-Within an authorized task, typical Hermes/Codex work now includes:
+## Startup synchronization
 
-- repository/source investigation and root-cause analysis;
-- source/test/config/installer repairs;
-- repository-local tests and build/package/plugin/schema validation;
-- GitHub Actions exact-SHA verification;
-- upstream source inspection when pinned behavior matters;
-- real Windows runtime state;
-- OpenClaw/Ollama/Gateway processes;
-- supported lifecycle operations explicitly authorized by the task;
-- Dashboard/browser semantic interaction only when explicitly authorized;
-- filesystem/hardware/permission proof;
-- detailed analysis and verification-report production.
+On every invocation, poll, or delayed wake:
 
-The executor should leave ChatGPT a compact verification interface rather than forcing ChatGPT to reconstruct the technical investigation.
+1. fetch the remote branch and verify exact remote HEAD;
+2. read remote coordination files from that revision;
+3. compare local worktree to remote and protect unknown local work;
+4. determine whether the current state assigns execution/wait ownership to Hermes;
+5. if state is waiting for ChatGPT review or user authority, perform no task mutation;
+6. if assigned an executable task, execute only that task and its explicit authority;
+7. if waking for an asynchronous wait, verify Task/HEAD/dependency identity is still current before checking or continuing.
 
-## Evidence/report principle
+## Technical execution
 
-The matching report is the primary handoff artifact. It must make PASS/FAIL/BLOCKED auditable using durable evidence such as exact commits, workflow run IDs, hashes, fingerprints, local evidence paths/hashes, and bounded observations.
+Inside an authorized task Hermes owns the full technical loop as applicable: root-cause analysis, repository/source/upstream investigation, TDD, implementation, tests/build/package/schema checks, exact-SHA CI evidence, and local/live proof only where explicitly allowed.
 
-Do not paste large logs or entire source files when a precise pointer and immutable identifier are enough.
+Do not wait for ChatGPT to prescribe routine investigation or implementation details already inside the task boundary.
 
-## Manual initial synchronization
+## Asynchronous waiting is not completion
 
-After accepting this bootstrap, fetch the current authorized remote branch, verify its remote HEAD, and read remote `ACTIVE.md`/`STATUS.md` plus the exact task.
+If required GitHub Actions or another deterministic gate is not terminal:
 
-For manual mode, do not execute until the operator sends:
+- retain task ownership;
+- do not publish final PASS merely because local work is done;
+- create a persistent delayed recheck using `DELAYED_RECHECK_QUEUE.md`;
+- GitHub Actions default recheck = approximately five minutes;
+- if still pending on wake, enqueue another five-minute wake;
+- resume automatically when terminal;
+- do not require the human to manually wake Hermes for ordinary CI completion.
 
-```text
-ต่อ
-```
+Use a persistent queue/scheduled wake rather than a fragile long in-process sleep where possible.
 
-## Continuous watch setup
+## Completion and ChatGPT handoff
 
-For unattended pickup, follow `WATCH_MODE.md`. Continuous execution never bypasses task-specific safety gates, invents tasks, or repeats completed side effects.
+After the task is actually complete, including required asynchronous gates:
+
+1. race-check remote authority;
+2. publish the final report/evidence;
+3. update coordination state to `WAITING_FOR_CHATGPT_REVIEW` or a more specific ChatGPT-review state;
+4. record exact report/publication HEAD, candidate/source SHA, required CI, residual risk, and hard fences;
+5. stop mutating the completed task.
+
+ChatGPT then performs independent review. If accepted, ChatGPT may open the next bounded task for Hermes. If rework is required, ChatGPT opens a bounded rework task for Hermes. If fresh human authority is required, coordination waits for that authority.
+
+There is no mandatory Luna/Musethree alternation and no peer-bot review requirement for new work.
+
+## Safety
+
+- GitHub remote is authoritative.
+- Never force-push.
+- Never overwrite a concurrent write.
+- Never repeat completed external side effects after a report/replay fence.
+- A delayed wake is permission to re-check, not permission for new side effects.
+- Repository delegation does not imply live/destructive/semantic authority.
+- Unknown user intent must not be guessed.
+- Never write `ChatGPT accepts`, `human approved`, or equivalent unless that real authority has issued the decision.

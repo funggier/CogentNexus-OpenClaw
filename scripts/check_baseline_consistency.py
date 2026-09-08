@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.9.3"
+EXPECTED_VERSION = "0.9.4"
 TEXT_SUFFIXES = {".md", ".py", ".ts", ".json", ".ps1", ".sh", ".yml", ".yaml"}
 CURRENT_TOP_LEVEL = {"docs", "skills", "plugins", "scripts", "templates", ".github"}
 SKIP_PREFIXES = (

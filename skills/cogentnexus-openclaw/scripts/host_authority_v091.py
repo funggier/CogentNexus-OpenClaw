@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
 import host_v091 as v091
+import supervisor_quiescence
 
 legacy = v091.legacy
 BASE_DIRECT_DELIVERY_FENCE = v091.reconcile_direct_delivery_before_recovery
@@ -98,14 +100,13 @@ def reconcile_direct_delivery_authority(root: Path, cutoff_iso: str) -> dict[str
 v091.reconcile_direct_delivery_before_recovery = reconcile_direct_delivery_authority
 
 
-def enable(root: Path) -> dict[str, Any]:
+def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
     """Commit MANAGED exactly once before inference-capable plugin activation."""
     legacy.initialize(root)
     prior = legacy.load_state(root)
     workspace = root.parent
     agents_path = workspace / "AGENTS.md"
     agents_snapshot = v091._snapshot_file(agents_path)
-    started = legacy.now_iso()
 
     # These classifiers are authoritative before any plugin surface may execute.
     terminal_fences = legacy.reconcile_terminal_fences(root)
@@ -250,6 +251,23 @@ def enable(root: Path) -> dict[str, Any]:
         "postCommitRecoveryError": recovery_error,
         "transactional": True,
     }
+
+
+def enable(root: Path) -> dict[str, Any]:
+    started = legacy.now_iso()
+    lease_owner = f"enable:{__import__('os').getpid()}:{started}"
+    lease = supervisor_quiescence.acquire(root, lease_owner, ttl=900.0, timeout=0.0)
+    try:
+        return _enable_under_lease(root, started)
+    finally:
+        pending_error = sys.exc_info()[1]
+        try:
+            supervisor_quiescence.release(root, lease_owner, token=lease["token"])
+        except Exception as release_error:
+            if pending_error is None:
+                raise
+            if hasattr(pending_error, "add_note"):
+                pending_error.add_note(f"quiescence lease release also failed: {release_error}")
 
 
 # Importing host_v091 installs every other hardened v0.9.1 path. Replace only

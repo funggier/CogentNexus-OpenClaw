@@ -113,8 +113,8 @@ def main():
         raise SystemExit("Workflow CLI validation failed")
     if startup.returncode or not all(word in startup.stdout for word in ("status", "enable", "disable", "ensure")):
         raise SystemExit("Startup CLI validation failed")
-    if cnx.returncode or not all(word in cnx.stdout for word in ("check system", "provider list", "Ollama-only", "--provider ollama", "reset", "uninstall")):
-        raise SystemExit("v0.9.3 CNXCLAW CLI validation failed")
+    if cnx.returncode or not all(word in cnx.stdout for word in ("check system", "provider list", "managed Ollama", "Cloud pass-through", "--provider ollama", "reset", "uninstall")):
+        raise SystemExit("v0.9.4 CNXCLAW CLI validation failed")
     run_workflow_self_test()
     templates = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate_templates.py")], capture_output=True, text=True)
     if templates.returncode:

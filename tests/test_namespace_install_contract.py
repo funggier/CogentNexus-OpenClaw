@@ -50,6 +50,31 @@ def test_windows_installer_applies_verified_rollover_before_single_candidate_res
     assert "$rolloverTransactionPath" in source
 
 
+def test_windows_skip_plugin_short_circuits_post_copy_plugin_resolution():
+    source = read("scripts/install.ps1")
+    launcher = source.index('Write-Host "Installed CogentNexus-OpenClaw launcher')
+    resolve = source.index(" resolve-plugin --openclaw-state", launcher)
+    verify = source.index('namespace_ownership.py") verify --root', resolve)
+    guard = source.find("if ($SkipPlugin) {", launcher, resolve)
+    assert guard > launcher, "SkipPlugin must guard post-copy plugin resolution"
+    assert guard < resolve
+    close = source.find("\n}\n", resolve)
+    assert close > resolve
+    assert "installedPluginFingerprint.ToLowerInvariant()" in source[resolve:close]
+    assert "staging" in source[guard:close + 3].lower()
+    assert verify < close, "normal plugin verification remains inside the else path"
+
+
+def test_posix_skip_plugin_short_circuits_post_copy_plugin_resolution():
+    source = read("scripts/install.sh")
+    launcher = source.index('echo "Installed CogentNexus-OpenClaw launcher')
+    resolve = source.index(" resolve-plugin --openclaw-state", launcher)
+    guard = source.find('if [ "$SKIP_PLUGIN" -eq 1 ]; then', launcher, resolve)
+    assert guard > launcher, "skip-plugin must guard post-copy plugin resolution"
+    assert guard < resolve
+    assert "staging" in source[launcher:source.index("fi", resolve) + 2].lower()
+
+
 def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report():
     source = read("scripts/install.sh")
     assert 'LAUNCHER="$WORKSPACE/cnxclaw"' in source
@@ -63,19 +88,42 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
     assert "openclaw plugins uninstall cogentnexus-rotation --force" in source
 
 
+def test_windows_installer_exposes_explicit_attested_rollover_recovery_before_preflight():
+    source = read("scripts/install.ps1")
+    parameter = source.index("[string]$RecoverRolloverTransaction")
+    digest_parameter = source.index("[string]$RecoverRolloverTransactionSha256", parameter)
+    source_parameter = source.index("[string]$RecoverRolloverSourcePluginRoot", digest_parameter)
+    recovery = source.index('"rollover-recover"', source_parameter)
+    inventory = source.rindex("openclaw plugins list --json", digest_parameter, recovery)
+    preflight = source.index("recovery-preflight --workspace", recovery)
+    classification = source.index("classify-install --workspace", preflight)
+    assert parameter < digest_parameter < source_parameter < inventory < recovery < preflight < classification
+    assert "-RecoverRolloverTransaction requires" in source
+    recovery_window = source[recovery - 1200:recovery + 1400]
+    assert '"--workspace", $Workspace' in recovery_window
+    assert '"--app-data", $applicationDataRoot' in recovery_window
+    assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in recovery_window
+    assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in recovery_window
+    assert "Invoke-NativeInstallerDiagnostic -Executable \"python\" -Arguments $rolloverRecoveryArgs" in recovery_window
+    assert '$rolloverRecoveryArgs = @(\n            $ownershipScript,\n            "rollover-recover"' in recovery_window
+    assert "plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version" in source[parameter:recovery]
+
+
 def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
     source = read("scripts/install.sh")
+    fingerprint = source.index("plugin-fingerprint")
+    prepare = source.index("rollover-prepare", fingerprint)
     install = source.index('openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force')
     inventory = source.index("openclaw plugins list --json", install)
-    plan = source.index("rollover-plan", inventory)
-    apply = source.index("rollover-apply", plan)
-    resolve = source.index(" resolve-plugin --openclaw-state", apply)
-    assert install < inventory < plan < apply < resolve
-    plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ]; then')
-    upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then', install)
-    assert plugin_guard < install < upgrade_guard < plan
+    finalize = source.index("rollover-finalize", inventory)
+    resolve = source.index(" resolve-plugin --openclaw-state", finalize)
+    assert fingerprint < prepare < install < inventory < finalize < resolve
+    plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then')
+    upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then')
+    assert fingerprint < upgrade_guard < plugin_guard < prepare
+    assert "--expected-replacement-fingerprint" in source[prepare:finalize]
     assert "--link-plugin is incompatible with ownership-safe managed installation" in source
-    assert source.count("openclaw plugins list --json", install, apply) == 2
+    assert source.count("openclaw plugins list --json", install, finalize) == 1
     linked_filter = source.index("filter_plugin_paths.py", plugin_guard)
     assert linked_filter < install
     assert "plugins.load.paths" in source[linked_filter - 300:linked_filter + 300]
@@ -84,7 +132,7 @@ def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
 def test_release_package_names_are_variant_scoped():
     validate = read(".github/workflows/validate.yml")
     release = read(".github/workflows/release.yml")
-    assert 'name="cogentnexus-openclaw-v0.9.3"' in validate
+    assert 'name="cogentnexus-openclaw-v0.9.4"' in validate
     assert 'name="cogentnexus-openclaw-$tag"' in release
     assert '--title "CogentNexus-OpenClaw $tag"' in release
 

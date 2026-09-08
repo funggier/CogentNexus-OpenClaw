@@ -13,8 +13,8 @@ class BaselineContractTests(unittest.TestCase):
         lock = json.loads((ROOT / "plugins/cogentnexus-openclaw/package-lock.json").read_text(encoding="utf-8"))
 
         bridge_version = package["version"]
-        self.assertEqual(core_version, "0.9.3")
-        self.assertEqual(bridge_version, "0.9.3")
+        self.assertEqual(core_version, "0.9.4")
+        self.assertEqual(bridge_version, "0.9.4")
         self.assertEqual(bridge_version, manifest["version"])
         self.assertEqual(bridge_version, lock["version"])
         self.assertEqual(bridge_version, lock["packages"][""]["version"])

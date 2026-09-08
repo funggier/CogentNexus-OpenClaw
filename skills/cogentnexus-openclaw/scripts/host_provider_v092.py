@@ -434,6 +434,9 @@ def _recover_claimed_direct_call(root: Path, target: str, before: dict[str, Any]
 
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
+    quiesced = stall.authority.supervisor_quiescence.supervisor_quiesced_result(root)
+    if quiesced is not None:
+        return quiesced
     state = legacy.load_state(root)
     if state.get("mode") != "managed" or state.get("desiredGateway") != "running":
         return _run_base_supervisor(root, execute_safe, True)

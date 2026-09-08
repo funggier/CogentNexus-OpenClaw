@@ -63,7 +63,8 @@ type PendingDirectResult = {
   idempotency_key: string;
 };
 
-type NativeTranscriptCandidate = { runId: string; sessionKey: string; text: string; idempotencyKey?: string };
+type IngressSurface = "dashboard" | "discord";
+type NativeTranscriptCandidate = { runId: string; sessionKey: string; text: string; ingressSurface?: IngressSurface; idempotencyKey?: string };
 
 function messageText(message: any): string {
   const content = Array.isArray(message?.content) ? message.content : [];
@@ -110,6 +111,35 @@ function dashboardTicket(path: string, runId: string): DashboardTicket | undefin
   } finally { db.close(); }
 }
 
+function isDiscordOwnerSession(sessionKey: string) {
+  return /^agent:[^:]+:discord:channel:\d+$/u.test(sessionKey);
+}
+
+function trustedIngressSurface(context: any): IngressSurface | undefined {
+  const provider = context?.messageProvider;
+  const channel = context?.channel;
+  const providerSurface = provider === "webchat" || provider === "discord" ? provider : undefined;
+  const channelSurface = channel === "webchat" || channel === "discord"
+    ? channel
+    : context?.channelId === "webchat" ? "webchat" : undefined;
+  if (providerSurface && channelSurface && providerSurface !== channelSurface) return undefined;
+  const surface = providerSurface ?? channelSurface;
+  if (surface === "webchat") return "dashboard";
+  if (surface === "discord") return "discord";
+  return undefined;
+}
+
+function discordOwnerTicket(path: string, runId: string, sessionKey: string): DashboardTicket | undefined {
+  if (!isDiscordOwnerSession(sessionKey)) return undefined;
+  const db = openDb(path, true);
+  try {
+    return db.prepare(`SELECT ticket_id,run_id,owner_session_key,response_ready_at FROM tickets
+      WHERE run_id=? AND owner_session_key=? AND status='accepted'
+        AND workflow_eligible=0 AND workflow_id IS NULL
+      ORDER BY created_at DESC LIMIT 1`).get(runId, sessionKey) as DashboardTicket | undefined;
+  } finally { db.close(); }
+}
+
 function dashboardTicketForSession(path: string, sessionKey: string): DashboardTicket | undefined {
   const db = openDb(path, true);
   try {
@@ -132,6 +162,13 @@ function pendingDirectResult(path: string, runId: string): PendingDirectResult |
   } finally { db.close(); }
 }
 
+function hasPendingDirectResult(path: string) {
+  const db = openDb(path, true);
+  try {
+    return Boolean(db.prepare("SELECT 1 FROM cnx_assistant_delivery WHERE kind='direct_result' AND status='pending' LIMIT 1").get());
+  } finally { db.close(); }
+}
+
 export function deliveryMarker(idempotencyKey: string) {
   const digest = createHash("sha256").update(idempotencyKey).digest("hex").slice(0, 32);
   return `<!-- cogentnexus-openclaw-delivery:${digest} -->`;
@@ -143,11 +180,15 @@ function nativePayloadText(text: string, idempotencyKey: string) {
 }
 
 /** Commit one replayable Dashboard final before native transport begins. */
-export function stageDashboardDirectResult(path: string, input: { runId: string; text: string; now?: Date }) {
+export function stageDashboardDirectResult(path: string, input: { runId: string; text: string; ownerSessionKey?: string; ingressSurface?: IngressSurface; now?: Date }) {
   const text = input.text.trim();
   if (!text) return { staged: false as const, reason: "empty-text" };
   if (isBareSilentReply(text)) return { staged: false as const, reason: "silent-reply" };
-  const initial = dashboardTicket(path, input.runId);
+  const initial = input.ingressSurface === "discord" && input.ownerSessionKey
+    ? discordOwnerTicket(path, input.runId, input.ownerSessionKey)
+    : input.ingressSurface === "dashboard" && input.ownerSessionKey
+      ? (dashboardTicket(path, input.runId) ?? discordOwnerTicket(path, input.runId, input.ownerSessionKey))
+      : dashboardTicket(path, input.runId);
   if (!initial) return { staged: false as const, reason: "not-dashboard-direct" };
 
   // sessionAuthority owns creation/migration of the v0.9 session + assistant-delivery schema.
@@ -160,7 +201,12 @@ export function stageDashboardDirectResult(path: string, input: { runId: string;
     const ticket = db.prepare(`SELECT ticket_id,owner_session_key,response_ready_at FROM tickets
       WHERE run_id=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL
       ORDER BY created_at DESC LIMIT 1`).get(input.runId) as DashboardTicket | undefined;
-    if (!ticket?.owner_session_key || !isDashboardSession(ticket.owner_session_key)) {
+    const allowedOwner = input.ingressSurface === "dashboard" && input.ownerSessionKey
+      ? ticket?.owner_session_key === input.ownerSessionKey && (isDashboardSession(ticket.owner_session_key) || isDiscordOwnerSession(ticket.owner_session_key))
+      : input.ingressSurface === "discord" && input.ownerSessionKey
+        ? ticket?.owner_session_key === input.ownerSessionKey && isDiscordOwnerSession(ticket.owner_session_key)
+        : Boolean(ticket?.owner_session_key && isDashboardSession(ticket.owner_session_key));
+    if (!ticket?.owner_session_key || !allowedOwner) {
       db.exec("COMMIT");
       return { staged: false as const, reason: "ticket-no-longer-dashboard-direct" };
     }
@@ -413,7 +459,7 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     // A pending direct_result is already the exact assistant answer. Whether the
     // native append is still active or its receipt is delayed, never delegate to
     // legacy recovery, which would otherwise create a competing recovery claim.
-    if (NATIVE_OWNED_RUNS.size > 0) return [];
+    if (NATIVE_OWNED_RUNS.size > 0 || hasPendingDirectResult(this.databasePath)) return [];
     return recover.call(this, { ...input, now });
   };
 
@@ -425,6 +471,8 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     dispatcher: any;
     workspace: string;
     path: string;
+    sessionKey: string;
+    ingressSurface: IngressSurface;
     owned: boolean;
     waiterStarted: boolean;
   }>();
@@ -437,19 +485,29 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const sessionKey = typeof event?.sessionKey === "string" ? event.sessionKey : typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
     const candidateMessage = event?.lastAssistantMessage;
     const text = typeof candidateMessage === "string" ? candidateMessage.trim() : messageText(candidateMessage).trim();
-    if (!runId || !sessionKey || !text || !dashboardTicket(path, runId)) return;
+    if (!runId || !sessionKey || !text) return;
+    const ingressSurface = trustedIngressSurface(ctx);
+    const dashboard = ingressSurface === "dashboard"
+      ? (dashboardTicket(path, runId) ?? discordOwnerTicket(path, runId, sessionKey))
+      : ingressSurface === undefined ? dashboardTicket(path, runId) : undefined;
+    const discord = ingressSurface === "discord" || ingressSurface === undefined
+      ? discordOwnerTicket(path, runId, sessionKey) : undefined;
+    if (!dashboard && !discord) return;
     if (isBareSilentReply(text)) {
+      const isDiscord = Boolean(discord);
       return {
         action: "revise",
-        reason: "direct Dashboard request produced a silent sentinel",
+        reason: isDiscord ? "direct Discord request produced a silent sentinel" : "direct Dashboard request produced a silent sentinel",
         retry: {
-          instruction: "This is a genuine direct Dashboard user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn.",
-          idempotencyKey: `cnxclaw-dashboard-visible-final:${runId}`,
+          instruction: isDiscord
+            ? "This is a genuine direct Discord user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn."
+            : "This is a genuine direct Dashboard user request. Produce a visible answer to the current user request. Do not return NO_REPLY/no_reply for this turn.",
+          idempotencyKey: `cnxclaw-${isDiscord ? "discord" : "dashboard"}-visible-final:${runId}`,
           maxAttempts: 1,
         },
       };
     }
-    nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text });
+    if (dashboard) nativeTranscriptCandidates.set(sessionKey, { runId, sessionKey, text, ingressSurface });
   }, { priority: 600 });
 
   api.on?.("before_message_write", (event: any, ctx: any) => {
@@ -457,12 +515,20 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
     const text = messageText(event.message).trim();
     if (!sessionKey || !text) return;
-    const candidate = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+    const candidate: NativeTranscriptCandidate | undefined = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+      if (trustedIngressSurface(ctx) === "discord") return undefined;
       const ticket = dashboardTicketForSession(path, sessionKey);
       return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
     })();
     if (!candidate || text !== candidate.text) return;
-    const staged = stageDashboardDirectResult(path, { runId: candidate.runId, text: candidate.text });
+    const ingressSurface = trustedIngressSurface(ctx);
+    if (candidate.ingressSurface === "dashboard" && ingressSurface === "discord") return;
+    const staged = stageDashboardDirectResult(path, {
+      runId: candidate.runId,
+      text: candidate.text,
+      ownerSessionKey: candidate.sessionKey,
+      ingressSurface: candidate.ingressSurface ?? ingressSurface,
+    });
     if (!staged.staged) return;
     nativeTranscriptCandidates.set(sessionKey!, { ...candidate, idempotencyKey: staged.idempotencyKey });
     NATIVE_OWNED_RUNS.add(candidate.runId);
@@ -499,11 +565,18 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const path = resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspace));
     if (!hasAppendBeforeDeliver) {
       observeDelivery(api.logger, "handler-skip", { reason: "missing-append-before-deliver" });
-      if (dashboardTicket(path, runId)) {
+      const ingressSurface = trustedIngressSurface(ctx);
+      const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+      const ticket = ingressSurface === "discord" && sessionKey
+        ? discordOwnerTicket(path, runId, sessionKey)
+        : dashboardTicket(path, runId);
+      if (ticket) {
         publicHookFallbacks.set(runId, {
           dispatcher: ctx.dispatcher,
           workspace,
           path,
+          sessionKey: ticket.owner_session_key,
+          ingressSurface: ingressSurface === "discord" ? "discord" : "dashboard",
           owned: false,
           waiterStarted: false,
         });
@@ -610,6 +683,17 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     if (!runId) return;
     const fallback = publicHookFallbacks.get(runId);
     if (!fallback) return;
+    // Consume-time owner/context fence: possession of runId alone is not
+    // authority to consume a fallback armed for another session or surface.
+    const consumeSessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
+    const consumeSurface = trustedIngressSurface(ctx);
+    if (consumeSessionKey !== fallback.sessionKey || consumeSurface !== fallback.ingressSurface) {
+      observeDelivery(api.logger, "public-hook-skip", {
+        reason: "owner-context-mismatch",
+        correlation: correlationDigest(event, ctx),
+      });
+      return;
+    }
     const payload = event?.payload;
     const kind = event?.kind;
     if (kind !== "final") return;
@@ -631,7 +715,12 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     observeDelivery(api.logger, "stage-attempt", { correlation: correlationDigest(event, ctx), hasText: true });
     let staged: ReturnType<typeof stageDashboardDirectResult>;
     try {
-      staged = stageDashboardDirectResult(fallback.path, { runId, text });
+      staged = stageDashboardDirectResult(fallback.path, {
+        runId,
+        text,
+        ownerSessionKey: fallback.sessionKey,
+        ingressSurface: fallback.ingressSurface,
+      });
     } catch (error) {
       observeDelivery(api.logger, "stage-exception", { category: "stage", exception: exceptionCategory(error) });
       throw error;

@@ -19,6 +19,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import supervisor_quiescence
+
 HERE = Path(__file__).resolve()
 SKILL = HERE.parents[1]
 WORKSPACE = SKILL.parents[1]
@@ -230,6 +232,7 @@ def plugin_enabled(enabled: bool) -> None:
 
 def configure_managed_plugin() -> None:
     settings = [
+        ("providerMode", "managed"),
         ("ticketFirst", "true"),
         ("preInferenceAdmission", "true"),
         ("autoWorkflowCompletion", "true"),
@@ -246,6 +249,14 @@ def configure_managed_plugin() -> None:
     for key, value in settings:
         run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.config.{key}", value], timeout=60, check=True)
     run([openclaw_executable(), "config", "set", f"plugins.entries.{PLUGIN_ID}.hooks.allowConversationAccess", "true"], timeout=60, check=True)
+
+
+def configure_cloud_plugin() -> None:
+    """Select passive hooks without reading or changing OpenClaw's route/auth."""
+    run([
+        openclaw_executable(), "config", "set",
+        f"plugins.entries.{PLUGIN_ID}.config.providerMode", "passthrough",
+    ], timeout=60, check=True)
 
 
 def normalize_policy(text: str) -> str:
@@ -669,6 +680,13 @@ def restart_managed(root: Path) -> dict[str, Any]:
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     initialize(root)
+    if supervisor_quiescence.supervisor_is_quiesced(root):
+        return {
+            "result": "quiesced",
+            "mode": load_state(root).get("mode"),
+            "action": "none",
+            "quiescence": supervisor_quiescence.read(root),
+        }
     state = load_state(root)
     if state.get("mode") != "managed":
         return {"result": "passthrough", "mode": state.get("mode"), "action": "none"}

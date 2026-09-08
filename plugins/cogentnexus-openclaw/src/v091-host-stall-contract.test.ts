@@ -48,7 +48,7 @@ function fixture() {
   ).run(
     "agent:main:dashboard:host-stall",
     "2026-08-18T13:00:00.000Z",
-    "2026-08-18T13:00:00.000Z",
+    "2026-08-18T13:16:00.000Z",
   );
   db.prepare(`INSERT INTO cnx_direct_recovery(
       ticket_id,mode,state,attempt_count,active_run_id,next_attempt_at,last_error,

@@ -2,14 +2,14 @@
 
 This document records accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current public-release identity.
 
-Current release line: **v0.9.3**.  
-Current managed provider: **Ollama only**.  
+Current development line: **v0.9.4 (unreleased; no tag or GitHub Release yet)**.
+Current managed provider: **Ollama** (health, lifecycle, and recovery). Cloud providers use an OpenClaw-owned **pass-through** route: OpenClaw owns credentials, routing, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw owns only Ticket/session continuity and durable delivery and never handles Cloud credentials.
 Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
 Historical broad-lifecycle implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.  
 Frozen repaired publication candidate for Task-191/192 evidence: `050ab53f4b593ab538143084d6bbdbf7e1672e34`.
 
-The v0.9.3 implementation completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and Dashboard semantic/durable-delivery acceptance. Those results extend this historical Recovery Core checkpoint; they do not rewrite it.
+The v0.9.4 implementation completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and Dashboard semantic/durable-delivery acceptance. Those results extend this historical Recovery Core checkpoint; they do not rewrite it.
 
 Task 187 stopped initial publication when stale current guidance was found inside documentation-bearing product surfaces. Task 188 corrected those bytes. A subsequent proportional Dashboard requalification exposed a narrow executable integration defect where bare OpenClaw `NO_REPLY` could be promoted into a visible durable result after CogentNexus-OpenClaw marker decoration.
 

@@ -15,7 +15,8 @@ from typing import Any
 
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
-INSTALLED_VERSION = "0.9.3"
+INSTALLED_VERSION = "0.9.4"
+UPGRADE_FROM_VERSIONS = ("0.9.3",)
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
@@ -580,8 +581,8 @@ def _wrapper_identifies_product(project: Path) -> bool:
     return isinstance(dependencies, dict) and PLUGIN_PACKAGE in dependencies
 
 
-def _project_tree_sha256(root: Path) -> str:
-    """Hash an exact tree without following symlinks or Windows junctions."""
+def _project_tree_entries(root: Path) -> list[dict[str, Any]]:
+    """Enumerate exact digest inputs without following reparse points."""
     entries: list[dict[str, Any]] = []
 
     def visit(directory: Path) -> None:
@@ -611,7 +612,33 @@ def _project_tree_sha256(root: Path) -> str:
                 raise RuntimeError(f"managed npm project has an unsupported filesystem entry: {child_path}")
 
     visit(root)
-    return _json_sha256(entries)
+    return entries
+
+
+def _project_tree_snapshot(root: Path) -> dict[str, Any]:
+    """Return the exact entry inputs and digest produced by one tree scan."""
+    entries = _project_tree_entries(root)
+    return {"sha256": _json_sha256(entries), "entries": entries}
+
+
+def _project_tree_sha256(root: Path) -> str:
+    """Hash an exact tree without following symlinks or Windows junctions."""
+    return _project_tree_snapshot(root)["sha256"]
+
+
+def _project_tree_snapshot_delta(source: dict[str, Any], backup: dict[str, Any], *, limit: int = 64) -> list[dict[str, Any]]:
+    """Describe bounded digest-input differences from the captured scans."""
+    source_by_path = {entry["path"]: entry for entry in source["entries"]}
+    backup_by_path = {entry["path"]: entry for entry in backup["entries"]}
+    differences: list[dict[str, Any]] = []
+    for path in sorted(set(source_by_path) | set(backup_by_path)):
+        source_entry = source_by_path.get(path)
+        backup_entry = backup_by_path.get(path)
+        if source_entry != backup_entry:
+            differences.append({"path": path, "source": source_entry, "backup": backup_entry})
+            if len(differences) >= limit:
+                break
+    return differences
 
 
 def product_plugin_inventory(openclaw_state: Path) -> dict[str, Path]:
@@ -700,7 +727,7 @@ def _parse_utc(value: object) -> datetime:
 
 
 def verify_manifest(root: Path, *, workspace: Path, require_artifacts: bool = True,
-                    verify_plugin: bool = True) -> dict[str, Any]:
+                    verify_plugin: bool = True, allow_upgrade_from: tuple[str, ...] = ()) -> dict[str, Any]:
     target = manifest_path(root)
     try:
         payload = json.loads(target.read_text(encoding="utf-8"))
@@ -719,6 +746,8 @@ def verify_manifest(root: Path, *, workspace: Path, require_artifacts: bool = Tr
     }
     mismatches = {key: {"expected": value, "actual": payload.get(key)}
                   for key, value in expected.items() if payload.get(key) != value}
+    if allow_upgrade_from and payload.get("installedVersion") in allow_upgrade_from:
+        mismatches.pop("installedVersion", None)
     if _canonical(root) != _canonical(paths["stateRoot"]):
         mismatches["rootArgument"] = {"expected": _canonical(paths["stateRoot"]), "actual": _canonical(root)}
     if payload.get("launcherPath") not in launchers:
@@ -832,13 +861,17 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
                           expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
-    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
+    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
-    retired = _plugin_payload(retired_root)
+    retired = next((payload for version in UPGRADE_FROM_VERSIONS
+                    if (payload := _plugin_payload(retired_root, expected_version=version)) is not None), None)
+    if retired is None:
+        retired = _plugin_payload(retired_root)
     if retired is None:
         raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
     candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
-                  if (payload := _plugin_payload(candidate)) is not None]
+                  for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS)
+                  if (payload := _plugin_payload(candidate, expected_version=version)) is not None]
     if len(candidates) != 2:
         raise RuntimeError(f"rollover requires exactly two canonical payload candidates; observed {len(candidates)}")
     candidate_keys = {_canonical(item["root"]) for item in candidates}
@@ -884,9 +917,12 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     application_data = application_data.resolve(strict=False)
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
-    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
+    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"])
-    retired_payload = _plugin_payload(retired_root)
+    retired_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                            if (payload := _plugin_payload(retired_root, expected_version=version)) is not None), None)
+    if retired_payload is None:
+        retired_payload = _plugin_payload(retired_root)
     if retired_payload is None:
         raise RuntimeError(f"manifest-owned prior plugin payload is not exact: {retired_root}")
     if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_replacement_fingerprint):
@@ -903,6 +939,22 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         raise RuntimeError("rollover backup destination is invalid or already exists")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(retired_project, backup_path)
+    retired_snapshot = _project_tree_snapshot(retired_project)
+    backup_snapshot = _project_tree_snapshot(backup_path)
+    retired_project_tree_sha256 = retired_snapshot["sha256"]
+    backup_project_tree_sha256 = backup_snapshot["sha256"]
+    if retired_project_tree_sha256 != backup_project_tree_sha256:
+        differences = _project_tree_snapshot_delta(retired_snapshot, backup_snapshot)
+        diagnostic = {
+            "sourceTreeSha256": retired_project_tree_sha256,
+            "backupTreeSha256": backup_project_tree_sha256,
+            "changedPaths": [item["path"] for item in differences],
+            "differences": differences,
+        }
+        raise RuntimeError(
+            "pre-install backup project-tree attestation mismatch; "
+            f"diagnostic={json.dumps(diagnostic, sort_keys=True, separators=(',', ':'))}"
+        )
     return {
         "schemaVersion": 1,
         "operation": "cogentnexus-openclaw-plugin-generation-rollover-transaction",
@@ -913,13 +965,129 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
         "retiredProjectRoot": _canonical(retired_project),
         "backupPath": _canonical(backup_path),
         "retiredFingerprint": retired_payload["fingerprint"],
-        "retiredProjectTreeSha256": _project_tree_sha256(retired_project),
-        "backupProjectTreeSha256": _project_tree_sha256(backup_path),
+        "retiredProjectTreeSha256": retired_project_tree_sha256,
+        "backupProjectTreeSha256": backup_project_tree_sha256,
         "manifestBefore": manifest,
         "manifestBeforeSha256": _sha256_file(manifest_path(root)),
         "expectedReplacementFingerprint": expected_replacement_fingerprint.lower(),
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def recover_quarantined_plugin_rollover(*, transaction_bytes: bytes,
+                                        plugin_inventory: dict[str, Any],
+                                        workspace: Path,
+                                        application_data: Path,
+                                        expected_transaction_sha256: str,
+                                        expected_replacement_fingerprint: str) -> dict[str, Any]:
+    """Resume only an attested rollover whose prior manifest was quarantined."""
+    if not isinstance(transaction_bytes, bytes):
+        raise RuntimeError("rollover recovery transaction bytes are required")
+    transaction_sha256 = hashlib.sha256(transaction_bytes).hexdigest()
+    if transaction_sha256.lower() != expected_transaction_sha256.lower():
+        raise RuntimeError("rollover recovery transaction digest does not match operator authority")
+    try:
+        transaction = json.loads(transaction_bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("rollover recovery transaction bytes are not valid JSON") from exc
+    expected_fields = {
+        "schemaVersion", "operation", "workspace", "stateRoot", "openclawState",
+        "applicationData", "controllerMode", "retiredPluginPath", "retiredProjectRoot",
+        "backupPath", "retiredFingerprint", "retiredProjectTreeSha256",
+        "backupProjectTreeSha256", "manifestBefore", "manifestBeforeSha256",
+        "expectedReplacementFingerprint", "createdAt",
+    }
+    if not isinstance(transaction, dict) or set(transaction) != expected_fields:
+        raise RuntimeError("rollover recovery transaction schema fields are not exact")
+    for label, value in (
+        ("transaction digest", transaction_sha256),
+        ("expected transaction digest", expected_transaction_sha256),
+        ("historical manifest digest", transaction.get("manifestBeforeSha256")),
+        ("expected replacement fingerprint", expected_replacement_fingerprint),
+    ):
+        if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", value):
+            raise RuntimeError(f"rollover recovery {label} is invalid")
+    if transaction.get("expectedReplacementFingerprint", "").lower() != expected_replacement_fingerprint.lower():
+        raise RuntimeError("rollover recovery replacement fingerprint does not match source authority")
+    if transaction.get("schemaVersion") != 1 or transaction.get("operation") != "cogentnexus-openclaw-plugin-generation-rollover-transaction":
+        raise RuntimeError("rollover recovery transaction identity is invalid")
+    workspace = workspace.resolve(strict=False)
+    application_data = application_data.resolve(strict=False)
+    paths = expected_paths(workspace)
+    root = paths["stateRoot"].resolve(strict=False)
+    exact_path_bindings = {
+        "workspace": _canonical(workspace),
+        "stateRoot": _canonical(root),
+        "openclawState": _canonical(paths["openclawState"]),
+    }
+    for field, expected_path in exact_path_bindings.items():
+        if transaction.get(field) != expected_path:
+            raise RuntimeError(f"rollover recovery {field} does not match the trusted workspace binding")
+    if transaction.get("controllerMode") != "passthrough":
+        raise RuntimeError("rollover recovery requires PASSTHROUGH transaction authority")
+    _require_passthrough(root)
+    marker = load_transaction_marker(workspace)
+    if marker is None or marker.get("state") != "committed":
+        raise RuntimeError("rollover recovery requires an exact committed install marker")
+    marker_boundary = dict(marker)
+    marker_boundary["state"] = "incomplete"
+    _validate_marker_boundary(workspace, marker_boundary)
+    if marker.get("applicationData") != _canonical(application_data):
+        raise RuntimeError("rollover recovery applicationData does not match the trusted application-data root")
+    if transaction.get("applicationData") != _canonical(application_data):
+        raise RuntimeError("rollover recovery applicationData does not match the committed installation binding")
+    manifest_before = transaction.get("manifestBefore")
+    if not isinstance(manifest_before, dict) or set(manifest_before) != MANIFEST_FIELDS:
+        raise RuntimeError("rollover recovery manifestBefore schema is not exact")
+    retired_plugin_text = manifest_before.get("pluginPath")
+    if not isinstance(retired_plugin_text, str) or transaction.get("retiredPluginPath") != retired_plugin_text:
+        raise RuntimeError("rollover recovery retired plugin does not match prior ownership")
+    retired_plugin = Path(retired_plugin_text)
+    retired_project = _retired_storage_root(retired_plugin, paths["openclawState"])
+    direct = (paths["openclawState"] / "extensions" / PRODUCT_ID).resolve(strict=False)
+    if _canonical(retired_project) != _canonical(direct):
+        generation_prefix = f"{PLUGIN_PACKAGE}__openclaw-generation__"
+        suffix = retired_project.name[len(generation_prefix):] if retired_project.name.startswith(generation_prefix) else ""
+        if not re.fullmatch(r"g-[a-f0-9]{16}", suffix):
+            raise RuntimeError("rollover recovery retired managed project is not an exact generation")
+    if transaction.get("retiredProjectRoot") != _canonical(retired_project):
+        raise RuntimeError("rollover recovery retired project ownership binding is invalid")
+    backup_root = (application_data / "plugin-generation-rollover-backups").resolve(strict=False)
+    backup_path = Path(transaction["backupPath"])
+    if (backup_path.parent.resolve(strict=False) != backup_root
+            or not backup_path.name.startswith(retired_project.name + "-")
+            or backup_path.name == retired_project.name + "-"):
+        raise RuntimeError("rollover recovery backup path is outside the exact rollover backup root")
+    for boundary in (workspace, root, paths["openclawState"], application_data,
+                     retired_plugin, retired_project, backup_path):
+        probe = Path(boundary)
+        while probe.parent != probe and probe.exists():
+            if _is_reparse_point(probe):
+                raise RuntimeError(f"rollover recovery boundary contains filesystem indirection: {probe}")
+            probe = probe.parent
+    target = manifest_path(root)
+    if target.exists():
+        raise RuntimeError("rollover recovery requires a quarantined ownership manifest")
+    try:
+        write_manifest(root, manifest_before)
+        restored = verify_manifest(
+            root, workspace=workspace, verify_plugin=False,
+            allow_upgrade_from=UPGRADE_FROM_VERSIONS,
+        )
+        if restored != manifest_before:
+            raise RuntimeError("rollover recovery restored manifest does not preserve prior ownership semantics")
+        recovery_transaction = dict(transaction)
+        recovery_transaction["manifestBeforeSha256"] = _sha256_file(target)
+        result = finalize_plugin_rollover_transaction(
+            transaction=recovery_transaction, plugin_inventory=plugin_inventory,
+        )
+        _require_passthrough(root)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+    result = dict(result)
+    result["status"] = "ROLLOVER_RECOVERED_PASSTHROUGH"
+    return result
 
 
 def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
@@ -983,7 +1151,10 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("replacement still points to the retired generation")
         if expected.lower() == retired_fingerprint.lower():
             raise RuntimeError("direct same-path rollover requires a fingerprint transition from the retired fingerprint")
-        backup_payload = _plugin_payload(backup_path)
+        backup_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                               if (payload := _plugin_payload(backup_path, expected_version=version)) is not None), None)
+        if backup_payload is None:
+            backup_payload = _plugin_payload(backup_path)
         if backup_payload is None or backup_payload["fingerprint"].lower() != retired_fingerprint.lower():
             raise RuntimeError("direct same-path retired backup fingerprint proof failed")
         product_evidence = product_plugin_inventory(openclaw_state)
@@ -993,6 +1164,7 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("direct same-path rollover has conflicting product storage evidence")
 
     manifest_after = dict(transaction["manifestBefore"])
+    manifest_after["installedVersion"] = INSTALLED_VERSION
     manifest_after["pluginPath"] = _canonical(replacement["root"])
     manifest_after["installedAt"] = datetime.now(timezone.utc).isoformat()
     try:
@@ -1005,10 +1177,14 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
         retired_exact = False
         if retired_project.exists():
             try:
+                retired_payload = next((payload for version in UPGRADE_FROM_VERSIONS
+                                        if (payload := _plugin_payload(Path(transaction["retiredPluginPath"]), expected_version=version)) is not None), None)
+                if retired_payload is None:
+                    retired_payload = _plugin_payload(Path(transaction["retiredPluginPath"]))
                 retired_exact = (
                     _project_tree_sha256(retired_project) == transaction["retiredProjectTreeSha256"]
-                    and _plugin_payload(Path(transaction["retiredPluginPath"]))["fingerprint"].lower()
-                    == transaction["retiredFingerprint"].lower()
+                    and retired_payload is not None
+                    and retired_payload["fingerprint"].lower() == transaction["retiredFingerprint"].lower()
                 )
             except (OSError, KeyError, TypeError):
                 retired_exact = False
@@ -1328,7 +1504,7 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
         if manifest_path(paths["stateRoot"]).exists():
             reentry_manifest = verify_manifest(
                 paths["stateRoot"], workspace=workspace,
-                require_artifacts=False, verify_plugin=False,
+                require_artifacts=False, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS,
             )
             if not Path(reentry_manifest["pluginPath"]).exists():
                 return _classify_interrupted_rollover_reentry(
@@ -1336,9 +1512,10 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
                     plugin_inventory=plugin_inventory,
                     expected_replacement_fingerprint=expected_replacement_fingerprint,
                 )
-        attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False)
+        attested_manifest = verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
         candidates = [payload for candidate in plugin_candidate_roots(paths["openclawState"])
-                      if (payload := _plugin_payload(candidate)) is not None]
+                      for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS)
+                      if (payload := _plugin_payload(candidate, expected_version=version)) is not None]
         if len(candidates) == 1 and _canonical(candidates[0]["root"]) == attested_manifest["pluginPath"]:
             plugin_exact = candidates[0]["fingerprint"].lower() == expected_replacement_fingerprint.lower()
             return {
@@ -1363,7 +1540,12 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
     if inventory["legacy"] and inventory["new"]:
         raise RuntimeError(f"mixed legacy/new namespace is ambiguous; refusing mutation: {inventory}")
     if inventory["new"]:
-        verify_manifest(paths["stateRoot"], workspace=workspace)
+        verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
+        product_candidates = [candidate for candidate in plugin_candidate_roots(paths["openclawState"])
+                              if any(_plugin_payload(candidate, expected_version=version) is not None
+                                     for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS))]
+        if len(product_candidates) > 1:
+            raise RuntimeError(f"ambiguous product plugin payloads: {[str(item) for item in product_candidates]}")
         return {"mode": "upgrade", **inventory}
     if inventory["legacy"]:
         return prove_legacy_ownership(workspace, inventory=inventory)
@@ -1438,6 +1620,13 @@ def main() -> int:
     rollover_finalize = sub.add_parser("rollover-finalize")
     rollover_finalize.add_argument("--transaction", type=Path, required=True)
     rollover_finalize.add_argument("--inventory-json", type=Path, required=True)
+    rollover_recover = sub.add_parser("rollover-recover")
+    rollover_recover.add_argument("--transaction", type=Path, required=True)
+    rollover_recover.add_argument("--inventory-json", type=Path, required=True)
+    rollover_recover.add_argument("--workspace", type=Path, required=True)
+    rollover_recover.add_argument("--app-data", type=Path, required=True)
+    rollover_recover.add_argument("--expected-transaction-sha256", required=True)
+    rollover_recover.add_argument("--expected-replacement-fingerprint", required=True)
     rollover_apply = sub.add_parser("rollover-apply")
     rollover_apply.add_argument("--plan", type=Path, required=True)
     rollover_apply.add_argument("--plan-sha256", required=True)
@@ -1497,6 +1686,15 @@ def main() -> int:
         transaction = json.loads(args.transaction.read_text(encoding="utf-8"))
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = finalize_plugin_rollover_transaction(transaction=transaction, plugin_inventory=plugin_inventory)
+    elif args.command == "rollover-recover":
+        transaction_bytes = args.transaction.read_bytes()
+        plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
+        result = recover_quarantined_plugin_rollover(
+            transaction_bytes=transaction_bytes, plugin_inventory=plugin_inventory,
+            workspace=args.workspace, application_data=args.app_data,
+            expected_transaction_sha256=args.expected_transaction_sha256,
+            expected_replacement_fingerprint=args.expected_replacement_fingerprint,
+        )
     elif args.command == "rollover-apply":
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = apply_plugin_rollover_plan(

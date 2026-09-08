@@ -1,15 +1,19 @@
 # Current Project Status
 
-**Updated:** 2026-08-31  
-**Release line:** v0.9.3  
+**Updated:** 2026-09-08
+**Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release yet**)
 **Current branch:** `agent/v0.9.3-full-stabilization`  
-**Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`  
+**Previously accepted product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34` (historical evidence; current hardening has changed source)
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
 **Managed provider:** **Ollama only**  
 **Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files  
 **Installed skill tree:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
 **Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`  
 **Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
+
+**Provider boundary:** CogentNexus-OpenClaw manages Ollama health/lifecycle/recovery. Cloud is OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw owns only continuity/Ticket/durable delivery and never handles Cloud credentials.
+
+**Current gate:** v0.9.4 source is being hardened. Prior exact-candidate acceptance remains evidence for those bytes only; changed surfaces require fresh review/tests/CI before publication.
 
 ## Accepted evidence chain
 
@@ -50,7 +54,7 @@ The product candidate remains frozen at `050ab53f...` for Task-191/192 acceptanc
 
 Unlike the earlier Task-188 documentation-only state, the repaired Dashboard delivery plugin source is intentionally changed. That changed executable surface has direct repository regression proof and real-Windows requalification. The skill scripts/facade remain unchanged.
 
-## Release topology
+## Unreleased release topology
 
 - default branch: `main`;
 - fresh `main` before final reconciliation: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
@@ -59,16 +63,16 @@ Unlike the earlier Task-188 documentation-only state, the repaired Dashboard del
 - `.github/workflows/release.yml` is the required exact-SHA publication gate;
 - public release/tag state is authoritative only on GitHub Releases/tags.
 
-The current branch must first reconcile the two documentation-only `main` commits without force, resolve the independently-added transient-stall document, and rerun validation on the reconciled branch HEAD.
+The current branch contains the v0.9.4 working candidate and must pass documentation/version contracts plus changed-surface validation before any release PR or publication action. A branch, version file, or release-note file is not evidence that v0.9.4 is released.
 
 ## Publication path
 
-1. merge/reconcile fresh `main` into the stabilization history without force;
-2. require reconciled-HEAD CI/package proof to pass and verify package-sensitive identity remains `b1ca9f3b...` / 186 files;
+1. finish and independently review the v0.9.4 hardening changes;
+2. require exact-HEAD CI/package and supported recovery/installer proof to pass and record the new candidate identity;
 3. create a fresh `agent/v0.9.3-full-stabilization` -> `main` release PR;
 4. inspect exact diff/topology/checks and merge only when green;
 5. freeze exact merged `main` SHA;
-6. dispatch `.github/workflows/release.yml` with `version=0.9.3` and that exact SHA;
+6. dispatch `.github/workflows/release.yml` with `version=0.9.4` and that exact SHA;
 7. verify workflow success, tag target, release notes, archives, `SHA256SUMS.txt`, and independent checksums.
 
 ## Safety boundary

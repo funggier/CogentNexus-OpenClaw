@@ -141,7 +141,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - name: Verify CogentNexus-OpenClaw v0.9.3 metadata
+      - name: Verify CogentNexus-OpenClaw v0.9.4 metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -150,15 +150,15 @@ jobs:
           manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-openclaw/openclaw.plugin.json')).version")
           lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
           lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
-          test "$core" = "0.9.3"
-          test "$package_version" = "0.9.3"
+          test "$core" = "0.9.4"
+          test "$package_version" = "0.9.4"
           test "$package_version" = "$manifest_version"
           test "$package_version" = "$lock_version"
           test "$package_version" = "$lock_root_version"
           test -s docs/BASELINE.md
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
-          test -s docs/releases/v0.9.3.md
+          test -s docs/releases/v0.9.4.md
       - name: Install plugin dependencies
         working-directory: plugins/cogentnexus-openclaw
         run: npm ci
@@ -173,7 +173,7 @@ jobs:
           mkdir -p "$out"
           python skills/cogentnexus-openclaw/scripts/plugin_payload_identity.py \
             --plugin-root plugins/cogentnexus-openclaw \
-            --version 0.9.3 > "$out/PAYLOAD_IDENTITY.json"
+            --version 0.9.4 > "$out/PAYLOAD_IDENTITY.json"
           python - <<'PY'
           import json
           import os
@@ -181,7 +181,7 @@ jobs:
 
           target = Path(os.environ["RUNNER_TEMP"]) / "release" / "PAYLOAD_IDENTITY.json"
           payload = json.loads(target.read_text(encoding="utf-8"))
-          assert payload["version"] == "0.9.3"
+          assert payload["version"] == "0.9.4"
           assert isinstance(payload["fileCount"], int) and payload["fileCount"] > 0
           assert isinstance(payload["fingerprint"], str) and len(payload["fingerprint"]) == 64
           print(json.dumps(payload, sort_keys=True))
@@ -190,7 +190,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          name="cogentnexus-openclaw-v0.9.3"
+          name="cogentnexus-openclaw-v0.9.4"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
           required=(
@@ -235,7 +235,7 @@ jobs:
           package_version = Path("VERSION").read_text(encoding="utf-8").strip()
           if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
               raise SystemExit("GITHUB_SHA is not an exact 40-hex source commit")
-          if package_version != "0.9.3" or identity.get("version") != package_version:
+          if package_version != "0.9.4" or identity.get("version") != package_version:
               raise SystemExit("package provenance version mismatch")
           fingerprint = identity.get("fingerprint")
           file_count = identity.get("fileCount")
@@ -252,8 +252,8 @@ jobs:
                   raise SystemExit(f"invalid archive SHA256 for {filename}")
               archive_sha256[filename] = digest
           expected = {
-              "cogentnexus-openclaw-v0.9.3.tar.gz",
-              "cogentnexus-openclaw-v0.9.3.zip",
+              "cogentnexus-openclaw-v0.9.4.tar.gz",
+              "cogentnexus-openclaw-v0.9.4.zip",
           }
           if set(archive_sha256) != expected:
               raise SystemExit("archive SHA256 set is incomplete")
@@ -275,7 +275,7 @@ jobs:
       - name: Retain package proof
         uses: actions/upload-artifact@v4
         with:
-          name: cogentnexus-openclaw-v0.9.3-package-proof-${{ github.sha }}
+          name: cogentnexus-openclaw-v0.9.4-package-proof-${{ github.sha }}
           path: ${{ runner.temp }}/release
           if-no-files-found: error
           retention-days: 14

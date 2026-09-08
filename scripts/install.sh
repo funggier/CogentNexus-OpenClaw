@@ -60,6 +60,15 @@ APPLICATION_DATA_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/CogentNexus-OpenClaw
 
 INSTALL_CLASSIFICATION=$(python "$OWNERSHIP_SCRIPT" classify-install --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT")
 INSTALL_MODE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; print(json.load(sys.stdin)["mode"])')
+PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
+EXPECTED_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$PLUGIN_DIR" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])')
+PLUGIN_ALREADY_EXACT=0
+if [ "$INSTALL_MODE" = upgrade ]; then
+  if CURRENT_PLUGIN_ROOT=$(python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])' 2>/dev/null); then
+    CURRENT_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$CURRENT_PLUGIN_ROOT" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])' 2>/dev/null || true)
+    [ "$CURRENT_PLUGIN_FINGERPRINT" = "$EXPECTED_PLUGIN_FINGERPRINT" ] && PLUGIN_ALREADY_EXACT=1
+  fi
+fi
 MIGRATION_SOURCE=$(printf '%s' "$INSTALL_CLASSIFICATION" | python -c 'import json,sys; x=json.load(sys.stdin); print("legacy-cogentnexus-pre-v0.9.3" if x["mode"] == "legacy" else "")')
 if [ "$LINK_PLUGIN" -eq 1 ]; then
   echo "--link-plugin is incompatible with ownership-safe managed installation; linked and npm-managed roots must not be mixed." >&2
@@ -161,7 +170,7 @@ if [ "$SKIP_AGENTS_POLICY" -eq 0 ]; then
   python "$HOST_SCRIPT" --root "$COGENT_ROOT" policy apply
 fi
 
-if [ "$SKIP_PLUGIN" -eq 0 ]; then
+if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then
   PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
   if CURRENT_PLUGIN_LOAD_PATHS=$(openclaw config get plugins.load.paths 2>/dev/null); then
     FILTERED_PLUGIN_LOAD_PATHS=$(printf '%s' "$CURRENT_PLUGIN_LOAD_PATHS" | \
@@ -172,39 +181,39 @@ if [ "$SKIP_PLUGIN" -eq 0 ]; then
       echo "Failed to remove an existing linked CogentNexus-OpenClaw plugin path" >&2; exit 1;
     }
   fi
+  EXPECTED_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$PLUGIN_DIR" --version "$VERSION" | python -c 'import json,sys; x=json.load(sys.stdin); print(x["fingerprint"])')
+  ROLLOVER_TRANSACTION=""
+  ROLLOVER_STAGING="$COGENT_ROOT/install-staging"
+  PACKAGE_FILE=""
+  if [ "$INSTALL_MODE" = upgrade ]; then
+    mkdir -p "$ROLLOVER_STAGING"
+    ROLLOVER_ID="$$-$(date +%Y%m%d%H%M%S)"
+    ROLLOVER_TRANSACTION="$ROLLOVER_STAGING/plugin-rollover-transaction-$ROLLOVER_ID.json"
+    python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-prepare \
+      --root "$COGENT_ROOT" --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT" \
+      --expected-replacement-fingerprint "$EXPECTED_PLUGIN_FINGERPRINT" \
+      --backup-token "$ROLLOVER_ID" --transaction "$ROLLOVER_TRANSACTION"
+  fi
   (
+    trap 'rm -f "$PLUGIN_DIR/$PACKAGE_FILE"' EXIT HUP INT TERM
     cd "$PLUGIN_DIR"
     npm ci
     npm run plugin:validate
     node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     PACKAGE_JSON=$(npm pack --json)
     PACKAGE_FILE=$(printf '%s' "$PACKAGE_JSON" | python -c 'import json,sys; x=json.load(sys.stdin); assert isinstance(x,list) and len(x)==1 and x[0].get("filename"); print(x[0]["filename"])')
-    trap 'rm -f "$PLUGIN_DIR/$PACKAGE_FILE"' EXIT HUP INT TERM
     openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force
     rm -f "$PLUGIN_DIR/$PACKAGE_FILE"
     trap - EXIT HUP INT TERM
     openclaw plugins disable cogentnexus-openclaw
   )
-
-  if [ "$INSTALL_MODE" = upgrade ]; then
-    ROLLOVER_STAGING="$COGENT_ROOT/install-staging"
-    mkdir -p "$ROLLOVER_STAGING"
-    ROLLOVER_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-$$.json"
-    ROLLOVER_APPLY_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-apply-$$.json"
-    ROLLOVER_PLAN="$ROLLOVER_STAGING/plugin-rollover-plan-$$.json"
-    (
-      trap 'rm -f "$ROLLOVER_INVENTORY" "$ROLLOVER_APPLY_INVENTORY" "$ROLLOVER_PLAN"' EXIT HUP INT TERM
-      openclaw plugins list --json > "$ROLLOVER_INVENTORY"
-      ROLLOVER_PLAN_OUTPUT=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-plan \
-        --root "$COGENT_ROOT" --workspace "$WORKSPACE" --app-data "$APPLICATION_DATA_ROOT" \
-        --inventory-json "$ROLLOVER_INVENTORY" --plan "$ROLLOVER_PLAN")
-      ROLLOVER_PLAN_SHA256=$(printf '%s' "$ROLLOVER_PLAN_OUTPUT" | python -c 'import json,sys; value=json.load(sys.stdin).get("planSha256"); assert isinstance(value,str) and value; print(value)')
-      openclaw plugins list --json > "$ROLLOVER_APPLY_INVENTORY"
-      python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-apply \
-        --plan "$ROLLOVER_PLAN" --plan-sha256 "$ROLLOVER_PLAN_SHA256" \
-        --inventory-json "$ROLLOVER_APPLY_INVENTORY" >/dev/null
-      echo "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
-    )
+  if [ -n "$ROLLOVER_TRANSACTION" ]; then
+    ROLLOVER_APPLY_INVENTORY="$ROLLOVER_STAGING/plugin-inventory-apply-$ROLLOVER_ID.json"
+    openclaw plugins list --json > "$ROLLOVER_APPLY_INVENTORY"
+    python "$TARGET_SKILL/scripts/namespace_ownership.py" rollover-finalize \
+      --transaction "$ROLLOVER_TRANSACTION" --inventory-json "$ROLLOVER_APPLY_INVENTORY"
+    rm -f "$ROLLOVER_APPLY_INVENTORY"
+    echo "Retired the exact prior plugin generation into the CogentNexus-OpenClaw backup boundary."
   fi
 fi
 
@@ -216,12 +225,16 @@ EOF
 chmod +x "$LAUNCHER"
 echo "Installed CogentNexus-OpenClaw launcher to $LAUNCHER"
 
-PLUGIN_RESOLUTION=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION")
-INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])')
-set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
-if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
-python "$@" >/dev/null
-python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
+if [ "$SKIP_PLUGIN" -eq 1 ]; then
+  echo "Skipped plugin resolution and ownership mutation; staging payload is adopted without plugin activation."
+else
+  PLUGIN_RESOLUTION=$(python "$TARGET_SKILL/scripts/namespace_ownership.py" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION")
+  INSTALLED_PLUGIN_PATH=$(printf '%s' "$PLUGIN_RESOLUTION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])')
+  set -- "$TARGET_SKILL/scripts/namespace_ownership.py" create --root "$COGENT_ROOT" --workspace "$WORKSPACE" --skill "$TARGET_SKILL" --plugin-path "$INSTALLED_PLUGIN_PATH" --launcher "$LAUNCHER" --version "$VERSION"
+  if [ -n "$MIGRATION_SOURCE" ]; then set -- "$@" --migration-source "$MIGRATION_SOURCE"; fi
+  python "$@" >/dev/null
+  python "$TARGET_SKILL/scripts/namespace_ownership.py" verify --root "$COGENT_ROOT" --workspace "$WORKSPACE" >/dev/null
+fi
 
 if [ "$SKIP_GATEWAY_RESTART" -eq 0 ]; then
   python "$CLI_SCRIPT" --root "$COGENT_ROOT" enable

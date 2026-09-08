@@ -7,8 +7,8 @@ description: "Durable Host-managed recovery, lifecycle control, and verified exe
 
 CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
 
-Release line: **v0.9.3**.  
-Current managed provider: **Ollama only**.  
+Development line: **v0.9.4 (unreleased)**.
+Current managed provider: **Ollama** (health/lifecycle/recovery). Cloud providers are OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw preserves continuity/durable delivery and never handles Cloud credentials.
 Validated OpenClaw baseline: `2026.7.1-2`.
 
 Keep private reasoning private. Expose useful status, evidence, decisions, and results.
@@ -40,7 +40,7 @@ When durable CNXCLAW ownership exists, consume only the exact OpenClaw native re
 
 ## Provider boundary
 
-v0.9.3 manages Ollama only. Historical v0.9.2 compatibility modules may remain in-tree for migration/native-restore behavior, but current v0.9.3 operator paths must not advertise or select LM Studio.
+v0.9.4 manages Ollama only. Historical v0.9.2 compatibility modules may remain in-tree for migration/native-restore behavior, but current v0.9.4 operator paths must not advertise or select LM Studio.
 
 ## Operating modes
 
@@ -102,6 +102,6 @@ python -m pytest -q
 
 Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`, validated on OpenClaw `2026.7.1-2`.
 
-That checkpoint remains historical technical evidence. The v0.9.3 implementation line subsequently completed repository stabilization and the bounded real-machine lifecycle/semantic acceptance sequence on exact frozen candidate `f6392da3e4112ce441526d5ef19925c90a872b0b`.
+That checkpoint remains historical technical evidence. The v0.9.4 implementation line subsequently completed repository stabilization and the bounded real-machine lifecycle/semantic acceptance sequence on exact frozen candidate `f6392da3e4112ce441526d5ef19925c90a872b0b`.
 
 Acceptance is exact-artifact based. Changes to installed skill/package documentation bytes require validation and proportional requalification appropriate to the changed surface before prior acceptance claims are carried forward. See root `docs/CURRENT_STATE.md` for current publication state and exact candidate provenance.

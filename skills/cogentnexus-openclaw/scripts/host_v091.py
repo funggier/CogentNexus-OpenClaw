@@ -20,10 +20,12 @@ import os
 import socket
 import sqlite3
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import host as legacy
+import openclaw_runtime_boundary_v092 as runtime_boundary
 
 HERE = Path(__file__).resolve()
 LEGACY_SUPERVISOR_TICK = legacy.supervisor_tick
@@ -122,40 +124,126 @@ def _db_table_exists(db: sqlite3.Connection, name: str) -> bool:
     return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
 
-def durable_work_hint(root: Path) -> bool:
-    """Read-only fallback hint for committed work that should wake recovery.
+DIRECT_RECOVERY_SESSION_LIVENESS_SECONDS = 15 * 60
 
-    The scheduled supervisor must not assume that healthy TCP endpoints imply
-    healthy workers. If a Ticket/outbox/recovery/delivery row remains actionable,
-    enter the proven heavy reconciliation path even while Gateway and Ollama respond.
+
+def _parse_iso_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def durable_work_hint(root: Path, now: str | None = None) -> bool:
+    """Return true only for durable work actionable under Host contracts.
+
+    Direct recovery deliberately mirrors ``dueDirectRecovery``: the owner must
+    be active, exact-generation, recently updated, due, and outside the model
+    call fence. Stored nonterminal Direct rows alone are not a wake signal.
     """
     path = legacy.ticket_db(root)
     if not path.exists():
         return False
+    current = _parse_iso_timestamp(now) if now else datetime.now(timezone.utc)
+    if current is None:
+        current = datetime.now(timezone.utc)
+    cutoff = current - timedelta(seconds=DIRECT_RECOVERY_SESSION_LIVENESS_SECONDS)
     try:
         db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.25)
+        db.row_factory = sqlite3.Row
     except sqlite3.Error:
         return True
     try:
         if not _db_table_exists(db, "tickets"):
             return False
-        if db.execute("SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1").fetchone():
+
+        ticket_columns = {row["name"] for row in db.execute("PRAGMA table_info(tickets)")}
+        if {"workflow_eligible", "workflow_id"}.issubset(ticket_columns):
+            # Workflow Tickets remain actionable only when explicitly admitted;
+            # an accepted Direct Ticket is not a workflow wake signal.
+            if db.execute(
+                """SELECT 1 FROM tickets
+                   WHERE status NOT IN ('completed','failed','cancelled')
+                     AND (workflow_eligible <> 0 OR workflow_id IS NOT NULL)
+                   LIMIT 1"""
+            ).fetchone():
+                return True
+        elif db.execute(
+            "SELECT 1 FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
+        ).fetchone():
+            # Legacy schemas cannot identify Direct ownership; preserve their
+            # historical nonterminal workflow fallback.
             return True
+
         if _db_table_exists(db, "ticket_outbox") and db.execute(
             "SELECT 1 FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
         ).fetchone():
             return True
-        if _db_table_exists(db, "cnx_assistant_delivery") and db.execute(
-            "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
-        ).fetchone():
-            return True
-        if _db_table_exists(db, "cnx_direct_recovery") and db.execute(
-            "SELECT 1 FROM cnx_direct_recovery WHERE state IN ('pending','claimed','running','degraded','awaiting_delivery') LIMIT 1"
-        ).fetchone():
-            return True
+        if _db_table_exists(db, "cnx_assistant_delivery"):
+            delivery_columns = {row["name"] for row in db.execute("PRAGMA table_info(cnx_assistant_delivery)")}
+            authority_columns = {"ticket_id", "owner_session_key", "owner_generation", "updated_at"}
+            if authority_columns.issubset(delivery_columns) and _db_table_exists(db, "cnx_sessions"):
+                if db.execute(
+                    """SELECT 1 FROM cnx_assistant_delivery d
+                       JOIN tickets t ON t.ticket_id=d.ticket_id
+                       JOIN cnx_sessions s ON s.session_key=d.owner_session_key
+                       WHERE d.status='pending'
+                         AND t.status NOT IN ('completed','failed','cancelled')
+                         AND s.state='active' AND s.generation=d.owner_generation
+                         AND s.updated_at>=? AND d.updated_at>=?
+                       LIMIT 1""",
+                    (cutoff.isoformat(), cutoff.isoformat()),
+                ).fetchone():
+                    return True
+            elif db.execute(
+                "SELECT 1 FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
+            ).fetchone():
+                # Legacy schemas lack the owner/session authority columns.
+                return True
         if _db_table_exists(db, "cnx_context_maintenance") and db.execute(
             "SELECT 1 FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
         ).fetchone():
+            return True
+
+        required = {"cnx_direct_recovery", "cnx_sessions"}
+        table_names = {row["name"] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "cnx_direct_recovery" in table_names and not required.issubset(table_names):
+            # Legacy delivery-only rows predate owner/session fences but remain
+            # Host-owned transport work; preserve this narrow fallback.
+            recovery_columns = {row["name"] for row in db.execute("PRAGMA table_info(cnx_direct_recovery)")}
+            if recovery_columns == {"state"} and db.execute(
+                "SELECT 1 FROM cnx_direct_recovery WHERE state='awaiting_delivery' LIMIT 1"
+            ).fetchone():
+                return True
+        if not required.issubset(table_names):
+            return False
+        model_fenced = _db_table_exists(db, "cnx_direct_model_call")
+        rows = db.execute(
+            """SELECT r.ticket_id,r.state,r.next_attempt_at,r.owner_generation,
+                      t.status,t.workflow_eligible,t.workflow_id,s.state AS session_state,
+                      s.generation,s.updated_at AS session_updated_at
+               FROM cnx_direct_recovery r
+               JOIN tickets t ON t.ticket_id=r.ticket_id
+               JOIN cnx_sessions s ON s.session_key=t.owner_session_key
+               WHERE r.state='pending' AND t.status='accepted'
+                 AND t.workflow_eligible=0 AND t.workflow_id IS NULL
+                 AND s.state='active' AND s.generation=r.owner_generation"""
+        ).fetchall()
+        for row in rows:
+            session_updated = _parse_iso_timestamp(row["session_updated_at"])
+            if session_updated is None or session_updated < cutoff:
+                continue
+            due_at = _parse_iso_timestamp(row["next_attempt_at"])
+            if due_at is not None and due_at > current:
+                continue
+            if model_fenced and db.execute(
+                "SELECT 1 FROM cnx_direct_model_call WHERE ticket_id=? AND state IN ('active','recovering') LIMIT 1",
+                (row["ticket_id"],),
+            ).fetchone():
+                continue
             return True
         return False
     except sqlite3.Error:
@@ -400,16 +488,22 @@ def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) ->
     db = sqlite3.connect(path, timeout=5)
     try:
         db.execute("PRAGMA foreign_keys=ON")
-        if not _db_table_exists(db, "tickets") or not _db_table_exists(db, "ticket_events"):
+        if not all(_db_table_exists(db, table) for table in ("tickets", "ticket_events", "cnx_sessions")):
+            return []
+        session_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(cnx_sessions)").fetchall()}
+        if not {"session_key", "state", "generation", "updated_at", "session_id"}.issubset(session_columns):
             return []
         db.execute("BEGIN IMMEDIATE")
+        stamp = legacy.now_iso()
         rows = db.execute(
-            "SELECT ticket_id FROM tickets WHERE status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL "
-            "AND response_ready_at IS NULL AND created_at<? ORDER BY created_at,ticket_id",
-            (cutoff_iso,),
+            "SELECT t.ticket_id FROM tickets AS t JOIN cnx_sessions AS s ON s.session_key=t.owner_session_key "
+            "WHERE t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.response_ready_at IS NULL AND t.created_at<? "
+            "AND s.state='active' AND s.generation>=0 AND s.session_id IS NOT NULL AND TRIM(s.session_id)<>'' "
+            "AND julianday(s.updated_at)>=julianday(?)-(15.0/1440.0) ORDER BY t.created_at,t.ticket_id",
+            (cutoff_iso, stamp),
         ).fetchall()
         updated: list[str] = []
-        stamp = legacy.now_iso()
         for (ticket_id,) in rows:
             changed = db.execute(
                 "UPDATE tickets SET status='waiting',workflow_eligible=1,failure_class='interrupted',failure_message=?,updated_at=? "
@@ -475,6 +569,13 @@ def enable(root: Path) -> dict[str, Any]:
 
         runtime_start_attempted = True
         lifecycle = legacy.runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
+
+        # lifecycle start may intentionally skip an already-healthy Gateway.
+        # Force a process boundary after install-over replacement so the
+        # enabled process cannot remain a predecessor runtime.
+        managed_boundary = runtime_boundary.activate_current_config()
+        if not managed_boundary.get("ok"):
+            raise RuntimeError(f"Gateway failed managed process-boundary verification: {managed_boundary}")
 
         gateway = legacy.gateway_status()
         if not gateway.get("healthy"):
@@ -548,6 +649,7 @@ def enable(root: Path) -> dict[str, Any]:
         "policy": legacy.policy_info(root),
         "startup": legacy.parse_json_output(startup_result.stdout),
         "lifecycle": legacy.parse_json_output(lifecycle.stdout),
+        "gatewayBoundary": managed_boundary,
         "sessionBootstrap": session_bootstrap,
         "terminalFences": terminal_fences,
         "directDeliveryFences": direct_delivery_fences,

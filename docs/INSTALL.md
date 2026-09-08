@@ -1,10 +1,10 @@
-# Install CogentNexus-OpenClaw v0.9.3
+# Install CogentNexus-OpenClaw v0.9.4
 
-CogentNexus-OpenClaw v0.9.3 targets OpenClaw `2026.7.1-2 (0790d9f)` and manages **Ollama only** at the current runtime/operator boundary.
+CogentNexus-OpenClaw v0.9.4 is currently unreleased (no v0.9.4 tag or GitHub Release yet). It targets OpenClaw `2026.7.1-2 (0790d9f)` and manages Ollama health, lifecycle, and recovery. Configured Cloud providers use OpenClaw-owned pass-through: OpenClaw owns authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket continuity and durable delivery but never handles Cloud credentials.
 
 The implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the bounded real-Windows lifecycle and final Dashboard semantic/durable-delivery acceptance sequence. Task 188 subsequently corrected current-facing documentation inside the npm package and installed skill surface without changing executable/runtime source. The corrected package payload-v2 identity is `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files and the installed skill-tree identity is `a1e873ba404205507a1623961b49f1b1a0689f9f`.
 
-Publication or installation claims must always be tied to an exact reviewed candidate/release artifact. GitHub Releases/tags are authoritative for whether v0.9.3 has been publicly published; a moving branch is not a release identity.
+Publication or installation claims must always be tied to an exact reviewed candidate/release artifact. GitHub Releases/tags are authoritative for whether v0.9.4 has been publicly published; a moving branch is not a release identity.
 
 ## Requirements
 
@@ -39,7 +39,23 @@ python -m pip install 'PyYAML>=6.0,<7'
 
 The installer is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
 
-LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.3 does not manage it. The v0.9.3 runtime/operator provider target is Ollama, but that selection/readiness responsibility is outside the installer prerequisite boundary.
+LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.4 does not manage it. The v0.9.4 runtime/operator boundary manages Ollama lifecycle operations and supports configured Cloud conversation routes through OpenClaw-owned pass-through.
+
+### Installer parameters and quarantined rollover recovery
+
+The Windows installer implements `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-RecoverRolloverSourcePluginRoot`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy`, and `-LinkPlugin`. The skip switches are staging-only as enforced by the installer, and `-LinkPlugin` is rejected for ownership-safe managed installation. There is no `-InstallSourceCommit`; candidate authority comes from the exact verified checkout/archive used to run the installer.
+
+Recovery of a previously quarantined plugin-generation rollover is separately authorized and fail-closed. Supply the explicit transaction file, its independently expected SHA-256, and the plugin root extracted from the independently verified artifact that produced the interrupted replacement:
+
+```powershell
+.\scripts\install.ps1 `
+  -Workspace "$HOME\.openclaw\workspace" `
+  -RecoverRolloverTransaction "C:\path\to\plugin-rollover-transaction.json" `
+  -RecoverRolloverTransactionSha256 "<64-hex SHA-256 of that exact transaction file>" `
+  -RecoverRolloverSourcePluginRoot "C:\path\to\verified-artifact\plugins\cogentnexus-openclaw"
+```
+
+The installer computes the expected recovery replacement fingerprint from the exact verified-artifact plugin root, captures fresh OpenClaw plugin inventory, and forwards the transaction path, expected transaction SHA-256, and artifact-derived expected replacement fingerprint to the lower-level recovery command. The transaction and verified artifact plugin root must exist; the supplied digest and computed fingerprint must be 64 hexadecimal characters and must match the attested interrupted replacement. Missing, malformed, or mismatched proof fails before ordinary recovery preflight/classification and before installation mutation.
 
 ## Artifact identity and acceptance lineage
 
@@ -67,7 +83,7 @@ Because the package/skill bytes changed, the corrected artifact requires proport
 
 ## Runtime/provider readiness after installation
 
-The v0.9.3 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
+The v0.9.4 managed runtime/provider target is Ollama. Configured Cloud routes use OpenClaw-owned pass-through, so OpenClaw—not CogentNexus-OpenClaw—owns their authentication, model readiness, lifecycle, probing, and recovery. Managed Ollama readiness checks belong to the CogentNexus-OpenClaw runtime layer and run after installation.
 
 From the OpenClaw workspace:
 
@@ -151,10 +167,10 @@ No retry, duplicate semantic work, direct recovery, or outbox residue occurred. 
 
 ## Published-release install
 
-When `v0.9.3` is present as a GitHub Release, consumer installation should use the exact assets generated and verified by `.github/workflows/release.yml`:
+When `v0.9.4` is present as a GitHub Release, consumer installation should use the exact assets generated and verified by `.github/workflows/release.yml`:
 
-- `cogentnexus-openclaw-v0.9.3.tar.gz`
-- `cogentnexus-openclaw-v0.9.3.zip`
+- `cogentnexus-openclaw-v0.9.4.tar.gz`
+- `cogentnexus-openclaw-v0.9.4.zip`
 - `SHA256SUMS.txt`
 
 Verify the archive checksum from `SHA256SUMS.txt`, extract the archive, then run the installer from that exact extracted release tree. If the GitHub Release/tag is absent, use an explicitly reviewed exact candidate instead of inventing or guessing release download URLs.

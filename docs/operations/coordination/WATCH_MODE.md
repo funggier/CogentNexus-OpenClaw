@@ -1,71 +1,71 @@
-# Hermes/Codex Continuous Coordination Watch Mode
+# Hermes Continuous Coordination Watch Mode
 
-This file defines the standing unattended polling mode for CogentNexus-OpenClaw GitHub coordination.
+Updated: 2026-09-05 ICT
 
 ## Purpose
 
-After one explicit operator setup/enable action, an authorized Hermes/Codex scheduled executor checks the coordination branch repeatedly and executes newly authorized tasks without requiring the operator to send `ต่อ` for every handoff.
+Allow the single Hermes executor to consume durable assigned tasks and asynchronous wait states without requiring the human operator to relay every CI completion.
 
-This mode removes repeated human relay work. It does not remove task-specific safety gates or allow the executor to invent project work.
+This mode never bypasses task-specific safety gates and does not perform ChatGPT review work.
 
-## Current coordination target
-
-- Repository: `funggier/CogentNexus-OpenClaw`
-- Branch: `agent/v0.9.3-full-stabilization`
-- READY gate: `READY_FOR_HERMES`
-- Executor role: `Hermes/Codex`
-
-## Supported execution model
-
-Use an authorized Scheduled task in the ChatGPT desktop app when local Windows access is required.
-
-- Run inside the CogentNexus-OpenClaw local project or a dedicated Git worktree.
-- Prefer a dedicated worktree so unfinished local changes are isolated.
-- Use the narrowest sandbox/permissions that satisfy the active task.
-- Do not claim the watch is active until the Scheduled task is confirmed enabled.
-
-A normal interactive chat does not remain a permanent background watcher merely because it was told to wait.
+Read `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` and `DELAYED_RECHECK_QUEUE.md` first.
 
 ## Poll cycle
 
-On every scheduled run:
+On every run:
 
-1. fetch `origin/agent/v0.9.3-full-stabilization` safely;
-2. read this file, `CODEX_BOOTSTRAP.md`, `SIGNALS.md`, and the current remote `ACTIVE.md`;
-3. if `ACTIVE.md` is not `READY_FOR_HERMES`, exit without changes;
-4. if `Execution mode` is not `AUTO`, exit without executing the task;
-5. read the exact active task, matching report state, and task-specific safety gates;
-6. if a matching completed report already exists, do not repeat any side effect; exit awaiting ChatGPT review;
-7. execute only the exact active task;
-8. publish the matching executor-owned report/evidence references, including the full problem contract for any `BLOCKED`, `FAIL`, or partial result;
-9. stop the current run after the report is pushed; ChatGPT owns review, remediation-task selection, and human notification.
+1. fetch `origin/agent/v0.9.3-full-stabilization`;
+2. read `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`, `DELAYED_RECHECK_QUEUE.md`, `CODEX_BOOTSTRAP.md`, `ACTIVE.md`, `STATUS.md`, and referenced task/report/review;
+3. confirm current state assigns execution or wait ownership to `Hermes`;
+4. if state is `WAITING_FOR_CHATGPT_REVIEW`, `WAITING_FOR_USER_AUTHORITY`, final-acceptance waiting, or explicit pause/stop, exit without task mutation;
+5. if state is `READY_FOR_HERMES`, execute the exact assigned task;
+6. if state is `WAITING_FOR_CI_RECHECK` / `CI_STALLED_DIAGNOSIS` and Hermes owns the wait, query only the exact dependency after fresh authority synchronization;
+7. when task work actually completes, publish the matching report and set a ChatGPT-review handoff state;
+8. stop mutation of the completed task.
 
-A later scheduled run begins a fresh synchronization cycle. Hermes/Codex must never carry a stale task pointer across cycles.
+## Five-minute CI self-wake
 
-## Automatic execution authority
+When required GitHub Actions remain `queued`, `pending`, or `in_progress`:
 
-`Execution mode: AUTO` in `ACTIVE.md` means the operator authorizes the scheduled executor to begin that exact task automatically when the watcher detects it.
+1. Hermes retains task ownership;
+2. create/dedupe one persistent delayed wake for approximately +5 minutes;
+3. end the current compute turn instead of busy-waiting;
+4. on wake, fetch remote state first;
+5. if the wait is stale because Task/HEAD/ownership changed, discard it;
+6. otherwise inspect exact required runs/checks;
+7. if still non-terminal, create one new +5 minute wake;
+8. if success, resume the same task;
+9. if failure/cancel/time-out/action-required, stop passive waiting and inspect the failure.
 
-It does not authorize:
+A five-minute wake must not rerun the operation that created the workflow, repeat external side effects, or manufacture heartbeat commits.
 
-- bypassing a precondition;
-- widening task scope;
-- force-pushing;
-- discarding unrelated local work;
-- repeating completed external side effects;
-- inventing a successor task;
-- overriding a task's explicit confirmation or safety requirements.
+If the Hermes delayed queue is unavailable, an already-enabled watcher may poll at approximately five-minute cadence. If neither persistent mechanism exists, record `WAIT_RECHECK_WAKE_UNAVAILABLE`; do not falsely claim autonomous continuation.
 
-If a task cannot complete safely, follow [`PROBLEM_LOOP.md`](PROBLEM_LOOP.md): publish the matching problem report with evidence, classification, safe remediation options, and `Human decision required: YES|NO`, then stop that run.
+## Stalled CI
 
-## Stop and pause
+After about 12 unchanged five-minute observations, perform one bounded `CI_STALLED_DIAGNOSIS` pass while continuing the recheck loop if the workflow remains legitimately active. Slow CI alone is not a reason to ask the human to wake Hermes.
 
-The operator can pause the Scheduled task from the Scheduled view.
+## No-op / review states
 
-The signal `หยุดเฝ้า` means disable or pause the continuous Scheduled task. It does not issue runtime lifecycle commands and does not alter CogentNexus-OpenClaw runtime state.
+Hermes performs no project task mutation when state is:
 
-## Reporting
+- `WAITING_FOR_CHATGPT_REVIEW`;
+- `WAITING_FOR_CHATGPT`;
+- `WAITING_FOR_USER_AUTHORITY`;
+- `GOAL_COMPLETE_PENDING_CHATGPT_FINAL`;
+- an explicit operator pause/stop state;
+- assigned to another authority for review/decision.
 
-No-op polling cycles should not create commits or reports.
+`WAITING_FOR_CI_RECHECK` is not a no-op state for Hermes when Hermes owns the active task wait.
 
-A run creates/updates the matching report only when it actually begins an authorized task or must record a meaningful `BLOCKED` result.
+No-op polls create no commits.
+
+## Automatic authority
+
+Automatic pickup/self-wake only consumes an already-authorized Hermes task or re-checks an already-authorized asynchronous condition. It does not grant successor, review, live/destructive, or semantic authority.
+
+Successor framing after a completed report belongs to ChatGPT under the standing single-agent protocol.
+
+## Race handling
+
+Fetch before every coordination write and every delayed-wake continuation. If remote advanced, stop using stale assumptions, re-read current ownership, discard stale wake entries, and never force-push.

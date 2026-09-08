@@ -13,7 +13,7 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn("host_v091.py", ps)
         self.assertIn("host_v091.py", sh)
 
-        # v0.9.3 keeps provider policy in runtime while installers remain neutral.
+        # v0.9.4 keeps provider policy in runtime while installers remain neutral.
         self.assertIn("scripts\\cnxclaw_v093.py", ps)
         self.assertIn("scripts/cnxclaw_v093.py", sh)
         self.assertNotIn('$Provider', ps)
@@ -70,7 +70,7 @@ class V091InstallWiringTests(unittest.TestCase):
 
     def test_portable_cnx_template_uses_v092_cli_facade(self):
         # The portable template is a released-v0.9.2 compatibility artifact; the
-        # v0.9.3 installers generate their launcher against cnxclaw_v093.py directly.
+        # v0.9.4 installers generate their launcher against cnxclaw_v093.py directly.
         launcher = (ROOT / "skills/cogentnexus-openclaw/templates/lifecycle/cnxclaw.cmd").read_text(encoding="utf-8")
         self.assertIn("scripts\\cnxclaw.py", launcher)
         self.assertNotIn('scripts\\host.py"', launcher)
@@ -84,6 +84,14 @@ class V091InstallWiringTests(unittest.TestCase):
         host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
         self.assertIn('HERE.with_name("host_control_v091.py")', startup)
         self.assertIn('HERE.with_name("startup_v091.py")', host)
+
+    def test_install_over_forces_fresh_boundary_and_binds_installed_fingerprint(self):
+        ps = (ROOT / "scripts/install.ps1").read_text(encoding="utf-8")
+        host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
+        self.assertIn("activate_current_config", host)
+        self.assertIn("expectedPluginFingerprint", ps)
+        self.assertIn("installedPluginFingerprint", ps)
+        self.assertIn("installedPluginFingerprint.ToLowerInvariant() -ne $expectedPluginFingerprint.ToLowerInvariant()", ps)
 
 
 if __name__ == "__main__":

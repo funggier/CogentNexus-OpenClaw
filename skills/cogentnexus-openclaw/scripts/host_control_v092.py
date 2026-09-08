@@ -30,6 +30,23 @@ v091.legacy.HOST = HERE.with_name("host_v092.py")
 ADAPTER_STOP_VERIFY_SECONDS = 5.0
 
 
+def _run_periodic_supervisor_in_process(argv: list[str] | None = None) -> int:
+    """Run the composed Host without another scheduled-task child process."""
+    import host_v092
+
+    args = host_v092.legacy.build_parser().parse_args(argv)
+    try:
+        host_v092.legacy.emit(host_v092.base.supervisor_tick(args.root.resolve(), args.execute_safe))
+        return 0
+    except Exception as error:
+        host_v092.legacy.emit({"result": "error", "error": str(error)})
+        return 1
+
+
+def _periodic_supervisor_runner(_argv: list[str]) -> int:
+    return _run_periodic_supervisor_in_process()
+
+
 def option_value(argv: list[str], name: str) -> str | None:
     for index, value in enumerate(argv):
         if value == name and index + 1 < len(argv):
@@ -114,7 +131,7 @@ def _finish_disable_native_boundary(root: Path, delegate_code: int) -> int:
 def main() -> int:
     argv = v091.legacy.sys.argv[1:]
     root = v091.legacy.root_from_argv(argv)
-    command, _ = v091.legacy.command_from_argv(argv)
+    command, action = v091.legacy.command_from_argv(argv)
     if command in {"reset", "uninstall"}:
         return lifecycle.main(command, root, option_value(argv, "--provider"))
     if command == "stop":
@@ -132,6 +149,8 @@ def main() -> int:
         return v091.main()
     if command == "disable":
         return _finish_disable_native_boundary(root, v091.main())
+    if command == "supervisor" and action == "tick":
+        return v091.main(periodic_supervisor_runner=_periodic_supervisor_runner)
     return v091.main()
 
 

@@ -11,7 +11,7 @@ LIFECYCLE_TEMPLATE = ROOT / "skills" / "cogentnexus-openclaw" / "templates" / "l
 LIFECYCLE_README = LIFECYCLE_TEMPLATE.parent / "README.md"
 
 
-def test_v093_facade_help_is_current_and_ollama_only():
+def test_v094_facade_help_is_current_and_describes_two_provider_boundaries():
     result = subprocess.run(
         [sys.executable, str(FACADE), "--help"],
         capture_output=True,
@@ -19,8 +19,9 @@ def test_v093_facade_help_is_current_and_ollama_only():
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-    assert "v0.9.3" in result.stdout
-    assert "Ollama-only" in result.stdout
+    assert "v0.9.4" in result.stdout
+    assert "managed Ollama" in result.stdout
+    assert "Cloud pass-through" in result.stdout
     assert "--provider ollama" in result.stdout
     assert "--provider lmstudio" not in result.stdout.lower()
 
@@ -55,5 +56,5 @@ def test_lifecycle_readme_separates_compatibility_template_from_current_v093_lau
     text = LIFECYCLE_README.read_text(encoding="utf-8")
     assert "v0.9.2" in text
     assert "compatibility" in text.lower()
-    assert "v0.9.3" in text
+    assert "v0.9.4" in text
     assert "cnxclaw_v093.py" in text

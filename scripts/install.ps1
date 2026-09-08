@@ -1,8 +1,14 @@
 [CmdletBinding()]
 param(
-    [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
+ [string]$Workspace = (Join-Path $HOME ".openclaw\workspace"),
 
-    [switch]$SkipPlugin,
+ [string]$RecoverRolloverTransaction,
+
+ [string]$RecoverRolloverTransactionSha256,
+
+ [string]$RecoverRolloverSourcePluginRoot,
+
+ [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
     [switch]$LinkPlugin
@@ -59,6 +65,41 @@ function Complete-InstallerDiagnosticStage {
     $Context.Stopwatch.Stop()
     $completedAt = [DateTimeOffset]::UtcNow
     Write-Host ("CNXCLAW_INSTALL_STAGE_COMPLETE stage={0} utc={1} elapsed_ms={2} exit_code={3}" -f $Context.Stage, $completedAt.ToString("o"), $Context.Stopwatch.ElapsedMilliseconds, $ExitCode)
+}
+
+function Invoke-NativeInstallerDiagnostic {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 promotes native stderr to a terminating
+        # NativeCommandError under Stop, truncating the child diagnostic.
+        $ErrorActionPreference = "Continue"
+        $output = (& $Executable @Arguments 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
+    }
+    return [pscustomobject]@{ Output = $output; ExitCode = $exitCode }
+}
+
+function Get-BoundedInstallerDiagnostic {
+    param([AllowNull()][string]$Output)
+
+    $maximumCharacters = 4096
+    $placeholder = "[no child diagnostic output captured]"
+    $trimmed = if ($null -eq $Output) { "" } else { $Output.Trim() }
+    if ([string]::IsNullOrWhiteSpace($trimmed)) { return $placeholder }
+    if ($trimmed.Length -le $maximumCharacters) { return $trimmed }
+
+    $truncationMarker = "`n...[child diagnostic truncated]...`n"
+    $headCharacters = [Math]::Floor(($maximumCharacters - $truncationMarker.Length) / 2)
+    $tailCharacters = $maximumCharacters - $truncationMarker.Length - $headCharacters
+    return $trimmed.Substring(0, $headCharacters) + $truncationMarker + $trimmed.Substring($trimmed.Length - $tailCharacters)
 }
 
 function Get-ExistingCnxMode {
@@ -122,6 +163,58 @@ if (-not $SkipPlugin) {
 python -c "import yaml" 2>$null
 if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
+}
+
+if (($RecoverRolloverTransaction -and (-not $RecoverRolloverTransactionSha256 -or -not $RecoverRolloverSourcePluginRoot)) -or
+    (-not $RecoverRolloverTransaction -and ($RecoverRolloverTransactionSha256 -or $RecoverRolloverSourcePluginRoot))) {
+    throw "-RecoverRolloverTransaction, -RecoverRolloverTransactionSha256, and -RecoverRolloverSourcePluginRoot must be supplied together."
+}
+if ($RecoverRolloverTransaction) {
+    if (-not (Test-Path -LiteralPath $RecoverRolloverTransaction -PathType Leaf)) {
+        throw "-RecoverRolloverTransaction requires an existing transaction file."
+    }
+    if ($RecoverRolloverTransactionSha256 -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "-RecoverRolloverTransactionSha256 must be an exact SHA-256 digest."
+    }
+    if (-not (Test-Path -LiteralPath $RecoverRolloverSourcePluginRoot -PathType Container)) {
+        throw "-RecoverRolloverSourcePluginRoot requires an existing verified artifact plugin directory."
+    }
+    $recoveryFingerprintJson = (& python $ownershipScript plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "Recovery source plugin fingerprint could not be proven: $recoveryFingerprintJson" }
+    $recoverySourceFingerprint = [string](($recoveryFingerprintJson | ConvertFrom-Json).fingerprint)
+    if ($recoverySourceFingerprint -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Recovery source plugin fingerprint is invalid."
+    }
+    $recoveryInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-rollover-recovery-inventory-" + [guid]::NewGuid().ToString("N") + ".json")
+    try {
+        $recoveryInventory = (& openclaw plugins list --json | Out-String)
+        if ($LASTEXITCODE -ne 0) { throw "Could not prove live plugin inventory for rollover recovery." }
+        [IO.File]::WriteAllText($recoveryInventoryPath, $recoveryInventory, (New-Object Text.UTF8Encoding($false)))
+        $rolloverRecoveryArgs = @(
+            $ownershipScript,
+            "rollover-recover",
+            "--transaction", $RecoverRolloverTransaction,
+            "--inventory-json", $recoveryInventoryPath,
+            "--workspace", $Workspace,
+            "--app-data", $applicationDataRoot,
+            "--expected-transaction-sha256", $RecoverRolloverTransactionSha256,
+            "--expected-replacement-fingerprint", $recoverySourceFingerprint
+        )
+        $rolloverRecoveryCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments $rolloverRecoveryArgs
+        $rolloverRecoveryJson = [string]$rolloverRecoveryCapture.Output
+        $rolloverRecoveryExit = [int]$rolloverRecoveryCapture.ExitCode
+        if ($rolloverRecoveryExit -ne 0) {
+            throw "Attested rollover recovery failed (exit $rolloverRecoveryExit): $rolloverRecoveryJson"
+        }
+        $rolloverRecovery = $rolloverRecoveryJson | ConvertFrom-Json
+        if ($rolloverRecovery.status -ne "ROLLOVER_RECOVERED_PASSTHROUGH") {
+            throw "Attested rollover recovery returned unrecognized status '$($rolloverRecovery.status)'."
+        }
+        Write-Host "Recovered quarantined plugin rollover through exact transaction proof."
+    }
+    finally {
+        Remove-Item -LiteralPath $recoveryInventoryPath -Force -ErrorAction SilentlyContinue
+    }
 }
 
 # CNX-20260825-067 D2 / CNX-20260826-073 R5: before classification, recover
@@ -383,10 +476,20 @@ if ($actions.installPlugin) {
                 $rolloverId = [guid]::NewGuid().ToString("N")
                 $rolloverTransactionPath = Join-Path $rolloverStaging "plugin-rollover-transaction-$rolloverId.json"
                 $rolloverPrepareDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-rollover-prepare"
-                $prepareOutput = (& python (Join-Path $targetSkill "scripts\namespace_ownership.py") "rollover-prepare" "--root" $cogentNexusOpenClawRoot "--workspace" $Workspace "--app-data" $applicationDataRoot "--expected-replacement-fingerprint" $expectedPluginFingerprint "--backup-token" $rolloverId "--transaction" $rolloverTransactionPath | Out-String)
-                $rolloverPrepareExit = $LASTEXITCODE
+                $prepareCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments @(
+                    (Join-Path $targetSkill "scripts\namespace_ownership.py"), "rollover-prepare",
+                    "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace,
+                    "--app-data", $applicationDataRoot,
+                    "--expected-replacement-fingerprint", $expectedPluginFingerprint,
+                    "--backup-token", $rolloverId, "--transaction", $rolloverTransactionPath
+                )
+                $prepareOutput = [string]$prepareCapture.Output
+                $rolloverPrepareExit = [int]$prepareCapture.ExitCode
                 Complete-InstallerDiagnosticStage -Context $rolloverPrepareDiagnostic -ExitCode $rolloverPrepareExit
-                if ($rolloverPrepareExit -ne 0) { throw "ownership-safe plugin generation rollover pre-install proof failed" }
+                if ($rolloverPrepareExit -ne 0) {
+                    $boundedPrepareDiagnostic = Get-BoundedInstallerDiagnostic -Output $prepareOutput
+                    throw "ownership-safe plugin generation rollover pre-install proof failed; child diagnostic: $boundedPrepareDiagnostic"
+                }
                 if (-not (Test-Path -LiteralPath $rolloverTransactionPath)) { throw "rollover transaction proof was not persisted" }
             }
             $pluginInstallDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-install-local-package"
@@ -453,15 +556,25 @@ if ($isFreshTransaction) {
 Set-Content -LiteralPath $launcher -Value $launcherText -Encoding ASCII -NoNewline
 Write-Host "Installed CogentNexus-OpenClaw launcher to $launcher"
 
-$pluginResolutionJson = (& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
-if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
-$installedPluginPath = [string](($pluginResolutionJson | ConvertFrom-Json).root)
-$ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
-if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
-& $ownedPython @ownershipArguments | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
-& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+if ($SkipPlugin) {
+    Write-Host "Skipped plugin resolution and ownership mutation; staging payload is adopted without plugin activation."
+}
+else {
+    $pluginResolutionJson = (& $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") resolve-plugin --openclaw-state (Split-Path -Parent $Workspace) --version $version | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw "Installed plugin identity/path is missing, conflicting, or ambiguous; refusing ownership." }
+    $installedPlugin = $pluginResolutionJson | ConvertFrom-Json
+    $installedPluginPath = [string]$installedPlugin.root
+    $installedPluginFingerprint = [string]$installedPlugin.fingerprint
+    if ($installedPluginFingerprint -notmatch '^[0-9a-fA-F]{64}$' -or $installedPluginFingerprint.ToLowerInvariant() -ne $expectedPluginFingerprint.ToLowerInvariant()) {
+        throw "Installed plugin fingerprint does not match the expected candidate fingerprint; refusing managed activation."
+    }
+    $ownershipArguments = @((Join-Path $targetSkill "scripts\namespace_ownership.py"), "create", "--root", $cogentNexusOpenClawRoot, "--workspace", $Workspace, "--skill", $targetSkill, "--plugin-path", $installedPluginPath, "--launcher", $launcher, "--version", $version)
+    if ($migrationSource) { $ownershipArguments += @("--migration-source", $migrationSource) }
+    & $ownedPython @ownershipArguments | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Ownership manifest creation failed; refusing MANAGED authority." }
+    & $ownedPython (Join-Path $targetSkill "scripts\namespace_ownership.py") verify --root $cogentNexusOpenClawRoot --workspace $Workspace | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "New ownership manifest/artifacts failed exact verification; remaining PASSTHROUGH." }
+}
 if ($isFreshTransaction) {
     # CNX-20260826-068: commit only AFTER ownership create + exact verify.
     & python $ownershipScript transaction-commit --workspace $Workspace | Out-Null

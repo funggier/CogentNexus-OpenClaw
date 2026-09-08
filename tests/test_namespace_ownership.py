@@ -24,7 +24,7 @@ def layout(tmp_path: Path):
     return workspace, root, skill, launcher, plugin
 
 
-def write_plugin(root: Path, *, marker="same", version="0.9.3") -> Path:
+def write_plugin(root: Path, *, marker="same", version="0.9.4") -> Path:
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(json.dumps({"id": ownership.PRODUCT_ID, "version": version}), encoding="utf-8")
@@ -108,7 +108,7 @@ def complete_install(tmp_path: Path, migration_source=None):
     launcher.write_text("cnxclaw", encoding="utf-8")
     write_plugin(plugin)
     payload = ownership.build_manifest(root=root, workspace=workspace, skill=skill, plugin_path=plugin,
-                                       launcher=launcher, version="0.9.3", migration_source=migration_source)
+                                       launcher=launcher, version="0.9.4", migration_source=migration_source)
     ownership.write_manifest(root, payload)
     return workspace, root, payload
 
@@ -238,8 +238,17 @@ def test_valid_npm_managed_layout_remains_a_coherent_upgrade(tmp_path: Path):
     write_plugin(plugin)
     ownership.write_manifest(root, ownership.build_manifest(
         root=root, workspace=workspace, skill=skill, plugin_path=plugin,
-        launcher=launcher, version="0.9.3",
+        launcher=launcher, version="0.9.4",
     ))
+    assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
+
+
+def test_owned_v093_layout_is_a_coherent_upgrade_candidate(tmp_path: Path):
+    workspace, root, _ = complete_install(tmp_path)
+    manifest_path = root / ownership.MANIFEST_NAME
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["installedVersion"] = "0.9.3"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
     assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
 
 

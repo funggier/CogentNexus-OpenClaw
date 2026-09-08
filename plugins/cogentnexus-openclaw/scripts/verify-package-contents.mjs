@@ -1,10 +1,34 @@
+import fs from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..");
 const npmArgs = ["pack", "--dry-run", "--json"];
+
+const staticIdentityFiles = [
+  "package.json",
+  "README.md",
+  "openclaw.plugin.json",
+  "scripts/bootstrap-ticket-db.mjs",
+];
+
+function verifyStaticIdentityBytes() {
+  for (const relativePath of staticIdentityFiles) {
+    const fullPath = join(packageRoot, relativePath);
+    const stat = fs.lstatSync(fullPath);
+    if (!stat.isFile()) {
+      throw new Error(`Static package identity path is not a regular file: ${relativePath}`);
+    }
+    const bytes = fs.readFileSync(fullPath);
+    if (bytes.includes(0x0d)) {
+      throw new Error(`Static package identity contains noncanonical newline bytes: ${relativePath}`);
+    }
+  }
+}
+
+verifyStaticIdentityBytes();
 
 function npmInvocation() {
   // npm exposes the exact CLI entrypoint to npm-run scripts. Invoking that JS

@@ -53,7 +53,7 @@ class LifecycleV092Tests(unittest.TestCase):
             project = state / "npm" / "projects" / "openclaw-plugin-cogentnexus-openclaw__openclaw-generation__g-live"
             expected = write_payload(
                 project / "node_modules" / "openclaw-plugin-cogentnexus-openclaw",
-                "0.9.3",
+                "0.9.4",
             )
             (project / "package.json").write_text(
                 json.dumps({"private": True, "dependencies": {"openclaw-plugin-cogentnexus-openclaw": "file:plugin.tgz"}}),
@@ -69,7 +69,7 @@ class LifecycleV092Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / ".openclaw"
             managed = state / "npm" / "projects" / "direct-package-generation"
-            expected = write_payload(managed, "0.9.3")
+            expected = write_payload(managed, "0.9.4")
 
             actual = cnx.resolve_installed_bootstrap(state)
             self.assertEqual(actual.resolve(), expected.resolve())
@@ -108,8 +108,8 @@ class LifecycleV092Tests(unittest.TestCase):
             state = Path(tmp) / ".openclaw"
             first = managed_package_root(state, "generation-a")
             second = managed_package_root(state, "generation-b")
-            write_payload(first, "0.9.3", bootstrap_text="a\n", ticket_text="same\n")
-            write_payload(second, "0.9.3", bootstrap_text="b\n", ticket_text="same\n")
+            write_payload(first, "0.9.4", bootstrap_text="a\n", ticket_text="same\n")
+            write_payload(second, "0.9.4", bootstrap_text="b\n", ticket_text="same\n")
 
             with self.assertRaisesRegex(RuntimeError, "ambiguous"):
                 cnx.resolve_installed_bootstrap(state)
@@ -119,8 +119,8 @@ class LifecycleV092Tests(unittest.TestCase):
             state = Path(tmp) / ".openclaw"
             first = managed_package_root(state, "generation-a")
             second = managed_package_root(state, "generation-b")
-            write_payload(first, "0.9.3")
-            write_payload(second, "0.9.3")
+            write_payload(first, "0.9.4")
+            write_payload(second, "0.9.4")
             os.utime(first, ns=(1_000_000_000, 1_000_000_000))
             os.utime(second, ns=(2_000_000_000, 2_000_000_000))
 

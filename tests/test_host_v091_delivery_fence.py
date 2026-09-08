@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "cogentnexus-openclaw" / "scripts"
@@ -70,6 +71,14 @@ CREATE TABLE cnx_direct_recovery(
   last_error TEXT,
   updated_at TEXT NOT NULL
 );
+CREATE TABLE cnx_sessions(
+  session_key TEXT PRIMARY KEY,
+  state TEXT NOT NULL,
+  generation INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  session_id TEXT
+);
 """
 
 
@@ -100,6 +109,11 @@ class HostV091DeliveryFenceTests(unittest.TestCase):
             "VALUES ('T-waiting-unverifiable','pending',NULL,'2026-08-18T10:20:00Z',NULL,?)",
             (created,),
         )
+        db.execute(
+            "INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id) "
+            "VALUES ('agent:main:dashboard:d','active',1,?,'2026-08-18T10:55:00Z','physical-current')",
+            (created,),
+        )
         db.commit()
         db.close()
         return path
@@ -111,7 +125,8 @@ class HostV091DeliveryFenceTests(unittest.TestCase):
             cutoff = "2026-08-18T11:00:00Z"
 
             fence = cnx.reconcile_direct_delivery_before_recovery(root, cutoff)
-            recovered = cnx.promote_interrupted_direct_v091(root, cutoff, "test interruption")
+            with mock.patch.object(cnx.legacy, "now_iso", return_value=cutoff):
+                recovered = cnx.promote_interrupted_direct_v091(root, cutoff, "test interruption")
 
             self.assertEqual(
                 set(fence["unverifiableFailed"]),

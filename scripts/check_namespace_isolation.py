@@ -14,7 +14,7 @@ MIGRATION_PATHS = {
     "skills/cogentnexus-openclaw/scripts/namespace_ownership.py",
     "tests/test_namespace_ownership.py", "tests/test_namespace_install_contract.py",
     "tests/test_namespace_lint.py", "tests/test_upgrade_legacy_mode_isolation_proof.py",
-    "docs/releases/v0.9.3.md",
+    "docs/releases/v0.9.4.md",
     "docs/V093_RECOVERY_REALITY_TESTS.md",
     "scripts/test-v093-gateway-convergence-windows.ps1",
     "scripts/test-v093-ollama-recovery-windows-v2.ps1",
@@ -34,7 +34,7 @@ GENERIC_CHECK_COMPONENT = re.compile(r"\bcheck\s+cogentnexus(?!-openclaw)(?=[\s|
 
 def historical(relative: str) -> bool:
     return relative.startswith(HISTORICAL_PREFIXES) or (
-        relative.startswith("docs/releases/") and relative != "docs/releases/v0.9.3.md"
+        relative.startswith("docs/releases/") and relative != "docs/releases/v0.9.4.md"
     )
 
 

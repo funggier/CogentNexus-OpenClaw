@@ -126,7 +126,7 @@ def _repair_managed_plugin_activation(root: Path, execute_safe: bool) -> dict[st
     return payload
 
 
-def main() -> int:
+def main(periodic_supervisor_runner=None) -> int:
     argv = legacy.sys.argv[1:]
     root = legacy.root_from_argv(argv)
     command, action = legacy.command_from_argv(argv)
@@ -137,26 +137,28 @@ def main() -> int:
     if command in {"reset", "uninstall"}:
         return lifecycle.main(command, root)
 
-    # Before first initialization there is no authority to assume MANAGED. Route
-    # non-enable commands directly to the hardened Host, which seeds PASSTHROUGH.
-    if command != "enable" and not (root / "host" / "controller.json").exists():
-        return legacy.delegate(argv)
-
     # The scheduled supervisor must remain file/socket-only while healthy.
     # Calling legacy.main() here would run apply_watchdog_compat(), which invokes
     # `openclaw config get` and spins up Node once per schedule even when idle.
     # A direct openclaw.json read is cheap; Node is invoked only when MANAGED
     # activation drift is actually detected.
     if command == "supervisor" and action == "tick":
-        try:
-            _repair_managed_plugin_activation(root, "--execute-safe" in argv)
-        except Exception as error:
-            legacy.append_audit(root, "managed-plugin-activation-repair-failed", {"error": str(error)})
-            print(json.dumps({
-                "result": "error",
-                "error": f"CogentNexus-OpenClaw MANAGED plugin activation repair failed: {error}",
-            }, ensure_ascii=False, indent=2))
-            return 1
+        if (root / "host" / "controller.json").exists():
+            try:
+                _repair_managed_plugin_activation(root, "--execute-safe" in argv)
+            except Exception as error:
+                legacy.append_audit(root, "managed-plugin-activation-repair-failed", {"error": str(error)})
+                print(json.dumps({
+                    "result": "error",
+                    "error": f"CogentNexus-OpenClaw MANAGED plugin activation repair failed: {error}",
+                }, ensure_ascii=False, indent=2))
+                return 1
+        runner = periodic_supervisor_runner or legacy.delegate
+        return runner(argv)
+
+    # Before first initialization there is no authority to assume MANAGED. Route
+    # non-enable commands directly to the hardened Host, which seeds PASSTHROUGH.
+    if command != "enable" and not (root / "host" / "controller.json").exists():
         return legacy.delegate(argv)
 
     if command != "enable":
