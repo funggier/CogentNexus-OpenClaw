@@ -34,7 +34,7 @@ def item(filename: str):
 
 
 def test_npm11_array_resolves_existing_exact_artifact(tmp_path: Path):
-    artifact = tmp_path / "openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz"
+    artifact = tmp_path / "openclaw-plugin-cogentnexus-openclaw-0.9.4.tgz"
     artifact.write_bytes(b"artifact")
     result = run_helper([item(artifact.name)], tmp_path)
     assert result.returncode == 0, result.stderr
@@ -42,7 +42,7 @@ def test_npm11_array_resolves_existing_exact_artifact(tmp_path: Path):
 
 
 def test_npm12_keyed_object_resolves_existing_exact_artifact(tmp_path: Path):
-    artifact = tmp_path / "openclaw-plugin-cogentnexus-openclaw-0.9.3.tgz"
+    artifact = tmp_path / "openclaw-plugin-cogentnexus-openclaw-0.9.4.tgz"
     artifact.write_bytes(b"artifact")
     result = run_helper({"openclaw-plugin-cogentnexus-openclaw": item(artifact.name)}, tmp_path)
     assert result.returncode == 0, result.stderr

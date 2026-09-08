@@ -31,7 +31,7 @@ def test_v093_current_docs_do_not_advertise_lmstudio_provider_commands():
         for literal in forbidden:
             if literal in text:
                 violations.append(f"{path.relative_to(ROOT)}: {literal}")
-    assert not violations, "current v0.9.3 docs advertise LM Studio commands:\n" + "\n".join(violations)
+    assert not violations, "current v0.9.4 docs advertise LM Studio commands:\n" + "\n".join(violations)
 
 
 def test_v093_docs_name_validated_openclaw_baseline():
@@ -43,15 +43,16 @@ def test_current_install_docs_do_not_claim_unpublished_v093_release_exists():
     for path in (ROOT / "docs" / "INSTALL.md", ROOT / "docs" / "INSTALL.th.md"):
         text = _text(path)
         forbidden = (
-            "from the v0.9.3 GitHub Release",
-            "จาก GitHub Release v0.9.3",
+            "from the v0.9.4 GitHub Release",
+            "จาก GitHub Release v0.9.4",
         )
         assert not any(literal in text for literal in forbidden), (
-            f"{path.relative_to(ROOT)} claims an unpublished v0.9.3 release exists"
+            f"{path.relative_to(ROOT)} claims an unpublished v0.9.4 release exists"
         )
 
 
-def test_v093_current_docs_state_ollama_only_managed_provider():
-    required = "Ollama only"
+def test_v094_current_docs_state_managed_and_passthrough_provider_contract():
     for path in (ROOT / "README.md", ROOT / "docs" / "CURRENT_STATE.md", ROOT / "docs" / "INSTALL.md"):
-        assert required in _text(path), f"{path.relative_to(ROOT)} does not state the v0.9.3 Ollama-only contract"
+        text = _text(path)
+        assert "Ollama" in text, f"{path.relative_to(ROOT)} lacks managed Ollama contract"
+        assert "pass-through" in text.lower(), f"{path.relative_to(ROOT)} lacks Cloud pass-through contract"

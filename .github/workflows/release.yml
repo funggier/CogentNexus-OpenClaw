@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Exact release version without the v prefix (for example 0.9.3)"
+        description: "Exact release version without the v prefix (for example 0.9.4)"
         required: true
         type: string
       candidate_sha:
@@ -214,6 +214,10 @@ jobs:
           notes="$RUNNER_TEMP/release/RELEASE_NOTES.md"
           if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "Validated candidate SHA output is malformed; refusing publication." >&2
+            exit 1
+          fi
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists; refusing duplicate tag publication." >&2
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then

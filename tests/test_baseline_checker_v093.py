@@ -50,7 +50,7 @@ def test_checker_rejects_bridge_metadata_that_disagrees_with_root_version(tmp_pa
     for name in ("package.json", "openclaw.plugin.json", "package-lock.json"):
         _rewrite_json_version(plugin / name, "0.9.2")
 
-    assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.3"
+    assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"
     assert _run_checker(tree) == 1
 
 
@@ -95,7 +95,7 @@ def test_checker_rejects_missing_verified_delivery_registration(tmp_path):
     text = entry.read_text(encoding="utf-8")
     marker = "installV091DashboardVerifiedDelivery(api, config);"
     assert marker in text
-    entry.write_text(text.replace(marker, "// verified delivery registration removed by fixture", 1), encoding="utf-8")
+    entry.write_text(text.replace(marker, "// verified delivery registration removed by fixture"), encoding="utf-8")
 
     assert _run_checker(tree) == 1
 

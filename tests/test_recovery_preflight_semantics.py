@@ -117,15 +117,15 @@ def test_t4_ownership_present_regression(tmp_path: Path):
     plugin_root = ws.parent / "extensions" / "cogentnexus-openclaw"
     (plugin_root / "dist").mkdir(parents=True)
     (plugin_root / "openclaw.plugin.json").write_text(
-        json.dumps({"id": "cogentnexus-openclaw", "version": "0.9.3"}), encoding="utf-8")
+        json.dumps({"id": "cogentnexus-openclaw", "version": "0.9.4"}), encoding="utf-8")
     (plugin_root / "package.json").write_text(
-        json.dumps({"name": no.PLUGIN_PACKAGE, "version": "0.9.3"}), encoding="utf-8")
+        json.dumps({"name": no.PLUGIN_PACKAGE, "version": "0.9.4"}), encoding="utf-8")
     (plugin_root / "scripts").mkdir()
     (plugin_root / "scripts" / "bootstrap-ticket-db.mjs").write_text("//\n", encoding="utf-8")
     (plugin_root / "dist" / "ticket-store.js").write_text("//\n", encoding="utf-8")
     manifest = no.build_manifest(
         root=state, workspace=ws, skill=skill, plugin_path=plugin_root,
-        launcher=launcher, version="0.9.3")
+        launcher=launcher, version="0.9.4")
     no.write_manifest(state, manifest)
     result = no.recovery_preflight(ws)
     assert result["status"] == "OWNERSHIP_PRESENT"

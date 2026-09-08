@@ -1,10 +1,10 @@
-# ติดตั้ง CogentNexus-OpenClaw v0.9.3 บน Windows
+# ติดตั้ง CogentNexus-OpenClaw v0.9.4 บน Windows
 
-CogentNexus-OpenClaw v0.9.3 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
+CogentNexus-OpenClaw v0.9.4 ใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` และ managed provider ของ runtime/operator boundary ปัจจุบันคือ **Ollama only**
 
 implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว หลังจากนั้น Task 188 แก้ current-facing documentation ภายใน npm package และ installed skill surface โดยไม่เปลี่ยน executable/runtime source โดย corrected package payload-v2 identity คือ `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files และ installed skill-tree identity คือ `a1e873ba404205507a1623961b49f1b1a0689f9f`
 
-การอ้างว่า artifact ถูก publish หรือติดตั้งต้องผูกกับ exact candidate/release artifact เสมอ GitHub Releases/tags เป็น authority ว่า public `v0.9.3` ถูก publish แล้วหรือยัง ส่วน moving branch ไม่ใช่ release identity
+การอ้างว่า artifact ถูก publish หรือติดตั้งต้องผูกกับ exact candidate/release artifact เสมอ GitHub Releases/tags เป็น authority ว่า public `v0.9.4` ถูก publish แล้วหรือยัง ส่วน moving branch ไม่ใช่ release identity
 
 ## สิ่งที่ต้องมี
 
@@ -39,7 +39,7 @@ python -m pip install 'PyYAML>=6.0,<7'
 
 Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
 
-LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.3 ส่วน runtime/operator target ของ v0.9.3 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
+LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.4 ส่วน runtime/operator target ของ v0.9.4 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
 
 ## Artifact identity และ acceptance lineage
 
@@ -67,7 +67,7 @@ facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
 
 ## ตรวจ runtime/provider หลังติดตั้ง
 
-runtime/provider target ของ v0.9.3 คือ Ollama เท่านั้น ส่วน executable availability, endpoint/model readiness และ provider-specific health checks เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
+runtime/provider target ของ v0.9.4 คือ Ollama เท่านั้น ส่วน executable availability, endpoint/model readiness และ provider-specific health checks เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
@@ -154,10 +154,10 @@ Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง l
 
 ## การติดตั้งจาก Release
 
-เมื่อ GitHub Release `v0.9.3` มีอยู่จริง ให้ใช้ exact assets ที่ `.github/workflows/release.yml` สร้างและ verify:
+เมื่อ GitHub Release `v0.9.4` มีอยู่จริง ให้ใช้ exact assets ที่ `.github/workflows/release.yml` สร้างและ verify:
 
-- `cogentnexus-openclaw-v0.9.3.tar.gz`
-- `cogentnexus-openclaw-v0.9.3.zip`
+- `cogentnexus-openclaw-v0.9.4.tar.gz`
+- `cogentnexus-openclaw-v0.9.4.zip`
 - `SHA256SUMS.txt`
 
 ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น หาก GitHub Release/tag ยังไม่มีอยู่ ให้ใช้ exact candidate ที่ได้รับการ review ชัดเจนแทน และห้ามเดาหรือสร้าง release download URL ขึ้นเอง

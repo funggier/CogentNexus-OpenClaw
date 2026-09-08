@@ -27,7 +27,7 @@ function fakeApi(workspace: string) {
     registerCli: vi.fn(),
     registerGatewayMethod: vi.fn(),
     on: vi.fn(),
-    config: { agents: { defaults: { workspace } } },
+    config: { agents: { defaults: { workspace, model: { primary: "openai/gpt-5.6-luna" } } } },
     runtime: {},
   };
   return new Proxy(base, {
@@ -53,18 +53,15 @@ describe("v0.9.1 Host single-recovery-authority boundary", () => {
     } finally { rmSync(workspace, { recursive: true, force: true }); }
   });
 
-  it("keeps native plugin install/hot-reload inert in clean PASSTHROUGH", () => {
+  it("registers passive continuity hooks in PASSTHROUGH without treating it as MANAGED", () => {
     const workspace = mkdtempSync(join(tmpdir(), "cnx-v091-host-passthrough-"));
     try {
       writeController(workspace, "passthrough");
       const api = fakeApi(workspace);
-      expect(hostPluginAuthority(api)).toMatchObject({ authorized: false, reason: "passthrough", mode: "passthrough" });
+      expect(hostPluginAuthority(api)).toMatchObject({ authorized: true, reason: "passthrough", mode: "passthrough" });
       (entry as any).register(api);
-      expect(api.registerService).not.toHaveBeenCalled();
-      expect(api.registerTool).not.toHaveBeenCalled();
-      expect(api.registerCommand).not.toHaveBeenCalled();
-      expect(api.on).not.toHaveBeenCalled();
-      expect(api.logger.info).toHaveBeenCalledWith(expect.stringContaining("registration suppressed"));
+      expect(api.on).toHaveBeenCalled();
+      expect(api.logger.info).not.toHaveBeenCalledWith(expect.stringContaining("registration suppressed"));
     } finally { rmSync(workspace, { recursive: true, force: true }); }
   });
 
@@ -97,13 +94,12 @@ describe("v0.9.1 Host single-recovery-authority boundary", () => {
       writeFileSync(join(workspace, "AGENTS.md"), "before\n<!-- cogentnexus-openclaw:begin -->\nstale activation stage\n<!-- cogentnexus-openclaw:end -->\nafter\n");
       const api = fakeApi(workspace);
       expect(hostPluginAuthority(api)).toMatchObject({
-        authorized: false,
+        authorized: true,
         reason: "passthrough",
         mode: "passthrough",
       });
       (entry as any).register(api);
-      expect(api.registerService).not.toHaveBeenCalled();
-      expect(api.on).not.toHaveBeenCalled();
+      expect(api.on).toHaveBeenCalled();
     } finally { rmSync(workspace, { recursive: true, force: true }); }
   });
 });

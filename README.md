@@ -4,10 +4,11 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Release line:** v0.9.3
-- **Core / Bridge version:** 0.9.3
+- **Release line:** v0.9.4
+- **Core / Bridge version:** 0.9.4
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
-- **Managed provider:** **Ollama only**
+- **Managed provider:** Ollama
+- **Cloud provider mode:** OpenClaw-owned pass-through for configured Cloud routes
 - **Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`
 - **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
 - **Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files
@@ -15,7 +16,7 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 - **Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`
 - **Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
 
-The v0.9.3 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus-OpenClaw could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
+The v0.9.4 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus-OpenClaw could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
 
 Task 191 repaired that boundary with TDD. Task 192 then installed the exact repaired candidate on the accepted Windows host and proved the normal real-runtime shape:
 
@@ -30,7 +31,7 @@ Task 191 repaired that boundary with TDD. Task 192 then installed the exact repa
 
 The accepted Task-192 turn returned the requested visible nonce on the first natural final, required no sentinel revision, created no duplicate or Direct Recovery row, left pending outbox at zero, and showed no bare `NO_REPLY` in durable/UI output.
 
-Public release availability is authoritative on GitHub Releases/tags. A branch checkout or this README is never proof that v0.9.3 has been published.
+Public release availability is authoritative on GitHub Releases/tags. A branch checkout or this README is never proof that v0.9.4 has been published.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
 
@@ -76,7 +77,7 @@ Delivery confirmed -> completed
 
 ## Provider contract
 
-CogentNexus-OpenClaw v0.9.3 manages **Ollama only**.
+CogentNexus-OpenClaw v0.9.4 manages Ollama and supports Cloud providers through an OpenClaw-owned pass-through route. Cloud authentication, lifecycle, and recovery remain owned by OpenClaw.
 
 ```powershell
 .\cnxclaw.cmd start
@@ -85,7 +86,7 @@ CogentNexus-OpenClaw v0.9.3 manages **Ollama only**.
 .\cnxclaw.cmd check provider ollama
 ```
 
-The installer itself remains provider-neutral. Historical LM Studio support belongs to the frozen v0.9.2 provider layer and may remain in compatibility/migration history, but current v0.9.3 operator commands do not manage LM Studio.
+The installer itself remains provider-neutral. Historical LM Studio support belongs to the frozen v0.9.2 provider layer and may remain in compatibility/migration history, but current v0.9.4 operator commands do not manage LM Studio.
 
 See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
@@ -181,6 +182,6 @@ npm run plugin:validate
 
 ## Historical boundary
 
-v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may legitimately describe LM Studio/provider-neutral behavior when that is what actually occurred; those records must not be rewritten as current v0.9.3 promises.
+v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may legitimately describe LM Studio/provider-neutral behavior when that is what actually occurred; those records must not be rewritten as current v0.9.4 promises.
 
 The earlier Windows implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` and documentation-corrected candidate `604569c286e930f1a596362ab926b065b56d486e` remain immutable historical evidence. Task 191/192 supersede them for publication with repaired candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34`.

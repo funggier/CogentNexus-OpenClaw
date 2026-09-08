@@ -1,7 +1,7 @@
 """CNX-20260826-071 — prove upgrade/legacy mode isolation with executable
 production-facing fixtures.
 
-U1/U2: a REAL upgrade fixture (production manifest + exact v0.9.3 plugin
+U1/U2: a REAL upgrade fixture (production manifest + exact v0.9.4 plugin
 payload on disk) classifies as ``upgrade`` through the actual
 :class:`classify_install`, never creates a fresh transaction marker, and an
 injected failure inside the shared installer boundary propagates without any
@@ -40,7 +40,7 @@ INSTALLED_VERSION = no.INSTALLED_VERSION
 # ---------------------------------------------------------------------------
 
 def _make_upgrade_fixture(tmp_path: Path) -> tuple[Path, Path]:
-    """Real owned v0.9.3 installation shape: manifest + artifacts on disk."""
+    """Real owned v0.9.4 installation shape: manifest + artifacts on disk."""
     ws = tmp_path / "workspace"
     state = ws / ".cogentnexus-openclaw"
     app_parent = tmp_path / "appdata-local"

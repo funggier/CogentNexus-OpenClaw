@@ -44,6 +44,7 @@ type RotationConfig = {
   admissionMinimumScore?: number;
   durableWorkerModel?: string;
   ticketFirst?: boolean;
+  providerMode?: "managed" | "passthrough";
   ticketDatabasePath?: string;
   ticketRecoveryPollMs?: number;
   ticketOutboxPollMs?: number;
@@ -535,6 +536,7 @@ const configSchema = Type.Object({
   admissionMinimumScore: Type.Optional(Type.Integer({ minimum: 3, maximum: 20 })),
   durableWorkerModel: Type.Optional(Type.String({ description: "Ollama model used by automatically compiled bounded workflow components." })),
   ticketFirst: Type.Optional(Type.Boolean({ description: "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default." })),
+  providerMode: Type.Optional(Type.Union([Type.Literal("managed"), Type.Literal("passthrough")], { description: "Provider ownership boundary. Passthrough leaves provider/auth/lifecycle/recovery to OpenClaw and disables Ollama workflow admission." })),
   ticketDatabasePath: Type.Optional(Type.String({ description: "Optional SQLite ticket database path. Defaults under workspace .cogentnexus-openclaw/runtime." })),
   ticketRecoveryPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Deterministic expired-lease recovery scan interval." })),
   ticketOutboxPollMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 300000, description: "Terminal Ticket delivery interval." })),
@@ -757,6 +759,15 @@ entry.register = (api) => {
     // owner bit and canonical session shape instead; classifier exclusions
     // fence internal completion and continuation messages.
     if (!durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner})) return { outcome:"pass" };
+    const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
+    if (config.providerMode === "passthrough" && decision.lane === "durable") {
+      return {
+        outcome:"block",
+        reason:"durable workflow admission is unsupported in Cloud provider pass-through mode; use an ordinary direct OpenClaw turn",
+        category:"cnxclaw_cloud_workflow_unsupported",
+        metadata:{providerMode:"passthrough",durableWorkflow:"unsupported"},
+      };
+    }
     const ownerSessionKey = ctx.sessionKey!;
     let acceptedTicket:ReturnType<TicketStore["accept"]> | undefined;
     let ticketStore:TicketStore | undefined;
@@ -773,7 +784,6 @@ entry.register = (api) => {
       });
       ticketedRuns.add(ticketRunId);
     }
-    const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
     if (decision.lane !== "durable") return { outcome:"pass" };
     if (acceptedTicket) return {
@@ -850,7 +860,7 @@ entry.register = (api) => {
     timer.unref?.(); deliveryTimers.set(runId,timer);
   }, { priority: 50 });
 
-  if (config.autoResume !== false && config.ticketFirst === true) api.on("after_compaction", async (_event, ctx) => {
+  if (config.providerMode !== "passthrough" && config.autoResume !== false && config.ticketFirst === true) api.on("after_compaction", async (_event, ctx) => {
     if(!ctx.sessionKey) return;
     const workspaceDir=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
     const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
@@ -868,7 +878,7 @@ entry.register = (api) => {
     }
     const internalDelivery=Boolean(runId && deliveryTargets.has(runId));
     const ticketedDirect=Boolean(runId && ticketedRuns.has(runId));
-    if(!internalDelivery && !ticketedDirect) await scheduleInterruptedResume({
+    if (config.providerMode !== "passthrough" && !internalDelivery && !ticketedDirect) await scheduleInterruptedResume({
       success: event.success,
       error: event.error,
       runId,
@@ -897,7 +907,7 @@ entry.register = (api) => {
         } else if(!visible || directState === "unchanged") cleanupRunDelivery(runId);
       } catch(error) { api.logger.warn(`CogentNexus-OpenClaw direct Ticket finalization failed: ${error instanceof Error?error.message:String(error)}`); }
     }
-    if (event.success && config.autoRotate === true && sessionKey) {
+    if (event.success && config.providerMode !== "passthrough" && config.autoRotate === true && sessionKey) {
       try {
         const workspaceDir = ctx.workspaceDir ?? process.cwd();
         const taskIds = monitorRotations(workspaceDir, config, sessionKey);
@@ -908,7 +918,7 @@ entry.register = (api) => {
       }
     }
   }, { priority: 50, timeoutMs: 10_000 });
-  if (config.autoWorkflowCompletion !== false) {
+  if (config.providerMode !== "passthrough" && config.autoWorkflowCompletion !== false) {
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService({
@@ -932,7 +942,7 @@ entry.register = (api) => {
       stop: async () => { if (interval) clearInterval(interval); interval = undefined; },
     });
   }
-  if (config.ticketFirst === true) {
+  if (config.providerMode !== "passthrough" && config.ticketFirst === true) {
     let interval: ReturnType<typeof setInterval> | undefined;
     let active = false;
     api.registerService({

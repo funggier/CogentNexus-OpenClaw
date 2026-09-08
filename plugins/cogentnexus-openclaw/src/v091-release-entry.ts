@@ -12,6 +12,7 @@ import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boun
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
 import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
+import { cloudPassThroughPolicy } from "./cloud-passthrough.js";
 
 type HostControllerState = {
   schemaVersion?: number;
@@ -70,7 +71,7 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   if (state?.schemaVersion !== 1 || !["managed", "passthrough", "maintenance"].includes(mode ?? "")) {
     return { authorized: false, reason: "invalid", mode, generation, controllerPath };
   }
-  if (mode === "managed") return { authorized: true, reason: "managed", mode, generation, controllerPath };
+  if (mode === "managed" || mode === "passthrough") return { authorized: true, reason: mode, mode, generation, controllerPath };
   if (mode === "maintenance") return { authorized: false, reason: "maintenance", mode, generation, controllerPath };
   return { authorized: false, reason: "passthrough", mode, generation, controllerPath };
 }
@@ -84,8 +85,9 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
  * openclaw.plugin.json, which OpenClaw reads before runtime code is loaded.
  *
  * Host authority is checked before the compatibility chain is registered. A
- * native plugin install/hot-reload in PASSTHROUGH or MAINTENANCE is therefore
- * inert even when the plugin is temporarily enabled by OpenClaw itself.
+ * native plugin install/hot-reload in MAINTENANCE or without a valid Host
+ * commit is inert. PASSTHROUGH registers only the continuity/delivery boundary
+ * and never grants CogentNexus-OpenClaw provider lifecycle authority.
  */
 const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
   id: "cogentnexus-openclaw",
@@ -104,32 +106,54 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus-OpenClaw v0.9.1 compatibility entry does not expose register(api)");
     }
-    const config = (api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig;
+    const config = {
+      ...((api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig),
+      ...(authority.reason === "passthrough" ? { providerMode: "passthrough" as const } : { providerMode: "managed" as const }),
+    };
+    const resolvedModel = String((api as any)?.config?.agents?.defaults?.model?.primary ?? "").trim();
+    const route = authority.reason === "passthrough"
+      ? cloudPassThroughPolicy({hostMode: authority.reason, providerId: resolvedModel.split("/", 1)[0] ?? "", modelRef: resolvedModel})
+      : undefined;
+    if (route) api.logger.debug?.(`CogentNexus-OpenClaw Cloud pass-through route accepted: ${route.providerId}/${route.modelRef}`);
+    const runtimeApi = authority.reason === "passthrough"
+      ? ({
+          ...api,
+          pluginConfig: {...config, autoResume:false, autoRotate:false, autoWorkflowCompletion:false},
+          registerService: () => undefined,
+          on: (name: string, handler: any, options?: any) => {
+            if (["before_agent_run", "session_end", "reply_dispatch", "message_sent", "agent_end"].includes(name)) return api.on(name as any, handler, options);
+            return undefined;
+          },
+        } as OpenClawPluginApi)
+      : api;
     // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
     // concurrently with Host-owned CogentNexus-OpenClaw Direct Recovery. Consume only
     // the exact native restart system turn when durable CNXCLAW ownership exists,
     // before the legacy before_agent_run Ticket-first gate can see it.
-    installV099NativeRestartOwnershipFence(api, config);
+    if (authority.reason !== "passthrough") installV099NativeRestartOwnershipFence(api, config);
     const installManagedRuntimeGuards = () => {
-      // Once direct_result is durable, transport owns all remaining retries;
+      if (authority.reason === "passthrough") {
+        installV092DurableDeliveryBoundary();
+        installV091DashboardVerifiedDelivery(api, config);
+        return;
+      }
       // legacy delivery timeout recovery must not regenerate inference.
       installV092DurableDeliveryBoundary();
       // A cnx_direct_recovery row durably owns the Direct lane. Legacy Host
       // reconciliation must never promote that Ticket into workflow execution.
-      installV095DirectRecoveryLaneFence(
-        resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3"),
-      );
+      const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
+      if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
       // The model-call lease is observation-only. It records a bounded provider
       // call deadline; only the external Host may act on an expired lease.
       installV091DirectModelCallLease(api);
       installV091DashboardVerifiedDelivery(api, config);
     };
-    const registered = register(api);
+    const registered = register(runtimeApi);
     // Test A v9 proved that the Direct Recovery service can start while the
     // owner-session/model-call readiness fences are still settling after a
     // Host-driven Gateway restart. Register a durable-work-only pulse bridge
     // after the legacy services so the pending recovery cannot become unwoken.
-    installV097DirectRecoveryStartupLiveness(api, config);
+    if (authority.reason !== "passthrough") installV097DirectRecoveryStartupLiveness(api, config);
     if (registered && typeof (registered as Promise<void>).then === "function") {
       return Promise.resolve(registered).then(installManagedRuntimeGuards);
     }

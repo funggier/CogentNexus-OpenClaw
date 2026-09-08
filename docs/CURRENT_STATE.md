@@ -1,10 +1,11 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Release line:** v0.9.3  
-**Core version:** 0.9.3  
-**OpenClaw Bridge package:** 0.9.3  
+**Release line:** v0.9.4
+**Core version:** 0.9.4
+**OpenClaw Bridge package:** 0.9.4
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
-**Managed provider:** **Ollama only**  
+**Managed provider:** **Ollama**
+**Cloud provider mode:** OpenClaw-owned **pass-through**
 **Accepted Recovery Core:** `eadb89099637d24f96e265a500d66c577aa939a3`  
 **Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`  
 **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`  
@@ -15,7 +16,7 @@
 
 ## Classification
 
-CogentNexus-OpenClaw v0.9.3 has completed the repository and real-Windows acceptance gates required for final publication.
+CogentNexus-OpenClaw v0.9.4 has completed the repository and real-Windows acceptance gates required for final publication.
 
 The historical implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` completed the broad lifecycle sequence through Tasks 182–186: install-over/provenance, reset/fresh-state reconstruction, uninstall with external preservation, fresh reinstall, and a final Dashboard semantic/durable-delivery turn.
 
@@ -76,7 +77,7 @@ The repaired source is inside the plugin surface, so the earlier statement that 
 
 ## Capability boundary
 
-| Capability | v0.9.3 state |
+| Capability | v0.9.4 state |
 | --- | --- |
 | Ticket-first durable admission | Accepted |
 | DIRECT lane without forced workflow promotion | Accepted |
@@ -98,7 +99,7 @@ The repaired source is inside the plugin surface, so the earlier statement that 
 | `reset` explicit-`y` fresh-state reconstruction | Accepted |
 | `uninstall` explicit-`y` ownership-safe external preservation | Accepted |
 | Fresh reinstall after uninstall | Accepted |
-| Public v0.9.3 GitHub Release | Determined only by GitHub Releases/tag and exact Release-workflow evidence |
+| Public v0.9.4 GitHub Release | Determined only by GitHub Releases/tag and exact Release-workflow evidence |
 | Real abrupt power-loss/cold-boot acceptance | Deferred |
 | Newer OpenClaw compatibility | Deferred |
 | High-concurrency/long-soak hardening | Not fully accepted |
@@ -107,9 +108,9 @@ The repaired source is inside the plugin surface, so the earlier statement that 
 
 ## Provider state semantics
 
-Current v0.9.3 lifecycle operations target Ollama. Explicit `--provider ollama` remains accepted, and provider-bearing lifecycle operations without an explicit provider are normalized to Ollama by the v0.9.3 facade.
+Current v0.9.4 lifecycle operations target Ollama. Cloud provider conversation turns may run through OpenClaw-owned pass-through mode; CogentNexus-OpenClaw does not control Cloud provider lifecycle, authentication, probing, or recovery.
 
-Historical v0.9.2 LM Studio state can remain relevant in migration/history. That does not re-open LM Studio as a current v0.9.3 managed provider.
+Historical v0.9.2 LM Studio state can remain relevant in migration/history. That does not re-open LM Studio as a current v0.9.4 managed provider.
 
 ## System-check semantics
 
@@ -135,7 +136,7 @@ Task 192 is accepted `PASS`, so final publication may proceed only through the g
 4. inspect PR topology/diff/checks;
 5. merge only when green;
 6. freeze the exact merged `main` SHA;
-7. dispatch `.github/workflows/release.yml` with `version=0.9.3` and that exact merged SHA;
+7. dispatch `.github/workflows/release.yml` with `version=0.9.4` and that exact merged SHA;
 8. verify Release workflow success, tag target, release assets, `SHA256SUMS.txt`, and independent checksums.
 
 GitHub Releases/tags are authoritative for public availability. Historical PR #24 must not be reused.
@@ -144,4 +145,4 @@ GitHub Releases/tags are authoritative for public availability. Historical PR #2
 
 v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may preserve LM Studio/provider-neutral behavior where that was true at the time.
 
-The candidates `f6392da3...` and `604569c...` remain immutable historical evidence. They are superseded for v0.9.3 publication by repaired candidate `050ab53f...` and the Task-191/192 evidence chain.
+The candidates `f6392da3...` and `604569c...` remain immutable historical evidence. They are superseded for v0.9.4 publication by repaired candidate `050ab53f...` and the Task-191/192 evidence chain.

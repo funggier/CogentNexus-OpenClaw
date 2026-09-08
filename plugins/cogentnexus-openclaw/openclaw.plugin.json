@@ -2,7 +2,7 @@
   "id": "cogentnexus-openclaw",
   "name": "CogentNexus-OpenClaw Bridge",
   "description": "Ticket-first OpenClaw bridge for CogentNexus-OpenClaw Host-managed continuity, durable execution, recovery, context handoff, and verified delivery.",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -39,6 +39,7 @@
       "admissionMinimumScore": { "type": "integer", "minimum": 3, "maximum": 20 },
       "durableWorkerModel": { "type": "string", "description": "Ollama model used by automatically compiled bounded workflow components." },
       "ticketFirst": { "type": "boolean", "description": "Commit every eligible owner message to SQLite before inference. Host-managed installs enable this by default." },
+      "providerMode": { "type": "string", "enum": ["managed", "passthrough"], "description": "Provider ownership boundary. Passthrough leaves provider/auth/lifecycle/recovery to OpenClaw and disables Ollama workflow admission." },
       "ticketDatabasePath": { "type": "string", "description": "Optional SQLite ticket database path. Defaults under workspace .cogentnexus-openclaw/runtime." },
       "ticketRecoveryPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Deterministic expired-lease recovery scan interval." },
       "ticketOutboxPollMs": { "type": "integer", "minimum": 1000, "maximum": 300000, "description": "Terminal Ticket delivery interval." },
