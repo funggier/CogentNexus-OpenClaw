@@ -1373,7 +1373,7 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
         if manifest_path(paths["stateRoot"]).exists():
             reentry_manifest = verify_manifest(
                 paths["stateRoot"], workspace=workspace,
-                require_artifacts=False, verify_plugin=False,
+                require_artifacts=False, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS,
             )
             if not Path(reentry_manifest["pluginPath"]).exists():
                 return _classify_interrupted_rollover_reentry(
@@ -1410,7 +1410,8 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
     if inventory["new"]:
         verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
         product_candidates = [candidate for candidate in plugin_candidate_roots(paths["openclawState"])
-                              if (candidate / "package.json").is_file()]
+                              if any(_plugin_payload(candidate, expected_version=version) is not None
+                                     for version in (INSTALLED_VERSION, *UPGRADE_FROM_VERSIONS))]
         if len(product_candidates) > 1:
             raise RuntimeError(f"ambiguous product plugin payloads: {[str(item) for item in product_candidates]}")
         return {"mode": "upgrade", **inventory}
