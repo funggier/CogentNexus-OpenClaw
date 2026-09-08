@@ -39,7 +39,7 @@ python -m pip install 'PyYAML>=6.0,<7'
 
 The installer is provider-neutral: it stages/validates the skill, initializes owned Host/runtime state safely, installs/validates the OpenClaw Bridge, writes the launcher, and enables the runtime only after installation-owned verification succeeds. Runtime/provider readiness is a separate post-install concern.
 
-LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.4 does not manage it. The v0.9.4 runtime/operator provider target is Ollama, but that selection/readiness responsibility is outside the installer prerequisite boundary.
+LM Studio belongs to the frozen v0.9.2 historical provider layer. v0.9.4 does not manage it. The v0.9.4 runtime/operator boundary manages Ollama lifecycle operations and supports configured Cloud conversation routes through OpenClaw-owned pass-through.
 
 ## Artifact identity and acceptance lineage
 
