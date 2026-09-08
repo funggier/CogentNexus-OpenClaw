@@ -1048,6 +1048,7 @@ def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
             raise RuntimeError("direct same-path rollover has conflicting product storage evidence")
 
     manifest_after = dict(transaction["manifestBefore"])
+    manifest_after["installedVersion"] = INSTALLED_VERSION
     manifest_after["pluginPath"] = _canonical(replacement["root"])
     manifest_after["installedAt"] = datetime.now(timezone.utc).isoformat()
     try:
