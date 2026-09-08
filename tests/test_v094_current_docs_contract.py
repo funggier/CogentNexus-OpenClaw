@@ -35,11 +35,11 @@ def test_windows_rollover_recovery_docs_match_current_implemented_interfaces():
     installer = (ROOT / "scripts" / "install.ps1").read_text(encoding="utf-8")
     guide = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
 
-    for parameter in ("Workspace", "RecoverRolloverTransaction", "RecoverRolloverTransactionSha256", "SkipPlugin", "SkipGatewayRestart", "SkipAgentsPolicy", "LinkPlugin"):
+    for parameter in ("Workspace", "RecoverRolloverTransaction", "RecoverRolloverTransactionSha256", "RecoverRolloverSourcePluginRoot", "SkipPlugin", "SkipGatewayRestart", "SkipAgentsPolicy", "LinkPlugin"):
         assert f"${parameter}" in installer, parameter
         assert f"-{parameter}" in guide, parameter
     assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in installer
     assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in installer
-    assert "source-derived expected replacement fingerprint" in guide
+    assert "verified-artifact plugin root" in guide
     assert "InstallSourceCommit" not in installer
     assert "no `-InstallSourceCommit`" in guide

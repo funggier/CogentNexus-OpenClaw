@@ -43,16 +43,17 @@ LM Studio เป็นส่วนของ frozen historical v0.9.2 และ�
 
 ### Installer parameters และ quarantined plugin rollover recovery
 
-Windows installer รองรับ `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy` และ `-LinkPlugin` และไม่มี parameter `-InstallSourceCommit` การ recovery ต้องได้รับอนุญาตแยกต่างหากและระบุ transaction file พร้อม expected SHA-256 จากอำนาจภายนอก:
+Windows installer รองรับ `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-RecoverRolloverSourcePluginRoot`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy` และ `-LinkPlugin` และไม่มี parameter `-InstallSourceCommit` การ recovery ต้องได้รับอนุญาตแยกต่างหากและระบุ transaction file พร้อม expected SHA-256 จากอำนาจภายนอก:
 
 ```powershell
 .\scripts\install.ps1 `
   -Workspace "$HOME\.openclaw\workspace" `
   -RecoverRolloverTransaction "C:\path\to\plugin-rollover-transaction.json" `
-  -RecoverRolloverTransactionSha256 "<SHA-256 64 hex ของ transaction file นั้น>"
+  -RecoverRolloverTransactionSha256 "<SHA-256 64 hex ของ transaction file นั้น>" `
+  -RecoverRolloverSourcePluginRoot "C:\path\to\verified-artifact\plugins\cogentnexus-openclaw"
 ```
 
-installer คำนวณ expected replacement fingerprint จาก exact candidate plugin source, capture inventory สด และ forward transaction path, expected transaction SHA-256 และ source-derived expected replacement fingerprint ไปยัง lower-level recovery ถ้า file ไม่มีอยู่ ค่าไม่ครบ รูปแบบไม่ถูก หรือ hash/fingerprint ไม่ตรง ต้อง fail closed ก่อน preflight/classification และก่อน installation mutation
+installer คำนวณ expected recovery replacement fingerprint จาก plugin root ของ exact verified artifact, capture inventory สด และ forward transaction path, expected transaction SHA-256 และ artifact-derived expected replacement fingerprint ไปยัง lower-level recovery ถ้า file ไม่มีอยู่ ค่าไม่ครบ รูปแบบไม่ถูก หรือ hash/fingerprint ไม่ตรง ต้อง fail closed ก่อน preflight/classification และก่อน installation mutation
 
 ## Artifact identity และ acceptance lineage
 

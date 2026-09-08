@@ -92,17 +92,18 @@ def test_windows_installer_exposes_explicit_attested_rollover_recovery_before_pr
     source = read("scripts/install.ps1")
     parameter = source.index("[string]$RecoverRolloverTransaction")
     digest_parameter = source.index("[string]$RecoverRolloverTransactionSha256", parameter)
-    recovery = source.index('"rollover-recover"', digest_parameter)
+    source_parameter = source.index("[string]$RecoverRolloverSourcePluginRoot", digest_parameter)
+    recovery = source.index('"rollover-recover"', source_parameter)
     inventory = source.rindex("openclaw plugins list --json", digest_parameter, recovery)
     preflight = source.index("recovery-preflight --workspace", recovery)
     classification = source.index("classify-install --workspace", preflight)
-    assert parameter < digest_parameter < inventory < recovery < preflight < classification
+    assert parameter < digest_parameter < source_parameter < inventory < recovery < preflight < classification
     assert "-RecoverRolloverTransaction requires" in source
     assert '"--workspace", $Workspace' in source[recovery - 1000:recovery + 1000]
     assert '"--app-data", $applicationDataRoot' in source[recovery - 1000:recovery + 1000]
     assert '"--expected-transaction-sha256", $RecoverRolloverTransactionSha256' in source[recovery - 1000:recovery + 1000]
     assert '"--expected-replacement-fingerprint", $recoverySourceFingerprint' in source[recovery - 1000:recovery + 1000]
-    assert "plugin-fingerprint --plugin-root $pluginDir --version $version" in source[parameter:recovery]
+    assert "plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version" in source[parameter:recovery]
 
 
 def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():

@@ -6,6 +6,8 @@ param(
 
  [string]$RecoverRolloverTransactionSha256,
 
+ [string]$RecoverRolloverSourcePluginRoot,
+
  [switch]$SkipPlugin,
     [switch]$SkipGatewayRestart,
     [switch]$SkipAgentsPolicy,
@@ -163,8 +165,9 @@ if ($LASTEXITCODE -ne 0) {
     throw "PyYAML is required. Run: python -m pip install 'PyYAML>=6.0,<7'"
 }
 
-if ([bool]$RecoverRolloverTransaction -ne [bool]$RecoverRolloverTransactionSha256) {
-    throw "-RecoverRolloverTransaction and -RecoverRolloverTransactionSha256 must be supplied together."
+if (($RecoverRolloverTransaction -and (-not $RecoverRolloverTransactionSha256 -or -not $RecoverRolloverSourcePluginRoot)) -or
+    (-not $RecoverRolloverTransaction -and ($RecoverRolloverTransactionSha256 -or $RecoverRolloverSourcePluginRoot))) {
+    throw "-RecoverRolloverTransaction, -RecoverRolloverTransactionSha256, and -RecoverRolloverSourcePluginRoot must be supplied together."
 }
 if ($RecoverRolloverTransaction) {
     if (-not (Test-Path -LiteralPath $RecoverRolloverTransaction -PathType Leaf)) {
@@ -173,7 +176,10 @@ if ($RecoverRolloverTransaction) {
     if ($RecoverRolloverTransactionSha256 -notmatch '^[0-9a-fA-F]{64}$') {
         throw "-RecoverRolloverTransactionSha256 must be an exact SHA-256 digest."
     }
-    $recoveryFingerprintJson = (& python $ownershipScript plugin-fingerprint --plugin-root $pluginDir --version $version | Out-String)
+    if (-not (Test-Path -LiteralPath $RecoverRolloverSourcePluginRoot -PathType Container)) {
+        throw "-RecoverRolloverSourcePluginRoot requires an existing verified artifact plugin directory."
+    }
+    $recoveryFingerprintJson = (& python $ownershipScript plugin-fingerprint --plugin-root $RecoverRolloverSourcePluginRoot --version $version | Out-String)
     if ($LASTEXITCODE -ne 0) { throw "Recovery source plugin fingerprint could not be proven: $recoveryFingerprintJson" }
     $recoverySourceFingerprint = [string](($recoveryFingerprintJson | ConvertFrom-Json).fingerprint)
     if ($recoverySourceFingerprint -notmatch '^[0-9a-fA-F]{64}$') {
