@@ -974,6 +974,53 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     }
 
 
+def recover_quarantined_plugin_rollover(*, transaction: dict[str, Any],
+                                        plugin_inventory: dict[str, Any]) -> dict[str, Any]:
+    """Resume only an attested rollover whose prior manifest was quarantined."""
+    expected_fields = {
+        "schemaVersion", "operation", "workspace", "stateRoot", "openclawState",
+        "applicationData", "controllerMode", "retiredPluginPath", "retiredProjectRoot",
+        "backupPath", "retiredFingerprint", "retiredProjectTreeSha256",
+        "backupProjectTreeSha256", "manifestBefore", "manifestBeforeSha256",
+        "expectedReplacementFingerprint", "createdAt",
+    }
+    if not isinstance(transaction, dict) or set(transaction) != expected_fields:
+        raise RuntimeError("rollover recovery transaction schema fields are not exact")
+    if transaction.get("schemaVersion") != 1 or transaction.get("operation") != "cogentnexus-openclaw-plugin-generation-rollover-transaction":
+        raise RuntimeError("rollover recovery transaction identity is invalid")
+    workspace = Path(transaction["workspace"]).resolve(strict=False)
+    root = Path(transaction["stateRoot"]).resolve(strict=False)
+    if root != expected_paths(workspace)["stateRoot"].resolve(strict=False):
+        raise RuntimeError("rollover recovery state root does not match the workspace")
+    if transaction.get("controllerMode") != "passthrough":
+        raise RuntimeError("rollover recovery requires PASSTHROUGH transaction authority")
+    marker = load_transaction_marker(workspace)
+    if marker is None or marker.get("state") != "committed":
+        raise RuntimeError("rollover recovery requires an exact committed install marker")
+    marker_boundary = dict(marker)
+    marker_boundary["state"] = "incomplete"
+    _validate_marker_boundary(workspace, marker_boundary)
+    target = manifest_path(root)
+    if target.exists():
+        raise RuntimeError("rollover recovery requires a quarantined ownership manifest")
+    manifest_before = transaction.get("manifestBefore")
+    if not isinstance(manifest_before, dict) or set(manifest_before) != MANIFEST_FIELDS:
+        raise RuntimeError("rollover recovery manifestBefore schema is not exact")
+    try:
+        write_manifest(root, manifest_before)
+        if _sha256_file(target) != transaction.get("manifestBeforeSha256"):
+            raise RuntimeError("rollover recovery manifestBefore hash proof failed")
+        result = finalize_plugin_rollover_transaction(
+            transaction=transaction, plugin_inventory=plugin_inventory,
+        )
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+    result = dict(result)
+    result["status"] = "ROLLOVER_RECOVERED_PASSTHROUGH"
+    return result
+
+
 def finalize_plugin_rollover_transaction(*, transaction: dict[str, Any],
                                          plugin_inventory: dict[str, Any]) -> dict[str, Any]:
     """Prove the post-install replacement, then commit ownership atomically."""
@@ -1504,6 +1551,9 @@ def main() -> int:
     rollover_finalize = sub.add_parser("rollover-finalize")
     rollover_finalize.add_argument("--transaction", type=Path, required=True)
     rollover_finalize.add_argument("--inventory-json", type=Path, required=True)
+    rollover_recover = sub.add_parser("rollover-recover")
+    rollover_recover.add_argument("--transaction", type=Path, required=True)
+    rollover_recover.add_argument("--inventory-json", type=Path, required=True)
     rollover_apply = sub.add_parser("rollover-apply")
     rollover_apply.add_argument("--plan", type=Path, required=True)
     rollover_apply.add_argument("--plan-sha256", required=True)
@@ -1563,6 +1613,12 @@ def main() -> int:
         transaction = json.loads(args.transaction.read_text(encoding="utf-8"))
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = finalize_plugin_rollover_transaction(transaction=transaction, plugin_inventory=plugin_inventory)
+    elif args.command == "rollover-recover":
+        transaction = json.loads(args.transaction.read_text(encoding="utf-8"))
+        plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
+        result = recover_quarantined_plugin_rollover(
+            transaction=transaction, plugin_inventory=plugin_inventory,
+        )
     elif args.command == "rollover-apply":
         plugin_inventory = json.loads(args.inventory_json.read_text(encoding="utf-8"))
         result = apply_plugin_rollover_plan(

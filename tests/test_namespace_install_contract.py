@@ -88,6 +88,17 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
     assert "openclaw plugins uninstall cogentnexus-rotation --force" in source
 
 
+def test_windows_installer_exposes_explicit_attested_rollover_recovery_before_preflight():
+    source = read("scripts/install.ps1")
+    parameter = source.index("[string]$RecoverRolloverTransaction")
+    recovery = source.index('"rollover-recover"', parameter)
+    inventory = source.rindex("openclaw plugins list --json", parameter, recovery)
+    preflight = source.index("recovery-preflight --workspace", recovery)
+    classification = source.index("classify-install --workspace", preflight)
+    assert parameter < inventory < recovery < preflight < classification
+    assert "-RecoverRolloverTransaction requires" in source
+
+
 def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
     source = read("scripts/install.sh")
     fingerprint = source.index("plugin-fingerprint")

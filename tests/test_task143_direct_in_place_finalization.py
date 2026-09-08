@@ -167,6 +167,100 @@ def test_task142_direct_same_path_replacement_finalizes_from_backup_and_fingerpr
     assert Path(manifest["pluginPath"]) == paths["direct"].resolve()
 
 
+def test_quarantined_direct_rollover_recovers_only_from_transaction_proof(tmp_path: Path):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    ownership.manifest_path(paths["root"]).unlink()
+    marker = {
+        "schemaVersion": ownership._TRANSACTION_SCHEMA_VERSION,
+        "transactionId": f"{ownership.PRODUCT_ID}-test-recovery",
+        "productId": ownership.PRODUCT_ID,
+        "installedVersion": ownership.INSTALLED_VERSION,
+        "workspace": ownership._canonical(paths["workspace"]),
+        "stateRoot": ownership._canonical(paths["root"]),
+        "skillPath": ownership._canonical(paths["workspace"] / "skills" / ownership.PRODUCT_ID),
+        "applicationData": ownership._canonical(paths["app_data"]),
+        "state": "committed",
+        "createdAt": "2026-09-08T00:00:00+00:00",
+        "createdPaths": [],
+        "applicationDataPreexisting": False,
+    }
+    ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
+
+    result = ownership.recover_quarantined_plugin_rollover(
+        transaction=transaction,
+        plugin_inventory=_inventory(paths, paths["direct"]),
+    )
+
+    assert result["status"] == "ROLLOVER_RECOVERED_PASSTHROUGH"
+    manifest = ownership.verify_manifest(paths["root"], workspace=paths["workspace"])
+    assert manifest["installedVersion"] == ownership.INSTALLED_VERSION
+    assert Path(manifest["pluginPath"]) == paths["direct"].resolve()
+
+
+def test_quarantined_rollover_recovery_rejects_tampered_backup_without_adoption(tmp_path: Path):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    ownership.manifest_path(paths["root"]).unlink()
+    marker = {
+        "schemaVersion": ownership._TRANSACTION_SCHEMA_VERSION,
+        "transactionId": f"{ownership.PRODUCT_ID}-tamper-test",
+        "productId": ownership.PRODUCT_ID,
+        "installedVersion": ownership.INSTALLED_VERSION,
+        "workspace": ownership._canonical(paths["workspace"]),
+        "stateRoot": ownership._canonical(paths["root"]),
+        "skillPath": ownership._canonical(paths["workspace"] / "skills" / ownership.PRODUCT_ID),
+        "applicationData": ownership._canonical(paths["app_data"]),
+        "state": "committed",
+        "createdAt": "2026-09-08T00:00:00+00:00",
+        "createdPaths": [],
+        "applicationDataPreexisting": False,
+    }
+    ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
+    (Path(transaction["backupPath"]) / "dist" / "ticket-store.js").write_text("tampered", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="backup"):
+        ownership.recover_quarantined_plugin_rollover(
+            transaction=transaction,
+            plugin_inventory=_inventory(paths, paths["direct"]),
+        )
+
+    assert not ownership.manifest_path(paths["root"]).exists()
+
+
+def test_quarantined_rollover_cli_recovers_from_exact_transaction(tmp_path: Path):
+    paths, candidate, transaction, _, _ = _prepare_direct_transition(tmp_path)
+    _replace_payload(paths["direct"], candidate)
+    ownership.manifest_path(paths["root"]).unlink()
+    marker = {
+        "schemaVersion": ownership._TRANSACTION_SCHEMA_VERSION,
+        "transactionId": f"{ownership.PRODUCT_ID}-cli-test",
+        "productId": ownership.PRODUCT_ID,
+        "installedVersion": ownership.INSTALLED_VERSION,
+        "workspace": ownership._canonical(paths["workspace"]),
+        "stateRoot": ownership._canonical(paths["root"]),
+        "skillPath": ownership._canonical(paths["workspace"] / "skills" / ownership.PRODUCT_ID),
+        "applicationData": ownership._canonical(paths["app_data"]),
+        "state": "committed",
+        "createdAt": "2026-09-08T00:00:00+00:00",
+        "createdPaths": [],
+        "applicationDataPreexisting": False,
+    }
+    ownership.transaction_path(paths["root"]).write_text(json.dumps(marker), encoding="utf-8")
+    transaction_path = tmp_path / "rollover.json"
+    inventory_path = tmp_path / "inventory.json"
+    transaction_path.write_text(json.dumps(transaction), encoding="utf-8")
+    inventory_path.write_text(json.dumps(_inventory(paths, paths["direct"])), encoding="utf-8")
+
+    result = subprocess.run([
+        "python", str(SCRIPT), "rollover-recover",
+        "--transaction", str(transaction_path), "--inventory-json", str(inventory_path),
+    ], text=True, capture_output=True, check=False)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)["status"] == "ROLLOVER_RECOVERED_PASSTHROUGH"
+
+
 def test_direct_same_path_rejects_no_fingerprint_transition(tmp_path: Path):
     paths = _task142_direct_layout(tmp_path)
     retired = ownership._plugin_payload(paths["direct"])["fingerprint"]
