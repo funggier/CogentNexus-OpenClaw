@@ -97,7 +97,6 @@ openclaw models set openai/<model-id>
 .\cnxclaw.cmd gateway start
 .\cnxclaw.cmd gateway stop
 .\cnxclaw.cmd gateway restart
-.\cnxclaw.cmd gateway status
 ```
 
 สำหรับ Cloud pass-through ให้ OpenClaw เป็นเจ้าของ Gateway/provider operations ตาม OpenClaw configuration และ operator policy
@@ -106,7 +105,6 @@ openclaw models set openai/<model-id>
 
 ```powershell
 .\cnxclaw.cmd ticket list
-.\cnxclaw.cmd ticket show <ticket-id>
 .\cnxclaw.cmd ticket cancel <ticket-id>
 .\cnxclaw.cmd session cancel <session-key>
 ```

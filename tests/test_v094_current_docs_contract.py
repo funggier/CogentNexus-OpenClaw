@@ -63,6 +63,8 @@ def test_thai_command_guide_covers_managed_and_cloud_boundaries():
     for text in required:
         assert text in guide
     assert guide.index("cnxclaw.cmd cloud") < guide.index("openclaw models set <provider/model>")
+    for unsupported in ("cnxclaw.cmd gateway status", "cnxclaw.cmd ticket show <ticket-id>"):
+        assert unsupported not in guide
     assert "docs/COMMANDS.th.md" in (ROOT / "README.md").read_text(encoding="utf-8")
     assert "COMMANDS.th.md" in (ROOT / "docs" / "INSTALL.th.md").read_text(encoding="utf-8")
 
