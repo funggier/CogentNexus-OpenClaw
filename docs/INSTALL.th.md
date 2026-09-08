@@ -105,6 +105,8 @@ managed readiness ควรมีอย่างน้อย:
 
 ## คำสั่งใช้งานประจำ
 
+ดูคำอธิบายแต่ละคำสั่ง, ความต่างระหว่าง Managed Ollama กับ Cloud pass-through, ลำดับเข้า/ออกโหมด และข้อควรระวังได้ที่ [คู่มือคำสั่งภาษาไทย](COMMANDS.th.md)
+
 ```powershell
 .\cnxclaw.cmd status
 .\cnxclaw.cmd provider list

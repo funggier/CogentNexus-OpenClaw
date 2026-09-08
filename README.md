@@ -132,6 +132,7 @@ See:
 
 - [English install guide](docs/INSTALL.md)
 - [คู่มือติดตั้งภาษาไทย](docs/INSTALL.th.md)
+- [คู่มือคำสั่งภาษาไทย](docs/COMMANDS.th.md)
 - [Clean reinstall](docs/CLEAN_REINSTALL.md)
 - [ล้างและติดตั้งใหม่แบบสะอาด](docs/CLEAN_REINSTALL.th.md)
 

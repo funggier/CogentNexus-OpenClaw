@@ -29,7 +29,7 @@ Before lifecycle mutation, the system performs read-only preflight. A successful
 
 ## Native/PASSTHROUGH boundary
 
-`cnxclaw cloud` is the supported non-destructive transition for a configured Cloud route. It accepts no provider, model, or credential arguments. The command restores the OpenClaw-owned route, removes the managed `AGENTS.md` policy block, disables supervisor startup, commits Host `mode=passthrough`, `desiredGateway=running`, and `desiredProvider=unchanged`, keeps the CogentNexus-OpenClaw plugin enabled in passive mode, and restarts the Gateway once so continuity hooks load. It never starts, stops, probes, or recovers Ollama or a Cloud provider.
+`cnxclaw cloud` is the supported non-destructive transition into Cloud-capable pass-through. It accepts no provider, model, or credential arguments. The command first restores OpenClaw's native route, removes the managed `AGENTS.md` policy block, disables supervisor startup, commits Host `mode=passthrough`, `desiredGateway=running`, and `desiredProvider=unchanged`, keeps the CogentNexus-OpenClaw plugin enabled in passive mode, and restarts the Gateway once so continuity hooks load. It never starts, stops, probes, or recovers Ollama or the Cloud provider. After this transition succeeds, the operator selects the Cloud route with OpenClaw-owned configuration such as `openclaw models set <provider/model>`; running that selection before `cnxclaw cloud` is not authoritative because native-route restoration may replace it.
 
 ```powershell
 .\cnxclaw.cmd cloud
