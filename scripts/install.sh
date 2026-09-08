@@ -64,7 +64,7 @@ PLUGIN_DIR="$REPO_ROOT/plugins/cogentnexus-openclaw"
 EXPECTED_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$PLUGIN_DIR" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])')
 PLUGIN_ALREADY_EXACT=0
 if [ "$INSTALL_MODE" = upgrade ]; then
-  if CURRENT_PLUGIN_ROOT=$(python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["pluginPath"])' 2>/dev/null); then
+  if CURRENT_PLUGIN_ROOT=$(python "$OWNERSHIP_SCRIPT" resolve-plugin --openclaw-state "$(dirname "$WORKSPACE")" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["root"])' 2>/dev/null); then
     CURRENT_PLUGIN_FINGERPRINT=$(python "$OWNERSHIP_SCRIPT" plugin-fingerprint --plugin-root "$CURRENT_PLUGIN_ROOT" --version "$VERSION" | python -c 'import json,sys; print(json.load(sys.stdin)["fingerprint"])' 2>/dev/null || true)
     [ "$CURRENT_PLUGIN_FINGERPRINT" = "$EXPECTED_PLUGIN_FINGERPRINT" ] && PLUGIN_ALREADY_EXACT=1
   fi
