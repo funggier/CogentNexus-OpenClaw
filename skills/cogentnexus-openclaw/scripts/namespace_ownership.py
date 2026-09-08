@@ -861,7 +861,7 @@ def _exact_rollover_state(*, root: Path, workspace: Path,
                           expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     paths = expected_paths(workspace)
     mode = _require_passthrough(root)
-    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False)
+    manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
     retired = _plugin_payload(retired_root)
     if retired is None:
