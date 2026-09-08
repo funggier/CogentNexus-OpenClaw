@@ -39,7 +39,7 @@ python -m pip install 'PyYAML>=6.0,<7'
 
 Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
 
-LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.4 ส่วน runtime/operator target ของ v0.9.4 คือ Ollama แต่ responsibility เรื่อง selection/readiness นี้อยู่นอก installer prerequisite boundary
+LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.4 ส่วน managed runtime/operator target คือ Ollama ขณะที่ Cloud route ใช้ OpenClaw-owned pass-through โดย responsibility เรื่อง selection/readiness อยู่นอก installer prerequisite boundary
 
 ### Installer parameters และ quarantined plugin rollover recovery
 
@@ -81,7 +81,7 @@ facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
 
 ## ตรวจ runtime/provider หลังติดตั้ง
 
-runtime/provider target ของ v0.9.4 คือ Ollama เท่านั้น ส่วน executable availability, endpoint/model readiness และ provider-specific health checks เป็นความรับผิดชอบของ runtime และตรวจหลังติดตั้ง
+managed runtime/provider target ของ v0.9.4 คือ Ollama ส่วน Cloud route ที่ตั้งค่าไว้ใช้ OpenClaw-owned pass-through ซึ่ง OpenClaw เป็นเจ้าของ authentication, model readiness, lifecycle, probing และ recovery; การตรวจ executable, endpoint/model readiness และ health ของ managed Ollama เป็นความรับผิดชอบของ CogentNexus-OpenClaw runtime หลังติดตั้ง
 
 ```powershell
 cd "$HOME\.openclaw\workspace"

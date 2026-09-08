@@ -75,7 +75,7 @@ The explicit-`y`, ownership-safe, PASSTHROUGH-first destructive boundary remains
 
 v0.9.2 was a provider-neutral development/release line that included LM Studio lifecycle and compatibility work. Its source modules, release notes, and historical evidence may preserve those facts because they are part of repository history.
 
-That historical implementation must not be interpreted as a current v0.9.4 operator-facing provider promise. Current v0.9.4 source exposes Ollama only.
+That historical implementation must not be interpreted as a current v0.9.4 managed-provider promise. Current v0.9.4 source manages Ollama only and separately supports OpenClaw-owned Cloud pass-through without taking ownership of Cloud credentials, lifecycle, probing, or recovery.
 
 ## Recovery Core boundary
 

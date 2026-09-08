@@ -31,6 +31,18 @@ def test_current_provider_docs_preserve_managed_and_passthrough_boundaries():
         assert "credentials" in text, path
 
 
+def test_current_provider_docs_do_not_collapse_cloud_passthrough_into_ollama_only():
+    forbidden = {
+        ROOT / "docs" / "PROVIDERS.md": ("Current v0.9.4 source exposes Ollama only.",),
+        ROOT / "docs" / "INSTALL.md": ("The v0.9.4 runtime/provider target is Ollama only.",),
+        ROOT / "docs" / "INSTALL.th.md": ("runtime/provider target ของ v0.9.4 คือ Ollama เท่านั้น",),
+    }
+    for path, claims in forbidden.items():
+        text = path.read_text(encoding="utf-8")
+        for claim in claims:
+            assert claim not in text, (path, claim)
+
+
 def test_windows_rollover_recovery_docs_match_current_implemented_interfaces():
     installer = (ROOT / "scripts" / "install.ps1").read_text(encoding="utf-8")
     guide = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")

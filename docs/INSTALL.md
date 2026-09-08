@@ -83,7 +83,7 @@ Because the package/skill bytes changed, the corrected artifact requires proport
 
 ## Runtime/provider readiness after installation
 
-The v0.9.4 runtime/provider target is Ollama only. Provider executable availability, endpoint/model readiness, and provider-specific health checks belong to the runtime layer and are performed after installation.
+The v0.9.4 managed runtime/provider target is Ollama. Configured Cloud routes use OpenClaw-owned pass-through, so OpenClaw—not CogentNexus-OpenClaw—owns their authentication, model readiness, lifecycle, probing, and recovery. Managed Ollama readiness checks belong to the CogentNexus-OpenClaw runtime layer and run after installation.
 
 From the OpenClaw workspace:
 
