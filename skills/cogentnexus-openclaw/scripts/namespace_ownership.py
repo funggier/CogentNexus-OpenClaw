@@ -16,6 +16,7 @@ from typing import Any
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
 INSTALLED_VERSION = "0.9.4"
+UPGRADE_FROM_VERSIONS = ("0.9.3",)
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
@@ -726,7 +727,7 @@ def _parse_utc(value: object) -> datetime:
 
 
 def verify_manifest(root: Path, *, workspace: Path, require_artifacts: bool = True,
-                    verify_plugin: bool = True) -> dict[str, Any]:
+                    verify_plugin: bool = True, allow_upgrade_from: tuple[str, ...] = ()) -> dict[str, Any]:
     target = manifest_path(root)
     try:
         payload = json.loads(target.read_text(encoding="utf-8"))
@@ -745,6 +746,8 @@ def verify_manifest(root: Path, *, workspace: Path, require_artifacts: bool = Tr
     }
     mismatches = {key: {"expected": value, "actual": payload.get(key)}
                   for key, value in expected.items() if payload.get(key) != value}
+    if allow_upgrade_from and payload.get("installedVersion") in allow_upgrade_from:
+        mismatches.pop("installedVersion", None)
     if _canonical(root) != _canonical(paths["stateRoot"]):
         mismatches["rootArgument"] = {"expected": _canonical(paths["stateRoot"]), "actual": _canonical(root)}
     if payload.get("launcherPath") not in launchers:
@@ -1405,7 +1408,11 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
     if inventory["legacy"] and inventory["new"]:
         raise RuntimeError(f"mixed legacy/new namespace is ambiguous; refusing mutation: {inventory}")
     if inventory["new"]:
-        verify_manifest(paths["stateRoot"], workspace=workspace)
+        verify_manifest(paths["stateRoot"], workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
+        product_candidates = [candidate for candidate in plugin_candidate_roots(paths["openclawState"])
+                              if (candidate / "package.json").is_file()]
+        if len(product_candidates) > 1:
+            raise RuntimeError(f"ambiguous product plugin payloads: {[str(item) for item in product_candidates]}")
         return {"mode": "upgrade", **inventory}
     if inventory["legacy"]:
         return prove_legacy_ownership(workspace, inventory=inventory)

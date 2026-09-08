@@ -243,6 +243,15 @@ def test_valid_npm_managed_layout_remains_a_coherent_upgrade(tmp_path: Path):
     assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
 
 
+def test_owned_v093_layout_is_a_coherent_upgrade_candidate(tmp_path: Path):
+    workspace, root, _ = complete_install(tmp_path)
+    manifest_path = root / ownership.MANIFEST_NAME
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["installedVersion"] = "0.9.3"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+    assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
+
+
 def test_second_exact_product_child_makes_existing_install_ambiguous(tmp_path: Path):
     workspace, _, _ = complete_install(tmp_path)
     second = workspace.parent / "npm/projects/conflict/node_modules" / ownership.PLUGIN_PACKAGE
