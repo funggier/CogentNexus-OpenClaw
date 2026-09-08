@@ -90,17 +90,19 @@ def test_posix_installer_uses_only_new_fresh_layout_and_has_interruption_report(
 
 def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
     source = read("scripts/install.sh")
+    fingerprint = source.index("plugin-fingerprint")
+    prepare = source.index("rollover-prepare", fingerprint)
     install = source.index('openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force')
     inventory = source.index("openclaw plugins list --json", install)
-    plan = source.index("rollover-plan", inventory)
-    apply = source.index("rollover-apply", plan)
-    resolve = source.index(" resolve-plugin --openclaw-state", apply)
-    assert install < inventory < plan < apply < resolve
+    finalize = source.index("rollover-finalize", inventory)
+    resolve = source.index(" resolve-plugin --openclaw-state", finalize)
+    assert fingerprint < prepare < install < inventory < finalize < resolve
     plugin_guard = source.index('if [ "$SKIP_PLUGIN" -eq 0 ]; then')
-    upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then', install)
-    assert plugin_guard < install < upgrade_guard < plan
+    upgrade_guard = source.index('if [ "$INSTALL_MODE" = upgrade ]; then')
+    assert plugin_guard < fingerprint < upgrade_guard < prepare
+    assert "--expected-replacement-fingerprint" in source[prepare:finalize]
     assert "--link-plugin is incompatible with ownership-safe managed installation" in source
-    assert source.count("openclaw plugins list --json", install, apply) == 2
+    assert source.count("openclaw plugins list --json", install, finalize) == 1
     linked_filter = source.index("filter_plugin_paths.py", plugin_guard)
     assert linked_filter < install
     assert "plugins.load.paths" in source[linked_filter - 300:linked_filter + 300]
