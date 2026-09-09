@@ -79,7 +79,10 @@ def save_state(root: Path, state: dict[str, Any]) -> dict[str, Any]:
     legacy_mode = candidate.pop("mode", None)
     for key in _LEGACY_PROVIDER_FIELDS:
         candidate.pop(key, None)
-    if "cnxMode" not in candidate and legacy_mode is not None:
+    if legacy_mode is not None:
+        # At this compatibility boundary an explicitly supplied legacy mode is
+        # the caller's mutation intent. It must override a stale cnxMode that
+        # may have travelled with an in-memory compatibility view.
         try:
             candidate["cnxMode"] = _LEGACY_TO_CANONICAL_MODE[str(legacy_mode)]
         except KeyError as error:
