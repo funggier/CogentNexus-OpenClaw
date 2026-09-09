@@ -14,9 +14,17 @@ finally:
     globals()["__name__"] = _WRAPPER_NAME
 
 _LEGACY_MAIN = main
+_LEGACY_CURRENT_TEXT_FILES = current_text_files
 _ORIGINAL_READ_TEXT = Path.read_text
 _HOST_FACADE = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host.py"
 _HOST_COMPAT_PAYLOAD = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_legacy_v094.py"
+
+
+def current_text_files():
+    """Exclude only the archived validator source from live-surface phrase scanning."""
+    for path in _LEGACY_CURRENT_TEXT_FILES():
+        if path != _LEGACY_PATH:
+            yield path
 
 
 def _composite_read_text(self: Path, *args, **kwargs) -> str:
