@@ -276,6 +276,42 @@ def classify_quiesced_terminal_error_direct_model_call(
         db.close()
 
 
+def recover_terminal_error_direct_model_call(root: Path, claim: dict):
+    """Recover one exact terminal model-call error through CNX/Gateway only.
+
+    Provider/model values on ``claim`` are provenance. They never select, probe,
+    start, or stop a provider. The Gateway is quiesced around the exact
+    terminal-error classification and restored before the result is returned.
+    """
+    prepare_result = legacy.runtime(root, "lifecycle", "prepare", timeout=180, check=True)
+    stopped = False
+    started = False
+    classification = None
+    try:
+        legacy.runtime(root, "lifecycle", "stop", timeout=180, check=True)
+        stopped = True
+        classification = classify_quiesced_terminal_error_direct_model_call(root, claim)
+        legacy.runtime(root, "lifecycle", "start", timeout=180, check=True)
+        started = True
+        gateway = legacy.gateway_status(root)
+        if not gateway.get("healthy", False):
+            return {
+                "result": "terminal-model-call-recovery-failed",
+                "classification": classification,
+                "gateway": gateway,
+                "prepared": prepare_result,
+            }
+        return {
+            "result": "terminal-model-call-recovered",
+            "classification": classification,
+            "gateway": gateway,
+            "prepared": prepare_result,
+        }
+    finally:
+        if stopped and not started:
+            legacy.runtime(root, "lifecycle", "start", timeout=180, check=True)
+
+
 def _single_open_circuit_diagnostic(root: Path):
     """Return one legacy open circuit for read-only compatibility diagnostics.
 
