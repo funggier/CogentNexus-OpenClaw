@@ -128,7 +128,7 @@ def transition_mode(
     *,
     desired_gateway: str | None = None,
 ) -> dict[str, Any]:
-    """Change only CogentNexus authority state; provider routing is not an input."""
+    """Change only CogentNexus-OpenClaw authority state; provider routing is not an input."""
     if mode not in VALID_MODES:
         raise ValueError(f"invalid v0.9.5 cnxMode: {mode!r}")
     if desired_gateway is not None and desired_gateway not in VALID_GATEWAY_STATES:
