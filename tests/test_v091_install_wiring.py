@@ -2,6 +2,17 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+HOST_FACADE = ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py"
+HOST_COMPAT_PAYLOAD = ROOT / "skills/cogentnexus-openclaw/scripts/host_v091_legacy_v094.py"
+
+
+def host_contract_source() -> str:
+    """Inspect the complete v0.9.1 Host contract after the v0.9.5 façade split."""
+    return (
+        HOST_FACADE.read_text(encoding="utf-8")
+        + "\n"
+        + HOST_COMPAT_PAYLOAD.read_text(encoding="utf-8")
+    )
 
 
 class V091InstallWiringTests(unittest.TestCase):
@@ -81,13 +92,13 @@ class V091InstallWiringTests(unittest.TestCase):
 
     def test_v091_startup_adapter_targets_v091_control_wrapper(self):
         startup = (ROOT / "skills/cogentnexus-openclaw/scripts/startup_v091.py").read_text(encoding="utf-8")
-        host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
+        host = host_contract_source()
         self.assertIn('HERE.with_name("host_control_v091.py")', startup)
         self.assertIn('HERE.with_name("startup_v091.py")', host)
 
     def test_install_over_forces_fresh_boundary_and_binds_installed_fingerprint(self):
         ps = (ROOT / "scripts/install.ps1").read_text(encoding="utf-8")
-        host = (ROOT / "skills/cogentnexus-openclaw/scripts/host_v091.py").read_text(encoding="utf-8")
+        host = host_contract_source()
         self.assertIn("activate_current_config", host)
         self.assertIn("expectedPluginFingerprint", ps)
         self.assertIn("installedPluginFingerprint", ps)
