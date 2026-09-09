@@ -71,6 +71,12 @@ class HostV091Tests(unittest.TestCase):
             workspace.mkdir(parents=True)
             before = self.seed_passthrough(root)
             self.stub_enable_dependencies()
+            runtime_calls = []
+            self.patch(
+                cnx.legacy,
+                "runtime",
+                lambda _root, *args, **_kwargs: runtime_calls.append(args) or self.completed('{"ok":true}'),
+            )
 
             result = cnx.enable(root)
             after = cnx.legacy.load_state(root)
@@ -78,9 +84,18 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(result["mode"], "managed")
             self.assertTrue(result["transactional"])
             self.assertEqual(after["mode"], "managed")
+            self.assertEqual(after["cnxMode"], "active")
             self.assertEqual(after["desiredGateway"], "running")
-            self.assertEqual(after["desiredProvider"], "running")
+            self.assertEqual(after["providerOwnership"], "openclaw")
+            self.assertNotIn("desiredProvider", after)
+            self.assertNotIn("selectedProvider", after)
+            self.assertNotIn("providerTransition", after)
             self.assertEqual(after["generation"], before["generation"] + 1)
+            self.assertNotIn(
+                ("lifecycle", "start", "--provider"),
+                runtime_calls,
+                "v0.9.5 enable must leave provider lifecycle/routing under OpenClaw ownership",
+            )
 
     def test_enable_reconciles_terminal_fences_before_plugin_activation(self):
         with tempfile.TemporaryDirectory() as tmp:
