@@ -2,10 +2,10 @@
 """CogentNexus-OpenClaw v0.9.5 provider-neutral v0.9.2 Host façade.
 
 The proven v0.9.4-era provider-event and recovery payload remains executable
-unchanged for this TDD slice. Only the legacy lifecycle ``--provider`` bridge is
-redefined here: in v0.9.5 OpenClaw owns provider/model/auth routing and provider
-process lifecycle, so the flag is accepted solely as backward-compatible syntax
-and is removed before delegating to the CNX Gateway/runtime lifecycle.
+unchanged behind this compatibility façade. v0.9.5 moves provider/model/auth
+routing and provider process lifecycle back to OpenClaw. Legacy provider fields
+may remain on disk for migration and diagnostics, but they are not execution
+authority.
 """
 from __future__ import annotations
 
@@ -29,10 +29,69 @@ def provider_aware_runtime(root: Path, *args: str, timeout: int = 180, check: bo
     return ORIGINAL_RUNTIME(root, *values, timeout=timeout, check=check)
 
 
-# Replace only the legacy provider-lifecycle translation surface. The event and
-# recovery functions from the compatibility payload remain unchanged until their
-# own RED/GREEN slice.
+# Replace the legacy provider-lifecycle translation surface. The compatibility
+# payload remains available for event evidence helpers while lifecycle ownership
+# stays with OpenClaw.
 legacy.runtime = provider_aware_runtime
+
+
+def _single_open_circuit_diagnostic(root: Path):
+    """Return one legacy open circuit for read-only compatibility diagnostics.
+
+    This deliberately does not select, probe, start, stop, or otherwise control
+    a provider. Multiple incidents are not guessed between.
+    """
+    state = recovery_policy.load_state(root)
+    providers_state = state.get("providers") if isinstance(state.get("providers"), dict) else {}
+    open_names = []
+    for name, value in providers_state.items():
+        if not isinstance(value, dict):
+            continue
+        incident = value.get("incident")
+        if isinstance(incident, dict) and incident.get("state") == "open":
+            open_names.append(str(name))
+    if len(open_names) != 1:
+        return None
+    target = open_names[0]
+    try:
+        gate = recovery_policy.gate(root, target)
+    except (ValueError, RuntimeError):
+        return None
+    if not gate.get("circuitOpen"):
+        return None
+    return target, gate
+
+
+def supervisor_tick(root: Path, execute_safe: bool):
+    """Run CNX reconciliation without global provider execution authority."""
+    quiesced = stall.authority.supervisor_quiescence.supervisor_quiesced_result(root)
+    if quiesced is not None:
+        return quiesced
+
+    diagnostic = _single_open_circuit_diagnostic(root)
+    result = _run_base_supervisor(root, execute_safe, True)
+    if diagnostic is None:
+        return result
+
+    target, gate = diagnostic
+    result["providerRecovery"] = {
+        "classification": "provider_recovery_circuit_open",
+        "recoveryEligible": False,
+        "providerRestart": False,
+        "gate": gate,
+    }
+    result["providerIncident"] = {
+        "provider": target,
+        "authority": "diagnostic-only",
+    }
+    result["result"] = "provider-recovery-circuit-open"
+    return result
+
+
+# The steady-state supervisor no longer derives authority from selectedProvider,
+# desiredProvider, adapter health, or local provider process state. The base
+# reconciliation path still suppresses legacy timer-only Direct-call recovery.
+legacy.supervisor_tick = supervisor_tick
 
 
 if __name__ == "__main__":
