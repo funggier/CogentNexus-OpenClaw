@@ -349,10 +349,6 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         return delegate(root, [command], interactive=True)
 
-    if command == "cloud":
-        emit({"result": "delegated-to-openclaw", "authority": "openclaw", "message": "Cloud provider/model selection is owned by OpenClaw; CogentNexus-OpenClaw does not implement a cloud routing transition."})
-        return 0
-
     return delegate(root, args)
 
 
