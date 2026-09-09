@@ -9,6 +9,7 @@ authority.
 """
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 
@@ -33,6 +34,60 @@ def provider_aware_runtime(root: Path, *args: str, timeout: int = 180, check: bo
 # payload remains available for event evidence helpers while lifecycle ownership
 # stays with OpenClaw.
 legacy.runtime = provider_aware_runtime
+
+
+def claim_terminal_error_direct_model_call(root: Path, now_iso: str | None = None):
+    """Claim one exact terminal model-call failure without provider authority.
+
+    `terminal_error` is written only after OpenClaw has emitted a failing
+    `agent_end` for the exact run. The provider/model values on the row are
+    therefore provenance, not routing input: this function deliberately never
+    normalizes, probes, starts, stops, or selects a provider.
+    """
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return None
+    stamp = now_iso or legacy.now_iso()
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        if not stall._model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return None
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.state,m.provider,m.model,m.started_at,m.deadline_at,"
+            "m.ended_at,m.outcome,m.error_category,m.failure_kind,m.recovery_started_at,m.recovery_attempt_count,m.updated_at "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.response_ready_at IS NULL AND m.state='terminal_error' AND m.outcome='error' "
+            "AND m.recovery_attempt_count<? "
+            "ORDER BY m.updated_at,m.ticket_id LIMIT 1",
+            (stall.MAX_STALL_RECOVERY_ATTEMPTS,),
+        ).fetchone()
+        if row is None:
+            db.commit()
+            return None
+        changed = db.execute(
+            "UPDATE cnx_direct_model_call SET state='recovering',recovery_started_at=?,"
+            "recovery_attempt_count=recovery_attempt_count+1,updated_at=? "
+            "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='terminal_error' AND outcome='error'",
+            (stamp, stamp, row["ticket_id"], row["run_id"], row["call_id"]),
+        )
+        if changed.rowcount != 1:
+            db.rollback()
+            return None
+        claim = dict(row)
+        claim["state"] = "recovering"
+        claim["recovery_started_at"] = stamp
+        claim["recovery_attempt_count"] = int(row["recovery_attempt_count"] or 0) + 1
+        claim["updated_at"] = stamp
+        db.commit()
+        return claim
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 def _single_open_circuit_diagnostic(root: Path):
