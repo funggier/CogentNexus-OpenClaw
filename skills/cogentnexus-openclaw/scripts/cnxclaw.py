@@ -284,6 +284,7 @@ Local adapter lifecycle (does not mutate OpenClaw routing):
 
 Inspection (read-only):
   cnxclaw.cmd check system
+  cnxclaw.cmd check cogentnexus-openclaw
   cnxclaw.cmd check provider
   cnxclaw.cmd provider list
   cnxclaw.cmd provider status
