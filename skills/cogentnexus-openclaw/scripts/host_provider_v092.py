@@ -31,9 +31,6 @@ def provider_aware_runtime(root: Path, *args: str, timeout: int = 180, check: bo
     return ORIGINAL_RUNTIME(root, *values, timeout=timeout, check=check)
 
 
-# Replace the legacy provider-lifecycle translation surface. The compatibility
-# payload remains available for event evidence helpers while lifecycle ownership
-# stays with OpenClaw.
 legacy.runtime = provider_aware_runtime
 
 
@@ -228,6 +225,15 @@ def supervisor_tick(root: Path, execute_safe: bool):
     quiesced = stall.authority.supervisor_quiescence.supervisor_quiesced_result(root)
     if quiesced is not None:
         return quiesced
+
+    state = legacy.load_state(root)
+    if state.get("mode") != "managed" or state.get("desiredGateway") != "running":
+        return _run_base_supervisor(root, execute_safe, True)
+
+    if execute_safe:
+        claim = claim_terminal_error_direct_model_call(root)
+        if claim is not None:
+            return recover_terminal_error_direct_model_call(root, claim)
 
     diagnostic = _single_open_circuit_diagnostic(root)
     result = _run_base_supervisor(root, execute_safe, True)
