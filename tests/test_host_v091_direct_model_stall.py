@@ -1,8 +1,10 @@
 from pathlib import Path
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -177,18 +179,63 @@ class HostDirectModelStallTests(unittest.TestCase):
             )
             db.close()
 
-    def test_source_orders_quiescence_before_ticket_classification_and_restart(self):
+    def test_recovery_quiesces_gateway_without_taking_provider_lifecycle_authority(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-provider-neutral-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            calls = []
+            claim = {
+                "ticket_id": TICKET,
+                "call_id": "call-live",
+                "provider": "ollama",
+                "model": "qwen3.5:9b",
+            }
+
+            def runtime(_root, *args, **_kwargs):
+                calls.append(args)
+                return subprocess.CompletedProcess(args, 0, "{}", "")
+
+            with mock.patch.object(stall.legacy, "runtime", side_effect=runtime), \
+                 mock.patch.object(stall, "classify_quiesced_direct_model_call", return_value={"action": "pre-response-recovery-authorized"}), \
+                 mock.patch.object(stall.legacy, "gateway_status", return_value={"healthy": True}):
+                result = stall.recover_expired_direct_model_call(root, claim)
+
+            self.assertEqual(result["result"], "direct-model-call-recovered")
+            self.assertTrue(any(call[:2] == ("lifecycle", "stop") for call in calls))
+            self.assertTrue(any(call[:2] == ("lifecycle", "start") for call in calls))
+            self.assertFalse(
+                any("--provider" in call for call in calls),
+                "v0.9.5 recovery may quiesce/restart Gateway but must not stop/start the OpenClaw-selected provider",
+            )
+
+    def test_supervisor_ignores_stale_global_provider_requirement(self):
+        state = {
+            "mode": "managed",
+            "desiredGateway": "running",
+            "desiredProvider": "running",  # stale v0.9.4 field must be advisory/ignored
+        }
+        with mock.patch.object(stall.authority.supervisor_quiescence, "supervisor_quiesced_result", return_value=None), \
+             mock.patch.object(stall.legacy, "load_state", return_value=state), \
+             mock.patch.object(stall.v091, "gateway_fast_probe", return_value=True), \
+             mock.patch.object(stall.v091, "ollama_fast_probe", return_value=False) as ollama_probe, \
+             mock.patch.object(stall, "claim_expired_direct_model_call", return_value=None), \
+             mock.patch.object(stall, "BASE_SUPERVISOR_TICK", return_value={"result": "base"}) as base_tick:
+            result = stall.supervisor_tick(Path("/tmp/provider-neutral-stall"), True)
+
+        self.assertEqual(result, {"result": "base"})
+        ollama_probe.assert_not_called()
+        base_tick.assert_called_once()
+
+    def test_source_orders_gateway_quiescence_before_ticket_classification_and_restart(self):
         source = (SCRIPTS / "host_stall_v091.py").read_text(encoding="utf-8")
         function = source[source.index("def recover_expired_direct_model_call"):source.index("def supervisor_tick")]
         prepare = function.index('"prepare",')
         stop = function.index('"stop",', prepare)
-        provider_stop = function.index('"--provider",', stop)
-        classify = function.index("classify_quiesced_direct_model_call(root, claim)", provider_stop)
-        start = function.index('"start", "--provider"', classify)
+        classify = function.index("classify_quiesced_direct_model_call(root, claim)", stop)
+        start = function.index('"start"', classify)
         self.assertLess(prepare, stop)
-        self.assertLess(stop, provider_stop)
-        self.assertLess(provider_stop, classify)
+        self.assertLess(stop, classify)
         self.assertLess(classify, start)
+        self.assertNotIn("--provider", function)
 
 
 if __name__ == "__main__":
