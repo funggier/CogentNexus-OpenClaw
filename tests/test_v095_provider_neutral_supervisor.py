@@ -45,6 +45,48 @@ class V095ProviderNeutralSupervisorTests(unittest.TestCase):
             consume_failure.assert_not_called()
             begin_incident.assert_not_called()
 
+    def test_consumes_exact_terminal_model_error_claim_before_legacy_stall_recovery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            root.mkdir()
+            managed_state = {"mode": "managed", "desiredGateway": "running"}
+            claim = {
+                "ticket_id": "T-TERM",
+                "run_id": "R-TERM",
+                "call_id": "C-TERM",
+                "state": "recovering",
+                "provider": "future-cloud-provider",
+                "model": "future-model",
+                "outcome": "error",
+                "error_category": "network",
+                "failure_kind": "connection_reset",
+                "recovery_attempt_count": 1,
+            }
+            recovered = {
+                "result": "terminal-model-call-recovered",
+                "classification": {
+                    "ticketId": "T-TERM",
+                    "action": "pre-response-recovery-authorized",
+                    "recoveryAuthority": "terminal-model-call-error",
+                },
+            }
+
+            with mock.patch.object(hp.legacy, "load_state", return_value=managed_state), \
+                 mock.patch.object(hp.authority.supervisor_quiescence, "supervisor_quiesced_result", return_value=None), \
+                 mock.patch.object(hp.v091, "gateway_fast_probe", return_value=True) as gateway_probe, \
+                 mock.patch.object(hp, "claim_terminal_error_direct_model_call", return_value=claim) as terminal_claim, \
+                 mock.patch.object(hp, "recover_terminal_error_direct_model_call", return_value=recovered) as recover_terminal, \
+                 mock.patch.object(hp, "claim_expired_direct_model_call") as expired_claim, \
+                 mock.patch.object(hp, "_run_base_supervisor", return_value={"result": "base"}) as base:
+                result = hp.supervisor_tick(root, execute_safe=True)
+
+            self.assertEqual(result, recovered)
+            gateway_probe.assert_called_once_with()
+            terminal_claim.assert_called_once_with(root)
+            recover_terminal.assert_called_once_with(root, claim)
+            expired_claim.assert_not_called()
+            base.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
