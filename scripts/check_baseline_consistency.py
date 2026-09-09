@@ -6,38 +6,50 @@ from pathlib import Path
 
 
 _WRAPPER_NAME = __name__
-_LEGACY_PATH = Path(__file__).with_name("check_baseline_consistency_v094.py")
+_BOOTSTRAP_LEGACY_PATH = Path(__file__).with_name("check_baseline_consistency_v094.py")
 globals()["__name__"] = "cogentnexus_openclaw_baseline_v094_embedded"
 try:
-    exec(compile(_LEGACY_PATH.read_text(encoding="utf-8"), str(_LEGACY_PATH), "exec"), globals(), globals())
+    exec(compile(_BOOTSTRAP_LEGACY_PATH.read_text(encoding="utf-8"), str(_BOOTSTRAP_LEGACY_PATH), "exec"), globals(), globals())
 finally:
     globals()["__name__"] = _WRAPPER_NAME
 
 _LEGACY_MAIN = main
 _LEGACY_CURRENT_TEXT_FILES = current_text_files
 _ORIGINAL_READ_TEXT = Path.read_text
-_HOST_FACADE = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host.py"
-_HOST_COMPAT_PAYLOAD = ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_legacy_v094.py"
+
+
+def _legacy_path() -> Path:
+    return ROOT / "scripts" / "check_baseline_consistency_v094.py"
+
+
+def _host_facade() -> Path:
+    return ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host.py"
+
+
+def _host_compat_payload() -> Path:
+    return ROOT / "skills" / "cogentnexus-openclaw" / "scripts" / "host_legacy_v094.py"
 
 
 def current_text_files():
     """Exclude only the archived validator source from live-surface phrase scanning."""
+    archived = _legacy_path()
     for path in _LEGACY_CURRENT_TEXT_FILES():
-        if path != _LEGACY_PATH:
+        if path != archived:
             yield path
 
 
 def _composite_read_text(self: Path, *args, **kwargs) -> str:
     """Present the split Host façade + exact compatibility payload as one contract surface."""
     primary = _ORIGINAL_READ_TEXT(self, *args, **kwargs)
-    if self == _HOST_FACADE:
-        legacy = _ORIGINAL_READ_TEXT(_HOST_COMPAT_PAYLOAD, *args, **kwargs)
+    if self == _host_facade():
+        legacy = _ORIGINAL_READ_TEXT(_host_compat_payload(), *args, **kwargs)
         return primary + "\n" + legacy
     return primary
 
 
 def main() -> int:
-    if not _HOST_COMPAT_PAYLOAD.is_file():
+    payload = _host_compat_payload()
+    if not payload.is_file():
         print("CogentNexus-OpenClaw baseline consistency FAILED:")
         print("- missing/empty baseline artifact: skills/cogentnexus-openclaw/scripts/host_legacy_v094.py")
         return 1
