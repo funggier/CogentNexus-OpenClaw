@@ -22,8 +22,24 @@ type ModelCallEnd = {
   callId: string;
   outcome?: string;
   durationMs?: number;
+  errorCategory?: string;
+  failureKind?: string;
   now?: Date;
 };
+
+function columnExists(db: DatabaseSync, table: string, column: string) {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name?: string }>)
+    .some((row) => row.name === column);
+}
+
+function ensureModelCallEvidenceColumns(db: DatabaseSync) {
+  if (!columnExists(db, "cnx_direct_model_call", "error_category")) {
+    db.exec("ALTER TABLE cnx_direct_model_call ADD COLUMN error_category TEXT");
+  }
+  if (!columnExists(db, "cnx_direct_model_call", "failure_kind")) {
+    db.exec("ALTER TABLE cnx_direct_model_call ADD COLUMN failure_kind TEXT");
+  }
+}
 
 function open(databasePath: string) {
   // TicketStore owns the base Ticket schema. Touch it first so this additive
@@ -44,6 +60,8 @@ function open(databasePath: string) {
       ended_at TEXT,
       outcome TEXT,
       duration_ms INTEGER,
+      error_category TEXT,
+      failure_kind TEXT,
       recovery_started_at TEXT,
       recovery_attempt_count INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
@@ -51,6 +69,7 @@ function open(databasePath: string) {
     CREATE INDEX IF NOT EXISTS idx_cnx_direct_model_call_deadline
       ON cnx_direct_model_call(state, deadline_at);
   `);
+  ensureModelCallEvidenceColumns(db);
   return db;
 }
 
@@ -79,8 +98,8 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
     if (!ticket) { db.exec("COMMIT"); return false; }
     const changed = db.prepare(`INSERT INTO cnx_direct_model_call(
         ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,
-        ended_at,outcome,duration_ms,recovery_started_at,recovery_attempt_count,updated_at
-      ) VALUES (?,?,?,'active',?,?,?,?,NULL,NULL,NULL,NULL,0,?)
+        ended_at,outcome,duration_ms,error_category,failure_kind,recovery_started_at,recovery_attempt_count,updated_at
+      ) VALUES (?,?,?,'active',?,?,?,?,NULL,NULL,NULL,NULL,NULL,NULL,0,?)
       ON CONFLICT(ticket_id) DO UPDATE SET
         run_id=excluded.run_id,
         call_id=excluded.call_id,
@@ -92,6 +111,8 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
         ended_at=NULL,
         outcome=NULL,
         duration_ms=NULL,
+        error_category=NULL,
+        failure_kind=NULL,
         recovery_started_at=NULL,
         recovery_attempt_count=0,
         updated_at=excluded.updated_at
@@ -128,17 +149,51 @@ export function recordDirectModelCallEnded(databasePath: string, input: ModelCal
       WHERE run_id=? AND call_id=? AND state='active' LIMIT 1`).get(input.runId, input.callId) as any;
     if (!row) { db.exec("COMMIT"); return false; }
     const changed = db.prepare(`UPDATE cnx_direct_model_call
-      SET state='ended',ended_at=?,outcome=?,duration_ms=?,updated_at=?
+      SET state='ended',ended_at=?,outcome=?,duration_ms=?,error_category=?,failure_kind=?,updated_at=?
       WHERE ticket_id=? AND run_id=? AND call_id=? AND state='active'`)
       .run(stamp, input.outcome ?? null, Number.isFinite(input.durationMs) ? Math.max(0, Math.floor(input.durationMs!)) : null,
-        stamp, row.ticket_id, input.runId, input.callId);
+        input.errorCategory ?? null, input.failureKind ?? null, stamp, row.ticket_id, input.runId, input.callId);
     if (changed.changes === 1) {
       event(db, row.ticket_id, "direct_model_call_ended", {
         runId: input.runId,
         callId: input.callId,
         outcome: input.outcome,
         durationMs: input.durationMs,
+        errorCategory: input.errorCategory,
+        failureKind: input.failureKind,
         source: "openclaw-model-call-hook",
+      }, stamp);
+    }
+    db.exec("COMMIT");
+    return changed.changes === 1;
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch {}
+    throw error;
+  } finally { db.close(); }
+}
+
+export function recordDirectRunTerminalFailure(databasePath: string, runId: string, now = new Date()): boolean {
+  if (!runId) return false;
+  const stamp = now.toISOString();
+  const db = open(databasePath);
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const row = db.prepare(`SELECT ticket_id,call_id,provider,model,outcome,error_category,failure_kind
+      FROM cnx_direct_model_call WHERE run_id=? AND state='ended' AND outcome='error' LIMIT 1`).get(runId) as any;
+    if (!row) { db.exec("COMMIT"); return false; }
+    const changed = db.prepare(`UPDATE cnx_direct_model_call SET state='terminal_error',updated_at=?
+      WHERE ticket_id=? AND run_id=? AND call_id=? AND state='ended' AND outcome='error'`)
+      .run(stamp, row.ticket_id, runId, row.call_id);
+    if (changed.changes === 1) {
+      event(db, row.ticket_id, "direct_model_run_terminal_error", {
+        runId,
+        callId: row.call_id,
+        provider: row.provider ?? undefined,
+        model: row.model ?? undefined,
+        outcome: row.outcome,
+        errorCategory: row.error_category ?? undefined,
+        failureKind: row.failure_kind ?? undefined,
+        source: "openclaw-agent-end",
       }, stamp);
     }
     db.exec("COMMIT");
@@ -311,18 +366,26 @@ export function installV091DirectModelCallLease(api: any) {
         callId,
         outcome: typeof event?.outcome === "string" ? event.outcome : undefined,
         durationMs: Number.isFinite(event?.durationMs) ? Number(event.durationMs) : undefined,
+        errorCategory: typeof event?.errorCategory === "string" ? event.errorCategory : undefined,
+        failureKind: typeof event?.failureKind === "string" ? event.failureKind : undefined,
       });
     } catch (error) {
       api.logger?.warn?.(`CogentNexus-OpenClaw failed to persist Direct model-call end: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, { registrationId: "cogentnexus-openclaw-v091-direct-model-call-end" });
 
-  // agent_end is a fallback close only while the lease is still active. A Host
-  // recovery claim changes state to `recovering`, which this hook cannot undo.
+  // A model-call error can still be followed by OpenClaw failover in the same
+  // run. Only a failing agent_end promotes the final exact errored call into
+  // terminal recovery evidence. Active leases retain the legacy fallback close.
   api.on("agent_end", (event: any, ctx: any) => {
     const runId = String(event?.runId ?? ctx?.runId ?? "").trim();
     if (!runId) return;
-    try { closeDirectModelCallForRun(databaseFor(api, event, ctx), runId, event?.success ? "agent_end_ok" : "agent_end_error"); }
-    catch (error) { api.logger?.warn?.(`CogentNexus-OpenClaw failed to close Direct model-call lease at agent_end: ${error instanceof Error ? error.message : String(error)}`); }
+    try {
+      const path = databaseFor(api, event, ctx);
+      if (event?.success !== true && recordDirectRunTerminalFailure(path, runId)) return;
+      closeDirectModelCallForRun(path, runId, event?.success ? "agent_end_ok" : "agent_end_error");
+    } catch (error) {
+      api.logger?.warn?.(`CogentNexus-OpenClaw failed to close Direct model-call lease at agent_end: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }, { registrationId: "cogentnexus-openclaw-v091-direct-model-call-agent-end" });
 }
