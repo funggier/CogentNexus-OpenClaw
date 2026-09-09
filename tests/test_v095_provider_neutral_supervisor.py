@@ -75,7 +75,7 @@ class V095ProviderNeutralSupervisorTests(unittest.TestCase):
                  mock.patch.object(hp.stall.authority.supervisor_quiescence, "supervisor_quiesced_result", return_value=None), \
                  mock.patch.object(hp, "claim_terminal_error_direct_model_call", return_value=claim) as terminal_claim, \
                  mock.patch.object(hp, "recover_terminal_error_direct_model_call", return_value=recovered) as recover_terminal, \
-                 mock.patch.object(hp, "claim_expired_direct_model_call") as expired_claim, \
+                 mock.patch.object(hp.stall, "claim_expired_direct_model_call") as expired_claim, \
                  mock.patch.object(hp, "_run_base_supervisor", return_value={"result": "base"}) as base:
                 result = hp.supervisor_tick(root, execute_safe=True)
 
