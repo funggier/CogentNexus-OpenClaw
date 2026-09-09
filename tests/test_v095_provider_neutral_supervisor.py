@@ -85,6 +85,38 @@ class V095ProviderNeutralSupervisorTests(unittest.TestCase):
             expired_claim.assert_not_called()
             base.assert_not_called()
 
+    def test_partial_stop_failure_still_attempts_gateway_restore(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            root.mkdir()
+            claim = {
+                "ticket_id": "T-PARTIAL",
+                "run_id": "R-PARTIAL",
+                "call_id": "C-PARTIAL",
+            }
+            calls = []
+
+            def runtime(_root, *args, timeout=180, check=True):
+                calls.append(args)
+                if args[:2] == ("lifecycle", "prepare"):
+                    return {"result": "prepared"}
+                if args[:2] == ("lifecycle", "stop"):
+                    raise RuntimeError("gateway stop failed after quiesce began")
+                if args[:2] == ("lifecycle", "start"):
+                    return {"result": "started"}
+                raise AssertionError(f"unexpected lifecycle call: {args!r}")
+
+            with mock.patch.object(hp.legacy, "runtime", side_effect=runtime):
+                with self.assertRaisesRegex(RuntimeError, "gateway stop failed"):
+                    hp.recover_terminal_error_direct_model_call(root, claim)
+
+            lifecycle = [args[:2] for args in calls]
+            self.assertEqual(lifecycle, [
+                ("lifecycle", "prepare"),
+                ("lifecycle", "stop"),
+                ("lifecycle", "start"),
+            ])
+
 
 if __name__ == "__main__":
     unittest.main()
