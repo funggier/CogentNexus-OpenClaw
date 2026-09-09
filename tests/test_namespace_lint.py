@@ -26,6 +26,17 @@ def test_canonical_variants_and_historical_evidence_pass():
     assert not lint.find_violations("docs/operations/coordination/reports/old.md", "COGENTNEXUS RESET")
 
 
+def test_superpowers_specs_and_plans_are_non_operational_design_evidence():
+    assert not lint.find_violations(
+        "docs/superpowers/specs/architecture.md",
+        "CogentNexus capability is independent of provider routing",
+    )
+    assert not lint.find_violations(
+        "docs/superpowers/plans/implementation.md",
+        "CogentNexus lifecycle is provider-neutral",
+    )
+
+
 def test_generic_check_component_fails_even_in_current_migration_documentation():
     current_doc = "docs/V093_RECOVERY_REALITY_TESTS.md"
     generic_command = "cnxclaw.cmd check " + "cogentnexus"
