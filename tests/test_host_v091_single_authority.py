@@ -23,17 +23,26 @@ class HostSingleAuthorityTests(unittest.TestCase):
         self.assertIn("import host_authority_v091 as authority", stall)
         self.assertIn("legacy = authority.legacy", stall)
 
-    def test_enable_linearization_order_is_fail_closed(self):
+    def test_enable_linearization_order_is_fail_closed_and_provider_neutral(self):
         source = HOST.read_text(encoding="utf-8")
-        startup = source.index('legacy.startup(root, "enable", check=True)')
+        enable_start = source.index("def _enable_under_lease")
+        enable_end = source.index("\ndef enable(", enable_start)
+        enable_source = source[enable_start:enable_end]
+
+        startup = source.index('legacy.startup(root, "enable", check=True)', enable_start)
         plugin_config_enable = source.index('legacy.plugin_enabled(True)', startup)
         managed_commit = source.index('state = legacy.transition(', plugin_config_enable)
         gateway_reload = source.index('"lifecycle",\n            "restart",', managed_commit)
-        verified_start = source.index('"lifecycle", "start", "--provider"', gateway_reload)
+        verified_start = source.index('lifecycle = legacy.runtime(root, "lifecycle", "start"', gateway_reload)
         self.assertLess(startup, plugin_config_enable)
         self.assertLess(plugin_config_enable, managed_commit)
         self.assertLess(managed_commit, gateway_reload)
         self.assertLess(gateway_reload, verified_start)
+
+        # v0.9.5 keeps CNX capability authority here, but provider/model/auth
+        # routing and provider process lifecycle remain OpenClaw-owned.
+        self.assertNotIn("--provider", enable_source)
+        self.assertNotIn("desiredProvider", enable_source)
 
     def test_plugin_authority_has_no_policy_marker_bypass(self):
         source = ENTRY.read_text(encoding="utf-8")
