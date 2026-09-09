@@ -84,6 +84,11 @@ def save_state(root: Path, state: dict[str, Any]) -> dict[str, Any]:
             candidate["cnxMode"] = _LEGACY_TO_CANONICAL_MODE[str(legacy_mode)]
         except KeyError as error:
             raise ValueError(f"invalid legacy Host mode: {legacy_mode!r}") from error
+    # Once a legacy compatibility mode has been translated, persist it as the
+    # canonical schema. Leaving schemaVersion=1 would make the lower layer
+    # reinterpret the already-translated state and could turn passthrough back
+    # into managed when explicit plugin evidence is unavailable.
+    candidate["schemaVersion"] = 2
     canonical = _host_state_v095.save_state(root, candidate)
     return _compatibility_view(canonical)
 
