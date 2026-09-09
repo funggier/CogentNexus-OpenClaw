@@ -46,11 +46,11 @@ class V095CliOwnershipTests(unittest.TestCase):
                 self.assertEqual(code, 2)
                 transition.assert_not_called()
 
-    def test_cloud_is_not_a_provider_routing_command(self):
+    def test_cloud_command_is_removed_from_public_cli(self):
         with mock.patch.object(cnxclaw, "provider_transition") as transition, \
              mock.patch.object(cnxclaw.openclaw_route, "begin") as route_begin:
             code = cnxclaw.main(["cloud"])
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 2)
         transition.assert_not_called()
         route_begin.assert_not_called()
 
