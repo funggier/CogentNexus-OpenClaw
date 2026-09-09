@@ -183,8 +183,8 @@ def recover_terminal_error_direct_model_call(root: Path, claim: dict):
     started = False
     classification = None
     try:
-        legacy.runtime(root, "lifecycle", "stop", timeout=180, check=True)
         stopped = True
+        legacy.runtime(root, "lifecycle", "stop", timeout=180, check=True)
         classification = classify_quiesced_terminal_error_direct_model_call(root, claim)
         legacy.runtime(root, "lifecycle", "start", timeout=180, check=True)
         started = True
