@@ -13,12 +13,12 @@ import cnxclaw
 class V095CliOwnershipTests(unittest.TestCase):
     def test_cnx_lifecycle_commands_do_not_select_or_route_provider(self):
         for command in ("start", "stop", "restart", "status"):
-            with self.subTest(command=command), mock.patch.object(cnxclaw, "provider_transition") as transition, mock.patch.object(cnxclaw.openclaw_route, "begin") as route_begin:
+            with self.subTest(command=command), \
+                 mock.patch.object(cnxclaw, "provider_transition") as transition, \
+                 mock.patch.object(cnxclaw.openclaw_route, "begin") as route_begin, \
+                 mock.patch.object(cnxclaw, "provider_snapshot", return_value={"authority": "openclaw", "providerMetadata": {}}):
                 if command == "status":
                     with mock.patch.object(cnxclaw, "run_host", return_value={"ok": True, "output": {}}):
-                        code = cnxclaw.main([command])
-                elif command == "stop":
-                    with mock.patch.object(cnxclaw, "delegate", return_value=0):
                         code = cnxclaw.main([command])
                 else:
                     with mock.patch.object(cnxclaw, "delegate", return_value=0):
