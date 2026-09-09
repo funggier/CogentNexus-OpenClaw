@@ -9,6 +9,7 @@ authority.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -83,6 +84,191 @@ def claim_terminal_error_direct_model_call(root: Path, now_iso: str | None = Non
         claim["updated_at"] = stamp
         db.commit()
         return claim
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def classify_quiesced_terminal_error_direct_model_call(
+    root: Path,
+    claim: dict,
+    now_iso: str | None = None,
+):
+    """Authorize exact terminal-error Direct recovery while CNX is quiesced.
+
+    Delivery and session-generation fences are inherited from the proven Direct
+    recovery path, but the authority and audit provenance remain the actual
+    terminal model-call error. Provider/model values are evidence only and are
+    never normalized or used to control a provider process.
+    """
+    cutoff = now_iso or legacy.now_iso()
+    delivery_fences = v091.reconcile_direct_delivery_before_recovery(root, cutoff)
+    path = legacy.ticket_db(root)
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute(
+            "SELECT ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,"
+            "response_ready_at,delivery_confirmed_at FROM tickets WHERE ticket_id=?",
+            (claim["ticket_id"],),
+        ).fetchone()
+        if row is None:
+            db.execute(
+                "UPDATE cnx_direct_model_call SET state='interrupted',ended_at=?,"
+                "outcome='terminal-error-ticket-missing',updated_at=? "
+                "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='recovering'",
+                (cutoff, cutoff, claim["ticket_id"], claim["run_id"], claim["call_id"]),
+            )
+            db.commit()
+            return {
+                "ticketId": claim["ticket_id"],
+                "action": "ticket-missing",
+                "recoveryAuthority": "terminal-model-call-error",
+                "deliveryFences": delivery_fences,
+            }
+
+        ticket_id = str(row["ticket_id"])
+        current_call = db.execute(
+            "SELECT state,outcome FROM cnx_direct_model_call "
+            "WHERE ticket_id=? AND run_id=? AND call_id=? LIMIT 1",
+            (ticket_id, claim["run_id"], claim["call_id"]),
+        ).fetchone()
+        if current_call is None or str(current_call["state"]) != "recovering":
+            db.rollback()
+            raise RuntimeError(
+                f"terminal model-call recovery claim changed before quiesced classification: "
+                f"ticket={ticket_id} run={claim['run_id']} call={claim['call_id']}"
+            )
+
+        terminal = str(row["status"]) in {"completed", "failed", "cancelled"}
+        delivery_evidence = None
+        if v091._db_table_exists(db, "cnx_assistant_delivery"):
+            delivery_evidence = db.execute(
+                "SELECT status FROM cnx_assistant_delivery "
+                "WHERE ticket_id=? AND kind='direct_result' ORDER BY delivery_id DESC LIMIT 1",
+                (ticket_id,),
+            ).fetchone()
+
+        # Response/delivery evidence always wins over inference recovery. This is
+        # the same duplicate-output fence as the established Direct recovery path.
+        if (
+            terminal
+            or row["response_ready_at"] is not None
+            or row["delivery_confirmed_at"] is not None
+            or row["workflow_id"] is not None
+            or delivery_evidence is not None
+        ):
+            db.execute(
+                "UPDATE cnx_direct_model_call SET state='ended',ended_at=?,"
+                "outcome='terminal-error-delivery-or-terminal-fence',updated_at=? "
+                "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='recovering'",
+                (cutoff, cutoff, ticket_id, claim["run_id"], claim["call_id"]),
+            )
+            db.commit()
+            return {
+                "ticketId": ticket_id,
+                "action": "held-no-inference",
+                "status": row["status"],
+                "responseReady": row["response_ready_at"] is not None,
+                "durableDirectResult": delivery_evidence is not None,
+                "recoveryAuthority": "terminal-model-call-error",
+                "deliveryFences": delivery_fences,
+            }
+
+        if str(row["status"]) not in {"accepted", "waiting"}:
+            db.execute(
+                "UPDATE cnx_direct_model_call SET state='ended',ended_at=?,"
+                "outcome='terminal-error-unsupported-ticket-state',updated_at=? "
+                "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='recovering'",
+                (cutoff, cutoff, ticket_id, claim["run_id"], claim["call_id"]),
+            )
+            db.commit()
+            return {
+                "ticketId": ticket_id,
+                "action": "unsupported-state",
+                "status": row["status"],
+                "recoveryAuthority": "terminal-model-call-error",
+                "deliveryFences": delivery_fences,
+            }
+
+        reason = (
+            "CogentNexus-OpenClaw Host terminal model-call error: "
+            f"callId={claim['call_id']} provider={claim.get('provider') or 'unknown'} "
+            f"model={claim.get('model') or 'unknown'} "
+            f"errorCategory={claim.get('error_category') or 'unknown'} "
+            f"failureKind={claim.get('failure_kind') or 'unknown'}"
+        )[:2000]
+
+        changed = db.execute(
+            "UPDATE tickets SET status='accepted',workflow_eligible=0,worker_id=NULL,lease_token=NULL,"
+            "lease_expires_at=NULL,heartbeat_at=NULL,failure_class='interrupted',failure_message=?,"
+            "delivery_last_error=?,updated_at=? "
+            "WHERE ticket_id=? AND status IN ('accepted','waiting') "
+            "AND workflow_id IS NULL AND response_ready_at IS NULL",
+            (reason, reason, cutoff, ticket_id),
+        )
+        if changed.rowcount != 1:
+            db.rollback()
+            raise RuntimeError(
+                f"terminal model-call Ticket changed during quiesced Host classification: {ticket_id}"
+            )
+
+        owner_generation = stall._queue_host_authorized_direct_recovery(
+            db,
+            ticket_id=ticket_id,
+            owner_session_key=str(row["owner_session_key"]),
+            reason=reason,
+            stamp=cutoff,
+        )
+        db.execute(
+            "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+            (
+                ticket_id,
+                "host_direct_model_terminal_error_authorized",
+                json.dumps(
+                    {
+                        "runId": str(row["run_id"] or claim["run_id"]),
+                        "callId": claim["call_id"],
+                        "provider": claim.get("provider"),
+                        "model": claim.get("model"),
+                        "errorCategory": claim.get("error_category"),
+                        "failureKind": claim.get("failure_kind"),
+                        "startedAt": claim.get("started_at"),
+                        "endedAt": claim.get("ended_at"),
+                        "reason": reason,
+                        "recoveryAuthority": "terminal-model-call-error",
+                        "recoveryMode": "resume",
+                        "ownerGeneration": owner_generation,
+                        "source": "host-v095-terminal-model-error",
+                    },
+                    ensure_ascii=False,
+                ),
+                cutoff,
+            ),
+        )
+        settled = db.execute(
+            "UPDATE cnx_direct_model_call SET state='interrupted',ended_at=?,"
+            "outcome='host-terminal-error-authorized',updated_at=? "
+            "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='recovering'",
+            (cutoff, cutoff, ticket_id, claim["run_id"], claim["call_id"]),
+        )
+        if settled.rowcount != 1:
+            db.rollback()
+            raise RuntimeError(
+                f"terminal model-call recovery claim changed while committing authorization: {ticket_id}"
+            )
+        db.commit()
+        return {
+            "ticketId": ticket_id,
+            "action": "pre-response-recovery-authorized",
+            "recoveryState": "pending",
+            "recoveryAuthority": "terminal-model-call-error",
+            "ownerGeneration": owner_generation,
+            "deliveryFences": delivery_fences,
+        }
     except Exception:
         db.rollback()
         raise
