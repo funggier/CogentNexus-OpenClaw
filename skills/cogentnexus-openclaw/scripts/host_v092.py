@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Final CogentNexus-OpenClaw v0.9.2 Host overlay."""
+"""Final CogentNexus-OpenClaw Host overlay with provider-neutral lifecycle."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -41,99 +41,42 @@ def progress_for_call(root, target, started_at):
     return progress
 
 
-# The provider overlay originally compared ISO strings. Different valid UTC
-# spellings (`Z` vs `+00:00`) are not lexicographically ordered by time, so the
-# final v0.9.2 overlay replaces only that evidence matcher.
+# Different valid UTC spellings (`Z` vs `+00:00`) are not lexicographically
+# ordered by time, so keep the proven normalized evidence matcher.
 base._progress_for_call = progress_for_call
 
 
 def provider_event_aware_runtime(root, *args, timeout=180, check=True):
-    """Linearize provider start, event adapter, then Gateway activation.
+    """Delegate runtime lifecycle without taking provider/process ownership.
 
-    The provider must be reachable before LM Studio's blocking runtime log stream
-    can be attached. Starting the adapter before the Gateway closes the small
-    activation window where managed inference could begin without provider event
-    evidence being observable.
+    Provider/model/auth routing and provider process lifecycle belong to
+    OpenClaw in v0.9.5. Legacy ``--provider`` syntax is handled by the lower
+    compatibility façade and must not cause this final Host layer to select,
+    start, stop, probe, or attach a provider adapter.
     """
-    values = list(args)
-    provider_requested = "--provider" in values
-    lifecycle = len(values) >= 2 and values[0] == "lifecycle"
-    action = values[1] if lifecycle else None
-    if not provider_requested or action != "start":
-        return BASE_PROVIDER_RUNTIME(root, *args, timeout=timeout, check=check)
-
-    target = base._state_provider(root)
-    cleaned = [value for value in values if value != "--provider"]
-    command = [base.sys.executable, str(base.legacy.runtime_path()), "--root", str(root), *cleaned]
-    if not target:
-        return base._finish(base._completed(command, 2, {
-            "result": "error",
-            "error": "provider selection required; use cnxclaw start --provider ollama|lmstudio",
-            "provider": None,
-        }), check)
-
-    base._set_legacy_ollama_mode(root, target)
-    provider_result = providers.start(target, timeout=min(60.0, float(timeout)))
-    if not provider_result.get("ok"):
-        return base._finish(base._completed(command, 2, {
-            "result": "error",
-            "phase": "provider-start",
-            "provider": target,
-            "providerLifecycle": provider_result,
-        }), check)
-
-    adapter = provider_events.ensure_adapter(root, target)
-    runtime_result = base.ORIGINAL_RUNTIME(root, *cleaned, timeout=timeout, check=False)
-    adapter_rollback = None
-    if runtime_result.returncode != 0:
-        # The Gateway/runtime activation did not commit. Do not leave a CNX
-        # provider watcher behind solely because provider start succeeded.
-        adapter_rollback = provider_events.stop_adapter(root, target)
-    return base._finish(base._completed(command, runtime_result.returncode, {
-        "provider": target,
-        "providerLifecycle": provider_result,
-        "providerEventAdapter": adapter,
-        "providerEventAdapterRollback": adapter_rollback,
-        "runtime": base._parse_stdout(runtime_result.stdout),
-    }, runtime_result.stderr or ""), check)
+    return BASE_PROVIDER_RUNTIME(root, *args, timeout=timeout, check=check)
 
 
-# host_provider_v092 installed its provider-aware wrapper during import. Replace
-# only the final v0.9.2 runtime surface so the event adapter is attached before
-# Gateway activation while all v0.9.1 lifecycle internals remain unchanged.
 legacy.runtime = provider_event_aware_runtime
 
 
 def enable_managed(root):
-    """Ensure transactional enable failure cannot leak a managed watcher."""
+    """Preserve cleanup of any legacy watcher after transactional enable failure."""
     try:
         return ORIGINAL_ENABLE_MANAGED(root)
     except Exception:
         try:
             provider_events.stop_adapter(root)
         except Exception:
-            # Cleanup evidence must never mask the original transactional enable
-            # failure. A later disable/reconciliation pass can retry cleanup.
+            # Compatibility cleanup must never mask the original transactional
+            # activation failure. A later migration/reconciliation pass can retry.
             pass
         raise
 
 
 def restart_managed(root):
-    target = base._state_provider(root)
-    if not target:
-        raise RuntimeError("provider selection required before managed restart")
-    # Restart intent means the remembered provider must be running. Persist that
-    # desired state before action so a power loss is recoverable by the supervisor.
-    legacy.transition(root, desiredProvider="running")
-    started = providers.start(target, timeout=45)
-    if not started.get("ok"):
-        raise RuntimeError(f"selected provider '{target}' failed to start before restart: {started}")
-    adapter = provider_events.ensure_adapter(root, target)
-    result = ORIGINAL_RESTART_MANAGED(root)
-    result["provider"] = target
-    result["providerLifecycle"] = started
-    result["providerEventAdapter"] = adapter
-    return result
+    """Restart the CNX/OpenClaw runtime boundary without provider authority."""
+    return ORIGINAL_RESTART_MANAGED(root)
 
 
 legacy.enable = enable_managed
