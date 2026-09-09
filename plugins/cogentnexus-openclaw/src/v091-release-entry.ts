@@ -47,14 +47,13 @@ function pluginCogentRoot(api: OpenClawPluginApi) {
 }
 
 /**
- * Host controller.mode=managed is the only activation authority for every
- * inference-capable CogentNexus-OpenClaw plugin surface.
+ * Host controller.mode=managed/passthrough authorizes the CogentNexus-OpenClaw
+ * plugin surface; provider/auth/routing ownership remains an OpenClaw concern.
  *
- * No policy marker, plugin config bit, installer phase, or Gateway hot-reload
- * can substitute for that durable Host commit. This deliberately makes a
- * power loss during transactional enable fail closed: until Host commits
- * MANAGED, a restarted Gateway can discover the plugin but cannot register any
- * CogentNexus-OpenClaw hook, service, recovery worker, or Ticket mutation surface.
+ * Neither provider mode nor provider selection is a capability switch. A valid
+ * Host authority commit therefore allows the same Ticket, continuity, recovery,
+ * delivery, and workflow surfaces regardless of which provider OpenClaw routes
+ * an inference attempt to.
  */
 export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   const root = pluginCogentRoot(api);
@@ -79,15 +78,10 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
 /**
  * v0.9.1 public mixed-plugin boundary.
  *
- * CogentNexus-OpenClaw registers tools together with hooks and services, so the shipped
- * runtime entry must use OpenClaw's mixed-plugin contract rather than the
- * defineToolPlugin metadata generator. Configuration remains authoritative in
- * openclaw.plugin.json, which OpenClaw reads before runtime code is loaded.
- *
- * Host authority is checked before the compatibility chain is registered. A
- * native plugin install/hot-reload in MAINTENANCE or without a valid Host
- * commit is inert. PASSTHROUGH registers only the continuity/delivery boundary
- * and never grants CogentNexus-OpenClaw provider lifecycle authority.
+ * Host authority controls whether the plugin is active. Provider ownership is
+ * deliberately not translated into capability suppression: PASSTHROUGH means
+ * OpenClaw owns provider/auth/routing, while CogentNexus-OpenClaw continuity,
+ * durable Ticket/recovery, delivery, and workflow capabilities remain active.
  */
 const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
   id: "cogentnexus-openclaw",
@@ -106,50 +100,41 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     if (typeof register !== "function") {
       throw new Error("CogentNexus-OpenClaw v0.9.1 compatibility entry does not expose register(api)");
     }
+
     const config = {
       ...((api.pluginConfig ?? {}) as DashboardVerifiedDeliveryConfig),
-      ...(authority.reason === "passthrough" ? { providerMode: "passthrough" as const } : { providerMode: "managed" as const }),
+      ...(authority.reason === "passthrough" ? { providerMode: undefined } : { providerMode: "managed" as const }),
     };
 
-    const runtimeApi = authority.reason === "passthrough"
-      ? ({
-          ...api,
-          pluginConfig: {...config, autoResume:false, autoRotate:false, autoWorkflowCompletion:false},
-          registerService: () => undefined,
-          on: (name: string, handler: any, options?: any) => {
-            if (["before_agent_run", "session_end", "reply_dispatch", "message_sent", "agent_end"].includes(name)) return api.on(name as any, handler, options);
-            return undefined;
-          },
-        } as OpenClawPluginApi)
-      : api;
+    // ProviderMode is retained only as compatibility metadata. The legacy
+    // capability gates inspect it, so PASSTHROUGH is normalized to undefined
+    // here rather than being allowed to disable CNX continuity/recovery.
+    const runtimeApi = ({
+      ...api,
+      pluginConfig: config,
+    } as OpenClawPluginApi);
+
     // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
     // concurrently with Host-owned CogentNexus-OpenClaw Direct Recovery. Consume only
-    // the exact native restart system turn when durable CNXCLAW ownership exists,
-    // before the legacy before_agent_run Ticket-first gate can see it.
-    if (authority.reason !== "passthrough") installV099NativeRestartOwnershipFence(api, config);
+    // the exact native restart system turn when durable CNX ownership exists, before
+    // the legacy before_agent_run Ticket-first gate can see it.
+    installV099NativeRestartOwnershipFence(api, config);
+
     const installManagedRuntimeGuards = () => {
-      if (authority.reason === "passthrough") {
-        installV092DurableDeliveryBoundary();
-        installV091DashboardVerifiedDelivery(api, config);
-        return;
-      }
-      // legacy delivery timeout recovery must not regenerate inference.
+      // Provider/auth/routing remain outside CNX authority, but continuity and
+      // durable recovery surfaces are valid in both managed and pass-through mode.
       installV092DurableDeliveryBoundary();
-      // A cnx_direct_recovery row durably owns the Direct lane. Legacy Host
-      // reconciliation must never promote that Ticket into workflow execution.
       const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
       if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
-      // The model-call lease is observation-only. It records a bounded provider
-      // call deadline; only the external Host may act on an expired lease.
       installV091DirectModelCallLease(api);
       installV091DashboardVerifiedDelivery(api, config);
     };
+
     const registered = register(runtimeApi);
-    // Test A v9 proved that the Direct Recovery service can start while the
-    // owner-session/model-call readiness fences are still settling after a
-    // Host-driven Gateway restart. Register a durable-work-only pulse bridge
-    // after the legacy services so the pending recovery cannot become unwoken.
-    if (authority.reason !== "passthrough") installV097DirectRecoveryStartupLiveness(api, config);
+    // Keep startup-liveness ownership provider-independent: a Host restart must
+    // not strand a durable direct-recovery lane merely because OpenClaw uses a
+    // pass-through provider route.
+    installV097DirectRecoveryStartupLiveness(api, config);
     if (registered && typeof (registered as Promise<void>).then === "function") {
       return Promise.resolve(registered).then(installManagedRuntimeGuards);
     }
