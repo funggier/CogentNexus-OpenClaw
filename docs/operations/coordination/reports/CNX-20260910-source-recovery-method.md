@@ -1,0 +1,1 @@
+The large-file mutation issue is handled with Git object-level recovery: preserve all current tree entries and replace only `plugins/cogentnexus-openclaw/src/v090.ts` with the exact known-good blob from `ce027b3a791da9236351e28a6b6e5648d1da98c3`. This avoids force-push and avoids retransmitting the full source payload through the contents API.
