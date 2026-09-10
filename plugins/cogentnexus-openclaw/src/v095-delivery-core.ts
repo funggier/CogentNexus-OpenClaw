@@ -80,6 +80,10 @@ function open(databasePath: string) {
   return db;
 }
 
+function ensureReady(db: DatabaseSync) {
+  ensureSchema(db);
+}
+
 function stateFromRow(row: any): DeliveryState {
   if (row.delivery_state === "prepared" || row.delivery_state === "staged" || row.delivery_state === "transport_accepted" || row.delivery_state === "confirmed" || row.delivery_state === "failed" || row.delivery_state === "cancelled") {
     return row.delivery_state;
@@ -110,6 +114,7 @@ function rowToAttempt(row: any): DeliveryAttempt {
 }
 
 function selectByIdempotency(db: DatabaseSync, idempotencyKey: string) {
+  ensureReady(db);
   return db.prepare(`SELECT delivery_id,ticket_id,inference_attempt_id,run_id,owner_session_key,owner_generation,
       surface,payload_sha256,delivery_state,idempotency_key,text,status,evidence_type,attempt_count,created_at,updated_at,delivered_at
     FROM cnx_assistant_delivery WHERE idempotency_key=?`).get(idempotencyKey);
@@ -122,6 +127,7 @@ function assertCurrentOwner(db: DatabaseSync, attempt: DeliveryAttempt) {
 }
 
 export function findExactDelivery(db: DatabaseSync, key: ExactDeliveryKey): DeliveryAttempt | null {
+  ensureReady(db);
   const row = db.prepare(`SELECT delivery_id,ticket_id,inference_attempt_id,run_id,owner_session_key,owner_generation,
       surface,payload_sha256,delivery_state,idempotency_key,text,status,evidence_type,attempt_count,created_at,updated_at,delivered_at
     FROM cnx_assistant_delivery
@@ -155,6 +161,7 @@ function assertIdentity(existing: DeliveryAttempt, input: ExactDeliveryKey & { t
 }
 
 function transition(db: DatabaseSync, idempotencyKey: string, from: DeliveryState, to: DeliveryState, evidence: DeliveryEvidence, stamp: string) {
+  ensureReady(db);
   const current = selectByIdempotency(db, idempotencyKey);
   const state = current ? stateFromRow(current) : null;
   if (!current) return null;
@@ -176,6 +183,7 @@ function transition(db: DatabaseSync, idempotencyKey: string, from: DeliveryStat
 }
 
 export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): DeliveryAttempt {
+  ensureReady(db);
   const text = input.text.trim();
   if (!text) throw new Error("delivery text is required");
   if (!input.ticketId || !input.ownerSessionKey || !input.idempotencyKey || !input.payloadSha256) throw new Error("exact delivery identity is incomplete");
@@ -196,6 +204,7 @@ export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): 
 
   db.exec("BEGIN IMMEDIATE");
   try {
+    ensureReady(db);
     const ticket = db.prepare("SELECT owner_session_key,status FROM tickets WHERE ticket_id=?").get(input.ticketId) as { owner_session_key?: string; status?: string } | undefined;
     if (!ticket) throw new Error("delivery Ticket not found");
     if (ticket.owner_session_key !== input.ownerSessionKey) throw new Error("delivery owner session mismatch");
@@ -233,6 +242,7 @@ export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): 
 }
 
 export function stageDelivery(db: DatabaseSync, attemptId: string, evidence: DeliveryEvidence): DeliveryAttempt {
+  ensureReady(db);
   if (!attemptId) throw new Error("delivery idempotencyKey is required");
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -254,6 +264,7 @@ export function stageDelivery(db: DatabaseSync, attemptId: string, evidence: Del
 }
 
 export function acceptTransport(db: DatabaseSync, attemptId: string, evidence: DeliveryEvidence): DeliveryAttempt {
+  ensureReady(db);
   if (!attemptId) throw new Error("delivery idempotencyKey is required");
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -275,6 +286,7 @@ export function acceptTransport(db: DatabaseSync, attemptId: string, evidence: D
 }
 
 export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: DeliveryEvidence): DeliveryAttempt {
+  ensureReady(db);
   if (!attemptId) throw new Error("delivery idempotencyKey is required");
   const stamp = (evidence.now ?? new Date()).toISOString();
   db.exec("BEGIN IMMEDIATE");
