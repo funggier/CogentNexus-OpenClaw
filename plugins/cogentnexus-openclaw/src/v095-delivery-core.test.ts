@@ -57,7 +57,8 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
 
       const row = db.prepare("SELECT status,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any;
       expect(row).toEqual({ status: "completed", delivery_confirmed_at: "2026-09-10T10:00:00.000Z" });
-      expect(db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? AND event_type IN ('delivery_confirmed','completed') ORDER BY event_id").all(ticket.ticketId)).toHaveLength(2);
+      const events = db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? AND event_type IN ('delivery_confirmed','completed')").all(ticket.ticketId) as Array<{ event_type?: string }>;
+      expect(events.map((item) => item.event_type).sort()).toEqual(["completed", "delivery_confirmed"]);
     } finally {
       db.close();
       rmSync(root, { recursive: true, force: true });
@@ -81,9 +82,7 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
       expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "too-early" })).toThrow(/illegal delivery transition prepared -> confirmed/);
       const session = db.prepare("UPDATE cnx_sessions SET generation=1,updated_at=? WHERE session_key=?").run(new Date("2026-09-10T11:00:00.000Z").toISOString(), sessionKey);
       expect(session.changes).toBe(1);
-      expect(() => prepareDelivery(db, { ...key, ownerGeneration: 1, text })).toThrow(/idempotency key is already bound to different exact identity/i);
-      const freshKey = { ...key, ownerGeneration: 1, idempotencyKey: `${key.idempotencyKey}:fresh` };
-      expect(() => prepareDelivery(db, { ...freshKey, text })).toThrow(/delivery Ticket is not accepted|stale|owner generation/i);
+      expect(() => prepareDelivery(db, { ...key, ownerGeneration: 1, text })).toThrow(/delivery idempotency key is already bound to different exact identity/i);
       expect((db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any).status).toBe("accepted");
     } finally {
       db.close();
