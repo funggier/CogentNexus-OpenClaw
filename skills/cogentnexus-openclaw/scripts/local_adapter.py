@@ -1,60 +1,39 @@
 #!/usr/bin/env python3
-"""Explicit local-adapter lifecycle boundary for CogentNexus-OpenClaw.
+"""Compatibility facade for the canonical v0.9.5 local adapter boundary.
 
-This module owns only local inference-adapter process operations. It must never
-select, mutate, or commit an OpenClaw provider/model/auth route.
+New code should import `local_adapters_v095`. This module remains as a narrow
+compatibility shim for existing callers and intentionally owns no provider
+routing authority.
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-import provider
-
+from local_adapters_v095 import (
+    local_ollama_check,
+    local_ollama_restart,
+    local_ollama_start,
+    local_ollama_status,
+    local_ollama_stop,
+)
 
 SUPPORTED_LOCAL_ADAPTERS = ("ollama",)
 
 
-def _normalize(name: str) -> str:
-    value = (name or "").strip().lower()
-    if value not in SUPPORTED_LOCAL_ADAPTERS:
-        raise ValueError(
-            f"unsupported local adapter: {name!r}; expected one of: {', '.join(SUPPORTED_LOCAL_ADAPTERS)}"
-        )
-    return value
-
-
-def run(root: Path, adapter: str, action: str) -> tuple[int, dict[str, Any]]:
-    del root  # The adapter boundary is intentionally independent of CNX Host state.
-    name = _normalize(adapter)
+def run(root: Any, adapter: str, action: str) -> tuple[int, dict[str, Any]]:
+    del root
+    name = (adapter or "").strip().lower()
     operation = (action or "").strip().lower()
-    if operation not in {"start", "stop", "restart", "status", "check"}:
-        return 2, {"result": "error", "error": "Usage: cnxclaw local ollama start|stop|restart|status|check"}
-
-    if operation == "status":
-        return 0, {"result": "ok", "adapter": name, "status": provider.probe(name)}
-    if operation == "check":
-        status = provider.probe(name)
-        return (0 if status.get("healthy") else 1), {
-            "result": "ok" if status.get("healthy") else "not-ready",
-            "adapter": name,
-            "status": status,
-        }
-    if operation == "start":
-        result = provider.start(name)
-        return (0 if result.get("ok") else 1), {"result": "ok" if result.get("ok") else "error", "adapter": name, "operation": operation, "details": result}
-    if operation == "stop":
-        result = provider.stop(name)
-        return (0 if result.get("ok") else 1), {"result": "ok" if result.get("ok") else "error", "adapter": name, "operation": operation, "details": result}
-
-    stop_result = provider.stop(name)
-    if not stop_result.get("ok"):
-        return 1, {"result": "error", "adapter": name, "operation": operation, "phase": "stop", "details": stop_result}
-    start_result = provider.start(name)
-    return (0 if start_result.get("ok") else 1), {
-        "result": "ok" if start_result.get("ok") else "error",
-        "adapter": name,
-        "operation": operation,
-        "stop": stop_result,
-        "start": start_result,
+    if name != "ollama":
+        return 2, {"result": "error", "error": "unsupported local adapter: expected ollama"}
+    functions = {
+        "status": lambda: (0, local_ollama_status()),
+        "check": local_ollama_check,
+        "start": local_ollama_start,
+        "stop": local_ollama_stop,
+        "restart": local_ollama_restart,
     }
+    function = functions.get(operation)
+    if function is None:
+        return 2, {"result": "error", "error": "Usage: cnxclaw local ollama start|stop|restart|status|check"}
+    return function()
