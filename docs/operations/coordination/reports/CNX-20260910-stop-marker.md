@@ -1,3 +1,3 @@
 # CNX stop marker
 
-No product source changes are authorized on main. Repair work remains isolated to the architecture-repair branch.
+Repair paused before unsafe large-file rewrite. No main-branch product source change was made by this operation.
