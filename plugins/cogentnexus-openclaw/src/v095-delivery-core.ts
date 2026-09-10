@@ -267,6 +267,9 @@ export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: D
       return rowToAttempt(current);
     }
     if (state !== "transport_accepted") throw new Error(`illegal delivery transition ${state} -> confirmed`);
+    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(String(current.owner_session_key)) as { state?: string; generation?: number } | undefined;
+    if (!session || session.state !== "active") throw new Error("delivery owner session is not active");
+    if (Number(session.generation) !== Number(current.owner_generation)) throw new Error("delivery owner generation is stale");
     const changed = db.prepare(`UPDATE cnx_assistant_delivery
       SET delivery_state='confirmed',status='delivered',evidence_type=?,attempt_count=attempt_count+1,delivered_at=?,updated_at=?
       WHERE idempotency_key=? AND COALESCE(delivery_state,CASE WHEN status='delivered' THEN 'confirmed' ELSE 'prepared' END)='transport_accepted'`).run(
