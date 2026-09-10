@@ -13,10 +13,10 @@ import local_adapters_v095 as adapters
 class V095LocalAdaptersTests(unittest.TestCase):
     def test_status_uses_only_local_provider_probe(self):
         with mock.patch.object(adapters.provider, "probe", return_value={"healthy": True}) as probe:
-            code, result = adapters.local_ollama_status().get("status") and (0, adapters.local_ollama_status())
-        self.assertEqual(code, 0)
+            result = adapters.local_ollama_status()
+        self.assertEqual(result["adapter"], "ollama")
         self.assertTrue(result["status"]["healthy"])
-        probe.assert_called()
+        probe.assert_called_once_with("ollama")
 
     def test_start_delegates_to_ollama_start(self):
         with mock.patch.object(adapters.provider, "start", return_value={"ok": True}) as start:
