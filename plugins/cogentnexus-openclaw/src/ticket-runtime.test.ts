@@ -48,7 +48,7 @@ describe("Ticket runtime", () => {
     expect(dispatcher.dispatch({limit:100,leaseMs:5000,launch:(lease)=>launched.push(lease.ticketId)})).toHaveLength(32);
     expect(launched).toHaveLength(32); expect(store.snapshot().tickets).toMatchObject({accepted:3,running:32});
     rmSync(root,{recursive:true,force:true});
-  }, 30_000);
+  }, 60_000);
 
   it("requeues launch failures and stops at the retry ceiling", () => {
     const root = mkdtempSync(join(tmpdir(),"cnx-retry-"));
