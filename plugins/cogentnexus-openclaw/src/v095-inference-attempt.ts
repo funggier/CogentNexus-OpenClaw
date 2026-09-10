@@ -92,12 +92,18 @@ function addEvent(db: DatabaseSync, ticketId: string, eventType: string, payload
     .run(ticketId, eventType, JSON.stringify(payload), stamp);
 }
 
+function assertCurrentSessionGeneration(db: DatabaseSync, attempt: InferenceAttempt) {
+  const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(attempt.sessionKey) as { state?: string; generation?: number } | undefined;
+  if (!session || session.state !== "active") throw new Error("inference attempt owner session is not active");
+  if (Number(session.generation) !== attempt.sessionGeneration) throw new Error("inference attempt owner generation is stale");
+}
+
 export function findInferenceAttempt(db: DatabaseSync, runId: string, callId: string): InferenceAttempt | null {
   if (!runId || !callId) return null;
   ensureBase(db);
   const row = db.prepare(`SELECT attempt_id,ticket_id,session_key,session_generation,run_id,call_id,
       provider,model,state,outcome,started_at,ended_at
-    FROM cnx_inference_attempt WHERE run_id=? AND call_id=? ORDER BY started_at DESC LIMIT 1`).get(runId, callId);
+    FROM cnx_inference_attempt WHERE run_id=? AND call_id=?`).get(runId, callId);
   return row ? rowToAttempt(row) : null;
 }
 
@@ -113,6 +119,9 @@ export function beginInferenceAttempt(db: DatabaseSync, input: BeginAttemptInput
     const ticket = db.prepare("SELECT owner_session_key FROM tickets WHERE ticket_id=?").get(input.ticketId) as { owner_session_key?: string } | undefined;
     if (!ticket) throw new Error(`ticket ${input.ticketId} not found`);
     if (ticket.owner_session_key !== input.sessionKey) throw new Error("inference attempt owner session mismatch");
+    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(input.sessionKey) as { state?: string; generation?: number } | undefined;
+    if (!session || session.state !== "active") throw new Error("inference attempt owner session is not active");
+    if (Number(session.generation) !== input.sessionGeneration) throw new Error("inference attempt owner generation is stale");
     const duplicate = db.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE call_id=? LIMIT 1").get(input.callId) as { attempt_id?: string } | undefined;
     if (duplicate) throw new Error("callId is already bound to an inference attempt");
 
@@ -174,6 +183,7 @@ export function finishInferenceAttempt(db: DatabaseSync, attemptId: string, outc
   try {
     const current = load(db, attemptId);
     if (current.state !== "active") throw new Error("inference attempt is not active");
+    assertCurrentSessionGeneration(db, current);
     const changed = db.prepare(`UPDATE cnx_inference_attempt
       SET state='ended',outcome=?,ended_at=?
       WHERE attempt_id=? AND state='active'`).run(outcome, stamp, attemptId);
