@@ -53,22 +53,14 @@ function ticketIdForRun(db: DatabaseSync, runId: string, sessionKey: string) {
   return row.ticket_id;
 }
 
-/**
- * Translate OpenClaw's model-call observation hooks into canonical
- * InferenceAttempt identities. Provider/model remain attempt provenance only.
- */
+/** Translate OpenClaw model-call observations into canonical InferenceAttempt identities. */
 export function installV095InferenceHookBridge(api: HookApi) {
   if (typeof api?.on !== "function") return;
 
   const initialDatabase = databaseFor(api);
-  const bootstrap = new TicketStore(initialDatabase);
-  bootstrap.snapshot();
+  new TicketStore(initialDatabase).snapshot();
   const db = new DatabaseSync(initialDatabase);
-  try {
-    ensureCanonicalSchema(db);
-  } finally {
-    db.close();
-  }
+  try { ensureCanonicalSchema(db); } finally { db.close(); }
 
   api.on("model_call_started", (event: any, ctx: any) => {
     const runId = text(event?.runId ?? ctx?.runId);
@@ -82,9 +74,8 @@ export function installV095InferenceHookBridge(api: HookApi) {
       if (authority.state !== "active") throw new Error(`session ${sessionKey} is not active`);
       const database = new DatabaseSync(path);
       try {
-        const ticketId = ticketIdForRun(database, runId, sessionKey);
         const attempt = beginInferenceAttempt(database, {
-          ticketId,
+          ticketId: ticketIdForRun(database, runId, sessionKey),
           sessionKey,
           sessionGeneration: authority.generation,
           provider: typeof event?.provider === "string" ? event.provider : null,
