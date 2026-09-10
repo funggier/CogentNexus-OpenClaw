@@ -89,4 +89,34 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("rejects an otherwise-valid transport acceptance after the owner session generation rotates", () => {
+    const { root, db, sessionKey, ticket, text, payloadSha256 } = setup();
+    try {
+      const key = {
+        ticketId: ticket.ticketId,
+        inferenceAttemptId: "cnx-attempt-c",
+        runId: "core-run-a",
+        ownerSessionKey: sessionKey,
+        ownerGeneration: 0,
+        surface: "discord" as const,
+        payloadSha256,
+        idempotencyKey: `cnx-delivery:${ticket.ticketId}:g0:c`,
+      };
+      prepareDelivery(db, { ...key, text });
+      stageDelivery(db, key.idempotencyKey, { evidenceType: "discord-final-staged" });
+      acceptTransport(db, key.idempotencyKey, { evidenceType: "discord-send-accepted" });
+      const rotated = db.prepare("UPDATE cnx_sessions SET generation=1,updated_at=? WHERE session_key=?").run(new Date("2026-09-10T12:00:00.000Z").toISOString(), sessionKey);
+      expect(rotated.changes).toBe(1);
+      expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "stale-receipt" })).toThrow(/delivery owner generation is stale/i);
+      expect((db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any).status).toBe("accepted");
+      expect((db.prepare("SELECT status,delivery_state FROM cnx_assistant_delivery WHERE idempotency_key=?").get(key.idempotencyKey) as any)).toEqual({
+        status: "pending",
+        delivery_state: "transport_accepted",
+      });
+    } finally {
+      db.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
