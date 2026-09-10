@@ -7,6 +7,7 @@ export type InferenceAttempt = {
   sessionKey: string;
   sessionGeneration: number;
   runId: string | null;
+  callId: string;
   provider: string | null;
   model: string | null;
   state: "active" | "ended";
@@ -19,6 +20,7 @@ export type BeginAttemptInput = {
   ticketId: string;
   sessionKey: string;
   sessionGeneration: number;
+  callId: string;
   provider?: string | null;
   model?: string | null;
   now?: Date;
@@ -32,6 +34,7 @@ function ensureSchema(db: DatabaseSync) {
       session_key TEXT NOT NULL,
       session_generation INTEGER NOT NULL,
       run_id TEXT,
+      call_id TEXT NOT NULL,
       provider TEXT,
       model TEXT,
       state TEXT NOT NULL CHECK(state IN ('active','ended')),
@@ -42,10 +45,17 @@ function ensureSchema(db: DatabaseSync) {
     CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_ticket
       ON cnx_inference_attempt(ticket_id,started_at);
     CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run
-      ON cnx_inference_attempt(run_id) WHERE run_id IS NOT NULL;
+      ON cnx_inference_attempt(run_id,started_at) WHERE run_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run_call
+      ON cnx_inference_attempt(run_id,call_id);
     CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_session
       ON cnx_inference_attempt(session_key,session_generation,started_at);
   `);
+  const columns = new Set((db.prepare("PRAGMA table_info(cnx_inference_attempt)").all() as Array<{ name?: string }>).map((row) => row.name));
+  if (!columns.has("call_id")) {
+    db.exec("ALTER TABLE cnx_inference_attempt ADD COLUMN call_id TEXT NOT NULL DEFAULT 'legacy'");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run_call ON cnx_inference_attempt(run_id,call_id)");
+  }
 }
 
 function ensureBase(db: DatabaseSync) {
@@ -61,6 +71,7 @@ function rowToAttempt(row: any): InferenceAttempt {
     sessionKey: String(row.session_key),
     sessionGeneration: Number(row.session_generation),
     runId: row.run_id == null ? null : String(row.run_id),
+    callId: String(row.call_id),
     provider: row.provider == null ? null : String(row.provider),
     model: row.model == null ? null : String(row.model),
     state: row.state === "ended" ? "ended" : "active",
@@ -71,7 +82,7 @@ function rowToAttempt(row: any): InferenceAttempt {
 }
 
 function load(db: DatabaseSync, attemptId: string): InferenceAttempt {
-  return rowToAttempt(db.prepare(`SELECT attempt_id,ticket_id,session_key,session_generation,run_id,
+  return rowToAttempt(db.prepare(`SELECT attempt_id,ticket_id,session_key,session_generation,run_id,call_id,
       provider,model,state,outcome,started_at,ended_at
     FROM cnx_inference_attempt WHERE attempt_id=?`).get(attemptId));
 }
@@ -81,8 +92,17 @@ function addEvent(db: DatabaseSync, ticketId: string, eventType: string, payload
     .run(ticketId, eventType, JSON.stringify(payload), stamp);
 }
 
+export function findInferenceAttempt(db: DatabaseSync, runId: string, callId: string): InferenceAttempt | null {
+  if (!runId || !callId) return null;
+  ensureBase(db);
+  const row = db.prepare(`SELECT attempt_id,ticket_id,session_key,session_generation,run_id,call_id,
+      provider,model,state,outcome,started_at,ended_at
+    FROM cnx_inference_attempt WHERE run_id=? AND call_id=? ORDER BY started_at DESC LIMIT 1`).get(runId, callId);
+  return row ? rowToAttempt(row) : null;
+}
+
 export function beginInferenceAttempt(db: DatabaseSync, input: BeginAttemptInput): InferenceAttempt {
-  if (!input.ticketId || !input.sessionKey) throw new Error("ticketId and sessionKey are required");
+  if (!input.ticketId || !input.sessionKey || !input.callId) throw new Error("ticketId, sessionKey and callId are required");
   if (!Number.isSafeInteger(input.sessionGeneration) || input.sessionGeneration < 0) {
     throw new Error("sessionGeneration must be a non-negative safe integer");
   }
@@ -93,22 +113,26 @@ export function beginInferenceAttempt(db: DatabaseSync, input: BeginAttemptInput
     const ticket = db.prepare("SELECT owner_session_key FROM tickets WHERE ticket_id=?").get(input.ticketId) as { owner_session_key?: string } | undefined;
     if (!ticket) throw new Error(`ticket ${input.ticketId} not found`);
     if (ticket.owner_session_key !== input.sessionKey) throw new Error("inference attempt owner session mismatch");
+    const duplicate = db.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE run_id=? AND call_id=? LIMIT 1").get(null, input.callId);
+    if (duplicate) throw new Error("callId is already bound to an inference attempt");
 
     const attemptId = `cnx-attempt-${randomUUID()}`;
     db.prepare(`INSERT INTO cnx_inference_attempt(
-      attempt_id,ticket_id,session_key,session_generation,run_id,provider,model,state,outcome,started_at,ended_at
-    ) VALUES (?,?,?,?,?,?,?,'active',NULL,?,NULL)`).run(
+      attempt_id,ticket_id,session_key,session_generation,run_id,call_id,provider,model,state,outcome,started_at,ended_at
+    ) VALUES (?,?,?,?,?,?,?,?,'active',NULL,?,NULL)`).run(
       attemptId,
       input.ticketId,
       input.sessionKey,
       input.sessionGeneration,
       null,
+      input.callId,
       input.provider ?? null,
       input.model ?? null,
       stamp,
     );
     addEvent(db, input.ticketId, "inference_attempt_started", {
       attemptId,
+      callId: input.callId,
       sessionKey: input.sessionKey,
       sessionGeneration: input.sessionGeneration,
       provider: input.provider ?? undefined,
@@ -132,8 +156,6 @@ export function bindRunId(db: DatabaseSync, attemptId: string, runId: string): I
     const current = load(db, attemptId);
     if (current.state !== "active") throw new Error("inference attempt is not active");
     if (current.runId !== null && current.runId !== runId) throw new Error("inference attempt already bound to another run");
-    const owner = db.prepare("SELECT 1 FROM cnx_inference_attempt WHERE run_id=? AND attempt_id<>? LIMIT 1").get(runId, attemptId);
-    if (owner) throw new Error("runId is already bound to another inference attempt");
     db.prepare("UPDATE cnx_inference_attempt SET run_id=? WHERE attempt_id=? AND state='active'").run(runId, attemptId);
     const result = load(db, attemptId);
     db.exec("COMMIT");
@@ -158,6 +180,7 @@ export function finishInferenceAttempt(db: DatabaseSync, attemptId: string, outc
     if (changed.changes !== 1) throw new Error("inference attempt is not active");
     addEvent(db, current.ticketId, "inference_attempt_ended", {
       attemptId,
+      callId: current.callId,
       runId: current.runId ?? undefined,
       outcome,
       source: "cogentnexus-v095-canonical-attempt",
