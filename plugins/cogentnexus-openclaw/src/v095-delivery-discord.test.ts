@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
+import { sessionAuthority } from "./v090.js";
 import { beginInferenceAttempt, bindRunId, finishInferenceAttempt } from "./v095-inference-attempt.js";
 import { confirmDiscordDelivery, registerDiscordDeliveryAdapter, stageDiscordDelivery } from "./v095-delivery-discord.js";
 
@@ -13,6 +13,7 @@ function setup() {
   const databasePath = join(root, "tickets.sqlite3");
   const sessionKey = "agent:main:discord:channel:095902";
   const store = new TicketStore(databasePath);
+  sessionAuthority(databasePath, sessionKey);
   const ticketA = store.accept({ runId: "discord-adapter-a", ownerSessionKey: sessionKey, prompt: "A" });
   const ticketB = store.accept({ runId: "discord-adapter-b", ownerSessionKey: sessionKey, prompt: "B" });
   store.route(ticketA.ticketId, false);
@@ -83,7 +84,6 @@ describe("v0.9.5 Discord delivery adapter", () => {
       expect(first.idempotencyKey).toBe(second.idempotencyKey);
       expect(first.nativeText).toBe(second.nativeText);
       expect(first.nativeText).toContain("<!-- cogentnexus-openclaw-delivery:");
-      expect(createHash("sha256").update("same reply").digest("hex")).toBeTruthy();
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 });
