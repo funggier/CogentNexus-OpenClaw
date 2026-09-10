@@ -17,7 +17,7 @@ function setup() {
   const db = new DatabaseSync(databasePath);
   const text = "Discord canonical delivery";
   const payloadSha256 = createHash("sha256").update(text).digest("hex");
-  return { root, databasePath, db, sessionKey, ticket, text, payloadSha256 };
+  return { root, db, sessionKey, ticket, text, payloadSha256 };
 }
 
 describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
@@ -53,7 +53,6 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
         state: "confirmed",
       });
 
-      expect(new TicketStore((db as any).databasePath ?? "").snapshot).toBeDefined();
       const row = db.prepare("SELECT status,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any;
       expect(row).toEqual({ status: "completed", delivery_confirmed_at: "2026-09-10T10:00:00.000Z" });
     } finally {
@@ -77,7 +76,7 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
       };
       prepareDelivery(db, { ...key, text });
       expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "too-early" })).toThrow(/illegal delivery transition prepared -> confirmed/);
-      expect(() => prepareDelivery(db, { ...key, ownerGeneration: 1, text })).toThrow(/idempotency key is already bound|different exact identity/i);
+      expect(() => prepareDelivery(db, { ...key, ownerGeneration: 1, text })).toThrow(/idempotency key is already bound to different exact identity/i);
       expect((db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any).status).toBe("accepted");
     } finally {
       db.close();
