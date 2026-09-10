@@ -69,6 +69,25 @@ function bootstrapManagedRuntimeSchema(database) {
       );
       CREATE INDEX IF NOT EXISTS idx_cnx_direct_model_call_deadline
         ON cnx_direct_model_call(state,deadline_at);
+      CREATE TABLE IF NOT EXISTS cnx_inference_attempt(
+        attempt_id TEXT PRIMARY KEY,
+        ticket_id TEXT NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+        session_key TEXT NOT NULL,
+        session_generation INTEGER NOT NULL,
+        run_id TEXT,
+        provider TEXT,
+        model TEXT,
+        state TEXT NOT NULL CHECK(state IN ('active','ended')),
+        outcome TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_ticket
+        ON cnx_inference_attempt(ticket_id,started_at);
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run
+        ON cnx_inference_attempt(run_id) WHERE run_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_session
+        ON cnx_inference_attempt(session_key,session_generation,started_at);
     `);
   } finally {
     db.close();
