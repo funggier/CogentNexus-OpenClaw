@@ -13,9 +13,10 @@ describe("v0.9.5 Discord inference identity fence", () => {
       const databasePath = join(root, "tickets.sqlite3");
       const sessionKey = "agent:main:discord:channel:095001";
       const store = new TicketStore(databasePath);
-      store.accept({ runId: "discord-run-a", ownerSessionKey: sessionKey, prompt: "A" });
-      store.accept({ runId: "discord-run-b", ownerSessionKey: sessionKey, prompt: "B" });
-      store.route(store.snapshot().ticketIds?.[0] ?? "", false);
+      const ticketA = store.accept({ runId: "discord-run-a", ownerSessionKey: sessionKey, prompt: "A" });
+      const ticketB = store.accept({ runId: "discord-run-b", ownerSessionKey: sessionKey, prompt: "B" });
+      store.route(ticketA.ticketId, false);
+      store.route(ticketB.ticketId, false);
 
       const hooks = new Map<string, (event: any, ctx: any) => unknown>();
       const api: any = {
