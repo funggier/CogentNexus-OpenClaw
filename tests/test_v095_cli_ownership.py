@@ -27,15 +27,15 @@ class V095CliOwnershipTests(unittest.TestCase):
                 transition.assert_not_called()
                 route_begin.assert_not_called()
 
-    def test_local_ollama_commands_use_local_adapter_and_never_route_openclaw(self):
+    def test_local_ollama_commands_use_canonical_adapter_and_never_route_openclaw(self):
         for action in ("start", "stop", "restart", "status", "check"):
             with self.subTest(action=action), \
-                 mock.patch.object(cnxclaw, "local_adapter") as adapter, \
+                 mock.patch.object(cnxclaw, "local_adapters") as adapter, \
                  mock.patch.object(cnxclaw.openclaw_route, "begin") as route_begin:
                 adapter.run.return_value = (0, {"result": "ok"})
                 code = cnxclaw.main(["local", "ollama", action])
             self.assertEqual(code, 0)
-            adapter.run.assert_called_once()
+            adapter.run.assert_called_once_with(cnxclaw.DEFAULT_ROOT, "ollama", action)
             route_begin.assert_not_called()
 
     def test_legacy_provider_option_is_rejected_for_all_destructive_cnx_lifecycle(self):
@@ -67,3 +67,7 @@ class V095CliOwnershipTests(unittest.TestCase):
             provider_snapshot.assert_called_once_with()
             transition.assert_not_called()
             route_begin.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()
