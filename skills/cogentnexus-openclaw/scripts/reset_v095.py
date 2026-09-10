@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Provider-neutral destructive reset boundary for CogentNexus-OpenClaw v0.9.5.
+"""Provider-neutral destructive lifecycle boundary for CogentNexus-OpenClaw v0.9.5.
 
-Reset owns only CogentNexus installation/state reconstruction. OpenClaw remains
-the sole provider/model/auth/routing authority. The only route operation here is
-restoring the native OpenClaw route as a safety boundary; this module never
-selects, starts, stops, probes, or commits a provider route.
+This boundary owns only CogentNexus installation/state reconstruction. OpenClaw
+remains the sole provider/model/auth/routing authority. The only route operation
+here is restoring the native OpenClaw route as a safety boundary; this module
+never selects, starts, stops, probes, or commits a provider route.
 """
 from __future__ import annotations
 
@@ -22,7 +22,6 @@ import openclaw_runtime_boundary_v092 as runtime_boundary
 
 HERE = Path(__file__).resolve()
 HOST = HERE.with_name("host_provider_v092.py")
-HOST_CONTROL = HERE.with_name("host_control_v092.py")
 BOOTSTRAP_RELATIVE = Path("scripts") / "bootstrap-ticket-db.mjs"
 TICKET_STORE_RELATIVE = Path("dist") / "ticket-store.js"
 PLUGIN_ID = base.PLUGIN_ID
