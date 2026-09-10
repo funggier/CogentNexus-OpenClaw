@@ -1,0 +1,1 @@
+Exact pre-edit source blob for `plugins/cogentnexus-openclaw/src/v090.ts` is `52f4ca386f35710f2ea46b50c6c9f4c626dd3fb6`, as observed at commit `ce027b3a791da9236351e28a6b6e5648d1da98c3`. This checkpoint precedes restoration via Git tree construction.
