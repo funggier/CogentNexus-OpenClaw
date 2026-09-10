@@ -68,9 +68,6 @@ def main() -> int:
     manifest = json.loads((ROOT / "plugins/cogentnexus-openclaw/openclaw.plugin.json").read_text(encoding="utf-8"))
     lock = json.loads((ROOT / "plugins/cogentnexus-openclaw/package-lock.json").read_text(encoding="utf-8"))
 
-    # The v0.9.3 candidate is one versioned unit. Every package metadata surface
-    # must agree with the root VERSION rather than validating an older bridge
-    # payload as an independently versioned release.
     if core_version != EXPECTED_VERSION:
         failures.append(f"current candidate VERSION must be {EXPECTED_VERSION}, got {core_version!r}")
     version_surfaces = (
@@ -106,7 +103,10 @@ def main() -> int:
     release_entry = (ROOT / "plugins/cogentnexus-openclaw/src/v091-release-entry.ts").read_text(encoding="utf-8")
     if not re.search(r'id\s*:\s*["\']cogentnexus-openclaw["\']', release_entry):
         failures.append("release entry plugin id is not namespace-isolated")
-    if not re.search(r"installV091DashboardVerifiedDelivery\s*\(\s*api\s*,\s*config\s*\)\s*;", release_entry):
+    # The canonical release entry may wrap the legacy registration API with a
+    # provider/channel-specific boundary. Accept the bounded wrapper while still
+    # requiring the Dashboard registration itself to be present and executable.
+    if not re.search(r"installV091DashboardVerifiedDelivery\s*\(\s*(?:api|runtimeApi)\s*,\s*config\s*\)\s*;", release_entry):
         failures.append("release entry no longer registers Dashboard verified delivery")
 
     ticket_source = (ROOT / "plugins/cogentnexus-openclaw/src/ticket-store.ts").read_text(encoding="utf-8")
