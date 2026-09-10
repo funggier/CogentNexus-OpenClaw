@@ -11,14 +11,15 @@ describe("v0.9.5 canonical inference attempt identity", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v095-inference-attempt-"));
     try {
       const databasePath = join(root, "tickets.sqlite3");
+      const sessionKey = "agent:main:webchat:channel:v095-attempt";
       const store = new TicketStore(databasePath);
-      const ticket = store.accept({ runId: "legacy-run-a", ownerSessionKey: "agent:main:webchat:channel:v095-attempt", prompt: "identity test" });
+      const ticket = store.accept({ runId: "legacy-run-a", ownerSessionKey: sessionKey, prompt: "identity test" });
       store.route(ticket.ticketId, false);
       const db = new DatabaseSync(databasePath);
       try {
         const first = beginInferenceAttempt(db, {
           ticketId: ticket.ticketId,
-          sessionKey: ticket.ownerSessionKey,
+          sessionKey,
           sessionGeneration: 3,
           provider: "ollama",
           model: "m1",
@@ -26,7 +27,7 @@ describe("v0.9.5 canonical inference attempt identity", () => {
         });
         expect(first).toMatchObject({
           ticketId: ticket.ticketId,
-          sessionKey: ticket.ownerSessionKey,
+          sessionKey,
           sessionGeneration: 3,
           provider: "ollama",
           model: "m1",
@@ -42,7 +43,7 @@ describe("v0.9.5 canonical inference attempt identity", () => {
 
         const second = beginInferenceAttempt(db, {
           ticketId: ticket.ticketId,
-          sessionKey: ticket.ownerSessionKey,
+          sessionKey,
           sessionGeneration: 3,
           provider: "openai",
           model: "m2",
@@ -66,14 +67,15 @@ describe("v0.9.5 canonical inference attempt identity", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v095-inference-attempt-db-"));
     try {
       const databasePath = join(root, "tickets.sqlite3");
+      const sessionKey = "agent:main:webchat:channel:v095-db";
       const store = new TicketStore(databasePath);
-      const ticket = store.accept({ runId: "legacy-run-b", ownerSessionKey: "agent:main:webchat:channel:v095-db", prompt: "db proof" });
+      const ticket = store.accept({ runId: "legacy-run-b", ownerSessionKey: sessionKey, prompt: "db proof" });
       store.route(ticket.ticketId, false);
       const db = new DatabaseSync(databasePath);
       try {
         const attempt = beginInferenceAttempt(db, {
           ticketId: ticket.ticketId,
-          sessionKey: ticket.ownerSessionKey,
+          sessionKey,
           sessionGeneration: 4,
           provider: null,
           model: null,
@@ -87,7 +89,7 @@ describe("v0.9.5 canonical inference attempt identity", () => {
         expect(db.prepare("SELECT attempt_id,ticket_id,session_key,session_generation,run_id,provider,model,state,outcome FROM cnx_inference_attempt WHERE attempt_id=?").get(attempt.attemptId)).toMatchObject({
           attempt_id: attempt.attemptId,
           ticket_id: ticket.ticketId,
-          session_key: ticket.ownerSessionKey,
+          session_key: sessionKey,
           session_generation: 4,
           run_id: "run-b",
           provider: null,
