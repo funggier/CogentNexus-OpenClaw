@@ -43,7 +43,8 @@ describe("v0.9.5 delivery session-generation fence", () => {
         expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "late-receipt" }))
           .toThrow(/delivery owner session is not active|generation is stale|illegal delivery transition/i);
         expect(findExactDelivery(db, { ...key, inferenceAttemptId: "attempt-S2" })).toBeNull();
-        expect(store.get(ticket.ticketId)?.status).toBe("cancelled");
+        const ticketRow = db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as { status: string };
+        expect(ticketRow.status).toBe("cancelled");
       } finally {
         db.close();
       }
