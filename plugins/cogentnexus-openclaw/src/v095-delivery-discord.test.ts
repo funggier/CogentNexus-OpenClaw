@@ -53,6 +53,35 @@ describe("v0.9.5 Discord delivery adapter", () => {
     }
   });
 
+  it("rejects ambiguous Ticket ownership instead of selecting a latest matching Ticket", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v095-discord-ambiguous-ticket-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const sessionKey = "agent:main:discord:channel:ambiguous-ticket";
+      const store = new TicketStore(databasePath);
+      sessionAuthority(databasePath, sessionKey);
+      const first = store.accept({ runId: "same-run", ownerSessionKey: sessionKey, prompt: "first" });
+      const second = store.accept({ runId: "same-run", ownerSessionKey: sessionKey, prompt: "second" });
+      store.route(first.ticketId, false);
+      store.route(second.ticketId, false);
+      const db = new DatabaseSync(databasePath);
+      try {
+        const attemptA = beginInferenceAttempt(db, { ticketId: first.ticketId, sessionKey, sessionGeneration: 0, callId: "same-run-call-a" });
+        bindRunId(db, attemptA.attemptId, "same-run");
+        finishInferenceAttempt(db, attemptA.attemptId, "completed");
+        const attemptB = beginInferenceAttempt(db, { ticketId: second.ticketId, sessionKey, sessionGeneration: 0, callId: "same-run-call-b" });
+        bindRunId(db, attemptB.attemptId, "same-run");
+        finishInferenceAttempt(db, attemptB.attemptId, "completed");
+      } finally {
+        db.close();
+      }
+      const staged = stageDiscordDelivery(databasePath, { runId: "same-run", sessionKey, channel: "discord" }, "must not guess");
+      expect(staged).toEqual({ staged: false, reason: "ambiguous-run-ticket" });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("ignores a message_sent receipt without event runId even when ctx has a runId", () => {
     const { root, databasePath, sessionKey } = setup();
     try {
