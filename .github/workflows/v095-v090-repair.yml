@@ -1,0 +1,84 @@
+name: v0.9.5 v090 Repair
+
+on:
+  push:
+    branches:
+      - agent/v0.9.5-architecture-repair
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v095-v090-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/agent/v0.9.5-architecture-repair'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
+
+      - name: Install plugin dependencies
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm ci
+
+      - name: Capture RED behavior before repair
+        working-directory: plugins/cogentnexus-openclaw
+        shell: bash
+        run: |
+          set +e
+          npm test -- --runInBand src/v090-session-recreation-generation.test.ts
+          status=$?
+          echo "RED_EXIT_CODE=$status"
+          if [ "$status" -eq 0 ]; then
+            echo 'Expected the pre-repair contract test to fail against the +1 generation implementation.'
+            exit 1
+          fi
+          exit 0
+
+      - name: Restore canonical v090 implementation from known-good parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show ce027b3a791da9236351e28a6b6e5648d1da98c3:plugins/cogentnexus-openclaw/src/v090.ts > plugins/cogentnexus-openclaw/src/v090.ts
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('plugins/cogentnexus-openclaw/src/v090.ts')
+          text = path.read_text(encoding='utf-8')
+          old = 'const stamp = now(), generation = currentGeneration + 1;'
+          new = 'const stamp = now(), generation = currentGeneration;'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one generation recreation expression, found {text.count(old)}')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+
+      - name: Verify focused GREEN test
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm test -- --runInBand src/v090-session-recreation-generation.test.ts
+
+      - name: Verify plugin test suite
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm test
+
+      - name: Commit repaired source and remove one-shot workflow
+        shell: bash
+        env:
+          BRANCH_NAME: agent/v0.9.5-architecture-repair
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugins/cogentnexus-openclaw/src/v090.ts .github/workflows/v095-v090-repair.yml
+          git rm .github/workflows/v095-v090-repair.yml
+          git commit -m 'fix: restore v090 lifecycle and recovery implementation'
+          git push origin "HEAD:${BRANCH_NAME}"
