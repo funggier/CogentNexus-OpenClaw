@@ -165,12 +165,8 @@ function transition(db: DatabaseSync, idempotencyKey: string, from: DeliveryStat
     from,
   );
   if (result.changes !== 1) throw new Error("delivery transition lost race");
-  const row = selectByIdempotency(db, idempotencyKey);
-  if (details) {
-    // Keep evidence deterministic and bounded in the existing target_json field.
-    db.prepare("UPDATE cnx_assistant_delivery SET target_json=? WHERE idempotency_key=?").run(details, idempotencyKey);
-  }
-  return rowToAttempt(row);
+  if (details) db.prepare("UPDATE cnx_assistant_delivery SET target_json=? WHERE idempotency_key=?").run(details, idempotencyKey);
+  return rowToAttempt(selectByIdempotency(db, idempotencyKey));
 }
 
 export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): DeliveryAttempt {
@@ -178,6 +174,8 @@ export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): 
   if (!text) throw new Error("delivery text is required");
   if (!input.ticketId || !input.ownerSessionKey || !input.idempotencyKey || !input.payloadSha256) throw new Error("exact delivery identity is incomplete");
   if (!Number.isSafeInteger(input.ownerGeneration) || input.ownerGeneration < 0) throw new Error("ownerGeneration must be a non-negative safe integer");
+  const expectedPayloadSha256 = createHash("sha256").update(text).digest("hex");
+  if (input.payloadSha256 !== expectedPayloadSha256) throw new Error("payloadSha256 does not match delivery text");
   const stamp = (input.now ?? new Date()).toISOString();
   const existing = findExactDelivery(db, input);
   if (existing) {
@@ -196,11 +194,14 @@ export function prepareDelivery(db: DatabaseSync, input: PrepareDeliveryInput): 
     if (!ticket) throw new Error("delivery Ticket not found");
     if (ticket.owner_session_key !== input.ownerSessionKey) throw new Error("delivery owner session mismatch");
     if (ticket.status !== "accepted") throw new Error("delivery Ticket is not accepted");
+    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(input.ownerSessionKey) as { state?: string; generation?: number } | undefined;
+    if (!session || session.state !== "active") throw new Error("delivery owner session is not active");
+    if (Number(session.generation) !== input.ownerGeneration) throw new Error("delivery owner generation is stale");
     const created = db.prepare(`INSERT INTO cnx_assistant_delivery(
       ticket_id,owner_session_key,owner_generation,kind,text,target_json,idempotency_key,status,
       attempt_count,last_error,created_at,updated_at,delivered_at,
       inference_attempt_id,run_id,surface,payload_sha256,delivery_state,evidence_type
-    ) VALUES (?,?,?,?,?,NULL,?,'pending',0,NULL,?,?,NULL,?,?,?,?,? ,NULL)`).run(
+    ) VALUES (?,?,?,?,?,NULL,?,'pending',0,NULL,?,?,NULL,?,?,?,?,?,NULL)`).run(
       input.ticketId,
       input.ownerSessionKey,
       input.ownerGeneration,
@@ -276,8 +277,14 @@ export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: D
     );
     if (changed.changes !== 1) throw new Error("delivery confirmation lost race");
     const delivery = rowToAttempt(selectByIdempotency(db, attemptId));
-    db.prepare(`UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,updated_at=?
-      WHERE ticket_id=? AND status='accepted'`).run(stamp, stamp, delivery.ticketId);
+    const updated = db.prepare(`UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,
+      failure_class=NULL,failure_message=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`).run(stamp, stamp, delivery.ticketId);
+    if (updated.changes === 1) {
+      db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
+        .run(delivery.ticketId, "delivery_confirmed", JSON.stringify({ runId: delivery.runId, source: `${delivery.surface}-delivery-core`, idempotencyKey: delivery.idempotencyKey }), stamp);
+      db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
+        .run(delivery.ticketId, "completed", JSON.stringify({ runId: delivery.runId, direct: true, deliveryConfirmed: true, durablePayload: true, deliveryMode: `${delivery.surface}-delivery-core` }), stamp);
+    }
     db.exec("COMMIT");
     return delivery;
   } catch (error) {
