@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import checks_v092 as checks
-import local_adapter
+import local_adapters_v095 as local_adapters
 import openclaw_route_v092 as openclaw_route
 import provider
 import provider_recovery_v092 as recovery_policy
@@ -305,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
             emit({"result": "error", "error": "Usage: cnxclaw local ollama start|stop|restart|status|check"})
             return 2
         try:
-            code, result = local_adapter.run(root, args[1], args[2])
+            code, result = local_adapters.run(root, args[1], args[2])
         except ValueError as error:
             emit({"result": "error", "error": str(error)})
             return 2
