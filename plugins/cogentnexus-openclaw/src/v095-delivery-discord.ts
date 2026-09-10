@@ -20,6 +20,11 @@ type DiscordAdapterApi = {
   logger?: { info?: (message: string) => void; warn?: (message: string) => void };
 };
 
+type ExactRunResult = {
+  ticket?: { ticket_id?: string; owner_session_key?: string };
+  ambiguous: boolean;
+};
+
 function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -39,14 +44,14 @@ function databaseFor(api: DiscordAdapterApi, ctx?: DiscordDeliveryContext) {
   return resolve(text(cfg.ticketDatabasePath) || defaultTicketDatabase(workspace));
 }
 
-function exactRun(db: DatabaseSync, runId: string, sessionKey: string) {
-  if (!runId || !isDiscordSession(sessionKey)) return undefined;
+function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {
+  if (!runId || !isDiscordSession(sessionKey)) return { ambiguous: false };
   const rows = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets
     WHERE run_id=? AND owner_session_key=? AND status='accepted'
       AND workflow_eligible=0 AND workflow_id IS NULL
     ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string }>;
-  if (rows.length !== 1 || !rows[0]?.ticket_id) return undefined;
-  return rows[0];
+  if (rows.length !== 1 || !rows[0]?.ticket_id) return { ticket: undefined, ambiguous: rows.length > 1 };
+  return { ticket: rows[0], ambiguous: false };
 }
 
 function exactInference(db: DatabaseSync, runId: string, sessionKey: string, callId?: string) {
@@ -83,7 +88,9 @@ export function stageDiscordDelivery(databasePath: string, context: DiscordDeliv
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
   try {
-    const ticket = exactRun(db, runId, sessionKey);
+    const exactTicket = exactRun(db, runId, sessionKey);
+    if (exactTicket.ambiguous) return { staged: false as const, reason: "ambiguous-run-ticket" };
+    const ticket = exactTicket.ticket;
     const inference = exactInference(db, runId, sessionKey, text(context.callId) || undefined);
     if (!ticket || !inference?.attempt_id) {
       return { staged: false as const, reason: context.callId ? "exact-run-or-inference-not-found" : "ambiguous-inference-attempt" };
