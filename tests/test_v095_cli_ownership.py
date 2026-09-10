@@ -38,10 +38,11 @@ class V095CliOwnershipTests(unittest.TestCase):
             adapter.run.assert_called_once()
             route_begin.assert_not_called()
 
-    def test_legacy_provider_option_is_rejected_for_cnx_lifecycle(self):
-        for command in ("start", "restart", "stop", "status"):
+    def test_legacy_provider_option_is_rejected_for_all_destructive_cnx_lifecycle(self):
+        for command in ("start", "restart", "stop", "status", "reset", "uninstall"):
             with self.subTest(command=command):
-                with mock.patch.object(cnxclaw, "provider_transition") as transition:
+                with mock.patch.object(cnxclaw, "provider_transition") as transition, \
+                     mock.patch.object(cnxclaw, "delegate", return_value=0):
                     code = cnxclaw.main([command, "--provider", "ollama"])
                 self.assertEqual(code, 2)
                 transition.assert_not_called()
