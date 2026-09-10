@@ -141,7 +141,7 @@ export function registerDiscordDeliveryAdapter(api: DiscordAdapterApi) {
 
   api.on("message_sent", (event: any, ctx: DiscordDeliveryContext) => {
     if (text(ctx?.channel) !== "discord" && text(ctx?.messageProvider) !== "discord") return;
-    const runId = text(event?.runId ?? ctx?.runId);
+    const runId = text(event?.runId);
     const sessionKey = text(event?.sessionKey ?? ctx?.sessionKey);
     if (!runId || !sessionKey) {
       api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt without exact run identity");
