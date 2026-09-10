@@ -1,1 +1,0 @@
-Cleanup is limited to removing unintended temporary documentation from main.
