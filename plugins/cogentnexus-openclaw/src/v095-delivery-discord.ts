@@ -41,10 +41,12 @@ function databaseFor(api: DiscordAdapterApi, ctx?: DiscordDeliveryContext) {
 
 function exactRun(db: DatabaseSync, runId: string, sessionKey: string) {
   if (!runId || !isDiscordSession(sessionKey)) return undefined;
-  return db.prepare(`SELECT ticket_id,owner_session_key FROM tickets
+  const rows = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets
     WHERE run_id=? AND owner_session_key=? AND status='accepted'
       AND workflow_eligible=0 AND workflow_id IS NULL
-    LIMIT 1`).get(runId, sessionKey) as { ticket_id?: string; owner_session_key?: string } | undefined;
+    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string }>;
+  if (rows.length !== 1 || !rows[0]?.ticket_id) return undefined;
+  return rows[0];
 }
 
 function exactInference(db: DatabaseSync, runId: string, sessionKey: string, callId?: string) {
