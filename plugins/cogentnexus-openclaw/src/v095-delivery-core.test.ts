@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
+import { sessionAuthority } from "./v090.js";
 import { confirmDelivery, findExactDelivery, prepareDelivery, stageDelivery, acceptTransport } from "./v095-delivery-core.js";
 
 function setup() {
@@ -12,6 +13,7 @@ function setup() {
   const databasePath = join(root, "tickets.sqlite3");
   const sessionKey = "agent:main:discord:channel:core095001";
   const store = new TicketStore(databasePath);
+  sessionAuthority(databasePath, sessionKey);
   const ticket = store.accept({ runId: "core-run-a", ownerSessionKey: sessionKey, prompt: "delivery core" });
   store.route(ticket.ticketId, false);
   const db = new DatabaseSync(databasePath);
@@ -55,6 +57,7 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
 
       const row = db.prepare("SELECT status,delivery_confirmed_at FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any;
       expect(row).toEqual({ status: "completed", delivery_confirmed_at: "2026-09-10T10:00:00.000Z" });
+      expect(db.prepare("SELECT event_type FROM ticket_events WHERE ticket_id=? AND event_type IN ('delivery_confirmed','completed') ORDER BY event_id").all(ticket.ticketId)).toHaveLength(2);
     } finally {
       db.close();
       rmSync(root, { recursive: true, force: true });
@@ -76,7 +79,11 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
       };
       prepareDelivery(db, { ...key, text });
       expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "too-early" })).toThrow(/illegal delivery transition prepared -> confirmed/);
+      const session = db.prepare("UPDATE cnx_sessions SET generation=1,updated_at=? WHERE session_key=?").run(new Date("2026-09-10T11:00:00.000Z").toISOString(), sessionKey);
+      expect(session.changes).toBe(1);
       expect(() => prepareDelivery(db, { ...key, ownerGeneration: 1, text })).toThrow(/idempotency key is already bound to different exact identity/i);
+      const freshKey = { ...key, ownerGeneration: 1, idempotencyKey: `${key.idempotencyKey}:fresh` };
+      expect(() => prepareDelivery(db, { ...freshKey, text })).toThrow(/delivery Ticket is not accepted|stale|owner generation/i);
       expect((db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId) as any).status).toBe("accepted");
     } finally {
       db.close();
