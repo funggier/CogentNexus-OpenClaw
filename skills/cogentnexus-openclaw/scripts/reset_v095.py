@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Provider-neutral destructive lifecycle boundary for CogentNexus-OpenClaw v0.9.5.
 
-This boundary owns only CogentNexus installation/state reconstruction. OpenClaw
+This boundary owns only OpenClaw bridge installation/state reconstruction. OpenClaw
 remains the sole provider/model/auth/routing authority. The only route operation
 here is restoring the native OpenClaw route as a safety boundary; this module
 never selects, starts, stops, probes, or commits a provider route.
