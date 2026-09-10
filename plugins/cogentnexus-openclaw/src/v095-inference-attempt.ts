@@ -137,7 +137,7 @@ export function beginInferenceAttempt(db: DatabaseSync, input: BeginAttemptInput
       sessionGeneration: input.sessionGeneration,
       provider: input.provider ?? undefined,
       model: input.model ?? undefined,
-      source: "cogentnexus-v095-canonical-attempt",
+      source: "cogentnexus-openclaw-canonical-attempt",
     }, stamp);
     const result = load(db, attemptId);
     db.exec("COMMIT");
@@ -183,7 +183,7 @@ export function finishInferenceAttempt(db: DatabaseSync, attemptId: string, outc
       callId: current.callId,
       runId: current.runId ?? undefined,
       outcome,
-      source: "cogentnexus-v095-canonical-attempt",
+      source: "cogentnexus-openclaw-canonical-attempt",
     }, stamp);
     const result = load(db, attemptId);
     db.exec("COMMIT");
