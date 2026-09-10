@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -72,8 +71,8 @@ describe("v0.9.5 canonical session deletion ownership", () => {
           .toEqual({ count: 0 });
         expect(afterDelete.prepare("SELECT count(*) AS count FROM cnx_direct_recovery WHERE owner_generation=? AND state<>'cancelled'").get(oldGeneration))
           .toEqual({ count: 0 });
-        expect(afterDelete.prepare("SELECT count(*) AS count FROM ticket_events WHERE ticket_id=?").get(oldTicket.ticketId).count)
-          .toBeGreaterThan(0);
+        const eventCount = afterDelete.prepare("SELECT count(*) AS count FROM ticket_events WHERE ticket_id=?").get(oldTicket.ticketId) as { count: number };
+        expect(eventCount.count).toBeGreaterThan(0);
         expect(afterDelete.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(oldTicket.ticketId))
           .toEqual({ status: "cancelled" });
       } finally {
@@ -97,8 +96,7 @@ describe("v0.9.5 canonical session deletion ownership", () => {
       try {
         const events = evidence.prepare("SELECT event_type,payload_json FROM ticket_events WHERE ticket_id=? ORDER BY created_at").all(oldTicket.ticketId) as Array<{ event_type: string; payload_json: string }>;
         expect(events.some((event) => event.event_type === "cancelled_by_session_delete")).toBe(true);
-        expect(events.some((event) => event.payload_json.includes("S1") || event.payload_json.includes("user deleted Discord session"))).toBe(true);
-        expect(createHash("sha256").update(text).digest("hex")).toHaveLength(64);
+        expect(events.some((event) => event.payload_json.includes("user deleted Discord session"))).toBe(true);
       } finally {
         evidence.close();
       }
