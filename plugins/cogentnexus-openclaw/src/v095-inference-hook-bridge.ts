@@ -7,7 +7,7 @@ import { beginInferenceAttempt, bindRunId, finishInferenceAttempt } from "./v095
 type HookApi = {
   pluginConfig?: Record<string, unknown>;
   config?: any;
-  on?: (name: string, handler: (event: any, ctx: any) => unknown, options?: any) => void;
+  on?: (...args: any[]) => void;
   logger?: { warn?: (message: string) => void };
 };
 
@@ -77,15 +77,14 @@ export function installV095InferenceHookBridge(api: HookApi) {
     if (!runId || !sessionKey || !callId) return;
     try {
       const path = databaseFor(api, ctx);
-      // One OpenClaw run maps to one inference attempt. Duplicate start
-      // callbacks are therefore idempotent no-ops.
       if (existingAttemptId(path, runId)) return;
       const authority = sessionAuthority(path, sessionKey);
       if (authority.state !== "active") throw new Error(`session ${sessionKey} is not active`);
       const database = new DatabaseSync(path);
       try {
+        const ticketId = ticketIdForRun(database, runId, sessionKey);
         const attempt = beginInferenceAttempt(database, {
-          ticketId: ticketIdForRun(database, runId, sessionKey),
+          ticketId,
           sessionKey,
           sessionGeneration: authority.generation,
           provider: typeof event?.provider === "string" ? event.provider : null,
