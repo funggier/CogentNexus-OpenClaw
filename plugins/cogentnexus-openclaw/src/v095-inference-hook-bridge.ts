@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 import { sessionAuthority } from "./v090.js";
-import { beginInferenceAttempt, bindRunId, finishInferenceAttempt } from "./v095-inference-attempt.js";
+import { beginInferenceAttempt, bindRunId, findInferenceAttempt, finishInferenceAttempt } from "./v095-inference-attempt.js";
 
 type HookApi = {
   pluginConfig?: Record<string, unknown>;
@@ -31,19 +31,6 @@ function text(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function hasCanonicalSchema(db: DatabaseSync) {
-  return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_inference_attempt'").get());
-}
-
-function existingAttemptId(path: string, runId: string) {
-  const db = new DatabaseSync(path);
-  try {
-    if (!hasCanonicalSchema(db)) return undefined;
-    const row = db.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE run_id=? ORDER BY started_at LIMIT 1").get(runId) as { attempt_id?: string } | undefined;
-    return row?.attempt_id;
-  } finally { db.close(); }
-}
-
 function ticketIdForRun(db: DatabaseSync, runId: string, sessionKey: string) {
   const row = db.prepare(`SELECT ticket_id FROM tickets
     WHERE run_id=? AND owner_session_key=? AND status='accepted'
@@ -53,7 +40,7 @@ function ticketIdForRun(db: DatabaseSync, runId: string, sessionKey: string) {
   return row.ticket_id;
 }
 
-/** Translate OpenClaw model-call observations into canonical InferenceAttempt identities. */
+/** Translate each OpenClaw model-call observation into one call-scoped canonical attempt. */
 export function installV095InferenceHookBridge(api: HookApi) {
   if (typeof api?.on !== "function") return;
 
@@ -69,15 +56,17 @@ export function installV095InferenceHookBridge(api: HookApi) {
     if (!runId || !sessionKey || !callId) return;
     try {
       const path = databaseFor(api, ctx);
-      if (existingAttemptId(path, runId)) return;
       const authority = sessionAuthority(path, sessionKey);
       if (authority.state !== "active") throw new Error(`session ${sessionKey} is not active`);
       const database = new DatabaseSync(path);
       try {
+        const existing = findInferenceAttempt(database, runId, callId);
+        if (existing) return;
         const attempt = beginInferenceAttempt(database, {
           ticketId: ticketIdForRun(database, runId, sessionKey),
           sessionKey,
           sessionGeneration: authority.generation,
+          callId,
           provider: typeof event?.provider === "string" ? event.provider : null,
           model: typeof event?.model === "string" ? event.model : null,
         });
@@ -90,15 +79,16 @@ export function installV095InferenceHookBridge(api: HookApi) {
 
   api.on("model_call_ended", (event: any, ctx: any) => {
     const runId = text(event?.runId ?? ctx?.runId);
-    if (!runId) return;
+    const callId = text(event?.callId);
+    if (!runId || !callId) return;
     try {
       const path = databaseFor(api, ctx);
       const database = new DatabaseSync(path);
       try {
-        const row = database.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE run_id=? AND state='active' LIMIT 1").get(runId) as { attempt_id?: string } | undefined;
-        if (!row?.attempt_id) return;
+        const attempt = findInferenceAttempt(database, runId, callId);
+        if (!attempt || attempt.state !== "active") return;
         const outcome = text(event?.outcome) || (text(event?.errorCategory) ? `error:${text(event.errorCategory)}` : "model_call_ended");
-        finishInferenceAttempt(database, row.attempt_id, outcome);
+        finishInferenceAttempt(database, attempt.attemptId, outcome);
       } finally { database.close(); }
     } catch (error) {
       api.logger?.warn?.(`CogentNexus-OpenClaw failed to bridge inference attempt end: ${error instanceof Error ? error.message : String(error)}`);
@@ -112,12 +102,14 @@ export function installV095InferenceHookBridge(api: HookApi) {
       const path = databaseFor(api, ctx);
       const database = new DatabaseSync(path);
       try {
-        const row = database.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE run_id=? AND state='active' LIMIT 1").get(runId) as { attempt_id?: string } | undefined;
-        if (!row?.attempt_id) return;
-        finishInferenceAttempt(database, row.attempt_id, event?.success === true ? "agent_end_ok" : "agent_end_error");
+        const rows = database.prepare(`SELECT attempt_id FROM cnx_inference_attempt
+          WHERE run_id=? AND state='active'`).all(runId) as Array<{ attempt_id?: string }>;
+        for (const row of rows) {
+          if (row.attempt_id) finishInferenceAttempt(database, row.attempt_id, event?.success === true ? "agent_end_ok" : "agent_end_error");
+        }
       } finally { database.close(); }
     } catch (error) {
-      api.logger?.warn?.(`CogentNexus-OpenClaw failed to close canonical inference attempt at agent_end: ${error instanceof Error ? error.message : String(error)}`);
+      api.logger?.warn?.(`CogentNexus-OpenClaw failed to close canonical inference attempts at agent_end: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, { registrationId: "cogentnexus-openclaw-v095-inference-attempt-agent-end" });
 }
@@ -130,6 +122,7 @@ function ensureCanonicalSchema(db: DatabaseSync) {
       session_key TEXT NOT NULL,
       session_generation INTEGER NOT NULL,
       run_id TEXT,
+      call_id TEXT NOT NULL,
       provider TEXT,
       model TEXT,
       state TEXT NOT NULL CHECK(state IN ('active','ended')),
@@ -138,7 +131,8 @@ function ensureCanonicalSchema(db: DatabaseSync) {
       ended_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_ticket ON cnx_inference_attempt(ticket_id,started_at);
-    CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run ON cnx_inference_attempt(run_id) WHERE run_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run ON cnx_inference_attempt(run_id,started_at);
+    CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run_call ON cnx_inference_attempt(run_id,call_id);
     CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_session ON cnx_inference_attempt(session_key,session_generation,started_at);
   `);
 }
