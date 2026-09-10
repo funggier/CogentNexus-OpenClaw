@@ -115,6 +115,12 @@ function selectByIdempotency(db: DatabaseSync, idempotencyKey: string) {
     FROM cnx_assistant_delivery WHERE idempotency_key=?`).get(idempotencyKey);
 }
 
+function assertCurrentOwner(db: DatabaseSync, attempt: DeliveryAttempt) {
+  const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(attempt.ownerSessionKey) as { state?: string; generation?: number } | undefined;
+  if (!session || session.state !== "active") throw new Error("delivery owner session is not active");
+  if (Number(session.generation) !== attempt.ownerGeneration) throw new Error("delivery owner generation is stale");
+}
+
 export function findExactDelivery(db: DatabaseSync, key: ExactDeliveryKey): DeliveryAttempt | null {
   const row = db.prepare(`SELECT delivery_id,ticket_id,inference_attempt_id,run_id,owner_session_key,owner_generation,
       surface,payload_sha256,delivery_state,idempotency_key,text,status,evidence_type,attempt_count,created_at,updated_at,delivered_at
@@ -232,6 +238,12 @@ export function stageDelivery(db: DatabaseSync, attemptId: string, evidence: Del
   try {
     const row = selectByIdempotency(db, attemptId);
     if (!row) throw new Error("delivery attempt not found");
+    const current = rowToAttempt(row);
+    if (current.state === "staged") {
+      db.exec("COMMIT");
+      return current;
+    }
+    assertCurrentOwner(db, current);
     const result = transition(db, attemptId, "prepared", "staged", evidence, (evidence.now ?? new Date()).toISOString())!;
     db.exec("COMMIT");
     return result;
@@ -245,6 +257,14 @@ export function acceptTransport(db: DatabaseSync, attemptId: string, evidence: D
   if (!attemptId) throw new Error("delivery idempotencyKey is required");
   db.exec("BEGIN IMMEDIATE");
   try {
+    const row = selectByIdempotency(db, attemptId);
+    if (!row) throw new Error("delivery attempt not found");
+    const current = rowToAttempt(row);
+    if (current.state === "transport_accepted") {
+      db.exec("COMMIT");
+      return current;
+    }
+    assertCurrentOwner(db, current);
     const result = transition(db, attemptId, "staged", "transport_accepted", evidence, (evidence.now ?? new Date()).toISOString())!;
     db.exec("COMMIT");
     return result;
@@ -267,9 +287,8 @@ export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: D
       return rowToAttempt(current);
     }
     if (state !== "transport_accepted") throw new Error(`illegal delivery transition ${state} -> confirmed`);
-    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(String(current.owner_session_key)) as { state?: string; generation?: number } | undefined;
-    if (!session || session.state !== "active") throw new Error("delivery owner session is not active");
-    if (Number(session.generation) !== Number(current.owner_generation)) throw new Error("delivery owner generation is stale");
+    const delivery = rowToAttempt(current);
+    assertCurrentOwner(db, delivery);
     const changed = db.prepare(`UPDATE cnx_assistant_delivery
       SET delivery_state='confirmed',status='delivered',evidence_type=?,attempt_count=attempt_count+1,delivered_at=?,updated_at=?
       WHERE idempotency_key=? AND COALESCE(delivery_state,CASE WHEN status='delivered' THEN 'confirmed' ELSE 'prepared' END)='transport_accepted'`).run(
@@ -279,17 +298,17 @@ export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: D
       attemptId,
     );
     if (changed.changes !== 1) throw new Error("delivery confirmation lost race");
-    const delivery = rowToAttempt(selectByIdempotency(db, attemptId));
+    const updatedDelivery = rowToAttempt(selectByIdempotency(db, attemptId));
     const updated = db.prepare(`UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,
-      failure_class=NULL,failure_message=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`).run(stamp, stamp, delivery.ticketId);
+      failure_class=NULL,failure_message=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`).run(stamp, stamp, updatedDelivery.ticketId);
     if (updated.changes === 1) {
       db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
-        .run(delivery.ticketId, "delivery_confirmed", JSON.stringify({ runId: delivery.runId, source: `${delivery.surface}-delivery-core`, idempotencyKey: delivery.idempotencyKey }), stamp);
+        .run(updatedDelivery.ticketId, "delivery_confirmed", JSON.stringify({ runId: updatedDelivery.runId, source: `${updatedDelivery.surface}-delivery-core`, idempotencyKey: updatedDelivery.idempotencyKey }), stamp);
       db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)")
-        .run(delivery.ticketId, "completed", JSON.stringify({ runId: delivery.runId, direct: true, deliveryConfirmed: true, durablePayload: true, deliveryMode: `${delivery.surface}-delivery-core` }), stamp);
+        .run(updatedDelivery.ticketId, "completed", JSON.stringify({ runId: updatedDelivery.runId, direct: true, deliveryConfirmed: true, durablePayload: true, deliveryMode: `${updatedDelivery.surface}-delivery-core` }), stamp);
     }
     db.exec("COMMIT");
-    return delivery;
+    return updatedDelivery;
   } catch (error) {
     try { db.exec("ROLLBACK"); } catch {}
     throw error;
