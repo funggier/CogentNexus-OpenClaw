@@ -89,8 +89,15 @@ describe("v0.9.5 canonical session deletion ownership", () => {
 
       const fresh = store.accept({ runId: "new-run", ownerSessionKey: key, prompt: "fresh lifecycle work" });
       expect(fresh.ticketId).not.toBe(oldTicket.ticketId);
-      expect(store.get(oldTicket.ticketId)?.status).toBe("cancelled");
-      expect(store.get(fresh.ticketId)?.ownerSessionKey).toBe(key);
+      const currentDb = new DatabaseSync(path, { readOnly: true });
+      try {
+        expect(currentDb.prepare("SELECT status,owner_session_key FROM tickets WHERE ticket_id=?").get(oldTicket.ticketId))
+          .toEqual({ status: "cancelled", owner_session_key: key });
+        expect(currentDb.prepare("SELECT status,owner_session_key FROM tickets WHERE ticket_id=?").get(fresh.ticketId))
+          .toEqual({ status: "accepted", owner_session_key: key });
+      } finally {
+        currentDb.close();
+      }
 
       const evidence = new DatabaseSync(path, { readOnly: true });
       try {
