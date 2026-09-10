@@ -7,6 +7,7 @@ import { acceptTransport, confirmDelivery, prepareDelivery, stageDelivery } from
 export type DiscordDeliveryContext = {
   runId: string;
   sessionKey: string;
+  callId?: string;
   channel?: string;
   messageProvider?: string;
   workspaceDir?: string;
@@ -46,11 +47,15 @@ function exactRun(db: DatabaseSync, runId: string, sessionKey: string) {
     LIMIT 1`).get(runId, sessionKey) as { ticket_id?: string; owner_session_key?: string } | undefined;
 }
 
-function exactInference(db: DatabaseSync, runId: string, sessionKey: string) {
-  return db.prepare(`SELECT attempt_id,session_generation FROM cnx_inference_attempt
-    WHERE run_id=? AND session_key=?
-    ORDER BY started_at DESC LIMIT 1`).get(runId, sessionKey) as
-    { attempt_id?: string; session_generation?: number } | undefined;
+function exactInference(db: DatabaseSync, runId: string, sessionKey: string, callId?: string) {
+  if (callId) {
+    return db.prepare(`SELECT attempt_id,session_generation FROM cnx_inference_attempt
+      WHERE run_id=? AND session_key=? AND call_id=?`).get(runId, sessionKey, callId) as
+      { attempt_id?: string; session_generation?: number } | undefined;
+  }
+  const rows = db.prepare(`SELECT attempt_id,session_generation FROM cnx_inference_attempt
+    WHERE run_id=? AND session_key=?`).all(runId, sessionKey) as Array<{ attempt_id?: string; session_generation?: number }>;
+  return rows.length === 1 ? rows[0] : undefined;
 }
 
 function payloadSha256(payload: string) {
@@ -77,8 +82,10 @@ export function stageDiscordDelivery(databasePath: string, context: DiscordDeliv
   db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
   try {
     const ticket = exactRun(db, runId, sessionKey);
-    const inference = exactInference(db, runId, sessionKey);
-    if (!ticket || !inference?.attempt_id) return { staged: false as const, reason: "exact-run-or-inference-not-found" };
+    const inference = exactInference(db, runId, sessionKey, text(context.callId) || undefined);
+    if (!ticket || !inference?.attempt_id) {
+      return { staged: false as const, reason: context.callId ? "exact-run-or-inference-not-found" : "ambiguous-inference-attempt" };
+    }
     const generation = Number(inference.session_generation);
     if (!Number.isSafeInteger(generation) || generation < 0) return { staged: false as const, reason: "invalid-session-generation" };
     const key = {
@@ -106,11 +113,15 @@ export function acceptDiscordTransport(databasePath: string, context: DiscordDel
   const db = new DatabaseSync(databasePath);
   db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
   try {
-    const row = db.prepare(`SELECT idempotency_key FROM cnx_assistant_delivery
+    const rows = db.prepare(`SELECT idempotency_key,owner_generation FROM cnx_assistant_delivery
       WHERE run_id=? AND owner_session_key=? AND surface='discord' AND status='pending'
-      ORDER BY delivery_id DESC LIMIT 2`).all(runId, sessionKey) as Array<{ idempotency_key?: string }>;
-    if (row.length !== 1 || !row[0]?.idempotency_key) return { accepted: false as const, reason: "ambiguous-discord-receipt" };
-    const accepted = acceptTransport(db, row[0].idempotency_key, { evidenceType: "discord-message-sent" });
+      ORDER BY delivery_id`).all(runId, sessionKey) as Array<{ idempotency_key?: string; owner_generation?: number }>;
+    if (rows.length !== 1 || !rows[0]?.idempotency_key) return { accepted: false as const, reason: "ambiguous-discord-receipt" };
+    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(sessionKey) as { state?: string; generation?: number } | undefined;
+    if (!session || session.state !== "active" || Number(session.generation) !== Number(rows[0].owner_generation)) {
+      return { accepted: false as const, reason: "stale-discord-generation" };
+    }
+    const accepted = acceptTransport(db, rows[0].idempotency_key, { evidenceType: "discord-message-sent" });
     return { accepted: true as const, ...accepted };
   } finally { db.close(); }
 }
@@ -134,7 +145,7 @@ export function registerDiscordDeliveryAdapter(api: DiscordAdapterApi) {
     const payload = Array.isArray(event?.payload?.content)
       ? event.payload.content.filter((part: any) => part?.type === "text" && typeof part.text === "string").map((part: any) => part.text).join("\n")
       : text(event?.payload?.text);
-    const staged = stageDiscordDelivery(databasePath, ctx, payload);
+    const staged = stageDiscordDelivery(databasePath, { ...ctx, callId: text(event?.callId) || text(ctx?.callId) || undefined }, payload);
     if (!staged.staged) return;
     return { ...event, payload: { ...(event.payload ?? {}), text: staged.nativeText } };
   }, { registrationId: "cogentnexus-openclaw-v095-discord-delivery" });
@@ -143,11 +154,12 @@ export function registerDiscordDeliveryAdapter(api: DiscordAdapterApi) {
     if (text(ctx?.channel) !== "discord" && text(ctx?.messageProvider) !== "discord") return;
     const runId = text(event?.runId);
     const sessionKey = text(event?.sessionKey ?? ctx?.sessionKey);
+    const callId = text(event?.callId) || text(ctx?.callId) || undefined;
     if (!runId || !sessionKey) {
       api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt without exact run identity");
       return;
     }
-    try { return confirmDiscordDelivery(databaseFor(api, ctx), { runId, sessionKey, channel: "discord", messageProvider: "discord" }); }
+    try { return confirmDiscordDelivery(databaseFor(api, ctx), { runId, sessionKey, callId, channel: "discord", messageProvider: "discord" }); }
     catch (error) {
       api.logger?.warn?.(`CogentNexus-OpenClaw Discord delivery receipt rejected: ${error instanceof Error ? error.message : String(error)}`);
       return;
