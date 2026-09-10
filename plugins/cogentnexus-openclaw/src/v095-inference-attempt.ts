@@ -113,7 +113,7 @@ export function beginInferenceAttempt(db: DatabaseSync, input: BeginAttemptInput
     const ticket = db.prepare("SELECT owner_session_key FROM tickets WHERE ticket_id=?").get(input.ticketId) as { owner_session_key?: string } | undefined;
     if (!ticket) throw new Error(`ticket ${input.ticketId} not found`);
     if (ticket.owner_session_key !== input.sessionKey) throw new Error("inference attempt owner session mismatch");
-    const duplicate = db.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE run_id=? AND call_id=? LIMIT 1").get(null, input.callId);
+    const duplicate = db.prepare("SELECT attempt_id FROM cnx_inference_attempt WHERE call_id=? LIMIT 1").get(input.callId) as { attempt_id?: string } | undefined;
     if (duplicate) throw new Error("callId is already bound to an inference attempt");
 
     const attemptId = `cnx-attempt-${randomUUID()}`;
