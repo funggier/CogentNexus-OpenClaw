@@ -70,17 +70,18 @@ def _installed_plugin_roots(state_root: Path) -> list[Path]:
 
 
 def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
+    """Resolve one reviewed installed payload under the requested state root."""
     resolved_state = (state_root or base.STATE_ROOT).resolve()
     selected = namespace_ownership.resolve_installed_plugin(resolved_state)
-    root = Path(selected["root"])
-    bootstrap = root / BOOTSTRAP_RELATIVE
-    if not _plugin_payload(root):
-        raise RuntimeError(f"installed CogentNexus-OpenClaw payload is incomplete: {root}")
+    installed_root = Path(selected["root"])
+    bootstrap = installed_root / BOOTSTRAP_RELATIVE
+    if not _plugin_payload(installed_root):
+        raise RuntimeError(f"installed CogentNexus-OpenClaw payload is incomplete: {installed_root}")
     return bootstrap
 
 
-def bootstrap_ticket_database() -> Path:
-    bootstrap = resolve_installed_bootstrap()
+def bootstrap_ticket_database(state_root: Path | None = None) -> Path:
+    bootstrap = resolve_installed_bootstrap(state_root)
     base.run(
         [base.node_executable(), str(bootstrap), "--workspace", str(base.WORKSPACE)],
         timeout=120,
@@ -96,7 +97,7 @@ def _run_host(root: Path, command: str) -> Any:
 def reset(root: Path) -> int:
     try:
         ownership = namespace_ownership.verify_manifest(root, workspace=base.WORKSPACE)
-        resolve_installed_bootstrap()
+        resolve_installed_bootstrap(root)
     except Exception as error:
         print(json.dumps({"result": "error", "action": "reset", "error": str(error), "stateChanged": False}, ensure_ascii=False, indent=2))
         return 2
@@ -123,7 +124,7 @@ def reset(root: Path) -> int:
             raise RuntimeError("fresh CogentNexus-OpenClaw state initialization failed")
 
         namespace_ownership.write_manifest(root, ownership)
-        bootstrap_ticket_database()
+        bootstrap_ticket_database(root)
         policy = base.run([sys.executable, str(HOST), "--root", str(root), "policy", "apply"], timeout=120, check=False)
         if policy.returncode != 0:
             raise RuntimeError("fresh CogentNexus-OpenClaw policy application failed")
