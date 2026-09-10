@@ -13,14 +13,33 @@ Working branch: `agent/v0.9.5-architecture-repair`
 
 Implement the approved CogentNexus-OpenClaw v0.9.5 provider-independent capability and local-provider command contract without changing the user's OpenClaw provider/model/auth route.
 
-The current phase is Plan 1: provider/runtime/command repair. Production changes must follow RED -> minimal fix -> GREEN.
+## Current phase
 
-## Authoritative design
+Plan 1 closeout: provider/runtime/command repair.
 
-- `docs/superpowers/specs/2026-09-09-v0.9.5-architecture-repair-design.md`
-- `docs/superpowers/specs/2026-09-09-v0.9.5-local-provider-command-contract.md`
-- `docs/superpowers/specs/2026-09-09-v0.9.5-idle-quiescence-and-single-wake-contract.md`
-- `docs/superpowers/plans/2026-09-09-v0.9.5-execution-index.md`
+## Completed in current phase
+
+- Canonical v0.9.5 Host authority state and v0.9.4 migration are implemented.
+- Provider-neutral runtime, terminal-error claim/classification, recovery lifecycle hardening, and provider-independent capability registration are implemented.
+- Normal CNX lifecycle commands no longer invoke provider routing.
+- `cnxclaw cloud` is removed from the public CLI.
+- Legacy lifecycle `--provider` input is rejected without transition.
+- Canonical local Ollama adapter facade is present at `local_adapters_v095.py`; `local_adapter.py` remains a compatibility shim.
+- Public `reset` now routes through `reset_v095.py`, which does not select, probe, start, stop, or commit a provider.
+- Provider-switch invariant matrix tests are present.
+
+## Current verification position
+
+The last fully successful exact-head validation before the latest reset/adapter/doc commits was successful across Validate, Windows Python, macOS Python, PS5.1 Live Runner Smoke, PS5.1 Acceptance Smoke, and Windows Installer Pack Smoke.
+
+A new Actions run for the resulting HEAD is required before Plan 1 can be declared green. Package dry-run must remain on public v0.9.4 metadata until release preparation.
+
+## Remaining Plan 1 gate
+
+1. Fresh exact-HEAD Actions must pass.
+2. Provider-switch matrix must remain green.
+3. No CNX lifecycle or local-adapter command may mutate OpenClaw routing.
+4. Coordination checkpoint must record the final exact SHA and evidence.
 
 ## Hard fences
 
@@ -31,6 +50,6 @@ The current phase is Plan 1: provider/runtime/command repair. Production changes
 - Preserve v0.9.4 exact-delivery, owner-generation, terminal-fence, config-race, stale-wake, and recovery-safety fixes unless an equal-or-stronger v0.9.5 contract replaces them.
 - Provider/model switching is OpenClaw-owned and must not cause CNX mode changes, Host-generation increments, mandatory Gateway restarts, policy mutations, or plugin enable/disable transitions.
 
-## Immediate next action
+## Next authority
 
-Task315 Step 2: write and verify failing Host-state/provider-independence migration tests before modifying production runtime code.
+Do not start Plan 2 until the final Plan 1 checklist is green on the exact resulting HEAD.
