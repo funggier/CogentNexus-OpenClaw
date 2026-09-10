@@ -30,7 +30,7 @@ function text(value: unknown) {
 }
 
 function isDiscordSession(sessionKey: string) {
-  return /^agent:[^:]+:discord:channel:\d+$/u.test(sessionKey);
+  return /^agent:[^:]+:discord:channel:[^:]+$/u.test(sessionKey);
 }
 
 function databaseFor(api: DiscordAdapterApi, ctx?: DiscordDeliveryContext) {
