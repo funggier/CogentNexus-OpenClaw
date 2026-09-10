@@ -8,6 +8,7 @@ import {
   type DashboardVerifiedDeliveryConfig,
 } from "./v091-dashboard-verified-delivery.js";
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
+import { installV095InferenceHookBridge } from "./v095-inference-hook-bridge.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
@@ -127,6 +128,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
       if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
       installV091DirectModelCallLease(api);
+      installV095InferenceHookBridge(runtimeApi);
       installV091DashboardVerifiedDelivery(api, config);
     };
 
