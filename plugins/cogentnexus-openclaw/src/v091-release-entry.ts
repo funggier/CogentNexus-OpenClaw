@@ -9,6 +9,7 @@ import {
 } from "./v091-dashboard-verified-delivery.js";
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
 import { installV095InferenceHookBridge } from "./v095-inference-hook-bridge.js";
+import { registerDiscordDeliveryAdapter } from "./v095-delivery-discord.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
@@ -45,6 +46,36 @@ function pluginCogentRoot(api: OpenClawPluginApi) {
       ? cfg.cogentNexusOpenClawRoot.trim()
       : join(pluginWorkspace(api), ".cogentnexus-openclaw"),
   );
+}
+
+function isDiscordContext(ctx: any) {
+  return ctx?.channel === "discord" || ctx?.messageProvider === "discord";
+}
+
+const LEGACY_DISCORD_DELIVERY_HOOKS = new Set([
+  "reply_dispatch",
+  "reply_payload_sending",
+  "message_sent",
+  "before_message_write",
+]);
+
+function withDiscordLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Record<string, unknown>) {
+  const runtimeApi: any = {
+    ...api,
+    pluginConfig,
+    on: (name: string, handler: (...args: any[]) => any, options?: any) => {
+      if (!LEGACY_DISCORD_DELIVERY_HOOKS.has(name)) {
+        return api.on(name as any, handler as any, options);
+      }
+      const fenced = (...args: any[]) => {
+        const ctx = args[1];
+        if (isDiscordContext(ctx)) return undefined;
+        return handler(...args);
+      };
+      return api.on(name as any, fenced as any, options);
+    },
+  };
+  return runtimeApi;
 }
 
 /**
@@ -110,10 +141,9 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     // ProviderMode is retained only as compatibility metadata. The legacy
     // capability gates inspect it, so PASSTHROUGH is normalized to undefined
     // here rather than being allowed to disable CNX continuity/recovery.
-    const runtimeApi = ({
-      ...api,
-      pluginConfig: config,
-    } as OpenClawPluginApi);
+    // Legacy Discord delivery hooks are fenced at this boundary so Discord has
+    // exactly one v0.9.5 delivery authority: the canonical adapter below.
+    const runtimeApi = withDiscordLegacyDeliveryFence(api, config);
 
     // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
     // concurrently with Host-owned CogentNexus-OpenClaw Direct Recovery. Consume only
@@ -129,7 +159,8 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
       installV091DirectModelCallLease(api);
       installV095InferenceHookBridge(runtimeApi);
-      installV091DashboardVerifiedDelivery(api, config);
+      installV091DashboardVerifiedDelivery(runtimeApi, config);
+      registerDiscordDeliveryAdapter(api);
     };
 
     const registered = register(runtimeApi);
