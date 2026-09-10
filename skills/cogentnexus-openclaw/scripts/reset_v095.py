@@ -70,7 +70,7 @@ def _installed_plugin_roots(state_root: Path) -> list[Path]:
 
 
 def resolve_installed_bootstrap(state_root: Path | None = None) -> Path:
-    """Resolve one reviewed installed payload under the requested state root."""
+    """Resolve one reviewed installed payload from the OpenClaw state boundary."""
     resolved_state = (state_root or base.STATE_ROOT).resolve()
     selected = namespace_ownership.resolve_installed_plugin(resolved_state)
     installed_root = Path(selected["root"])
@@ -97,7 +97,10 @@ def _run_host(root: Path, command: str) -> Any:
 def reset(root: Path) -> int:
     try:
         ownership = namespace_ownership.verify_manifest(root, workspace=base.WORKSPACE)
-        resolve_installed_bootstrap(root)
+        # Installed plugin payloads live under OpenClaw's state root, while the
+        # CNX runtime controller lives under `root`. Keep those ownership domains
+        # distinct during reset.
+        resolve_installed_bootstrap()
     except Exception as error:
         print(json.dumps({"result": "error", "action": "reset", "error": str(error), "stateChanged": False}, ensure_ascii=False, indent=2))
         return 2
@@ -124,7 +127,7 @@ def reset(root: Path) -> int:
             raise RuntimeError("fresh CogentNexus-OpenClaw state initialization failed")
 
         namespace_ownership.write_manifest(root, ownership)
-        bootstrap_ticket_database(root)
+        bootstrap_ticket_database()
         policy = base.run([sys.executable, str(HOST), "--root", str(root), "policy", "apply"], timeout=120, check=False)
         if policy.returncode != 0:
             raise RuntimeError("fresh CogentNexus-OpenClaw policy application failed")
