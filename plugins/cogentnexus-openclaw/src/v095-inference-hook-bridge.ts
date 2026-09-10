@@ -32,12 +32,15 @@ function text(value: unknown) {
 }
 
 function ticketIdForRun(db: DatabaseSync, runId: string, sessionKey: string) {
-  const row = db.prepare(`SELECT ticket_id FROM tickets
+  const rows = db.prepare(`SELECT ticket_id FROM tickets
     WHERE run_id=? AND owner_session_key=? AND status='accepted'
       AND workflow_eligible=0 AND workflow_id IS NULL
-    ORDER BY created_at DESC LIMIT 1`).get(runId, sessionKey) as { ticket_id?: string } | undefined;
-  if (!row?.ticket_id) throw new Error(`accepted Ticket not found for inference run ${runId}`);
-  return row.ticket_id;
+    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string }>;
+  if (rows.length === 0) throw new Error(`accepted Ticket not found for inference run ${runId}`);
+  if (rows.length !== 1 || !rows[0]?.ticket_id) {
+    throw new Error(`ambiguous accepted Ticket ownership for inference run ${runId}`);
+  }
+  return rows[0].ticket_id;
 }
 
 /** Translate each OpenClaw model-call observation into one call-scoped canonical attempt. */
