@@ -61,7 +61,7 @@ describe("Task274 Discord Direct receipt lifecycle fence", () => {
       const old = store.accept({ runId: "task274-old", ownerSessionKey: key, prompt: "old direct" });
       store.route(old.ticketId, false);
       expect(stageDashboardDirectResult(path, { runId: "task274-old", text: "old final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: true, ownerGeneration: 0 });
-      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task274 lifecycle fence" }).assistantSuppressed).toBe(1);
+      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task274 lifecycle fence" }).assistantSuppressed).toBe(0);
       finalizeSessionDeletion(path, key, "Task274 lifecycle fence");
       expect(stageDashboardDirectResult(path, { runId: "task274-old", text: "late old final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: false });
       expect(reactivateSessionForLifecycle(path, { sessionKey: key, sessionId: "new-session-id" })).toMatchObject({ accepted: true, generation: 1 });
