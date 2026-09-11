@@ -49,7 +49,6 @@ def creation_flags() -> int:
 
 
 def captured_text(value: str | bytes | None) -> str:
-    """Return subprocess output as text even when Windows supplies no stream."""
     if value is None:
         return ""
     if isinstance(value, bytes):
@@ -58,7 +57,6 @@ def captured_text(value: str | bytes | None) -> str:
 
 
 def _terminate_process_tree(process: subprocess.Popen[str]) -> None:
-    """Terminate a timed-out CLI including descendants created by Windows shims."""
     if process.poll() is not None:
         return
     if os.name == "nt":
@@ -130,12 +128,10 @@ def openclaw_executable() -> str:
 
 
 def _parse_json_stream(method: str, result: subprocess.CompletedProcess[str]) -> Any:
-    """Parse the Gateway JSON response without assuming which captured stream owns it."""
     stdout = captured_text(result.stdout).strip()
     stderr = captured_text(result.stderr).strip()
-    candidates = [("stdout", stdout), ("stderr", stderr)]
     parse_errors: list[str] = []
-    for name, value in candidates:
+    for name, value in (("stdout", stdout), ("stderr", stderr)):
         if not value:
             continue
         try:
@@ -172,9 +168,7 @@ def ticket_db(root: Path) -> Path:
 
 
 def table_exists(db: sqlite3.Connection, table: str) -> bool:
-    return db.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
-    ).fetchone() is not None
+    return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone() is not None
 
 
 def column_exists(db: sqlite3.Connection, table: str, column: str) -> bool:
@@ -227,10 +221,7 @@ def ensure_schema(db: sqlite3.Connection) -> None:
         db.execute("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_token TEXT")
     if not column_exists(db, "cnx_assistant_delivery", "claim_expires_at"):
         db.execute("ALTER TABLE cnx_assistant_delivery ADD COLUMN claim_expires_at TEXT")
-    db.execute(
-        "CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_claim "
-        "ON cnx_assistant_delivery(status,claim_expires_at,owner_session_key,delivery_id)"
-    )
+    db.execute("CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_claim ON cnx_assistant_delivery(status,claim_expires_at,owner_session_key,delivery_id)")
 
 
 def delivery_marker(idempotency_key: str) -> str:
@@ -239,11 +230,7 @@ def delivery_marker(idempotency_key: str) -> str:
 
 
 def history_contains(session_key: str, marker: str) -> bool:
-    history = gateway_rpc(
-        "chat.history",
-        {"sessionKey": session_key, "limit": HISTORY_LIMIT, "maxChars": HISTORY_MAX_CHARS},
-        timeout=HISTORY_TIMEOUT_SECONDS,
-    )
+    history = gateway_rpc("chat.history", {"sessionKey": session_key, "limit": HISTORY_LIMIT, "maxChars": HISTORY_MAX_CHARS}, timeout=HISTORY_TIMEOUT_SECONDS)
     return marker in json.dumps(history, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -251,33 +238,21 @@ def inject_assistant(session_key: str, text: str, idempotency_key: str) -> dict[
     marker = delivery_marker(idempotency_key)
     if history_contains(session_key, marker):
         return {"ok": True, "deduplicated": True}
-    payload = gateway_rpc(
-        "chat.inject",
-        {"sessionKey": session_key, "message": f"{text.rstrip()}\n\n{marker}"},
-        timeout=INJECT_TIMEOUT_SECONDS,
-    )
+    payload = gateway_rpc("chat.inject", {"sessionKey": session_key, "message": f"{text.rstrip()}\n\n{marker}"}, timeout=INJECT_TIMEOUT_SECONDS)
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise RuntimeError(f"chat.inject did not confirm assistant delivery: {payload!r}")
     return {"ok": True, "deduplicated": False, "messageId": payload.get("messageId")}
 
 
 def session_authority(db: sqlite3.Connection, session_key: str) -> tuple[str, int] | None:
-    row = db.execute(
-        "SELECT state,generation FROM cnx_sessions WHERE session_key=?", (session_key,)
-    ).fetchone()
+    row = db.execute("SELECT state,generation FROM cnx_sessions WHERE session_key=?", (session_key,)).fetchone()
     if not row:
         return None
     return str(row[0]), int(row[1])
 
 
 def next_actionable_delivery(root: Path, now: datetime | None = None) -> dict[str, Any] | None:
-    """Return one exact due delivery without mutating durable state.
-
-    This is intentionally the read-only counterpart of ``claim_next_delivery``.
-    It applies the same owner-generation, lease, retry, head-of-line and
-    terminal-ticket fences, while retaining ``direct_result`` as a durable
-    delivery authority even after the Ticket has reached ``completed``.
-    """
+    """Return one exact due delivery without mutating durable state."""
     path = ticket_db(root)
     if not path.exists():
         return None
@@ -289,14 +264,13 @@ def next_actionable_delivery(root: Path, now: datetime | None = None) -> dict[st
     db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.25)
     db.row_factory = sqlite3.Row
     try:
-        if not table_exists(db, "cnx_assistant_delivery"):
+        if not table_exists(db, "cnx_assistant_delivery") or not table_exists(db, "cnx_sessions"):
             return None
         columns = {str(row[1]) for row in db.execute("PRAGMA table_info(cnx_assistant_delivery)")}
         modern = {"delivery_id", "ticket_id", "owner_session_key", "owner_generation", "kind", "status", "attempt_count", "updated_at", "claim_token", "claim_expires_at"}.issubset(columns)
-        if not modern or not table_exists(db, "cnx_sessions"):
+        if not modern:
             return None
-
-        rows = db.execute(
+        row = db.execute(
             """SELECT d.delivery_id,d.ticket_id,d.owner_session_key,d.owner_generation,d.kind,
                       d.status,d.attempt_count,d.updated_at,d.claim_token,d.claim_expires_at
                FROM cnx_assistant_delivery d
@@ -307,7 +281,8 @@ def next_actionable_delivery(root: Path, now: datetime | None = None) -> dict[st
                  AND (d.attempt_count=0 OR d.updated_at<=?)
                  AND s.state='active'
                  AND s.generation=d.owner_generation
-                 AND (t.ticket_id IS NULL OR t.status NOT IN ('completed','failed','cancelled') OR d.kind='direct_result')
+                 AND (t.ticket_id IS NULL OR t.status NOT IN ('completed','failed','cancelled')
+                      OR (d.kind='direct_result' AND t.status='completed'))
                  AND NOT EXISTS (
                    SELECT 1 FROM cnx_assistant_delivery p
                    WHERE p.owner_session_key=d.owner_session_key
@@ -316,7 +291,7 @@ def next_actionable_delivery(root: Path, now: datetime | None = None) -> dict[st
                ORDER BY d.owner_session_key,d.delivery_id LIMIT 1""",
             (stamp, retry_cutoff),
         ).fetchone()
-        return dict(rows) if rows is not None else None
+        return dict(row) if row is not None else None
     except sqlite3.Error:
         return None
     finally:
@@ -326,89 +301,48 @@ def next_actionable_delivery(root: Path, now: datetime | None = None) -> dict[st
 def _event(db: sqlite3.Connection, ticket_id: str, event_type: str, payload: dict[str, Any], stamp: str) -> None:
     if not table_exists(db, "ticket_events"):
         return
-    db.execute(
-        "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
-        (ticket_id, event_type, json.dumps(payload, ensure_ascii=False), stamp),
-    )
+    db.execute("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)", (ticket_id, event_type, json.dumps(payload, ensure_ascii=False), stamp))
 
 
 def suppress_delivery(root: Path, delivery_id: int, reason: str) -> None:
     path = ticket_db(root)
-    if not path.exists():
-        return
+    if not path.exists(): return
     db = sqlite3.connect(path, timeout=5)
     try:
-        ensure_schema(db)
-        db.execute("BEGIN IMMEDIATE")
-        row = db.execute(
-            "SELECT ticket_id,owner_session_key,owner_generation FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'",
-            (delivery_id,),
-        ).fetchone()
+        ensure_schema(db); db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT ticket_id,owner_session_key,owner_generation FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'", (delivery_id,)).fetchone()
         if row:
-            if row[0]:
-                _event(
-                    db,
-                    str(row[0]),
-                    "assistant_delivery_suppressed",
-                    {
-                        "deliveryId": delivery_id,
-                        "ownerSessionKey": row[1],
-                        "ownerGeneration": int(row[2]),
-                        "reason": reason,
-                    },
-                    now_iso(),
-                )
+            if row[0]: _event(db, str(row[0]), "assistant_delivery_suppressed", {"deliveryId": delivery_id, "ownerSessionKey": row[1], "ownerGeneration": int(row[2]), "reason": reason}, now_iso())
             db.execute("DELETE FROM cnx_assistant_delivery WHERE delivery_id=? AND status='pending'", (delivery_id,))
         db.commit()
     except Exception:
-        db.rollback()
-        raise
+        db.rollback(); raise
     finally:
         db.close()
 
 
 def _write_completion(workspace: Path, target: dict[str, Any], stamp: str) -> None:
-    task_id = str(target.get("taskId") or "")
-    revision = int(target.get("stateRevision") or 0)
-    if not task_id:
-        raise RuntimeError("workflow delivery target has no taskId")
+    task_id = str(target.get("taskId") or ""); revision = int(target.get("stateRevision") or 0)
+    if not task_id: raise RuntimeError("workflow delivery target has no taskId")
     path = workspace / ".cogentnexus-openclaw" / "workflows" / task_id / "completion.json"
-    if not path.is_file():
-        raise RuntimeError(f"workflow completion file not found: {path}")
+    if not path.is_file(): raise RuntimeError(f"workflow completion file not found: {path}")
     notice = json.loads(path.read_text(encoding="utf-8"))
-    if notice.get("deliveryStatus") == "delivered":
-        return
-    if notice.get("taskId") != task_id or int(notice.get("stateRevision") or 0) != revision:
-        raise RuntimeError("workflow completion delivery target no longer matches durable state")
-    notice["deliveryStatus"] = "delivered"
-    notice["deliveredAt"] = stamp
-    notice.pop("lastDeliveryError", None)
-    notice.pop("scheduledAt", None)
-    notice.pop("deliveryRunId", None)
-    temporary = path.with_suffix(f".json.{os.getpid()}.tmp")
-    temporary.write_text(json.dumps(notice, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    if notice.get("deliveryStatus") == "delivered": return
+    if notice.get("taskId") != task_id or int(notice.get("stateRevision") or 0) != revision: raise RuntimeError("workflow completion delivery target no longer matches durable state")
+    notice["deliveryStatus"] = "delivered"; notice["deliveredAt"] = stamp; notice.pop("lastDeliveryError", None); notice.pop("scheduledAt", None); notice.pop("deliveryRunId", None)
+    temporary = path.with_suffix(f".json.{os.getpid()}.tmp"); temporary.write_text(json.dumps(notice, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"); os.replace(temporary, path)
 
 
 def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp: str, claim_token: str | None = None) -> None:
-    path = ticket_db(root)
-    db = sqlite3.connect(path, timeout=5)
+    path = ticket_db(root); db = sqlite3.connect(path, timeout=5)
     try:
-        ensure_schema(db)
-        db.execute("BEGIN IMMEDIATE")
-        row = db.execute(
-            "SELECT ticket_id,status,owner_session_key,owner_generation,claim_token FROM cnx_assistant_delivery WHERE delivery_id=?",
-            (delivery_id,),
-        ).fetchone()
-        if not row or row[1] == "delivered":
-            db.commit(); return
-        if claim_token is not None and row[4] != claim_token:
-            db.commit(); return
+        ensure_schema(db); db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT ticket_id,status,owner_session_key,owner_generation,claim_token FROM cnx_assistant_delivery WHERE delivery_id=?", (delivery_id,)).fetchone()
+        if not row or row[1] == "delivered": db.commit(); return
+        if claim_token is not None and row[4] != claim_token: db.commit(); return
         authority = session_authority(db, str(row[2]))
-        if authority != ("active", int(row[3])):
-            db.rollback(); suppress_delivery(root, delivery_id, "session authority changed before settlement"); return
-        ticket_id = row[0]
-        kind = str(target.get("kind") or "notice")
+        if authority != ("active", int(row[3])): db.rollback(); suppress_delivery(root, delivery_id, "session authority changed before settlement"); return
+        ticket_id = row[0]; kind = str(target.get("kind") or "notice")
         if kind == "workflow":
             db.commit(); db.close(); _write_completion(root.parent, target, stamp)
             db = sqlite3.connect(path, timeout=5); ensure_schema(db); db.execute("BEGIN IMMEDIATE")
@@ -416,37 +350,25 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
             if not row or row[1] == "delivered": db.commit(); return
             if claim_token is not None and row[4] != claim_token: db.commit(); return
             authority = session_authority(db, str(row[2]))
-            if authority != ("active", int(row[3])):
-                db.rollback(); suppress_delivery(root, delivery_id, "session authority changed during workflow settlement"); return
+            if authority != ("active", int(row[3])): db.rollback(); suppress_delivery(root, delivery_id, "session authority changed during workflow settlement"); return
         elif kind == "direct":
             direct_ticket = str(target.get("ticketId") or ticket_id or "")
             if not direct_ticket: raise RuntimeError("direct assistant delivery has no Ticket id")
-            changed = db.execute(
-                """UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,
-                       failure_class=NULL,failure_message=NULL,updated_at=?
-                   WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0
-                         AND workflow_id IS NULL AND response_ready_at IS NOT NULL""",
-                (stamp, stamp, direct_ticket),
-            )
+            changed = db.execute("""UPDATE tickets SET status='completed',delivery_confirmed_at=?,delivery_last_error=NULL,failure_class=NULL,failure_message=NULL,updated_at=? WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0 AND workflow_id IS NULL AND response_ready_at IS NOT NULL""", (stamp, stamp, direct_ticket))
             if changed.rowcount != 1:
                 current = db.execute("SELECT status FROM tickets WHERE ticket_id=?", (direct_ticket,)).fetchone()
                 if not current or current[0] != "completed": raise RuntimeError("direct Ticket no longer owns assistant delivery")
             if table_exists(db, "cnx_direct_recovery"):
-                db.execute("""UPDATE cnx_direct_recovery SET state='done',active_run_id=NULL,next_attempt_at=NULL,last_error=NULL,updated_at=? WHERE ticket_id=?""", (stamp, direct_ticket))
-            _event(db, direct_ticket, "delivery_confirmed", {"source": "host-chat-inject"}, stamp)
-            _event(db, direct_ticket, "completed", {"directRecovery": True, "deliveryMode": "host-chat-inject"}, stamp)
+                db.execute("UPDATE cnx_direct_recovery SET state='done',active_run_id=NULL,next_attempt_at=NULL,last_error=NULL,updated_at=? WHERE ticket_id=?", (stamp, direct_ticket))
+            _event(db, direct_ticket, "delivery_confirmed", {"source": "host-chat-inject"}, stamp); _event(db, direct_ticket, "completed", {"directRecovery": True, "deliveryMode": "host-chat-inject"}, stamp)
         elif kind == "ticket":
             outbox_id = int(target.get("outboxId") or 0)
             if outbox_id <= 0: raise RuntimeError("ticket delivery target has no outboxId")
-            db.execute("""UPDATE ticket_outbox SET delivery_status='delivered',delivered_at=?,last_delivery_error=NULL,scheduled_at=NULL,delivery_run_id=NULL WHERE outbox_id=? AND delivery_status='pending'""", (stamp, outbox_id))
-        elif kind != "notice":
-            raise RuntimeError(f"unsupported assistant delivery target: {kind}")
-        params: list[Any] = [stamp, stamp, delivery_id]
-        claim_clause = ""
-        if claim_token is not None:
-            claim_clause = " AND claim_token=?"; params.append(claim_token)
-        db.execute(f"""UPDATE cnx_assistant_delivery SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?,claim_token=NULL,claim_expires_at=NULL WHERE delivery_id=? AND status='pending'{claim_clause}""", params)
-        db.commit()
+            db.execute("UPDATE ticket_outbox SET delivery_status='delivered',delivered_at=?,last_delivery_error=NULL,scheduled_at=NULL,delivery_run_id=NULL WHERE outbox_id=? AND delivery_status='pending'", (stamp, outbox_id))
+        elif kind != "notice": raise RuntimeError(f"unsupported assistant delivery target: {kind}")
+        params: list[Any] = [stamp, stamp, delivery_id]; claim_clause = ""
+        if claim_token is not None: claim_clause = " AND claim_token=?"; params.append(claim_token)
+        db.execute(f"UPDATE cnx_assistant_delivery SET status='delivered',last_error=NULL,updated_at=?,delivered_at=?,claim_token=NULL,claim_expires_at=NULL WHERE delivery_id=? AND status='pending'{claim_clause}", params); db.commit()
     except Exception:
         try: db.rollback()
         except Exception: pass
@@ -456,7 +378,6 @@ def settle_delivery(root: Path, delivery_id: int, target: dict[str, Any], stamp:
 
 
 def mark_failed(root: Path, delivery_id: int, error: str, claim_token: str | None = None) -> None:
-    """Record transport failure and release the durable attempt lease."""
     path = ticket_db(root)
     if not path.exists(): return
     db = sqlite3.connect(path, timeout=5)
@@ -466,9 +387,9 @@ def mark_failed(root: Path, delivery_id: int, error: str, claim_token: str | Non
         if not row or (claim_token is not None and row[2] != claim_token): db.commit(); return
         params: list[Any] = [message, stamp, delivery_id]; claim_clause = ""
         if claim_token is not None: claim_clause = " AND claim_token=?"; params.append(claim_token)
-        changed = db.execute(f"""UPDATE cnx_assistant_delivery SET attempt_count=attempt_count+1,last_error=?,updated_at=?,claim_token=NULL,claim_expires_at=NULL WHERE delivery_id=? AND status='pending'{claim_clause}""", params)
+        changed = db.execute(f"UPDATE cnx_assistant_delivery SET attempt_count=attempt_count+1,last_error=?,updated_at=?,claim_token=NULL,claim_expires_at=NULL WHERE delivery_id=? AND status='pending'{claim_clause}", params)
         if changed.rowcount == 1 and row[0] and str(row[1]) == "direct_result" and table_exists(db, "tickets"):
-            db.execute("""UPDATE tickets SET response_ready_at=?,delivery_last_error=?,updated_at=? WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL""", (stamp, message, stamp, str(row[0])))
+            db.execute("UPDATE tickets SET response_ready_at=?,delivery_last_error=?,updated_at=? WHERE ticket_id=? AND status='accepted' AND workflow_eligible=0 AND response_ready_at IS NOT NULL AND delivery_confirmed_at IS NULL", (stamp, message, stamp, str(row[0])))
             _event(db, str(row[0]), "assistant_delivery_retry", {"deliveryId": delivery_id, "error": message, "recoveryDeferred": True}, stamp)
         db.commit()
     except Exception: db.rollback(); raise
@@ -481,12 +402,11 @@ def pending_deliveries(root: Path, limit: int = 200) -> list[dict[str, Any]]:
     db = sqlite3.connect(path, timeout=5); db.row_factory = sqlite3.Row
     try:
         ensure_schema(db)
-        return [dict(row) for row in db.execute("""SELECT delivery_id,ticket_id,owner_session_key,owner_generation,kind,text,target_json,idempotency_key,attempt_count,last_error,claim_token,claim_expires_at FROM cnx_assistant_delivery WHERE status='pending' ORDER BY owner_session_key,delivery_id LIMIT ?""", (max(1, min(limit, 1000)),)).fetchall()]
+        return [dict(row) for row in db.execute("SELECT delivery_id,ticket_id,owner_session_key,owner_generation,kind,text,target_json,idempotency_key,attempt_count,last_error,claim_token,claim_expires_at FROM cnx_assistant_delivery WHERE status='pending' ORDER BY owner_session_key,delivery_id LIMIT ?", (max(1, min(limit, 1000)),)).fetchall()]
     finally: db.close()
 
 
 def claim_next_delivery(root: Path, excluded_sessions: set[str] | None = None) -> dict[str, Any] | None:
-    """Atomically lease one due head-of-line delivery across all Host processes."""
     path = ticket_db(root)
     if not path.exists(): return None
     excluded = sorted(excluded_sessions or set()); now_dt = datetime.now(timezone.utc); stamp = now_dt.isoformat(); cutoff = (now_dt - timedelta(seconds=DELIVERY_RETRY_AFTER_SECONDS)).isoformat(); lease_until = (now_dt + timedelta(seconds=DELIVERY_LEASE_SECONDS)).isoformat(); token = f"{os.getpid()}:{uuid.uuid4().hex}"
@@ -497,7 +417,7 @@ def claim_next_delivery(root: Path, excluded_sessions: set[str] | None = None) -
             placeholders = ",".join("?" for _ in excluded); exclusion_sql = f" AND d.owner_session_key NOT IN ({placeholders})"; params.extend(excluded)
         row = db.execute(f"""SELECT d.delivery_id,d.ticket_id,d.owner_session_key,d.owner_generation,d.kind,d.text,d.target_json,d.idempotency_key,d.attempt_count,d.last_error FROM cnx_assistant_delivery d WHERE d.status='pending' AND (d.claim_token IS NULL OR d.claim_expires_at IS NULL OR d.claim_expires_at<=?) AND (d.attempt_count=0 OR d.updated_at<=?) AND NOT EXISTS (SELECT 1 FROM cnx_assistant_delivery p WHERE p.owner_session_key=d.owner_session_key AND p.status='pending' AND p.delivery_id<d.delivery_id) {exclusion_sql} ORDER BY d.owner_session_key,d.delivery_id LIMIT 1""", params).fetchone()
         if row is None: db.commit(); return None
-        changed = db.execute("""UPDATE cnx_assistant_delivery SET claim_token=?,claim_expires_at=?,updated_at=? WHERE delivery_id=? AND status='pending' AND (claim_token IS NULL OR claim_expires_at IS NULL OR claim_expires_at<=?)""", (token, lease_until, stamp, int(row['delivery_id']), stamp))
+        changed = db.execute("UPDATE cnx_assistant_delivery SET claim_token=?,claim_expires_at=?,updated_at=? WHERE delivery_id=? AND status='pending' AND (claim_token IS NULL OR claim_expires_at IS NULL OR claim_expires_at<=?)", (token, lease_until, stamp, int(row['delivery_id']), stamp))
         if changed.rowcount != 1: db.rollback(); return None
         claimed = dict(row); claimed["claim_token"] = token; claimed["claim_expires_at"] = lease_until; db.commit(); return claimed
     except Exception: db.rollback(); raise
@@ -505,9 +425,7 @@ def claim_next_delivery(root: Path, excluded_sessions: set[str] | None = None) -
 
 
 def delivery_is_authoritative(root: Path, item: dict[str, Any]) -> bool:
-    """Require both exact-session authority and a valid Ticket/delivery lane."""
-    path = ticket_db(root)
-    db = sqlite3.connect(path, timeout=5)
+    path = ticket_db(root); db = sqlite3.connect(path, timeout=5)
     try:
         ensure_schema(db)
         authority = session_authority(db, str(item["owner_session_key"]))
@@ -518,19 +436,17 @@ def delivery_is_authoritative(root: Path, item: dict[str, Any]) -> bool:
         row = db.execute("SELECT status FROM tickets WHERE ticket_id=?", (str(ticket_id),)).fetchone()
         if not row: return False
         status = str(row[0])
-        return status not in TERMINAL_TICKET_STATUSES or str(item.get("kind") or "") == "direct_result"
+        return status not in TERMINAL_TICKET_STATUSES or (str(item.get("kind") or "") == "direct_result" and status == "completed")
     finally: db.close()
 
 
 def flush_deliveries(root: Path, limit: int = 200, injector: Callable[[str, str, str], dict[str, Any]] = inject_assistant) -> dict[str, Any]:
-    """Flush due deliveries with one durable lease per owner-session head item."""
     delivered: list[int] = []; suppressed: list[int] = []; failed: list[dict[str, Any]] = []; blocked_sessions: set[str] = set(); processed = 0
     while processed < max(1, min(limit, 1000)):
         item = claim_next_delivery(root, blocked_sessions)
         if item is None: break
         processed += 1; delivery_id = int(item["delivery_id"]); session_key = str(item["owner_session_key"]); claim_token = str(item["claim_token"])
-        if not delivery_is_authoritative(root, item):
-            suppress_delivery(root, delivery_id, "session authority changed or Ticket became terminal before injection"); suppressed.append(delivery_id); continue
+        if not delivery_is_authoritative(root, item): suppress_delivery(root, delivery_id, "session authority changed or Ticket became terminal before injection"); suppressed.append(delivery_id); continue
         try:
             target = json.loads(item.get("target_json") or '{"kind":"notice"}'); injector(session_key, item["text"], item["idempotency_key"]); settle_delivery(root, delivery_id, target, now_iso(), claim_token); delivered.append(delivery_id)
         except Exception as error:
