@@ -25,12 +25,12 @@ class WakeAuthorityV095Tests(unittest.TestCase):
     def _root(self):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name) / ".cogentnexus-openclaw"
-        root.mkdir(parents=True, exist_ok=True)
+        (root / "runtime").mkdir(parents=True, exist_ok=True)
         self.addCleanup(tmp.cleanup)
         return root
 
     def _db(self, root: Path) -> sqlite3.Connection:
-        path = root / "tickets.db"
+        path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
         db = sqlite3.connect(path)
         db.execute("CREATE TABLE tickets(ticket_id TEXT PRIMARY KEY, status TEXT NOT NULL, workflow_eligible INTEGER NOT NULL DEFAULT 0, workflow_id TEXT, owner_session_key TEXT, response_ready_at TEXT, delivery_confirmed_at TEXT)")
         db.execute("CREATE TABLE cnx_sessions(session_key TEXT PRIMARY KEY, state TEXT NOT NULL, generation INTEGER NOT NULL, updated_at TEXT NOT NULL)")
