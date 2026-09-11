@@ -50,7 +50,8 @@ jobs:
         run: |
           set -euo pipefail
           git show ce027b3a791da9236351e28a6b6e5648d1da98c3:plugins/cogentnexus-openclaw/src/v090.ts > plugins/cogentnexus-openclaw/src/v090.ts
-          git show ffa99d4c509f360c90894381ca6c1510710214e1:plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts > plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts
+          # ffa99d4... is the canonical blob SHA for the ownership test, not a tree/commit SHA.
+          git cat-file blob ffa99d4c509f360c90894381ca6c1510710214e1 > plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts
           python - <<'PY'
           from pathlib import Path
 
