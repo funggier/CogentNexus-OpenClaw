@@ -7,6 +7,7 @@ transactional enable path. OpenClaw owns provider/model/auth routing in v0.9.5.
 """
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 from typing import Any, Callable
 
@@ -19,7 +20,17 @@ try:
 finally:
     globals()["__name__"] = _WRAPPER_NAME
 
+
+_WAKE_PATH = Path(__file__).with_name("wake_authority_v095.py")
+_WAKE_SPEC = importlib.util.spec_from_file_location("cogentnexus_openclaw_wake_authority_v095", _WAKE_PATH)
+_WAKE_MODULE = importlib.util.module_from_spec(_WAKE_SPEC)
+assert _WAKE_SPEC and _WAKE_SPEC.loader
+_WAKE_SPEC.loader.exec_module(_WAKE_MODULE)
+WakeDecision = _WAKE_MODULE.WakeDecision
+classify_wake = _WAKE_MODULE.classify_wake
+
 _LEGACY_ENABLE = enable
+_LEGACY_SUPERVISOR_TICK = supervisor_tick
 
 
 def _provider_neutral_runtime(original: Callable[..., Any]) -> Callable[..., Any]:
@@ -43,7 +54,59 @@ def enable(root: Path) -> dict[str, Any]:
         legacy.runtime = original_runtime
 
 
+def durable_work_hint(root: Path, now: str | None = None) -> bool:
+    """Compatibility boolean backed exclusively by the canonical wake authority."""
+    parsed_now = _parse_iso_timestamp(now) if now else None
+    return bool(classify_wake(root, parsed_now).actionable)
+
+
+def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
+    """Use one canonical durable wake decision before any provider/heavy work."""
+    legacy.initialize(root)
+    state = legacy.load_state(root)
+    if state.get("mode") != "managed":
+        return {"result": "passthrough", "mode": state.get("mode"), "action": "none"}
+    if state.get("desiredGateway") != "running":
+        return {"result": "maintenance", "desiredGateway": state.get("desiredGateway"), "action": "none"}
+
+    gateway_ok = gateway_fast_probe()
+    hard_hang_restart = None
+    if not gateway_ok:
+        time.sleep(HARD_HANG_CONFIRM_DELAY_SECONDS)
+        gateway_ok = gateway_fast_probe()
+        if not gateway_ok and execute_safe:
+            hard_hang_restart = _restart_unresponsive_gateway(root)
+
+    decision = classify_wake(root)
+    if not decision.actionable:
+        result: dict[str, Any] = {
+            "result": "idle",
+            "action": "none",
+            "wakeAuthority": decision.authority,
+            "wakeWorkId": decision.work_id,
+            "wakeReason": decision.reason,
+            "probe": "lightweight-http+sqlite-ro",
+            "gatewayHealthy": gateway_ok,
+            "durableWorkPending": False,
+            "heavyPath": False,
+        }
+        if hard_hang_restart is not None:
+            result["hardHangRecovery"] = hard_hang_restart
+        return result
+
+    result = _LEGACY_SUPERVISOR_TICK(root, execute_safe)
+    if isinstance(result, dict):
+        result = dict(result)
+        result.setdefault("wakeAuthority", decision.authority)
+        result.setdefault("wakeWorkId", decision.work_id)
+        result.setdefault("wakeReason", decision.reason)
+        result.setdefault("heavyPath", True)
+    return result
+
+
+legacy.durable_work_hint = durable_work_hint
 legacy.enable = enable
+legacy.supervisor_tick = supervisor_tick
 
 
 if __name__ == "__main__":
