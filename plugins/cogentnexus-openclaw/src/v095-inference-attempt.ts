@@ -164,6 +164,7 @@ export function bindRunId(db: DatabaseSync, attemptId: string, runId: string): I
   try {
     const current = load(db, attemptId);
     if (current.state !== "active") throw new Error("inference attempt is not active");
+    assertCurrentSessionGeneration(db, current);
     if (current.runId !== null && current.runId !== runId) throw new Error("inference attempt already bound to another run");
     db.prepare("UPDATE cnx_inference_attempt SET run_id=? WHERE attempt_id=? AND state='active'").run(runId, attemptId);
     const result = load(db, attemptId);
