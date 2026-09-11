@@ -65,9 +65,6 @@ def _find_pending_delivery(db: sqlite3.Connection, cutoff: str) -> WakeDecision 
     delivery_columns = _columns(db, "cnx_assistant_delivery")
     required = {"delivery_id", "ticket_id", "status", "updated_at"}
     if not required.issubset(delivery_columns):
-        # Older payloads may only persist a status column. Preserve that
-        # compatibility signal without applying modern owner/session fences to
-        # a schema that cannot express them.
         row = db.execute(
             "SELECT rowid AS row_id FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
         ).fetchone()
@@ -171,22 +168,24 @@ def _find_workflow_ticket(db: sqlite3.Connection) -> WakeDecision | None:
     if not _table_exists(db, "tickets"):
         return None
     cols = _columns(db, "tickets")
-    if "ticket_id" not in cols or "status" not in cols:
+    if "status" not in cols:
         return None
-    if {"workflow_eligible", "workflow_id"}.issubset(cols):
+    if {"ticket_id", "workflow_eligible", "workflow_id"}.issubset(cols):
         row = db.execute(
             """SELECT ticket_id FROM tickets
                WHERE status NOT IN ('completed','failed','cancelled')
                  AND (workflow_eligible<>0 OR workflow_id IS NOT NULL)
                ORDER BY ticket_id LIMIT 1"""
         ).fetchone()
-    else:
-        row = db.execute(
-            "SELECT rowid AS row_id FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
-        ).fetchone()
+        if row is not None:
+            return WakeDecision(True, "ticket", str(row["ticket_id"]), "wake/ticket")
+        return None
+
+    row = db.execute(
+        "SELECT rowid AS row_id FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
+    ).fetchone()
     if row is not None:
-        work_id = str(row["ticket_id"]) if "ticket_id" in row.keys() else str(row["row_id"])
-        return WakeDecision(True, "ticket", work_id, "wake/ticket")
+        return WakeDecision(True, "ticket", str(row["row_id"]), "wake/ticket/legacy")
     return None
 
 
