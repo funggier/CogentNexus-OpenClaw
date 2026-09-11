@@ -16,6 +16,7 @@ WAKE = SCRIPTS / "wake_authority_v095.py"
 spec = importlib.util.spec_from_file_location("cnx_wake_authority_v095", WAKE)
 wake = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
+sys.modules[spec.name] = wake
 spec.loader.exec_module(wake)
 
 
