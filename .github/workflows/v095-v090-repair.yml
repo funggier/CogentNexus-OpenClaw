@@ -72,8 +72,8 @@ jobs:
           p = Path('plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts')
           text = p.read_text(encoding='utf-8')
           text2 = text.replace('generation:deleted.generation+1', 'generation:deleted.generation')
-          if text2 == text or text.count('generation:deleted.generation+1') != 4:
-              raise SystemExit('v090-session-ownership.test.ts: expected exactly four recreation generation expectations')
+          if text2 == text or text.count('generation:deleted.generation+1') != 6:
+              raise SystemExit('v090-session-ownership.test.ts: expected exactly six recreation generation expectations')
           p.write_text(text2, encoding='utf-8')
 
           patch('plugins/cogentnexus-openclaw/src/v274-discord-receipt-lifecycle.test.ts', [
