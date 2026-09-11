@@ -50,7 +50,6 @@ jobs:
         run: |
           set -euo pipefail
           git show ce027b3a791da9236351e28a6b6e5648d1da98c3:plugins/cogentnexus-openclaw/src/v090.ts > plugins/cogentnexus-openclaw/src/v090.ts
-          # ffa99d4... is the canonical blob SHA for the ownership test, not a tree/commit SHA.
           git cat-file blob ffa99d4c509f360c90894381ca6c1510710214e1 > plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts
           python - <<'PY'
           from pathlib import Path
@@ -67,7 +66,6 @@ jobs:
 
           patch('plugins/cogentnexus-openclaw/src/v090.ts', [
               ('const stamp = now(), generation = currentGeneration + 1;', 'const stamp = now(), generation = currentGeneration;'),
-              ('    const assistantSuppressed = Number(db.prepare(\n      "DELETE FROM cnx_assistant_delivery WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(input.sessionKey).changes);', '    const assistantSuppressed = Number(db.prepare(\n      "UPDATE cnx_assistant_delivery SET last_error=?,updated_at=? WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(reason, stamp, input.sessionKey).changes);'),
           ])
 
           p = Path('plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts')
