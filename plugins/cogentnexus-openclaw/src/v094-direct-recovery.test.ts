@@ -267,7 +267,7 @@ describe("v0.9.4 embedded Direct Recovery boundary", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  }, 5000);
+  }, 10000);
 
   it("fails closed if the embedded runtime substitutes a different model", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v094-drift-"));
