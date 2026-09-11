@@ -61,7 +61,7 @@ class IdleQuiescenceTests(unittest.TestCase):
             heavy_calls.append("heavy")
             return {"result": "recovery", "action": "delivery"}
 
-        with mock.patch.object(host, "classify_wake", side_effect=lambda _root: next(decisions)), \
+        with mock.patch.object(host, "classify_wake", side_effect=lambda _root, _now=None: next(decisions)), \
              mock.patch.object(host, "gateway_fast_probe", return_value=True), \
              mock.patch.object(host, "ollama_fast_probe") as provider_probe, \
              mock.patch.object(host, "LEGACY_SUPERVISOR_TICK", side_effect=heavy):
