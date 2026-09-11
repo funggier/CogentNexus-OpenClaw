@@ -50,6 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           git show ce027b3a791da9236351e28a6b6e5648d1da98c3:plugins/cogentnexus-openclaw/src/v090.ts > plugins/cogentnexus-openclaw/src/v090.ts
+          git show ffa99d4c509f360c90894381ca6c1510710214e1:plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts > plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts
           python - <<'PY'
           from pathlib import Path
 
@@ -68,25 +69,22 @@ jobs:
               ('    const assistantSuppressed = Number(db.prepare(\n      "DELETE FROM cnx_assistant_delivery WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(input.sessionKey).changes);', '    const assistantSuppressed = Number(db.prepare(\n      "UPDATE cnx_assistant_delivery SET last_error=?,updated_at=? WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(reason, stamp, input.sessionKey).changes);'),
           ])
 
-          # Existing lifecycle tests must assert the repaired tombstone-generation invariant.
           p = Path('plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts')
           text = p.read_text(encoding='utf-8')
-          text2 = text.replace('generation:deleted.generation+1', 'generation:deleted.generation')
-          if text2 == text or text.count('generation:deleted.generation+1') != 6:
-              raise SystemExit('v090-session-ownership.test.ts: expected exactly six recreation generation expectations')
-          p.write_text(text2, encoding='utf-8')
+          count = text.count('generation:deleted.generation+1')
+          if count != 6:
+              raise SystemExit(f'v090-session-ownership.test.ts: expected exactly six recreation generation expectations, found {count}')
+          p.write_text(text.replace('generation:deleted.generation+1', 'generation:deleted.generation'), encoding='utf-8')
 
           patch('plugins/cogentnexus-openclaw/src/v274-discord-receipt-lifecycle.test.ts', [
               ('generation: 2', 'generation: 1'),
               ('ownerGeneration: 2', 'ownerGeneration: 1'),
           ])
 
-          # Exact Discord ownership: ambiguity is decided at the Ticket layer before inference lookup.
           patch('plugins/cogentnexus-openclaw/src/v095-delivery-discord.ts', [
               ('  const rows = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND status=\'accepted\'\n      AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id) return { ticket: undefined, ambiguous: rows.length > 1 };', '  const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") return { ticket: undefined, ambiguous: rows.length > 1 };'),
           ])
 
-          # Keep the delivery attempt as durable evidence; ownership fence rejects late staging after session deletion.
           patch('plugins/cogentnexus-openclaw/src/v095-delivery-core.ts', [
               ('    if (current.state === "staged") {\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);', '    if (current.state === "staged") {\n      assertCurrentOwner(db, current);\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);'),
           ])
