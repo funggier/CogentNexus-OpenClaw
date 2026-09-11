@@ -173,16 +173,16 @@ export function registerWebchatDeliveryAdapter(api: WebchatAdapterApi) {
 
   api.on("message_sent", (event: any, ctx: WebchatDeliveryContext) => {
     if (text(ctx?.channel) !== "webchat" && text(ctx?.messageProvider) !== "webchat") return;
-    const runId = text(event?.runId);
+    const eventRunId = text(event?.runId);
     const sessionKey = text(event?.sessionKey ?? ctx?.sessionKey);
     const callId = text(event?.callId) || text(ctx?.callId) || undefined;
-    if (!runId || !sessionKey) {
+    if (!eventRunId || !sessionKey) {
       api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Web Chat message_sent receipt without exact run identity");
       return;
     }
     try {
       return confirmWebchatDelivery(databaseFor(api, ctx), {
-        runId,
+        runId: eventRunId,
         sessionKey,
         callId,
         channel: "webchat",
