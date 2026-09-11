@@ -8,6 +8,7 @@ transactional enable path. OpenClaw owns provider/model/auth routing in v0.9.5.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from typing import Any, Callable
 
@@ -22,10 +23,16 @@ finally:
 
 
 _WAKE_PATH = Path(__file__).with_name("wake_authority_v095.py")
-_WAKE_SPEC = importlib.util.spec_from_file_location("cogentnexus_openclaw_wake_authority_v095", _WAKE_PATH)
-_WAKE_MODULE = importlib.util.module_from_spec(_WAKE_SPEC)
+_WAKE_MODULE_NAME = "cogentnexus_openclaw_wake_authority_v095"
+_WAKE_SPEC = importlib.util.spec_from_file_location(_WAKE_MODULE_NAME, _WAKE_PATH)
 assert _WAKE_SPEC and _WAKE_SPEC.loader
-_WAKE_SPEC.loader.exec_module(_WAKE_MODULE)
+_WAKE_MODULE = importlib.util.module_from_spec(_WAKE_SPEC)
+sys.modules[_WAKE_MODULE_NAME] = _WAKE_MODULE
+try:
+    _WAKE_SPEC.loader.exec_module(_WAKE_MODULE)
+except Exception:
+    sys.modules.pop(_WAKE_MODULE_NAME, None)
+    raise
 WakeDecision = _WAKE_MODULE.WakeDecision
 classify_wake = _WAKE_MODULE.classify_wake
 
