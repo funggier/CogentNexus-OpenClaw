@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -93,9 +94,9 @@ def test_checker_rejects_missing_verified_delivery_registration(tmp_path):
     tree = _copy_tree(tmp_path)
     entry = tree / "plugins" / "cogentnexus-openclaw" / "src" / "v091-release-entry.ts"
     text = entry.read_text(encoding="utf-8")
-    marker = "installV091DashboardVerifiedDelivery(api, config);"
-    assert marker in text
-    entry.write_text(text.replace(marker, "// verified delivery registration removed by fixture"), encoding="utf-8")
+    marker = re.compile(r"installV091DashboardVerifiedDelivery\s*\(\s*[A-Za-z_$][\w$]*\s*,\s*config\s*\);" )
+    assert marker.search(text)
+    entry.write_text(marker.sub("// verified delivery registration removed by fixture", text, count=1), encoding="utf-8")
 
     assert _run_checker(tree) == 1
 

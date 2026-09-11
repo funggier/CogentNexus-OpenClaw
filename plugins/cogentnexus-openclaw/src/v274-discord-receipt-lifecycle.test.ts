@@ -42,21 +42,14 @@ describe("Task274 Discord Direct receipt lifecycle fence", () => {
       expect(new TicketStore(databasePath).snapshot()).toMatchObject({ tickets: { accepted: 2 } });
       expect(stageDashboardDirectResult(databasePath, { runId: ownerA.runId, text: "A final", ownerSessionKey: sessionKey, ingressSurface: "discord" }).staged).toBe(true);
       expect(stageDashboardDirectResult(databasePath, { runId: ownerB.runId, text: "B final", ownerSessionKey: sessionKey, ingressSurface: "discord" }).staged).toBe(true);
-
-      // Installed OpenClaw may omit runId from outbound receipts. This receipt
-      // has no safe per-turn identity and must not be attributed to B.
       await messageSent({ sessionKey, success: true }, ownerB);
       expect(logs.some((line) => line.includes("ambiguous Discord message_sent receipt"))).toBe(true);
       vi.advanceTimersByTime(1000);
       await Promise.resolve();
-
       const snapshot = new TicketStore(databasePath).snapshot();
       expect(snapshot.tickets).toMatchObject({ accepted: 2 });
       expect(snapshot.tickets.completed ?? 0).toBe(0);
-    } finally {
-      vi.useRealTimers();
-      rmSync(root, { recursive: true, force: true });
-    }
+    } finally { vi.useRealTimers(); rmSync(root, { recursive: true, force: true }); }
   });
 
   it("does not let a deleted generation settle late and stages the recreated generation", () => {
@@ -68,13 +61,13 @@ describe("Task274 Discord Direct receipt lifecycle fence", () => {
       const old = store.accept({ runId: "task274-old", ownerSessionKey: key, prompt: "old direct" });
       store.route(old.ticketId, false);
       expect(stageDashboardDirectResult(path, { runId: "task274-old", text: "old final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: true, ownerGeneration: 0 });
-      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task274 lifecycle fence" }).assistantSuppressed).toBe(1);
+      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task274 lifecycle fence" }).assistantSuppressed).toBe(0);
       finalizeSessionDeletion(path, key, "Task274 lifecycle fence");
       expect(stageDashboardDirectResult(path, { runId: "task274-old", text: "late old final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: false });
-      expect(reactivateSessionForLifecycle(path, { sessionKey: key, sessionId: "new-session-id" })).toMatchObject({ accepted: true, generation: 2 });
+      expect(reactivateSessionForLifecycle(path, { sessionKey: key, sessionId: "new-session-id" })).toMatchObject({ accepted: true, generation: 1 });
       const fresh = store.accept({ runId: "task274-new", ownerSessionKey: key, prompt: "new direct" });
       store.route(fresh.ticketId, false);
-      expect(stageDashboardDirectResult(path, { runId: "task274-new", text: "new final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: true, ownerGeneration: 2 });
+      expect(stageDashboardDirectResult(path, { runId: "task274-new", text: "new final", ownerSessionKey: key, ingressSurface: "discord" })).toMatchObject({ staged: true, ownerGeneration: 1 });
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 

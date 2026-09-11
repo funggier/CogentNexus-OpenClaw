@@ -67,7 +67,13 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
             self.assertEqual(state["mode"], "passthrough")
             self.assertEqual(persisted["mode"], "passthrough")
-            self.assertEqual(persisted["desiredProvider"], "unchanged")
+            self.assertEqual(persisted["schemaVersion"], 2)
+            self.assertEqual(persisted["cnxMode"], "disabled")
+            self.assertEqual(persisted["desiredGateway"], "running")
+            self.assertEqual(persisted["providerOwnership"], "openclaw")
+            self.assertNotIn("desiredProvider", persisted)
+            self.assertNotIn("selectedProvider", persisted)
+            self.assertNotIn("providerTransition", persisted)
             self.assertEqual(persisted["generation"], 1)
             self.assertEqual(cnx.legacy.startup_path().name, "startup_v091.py")
             self.assertEqual(startup_v091.legacy.host_control_path().name, "host_control_v091.py")
@@ -219,7 +225,11 @@ class V091EndToEndWiringTests(unittest.TestCase):
 
             after = cnx.legacy.load_state(root)
             self.assertEqual(after["mode"], "passthrough")
-            self.assertEqual(after["desiredProvider"], "unchanged")
+            self.assertEqual(after["cnxMode"], "disabled")
+            self.assertEqual(after["providerOwnership"], "openclaw")
+            self.assertNotIn("desiredProvider", after)
+            self.assertNotIn("selectedProvider", after)
+            self.assertNotIn("providerTransition", after)
             self.assertEqual(after["generation"], prior["generation"])
 
 

@@ -9,6 +9,10 @@ The PASSTHROUGH boundary restores v0.9.2-owned OpenClaw route/timeout/schema
 fields, stops CNXCLAW provider event adapters, and forces one verified Gateway
 process boundary. A config-file restore alone is not sufficient evidence that
 the running Gateway has loaded the native route.
+
+v0.9.5 note: reset is routed through the provider-neutral reset boundary.
+The legacy lifecycle module remains available for compatibility callers but is
+not the authority used by the public CNX reset command.
 """
 from __future__ import annotations
 
@@ -22,6 +26,7 @@ import openclaw_route_v092 as openclaw_route
 import openclaw_runtime_boundary_v092 as runtime_boundary
 import provider_event_liveness_v092 as provider_event_liveness
 import provider_events_v092 as provider_events
+import reset_v095
 
 provider_event_liveness.patch_provider_events(provider_events)
 
@@ -74,8 +79,6 @@ def _stop_provider_events_verified(root: Path) -> dict:
     released = status.get("ownershipHeld") is False and not status.get("running")
     cleanup = None
     if released:
-        # A second pass can safely remove stale PID/lock files. Its ownership
-        # guard prevents a reused PID from being terminated.
         cleanup = provider_events.stop_adapter(root)
     return {
         "ok": released,
@@ -90,8 +93,6 @@ def _finish_disable_native_boundary(root: Path, delegate_code: int) -> int:
     if delegate_code != 0:
         return delegate_code
 
-    # PASSTHROUGH means CNXCLAW must no longer react to provider runtime events even
-    # if restoring/reloading native OpenClaw configuration later fails.
     adapter_stop = _stop_provider_events_verified(root)
     if not adapter_stop.get("ok"):
         print(json.dumps({
@@ -132,11 +133,13 @@ def main() -> int:
     argv = v091.legacy.sys.argv[1:]
     root = v091.legacy.root_from_argv(argv)
     command, action = v091.legacy.command_from_argv(argv)
-    if command in {"reset", "uninstall"}:
-        return lifecycle.main(command, root, option_value(argv, "--provider"))
+    if command == "reset":
+        # v0.9.5 public reset is provider-neutral. Legacy --provider input is
+        # rejected by cnxclaw.py before reaching this boundary.
+        return reset_v095.reset(root)
+    if command == "uninstall":
+        return lifecycle.main(command, root)
     if command == "stop":
-        # Intentional maintenance must silence provider watchers before the
-        # provider is shut down, otherwise a normal stop can look like a crash.
         adapter_stop = _stop_provider_events_verified(root)
         if not adapter_stop.get("ok"):
             print(json.dumps({

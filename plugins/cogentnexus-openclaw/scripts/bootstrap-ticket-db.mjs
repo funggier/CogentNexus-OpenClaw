@@ -3,6 +3,13 @@ import { pathToFileURL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { defaultTicketDatabase, TicketStore } from "../dist/ticket-store.js";
 
+function ensureAdditiveColumns(db, table, additions) {
+  const columns = new Set(db.prepare(`PRAGMA table_info(${table})`).all().map((row) => row.name));
+  for (const [name, type] of additions) {
+    if (!columns.has(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`);
+  }
+}
+
 function bootstrapManagedRuntimeSchema(database) {
   const db = new DatabaseSync(database);
   try {
@@ -69,7 +76,47 @@ function bootstrapManagedRuntimeSchema(database) {
       );
       CREATE INDEX IF NOT EXISTS idx_cnx_direct_model_call_deadline
         ON cnx_direct_model_call(state,deadline_at);
+      CREATE TABLE IF NOT EXISTS cnx_inference_attempt(
+        attempt_id TEXT PRIMARY KEY,
+        ticket_id TEXT NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+        session_key TEXT NOT NULL,
+        session_generation INTEGER NOT NULL,
+        run_id TEXT,
+        call_id TEXT NOT NULL,
+        provider TEXT,
+        model TEXT,
+        state TEXT NOT NULL CHECK(state IN ('active','ended')),
+        outcome TEXT,
+        started_at TEXT NOT NULL,
+        ended_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_ticket
+        ON cnx_inference_attempt(ticket_id,started_at);
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run
+        ON cnx_inference_attempt(run_id,started_at);
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_run_call
+        ON cnx_inference_attempt(run_id,call_id);
+      CREATE INDEX IF NOT EXISTS idx_cnx_inference_attempt_session
+        ON cnx_inference_attempt(session_key,session_generation,started_at);
     `);
+
+    ensureAdditiveColumns(db, "cnx_assistant_delivery", [
+      ["inference_attempt_id", "TEXT"],
+      ["run_id", "TEXT"],
+      ["surface", "TEXT"],
+      ["payload_sha256", "TEXT"],
+      ["delivery_state", "TEXT"],
+      ["evidence_type", "TEXT"],
+    ]);
+    ensureAdditiveColumns(db, "cnx_direct_model_call", [
+      ["error_category", "TEXT"],
+      ["failure_kind", "TEXT"],
+    ]);
+    ensureAdditiveColumns(db, "cnx_inference_attempt", [
+      ["call_id", "TEXT NOT NULL DEFAULT 'legacy'"],
+    ]);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_exact_run ON cnx_assistant_delivery(run_id,owner_session_key,owner_generation,idempotency_key)");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_cnx_assistant_delivery_inference ON cnx_assistant_delivery(inference_attempt_id,owner_session_key,owner_generation,idempotency_key)");
   } finally {
     db.close();
   }

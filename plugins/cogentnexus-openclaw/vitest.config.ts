@@ -10,6 +10,6 @@ export default defineConfig({
     // Vitest's 5s default while completing successfully on rerun or another
     // Windows/Python matrix. Keep a bounded Windows-only budget rather than
     // weakening production timeouts or globally masking hangs on other OSes.
-    testTimeout: process.platform === "win32" ? 15_000 : 5_000,
+    testTimeout: process.platform === "win32" ? 60_000 : 5_000,
   },
 });

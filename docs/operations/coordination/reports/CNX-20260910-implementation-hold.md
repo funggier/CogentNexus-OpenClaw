@@ -1,0 +1,1 @@
+The session-deletion contract implementation is on hold after exact restoration of `v090.ts`. No release or merge action is authorized. Further semantic edits require a safe repository editing path that can apply a small patch without retransmitting the full 1,000+ line source file.

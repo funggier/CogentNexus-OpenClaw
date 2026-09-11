@@ -1,0 +1,1 @@
+Direct Git-tree recovery is authorized by the implementation checkpoint: preserve the current tree and replace only the corrupted `plugins/cogentnexus-openclaw/src/v090.ts` entry with blob `52f4ca386f35710f2ea46b50c6c9f4c626dd3fb6` from `ce027b3a791da9236351e28a6b6e5648d1da98c3`.

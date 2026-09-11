@@ -16,7 +16,7 @@ import host_provider_v092 as hp
 
 
 class HostProviderV092Tests(unittest.TestCase):
-    def test_start_provider_boundary_strips_legacy_provider_flag(self):
+    def test_start_provider_compatibility_flag_delegates_without_provider_lifecycle_authority(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
@@ -26,48 +26,54 @@ class HostProviderV092Tests(unittest.TestCase):
                 calls.append((root_arg, args, timeout, check))
                 return subprocess.CompletedProcess(args=list(args), returncode=0, stdout=json.dumps({"started": True}), stderr="")
 
-            healthy = {"healthy": True, "installed": True, "name": "lmstudio"}
             with mock.patch.object(hp, "ORIGINAL_RUNTIME", side_effect=fake_runtime), \
-                 mock.patch.object(hp, "_state_provider", return_value="lmstudio"), \
-                 mock.patch.object(hp, "_set_legacy_ollama_mode", return_value={"changed": True}), \
-                 mock.patch.object(hp.providers, "start", return_value={"ok": True, "after": healthy}):
+                 mock.patch.object(hp, "_state_provider") as state_provider, \
+                 mock.patch.object(hp, "_set_legacy_ollama_mode") as ollama_mode, \
+                 mock.patch.object(hp.providers, "start") as provider_start:
                 result = hp.provider_aware_runtime(root, "lifecycle", "start", "--provider", timeout=30, check=True)
 
             self.assertEqual(result.returncode, 0)
-            self.assertEqual(calls[0][1], ("lifecycle", "start"))
-            self.assertEqual(json.loads(result.stdout)["provider"], "lmstudio")
+            self.assertEqual(calls, [(root, ("lifecycle", "start"), 30, True)])
+            state_provider.assert_not_called()
+            ollama_mode.assert_not_called()
+            provider_start.assert_not_called()
 
-    def test_stop_quiesces_gateway_before_selected_provider(self):
+    def test_stop_provider_compatibility_flag_delegates_without_stopping_openclaw_provider(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
-            order = []
+            calls = []
 
             def fake_runtime(root_arg, *args, timeout=180, check=True):
-                order.append("gateway-stop")
+                calls.append((root_arg, args, timeout, check))
                 return subprocess.CompletedProcess(args=list(args), returncode=0, stdout=json.dumps({"stopped": True}), stderr="")
 
-            def fake_stop(name, timeout=30):
-                order.append(f"provider-stop:{name}")
-                return {"ok": True}
-
             with mock.patch.object(hp, "ORIGINAL_RUNTIME", side_effect=fake_runtime), \
-                 mock.patch.object(hp, "_state_provider", return_value="ollama"), \
-                 mock.patch.object(hp, "_set_legacy_ollama_mode", return_value={"changed": False}), \
-                 mock.patch.object(hp.providers, "stop", side_effect=fake_stop):
+                 mock.patch.object(hp, "_state_provider") as state_provider, \
+                 mock.patch.object(hp, "_set_legacy_ollama_mode") as ollama_mode, \
+                 mock.patch.object(hp.providers, "stop") as provider_stop:
                 result = hp.provider_aware_runtime(root, "lifecycle", "stop", "--provider", timeout=30, check=True)
 
             self.assertEqual(result.returncode, 0)
-            self.assertEqual(order, ["gateway-stop", "provider-stop:ollama"])
+            self.assertEqual(calls, [(root, ("lifecycle", "stop"), 30, True)])
+            state_provider.assert_not_called()
+            ollama_mode.assert_not_called()
+            provider_stop.assert_not_called()
 
-    def test_missing_selection_fails_closed(self):
+    def test_missing_provider_selection_never_blocks_gateway_lifecycle(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
             root.mkdir()
-            with mock.patch.object(hp, "_state_provider", return_value=None):
+            delegated = subprocess.CompletedProcess(
+                args=["lifecycle", "start"], returncode=0, stdout=json.dumps({"started": True}), stderr=""
+            )
+            with mock.patch.object(hp, "ORIGINAL_RUNTIME", return_value=delegated) as runtime, \
+                 mock.patch.object(hp, "_state_provider") as state_provider:
                 result = hp.provider_aware_runtime(root, "lifecycle", "start", "--provider", timeout=30, check=False)
-            self.assertEqual(result.returncode, 2)
-            self.assertIn("provider selection required", result.stdout)
+
+            self.assertEqual(result.returncode, 0)
+            runtime.assert_called_once_with(root, "lifecycle", "start", timeout=30, check=False)
+            state_provider.assert_not_called()
 
     def _create_direct_call_db(self, root: Path, *, deadline_delta=-1, state="active", outcome=None) -> Path:
         path = root / "runtime" / "cogentnexus-openclaw.sqlite3"

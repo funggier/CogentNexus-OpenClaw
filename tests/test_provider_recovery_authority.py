@@ -51,12 +51,16 @@ class ProviderRecoveryAuthorityTests(unittest.TestCase):
         self.assertTrue(gateway_only)
         self.assertFalse(provider_required)
 
-    def test_host_desired_provider_reconciles_with_explicit_lifecycle_start(self):
+    def test_host_provider_failure_does_not_claim_global_recovery_authority(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
             host.save_state(root, {
-                "schemaVersion": 1, "mode": "managed", "desiredGateway": "running",
-                "desiredProvider": "running", "generation": 3
+                "schemaVersion": 2,
+                "cnxMode": "active",
+                "desiredGateway": "running",
+                "providerOwnership": "openclaw",
+                "managedLocalAdapters": {"ollama": "auto"},
+                "generation": 3,
             })
             calls = []
             def fake_runtime(_root, *args, **kwargs):
@@ -65,14 +69,14 @@ class ProviderRecoveryAuthorityTests(unittest.TestCase):
                     return subprocess.CompletedProcess(args, 0, json.dumps({
                         "gateway": {"healthy": True}, "ollama": {"healthy": False}
                     }), "")
-                if args[:2] == ("lifecycle", "start"):
-                    return subprocess.CompletedProcess(args, 0, json.dumps({"started": True}), "")
                 return subprocess.CompletedProcess(args, 0, json.dumps({"status": "healthy"}), "")
             with mock.patch.object(host, "gateway_status", return_value={"healthy": True}), mock.patch.object(host, "runtime", side_effect=fake_runtime):
                 result = host.supervisor_tick(root, True)
-            self.assertIn(("lifecycle", "start", "--provider"), calls)
-            self.assertTrue(result["reconcile"]["providerRequired"])
-            self.assertEqual(result["reconcile"]["exitCode"], 0)
+            self.assertNotIn(("lifecycle", "start", "--provider"), calls)
+            self.assertIsNone(result["reconcile"])
+            state = host.load_state(root)
+            self.assertEqual(state["providerOwnership"], "openclaw")
+            self.assertNotIn("desiredProvider", state)
 
 if __name__ == "__main__":
     unittest.main()

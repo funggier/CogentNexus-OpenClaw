@@ -123,17 +123,19 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             self.assertEqual(result["result"], "gateway-recovery")
             self.assertEqual(result["hardHangRecovery"], {"attempted": True, "exitCode": 0})
 
-    def test_required_provider_failure_enters_proven_recovery_path(self):
+    def test_provider_failure_alone_does_not_enter_global_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: False)
             self.patch(cnx, "durable_work_hint", lambda _root: False)
-            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result": "provider-recovery", "execute": execute})
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda *_args, **_kwargs: self.fail("provider health alone must not wake global Host recovery"))
 
             result = cnx.supervisor_tick(root, True)
-            self.assertEqual(result, {"result": "provider-recovery", "execute": True})
+            self.assertEqual(result["result"], "idle")
+            self.assertFalse(result["providerRequired"])
+            self.assertFalse(result["durableWorkPending"])
 
     def test_healthy_endpoints_without_work_stay_on_lightweight_path(self):
         with tempfile.TemporaryDirectory() as tmp:

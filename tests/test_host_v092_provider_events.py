@@ -30,60 +30,62 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
         provider_base._progress_for_call = self.saved_progress_for_call
         sys.modules.pop("host_v092", None)
 
-    def test_lifecycle_start_attaches_adapter_before_gateway_start(self):
+    def test_lifecycle_start_delegates_without_provider_or_adapter_authority(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
-            order = []
+            delegated = subprocess.CompletedProcess(
+                args=["lifecycle", "start"], returncode=0,
+                stdout=json.dumps({"started": True}), stderr=""
+            )
 
-            def provider_start(name, timeout=45):
-                order.append("provider")
-                return {"ok": True, "provider": name}
-
-            def adapter_start(root_arg, name):
-                order.append("adapter")
-                return {"provider": name, "running": True, "pid": 123}
-
-            def gateway_start(root_arg, *args, timeout=180, check=True):
-                order.append("gateway")
-                return subprocess.CompletedProcess(
-                    args=list(args), returncode=0, stdout=json.dumps({"started": True}), stderr=""
-                )
-
-            with mock.patch.object(self.host.base, "_state_provider", return_value="lmstudio"), \
-                 mock.patch.object(self.host.base, "_set_legacy_ollama_mode", return_value={"changed": False}), \
-                 mock.patch.object(self.host.providers, "start", side_effect=provider_start), \
-                 mock.patch.object(self.host.provider_events, "ensure_adapter", side_effect=adapter_start), \
-                 mock.patch.object(self.host.base, "ORIGINAL_RUNTIME", side_effect=gateway_start):
+            with mock.patch.object(self.host, "BASE_PROVIDER_RUNTIME", return_value=delegated) as runtime, \
+                 mock.patch.object(self.host.base, "_state_provider") as state_provider, \
+                 mock.patch.object(self.host.base, "_set_legacy_ollama_mode") as ollama_mode, \
+                 mock.patch.object(self.host.providers, "start") as provider_start, \
+                 mock.patch.object(self.host.provider_events, "ensure_adapter") as adapter_start, \
+                 mock.patch.object(self.host.base, "ORIGINAL_RUNTIME") as original_runtime:
                 result = self.host.provider_event_aware_runtime(
                     root, "lifecycle", "start", "--provider", timeout=30, check=True
                 )
 
-            self.assertEqual(result.returncode, 0)
-            self.assertEqual(order, ["provider", "adapter", "gateway"])
-            payload = json.loads(result.stdout)
-            self.assertTrue(payload["providerEventAdapter"]["running"])
-            self.assertIsNone(payload["providerEventAdapterRollback"])
+            self.assertIs(result, delegated)
+            runtime.assert_called_once_with(
+                root, "lifecycle", "start", "--provider", timeout=30, check=True
+            )
+            state_provider.assert_not_called()
+            ollama_mode.assert_not_called()
+            provider_start.assert_not_called()
+            adapter_start.assert_not_called()
+            original_runtime.assert_not_called()
 
-    def test_failed_gateway_start_rolls_back_adapter(self):
+    def test_failed_gateway_start_does_not_create_or_rollback_provider_adapter(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
             failed = subprocess.CompletedProcess(
-                args=["lifecycle", "start"], returncode=1, stdout=json.dumps({"result": "error"}), stderr="gateway failed"
+                args=["lifecycle", "start"], returncode=1,
+                stdout=json.dumps({"result": "error"}), stderr="gateway failed"
             )
-            with mock.patch.object(self.host.base, "_state_provider", return_value="lmstudio"), \
-                 mock.patch.object(self.host.base, "_set_legacy_ollama_mode", return_value={"changed": False}), \
-                 mock.patch.object(self.host.providers, "start", return_value={"ok": True}), \
-                 mock.patch.object(self.host.provider_events, "ensure_adapter", return_value={"running": True}), \
-                 mock.patch.object(self.host.provider_events, "stop_adapter", return_value={"stopped": [{"provider": "lmstudio"}]}) as stop, \
-                 mock.patch.object(self.host.base, "ORIGINAL_RUNTIME", return_value=failed):
+            with mock.patch.object(self.host, "BASE_PROVIDER_RUNTIME", return_value=failed) as runtime, \
+                 mock.patch.object(self.host.base, "_state_provider") as state_provider, \
+                 mock.patch.object(self.host.base, "_set_legacy_ollama_mode") as ollama_mode, \
+                 mock.patch.object(self.host.providers, "start") as provider_start, \
+                 mock.patch.object(self.host.provider_events, "ensure_adapter") as adapter_start, \
+                 mock.patch.object(self.host.provider_events, "stop_adapter") as adapter_stop, \
+                 mock.patch.object(self.host.base, "ORIGINAL_RUNTIME") as original_runtime:
                 result = self.host.provider_event_aware_runtime(
                     root, "lifecycle", "start", "--provider", timeout=30, check=False
                 )
 
-            self.assertEqual(result.returncode, 1)
-            stop.assert_called_once_with(root, "lmstudio")
-            payload = json.loads(result.stdout)
-            self.assertIsNotNone(payload["providerEventAdapterRollback"])
+            self.assertIs(result, failed)
+            runtime.assert_called_once_with(
+                root, "lifecycle", "start", "--provider", timeout=30, check=False
+            )
+            state_provider.assert_not_called()
+            ollama_mode.assert_not_called()
+            provider_start.assert_not_called()
+            adapter_start.assert_not_called()
+            adapter_stop.assert_not_called()
+            original_runtime.assert_not_called()
 
     def test_failed_transactional_enable_stops_all_provider_adapters(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -135,32 +137,24 @@ class HostV092ProviderEventBoundaryTests(unittest.TestCase):
                 self.host.progress_for_call(Path("."), "lmstudio", "2026-08-21T13:00:00Z")
             )
 
-    def test_restart_attaches_adapter_before_gateway_restart(self):
+    def test_restart_delegates_without_provider_state_or_adapter_authority(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
-            order = []
+            restarted = {"result": "restarted"}
 
-            def provider_start(name, timeout=45):
-                order.append("provider")
-                return {"ok": True, "provider": name}
-
-            def adapter_start(root_arg, name):
-                order.append("adapter")
-                return {"provider": name, "running": True, "pid": 456}
-
-            def gateway_restart(root_arg):
-                order.append("gateway")
-                return {"result": "restarted"}
-
-            with mock.patch.object(self.host.base, "_state_provider", return_value="lmstudio"), \
-                 mock.patch.object(self.host.legacy, "transition"), \
-                 mock.patch.object(self.host.providers, "start", side_effect=provider_start), \
-                 mock.patch.object(self.host.provider_events, "ensure_adapter", side_effect=adapter_start), \
-                 mock.patch.object(self.host, "ORIGINAL_RESTART_MANAGED", side_effect=gateway_restart):
+            with mock.patch.object(self.host, "ORIGINAL_RESTART_MANAGED", return_value=restarted) as gateway_restart, \
+                 mock.patch.object(self.host.base, "_state_provider") as state_provider, \
+                 mock.patch.object(self.host.legacy, "transition") as transition, \
+                 mock.patch.object(self.host.providers, "start") as provider_start, \
+                 mock.patch.object(self.host.provider_events, "ensure_adapter") as adapter_start:
                 result = self.host.restart_managed(root)
 
-            self.assertEqual(order, ["provider", "adapter", "gateway"])
-            self.assertTrue(result["providerEventAdapter"]["running"])
+            self.assertIs(result, restarted)
+            gateway_restart.assert_called_once_with(root)
+            state_provider.assert_not_called()
+            transition.assert_not_called()
+            provider_start.assert_not_called()
+            adapter_start.assert_not_called()
 
 
 if __name__ == "__main__":

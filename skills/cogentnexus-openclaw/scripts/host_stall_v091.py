@@ -3,9 +3,10 @@
 
 The plugin records only sanitized model_call_started/model_call_ended telemetry.
 An expired provider-call lease is not itself permission for plugin recovery.
-The external Host claims the lease, quiesces Gateway + provider, classifies the
-Ticket while inference is impossible, durably authorizes exactly one Direct
-recovery, and only then restarts the managed runtime.
+The external Host claims the lease, quiesces the CNX Gateway/runtime, classifies
+the Ticket while CNX inference is impossible, durably authorizes exactly one
+Direct recovery, and only then restarts the managed runtime. Provider/model/auth
+routing and provider process lifecycle remain OpenClaw-owned.
 
 Power-loss semantics:
 - a claimed `recovering` lease is durable and can be reclaimed after a bounded
@@ -160,7 +161,7 @@ def _queue_host_authorized_direct_recovery(
 
 
 def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> dict[str, Any]:
-    """Classify one claimed Direct call only after Gateway/provider are stopped."""
+    """Classify one claimed Direct call only after the CNX Gateway is stopped."""
     cutoff = legacy.now_iso()
     delivery_fences = v091.reconcile_direct_delivery_before_recovery(root, cutoff)
     path = legacy.ticket_db(root)
@@ -286,7 +287,7 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
 
 
 def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict[str, Any]:
-    """Quiesce -> classify -> restart. No inference-capable runtime spans classification."""
+    """Quiesce CNX Gateway -> classify -> restart without provider lifecycle control."""
     reason = (
         f"{STALL_REASON}: ticket={claim['ticket_id']} call={claim['call_id']} "
         f"provider={claim.get('provider') or 'unknown'} model={claim.get('model') or 'unknown'}"
@@ -308,7 +309,6 @@ def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict
         root,
         "lifecycle",
         "stop",
-        "--provider",
         "--reason",
         reason,
         "--owner",
@@ -317,7 +317,7 @@ def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict
         check=True,
     )
     classification = classify_quiesced_direct_model_call(root, claim)
-    started = legacy.runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
+    started = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
     gateway = legacy.gateway_status()
     if not gateway.get("healthy"):
         raise RuntimeError(f"Gateway failed health verification after Direct model-call recovery: {gateway}")
@@ -340,10 +340,10 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     if state.get("mode") != "managed" or state.get("desiredGateway") != "running":
         return BASE_SUPERVISOR_TICK(root, execute_safe)
 
-    # Endpoint loss remains owned by the proven hard-hang path. This overlay is
-    # specifically for a provider call that exceeded its durable deadline while
-    # Gateway and provider endpoints still answer health probes.
-    if not v091.gateway_fast_probe() or (state.get("desiredProvider") == "running" and not v091.ollama_fast_probe()):
+    # Gateway endpoint loss remains owned by the proven hard-hang path. Provider
+    # health is attempt provenance/evidence, not a global Host dependency: stale
+    # desiredProvider data must never make this overlay probe or revive Ollama.
+    if not v091.gateway_fast_probe():
         return BASE_SUPERVISOR_TICK(root, execute_safe)
     if not execute_safe:
         return BASE_SUPERVISOR_TICK(root, execute_safe)

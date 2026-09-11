@@ -141,12 +141,12 @@ def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
         legacy.plugin_enabled(True)
 
         # Durable linearization point. From this write onward the user's enable
-        # intent is committed and plugin recovery authority is valid.
+        # intent is committed and plugin recovery authority is valid. Provider,
+        # model and auth routing remain OpenClaw-owned and are not Host state.
         state = legacy.transition(
             root,
             mode="managed",
             desiredGateway="running",
-            desiredProvider="running",
         )
         authority_committed = True
 
@@ -164,7 +164,7 @@ def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
         )
 
         runtime_start_attempted = True
-        lifecycle = legacy.runtime(root, "lifecycle", "start", "--provider", timeout=240, check=True)
+        lifecycle = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
 
         gateway = legacy.gateway_status()
         if not gateway.get("healthy"):

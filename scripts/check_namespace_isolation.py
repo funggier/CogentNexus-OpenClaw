@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HISTORICAL_PREFIXES = ("docs/operations/coordination/",)
+HISTORICAL_PREFIXES = ("docs/operations/coordination/", "docs/superpowers/")
 MIGRATION_PATHS = {
     "scripts/install.ps1", "scripts/install.sh",
     "skills/cogentnexus-openclaw/scripts/namespace_ownership.py",

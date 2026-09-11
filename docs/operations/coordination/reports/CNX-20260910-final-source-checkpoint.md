@@ -1,0 +1,1 @@
+`plugins/cogentnexus-openclaw/src/v090.ts` was restored exactly from its known-good blob `52f4ca386f35710f2ea46b50c6c9f4c626dd3fb6`. The semantic generation-boundary change remains unapplied pending a safe small-patch execution path.
