@@ -66,6 +66,17 @@ class CheckV095IdleQuiescenceTests(unittest.TestCase):
         )
         self.assertEqual(output["verdict"], "PASS")
 
+    def test_idle_window_with_repeated_heavy_activity_is_fail(self):
+        output = self._run(
+            """
+{"result":"idle","action":"none","wakeReason":"idle/no-actionable-work","heavyPath":false}
+{"result":"recovery","action":"delivery","wakeAuthority":"delivery","heavyPath":true}
+{"result":"recovery","action":"delivery","wakeAuthority":"delivery","heavyPath":true}
+"""
+        )
+        self.assertEqual(output["verdict"], "FAIL")
+        self.assertGreaterEqual(output["heavySupervisorCalls"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
