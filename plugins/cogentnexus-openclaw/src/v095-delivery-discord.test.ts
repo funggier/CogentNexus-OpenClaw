@@ -61,15 +61,22 @@ describe("v0.9.5 Discord delivery adapter", () => {
       const store = new TicketStore(databasePath);
       sessionAuthority(databasePath, sessionKey);
       const first = store.accept({ runId: "same-run", ownerSessionKey: sessionKey, prompt: "first" });
-      const second = store.accept({ runId: "same-run", ownerSessionKey: sessionKey, prompt: "second" });
       store.route(first.ticketId, false);
-      store.route(second.ticketId, false);
       const db = new DatabaseSync(databasePath);
       try {
+        const now = new Date().toISOString();
+        const secondTicketId = "CNXT-duplicate-same-run";
+        const secondPrompt = "second";
+        const secondRequestKey = createHash("sha256").update(`${sessionKey}\0same-run\0duplicate`).digest("hex");
+        const secondPromptHash = createHash("sha256").update(secondPrompt, "utf8").digest("hex");
+        db.prepare(`INSERT INTO tickets(ticket_id,request_key,run_id,owner_session_key,prompt,prompt_sha256,status,max_attempts,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,'accepted',?,?,?)`)
+          .run(secondTicketId, secondRequestKey, "same-run", sessionKey, secondPrompt, secondPromptHash, 3, now, now);
+        store.route(secondTicketId, false);
         const attemptA = beginInferenceAttempt(db, { ticketId: first.ticketId, sessionKey, sessionGeneration: 0, callId: "same-run-call-a" });
         bindRunId(db, attemptA.attemptId, "same-run");
         finishInferenceAttempt(db, attemptA.attemptId, "completed");
-        const attemptB = beginInferenceAttempt(db, { ticketId: second.ticketId, sessionKey, sessionGeneration: 0, callId: "same-run-call-b" });
+        const attemptB = beginInferenceAttempt(db, { ticketId: secondTicketId, sessionKey, sessionGeneration: 0, callId: "same-run-call-b" });
         bindRunId(db, attemptB.attemptId, "same-run");
         finishInferenceAttempt(db, attemptB.attemptId, "completed");
       } finally {
