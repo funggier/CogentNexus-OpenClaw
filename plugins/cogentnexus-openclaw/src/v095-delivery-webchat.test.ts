@@ -123,4 +123,35 @@ describe("v0.9.5 Web Chat delivery adapter", () => {
       expect(ignored).toBeUndefined();
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
+
+  it("ignores a message_sent receipt without event runId even when context has a runId", () => {
+    const { root, databasePath, sessionKey } = setup();
+    try {
+      const staged = stageWebchatDelivery(databasePath, {
+        runId: "webchat-adapter-a",
+        sessionKey,
+        channel: "webchat",
+      }, "reply A");
+      expect(staged.staged).toBe(true);
+      const handlers = new Map<string, any>();
+      const logs: string[] = [];
+      registerWebchatDeliveryAdapter({
+        pluginConfig: { ticketDatabasePath: databasePath, workspaceDir: root },
+        on: (name: string, handler: any) => handlers.set(name, handler),
+        logger: { info: (message: string) => logs.push(message) },
+      });
+      handlers.get("message_sent")?.({ sessionKey, success: true }, {
+        runId: "webchat-adapter-a",
+        sessionKey,
+        channel: "webchat",
+        workspaceDir: root,
+      });
+      expect(logs.some((line) => line.includes("ignored ambiguous Web Chat message_sent receipt"))).toBe(true);
+      const db = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        expect(db.prepare("SELECT status FROM tickets WHERE run_id=?").get("webchat-adapter-a"))
+          .toEqual({ status: "accepted" });
+      } finally { db.close(); }
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
 });
