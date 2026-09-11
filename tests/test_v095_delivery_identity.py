@@ -53,7 +53,7 @@ class DeliveryWakeIdentityTests(unittest.TestCase):
             """INSERT INTO cnx_assistant_delivery(
                  ticket_id,owner_session_key,owner_generation,kind,text,target_json,
                  idempotency_key,status,attempt_count,created_at,updated_at,claim_expires_at)
-               VALUES ('T1','S1',2,?,'answer','{"kind":"notice"}','k1','pending',?,?,?,?,?)""",
+               VALUES ('T1','S1',2,?,'answer','{"kind":"notice"}','k1','pending',?,?,?,?)""",
             (kind, attempt_count, stamp, stamp, lease),
         )
         db.commit(); db.close()
