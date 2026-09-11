@@ -80,9 +80,26 @@ jobs:
               ('ownerGeneration: 2', 'ownerGeneration: 1'),
           ])
 
-          patch('plugins/cogentnexus-openclaw/src/v095-delivery-discord.ts', [
-              ('  const rows = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND status=\'accepted\'\n      AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id) return { ticket: undefined, ambiguous: rows.length > 1 };', '  const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") return { ticket: undefined, ambiguous: rows.length > 1 };'),
-          ])
+          p = Path('plugins/cogentnexus-openclaw/src/v095-delivery-discord.ts')
+          text = p.read_text(encoding='utf-8')
+          start = text.find('function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {')
+          end_marker = '\n}\n\nfunction exactInference'
+          end = text.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('v095-delivery-discord.ts: exactRun function boundary not found')
+          end += 2
+          replacement = '''function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {
+  if (!runId || !isDiscordSession(sessionKey)) return { ambiguous: false };
+  const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets
+    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL
+    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;
+  if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") {
+    return { ticket: undefined, ambiguous: rows.length > 1 };
+  }
+  return { ticket: rows[0], ambiguous: false };
+}'''
+          text = text[:start] + replacement + text[end:]
+          p.write_text(text, encoding='utf-8')
 
           patch('plugins/cogentnexus-openclaw/src/v095-delivery-core.ts', [
               ('    if (current.state === "staged") {\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);', '    if (current.state === "staged") {\n      assertCurrentOwner(db, current);\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);'),
