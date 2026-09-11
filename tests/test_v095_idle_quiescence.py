@@ -59,7 +59,7 @@ class IdleQuiescenceTests(unittest.TestCase):
         def classify(_root, _now=None):
             nonlocal calls
             calls += 1
-            return actionable if calls == 1 else consumed
+            return actionable if calls <= 2 else consumed
 
         heavy_calls = []
 
