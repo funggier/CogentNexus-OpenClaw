@@ -47,7 +47,7 @@ function databaseFor(api: DiscordAdapterApi, ctx?: DiscordDeliveryContext) {
 function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {
   if (!runId || !isDiscordSession(sessionKey)) return { ambiguous: false };
   const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets
-    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL
+    WHERE run_id=? AND owner_session_key=?
     ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;
   if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") {
     return { ticket: undefined, ambiguous: rows.length > 1 };
