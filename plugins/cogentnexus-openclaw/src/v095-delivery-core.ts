@@ -273,6 +273,7 @@ export function acceptTransport(db: DatabaseSync, attemptId: string, evidence: D
     if (!row) throw new Error("delivery attempt not found");
     const current = rowToAttempt(row);
     if (current.state === "transport_accepted") {
+      assertCurrentOwner(db, current);
       db.exec("COMMIT");
       return current;
     }
@@ -295,12 +296,13 @@ export function confirmDelivery(db: DatabaseSync, attemptId: string, evidence: D
     const current = selectByIdempotency(db, attemptId);
     if (!current) throw new Error("delivery attempt not found");
     const state = stateFromRow(current);
+    const delivery = rowToAttempt(current);
     if (state === "confirmed") {
+      assertCurrentOwner(db, delivery);
       db.exec("COMMIT");
-      return rowToAttempt(current);
+      return delivery;
     }
     if (state !== "transport_accepted") throw new Error(`illegal delivery transition ${state} -> confirmed`);
-    const delivery = rowToAttempt(current);
     assertCurrentOwner(db, delivery);
     const changed = db.prepare(`UPDATE cnx_assistant_delivery
       SET delivery_state='confirmed',status='delivered',evidence_type=?,attempt_count=attempt_count+1,delivered_at=?,updated_at=?
