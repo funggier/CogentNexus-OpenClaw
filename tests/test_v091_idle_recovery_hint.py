@@ -106,7 +106,12 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result": "recovery", "execute": execute})
 
             result = cnx.supervisor_tick(root, True)
-            self.assertEqual(result, {"result": "recovery", "execute": True})
+            self.assertEqual(result["result"], "recovery")
+            self.assertTrue(result["execute"])
+            self.assertEqual(result["wakeAuthority"], "ticket")
+            self.assertEqual(result["wakeReason"], "wake/ticket/legacy")
+            self.assertEqual(result["wakeWorkId"], "1")
+            self.assertTrue(result["heavyPath"])
 
     def test_gateway_failure_restarts_then_enters_proven_recovery_path(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -143,12 +148,11 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             self.seed_managed(root)
             self.patch(cnx, "gateway_fast_probe", lambda: True)
             self.patch(cnx, "ollama_fast_probe", lambda: True)
-            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda *_args, **_kwargs: self.fail("idle runtime must not enter heavy recovery"))
+            self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda *_args, **_kwargs: self.fail("idle supervisor must not enter legacy heavy path"))
 
             result = cnx.supervisor_tick(root, True)
             self.assertEqual(result["result"], "idle")
-            self.assertFalse(result["durableWorkPending"])
-            self.assertEqual(result["probe"], "lightweight-http+sqlite-ro")
+            self.assertEqual(result["action"], "none")
 
 
 if __name__ == "__main__":
