@@ -250,6 +250,7 @@ export function stageDelivery(db: DatabaseSync, attemptId: string, evidence: Del
     if (!row) throw new Error("delivery attempt not found");
     const current = rowToAttempt(row);
     if (current.state === "staged") {
+      assertCurrentOwner(db, current);
       db.exec("COMMIT");
       return current;
     }
