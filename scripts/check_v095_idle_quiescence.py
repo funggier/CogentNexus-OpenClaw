@@ -153,6 +153,14 @@ def inspect(root: Path, log_path: Path, since: datetime | None = None, until: da
     elif counts["idle_ticks"] == 0:
         verdict = "INDETERMINATE"
         reason = "observation window contains no confirmed idle Supervisor tick"
+    elif (
+        counts["heavy_supervisor_calls"] >= 2
+        or counts["provider_recovery_actions"] >= 2
+        or counts["config_mutations"] >= 1
+        or counts["gateway_lifecycle_actions"] >= 1
+    ):
+        verdict = "FAIL"
+        reason = "idle observation contains repeated or unauthorized activity"
     else:
         verdict = "PASS"
         reason = "bounded observation evidence is sufficient"
