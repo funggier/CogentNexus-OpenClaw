@@ -54,7 +54,7 @@ class IdleQuiescenceTests(unittest.TestCase):
         root = self._managed_root()
         actionable = host.WakeDecision(True, "delivery", "D1", "wake/delivery")
         consumed = host.WakeDecision(False, "none", None, "idle/no-actionable-work")
-        decisions = iter([actionable, consumed])
+        decisions = iter([actionable, consumed, consumed])
         heavy_calls = []
 
         def heavy(_root, _execute_safe):
