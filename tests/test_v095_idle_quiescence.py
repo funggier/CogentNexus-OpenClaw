@@ -54,14 +54,16 @@ class IdleQuiescenceTests(unittest.TestCase):
         root = self._managed_root()
         actionable = host.WakeDecision(True, "delivery", "D1", "wake/delivery")
         consumed = host.WakeDecision(False, "none", None, "idle/no-actionable-work")
-        decisions = iter([actionable, consumed, consumed])
+        decisions = iter([actionable, consumed])
         heavy_calls = []
 
         def heavy(_root, _execute_safe):
             heavy_calls.append("heavy")
             return {"result": "recovery", "action": "delivery"}
 
-        with mock.patch.object(host, "classify_wake", side_effect=lambda _root, _now=None: next(decisions)), \
+        with mock.patch.object(host.legacy, "initialize"), \
+             mock.patch.object(host.legacy, "load_state", return_value={"mode": "managed", "desiredGateway": "running"}), \
+             mock.patch.object(host, "classify_wake", side_effect=lambda _root, _now=None: next(decisions)), \
              mock.patch.object(host, "gateway_fast_probe", return_value=True), \
              mock.patch.object(host, "ollama_fast_probe") as provider_probe, \
              mock.patch.object(host, "LEGACY_SUPERVISOR_TICK", side_effect=heavy):
