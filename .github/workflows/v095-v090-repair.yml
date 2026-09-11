@@ -1,0 +1,141 @@
+name: v0.9.5 v090 Repair
+
+on:
+  push:
+    branches:
+      - agent/v0.9.5-architecture-repair
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v095-v090-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/agent/v0.9.5-architecture-repair' || github.event.pull_request.head.ref == 'agent/v0.9.5-architecture-repair'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          ref: agent/v0.9.5-architecture-repair
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
+
+      - name: Install plugin dependencies
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm ci
+
+      - name: Capture RED behavior before repair
+        working-directory: plugins/cogentnexus-openclaw
+        shell: bash
+        run: |
+          set +e
+          npm test -- src/v090-session-recreation-generation.test.ts
+          status=$?
+          echo "RED_EXIT_CODE=$status"
+          if [ "$status" -eq 0 ]; then
+            echo 'Expected the pre-repair generation contract to fail against the +1 recreation implementation.'
+            exit 1
+          fi
+
+      - name: Restore canonical v090 implementation and apply repair contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show ce027b3a791da9236351e28a6b6e5648d1da98c3:plugins/cogentnexus-openclaw/src/v090.ts > plugins/cogentnexus-openclaw/src/v090.ts
+          git cat-file blob ffa99d4c509f360c90894381ca6c1510710214e1 > plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path, replacements):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              for old, new in replacements:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected exactly one match for {old!r}, found {count}')
+                  text = text.replace(old, new)
+              p.write_text(text, encoding='utf-8')
+
+          patch('plugins/cogentnexus-openclaw/src/v090.ts', [
+              ('const stamp = now(), generation = currentGeneration + 1;', 'const stamp = now(), generation = currentGeneration;'),
+          ])
+
+          p = Path('plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts')
+          text = p.read_text(encoding='utf-8')
+          count = text.count('generation:deleted.generation+1')
+          if count != 6:
+              raise SystemExit(f'v090-session-ownership.test.ts: expected exactly six recreation generation expectations, found {count}')
+          p.write_text(text.replace('generation:deleted.generation+1', 'generation:deleted.generation'), encoding='utf-8')
+
+          patch('plugins/cogentnexus-openclaw/src/v274-discord-receipt-lifecycle.test.ts', [
+              ('generation: 2', 'generation: 1'),
+              ('ownerGeneration: 2', 'ownerGeneration: 1'),
+          ])
+
+          p = Path('plugins/cogentnexus-openclaw/src/v095-delivery-discord.ts')
+          text = p.read_text(encoding='utf-8')
+          start = text.find('function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {')
+          end_marker = '\n}\n\nfunction exactInference'
+          end = text.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('v095-delivery-discord.ts: exactRun function boundary not found')
+          end += 2
+          replacement = '''function exactRun(db: DatabaseSync, runId: string, sessionKey: string): ExactRunResult {
+  if (!runId || !isDiscordSession(sessionKey)) return { ambiguous: false };
+  const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets
+    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL
+    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;
+  if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") {
+    return { ticket: undefined, ambiguous: rows.length > 1 };
+  }
+  return { ticket: rows[0], ambiguous: false };
+}'''
+          text = text[:start] + replacement + text[end:]
+          p.write_text(text, encoding='utf-8')
+
+          patch('plugins/cogentnexus-openclaw/src/v095-delivery-core.ts', [
+              ('    if (current.state === "staged") {\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);', '    if (current.state === "staged") {\n      assertCurrentOwner(db, current);\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);'),
+          ])
+          PY
+
+      - name: Verify focused GREEN tests
+        working-directory: plugins/cogentnexus-openclaw
+        run: |
+          npm test -- src/v090-session-recreation-generation.test.ts
+          npm test -- src/v090-session-ownership.test.ts
+          npm test -- src/v274-discord-receipt-lifecycle.test.ts
+          npm test -- src/v095-delivery-discord.test.ts
+          npm test -- src/v095-delivery-session-fence.test.ts
+
+      - name: Verify plugin test suite
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm test
+
+      - name: Commit repaired source and remove one-shot workflow
+        shell: bash
+        env:
+          BRANCH_NAME: agent/v0.9.5-architecture-repair
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add plugins/cogentnexus-openclaw/src/v090.ts \
+            plugins/cogentnexus-openclaw/src/v090-session-ownership.test.ts \
+            plugins/cogentnexus-openclaw/src/v274-discord-receipt-lifecycle.test.ts \
+            plugins/cogentnexus-openclaw/src/v095-delivery-discord.ts \
+            plugins/cogentnexus-openclaw/src/v095-delivery-core.ts \
+            .github/workflows/v095-v090-repair.yml
+          git rm .github/workflows/v095-v090-repair.yml
+          git commit -m 'fix: converge lifecycle and delivery fence contracts'
+          git push origin "HEAD:${BRANCH_NAME}"
