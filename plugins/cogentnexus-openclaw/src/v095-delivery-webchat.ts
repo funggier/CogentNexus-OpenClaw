@@ -157,7 +157,7 @@ export function confirmWebchatDelivery(databasePath: string, context: WebchatDel
 /** Evidence-only Web Chat adapter. Exact run/session identity is mandatory. */
 export function registerWebchatDeliveryAdapter(api: WebchatAdapterApi) {
   if (typeof api?.on !== "function") return;
-  api.on("reply_payload_sending", async (event: any, ctx: WebchatDeliveryContext) => {
+  api.on("reply_payload_sending", (event: any, ctx: WebchatDeliveryContext) => {
     if (text(ctx?.channel) !== "webchat" && text(ctx?.messageProvider) !== "webchat") return;
     const databasePath = databaseFor(api, ctx);
     const payload = Array.isArray(event?.payload?.content)
