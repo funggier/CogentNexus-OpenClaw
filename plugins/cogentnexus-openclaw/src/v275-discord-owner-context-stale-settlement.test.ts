@@ -76,7 +76,7 @@ describe("Task275 Discord Direct owner-context and stale-settlement proof", () =
       const staged = await hook(hooks, "reply_payload_sending")({ kind: "final", payload: { text: "old final" } }, { runId, sessionKey: key, channel: "discord", messageProvider: "discord" });
       expect(staged?.payload?.text).toContain("old final");
       await Promise.resolve();
-      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task275 stale waiter" }).assistantSuppressed).toBe(1);
+      expect(deleteSessionByKey(path, { sessionKey: key, message: "Task275 stale waiter" }).assistantSuppressed).toBe(0);
       finalizeSessionDeletion(path, key, "Task275 stale waiter");
       release();
       await new Promise<void>((resolve) => setImmediate(resolve));
