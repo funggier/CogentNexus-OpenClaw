@@ -65,6 +65,14 @@ def _find_pending_delivery(db: sqlite3.Connection, cutoff: str) -> WakeDecision 
     delivery_columns = _columns(db, "cnx_assistant_delivery")
     required = {"delivery_id", "ticket_id", "status", "updated_at"}
     if not required.issubset(delivery_columns):
+        # Older payloads may only persist a status column. Preserve that
+        # compatibility signal without applying modern owner/session fences to
+        # a schema that cannot express them.
+        row = db.execute(
+            "SELECT rowid AS row_id FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
+        ).fetchone()
+        if row is not None:
+            return WakeDecision(True, "delivery", str(row["row_id"]), "wake/delivery/legacy")
         return None
 
     if {"owner_session_key", "owner_generation"}.issubset(delivery_columns) and _table_exists(db, "cnx_sessions"):
@@ -88,8 +96,6 @@ def _find_pending_delivery(db: sqlite3.Connection, cutoff: str) -> WakeDecision 
             return WakeDecision(True, "delivery", str(rows["delivery_id"]), "wake/delivery")
         return None
 
-    # Legacy schemas do not persist owner/session fences. Preserve their
-    # historical pending-delivery compatibility until they are migrated.
     row = db.execute(
         "SELECT delivery_id,ticket_id FROM cnx_assistant_delivery WHERE status='pending' LIMIT 1"
     ).fetchone()
@@ -138,26 +144,26 @@ def _find_direct_recovery(db: sqlite3.Connection, current: datetime, cutoff: str
 def _find_legacy_delivery_or_context(db: sqlite3.Connection) -> WakeDecision | None:
     if _table_exists(db, "ticket_outbox"):
         row = db.execute(
-            "SELECT rowid FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
+            "SELECT rowid AS row_id FROM ticket_outbox WHERE delivery_status='pending' LIMIT 1"
         ).fetchone()
         if row is not None:
-            return WakeDecision(True, "delivery", str(row["rowid"]), "wake/delivery/outbox")
+            return WakeDecision(True, "delivery", str(row["row_id"]), "wake/delivery/outbox")
 
     if _table_exists(db, "cnx_context_maintenance"):
         row = db.execute(
-            "SELECT rowid FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
+            "SELECT rowid AS row_id FROM cnx_context_maintenance WHERE state IN ('pending','running','degraded') LIMIT 1"
         ).fetchone()
         if row is not None:
-            return WakeDecision(True, "session", str(row["rowid"]), "wake/session/context-maintenance")
+            return WakeDecision(True, "session", str(row["row_id"]), "wake/session/context-maintenance")
 
     if _table_exists(db, "cnx_direct_recovery"):
         cols = _columns(db, "cnx_direct_recovery")
         if cols == {"state"}:
             row = db.execute(
-                "SELECT rowid FROM cnx_direct_recovery WHERE state='awaiting_delivery' LIMIT 1"
+                "SELECT rowid AS row_id FROM cnx_direct_recovery WHERE state='awaiting_delivery' LIMIT 1"
             ).fetchone()
             if row is not None:
-                return WakeDecision(True, "delivery", str(row["rowid"]), "wake/delivery/direct-legacy")
+                return WakeDecision(True, "delivery", str(row["row_id"]), "wake/delivery/direct-legacy")
     return None
 
 
@@ -176,10 +182,11 @@ def _find_workflow_ticket(db: sqlite3.Connection) -> WakeDecision | None:
         ).fetchone()
     else:
         row = db.execute(
-            "SELECT ticket_id FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
+            "SELECT rowid AS row_id FROM tickets WHERE status NOT IN ('completed','failed','cancelled') LIMIT 1"
         ).fetchone()
     if row is not None:
-        return WakeDecision(True, "ticket", str(row["ticket_id"]), "wake/ticket")
+        work_id = str(row["ticket_id"]) if "ticket_id" in row.keys() else str(row["row_id"])
+        return WakeDecision(True, "ticket", work_id, "wake/ticket")
     return None
 
 
