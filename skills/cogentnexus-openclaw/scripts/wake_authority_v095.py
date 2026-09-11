@@ -78,14 +78,14 @@ def _find_pending_delivery(db: sqlite3.Connection, cutoff: str) -> WakeDecision 
     if {"owner_session_key", "owner_generation"}.issubset(delivery_columns) and _table_exists(db, "cnx_sessions"):
         rows = db.execute(
             """SELECT d.delivery_id, d.ticket_id, d.owner_session_key, d.owner_generation,
-                      d.updated_at, t.status AS ticket_status, s.state AS session_state,
-                      s.generation AS session_generation
+                      d.updated_at, d.kind, t.status AS ticket_status,
+                      s.state AS session_state, s.generation AS session_generation
                FROM cnx_assistant_delivery d
                JOIN tickets t ON t.ticket_id=d.ticket_id
                JOIN cnx_sessions s ON s.session_key=d.owner_session_key
                WHERE d.status='pending'
                  AND d.updated_at>=?
-                 AND t.status NOT IN ('completed','failed','cancelled')
+                 AND (t.status NOT IN ('completed','failed','cancelled') OR d.kind='direct_result')
                  AND s.state='active'
                  AND s.generation=d.owner_generation
                ORDER BY d.updated_at,d.delivery_id
