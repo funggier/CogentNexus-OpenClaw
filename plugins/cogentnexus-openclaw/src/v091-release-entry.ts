@@ -10,6 +10,7 @@ import {
 import { installV091DirectModelCallLease } from "./v091-direct-model-call-lease.js";
 import { installV095InferenceHookBridge } from "./v095-inference-hook-bridge.js";
 import { registerDiscordDeliveryAdapter } from "./v095-delivery-discord.js";
+import { registerWebchatDeliveryAdapter } from "./v095-delivery-webchat.js";
 import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boundary.js";
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
@@ -52,12 +53,18 @@ function isDiscordContext(ctx: any) {
   return ctx?.channel === "discord" || ctx?.messageProvider === "discord";
 }
 
+function isWebchatContext(ctx: any) {
+  return ctx?.channel === "webchat" || ctx?.messageProvider === "webchat";
+}
+
 const LEGACY_DISCORD_DELIVERY_HOOKS = new Set([
   "reply_dispatch",
   "reply_payload_sending",
   "message_sent",
   "before_message_write",
 ]);
+
+const LEGACY_WEBCHAT_DELIVERY_HOOKS = LEGACY_DISCORD_DELIVERY_HOOKS;
 
 function withDiscordLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Record<string, unknown>) {
   const runtimeApi: any = {
@@ -70,6 +77,25 @@ function withDiscordLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Re
       const fenced = (...args: any[]) => {
         const ctx = args[1];
         if (isDiscordContext(ctx)) return undefined;
+        return handler(...args);
+      };
+      return api.on(name as any, fenced as any, options);
+    },
+  };
+  return runtimeApi;
+}
+
+function withWebchatLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Record<string, unknown>) {
+  const runtimeApi: any = {
+    ...api,
+    pluginConfig,
+    on: (name: string, handler: (...args: any[]) => any, options?: any) => {
+      if (!LEGACY_WEBCHAT_DELIVERY_HOOKS.has(name)) {
+        return api.on(name as any, handler as any, options);
+      }
+      const fenced = (...args: any[]) => {
+        const ctx = args[1];
+        if (isWebchatContext(ctx)) return undefined;
         return handler(...args);
       };
       return api.on(name as any, fenced as any, options);
@@ -141,9 +167,10 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     // ProviderMode is retained only as compatibility metadata. The legacy
     // capability gates inspect it, so PASSTHROUGH is normalized to undefined
     // here rather than being allowed to disable CNX continuity/recovery.
-    // Legacy Discord delivery hooks are fenced at this boundary so Discord has
-    // exactly one v0.9.5 delivery authority: the canonical adapter below.
-    const runtimeApi = withDiscordLegacyDeliveryFence(api, config);
+    // Legacy Discord and Web Chat delivery hooks are fenced at this boundary so
+    // each surface has exactly one v0.9.5 delivery authority: its canonical adapter.
+    const discordFencedApi = withDiscordLegacyDeliveryFence(api, config);
+    const runtimeApi = withWebchatLegacyDeliveryFence(discordFencedApi, config);
 
     // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
     // concurrently with Host-owned CogentNexus-OpenClaw Direct Recovery. Consume only
@@ -160,6 +187,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       installV091DirectModelCallLease(api);
       installV095InferenceHookBridge(runtimeApi);
       installV091DashboardVerifiedDelivery(runtimeApi, config);
+      registerWebchatDeliveryAdapter(api);
       registerDiscordDeliveryAdapter(api);
     };
 

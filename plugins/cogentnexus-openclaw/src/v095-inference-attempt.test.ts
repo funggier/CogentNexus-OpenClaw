@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { TicketStore } from "./ticket-store.js";
-import { sessionAuthority } from "./v090.js";
+import { cancelSessionByKey, deleteSessionByKey, finalizeSessionDeletion, reactivateSessionForLifecycle, sessionAuthority } from "./v090.js";
 import { beginInferenceAttempt, bindRunId, findInferenceAttempt, finishInferenceAttempt } from "./v095-inference-attempt.js";
 
 describe("v0.9.5 canonical inference attempt identity", () => {
@@ -70,6 +70,71 @@ describe("v0.9.5 canonical inference attempt identity", () => {
         expect(ended).toMatchObject({ state: "ended", outcome: "completed", runId: "run-b", callId: "call-db" });
         expect(() => finishInferenceAttempt(db, attempt.attemptId, "late-error")).toThrow(/not active/i);
         expect(db.prepare("SELECT attempt_id,ticket_id,session_key,session_generation,run_id,call_id,provider,model,state,outcome FROM cnx_inference_attempt WHERE attempt_id=?").get(attempt.attemptId)).toMatchObject({ attempt_id: attempt.attemptId, ticket_id: ticket.ticketId, session_key: sessionKey, session_generation: 0, run_id: "run-b", call_id: "call-db", provider: null, model: null, state: "ended", outcome: "completed" });
+      } finally { db.close(); }
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("fails closed when a live inference attempt tries to bind a run after its owner generation rotated", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v095-inference-attempt-fence-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const sessionKey = "agent:main:webchat:channel:v095-generation-fence";
+      const store = new TicketStore(databasePath);
+      sessionAuthority(databasePath, sessionKey);
+      const ticket = store.accept({ runId: "legacy-run-fence", ownerSessionKey: sessionKey, prompt: "generation fence" });
+      store.route(ticket.ticketId, false);
+      const db = new DatabaseSync(databasePath);
+      try {
+        const attempt = beginInferenceAttempt(db, {
+          ticketId: ticket.ticketId,
+          sessionKey,
+          sessionGeneration: 0,
+          callId: "call-fence",
+          provider: "ollama",
+          model: "m1",
+        });
+        cancelSessionByKey(databasePath, { sessionKey, message: "rotate owner generation" });
+        expect(sessionAuthority(databasePath, sessionKey).generation).toBe(1);
+        expect(() => bindRunId(db, attempt.attemptId, "run-fence")).toThrow(/owner generation is stale|owner session is not active/i);
+        expect(findInferenceAttempt(db, "run-fence", "call-fence")).toBeNull();
+      } finally { db.close(); }
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("keeps a prior physical-session attempt fenced after delete and recreation reuses the tombstoned generation", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v095-inference-attempt-recreate-fence-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const sessionKey = "agent:main:webchat:channel:v095-recreate-fence";
+      const store = new TicketStore(databasePath);
+      const firstLifecycle = reactivateSessionForLifecycle(databasePath, { sessionKey, sessionId: "physical-S1" });
+      expect(firstLifecycle.generation).toBe(0);
+      const ticket = store.accept({ runId: "legacy-run-recreate", ownerSessionKey: sessionKey, prompt: "recreate fence" });
+      store.route(ticket.ticketId, false);
+      const db = new DatabaseSync(databasePath);
+      try {
+        const oldAttempt = beginInferenceAttempt(db, {
+          ticketId: ticket.ticketId,
+          sessionKey,
+          sessionGeneration: firstLifecycle.generation,
+          callId: "call-old-physical-session",
+          provider: "ollama",
+          model: "m1",
+        });
+
+        deleteSessionByKey(databasePath, {
+          sessionKey,
+          sessionId: "physical-S1",
+          message: "replace physical session",
+        });
+        finalizeSessionDeletion(databasePath, sessionKey, "replace physical session");
+        const recreated = reactivateSessionForLifecycle(databasePath, { sessionKey, sessionId: "physical-S2" });
+        expect(recreated.generation).toBe(1);
+        expect(recreated.sessionId).toBe("physical-S2");
+
+        expect(() => bindRunId(db, oldAttempt.attemptId, "run-old-physical-session")).toThrow(/owner generation is stale|owner session is not active/i);
+        expect(() => finishInferenceAttempt(db, oldAttempt.attemptId, "late-old-session-result")).toThrow(/owner generation is stale|owner session is not active/i);
+        expect(findInferenceAttempt(db, "run-old-physical-session", "call-old-physical-session")).toBeNull();
       } finally { db.close(); }
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
