@@ -26,7 +26,8 @@ class DeliveryWakeIdentityTests(unittest.TestCase):
         return root
 
     def _seed(self, root: Path, *, status: str = "accepted", kind: str = "notice", attempt_count: int = 0,
-              updated_at: datetime | None = None, claim_expires_at: datetime | None = None) -> int:
+              updated_at: datetime | None = None, claim_token: str | None = None,
+              claim_expires_at: datetime | None = None) -> int:
         path = root / "runtime" / "cogentnexus-openclaw.sqlite3"
         db = sqlite3.connect(path)
         db.executescript("""
@@ -52,9 +53,9 @@ class DeliveryWakeIdentityTests(unittest.TestCase):
         cursor = db.execute(
             """INSERT INTO cnx_assistant_delivery(
                  ticket_id,owner_session_key,owner_generation,kind,text,target_json,
-                 idempotency_key,status,attempt_count,created_at,updated_at,claim_expires_at)
-               VALUES ('T1','S1',2,?,'answer','{"kind":"notice"}','k1','pending',?,?,?,?)""",
-            (kind, attempt_count, stamp, stamp, lease),
+                 idempotency_key,status,attempt_count,created_at,updated_at,claim_token,claim_expires_at)
+               VALUES ('T1','S1',2,?,'answer','{"kind":"notice"}','k1','pending',?,?,?, ?, ?)""",
+            (kind, attempt_count, stamp, stamp, claim_token, lease),
         )
         db.commit(); db.close()
         return int(cursor.lastrowid)
@@ -72,13 +73,16 @@ class DeliveryWakeIdentityTests(unittest.TestCase):
 
     def test_held_lease_is_not_a_second_wake_source(self):
         root = self._root()
-        self._seed(root, claim_expires_at=self.NOW + timedelta(seconds=30))
+        self._seed(root, claim_token="claim-1", claim_expires_at=self.NOW + timedelta(seconds=30))
         self.assertIsNone(delivery.next_actionable_delivery(root, self.NOW))
 
-    def test_old_retry_after_attempt_is_not_a_permanent_wake_source(self):
+    def test_retry_after_previous_attempt_is_due_again(self):
         root = self._root()
-        self._seed(root, attempt_count=2, updated_at=self.NOW - timedelta(minutes=10))
-        self.assertIsNone(delivery.next_actionable_delivery(root, self.NOW))
+        item_id = self._seed(root, attempt_count=2, updated_at=self.NOW - timedelta(minutes=10))
+        item = delivery.next_actionable_delivery(root, self.NOW)
+        self.assertIsNotNone(item)
+        self.assertEqual(item["delivery_id"], item_id)
+        self.assertEqual(item["attempt_count"], 2)
 
     def test_direct_result_remains_actionable_after_completed_ticket(self):
         root = self._root()
