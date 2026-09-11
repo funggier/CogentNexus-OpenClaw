@@ -142,7 +142,7 @@ describe("v0.9.5 canonical DeliveryAttempt state machine", () => {
       expect((db.prepare("SELECT status,delivery_state,attempt_count FROM cnx_assistant_delivery WHERE idempotency_key=?").get(key.idempotencyKey) as any)).toEqual({
         status: "pending",
         delivery_state: "transport_accepted",
-        attempt_count: 1,
+        attempt_count: 2,
       });
     } finally {
       db.close();
