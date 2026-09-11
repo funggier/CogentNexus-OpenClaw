@@ -65,7 +65,7 @@ jobs:
 
           patch('plugins/cogentnexus-openclaw/src/v090.ts', [
               ('const stamp = now(), generation = currentGeneration + 1;', 'const stamp = now(), generation = currentGeneration;'),
-              ('    const assistantSuppressed = Number(db.prepare(\n      "DELETE FROM cnx_assistant_delivery WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(input.sessionKey).changes);', '    const assistantSuppressed = Number(db.prepare(\n      "UPDATE cnx_assistant_delivery SET status=\'delivered\',delivery_state=\'cancelled\',last_error=?,updated_at=?,delivered_at=? WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(reason, stamp, stamp, input.sessionKey).changes);'),
+              ('    const assistantSuppressed = Number(db.prepare(\n      "DELETE FROM cnx_assistant_delivery WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(input.sessionKey).changes);', '    const assistantSuppressed = Number(db.prepare(\n      "UPDATE cnx_assistant_delivery SET last_error=?,updated_at=? WHERE owner_session_key=? AND status=\'pending\'",\n    ).run(reason, stamp, input.sessionKey).changes);'),
           ])
 
           # Existing lifecycle tests must assert the repaired tombstone-generation invariant.
@@ -86,7 +86,7 @@ jobs:
               ('  const rows = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND status=\'accepted\'\n      AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id) return { ticket: undefined, ambiguous: rows.length > 1 };', '  const rows = db.prepare(`SELECT ticket_id,owner_session_key,status FROM tickets\n    WHERE run_id=? AND owner_session_key=? AND workflow_eligible=0 AND workflow_id IS NULL\n    ORDER BY ticket_id`).all(runId, sessionKey) as Array<{ ticket_id?: string; owner_session_key?: string; status?: string }>;\n  if (rows.length !== 1 || !rows[0]?.ticket_id || rows[0].status !== "accepted") return { ticket: undefined, ambiguous: rows.length > 1 };'),
           ])
 
-          # Keep a cancelled delivery attempt as durable evidence so late operations fail on the ownership fence, not as "not found".
+          # Keep the delivery attempt as durable evidence; ownership fence rejects late staging after session deletion.
           patch('plugins/cogentnexus-openclaw/src/v095-delivery-core.ts', [
               ('    if (current.state === "staged") {\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);', '    if (current.state === "staged") {\n      assertCurrentOwner(db, current);\n      db.exec("COMMIT");\n      return current;\n    }\n    assertCurrentOwner(db, current);'),
           ])
