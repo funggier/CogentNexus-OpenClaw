@@ -68,7 +68,7 @@ def durable_work_hint(root: Path, now: str | None = None) -> bool:
 
 
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
-    """Use one canonical durable wake decision before any provider/heavy work."""
+    """Use one canonical durable wake decision before provider/heavy work."""
     legacy.initialize(root)
     state = legacy.load_state(root)
     if state.get("mode") != "managed":
@@ -81,8 +81,34 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     if not gateway_ok:
         time.sleep(HARD_HANG_CONFIRM_DELAY_SECONDS)
         gateway_ok = gateway_fast_probe()
-        if not gateway_ok and execute_safe:
-            hard_hang_restart = _restart_unresponsive_gateway(root)
+        if not gateway_ok:
+            if execute_safe:
+                hard_hang_restart = _restart_unresponsive_gateway(root)
+                return {
+                    "result": "gateway-recovery",
+                    "action": "gateway-recovery",
+                    "wakeAuthority": "none",
+                    "wakeWorkId": None,
+                    "wakeReason": "gateway/unresponsive",
+                    "probe": "lightweight-http+sqlite-ro",
+                    "gatewayHealthy": False,
+                    "durableWorkPending": False,
+                    "providerRequired": False,
+                    "heavyPath": False,
+                    "hardHangRecovery": hard_hang_restart,
+                }
+            return {
+                "result": "gateway-unhealthy",
+                "action": "gateway-status",
+                "wakeAuthority": "none",
+                "wakeWorkId": None,
+                "wakeReason": "gateway/unresponsive",
+                "probe": "lightweight-http+sqlite-ro",
+                "gatewayHealthy": False,
+                "durableWorkPending": False,
+                "providerRequired": False,
+                "heavyPath": False,
+            }
 
     decision = classify_wake(root)
     if not decision.actionable:
@@ -94,11 +120,11 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
             "wakeReason": decision.reason,
             "probe": "lightweight-http+sqlite-ro",
             "gatewayHealthy": gateway_ok,
+            "providerRequired": False,
+            "providerHealthy": None,
             "durableWorkPending": False,
             "heavyPath": False,
         }
-        if hard_hang_restart is not None:
-            result["hardHangRecovery"] = hard_hang_restart
         return result
 
     result = _LEGACY_SUPERVISOR_TICK(root, execute_safe)
