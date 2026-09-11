@@ -80,12 +80,17 @@ class DeliveryWakeIdentityTests(unittest.TestCase):
         self._seed(root, attempt_count=2, updated_at=self.NOW - timedelta(minutes=10))
         self.assertIsNone(delivery.next_actionable_delivery(root, self.NOW))
 
-    def test_direct_result_remains_actionable_after_terminal_ticket(self):
+    def test_direct_result_remains_actionable_after_completed_ticket(self):
         root = self._root()
         delivery_id = self._seed(root, status="completed", kind="direct_result")
         item = delivery.next_actionable_delivery(root, self.NOW)
         self.assertIsNotNone(item)
         self.assertEqual(item["delivery_id"], delivery_id)
+
+    def test_direct_result_does_not_bypass_cancelled_ticket(self):
+        root = self._root()
+        self._seed(root, status="cancelled", kind="direct_result")
+        self.assertIsNone(delivery.next_actionable_delivery(root, self.NOW))
 
 
 if __name__ == "__main__":
