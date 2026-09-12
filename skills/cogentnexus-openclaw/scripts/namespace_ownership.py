@@ -15,8 +15,8 @@ from typing import Any
 
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
-INSTALLED_VERSION = "0.9.4"
-UPGRADE_FROM_VERSIONS = ("0.9.3",)
+INSTALLED_VERSION = "0.9.5"
+UPGRADE_FROM_VERSIONS = ("0.9.4",)
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
@@ -1210,7 +1210,8 @@ def build_plugin_rollover_plan(*, root: Path, workspace: Path, application_data:
     workspace = workspace.resolve(strict=False)
     application_data = application_data.resolve(strict=False)
     state = _exact_rollover_state(
-        root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        root=root, workspace=workspace, application_data=application_data,
+        plugin_inventory=plugin_inventory,
         expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(
