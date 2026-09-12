@@ -857,9 +857,15 @@ def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: 
 
 
 def _exact_rollover_state(*, root: Path, workspace: Path,
+                          application_data: Path,
                           plugin_inventory: dict[str, Any],
                           expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     paths = expected_paths(workspace)
+    application_data = application_data.resolve(strict=False)
+    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(
+        application_data, paths["openclawState"]
+    ):
+        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")
     mode = _require_passthrough(root)
     manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
@@ -1330,6 +1336,7 @@ def apply_plugin_rollover_plan(*, plan_path: Path, expected_plan_sha256: str,
     expected_replacement_fingerprint = plan.get("expectedReplacementFingerprint")
     state = _exact_rollover_state(
         root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        application_data=application_data,
         expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     exact_bindings = {
@@ -1528,6 +1535,7 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
             }
         state = _exact_rollover_state(
             root=paths["stateRoot"], workspace=workspace,
+            application_data=app_data or paths["applicationData"],
             plugin_inventory=plugin_inventory,
             expected_replacement_fingerprint=expected_replacement_fingerprint,
         )
