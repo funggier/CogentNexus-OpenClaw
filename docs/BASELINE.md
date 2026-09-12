@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # CogentNexus-OpenClaw Recovery Architecture Baseline
 
 This document records accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current public-release identity.

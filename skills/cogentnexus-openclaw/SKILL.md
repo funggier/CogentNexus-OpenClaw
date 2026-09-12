@@ -3,6 +3,8 @@ name: "CogentNexus-OpenClaw"
 description: "Durable Host-managed recovery, lifecycle control, and verified execution for OpenClaw work that needs CogentNexus-OpenClaw machinery."
 ---
 
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # CogentNexus-OpenClaw
 
 CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
