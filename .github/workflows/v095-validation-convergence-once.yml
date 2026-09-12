@@ -36,41 +36,76 @@ jobs:
               p.write_text(updated, encoding="utf-8")
               return True
 
-          # Production: pass the same externally-bound application-data root
-          # already used by the plan/apply path into every exact-state check.
+          # Production: add the required externally-bound application-data argument
+          # to _exact_rollover_state and every internal invocation that lacks it.
           p = Path("skills/cogentnexus-openclaw/scripts/namespace_ownership.py")
           s = p.read_text(encoding="utf-8")
-          sig = r"def _exact_rollover_state\(\*, root: Path, workspace: Path,\n"
-          s, count = re.subn(
-              sig,
-              "def _exact_rollover_state(*, root: Path, workspace: Path,\\n                          application_data: Path,\\n",
-              s,
-              count=1,
+          signature = re.compile(
+              r"def _exact_rollover_state\(\*, root: Path, workspace: Path,\n"
           )
-          if count != 1:
-              raise SystemExit("could not locate _exact_rollover_state signature")
+          if "application_data: Path" not in s[s.find("def _exact_rollover_state"):s.find("def _exact_rollover_state") + 300]:
+              s, count = signature.subn(
+                  "def _exact_rollover_state(*, root: Path, workspace: Path,\n"
+                  "                          application_data: Path,\n",
+                  s,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit("could not locate _exact_rollover_state signature")
 
-          old_apply = '''state = _exact_rollover_state(\n            root=root, workspace=workspace, plugin_inventory=plugin_inventory,\n            expected_replacement_fingerprint=expected_replacement_fingerprint,\n        )'''
-          new_apply = '''state = _exact_rollover_state(\n            root=root, workspace=workspace,\n            application_data=application_data,\n            plugin_inventory=plugin_inventory,\n            expected_replacement_fingerprint=expected_replacement_fingerprint,\n        )'''
-          if old_apply not in s:
-              raise SystemExit("could not locate apply_plugin_rollover_plan exact-state call")
-          s = s.replace(old_apply, new_apply, 1)
+          call_re = re.compile(
+              r"(?P<indent>^[ ]*)state = _exact_rollover_state\(\n"
+              r"(?P<body>(?:^[ ]+.*\n)+?)"
+              r"(?P=indent)\)",
+              re.MULTILINE,
+          )
 
-          old_classify = '''state = _exact_rollover_state(\n                root=paths["stateRoot"], workspace=workspace,\n                plugin_inventory=plugin_inventory,\n                expected_replacement_fingerprint=expected_replacement_fingerprint,\n            )'''
-          new_classify = '''state = _exact_rollover_state(\n                root=paths["stateRoot"], workspace=workspace,\n                application_data=app_data or paths["applicationData"],\n                plugin_inventory=plugin_inventory,\n                expected_replacement_fingerprint=expected_replacement_fingerprint,\n            )'''
-          if old_classify not in s:
-              raise SystemExit("could not locate classify_install exact-state call")
-          s = s.replace(old_classify, new_classify, 1)
+          def patch_call(match):
+              body = match.group("body")
+              indent = match.group("indent") + "    "
+              if "application_data=" in body:
+                  return match.group(0)
+              if 'root=paths["stateRoot"]' in body:
+                  app_line = indent + 'application_data=app_data or paths["applicationData"],\n'
+              else:
+                  app_line = indent + "application_data=application_data,\n"
+              lines = body.splitlines(True)
+              for i, line in enumerate(lines):
+                  if "workspace=workspace" in line:
+                      lines.insert(i + 1, app_line)
+                      break
+              else:
+                  raise SystemExit("could not place application_data in _exact_rollover_state call")
+              return match.group("indent") + "state = _exact_rollover_state(\n" + "".join(lines) + match.group("indent") + ")"
 
-          # Keep the application-data invariant inside the shared helper too.
-          marker = '''    paths = expected_paths(workspace)\n    mode = _require_passthrough(root)'''
-          replacement = '''    paths = expected_paths(workspace)\n    application_data = application_data.resolve(strict=False)\n    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(\n        application_data, paths["openclawState"]\n    ):\n        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")\n    mode = _require_passthrough(root)'''
-          if marker not in s:
-              raise SystemExit("could not locate exact-state initialization")
-          s = s.replace(marker, replacement, 1)
+          s, patched_calls = call_re.subn(patch_call, s)
+          if patched_calls < 2:
+              raise SystemExit(f"expected at least two _exact_rollover_state call sites, matched {patched_calls}")
+
+          # Enforce the external application-data boundary inside the shared helper.
+          helper_start = s.find("def _exact_rollover_state")
+          if helper_start < 0:
+              raise SystemExit("_exact_rollover_state disappeared after patch")
+          helper_end = s.find("\ndef ", helper_start + 10)
+          if helper_end < 0:
+              helper_end = len(s)
+          helper = s[helper_start:helper_end]
+          marker = '    paths = expected_paths(workspace)\n    mode = _require_passthrough(root)'
+          if marker in helper:
+              replacement = (
+                  '    paths = expected_paths(workspace)\n'
+                  '    application_data = application_data.resolve(strict=False)\n'
+                  '    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(\n'
+                  '        application_data, paths["openclawState"]\n'
+                  '    ):\n'
+                  '        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")\n'
+                  '    mode = _require_passthrough(root)'
+              )
+              helper = helper.replace(marker, replacement, 1)
+              s = s[:helper_start] + helper + s[helper_end:]
           p.write_text(s, encoding="utf-8")
 
-          # Current-version fixture defaults.
+          # Current-version test fixtures: synthetic current installs must be 0.9.5.
           replace(
               "tests/test_plugin_generation_rollover.py",
               'def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.4") -> Path:',
@@ -78,14 +113,22 @@ jobs:
           )
           replace(
               "tests/test_plugin_generation_rollover.py",
-              '            "version": "0.9.4",',
-              '            "version": "0.9.5",',
+              '        "version": "0.9.4",\n        "rootDir": ownership._canonical(paths["new_plugin"]),',
+              '        "version": "0.9.5",\n        "rootDir": ownership._canonical(paths["new_plugin"]),',
               required=False,
           )
+
           replace(
               "tests/test_namespace_ownership.py",
               'def write_plugin(root: Path, *, marker="same", version="0.9.4") -> Path:',
               'def write_plugin(root: Path, *, marker="same", version="0.9.5") -> Path:',
+              required=False,
+          )
+          replace(
+              "tests/test_namespace_ownership.py",
+              'payload["installedVersion"] = "0.9.3"',
+              'payload["installedVersion"] = "0.9.4"',
+              required=False,
           )
 
           lp = Path("tests/test_lifecycle_v092.py")
@@ -96,58 +139,54 @@ jobs:
           ls = ls.replace('write_payload(second, "0.9.4"', 'write_payload(second, "0.9.5"')
           lp.write_text(ls, encoding="utf-8")
 
-          # v0.9.5 is the current release; v0.9.4 is the immediate upgrade source.
           replace(
-              "tests/test_namespace_ownership.py",
-              'payload["installedVersion"] = "0.9.3"',
-              'payload["installedVersion"] = "0.9.4"',
+              "tests/test_baseline_checker_v093.py",
+              'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"',
+              'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.5"',
               required=False,
           )
           replace(
-              "tests/test_plugin_generation_rollover.py",
-              '            "version": "0.9.4",\n',
-              '            "version": "0.9.5",\n',
+              "tests/test_baseline_contract.py",
+              'self.assertEqual(core_version, "0.9.4")',
+              'self.assertEqual(core_version, "0.9.5")',
               required=False,
           )
           replace(
-              "tests/test_plugin_generation_rollover.py",
-              '            "version": ownership.UPGRADE_FROM_VERSIONS[0],',
-              '            "version": ownership.UPGRADE_FROM_VERSIONS[0],',
+              "tests/test_baseline_contract.py",
+              'self.assertEqual(bridge_version, "0.9.4")',
+              'self.assertEqual(bridge_version, "0.9.5")',
               required=False,
           )
-
-          replace("tests/test_baseline_checker_v093.py",
-                  'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"',
-                  'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.5"',
-                  required=False)
-          replace("tests/test_baseline_contract.py",
-                  'self.assertEqual(core_version, "0.9.4")',
-                  'self.assertEqual(core_version, "0.9.5")',
-                  required=False)
-          replace("tests/test_baseline_contract.py",
-                  'self.assertEqual(bridge_version, "0.9.4")',
-                  'self.assertEqual(bridge_version, "0.9.5")',
-                  required=False)
-          replace("tests/test_namespace_install_contract.py",
-                  'name="cogentnexus-openclaw-v0.9.4"',
-                  'name="cogentnexus-openclaw-v0.9.5"',
-                  required=False)
-          replace("tests/test_release_version_094_contract.py",
-                  'EXPECTED = "0.9.4"',
-                  'EXPECTED = "0.9.5"',
-                  required=False)
-          replace("tests/test_release_version_094_contract.py",
-                  'assert "v0.9.4" in text, relative',
-                  'assert "v0.9.5" in text, relative',
-                  required=False)
-          replace("docs/CLEAN_REINSTALL.md",
-                  'then runs the v0.9.4 installer',
-                  'then runs the v0.9.5 installer',
-                  required=False)
-          replace("docs/CLEAN_REINSTALL.th.md",
-                  'ติดตั้ง v0.9.4 ใหม่',
-                  'ติดตั้ง v0.9.5 ใหม่',
-                  required=False)
+          replace(
+              "tests/test_namespace_install_contract.py",
+              'name="cogentnexus-openclaw-v0.9.4"',
+              'name="cogentnexus-openclaw-v0.9.5"',
+              required=False,
+          )
+          replace(
+              "tests/test_release_version_094_contract.py",
+              'EXPECTED = "0.9.4"',
+              'EXPECTED = "0.9.5"',
+              required=False,
+          )
+          replace(
+              "tests/test_release_version_094_contract.py",
+              'assert "v0.9.4" in text, relative',
+              'assert "v0.9.5" in text, relative',
+              required=False,
+          )
+          replace(
+              "docs/CLEAN_REINSTALL.md",
+              'then runs the v0.9.4 installer',
+              'then runs the v0.9.5 installer',
+              required=False,
+          )
+          replace(
+              "docs/CLEAN_REINSTALL.th.md",
+              'ติดตั้ง v0.9.4 ใหม่',
+              'ติดตั้ง v0.9.5 ใหม่',
+              required=False,
+          )
 
       - name: Check focused regression set
         shell: bash
