@@ -1,9 +1,9 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 ---
 name: "CogentNexus-OpenClaw"
 description: "Durable Host-managed recovery, lifecycle control, and verified execution for OpenClaw work that needs CogentNexus-OpenClaw machinery."
 ---
+
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
 
 # CogentNexus-OpenClaw
 
