@@ -1,55 +1,62 @@
 # Active Coordination Task
 
-Status: `COMPLETED`
-State: `V095_PLAN2_SESSION_GENERATION`
+Status: `READY_FOR_HERMES`
+State: `V0.9.5_FINAL_ACCEPTANCE`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260911-PLAN2`
-Parent: `CNX-20260909-315`
-Base release: `v0.9.4`
-Base commit: `1e81b3cb9a8fe31a8e4df90563f15a3cde255c59`
-Implementation head: `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`
-Merged main: `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`
+Task ID: `CNX-20260913-316`
+Parent: `CNX-20260913-V095-FINALIZATION-BLOCKED`
+Executor: `Hermes`
+Reviewer: `ChatGPT`
+Release candidate: `a986f3261b1570d1bcb1574d2458fe7068207a9c`
+Candidate branch: `feat/v0.9.5-release-readiness-clean`
+Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Objective
 
-Complete the remaining Plan 2 session-generation contract after the verified Plan 1 architecture repair was merged into `main`.
+Provide a durable, auditable authority for final v0.9.5 live acceptance against the frozen candidate. The purpose of this task is to collect the missing runtime evidence needed to resolve the release blockers without mutating the frozen candidate or promoting the release prematurely.
 
-## Completed outcome
+## Authorized scope
 
-- Pure `shouldAdvanceSessionGeneration()` contract implemented and wired through physical deletion.
-- Provider/model/runtime events remain generation-neutral when the physical session is unchanged.
-- Canonical `cnx_sessions` remains the sole durable lifecycle authority.
-- InferenceAttempt stale-owner fencing is enforced at bind and finish.
-- Delivery Core stale-owner fencing is enforced on normal and idempotent settlement paths.
-- Delete/recreate regression proves stale S1 evidence cannot cross into recreated S2 when the tombstoned generation is reused.
-- Plan 2 implementation head passed the required pre-merge validation matrix.
-- PR #30 was merged into `main` after explicit operator authorization.
+Hermes is explicitly authorized to perform the following bounded live actions on the acceptance machine:
 
-## Identity decision
+- install-over the exact candidate `a986f3261b1570d1bcb1574d2458fe7068207a9c` using a supported repository-defined installation path;
+- verify installed version, provenance, and candidate fingerprint before acceptance;
+- enable/activate the CogentNexus-OpenClaw plugin when required by the supported acceptance procedure;
+- run the live Provider Switch Acceptance defined by `docs/operations/acceptance/V095_PROVIDER_SWITCH_ACCEPTANCE.md`;
+- observe idle behavior for the required supervisor cadences and run the idle-quiescence evidence checker;
+- perform the required controlled actionable wake with exactly one durable work item;
+- collect raw logs, checker output, identity evidence, timestamps, and final PASS/FAIL/INDETERMINATE verdicts;
+- create or update an evidence report on a report/evidence branch derived from this authority branch.
 
-The earlier concern that downstream attempt/delivery rows do not duplicate `sessionId` was formally discharged by the stronger durable generation invariant: deletion advances the authoritative generation before tombstoning; recreation reuses that tombstoned generation; stale work from the prior lifecycle therefore carries the older generation and is rejected by current-owner checks.
+These permissions are explicit and supersede the previous blocker caused by the absence of a `READY_FOR_HERMES` authority. They do not authorize release promotion.
 
-No second session authority was introduced.
+## Required execution order
 
-## Verification
+1. Fresh-fetch this authority branch and the frozen candidate.
+2. Inspect current installed provenance and verify the target machine is within scope.
+3. Install-over the exact candidate through the supported path and verify the installed fingerprint.
+4. Enable the plugin through the supported path and verify runtime health.
+5. Execute Provider Switch Acceptance.
+6. Execute Idle Quiescence Acceptance for at least two supervisor cadences.
+7. Execute Controlled Actionable Wake with one durable work item.
+8. Preserve raw evidence and update the final acceptance report.
+9. Re-check candidate immutability and report all outcomes.
+10. Stop before merge, tag, GitHub Release, or other release promotion.
 
-Final implementation head `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`:
+## Hard fences
 
-- Validate #4030 / run `34625800173` — success
-- PS5.1 Acceptance Smoke #2917 / run `34625800234` — success
-- PS5.1 Live Runner Smoke #842 / run `34625800226` — success
-- Windows Installer Pack Smoke #2908 / run `34625799984` — success
+- Do not modify `a986f3261b1570d1bcb1574d2458fe7068207a9c` or its candidate branch unless a separately proven defect requires a new candidate and requalification.
+- Do not merge PR #38.
+- Do not create or move the `v0.9.5` tag.
+- Do not publish a GitHub Release.
+- Do not mutate or expose credentials, API keys, tokens, cookies, or secrets.
+- Do not perform unrelated configuration, scheduled-task, service, Gateway, provider-routing, or system maintenance.
+- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state except through the documented acceptance procedure's normal supported operations.
+- Do not classify missing evidence as PASS.
+- If a destructive or broader action is required beyond this scope, stop and report `BLOCKED` with the exact boundary.
 
-Post-merge Actions were dispatched for `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`. At closeout verification, Acceptance #2918 and Installer #2909 were successful; Validate #4031 was still running, so post-merge full-matrix success is not claimed here.
+## Evidence contract
 
-## Hard fences observed
+The final report must bind every live result to the exact candidate SHA and include environment, installed version/fingerprint, provider sequence, session/Ticket/run identity, generation/ownership evidence, idle checker output, controlled-wake evidence, timestamps, commands/procedure, and explicit verdicts.
 
-- No force push.
-- No release/tag/public-version mutation.
-- No provider/model/auth routing mutation.
-- No second session store.
-- Exact Ticket, InferenceAttempt, DeliveryAttempt, sessionId, and generation ownership semantics preserved.
-
-## Next authority
-
-Plan 2 is closed. Future work should begin from `main` at merge commit `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c` and use a new task/branch; do not reopen this completed coordination state.
+The final release status must remain `BLOCKED` unless every required acceptance gate is directly proven PASS. This task itself does not authorize merge or release promotion.
