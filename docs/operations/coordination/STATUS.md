@@ -1,52 +1,52 @@
 # Coordination Channel Status
 
-Status: `COMPLETED`
-State: `V095_PLAN2_SESSION_GENERATION`
+Status: `READY_FOR_HERMES`
+State: `V0.9.5_FINAL_ACCEPTANCE`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260911-PLAN2`
-Parent: `CNX-20260909-315`
-Base release: `v0.9.4`
-Base commit: `1e81b3cb9a8fe31a8e4df90563f15a3cde255c59`
-Implementation head: `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`
-Merged main: `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`
+Task ID: `CNX-20260913-316`
+Parent: `CNX-20260913-V095-FINALIZATION-BLOCKED`
+Executor: `Hermes`
+Reviewer: `ChatGPT`
+Release candidate: `a986f3261b1570d1bcb1574d2458fe7068207a9c`
+Candidate branch: `feat/v0.9.5-release-readiness-clean`
+Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Current position
 
-Plan 2 session-generation work is complete and merged into `main`.
+v0.9.5 automated validation is green on the frozen candidate, but finalization is blocked because live provider-switch, idle-quiescence, and controlled-wake evidence have not yet been proven on the target runtime.
 
-The implementation centralizes the physical-session generation decision without creating a second session authority. `cnx_sessions` remains authoritative for lifecycle state, `session_id`, and generation.
+The previous coordination state was `COMPLETED` and explicitly required future work to use a new task/branch. This successor task now supplies that durable execution authority.
 
-## Completed gates
+## Authorized next work
 
-- Pure generation decision contract implemented and wired through physical deletion.
-- Provider/model/runtime events remain generation-neutral when the physical session is unchanged.
-- InferenceAttempt bind/finish stale-owner fencing is present.
-- Delivery Core normal and idempotent settlement paths enforce current owner generation.
-- Delete/recreate regression proves stale prior-session evidence cannot cross the recreated lifecycle when the tombstoned generation is reused.
-- Final implementation head passed the required four pre-merge GitHub workflows.
-- PR #30 merged into `main` as `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`.
+Hermes may install-over and enable the exact frozen candidate through supported repository-defined paths, then execute the documented live acceptance sequence:
 
-## Final implementation evidence
+1. exact-candidate installation/provenance verification;
+2. Provider Switch Acceptance;
+3. Idle Quiescence Acceptance for at least two supervisor cadences;
+4. Controlled Actionable Wake using one durable work item;
+5. evidence collection and report update.
 
-`27e7f02af4556f9cd4ceede0c53122ce039ecdd0`
-
-- Validate #4030 / `34625800173` — success
-- PS5.1 Acceptance Smoke #2917 / `34625800234` — success
-- PS5.1 Live Runner Smoke #842 / `34625800226` — success
-- Windows Installer Pack Smoke #2908 / `34625799984` — success
-
-## Post-merge status
-
-Merge commit `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c` dispatched push-triggered Actions. At closeout verification, PS5.1 Acceptance Smoke #2918 and Windows Installer Pack Smoke #2909 were successful, while Validate #4031 was still running. A post-merge Live Runner result was not independently observed in the available connector view. No full post-merge four-workflow green claim is made.
+This authority does not authorize merge, tag creation, GitHub Release publication, or unrelated system/configuration mutation.
 
 ## Hard fences
 
-- No force push.
-- No release/tag/public-version mutation.
-- No provider/model/auth routing mutation.
-- No second session store.
-- Preserve exact sessionId/generation ownership and stale-work fences.
+- Preserve candidate `a986f3261b1570d1bcb1574d2458fe7068207a9c` unless a separately proven defect requires a new candidate and full requalification.
+- No credentials, API keys, tokens, cookies, or secrets may be recorded or exposed.
+- No manual Ticket/SQLite/session/transcript/delivery mutation outside documented normal acceptance operations.
+- No unrelated service, Scheduled Task, Gateway, provider-routing, or configuration mutation.
+- Missing evidence remains `INDETERMINATE`; never infer PASS.
+- Stop and report `BLOCKED` when an action exceeds the task's explicit scope.
 
-## Next authority
+## Release gate state at task start
 
-Future work starts from `main` at `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c` with a new task/branch. This coordination state is complete.
+```text
+Automated Validation      PASS
+Provider Switch           INDETERMINATE
+Idle Quiescence           INDETERMINATE
+Controlled Wake           INDETERMINATE
+Finalization              BLOCKED
+Merge                     None
+Tag                       None
+Release                   Not published
+```
