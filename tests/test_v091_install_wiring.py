@@ -16,7 +16,7 @@ def host_contract_source() -> str:
 
 
 class V091InstallWiringTests(unittest.TestCase):
-    def test_installers_keep_v091_host_core_and_enter_through_v093_cli(self):
+    def test_installers_keep_v091_host_core_and_enter_through_v095_cli(self):
         ps = (ROOT / "scripts/install.ps1").read_text(encoding="utf-8")
         sh = (ROOT / "scripts/install.sh").read_text(encoding="utf-8")
 
@@ -24,9 +24,11 @@ class V091InstallWiringTests(unittest.TestCase):
         self.assertIn("host_v091.py", ps)
         self.assertIn("host_v091.py", sh)
 
-        # v0.9.4 keeps provider policy in runtime while installers remain neutral.
-        self.assertIn("scripts\\cnxclaw_v093.py", ps)
-        self.assertIn("scripts/cnxclaw_v093.py", sh)
+        # v0.9.5 uses the provider-neutral canonical CLI; installers remain neutral.
+        self.assertIn("scripts\\cnxclaw.py", ps)
+        self.assertIn("scripts/cnxclaw.py", sh)
+        self.assertNotIn("scripts\\cnxclaw_v093.py", ps)
+        self.assertNotIn("scripts/cnxclaw_v093.py", sh)
         self.assertNotIn('$Provider', ps)
         self.assertNotIn('PROVIDER="ollama"', sh)
 
