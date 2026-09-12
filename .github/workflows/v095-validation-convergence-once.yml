@@ -27,8 +27,7 @@ jobs:
               s = p.read_text(encoding='utf-8')
               if old not in s:
                   raise SystemExit(f'pattern not found in {path}: {old[:120]!r}')
-              s2 = s.replace(old, new)
-              p.write_text(s2, encoding='utf-8')
+              p.write_text(s.replace(old, new), encoding='utf-8')
 
           p = Path('skills/cogentnexus-openclaw/scripts/namespace_ownership.py')
           s = p.read_text(encoding='utf-8')
@@ -47,15 +46,13 @@ jobs:
           replace('tests/test_namespace_ownership.py',
                   '                                       launcher=launcher, version="0.9.4", migration_source=migration_source)',
                   '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)')
-          for path, old, new in [
-              ('tests/test_lifecycle_v092.py', '                "0.9.4",\n', '                "0.9.5",\n'),
-              ('tests/test_lifecycle_v092.py', '            write_payload(managed, "0.9.4")', '            write_payload(managed, "0.9.5")'),
-              ('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4")', '            write_payload(first, "0.9.5")'),
-              ('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4")', '            write_payload(second, "0.9.5")'),
-              ('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4", bootstrap_text="a\\n", ticket_text="same\\n")', '            write_payload(first, "0.9.5", bootstrap_text="a\\n", ticket_text="same\\n")'),
-              ('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4", bootstrap_text="b\\n", ticket_text="same\\n")', '            write_payload(second, "0.9.5", bootstrap_text="b\\n", ticket_text="same\\n")'),
-          ]:
-              replace(path, old, new)
+
+          lp = Path('tests/test_lifecycle_v092.py')
+          ls = lp.read_text(encoding='utf-8')
+          ls = ls.replace('                "0.9.4",\n', '                "0.9.5",\n')
+          ls = ls.replace('"0.9.4")', '"0.9.5")')
+          lp.write_text(ls, encoding='utf-8')
+
           replace('tests/test_namespace_ownership.py',
                   '        payload["installedVersion"] = "0.9.3"',
                   '        payload["installedVersion"] = "0.9.4"')
