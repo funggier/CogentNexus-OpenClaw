@@ -19,7 +19,7 @@ function setup() {
   const ticket = store.accept({ runId: "matrix-run-a", ownerSessionKey: sessionKey, prompt: "matrix" });
   store.route(ticket.ticketId, false);
   const db = new DatabaseSync(databasePath);
-  return { root, databasePath, db, sessionKey, ticket };
+  return { root, db, sessionKey, ticket };
 }
 
 describe("v0.9.5 provider-independent behavior matrix", () => {
@@ -68,8 +68,8 @@ describe("v0.9.5 provider-independent behavior matrix", () => {
     }
   });
 
-  it("allows exact Discord delivery", () => {
-    const { root, db, databasePath, sessionKey, ticket } = setup();
+  it("allows exact Discord delivery while rejecting ambiguous receipt identity", () => {
+    const { root, db, sessionKey, ticket } = setup();
     try {
       const text = "discord matrix delivery";
       const payloadSha256 = createHash("sha256").update(text).digest("hex");
@@ -89,8 +89,6 @@ describe("v0.9.5 provider-independent behavior matrix", () => {
       const confirmed = confirmDelivery(db, key.idempotencyKey, { evidenceType: "discord-receipt-confirmed", now: new Date("2026-09-12T00:00:00.000Z") });
       expect(confirmed.state).toBe("confirmed");
       expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId)).toEqual({ status: "completed" });
-      expect(stageDiscordDelivery).toBeTypeOf("function");
-      expect(databasePath).toContain("tickets.sqlite3");
     } finally {
       db.close();
       rmSync(root, { recursive: true, force: true });
@@ -98,40 +96,31 @@ describe("v0.9.5 provider-independent behavior matrix", () => {
   });
 
   it("rejects ambiguous Discord run identity before staging", () => {
-    const { root, db, databasePath, sessionKey, ticket } = setup();
-    try {
-      const duplicateTicketId = `${ticket.ticketId}-ambiguous`;
-      const stamp = "2026-09-12T00:00:00.000Z";
-      db.prepare(`INSERT INTO tickets(
-        ticket_id,request_key,run_id,owner_session_key,prompt,prompt_sha256,status,created_at,updated_at
-      ) VALUES (?,?,?,?,?,?, 'accepted',?,?)`).run(
-        duplicateTicketId,
-        "matrix-request-ambiguous",
-        "matrix-run-a",
-        sessionKey,
-        "ambiguous duplicate",
-        createHash("sha256").update("ambiguous duplicate").digest("hex"),
-        stamp,
-        stamp,
-      );
-      db.close();
+    const root = mkdtempSync(join(tmpdir(), "cnx-v095-discord-ambiguous-"));
+    const databasePath = join(root, "tickets.sqlite3");
+    const sessionKey = "agent:main:discord:channel:matrix095002";
+    const store = new TicketStore(databasePath);
+    sessionAuthority(databasePath, sessionKey);
+    const first = store.accept({ runId: "matrix-ambiguous-run", ownerSessionKey: sessionKey, prompt: "first" });
+    const second = store.accept({ runId: "matrix-ambiguous-run", ownerSessionKey: sessionKey, prompt: "second" });
+    store.route(first.ticketId, false);
+    store.route(second.ticketId, false);
 
+    try {
       const result = stageDiscordDelivery(
         databasePath,
-        { runId: "matrix-run-a", sessionKey, channel: "discord", messageProvider: "discord" },
+        { runId: "matrix-ambiguous-run", sessionKey, channel: "discord", messageProvider: "discord" },
         "ambiguous delivery",
       );
       expect(result).toEqual({ staged: false, reason: "ambiguous-run-ticket" });
 
       const check = new DatabaseSync(databasePath);
       try {
-        const deliveryRows = check.prepare("SELECT COUNT(*) AS count FROM cnx_assistant_delivery").get() as { count: number };
-        expect(Number(deliveryRows.count)).toBe(0);
+        expect(check.prepare("SELECT COUNT(*) AS count FROM cnx_assistant_delivery").get()).toEqual({ count: 0 });
       } finally {
         check.close();
       }
     } finally {
-      try { db.close(); } catch {}
       rmSync(root, { recursive: true, force: true });
     }
   });
