@@ -1,0 +1,51 @@
+name: v0.9.5 one-shot lockfile regeneration
+
+on:
+  push:
+    branches:
+      - feat/v0.9.5-release-readiness-clean
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/v0.9.5-release-readiness-clean
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: plugins/cogentnexus-openclaw/package-lock.json
+
+      - name: Regenerate lockfile from package.json
+        working-directory: plugins/cogentnexus-openclaw
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify only package-lock changed and metadata is 0.9.5
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(git diff --name-only)
+          test "$files" = "plugins/cogentnexus-openclaw/package-lock.json"
+          lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
+          lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
+          test "$lock_version" = "0.9.5"
+          test "$lock_root_version" = "0.9.5"
+          node -e "require('./plugins/cogentnexus-openclaw/package-lock.json')"
+
+      - name: Commit regenerated lockfile and remove bootstrap workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add plugins/cogentnexus-openclaw/package-lock.json .github/workflows/v095-regenerate-lockfile-once.yml
+          git rm --cached .github/workflows/v095-regenerate-lockfile-once.yml
+          git commit -m "chore: regenerate v0.9.5 package lockfile"
+          git push origin HEAD:feat/v0.9.5-release-readiness-clean
