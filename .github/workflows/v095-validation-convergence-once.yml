@@ -22,11 +22,13 @@ jobs:
           from pathlib import Path
           import re
 
-          def replace(path, old, new):
+          def replace(path, old, new, required=True):
               p = Path(path)
               s = p.read_text(encoding='utf-8')
               if old not in s:
-                  raise SystemExit(f'pattern not found in {path}: {old[:120]!r}')
+                  if required:
+                      raise SystemExit(f'pattern not found in {path}: {old[:120]!r}')
+                  return
               p.write_text(s.replace(old, new), encoding='utf-8')
 
           p = Path('skills/cogentnexus-openclaw/scripts/namespace_ownership.py')
@@ -45,7 +47,8 @@ jobs:
                   'def write_plugin(root: Path, *, marker="same", version="0.9.5") -> Path:')
           replace('tests/test_namespace_ownership.py',
                   '                                       launcher=launcher, version="0.9.4", migration_source=migration_source)',
-                  '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)')
+                  '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)',
+                  required=False)
 
           lp = Path('tests/test_lifecycle_v092.py')
           ls = lp.read_text(encoding='utf-8')
@@ -55,13 +58,14 @@ jobs:
 
           replace('tests/test_namespace_ownership.py',
                   '        payload["installedVersion"] = "0.9.3"',
-                  '        payload["installedVersion"] = "0.9.4"')
-          replace('tests/test_baseline_checker_v093.py', '== "0.9.4"', '== "0.9.5"')
-          replace('tests/test_baseline_contract.py', 'self.assertEqual(core_version, "0.9.4")', 'self.assertEqual(core_version, "0.9.5")')
-          replace('tests/test_namespace_install_contract.py', 'name="cogentnexus-openclaw-v0.9.4"', 'name="cogentnexus-openclaw-v0.9.5"')
-          replace('tests/test_release_version_094_contract.py', 'EXPECTED = "0.9.4"', 'EXPECTED = "0.9.5"')
-          replace('docs/CLEAN_REINSTALL.md', 'then runs the v0.9.4 installer', 'then runs the v0.9.5 installer')
-          replace('docs/CLEAN_REINSTALL.th.md', 'ติดตั้ง v0.9.4 ใหม่', 'ติดตั้ง v0.9.5 ใหม่')
+                  '        payload["installedVersion"] = "0.9.4"',
+                  required=False)
+          replace('tests/test_baseline_checker_v093.py', '== "0.9.4"', '== "0.9.5"', required=False)
+          replace('tests/test_baseline_contract.py', 'self.assertEqual(core_version, "0.9.4")', 'self.assertEqual(core_version, "0.9.5")', required=False)
+          replace('tests/test_namespace_install_contract.py', 'name="cogentnexus-openclaw-v0.9.4"', 'name="cogentnexus-openclaw-v0.9.5"', required=False)
+          replace('tests/test_release_version_094_contract.py', 'EXPECTED = "0.9.4"', 'EXPECTED = "0.9.5"', required=False)
+          replace('docs/CLEAN_REINSTALL.md', 'then runs the v0.9.4 installer', 'then runs the v0.9.5 installer', required=False)
+          replace('docs/CLEAN_REINSTALL.th.md', 'ติดตั้ง v0.9.4 ใหม่', 'ติดตั้ง v0.9.5 ใหม่', required=False)
 
       - name: Check focused regression set
         shell: bash
@@ -89,5 +93,3 @@ jobs:
           git diff --cached --check
           git commit -m 'fix: converge v0.9.5 validation contracts'
           git push origin HEAD:fix/v0.9.5-validation-convergence
-
-# temporary retrigger marker
