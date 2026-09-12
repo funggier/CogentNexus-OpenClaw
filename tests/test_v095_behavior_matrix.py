@@ -208,7 +208,7 @@ class BehaviorMatrixV095Tests(unittest.TestCase):
         try:
             db.execute(
                 "INSERT INTO tickets(ticket_id,status,workflow_eligible,workflow_id,owner_session_key) "
-                "VALUES ('T-provider-failure','accepted',0,NULL,'S1')"
+                "VALUES ('T-provider-failure','accepted',1,NULL,'S1')"
             )
             db.execute(
                 "INSERT INTO cnx_sessions(session_key,state,generation,updated_at) VALUES ('S1','active',2,?)",
