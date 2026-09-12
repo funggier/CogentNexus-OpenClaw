@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # Lifecycle launchers
 
 The current v0.9.4 operator surface is the `cnxclaw` launcher installed in the OpenClaw workspace:

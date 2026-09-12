@@ -15,8 +15,8 @@ from typing import Any
 
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
-INSTALLED_VERSION = "0.9.4"
-UPGRADE_FROM_VERSIONS = ("0.9.3",)
+INSTALLED_VERSION = "0.9.5"
+UPGRADE_FROM_VERSIONS = ("0.9.4",)
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
@@ -857,9 +857,15 @@ def _active_registered_plugin(plugin_inventory: dict[str, Any], openclaw_state: 
 
 
 def _exact_rollover_state(*, root: Path, workspace: Path,
+                          application_data: Path,
                           plugin_inventory: dict[str, Any],
                           expected_replacement_fingerprint: str | None = None) -> dict[str, Any]:
     paths = expected_paths(workspace)
+    application_data = application_data.resolve(strict=False)
+    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(
+        application_data, paths["openclawState"]
+    ):
+        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")
     mode = _require_passthrough(root)
     manifest = verify_manifest(root, workspace=workspace, verify_plugin=False, allow_upgrade_from=UPGRADE_FROM_VERSIONS)
     retired_root = Path(manifest["pluginPath"]).resolve(strict=False)
@@ -1210,7 +1216,8 @@ def build_plugin_rollover_plan(*, root: Path, workspace: Path, application_data:
     workspace = workspace.resolve(strict=False)
     application_data = application_data.resolve(strict=False)
     state = _exact_rollover_state(
-        root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        root=root, workspace=workspace, application_data=application_data,
+        plugin_inventory=plugin_inventory,
         expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(
@@ -1329,6 +1336,7 @@ def apply_plugin_rollover_plan(*, plan_path: Path, expected_plan_sha256: str,
     expected_replacement_fingerprint = plan.get("expectedReplacementFingerprint")
     state = _exact_rollover_state(
         root=root, workspace=workspace, plugin_inventory=plugin_inventory,
+        application_data=application_data,
         expected_replacement_fingerprint=expected_replacement_fingerprint,
     )
     exact_bindings = {
@@ -1527,6 +1535,7 @@ def classify_install(workspace: Path, *, app_data: Path | None = None,
             }
         state = _exact_rollover_state(
             root=paths["stateRoot"], workspace=workspace,
+            application_data=app_data or paths["applicationData"],
             plugin_inventory=plugin_inventory,
             expected_replacement_fingerprint=expected_replacement_fingerprint,
         )
