@@ -36,13 +36,11 @@ jobs:
               p.write_text(updated, encoding="utf-8")
               return True
 
-          # Production: add the required externally-bound application-data argument
-          # to _exact_rollover_state and every internal invocation that lacks it.
+          # Production: add the externally-bound application-data argument to
+          # _exact_rollover_state and every internal invocation that lacks it.
           p = Path("skills/cogentnexus-openclaw/scripts/namespace_ownership.py")
           s = p.read_text(encoding="utf-8")
-          signature = re.compile(
-              r"def _exact_rollover_state\(\*, root: Path, workspace: Path,\n"
-          )
+          signature = re.compile(r"def _exact_rollover_state\(\*, root: Path, workspace: Path,\n")
           if "application_data: Path" not in s[s.find("def _exact_rollover_state"):s.find("def _exact_rollover_state") + 300]:
               s, count = signature.subn(
                   "def _exact_rollover_state(*, root: Path, workspace: Path,\n"
@@ -82,30 +80,26 @@ jobs:
           if patched_calls < 2:
               raise SystemExit(f"expected at least two _exact_rollover_state call sites, matched {patched_calls}")
 
-          # Enforce the external application-data boundary inside the shared helper.
           helper_start = s.find("def _exact_rollover_state")
-          if helper_start < 0:
-              raise SystemExit("_exact_rollover_state disappeared after patch")
           helper_end = s.find("\ndef ", helper_start + 10)
-          if helper_end < 0:
-              helper_end = len(s)
-          helper = s[helper_start:helper_end]
+          helper = s[helper_start:helper_end if helper_end >= 0 else len(s)]
           marker = '    paths = expected_paths(workspace)\n    mode = _require_passthrough(root)'
           if marker in helper:
-              replacement = (
+              helper = helper.replace(
+                  marker,
                   '    paths = expected_paths(workspace)\n'
                   '    application_data = application_data.resolve(strict=False)\n'
                   '    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(\n'
                   '        application_data, paths["openclawState"]\n'
                   '    ):\n'
                   '        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")\n'
-                  '    mode = _require_passthrough(root)'
+                  '    mode = _require_passthrough(root)',
+                  1,
               )
-              helper = helper.replace(marker, replacement, 1)
-              s = s[:helper_start] + helper + s[helper_end:]
+              s = s[:helper_start] + helper + s[helper_end if helper_end >= 0 else len(s):]
           p.write_text(s, encoding="utf-8")
 
-          # Current-version test fixtures: synthetic current installs must be 0.9.5.
+          # Current-version fixture defaults.
           replace(
               "tests/test_plugin_generation_rollover.py",
               'def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.4") -> Path:',
@@ -126,8 +120,32 @@ jobs:
           )
           replace(
               "tests/test_namespace_ownership.py",
+              '                                       launcher=launcher, version="0.9.4", migration_source=migration_source)',
+              '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)',
+              required=False,
+          )
+          replace(
+              "tests/test_namespace_ownership.py",
+              '                                       launcher=launcher, version="0.9.4", migration_source=migration_source)',
+              '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)',
+              required=False,
+          )
+          replace(
+              "tests/test_namespace_ownership.py",
+              '                                       launcher=launcher, version="0.9.3", migration_source=migration_source)',
+              '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)',
+              required=False,
+          )
+          replace(
+              "tests/test_namespace_ownership.py",
               'payload["installedVersion"] = "0.9.3"',
               'payload["installedVersion"] = "0.9.4"',
+              required=False,
+          )
+          replace(
+              "tests/test_namespace_ownership.py",
+              'launcher=launcher, version="0.9.4",',
+              'launcher=launcher, version=ownership.INSTALLED_VERSION,',
               required=False,
           )
 
@@ -139,54 +157,57 @@ jobs:
           ls = ls.replace('write_payload(second, "0.9.4"', 'write_payload(second, "0.9.5"')
           lp.write_text(ls, encoding="utf-8")
 
-          replace(
-              "tests/test_baseline_checker_v093.py",
-              'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"',
-              'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.5"',
-              required=False,
-          )
-          replace(
-              "tests/test_baseline_contract.py",
-              'self.assertEqual(core_version, "0.9.4")',
-              'self.assertEqual(core_version, "0.9.5")',
-              required=False,
-          )
-          replace(
-              "tests/test_baseline_contract.py",
-              'self.assertEqual(bridge_version, "0.9.4")',
-              'self.assertEqual(bridge_version, "0.9.5")',
-              required=False,
-          )
-          replace(
-              "tests/test_namespace_install_contract.py",
-              'name="cogentnexus-openclaw-v0.9.4"',
-              'name="cogentnexus-openclaw-v0.9.5"',
-              required=False,
-          )
-          replace(
-              "tests/test_release_version_094_contract.py",
-              'EXPECTED = "0.9.4"',
-              'EXPECTED = "0.9.5"',
-              required=False,
-          )
-          replace(
-              "tests/test_release_version_094_contract.py",
-              'assert "v0.9.4" in text, relative',
-              'assert "v0.9.5" in text, relative',
-              required=False,
-          )
-          replace(
-              "docs/CLEAN_REINSTALL.md",
-              'then runs the v0.9.4 installer',
-              'then runs the v0.9.5 installer',
-              required=False,
-          )
-          replace(
-              "docs/CLEAN_REINSTALL.th.md",
-              'ติดตั้ง v0.9.4 ใหม่',
-              'ติดตั้ง v0.9.5 ใหม่',
-              required=False,
-          )
+          replace("tests/test_baseline_checker_v093.py",
+                  'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"',
+                  'assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.5"',
+                  required=False)
+          replace("tests/test_baseline_contract.py",
+                  'self.assertEqual(core_version, "0.9.4")',
+                  'self.assertEqual(core_version, "0.9.5")',
+                  required=False)
+          replace("tests/test_baseline_contract.py",
+                  'self.assertEqual(bridge_version, "0.9.4")',
+                  'self.assertEqual(bridge_version, "0.9.5")',
+                  required=False)
+          replace("tests/test_namespace_install_contract.py",
+                  'name="cogentnexus-openclaw-v0.9.4"',
+                  'name="cogentnexus-openclaw-v0.9.5"',
+                  required=False)
+          replace("tests/test_release_version_094_contract.py",
+                  'EXPECTED = "0.9.4"',
+                  'EXPECTED = "0.9.5"',
+                  required=False)
+          replace("tests/test_release_version_094_contract.py",
+                  'assert "v0.9.4" in text, relative',
+                  'assert "v0.9.5" in text, relative',
+                  required=False)
+          replace("docs/CLEAN_REINSTALL.md",
+                  'then runs the v0.9.4 installer',
+                  'then runs the v0.9.5 installer',
+                  required=False)
+          replace("docs/CLEAN_REINSTALL.th.md",
+                  'ติดตั้ง v0.9.4 ใหม่',
+                  'ติดตั้ง v0.9.5 ใหม่',
+                  required=False)
+
+          # Add a clearly-marked release-candidate version to current-facing docs
+          # without rewriting historical v0.9.4 references embedded in them.
+          current_docs = [
+              "README.md", "docs/BASELINE.md", "docs/CURRENT_STATE.md",
+              "docs/INSTALL.md", "docs/INSTALL.th.md", "docs/PROVIDERS.md",
+              "docs/CHECK_SYSTEM.md", "docs/CLEAN_REINSTALL.md",
+              "docs/CLEAN_REINSTALL.th.md", "skills/cogentnexus-openclaw/SKILL.md",
+              "skills/cogentnexus-openclaw/templates/lifecycle/README.md",
+              "plugins/cogentnexus-openclaw/README.md",
+          ]
+          for relative in current_docs:
+              p = Path(relative)
+              text = p.read_text(encoding="utf-8")
+              if "v0.9.5" not in text:
+                  p.write_text(
+                      "**Current v0.9.5 release candidate:** pre-publication validation in progress.\n\n" + text,
+                      encoding="utf-8",
+                  )
 
       - name: Check focused regression set
         shell: bash
