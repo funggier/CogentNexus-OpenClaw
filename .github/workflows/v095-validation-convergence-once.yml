@@ -1,12 +1,10 @@
 name: v0.9.5 validation convergence once
 
 on:
-  push:
-    branches:
-      - fix/v0.9.5-validation-convergence
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  push:
+    branches: [fix/v0.9.5-validation-convergence]
 
 permissions:
   contents: write
@@ -22,6 +20,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
 
           def replace(path, old, new):
               p = Path(path)
@@ -29,28 +28,15 @@ jobs:
               if old not in s:
                   raise SystemExit(f'pattern not found in {path}: {old[:120]!r}')
               s2 = s.replace(old, new)
-              if s2 == s:
-                  raise SystemExit(f'no change made to {path}')
               p.write_text(s2, encoding='utf-8')
 
           p = Path('skills/cogentnexus-openclaw/scripts/namespace_ownership.py')
           s = p.read_text(encoding='utf-8')
-          sig = 'def _exact_rollover_state(\n'
-          i = s.find(sig)
-          if i < 0:
-              raise SystemExit('cannot locate _exact_rollover_state')
-          marker = '    root: Path,\n    workspace: Path,\n'
-          j = s.find(marker, i)
-          if j < 0:
-              raise SystemExit('cannot locate _exact_rollover_state parameters')
-          s = s[:j] + s[j:].replace(marker, '    root: Path,\n    workspace: Path,\n    application_data: Path,\n', 1)
-          anchor = '    workspace = workspace.resolve(strict=False)\n'
-          k = s.find(anchor, s.find(sig))
-          if k < 0:
-              raise SystemExit('cannot locate rollover-state workspace normalization')
-          insertion = anchor + '    application_data = application_data.resolve(strict=False)\n    if application_data.name.lower() != DISPLAY_NAME.lower() or _contained(\n        application_data, openclaw_state\n    ):\n        raise RuntimeError("rollover application-data root must be the external CogentNexus-OpenClaw boundary")\n'
-          s = s[:k] + s[k:].replace(anchor, insertion, 1)
-          p.write_text(s, encoding='utf-8')
+          pattern = r'(def _exact_rollover_state\(\*, root: Path, workspace: Path,\n)'
+          s2, count = re.subn(pattern, r'\1                          application_data: Path,\n', s, count=1)
+          if count != 1:
+              raise SystemExit('could not locate _exact_rollover_state signature')
+          p.write_text(s2, encoding='utf-8')
 
           replace('tests/test_plugin_generation_rollover.py',
                   'def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.4") -> Path:',
@@ -61,12 +47,15 @@ jobs:
           replace('tests/test_namespace_ownership.py',
                   '                                       launcher=launcher, version="0.9.4", migration_source=migration_source)',
                   '                                       launcher=launcher, version=ownership.INSTALLED_VERSION, migration_source=migration_source)')
-          replace('tests/test_lifecycle_v092.py', '                "0.9.4",\n', '                "0.9.5",\n')
-          replace('tests/test_lifecycle_v092.py', '            write_payload(managed, "0.9.4")', '            write_payload(managed, "0.9.5")')
-          replace('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4")', '            write_payload(first, "0.9.5")')
-          replace('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4")', '            write_payload(second, "0.9.5")')
-          replace('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4", bootstrap_text="a\\n", ticket_text="same\\n")', '            write_payload(first, "0.9.5", bootstrap_text="a\\n", ticket_text="same\\n")')
-          replace('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4", bootstrap_text="b\\n", ticket_text="same\\n")', '            write_payload(second, "0.9.5", bootstrap_text="b\\n", ticket_text="same\\n")')
+          for path, old, new in [
+              ('tests/test_lifecycle_v092.py', '                "0.9.4",\n', '                "0.9.5",\n'),
+              ('tests/test_lifecycle_v092.py', '            write_payload(managed, "0.9.4")', '            write_payload(managed, "0.9.5")'),
+              ('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4")', '            write_payload(first, "0.9.5")'),
+              ('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4")', '            write_payload(second, "0.9.5")'),
+              ('tests/test_lifecycle_v092.py', '            write_payload(first, "0.9.4", bootstrap_text="a\\n", ticket_text="same\\n")', '            write_payload(first, "0.9.5", bootstrap_text="a\\n", ticket_text="same\\n")'),
+              ('tests/test_lifecycle_v092.py', '            write_payload(second, "0.9.4", bootstrap_text="b\\n", ticket_text="same\\n")', '            write_payload(second, "0.9.5", bootstrap_text="b\\n", ticket_text="same\\n")'),
+          ]:
+              replace(path, old, new)
           replace('tests/test_namespace_ownership.py',
                   '        payload["installedVersion"] = "0.9.3"',
                   '        payload["installedVersion"] = "0.9.4"')
@@ -101,6 +90,5 @@ jobs:
           rm .github/workflows/v095-validation-convergence-once.yml
           git add -A
           git diff --cached --check
-          git diff --cached --name-status
           git commit -m 'fix: converge v0.9.5 validation contracts'
           git push origin HEAD:fix/v0.9.5-validation-convergence
