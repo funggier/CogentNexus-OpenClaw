@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VERSION = "0.9.4"
+EXPECTED_VERSION = "0.9.5"
 TEXT_SUFFIXES = {".md", ".py", ".ts", ".json", ".ps1", ".sh", ".yml", ".yaml"}
 CURRENT_TOP_LEVEL = {"docs", "skills", "plugins", "scripts", "templates", ".github"}
 SKIP_PREFIXES = (
@@ -103,9 +103,6 @@ def main() -> int:
     release_entry = (ROOT / "plugins/cogentnexus-openclaw/src/v091-release-entry.ts").read_text(encoding="utf-8")
     if not re.search(r'id\s*:\s*["\']cogentnexus-openclaw["\']', release_entry):
         failures.append("release entry plugin id is not namespace-isolated")
-    # The canonical release entry may wrap the legacy registration API with a
-    # provider/channel-specific boundary. Accept the bounded wrapper while still
-    # requiring the Dashboard registration itself to be present and executable.
     if not re.search(r"installV091DashboardVerifiedDelivery\s*\(\s*(?:api|runtimeApi)\s*,\s*config\s*\)\s*;", release_entry):
         failures.append("release entry no longer registers Dashboard verified delivery")
 
