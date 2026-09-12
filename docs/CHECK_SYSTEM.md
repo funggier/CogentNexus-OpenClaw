@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # `cnxclaw check` — read-only system pre-flight
 
 CogentNexus-OpenClaw v0.9.4 groups diagnostic inspection under the `check` namespace. The current managed provider contract is **Ollama only**.

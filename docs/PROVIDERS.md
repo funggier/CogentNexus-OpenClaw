@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # Provider lifecycle — CogentNexus-OpenClaw v0.9.4
 
 CogentNexus-OpenClaw v0.9.4 (currently unreleased) has a managed Ollama mode and an OpenClaw-owned Cloud pass-through mode.
