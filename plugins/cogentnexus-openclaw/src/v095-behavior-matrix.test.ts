@@ -102,9 +102,31 @@ describe("v0.9.5 provider-independent behavior matrix", () => {
     const store = new TicketStore(databasePath);
     sessionAuthority(databasePath, sessionKey);
     const first = store.accept({ runId: "matrix-ambiguous-run", ownerSessionKey: sessionKey, prompt: "first" });
-    const second = store.accept({ runId: "matrix-ambiguous-run", ownerSessionKey: sessionKey, prompt: "second" });
     store.route(first.ticketId, false);
-    store.route(second.ticketId, false);
+
+    const createdAt = "2026-09-12T00:00:00.000Z";
+    const secondTicketId = "CNXT-ambiguous-matrix-second";
+    const secondRequestKey = "matrix-ambiguous-request-key-2";
+    const secondPrompt = "second";
+    const secondPromptSha256 = createHash("sha256").update(secondPrompt).digest("hex");
+    const db = new DatabaseSync(databasePath);
+    db.prepare(`INSERT INTO tickets(
+      ticket_id,request_key,run_id,owner_session_key,prompt,prompt_sha256,status,max_attempts,created_at,updated_at
+    ) VALUES (?,?,?,?,?,?,'accepted',?,?,?)`).run(
+      secondTicketId,
+      secondRequestKey,
+      "matrix-ambiguous-run",
+      sessionKey,
+      secondPrompt,
+      secondPromptSha256,
+      3,
+      createdAt,
+      createdAt,
+    );
+    db.prepare("INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,'accepted',?,?)")
+      .run(secondTicketId, JSON.stringify({ runId: "matrix-ambiguous-run", promptSha256: secondPromptSha256 }), createdAt);
+    db.close();
+    store.route(secondTicketId, false);
 
     try {
       const result = stageDiscordDelivery(
