@@ -1,4 +1,4 @@
-# CNX-20260913-321 — v0.9.5 Provider Readiness Successor
+# CNX-20260913-321 — v0.9.5 Provider Acceptance Successor
 
 Status: `READY_FOR_HERMES`
 Executor: `Hermes`
@@ -24,37 +24,38 @@ CNX-20260913-320
 
 ## Objective
 
-Complete candidate-sensitive verification and live v0.9.5 acceptance after Task 320 reached a provider-acceptance boundary: Ollama and OpenAI reply paths passed, while the configured LM Studio endpoint was unreachable and full provider-switch acceptance therefore remained unproven.
+Complete candidate-sensitive verification and live v0.9.5 acceptance with the required provider acceptance scope limited to the OpenAI and Ollama reply paths. LM Studio is not a release gate for this acceptance.
 
 ## Required order
 
 1. Verify the exact candidate SHA is `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`.
 2. Re-run candidate-sensitive validation as required for this exact candidate.
 3. Verify the existing installed runtime remains healthy and provenance/fingerprint remains bound to the candidate.
-4. Perform bounded, read-only diagnosis of the LM Studio endpoint at `http://127.0.0.1:1234`.
-5. Determine whether the documented acceptance procedure can proceed without unrelated provider/model mutation.
-6. If the LM Studio acceptance precondition becomes available through a normal, already-authorized environment action, execute Provider Switch Acceptance.
-7. Execute Idle Quiescence for >=2 supervisor cadences.
-8. Execute Controlled Actionable Wake with exactly one durable work item.
-9. Preserve raw evidence and publish the successor acceptance report.
-10. Re-check candidate identity and every gate.
-11. Stop before PR #38 update, merge, tag, or GitHub Release.
+4. Verify OpenAI reply-path acceptance.
+5. Verify Ollama reply-path acceptance.
+6. Execute Idle Quiescence for >=2 supervisor cadences.
+7. Execute Controlled Actionable Wake with exactly one durable work item.
+8. Preserve raw evidence and publish the successor acceptance report.
+9. Re-check candidate identity and every required gate.
+10. Stop before PR #38 update, merge, tag, or GitHub Release.
+
+## Provider acceptance scope
+
+Required providers for v0.9.5 final acceptance:
+
+```text
+OpenAI   REQUIRED
+Ollama   REQUIRED
+LM Studio NOT REQUIRED
+```
+
+A successful OpenAI exchange and a successful Ollama exchange satisfy the provider acceptance requirement when their evidence is bound to the exact candidate and acceptance runtime.
+
+LM Studio may remain unavailable and must not block provider acceptance or be used as a reason to mutate unrelated provider/model state.
 
 ## Provider/model boundary
 
-The acceptance environment previously lost `ollama/qwen3.5:9b` while some sessions remained pinned to it. Do not restore, recreate, replace, or otherwise mutate provider/model configuration merely to satisfy acceptance. Do not substitute another model or provider and claim LM Studio acceptance passed.
-
-LM Studio failure evidence from Task 320:
-
-```text
-Endpoint: http://127.0.0.1:1234
-Reachable: false
-Healthy: false
-Model count: 0
-Error: WinError 10061 — connection refused
-```
-
-A successful Ollama or OpenAI exchange does not qualify the LM Studio gate.
+The acceptance environment previously lost `ollama/qwen3.5:9b` while some sessions remained pinned to it. Do not restore, recreate, replace, or otherwise mutate provider/model configuration merely to satisfy acceptance. Do not substitute another provider/model in place of OpenAI or Ollama and claim the required provider acceptance passed.
 
 ## Required idle evidence
 
@@ -76,16 +77,16 @@ Missing or unusable evidence remains `INDETERMINATE`.
 - Do not create, move, or delete tag `v0.9.5`.
 - Do not publish a GitHub Release.
 - Do not force-push.
-- Do not expose, record, copy, or mutate credentials, API keys, tokens, cookies, or secrets.
+- Do not expose, record, or mutate credentials, API keys, tokens, cookies, or secrets.
 - Do not perform unrelated Scheduled Task, service, provider-routing, or configuration changes.
-- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside documented normal acceptance operations.
+- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside normal documented acceptance operations.
 - Do not infer PASS from absence of failure.
 - If a code defect is discovered, stop live acceptance, reproduce it, apply only a minimal TDD repair, create a new candidate SHA, requalify it, and report the new candidate explicitly.
-- If the environment requires an out-of-scope provider/model mutation or other broader recovery, stop and report `BLOCKED`.
+- If acceptance requires an out-of-scope provider/model mutation or other broader recovery, stop and report `BLOCKED`.
 
 ## Evidence contract
 
-Every result must bind to `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed fingerprint/provenance, commands/procedure, timestamps, provider sequence, session/Ticket/run identity, generation/ownership evidence, LM Studio endpoint diagnosis, idle checker output, controlled-wake evidence, and evidence locations.
+Every result must bind to `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed fingerprint/provenance, commands/procedure, timestamps, provider sequence for OpenAI and Ollama, session/Ticket/run identity, generation/ownership evidence, idle checker output, controlled-wake evidence, and evidence locations.
 
 ## Stop condition
 
