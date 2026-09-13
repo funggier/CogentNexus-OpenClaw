@@ -18,8 +18,9 @@ import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ow
 
 
 type HostControllerState = {
-  schemaVersion?: number;
+  schemaVersion?: unknown;
   mode?: string;
+  cnxMode?: string;
   generation?: number;
 };
 
@@ -29,6 +30,14 @@ type HostAuthority = {
   mode?: string;
   generation?: number;
   controllerPath: string;
+};
+
+const SUPPORTED_CONTROLLER_SCHEMA_VERSIONS = new Set<number>([1, 2]);
+
+const CANONICAL_TO_LEGACY_MODE: Record<string, string> = {
+  active: "managed",
+  disabled: "passthrough",
+  maintenance: "maintenance",
 };
 
 function pluginWorkspace(api: OpenClawPluginApi) {
@@ -123,14 +132,31 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   } catch {
     return { authorized: false, reason: "invalid", controllerPath };
   }
-  const mode = typeof state?.mode === "string" ? state.mode : undefined;
-  const generation = Number.isSafeInteger(state?.generation) ? Number(state.generation) : undefined;
-  if (state?.schemaVersion !== 1 || !["managed", "passthrough", "maintenance"].includes(mode ?? "")) {
-    return { authorized: false, reason: "invalid", mode, generation, controllerPath };
+  const generation = Number.isSafeInteger((state as any)?.generation) ? Number((state as any).generation) : undefined;
+  const rawSchemaVersion = (state as any)?.schemaVersion;
+  if (typeof rawSchemaVersion !== "number" || !Number.isInteger(rawSchemaVersion) || !SUPPORTED_CONTROLLER_SCHEMA_VERSIONS.has(rawSchemaVersion)) {
+    const fallbackMode = typeof (state as any)?.mode === "string" ? (state as any).mode : undefined;
+    return { authorized: false, reason: "invalid", mode: fallbackMode, generation, controllerPath };
   }
-  if (mode === "managed" || mode === "passthrough") return { authorized: true, reason: mode, mode, generation, controllerPath };
+  if (rawSchemaVersion === 1) {
+    const mode = typeof (state as any)?.mode === "string" ? (state as any).mode : undefined;
+    if (!["managed", "passthrough", "maintenance"].includes(mode ?? "")) {
+      return { authorized: false, reason: "invalid", mode, generation, controllerPath };
+    }
+    if (mode === "managed" || mode === "passthrough") return { authorized: true, reason: mode, mode, generation, controllerPath };
+    if (mode === "maintenance") return { authorized: false, reason: "maintenance", mode, generation, controllerPath };
+    return { authorized: false, reason: "passthrough", mode, generation, controllerPath };
+  }
+  // schemaVersion === 2 — canonical v0.9.5 Host authority
+  const cnxMode = typeof (state as any)?.cnxMode === "string" ? (state as any).cnxMode : undefined;
+  const derived = cnxMode !== undefined ? CANONICAL_TO_LEGACY_MODE[cnxMode] : undefined;
+  if (derived === undefined) {
+    return { authorized: false, reason: "invalid", mode: undefined, generation, controllerPath };
+  }
+  const mode = derived;
+  if (mode === "managed" || mode === "passthrough") return { authorized: true, reason: mode as "managed" | "passthrough", mode, generation, controllerPath };
   if (mode === "maintenance") return { authorized: false, reason: "maintenance", mode, generation, controllerPath };
-  return { authorized: false, reason: "passthrough", mode, generation, controllerPath };
+  return { authorized: false, reason: "invalid", mode, generation, controllerPath };
 }
 
 /**
