@@ -3,15 +3,13 @@ name: "CogentNexus-OpenClaw"
 description: "Durable Host-managed recovery, lifecycle control, and verified execution for OpenClaw work that needs CogentNexus-OpenClaw machinery."
 ---
 
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 # CogentNexus-OpenClaw
 
-CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
+**Current release:** `v0.9.5` — published and operationally validated.  
+**Validated OpenClaw baseline:** `2026.7.1-2`.  
+**Current managed provider:** **Ollama** for health/lifecycle/recovery. Cloud providers remain OpenClaw-owned pass-through.
 
-Development line: **v0.9.4 (unreleased)**.
-Current managed provider: **Ollama** (health/lifecycle/recovery). Cloud providers are OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw preserves continuity/durable delivery and never handles Cloud credentials.
-Validated OpenClaw baseline: `2026.7.1-2`.
+CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
 
 Keep private reasoning private. Expose useful status, evidence, decisions, and results.
 
@@ -42,7 +40,9 @@ When durable CNXCLAW ownership exists, consume only the exact OpenClaw native re
 
 ## Provider boundary
 
-v0.9.4 manages Ollama only. Historical v0.9.2 compatibility modules may remain in-tree for migration/native-restore behavior, but current v0.9.4 operator paths must not advertise or select LM Studio.
+v0.9.5 manages Ollama only. Historical provider modules may remain in-tree for migration/native-restore behavior, but current operator paths must not advertise or select historical providers as managed runtime ownership.
+
+Cloud providers are OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves continuity and durable delivery without handling Cloud credentials.
 
 ## Operating modes
 
@@ -100,10 +100,28 @@ python skills/cogentnexus-openclaw/scripts/runtime.py self-test
 python -m pytest -q
 ```
 
-## Accepted stabilization lineage
+## Published baseline
 
-Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`, validated on OpenClaw `2026.7.1-2`.
+The current published release is `v0.9.5`, tagged at merge SHA `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`.
 
-That checkpoint remains historical technical evidence. The v0.9.4 implementation line subsequently completed repository stabilization and the bounded real-machine lifecycle/semantic acceptance sequence on exact frozen candidate `f6392da3e4112ce441526d5ef19925c90a872b0b`.
+Final release acceptance and post-release verification established the intended durable execution shape:
 
-Acceptance is exact-artifact based. Changes to installed skill/package documentation bytes require validation and proportional requalification appropriate to the changed surface before prior acceptance claims are carried forward. See root `docs/CURRENT_STATE.md` for current publication state and exact candidate provenance.
+```text
+human intent
+-> durable Ticket admission
+-> logical session/run ownership
+-> model execution
+-> durable result
+-> delivery confirmation
+-> settled state
+```
+
+Controlled actionable wake preserved Ticket/session/run identity, generation and ownership semantics, completed with one durable work item, and returned to idle without duplicate ownership.
+
+The exact-tag post-release verification also established that the release can be installed from a detached `v0.9.5` checkout, loaded by OpenClaw, and operated with healthy Gateway/Ollama state and zero pending outbox.
+
+## Known diagnostic discrepancy
+
+The validated host still exposes a narrow `cnxclaw.cmd check system` provider-selection diagnostic that can contradict the authoritative active runtime/provider status. This remains a quarantined checker anomaly. Do not reinterpret it as runtime failure and do not modify the published `v0.9.5` tag to address it; repair requires a new development candidate and the normal validation/release path.
+
+Historical coordination and release reports remain evidence for the states they describe and should not be rewritten merely to match this current status.
