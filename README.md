@@ -1,43 +1,22 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 # CogentNexus-OpenClaw
 
 CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps accepted user intent outside the lifetime of a single model call, OpenClaw session, Gateway process, delivery attempt, or context window.
 
 ## Current status
 
-- **Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release yet**)
-- **Core / Bridge version:** 0.9.4
+- **Current release:** `v0.9.5` — published and operationally validated
+- **Main baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`
+- **Git tag:** `v0.9.5` → exact main merge SHA above
+- **GitHub Release:** `CogentNexus-OpenClaw v0.9.5`
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** Ollama
-- **Cloud provider mode:** OpenClaw-owned pass-through for configured Cloud routes
-- **Frozen repaired product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34`
-- **Accepted active facade SHA-256:** `aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f`
-- **Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files
-- **Installed skill-tree identity:** `a1e873ba404205507a1623961b49f1b1a0689f9f`
-- **Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`
-- **Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
+- **Cloud provider mode:** OpenClaw-owned pass-through
 
-The v0.9.4 implementation completed the bounded real-Windows lifecycle acceptance sequence through install-over/provenance, reset, uninstall with external preservation, fresh reinstall, and final Dashboard semantic/durable-delivery testing. Task 188 then corrected stale documentation-bearing product bytes. A subsequent real Dashboard requalification exposed a narrow `NO_REPLY` integration defect: CogentNexus-OpenClaw could marker-stage OpenClaw's bare silent sentinel into a visible durable result.
+The v0.9.5 release completed final runtime acceptance, exact-head release-gating checks, controlled actionable-wake validation, merge verification, immutable tag verification, and post-release exact-tag installation/runtime verification.
 
-Task 191 repaired that boundary with TDD. Task 192 then installed the exact repaired candidate on the accepted Windows host and proved the normal real-runtime shape:
-
-```text
-1 human Send
--> 1 Ticket
--> 1 logical OpenClaw run
--> 1 Ollama model call
--> 1 durable assistant delivery
--> 1 logical visible Dashboard assistant result
-```
-
-The accepted Task-192 turn returned the requested visible nonce on the first natural final, required no sentinel revision, created no duplicate or Direct Recovery row, left pending outbox at zero, and showed no bare `NO_REPLY` in durable/UI output.
-
-Public release availability is authoritative on GitHub Releases/tags. A branch checkout or this README is never proof that v0.9.4 has been published.
+See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the authoritative current operational state and [docs/POST_RELEASE_BASELINE.md](docs/POST_RELEASE_BASELINE.md) for the published-release baseline.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
-
-See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the current acceptance/publication boundary.
 
 ## Architecture
 
@@ -50,12 +29,12 @@ Durable Ticket admission
       v
 CogentNexus-OpenClaw Host authority
   - desired runtime state
-  - Ollama lifecycle/recovery ownership
-  - CPU-only deterministic supervision
+  - provider/runtime ownership boundaries
+  - deterministic supervision
   - cancellation / generation fences
       |
       v
-OpenClaw Gateway + Ollama
+OpenClaw Gateway + managed provider
       |
       +--> DIRECT / LOOKUP / ACTION / STAGED
       |
@@ -79,7 +58,7 @@ Delivery confirmed -> completed
 
 ## Provider contract
 
-CogentNexus-OpenClaw v0.9.4 manages Ollama health, lifecycle, and recovery. Cloud routes are OpenClaw-owned pass-through: OpenClaw owns authentication, model routing, provider runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw keeps only its provider-independent continuity boundary (Ticket admission, session/generation fences, durable results, and delivery), and never reads, copies, persists, refreshes, or logs Cloud credentials.
+v0.9.5 manages Ollama health, lifecycle, and recovery. Cloud routes remain OpenClaw-owned pass-through: OpenClaw owns authentication, model routing, provider runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw keeps only the provider-independent continuity boundary and never reads, copies, persists, refreshes, or logs Cloud credentials.
 
 ```powershell
 .\cnxclaw.cmd start
@@ -88,27 +67,27 @@ CogentNexus-OpenClaw v0.9.4 manages Ollama health, lifecycle, and recovery. Clou
 .\cnxclaw.cmd check provider ollama
 ```
 
-The installer itself remains provider-neutral. Historical LM Studio support belongs to the frozen v0.9.2 provider layer and may remain in compatibility/migration history, but current v0.9.4 operator commands do not manage LM Studio.
+Historical LM Studio behavior belongs to the frozen historical provider layer and is not a current managed v0.9.5 provider contract.
 
 See [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
 ## Core capabilities
 
 - durable SQLite Ticket admission before inference for eligible managed owner messages;
-- lightweight DIRECT work without forcing every message into a heavyweight workflow;
-- external Host Controller with persisted desired runtime state;
+- lightweight DIRECT lane without forcing every message into a heavyweight workflow;
+- persisted Host Controller desired runtime state;
 - Ollama lifecycle and recovery control;
 - Gateway lifecycle control and deliberate-stop fencing;
 - read-only component/system pre-flight checks;
-- Direct Recovery for genuinely pre-response interrupted work;
+- bounded recovery for genuinely interrupted pre-response work;
 - original provider/model provenance fencing during recovery;
 - single-owner recovery across OpenClaw native restart behavior;
 - transient SQLite BUSY tolerance at the authority-read boundary;
 - recursive/self-intake suppression for recovery continuations;
 - response-ready immutability and one durable `direct_result`;
 - delivery confirmation and duplicate suppression;
-- direct-Dashboard silent-sentinel fencing so bare `NO_REPLY` is never promoted into durable visible content;
-- at most one same-run OpenClaw finalization revision for the exact bounded sentinel case;
+- silent-sentinel fencing so bare `NO_REPLY` is not promoted into durable visible content;
+- bounded same-run sentinel finalization handling;
 - ticket/session cancellation and terminal fencing;
 - worker leases, generations, bounded retries, durable outboxes, validators and checkpoints for staged work;
 - deterministic supervisor probes that perform no model inference.
@@ -122,13 +101,19 @@ A model call may fail transiently even when the same provider/model/configuratio
 - a model call is merely slow/silent while provider/Gateway remain healthy -> elapsed time alone is not recovery authority;
 - an external side effect may already have happened -> require idempotency/receipt/read-after-write evidence before repetition.
 
-See [Transient Model-Call Stall Recovery](docs/TRANSIENT_STALL_RECOVERY.md) for the observed failure shapes and evidence hierarchy.
+See [docs/TRANSIENT_STALL_RECOVERY.md](docs/TRANSIENT_STALL_RECOVERY.md).
 
-## Installation status
+## Installation
 
-There is intentionally no `cnxclaw.cmd install` command. Installation is performed from a reviewed source/archive through the repository installer.
+For public consumption, install from the exact `v0.9.5` GitHub Release assets and verify `SHA256SUMS.txt` before extraction/install.
 
-For pre-publication validation, use an exact reviewed candidate rather than a moving branch. v0.9.4 is not yet released or tagged. After publication, use the exact release archive and verify it against `SHA256SUMS.txt`.
+There is intentionally no `cnxclaw.cmd install` command. Installation is performed by the repository installer from an exact verified release tree or reviewed source checkout.
+
+```powershell
+python -m pip install "PyYAML>=6.0,<7"
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\install.ps1 -Workspace "$HOME\.openclaw\workspace"
+```
 
 See:
 
@@ -183,8 +168,10 @@ npm audit --omit=dev
 npm run plugin:validate
 ```
 
-## Historical boundary
+## Release and historical boundaries
 
-v0.9.2 is a frozen historical release. Historical release notes and acceptance evidence may legitimately describe LM Studio/provider-neutral behavior when that is what actually occurred; those records must not be rewritten as current v0.9.4 promises.
+`v0.9.5` is the current published stable baseline. The immutable release tag and GitHub Release both target merge SHA `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`.
 
-The earlier Windows implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` and documentation-corrected candidate `604569c286e930f1a596362ab926b065b56d486e` remain immutable historical evidence. Task 191/192 supersede them for publication with repaired candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34`.
+Post-release documentation commits on `main` may clarify the current documentation surface, but they are not retroactively part of the published `v0.9.5` tag.
+
+Historical v0.9.4/v0.9.3/v0.9.2 notes and reports remain historical evidence. They should not be rewritten merely to make their historical state descriptions look current.
