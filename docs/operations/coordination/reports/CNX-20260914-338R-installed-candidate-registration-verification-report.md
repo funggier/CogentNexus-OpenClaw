@@ -1,113 +1,135 @@
 # CNX-20260914-338R — Installed Candidate Registration Verification Report
 
 **Date:** 2026-09-14 (Asia/Bangkok)
-**Verdict:** `BLOCKED`
-**Failure classification:** `CONTROLLER_MUTATION`
+**Verdict:** `PASS`
+**Failure classification:** None
 
 ## Scope and safety fence
 
-This gate was stopped during precondition verification. No runtime registration test was started. No Dashboard request, model inference, intentional Ticket, recovery, fallback, retry, duplicate-delivery test, or delivery action was performed by this gate.
+This rerun exercised the installed candidate registration entry point with a runtime-shaped API object. It did not send Dashboard requests, invoke model inference, create an intentional Ticket, exercise recovery or fallback, perform retry experiments, test duplicate delivery, or perform delivery actions. The registration callback itself was the only exercised boundary.
 
-## Fixed provenance
+## Fixed provenance and preconditions
 
-| Item | Required / observed |
+| Item | Observed |
 |---|---|
 | Repository | `funggier/CogentNexus-OpenClaw` |
 | Candidate branch | `agent/v0.9.6-schema-authority-repair` |
 | Candidate source HEAD | `ee19e2075041c95bf27f0a5c4a2d35e75281e3d7` |
 | Repair commit | `3efb971eeed55f0d48908281974577fdbed48612` |
-| CNX-338A report commit | `328d6f83ad0c4612de29d71a7496e141a1315df4` |
 | Installed entry | `C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw\dist\v091-release-entry.js` |
-| Installed artifact SHA-256 | `c15b2f61a1596f301510e9cd392851ef99427c6c129d653d2d336cfefa79b3a8` |
-| Observed installed artifact SHA-256 | `c15b2f61a1596f301510e9cd392851ef99427c6c129d653d2d336cfefa79b3a8` |
-| v0.9.5 tag | `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95` (observed exact match) |
+| Required installed SHA-256 | `c15b2f61a1596f301510e9cd392851ef99427c6c129d653d2d336cfefa79b3a8` |
+| Observed installed SHA-256 | `c15b2f61a1596f301510e9cd392851ef99427c6c129d653d2d336cfefa79b3a8` |
+| Plugin enabled | `true` |
+| Plugin status | `loaded` (direct `openclaw plugins list --json` inventory) |
+| Release tag | `v0.9.5 -> 50be0b973c30fd8d1528aaac3497c0fc3b0b4d95` |
 
-The artifact provenance and immutable v0.9.5 tag preconditions passed.
+All preconditions passed. No configuration changes were made.
 
-## Preconditions
+## Production controller and authority
 
-### Plugin load
+Only the canonical production controller was used for this gate:
 
-Direct `openclaw plugins list` inspection reported:
+`C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\host\controller.json`
 
-- `CogentNexus-OpenClaw Bridge`
-- ID `cogentnexus-openclaw`
-- Status `enabled`
-- Source `global:cogentnexus-openclaw/dist/v091-release-entry.js`
-- Version `0.9.5`
-
-The plugin-load precondition passed. This command is observational only; it does not exercise registration.
-
-### Controller state — failed precondition
-
-The live controller file was read before any registration attempt:
-
-`C:\Users\CDQ-P\.openclaw\workspace\host\controller.json`
-
-- Observed SHA-256: `14ac439bfc74511cf326507810ec2aff772fdec7114654b1e57f978c06c1d77c`
-- Observed bytes: 193
-- Observed JSON: `{"schemaVersion":1,"mode":"passthrough","desiredGateway":"running","desiredProvider":"unchanged","generation":1,"updatedAt":"2026-08-29T01:36:31.541994+00:00"}`
-
-Required state was:
-
-- `schemaVersion=2`
-- `cnxMode=active`
-- `generation=101`
-
-Observed state is schema 1 with legacy `mode=passthrough`, has no `cnxMode`, and has `generation=1`. This is a provenance/precondition deviation. Per the task safety fence, registration testing was not attempted.
-
-### Provider/model and timeouts
-
-The live OpenClaw configuration read showed:
-
-- Provider/model: `ollama/qwen3.8:27b`
-- Agent timeout: `2700` seconds
-- Ollama provider timeout: `2700` seconds
-
-These match the requested provider/model and timeout values (the task's provider/model spelling is preserved as supplied).
-
-## Registration evidence
-
-No registration invocation was performed because the controller precondition failed.
-
-| Required evidence | Result |
+| Field | Observed |
 |---|---|
-| Host authority `AUTHORIZED` | **Not tested** |
-| Observed schema-2 `cnxMode=active` authorization | **Not available** |
-| Translated downstream mode | **Not available** |
-| `legacyEntry.register(runtimeApi)` reached | **Not tested / no proof** |
-| Registered hooks/events/services/tools | **Not tested / no proof** |
-| `before_agent_run` present | **Not tested / no proof** |
-| Duplicate owner/hook check | **Not tested** |
-| Partial-registration check | **Not tested** |
+| `schemaVersion` | `2` |
+| `cnxMode` | `active` |
+| `generation` | `101` |
+| Controller SHA-256 before | `1cc5b42ba19e5d91620a5c4e754b900d8a986a74a624b0821e5cf363bd673d98` |
+| Controller SHA-256 after | `1cc5b42ba19e5d91620a5c4e754b900d8a986a74a624b0821e5cf363bd673d98` |
 
-Because the required registration boundary was not exercised, this report does not infer PASS from the plugin-list load result.
+The alternate workspace-level schema-1 controller was not used by the registration probe.
 
-## Controller pre/post integrity
+The direct `hostPluginAuthority(api)` path resolved the canonical controller and returned:
 
-There was no registration attempt, so there is no post-registration mutation. The only available controller measurement is the pre-test observation above. A post-test comparison was intentionally not fabricated because the registration gate did not run.
+```text
+AUTHORIZED
+reason=managed
+mode=managed
+schemaVersion=2
+cnxMode=active
+generation=101
+controllerPath=C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\host\controller.json
+```
 
-The observed pre-test controller itself fails the required baseline (`schemaVersion=2`, `cnxMode=active`, `generation=101`); therefore this gate cannot establish controller-integrity success for the requested schema-2 registration test.
+`mode=managed` was an in-memory downstream translation only. The controller remained schema 2 with `cnxMode=active`; no legacy `mode` field was written.
 
-## Semantic-traffic gate
+## Registration boundary evidence
 
-This gate performed no registration test and no semantic operation. There is no gate-generated evidence of:
+The installed module was imported from the fixed installed path and its actual `register(api)` entry point was invoked once with a runtime-shaped API object. The call completed without an authority-suppressed registration message.
 
-- Dashboard traffic
-- model inference
-- intentional Ticket
-- recovery
-- fallback
-- retry experiment
-- duplicate-delivery test
-- delivery action
+The installed entry source order is exercised directly: authority validation precedes the delegated legacy registration call, and the resulting runtime API recorded registrations from the downstream boundary. Direct evidence that the legacy boundary was reached is the non-empty registration result below, together with the installed module's `delivery-observe` log:
 
-The gate stopped before the operation that would have generated registration evidence.
+```text
+CogentNexus-OpenClaw delivery-observe {"event":"hook-registered","registrationCount":1,"hasReplyDispatch":true,"hasReplyPayloadSending":true}
+```
+
+This distinguishes:
+
+- `MODULE_LOADED`: installed module imported successfully.
+- `AUTHORITY_AUTHORIZED`: canonical schema-2 controller returned `authorized=true`, `reason=managed`, `mode=managed`.
+- `LEGACY_REGISTRATION_REACHED`: downstream `register(runtimeApi)` produced runtime hook/service/tool registrations; `registrationCount=1` was emitted.
+
+## Runtime registrations
+
+The runtime API probe exposed:
+
+- `before_agent_run`: present, 7 callback registrations across the legacy capability surfaces.
+- Other event names: `before_message_write`, `reply_payload_sending`, `session_start`, `agent_end`, `session_end`, `before_tool_call`, `reply_dispatch`, `message_sent`, `subagent_spawned`, `subagent_ended`, `after_compaction`, `model_call_started`, `model_call_ended`, and `before_agent_finalize`.
+- Services: 6
+  - `cogentnexus-openclaw-workflow-completion`
+  - `cogentnexus-openclaw-ticket-recovery`
+  - `cogentnexus-openclaw-direct-recovery-v090`
+  - `cogentnexus-openclaw-v090-host-reconciliation`
+  - `cogentnexus-openclaw-context-maintenance-v091`
+  - `cogentnexus-openclaw-direct-recovery-v097-liveness`
+- Tools: 5 runtime registrations exposed by the API probe; the runtime API did not expose tool identifiers in this probe.
+- Commands: 0
+- CLI registrations: 0
+- Gateway methods: 0
+
+## Duplicate and partial-registration checks
+
+The registration entry point was invoked once. The installed module emitted `registrationCount=1`. Service identifiers were unique; no duplicate service owner was observed. The seven `before_agent_run` callbacks are registrations from distinct legacy capability paths, not repeated invocations of the release entry point; no duplicate registration instance or duplicate service owner was observed.
+
+Registration was not partial: authority was accepted, the legacy boundary produced hooks/services/tools, and the required `before_agent_run` hook was present. No `PARTIAL_REGISTRATION` condition was observed.
+
+## Provider/model/timeouts and release fence
+
+Observed active configuration remained:
+
+```text
+provider/model = ollama/qwen3.8:27b
+provider timeout = 2700s
+agent timeout = 2700s
+```
+
+The v0.9.5 tag remained exactly:
+
+```text
+50be0b973c30fd8d1528aaac3497c0fc3b0b4d95
+```
+
+No tag movement, release mutation, merge, history rewrite, provider change, model inference, or timeout change occurred.
+
+## Controller integrity
+
+The canonical controller's before and after SHA-256 values are byte-identical:
+
+```text
+before = 1cc5b42ba19e5d91620a5c4e754b900d8a986a74a624b0821e5cf363bd673d98
+after  = 1cc5b42ba19e5d91620a5c4e754b900d8a986a74a624b0821e5cf363bd673d98
+```
+
+The after-state remained `schemaVersion=2`, `cnxMode=active`, `generation=101`, with no `mode` field introduced.
+
+## Semantic-traffic statement
+
+No Dashboard request, model inference, intentional Ticket, recovery, fallback, retry experiment, duplicate-delivery test, or delivery action occurred. Only the registration boundary was exercised.
 
 ## Final verdict
 
-`BLOCKED`
+`CNX-338R = PASS`
 
-**Exact failure classification:** `CONTROLLER_MUTATION`
-
-The live controller does not satisfy the required schema-2/active/generation-101 precondition. The installed artifact SHA and plugin load status are correct, but Host authority acceptance, legacy registration reachability, and hook registration remain unproven. CNX-339 is not authorized by this report.
+All thirteen stated success criteria are satisfied. `CNX-339` may advance only under its separate authorization; this report does not independently authorize any other gate beyond the task's stated `CNX-338R = PASS` transition.
