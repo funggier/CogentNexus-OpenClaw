@@ -1,27 +1,27 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-State: `V0.9.5_FINAL_ACCEPTANCE_SUCCESSOR`
+State: `V0.9.5_FINAL_ACCEPTANCE_NPM_STDERR_SUCCESSOR`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260913-318`
-Parent: `CNX-20260913-317`
+Task ID: `CNX-20260913-319`
+Parent: `CNX-20260913-318`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
-Release candidate: `2a1be3b5c2e95664da97f2aea103a57a4947fd9d`
+Release candidate: `345b92b4b1eac5cf8c3813de96565d6ca8b5f927`
 Candidate branch: `fix/v0.9.5-final-acceptance-installer-cli`
 Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Objective
 
-Complete candidate-sensitive requalification and final v0.9.5 live acceptance against the successor candidate after the acceptance branch advanced beyond the previously authorized candidate.
+Complete candidate-sensitive requalification and live v0.9.5 acceptance against the successor candidate created by the test-first repair of the Windows PowerShell 5.1 npm stderr boundary defect.
 
 ## Authorized scope
 
-Hermes is authorized to verify the exact successor candidate, run candidate-sensitive repository validation, restore or verify a healthy acceptance runtime using only bounded supported diagnostics/recovery, install-over the exact successor candidate, verify installed provenance/fingerprint and runtime health, execute Provider Switch Acceptance, Idle Quiescence Acceptance for at least two supervisor cadences, Controlled Actionable Wake with exactly one durable work item, and collect auditable evidence.
+Hermes is authorized to verify the exact successor candidate, run candidate-sensitive repository validation, verify or restore a healthy acceptance runtime using bounded supported diagnostics/recovery only, install-over the exact successor candidate, verify installed provenance/fingerprint and runtime health, execute Provider Switch Acceptance, Idle Quiescence Acceptance for at least two supervisor cadences, Controlled Actionable Wake with exactly one durable work item, and collect auditable evidence.
 
 ## Required order
 
-1. Verify candidate SHA is exactly `2a1be3b5c2e95664da97f2aea103a57a4947fd9d`.
+1. Verify candidate SHA is exactly `345b92b4b1eac5cf8c3813de96565d6ca8b5f927`.
 2. Run candidate-sensitive repository validation.
 3. Verify or restore healthy acceptance runtime using bounded supported recovery only.
 4. Install-over and verify the exact successor candidate.
@@ -47,6 +47,10 @@ idleTicks>=2
 
 Missing or unusable evidence remains `INDETERMINATE`.
 
+## Runtime/model boundary
+
+A prior external operation removed `ollama/qwen3.5:9b` while some sessions remained pinned to that model. Do not restore, recreate, or mutate unrelated provider/model state merely to make the environment appear healthy. Record the observed state and stop if the documented acceptance procedure cannot proceed within this authority.
+
 ## Hard fences
 
 - Do not modify or merge PR #38 in this task.
@@ -58,21 +62,11 @@ Missing or unusable evidence remains `INDETERMINATE`.
 - Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside documented normal acceptance operations.
 - Do not infer PASS from absence of failure.
 - If a new genuine defect is found, stop live acceptance, reproduce it, identify root cause, make only the minimum justified repair, create a new candidate SHA, rerun candidate-sensitive validation, and report the new candidate explicitly.
-
-## Candidate delta
-
-The successor is two commits ahead of `434b2718`:
-
-```text
-8ce1ef3a  test: cover canonical v0.9.5 installer state
-2a1be3b5  fix: accept canonical v0.9.5 controller state
-```
-
-The delta adds a regression test and updates `scripts/install.ps1` to recognize canonical `cnxMode` without mutating controller state.
+- Stop and report `BLOCKED` if a required action exceeds this authority.
 
 ## Evidence contract
 
-Every live result must bind to `2a1be3b5c2e95664da97f2aea103a57a4947fd9d` and include environment, installed version/fingerprint, commands/procedure, timestamps, provider sequence, session/Ticket/run identity, generation/ownership evidence, idle checker output, controlled-wake evidence, and evidence locations.
+Every live result must bind to `345b92b4b1eac5cf8c3813de96565d6ca8b5f927` and include environment, installed version/fingerprint, commands/procedure, timestamps, provider sequence, session/Ticket/run identity, generation/ownership evidence, idle checker output, controlled-wake evidence, and evidence locations.
 
 ## Stop condition
 
