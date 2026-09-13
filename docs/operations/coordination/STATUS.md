@@ -1,38 +1,22 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
-State: `V0.9.5_CONTROLLED_WAKE_PENDING`
-Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260913-322`
-Parent: `CNX-20260913-321`
-Executor: `Hermes`
-Reviewer: `ChatGPT`
+Status: `READY_FOR_PROMOTION`
+State: `V0.9.5_PR_PROMOTION_REQUALIFICATION_PENDING`
+Execution mode: `GITHUB_CONTROLLED_PROMOTION__NO_MERGE`
+Task ID: `CNX-20260913-323`
+Parent: `CNX-20260913-322`
+Executor: `ChatGPT`
+Runtime witness: `Hermes`
+Reviewer: `Hermes`
 Release candidate: `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`
 Candidate branch: `fix/v0.9.5-final-acceptance-installer-cli`
 Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Current position
 
-Idle Quiescence now has sufficient real observation evidence. Two supervisor cadences were captured, normalized/deduplicated, and the idle checker returned PASS.
+Task 322 is complete. Its exact-candidate Controlled Wake evidence is published on the authority branch. Task 323 now governs safe promotion of the accepted candidate into PR #38 and candidate-sensitive CI requalification.
 
-## Idle evidence
-
-```text
-verdict=PASS
-wakeReason=idle/no-actionable-work
-heavyPath=false
-heavySupervisorCalls=0
-providerRecoveryActions=0
-configMutations=0
-gatewayLifecycleActions=0
-idleTicks=2
-observationRecords=2
-parseErrors=0
-stateEvidencePresent=true
-reason=bounded observation evidence is sufficient
-```
-
-## Release gate state
+## Acceptance state
 
 ```text
 Candidate                  fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23
@@ -41,47 +25,42 @@ OpenAI                     PASS / REQUIRED
 Ollama                     PASS / REQUIRED
 LM Studio                  NOT REQUIRED
 Idle Quiescence            PASS
-Controlled Wake            PENDING
-Finalization               BLOCKED
-PR #38                     OPEN / UNMODIFIED
-Merge                      None
-Tag                        None
-Release                    Not published
+Controlled Wake            PASS
+Evidence                   PUBLISHED
+Task 322                   COMPLETE
+```
+
+## PR promotion gate
+
+```text
+PR #38                     OPEN
+Current PR head            a986f3261b1570d1bcb1574d2458fe7068207a9c
+Accepted candidate         fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23
+Relationship               candidate ahead 9 / behind 0
+Promotion mode             FAST-FORWARD ONLY
+Merge                      BLOCKED
+Tag v0.9.5                 NONE
+GitHub Release             NONE
 ```
 
 ## Required next step
 
-Execute Controlled Actionable Wake with exactly one durable work item through the documented normal acceptance path. Preserve session/Ticket/run identity, generation/ownership evidence, and wake/processing/settlement evidence.
-
-## Provider/model boundary
-
-Do not restore, recreate, replace, or otherwise mutate provider/model configuration merely to satisfy acceptance. Do not restore `ollama/qwen3.5:9b` solely for pinned sessions. Do not substitute another provider or model.
-
-## Required idle contract already satisfied
-
-```text
-wakeReason=idle/no-actionable-work
-heavyPath=false
-heavySupervisorCalls=0
-providerRecoveryActions=0
-configMutations=0
-gatewayLifecycleActions=0
-idleTicks>=2
-```
+Safely advance PR #38 head branch to the accepted candidate using a non-force fast-forward update, re-verify the exact PR head, then run and verify candidate-sensitive CI/checks against that exact head. Publish the promotion/requalification evidence before any merge decision.
 
 ## Hard fences
 
-- Do not modify or merge PR #38.
-- Do not create, move, or delete `v0.9.5` tag.
-- Do not publish GitHub Release.
-- Do not force-push.
-- Do not expose, copy, or mutate secrets or credentials.
-- Do not perform unrelated service, Scheduled Task, provider-routing, or configuration changes.
-- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside documented normal acceptance operations.
-- Do not fabricate evidence or infer Controlled Wake PASS from absence of failure.
-- If a genuine code defect is discovered, stop, reproduce, make only the minimum justified TDD repair, create a new candidate SHA, requalify it, and report it.
-- If Controlled Wake requires an out-of-scope mutation, stop and report `BLOCKED`.
+- No force-push.
+- No merge.
+- No `v0.9.5` tag creation/move/deletion.
+- No GitHub Release publication.
+- No provider/model/config mutation.
+- No unrelated service or Scheduled Task changes.
+- No history rewrite.
+- If fast-forward promotion is not possible, stop `BLOCKED`.
+- If candidate-sensitive CI fails due to a genuine code defect, stop and restart through a new TDD candidate/requalification path.
+- No inferred PASS without current exact-head evidence.
 
-## Evidence contract
+## Evidence locations
 
-Controlled Wake evidence must bind to candidate `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed provenance/fingerprint, timestamps, the single durable work-item identity, session/Ticket/run identity, generation/ownership evidence, wake/processing/settlement evidence, and evidence locations.
+- Task 322 report: `docs/operations/coordination/reports/CNX-20260913-322-final-acceptance-report.md`
+- Task 322 report commit: `eb1e4ca8968019e440a070f33f681f77ab2f452e`
