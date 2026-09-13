@@ -5,8 +5,8 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 ## Current status
 
 - **Current release:** `v0.9.5` — published and operationally validated
-- **Main baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`
-- **Git tag:** `v0.9.5` → exact main merge SHA above
+- **v0.9.5 release baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`
+- **Git tag:** `v0.9.5` → exact release baseline above
 - **GitHub Release:** `CogentNexus-OpenClaw v0.9.5`
 - **Validated OpenClaw baseline:** `2026.7.1-2 (0790d9f)`
 - **Managed provider:** Ollama
