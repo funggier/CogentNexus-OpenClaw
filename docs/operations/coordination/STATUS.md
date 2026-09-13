@@ -15,22 +15,13 @@ Authority branch: `coord/v0.9.5-final-acceptance`
 
 The original v0.9.5 candidate `a986f3261b1570d1bcb1574d2458fe7068207a9c` exposed a real installer CLI defect during authorized live acceptance. The defect was repaired with a test-first sequence and the repaired acceptance target is now `434b27185f7afd17d8cffeede9c016378df0a6aa`.
 
-The repaired candidate independently requalified repository tests, but the live install attempt reached a Gateway restart/probe timeout. The acceptance machine was left in native passthrough with CNX disabled. Provider Switch, Idle Quiescence, and Controlled Wake therefore remain unproven.
+The repaired candidate independently requalified repository tests, but its live install attempt reached an OpenClaw Gateway restart/probe timeout. The acceptance machine was left in native passthrough with CNX disabled. Provider Switch, Idle Quiescence, and Controlled Wake therefore remain unproven.
 
 This successor task supplies the durable authority required for a bounded retry.
 
 ## Authorized next work
 
-Hermes may:
-
-1. diagnose the prior Gateway restart/probe timeout using bounded diagnostics first;
-2. use the minimum supported recovery path needed to restore a healthy acceptance runtime;
-3. install-over and verify the exact repaired candidate;
-4. enable the plugin through the supported path;
-5. execute Provider Switch Acceptance;
-6. execute Idle Quiescence Acceptance for at least two supervisor cadences;
-7. execute Controlled Actionable Wake with exactly one durable work item;
-8. collect and publish evidence.
+Hermes may diagnose the prior Gateway restart/probe timeout using bounded diagnostics first, use the minimum supported recovery path needed for a healthy acceptance runtime, install-over and verify the exact repaired candidate, enable the plugin through the supported path, execute Provider Switch Acceptance, Idle Quiescence Acceptance for at least two supervisor cadences, Controlled Actionable Wake with exactly one durable work item, and collect/publish evidence.
 
 ## Release gate state at retry start
 
