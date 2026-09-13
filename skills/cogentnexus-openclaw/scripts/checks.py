@@ -44,8 +44,18 @@ def read_state(root: Path) -> tuple[dict[str, Any] | None, str | None]:
         value = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
         return None, f"Host controller state is unreadable: {exc}"
-    if value.get("mode") not in {"managed", "passthrough", "maintenance"}:
+    mode = value.get("mode")
+    if mode not in {"managed", "passthrough", "maintenance"}:
+        canonical_mode = value.get("cnxMode")
+        mode = {
+            "active": "managed",
+            "disabled": "passthrough",
+            "maintenance": "maintenance",
+        }.get(canonical_mode)
+    if mode not in {"managed", "passthrough", "maintenance"}:
         return None, f"invalid Host mode: {value.get('mode')!r}"
+    value = dict(value)
+    value["mode"] = mode
     return value, None
 
 
