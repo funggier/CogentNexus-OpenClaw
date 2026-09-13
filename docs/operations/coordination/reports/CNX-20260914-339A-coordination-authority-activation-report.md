@@ -46,4 +46,14 @@ CNX-339 = AUTHORIZED
 
 ## Verification
 
-The final verification below is bound to the remote coordination branch commit published for this report. It must confirm the fresh task, ACTIVE/STATUS ownership fields, report path/blob, unchanged v0.9.5 tag, and clean remote consistency before this report is accepted.
+## Published remote proof
+
+- Coordination branch: `agent/v0.9.5-plan2-delivery-session-identity`
+- Remote HEAD after publish: `ed6a5ed3a3c70fdd814514856117ff0fd6681be5`
+- Fresh task and authority files are present at that exact remote HEAD.
+- Report Git blob: `60ad6336eeab349e4dfe8436584ba05f779f7129`
+- Remote `v0.9.5` tag remains `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`.
+- The publish commit changes only `ACTIVE.md`, `STATUS.md`, the fresh CNX-339 task, and this CNX-339A report.
+- Push was fast-forward only; no force-push or reset was used.
+
+The remote HEAD is internally consistent with the authority transition above. CNX-339A is complete and stops here; CNX-339 execution was not performed.
