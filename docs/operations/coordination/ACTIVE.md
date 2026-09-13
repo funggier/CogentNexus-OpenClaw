@@ -1,10 +1,10 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-State: `V0.9.5_FINAL_ACCEPTANCE_SYSTEM_CHECK_SUCCESSOR`
+State: `V0.9.5_PROVIDER_READINESS_SUCCESSOR`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260913-320`
-Parent: `CNX-20260913-319`
+Task ID: `CNX-20260913-321`
+Parent: `CNX-20260913-320`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Release candidate: `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`
@@ -13,26 +13,28 @@ Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Objective
 
-Requalify and perform live v0.9.5 acceptance against the successor candidate after Task 319 found that the system-check path still consumed only legacy `mode` while canonical v0.9.5 state is `cnxMode`.
+Continue final v0.9.5 live acceptance after Task 320 established healthy runtime plus PASS results for Ollama and OpenAI, but LM Studio was unavailable at the configured local endpoint and therefore full provider-switch acceptance remained unproven.
 
 ## Authorized scope
 
-Hermes may verify the exact candidate, run candidate-sensitive repository validation, verify the system-check regression, use bounded supported runtime diagnostics/recovery, install-over the exact candidate, verify provenance/fingerprint and runtime health, verify canonical controller-state handling without manual state rewriting, execute Provider Switch Acceptance, Idle Quiescence for at least two supervisor cadences, Controlled Actionable Wake with exactly one durable work item, and collect auditable evidence.
+Hermes may verify the exact candidate, run candidate-sensitive repository validation, verify the installed runtime and provenance, perform bounded read-only diagnosis of LM Studio at `http://127.0.0.1:1234`, and, only if the endpoint becomes available through an already-authorized normal environment condition, execute the documented Provider Switch Acceptance, Idle Quiescence for >=2 supervisor cadences, Controlled Actionable Wake with exactly one durable work item, and evidence collection.
 
 ## Required order
 
-1. Verify candidate SHA exactly `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`.
-2. Run candidate-sensitive validation.
-3. Verify canonical system-check regression.
-4. Verify or restore healthy acceptance runtime using bounded supported recovery only.
-5. Install-over exact candidate and verify installed provenance/fingerprint and runtime health.
-6. Verify `cnxclaw status` and `cnxclaw check system` both accept canonical controller state without mutating the controller.
-7. Execute Provider Switch Acceptance.
-8. Execute Idle Quiescence for >=2 supervisor cadences.
-9. Execute Controlled Actionable Wake with exactly one durable work item.
-10. Preserve raw evidence and publish successor acceptance report.
-11. Re-check exact candidate identity and all verdicts.
-12. Stop before PR #38 update, merge, tag, or GitHub Release.
+1. Verify exact candidate SHA.
+2. Re-run candidate-sensitive validation.
+3. Verify installed provenance/fingerprint and runtime health.
+4. Diagnose LM Studio endpoint availability without unrelated provider/model mutation.
+5. If the documented LM Studio precondition is available, execute Provider Switch Acceptance.
+6. Execute Idle Quiescence for >=2 supervisor cadences.
+7. Execute Controlled Actionable Wake with exactly one durable work item.
+8. Preserve raw evidence and publish successor acceptance report.
+9. Re-check candidate identity and all verdicts.
+10. Stop before PR #38 update, merge, tag, or GitHub Release.
+
+## Provider/model boundary
+
+Do not restore, recreate, replace, or mutate provider/model configuration merely to make acceptance pass. In particular, do not restore `ollama/qwen3.5:9b` solely because older sessions remain pinned to it. Do not substitute another provider or model and claim LM Studio acceptance passed.
 
 ## Required idle evidence
 
@@ -48,36 +50,22 @@ idleTicks>=2
 
 Missing or unusable evidence remains `INDETERMINATE`.
 
-## Runtime/model boundary
-
-The acceptance environment has a prior external operation removing `ollama/qwen3.5:9b` while some sessions remained pinned to it. Do not restore, recreate, or mutate unrelated provider/model state merely to make acceptance pass. If documented acceptance cannot proceed without such mutation, stop and report `BLOCKED`.
-
 ## Hard fences
 
 - Do not modify or merge PR #38 in this task.
 - Do not create, move, or delete `v0.9.5` tag.
 - Do not publish GitHub Release.
 - Do not force-push.
-- Do not expose, record, copy, or mutate credentials, API keys, tokens, cookies, or secrets.
+- Do not expose, record, or mutate credentials, API keys, tokens, cookies, or secrets.
 - Do not perform unrelated Scheduled Task, service, provider-routing, or configuration changes.
-- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside normal documented acceptance operations.
+- Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside documented normal acceptance operations.
 - Do not infer PASS from absence of failure.
-- If another genuine defect is discovered, stop live acceptance, reproduce it, make only the minimum justified repair, create a new candidate SHA, rerun candidate-sensitive validation, and report the new candidate explicitly.
-- Stop and report `BLOCKED` if a required action exceeds this authority.
-
-## Expected canonical mapping
-
-```text
-active      -> managed
-disabled    -> passthrough
-maintenance -> maintenance
-```
-
-Compatibility mapping must remain an in-memory derived view only.
+- If another genuine code defect is discovered, stop live acceptance, reproduce it, make only the minimum justified TDD repair, create a new candidate SHA, requalify it, and report the new candidate explicitly.
+- If acceptance requires an out-of-scope provider/model mutation or broader recovery, stop and report `BLOCKED`.
 
 ## Evidence contract
 
-Every live result must bind to `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed version/fingerprint, commands/procedure, timestamps, provider sequence, session/Ticket/run identity, generation/ownership evidence, system-check output, idle checker output, controlled-wake evidence, and evidence locations.
+Every live result must bind to `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed fingerprint/provenance, commands/procedure, timestamps, provider sequence, session/Ticket/run identity, generation/ownership evidence, LM Studio diagnosis, idle checker output, controlled-wake evidence, and evidence locations.
 
 ## Stop condition
 
