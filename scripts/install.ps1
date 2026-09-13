@@ -113,7 +113,18 @@ function Get-ExistingCnxMode {
     }
     $mode = [string]$controller.mode
     if ([string]::IsNullOrWhiteSpace($mode)) {
-        throw "Existing CogentNexus-OpenClaw controller has no mode; refusing install mutation."
+        # v0.9.5 persists canonical cnxMode; derive the legacy boundary view
+        # without mutating state so install-over remains fail-closed.
+        $canonicalMode = [string]$controller.cnxMode
+        $mode = switch ($canonicalMode) {
+            "disabled" { "passthrough"; break }
+            "active" { "managed"; break }
+            "maintenance" { "maintenance"; break }
+            default { $null }
+        }
+        if ([string]::IsNullOrWhiteSpace($mode)) {
+            throw "Existing CogentNexus-OpenClaw controller has no recognized mode; refusing install mutation."
+        }
     }
     return $mode
 }
