@@ -1,14 +1,12 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
+# Provider lifecycle — CogentNexus-OpenClaw v0.9.5
 
-# Provider lifecycle — CogentNexus-OpenClaw v0.9.4
-
-CogentNexus-OpenClaw v0.9.4 (currently unreleased) has a managed Ollama mode and an OpenClaw-owned Cloud pass-through mode.
+CogentNexus-OpenClaw v0.9.5 is the current published stable release. It has a managed Ollama mode and an OpenClaw-owned Cloud pass-through mode.
 
 The accepted Recovery Core remains responsible for Ticket, session/generation, durable-result, and delivery fences. Managed provider selection remains Ollama-only: CogentNexus-OpenClaw owns Ollama health, lifecycle, and recovery. Cloud routes are OpenClaw-owned pass-through. OpenClaw owns their authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw never reads, copies, persists, refreshes, or logs Cloud credentials and never starts, stops, probes, or recovers a Cloud provider.
 
 ## Current managed provider
 
-| Provider | Default endpoint | OpenClaw route prefix | v0.9.4 status |
+| Provider | Default endpoint | OpenClaw route prefix | v0.9.5 status |
 | --- | --- | --- | --- |
 | Ollama | `http://127.0.0.1:11434` | `ollama/...` | Supported / managed |
 
@@ -21,7 +19,7 @@ Current lifecycle examples:
 .\cnxclaw.cmd restart --provider ollama
 ```
 
-Provider-bearing v0.9.4 lifecycle operations normalize to Ollama. Unsupported provider names fail closed rather than falling back silently.
+Provider-bearing v0.9.5 lifecycle operations normalize to Ollama. Unsupported provider names fail closed rather than falling back silently.
 
 ## Provider + OpenClaw route boundary
 
@@ -43,7 +41,7 @@ Before lifecycle mutation, the system performs read-only preflight. A successful
 
 ## Route discovery
 
-v0.9.4 does not invent credentials or an unknown model. The managed route must resolve to Ollama from the current/verified OpenClaw model configuration and supported local model evidence.
+v0.9.5 does not invent credentials or an unknown model. The managed route must resolve to Ollama from the current/verified OpenClaw model configuration and supported local model evidence.
 
 A non-Ollama model route is outside the managed-provider contract, but may be used through OpenClaw-owned Cloud pass-through when configured in OpenClaw. Provider/model failure stays an OpenClaw model-call outcome: it does not authorize Ollama recovery or implicit fallback.
 
@@ -66,11 +64,11 @@ Once a durable result exists, delivery uncertainty is not permission to regenera
 
 ## No silent fallback
 
-If Ollama is unavailable, unhealthy, uncontrollable, or lacks a usable model route, `cnxclaw start` must fail closed. v0.9.4 does not silently select another provider.
+If Ollama is unavailable, unhealthy, uncontrollable, or lacks a usable model route, `cnxclaw start` must fail closed. v0.9.5 does not silently select another provider.
 
 ## Fresh state and reset
 
-Fresh v0.9.4 managed state targets Ollama.
+Fresh v0.9.5 managed state targets Ollama.
 
 ```powershell
 .\cnxclaw.cmd reset
@@ -83,7 +81,7 @@ The explicit-`y`, ownership-safe, PASSTHROUGH-first destructive boundary remains
 
 v0.9.2 was a provider-neutral development/release line that included LM Studio lifecycle and compatibility work. Its source modules, release notes, and historical evidence may preserve those facts because they are part of repository history.
 
-That historical implementation must not be interpreted as a current v0.9.4 managed-provider promise. Current v0.9.4 source manages Ollama only and separately supports OpenClaw-owned Cloud pass-through without taking ownership of Cloud credentials, lifecycle, probing, or recovery.
+That historical implementation must not be interpreted as a current v0.9.5 managed-provider promise. Current v0.9.5 source manages Ollama only and separately supports OpenClaw-owned Cloud pass-through without taking ownership of Cloud credentials, lifecycle, probing, or recovery.
 
 ## Recovery Core boundary
 
