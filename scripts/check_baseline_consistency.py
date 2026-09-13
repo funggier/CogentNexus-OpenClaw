@@ -13,6 +13,10 @@ try:
 finally:
     globals()["__name__"] = _WRAPPER_NAME
 
+# The implementation remains archived as a compatibility engine, while the
+# live validator contract advances with the current repository baseline.
+EXPECTED_VERSION = "0.9.5"
+
 _LEGACY_MAIN = main
 _LEGACY_CURRENT_TEXT_FILES = current_text_files
 _ORIGINAL_READ_TEXT = Path.read_text

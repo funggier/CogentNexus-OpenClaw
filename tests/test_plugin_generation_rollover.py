@@ -16,7 +16,7 @@ ownership = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ownership)
 
 
-def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.4") -> Path:
+def write_plugin(root: Path, *, marker: str = "same", version: str = "0.9.5") -> Path:
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(
@@ -363,7 +363,7 @@ def test_plan_accepts_live_openclaw_record_without_optional_package_name_when_pa
         "id": "cogentnexus-openclaw",
         "packageName": "openclaw-plugin-cogentnexus-openclaw",
         "packageNameEvidence": "payload-package-json",
-        "version": "0.9.4",
+        "version": "0.9.5",
         "rootDir": ownership._canonical(paths["new_plugin"]),
         "source": str(paths["new_plugin"] / "dist" / "index.js"),
         "enabled": False,

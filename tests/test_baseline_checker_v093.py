@@ -51,7 +51,7 @@ def test_checker_rejects_bridge_metadata_that_disagrees_with_root_version(tmp_pa
     for name in ("package.json", "openclaw.plugin.json", "package-lock.json"):
         _rewrite_json_version(plugin / name, "0.9.2")
 
-    assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.4"
+    assert (tree / "VERSION").read_text(encoding="utf-8").strip() == "0.9.5"
     assert _run_checker(tree) == 1
 
 

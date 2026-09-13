@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # CogentNexus-OpenClaw Current Operational State
 
 **Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release exists yet**)

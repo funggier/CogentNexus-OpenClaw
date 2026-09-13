@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "0.9.4"
+EXPECTED = "0.9.5"
 
 
 def test_release_metadata_is_aligned_to_next_stability_version():
@@ -43,7 +43,7 @@ def test_current_facing_documents_use_next_stability_version():
     for relative in paths:
         text = (ROOT / relative).read_text(encoding="utf-8")
         assert "v0.9.3" not in text, relative
-        assert "v0.9.4" in text, relative
+        assert "v0.9.5" in text, relative
 
 
 def test_release_workflow_rejects_existing_tag_and_release_before_publication():

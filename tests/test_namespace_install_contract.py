@@ -132,7 +132,7 @@ def test_posix_installer_matches_windows_rollover_order_and_rejects_link_mix():
 def test_release_package_names_are_variant_scoped():
     validate = read(".github/workflows/validate.yml")
     release = read(".github/workflows/release.yml")
-    assert 'name="cogentnexus-openclaw-v0.9.4"' in validate
+    assert 'name="cogentnexus-openclaw-v0.9.5"' in validate
     assert 'name="cogentnexus-openclaw-$tag"' in release
     assert '--title "CogentNexus-OpenClaw $tag"' in release
 

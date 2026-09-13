@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # CogentNexus-OpenClaw Bridge — v0.9.4
 
 This plugin is the OpenClaw-side bridge for CogentNexus-OpenClaw Ticket-first admission, Direct Recovery, durable delivery continuity, session/generation fencing, and compatibility ownership rules.

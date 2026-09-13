@@ -24,7 +24,7 @@ $stagedSkill = Join-Path $Workspace ".cogentnexus-openclaw\install-staging\cogen
 $backupRoot = Join-Path $Workspace ".cogentnexus-openclaw\install-backups"
 $pluginDir = Join-Path $repoRoot "plugins\cogentnexus-openclaw"
 $hostScript = Join-Path $targetSkill "scripts\host_v091.py"
-$cliScript = Join-Path $targetSkill "scripts\cnxclaw_v093.py"
+$cliScript = Join-Path $targetSkill "scripts\cnxclaw.py"
 $cogentNexusOpenClawRoot = Join-Path $Workspace ".cogentnexus-openclaw"
 $controllerPath = Join-Path $cogentNexusOpenClawRoot "host\controller.json"
 $existingLauncher = Join-Path $Workspace "cnxclaw.cmd"
@@ -113,7 +113,18 @@ function Get-ExistingCnxMode {
     }
     $mode = [string]$controller.mode
     if ([string]::IsNullOrWhiteSpace($mode)) {
-        throw "Existing CogentNexus-OpenClaw controller has no mode; refusing install mutation."
+        # v0.9.5 persists canonical cnxMode; derive the legacy boundary view
+        # without mutating state so install-over remains fail-closed.
+        $canonicalMode = [string]$controller.cnxMode
+        $mode = switch ($canonicalMode) {
+            "disabled" { "passthrough"; break }
+            "active" { "managed"; break }
+            "maintenance" { "maintenance"; break }
+            default { $null }
+        }
+        if ([string]::IsNullOrWhiteSpace($mode)) {
+            throw "Existing CogentNexus-OpenClaw controller has no recognized mode; refusing install mutation."
+        }
     }
     return $mode
 }
@@ -243,10 +254,12 @@ $classificationInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-plugin
 if (-not $SkipPlugin) {
     Push-Location $pluginDir
     try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw "candidate npm ci failed before classification" }
-        npm run plugin:validate
-        if ($LASTEXITCODE -ne 0) { throw "candidate plugin validation failed before classification" }
+        $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+        if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
+        if ($npmCi.ExitCode -ne 0) { throw "candidate npm ci failed before classification" }
+        $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")
+        if ($npmValidate.Output) { Write-Host $npmValidate.Output.TrimEnd() }
+        if ($npmValidate.ExitCode -ne 0) { throw "candidate plugin validation failed before classification" }
         $pluginPrepared = $true
     }
     finally { Pop-Location }
@@ -437,10 +450,12 @@ if ($actions.installPlugin) {
     Push-Location $pluginDir
     try {
         if (-not $pluginPrepared) {
-            npm ci
-            if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
-            npm run plugin:validate
-            if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
+            $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+            if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
+            if ($npmCi.ExitCode -ne 0) { throw "npm ci failed" }
+            $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")
+            if ($npmValidate.Output) { Write-Host $npmValidate.Output.TrimEnd() }
+            if ($npmValidate.ExitCode -ne 0) { throw "plugin validation failed" }
         }
 
         $currentPaths = $null

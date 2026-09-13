@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # Install CogentNexus-OpenClaw v0.9.4
 
 CogentNexus-OpenClaw v0.9.4 is currently unreleased (no v0.9.4 tag or GitHub Release yet). It targets OpenClaw `2026.7.1-2 (0790d9f)` and manages Ollama health, lifecycle, and recovery. Configured Cloud providers use OpenClaw-owned pass-through: OpenClaw owns authentication, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket continuity and durable delivery but never handles Cloud credentials.

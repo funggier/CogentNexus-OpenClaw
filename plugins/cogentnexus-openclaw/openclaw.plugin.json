@@ -2,7 +2,7 @@
   "id": "cogentnexus-openclaw",
   "name": "CogentNexus-OpenClaw Bridge",
   "description": "Ticket-first OpenClaw bridge for CogentNexus-OpenClaw Host-managed continuity, durable execution, recovery, context handoff, and verified delivery.",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "configSchema": {
     "type": "object",
     "properties": {

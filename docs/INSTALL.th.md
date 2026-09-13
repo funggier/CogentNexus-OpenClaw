@@ -1,3 +1,5 @@
+**Current v0.9.5 release candidate:** pre-publication validation in progress.
+
 # ติดตั้ง CogentNexus-OpenClaw v0.9.4 บน Windows
 
 CogentNexus-OpenClaw v0.9.4 ยังไม่ release/tag และใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` โดย CogentNexus-OpenClaw จัดการ health/lifecycle/recovery เฉพาะ Ollama ส่วน Cloud เป็น OpenClaw-owned pass-through: OpenClaw เป็นเจ้าของ credentials, routing/model selection, runtime, lifecycle, probing และ recovery; CogentNexus-OpenClaw ดูแลเฉพาะ Ticket/continuity/durable delivery และจะไม่อ่าน คัดลอก เก็บ refresh หรือ log Cloud credentials
