@@ -1,7 +1,7 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-State: `V0.9.5_IDLE_EVIDENCE_RECOVERY`
+State: `V0.9.5_CONTROLLED_WAKE_PENDING`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
 Task ID: `CNX-20260913-322`
 Parent: `CNX-20260913-321`
@@ -11,43 +11,40 @@ Release candidate: `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`
 Candidate branch: `fix/v0.9.5-final-acceptance-installer-cli`
 Authority branch: `coord/v0.9.5-final-acceptance`
 
-## Objective
+## Current objective
 
-Recover the missing Idle Quiescence evidence for the unchanged v0.9.5 candidate. Task 321 verified runtime health and the required OpenAI/Ollama provider scope, but the idle checker observed zero parseable records.
+Idle Quiescence evidence has passed for the unchanged v0.9.5 candidate. The next authorized step is Controlled Actionable Wake with exactly one durable work item.
 
-## Authorized scope
-
-Hermes may verify the exact candidate, verify the existing runtime and provenance, diagnose the idle observation/evidence path using bounded read-only diagnostics, restore normal observation through the documented runtime path, observe at least two real supervisor cadences, run the idle checker, and only after Idle PASS execute Controlled Actionable Wake with exactly one durable work item.
-
-## Required idle evidence
+## Verified idle evidence
 
 ```text
+verdict=PASS
 wakeReason=idle/no-actionable-work
 heavyPath=false
 heavySupervisorCalls=0
 providerRecoveryActions=0
 configMutations=0
 gatewayLifecycleActions=0
-idleTicks>=2
+idleTicks=2
+observationRecords=2
+parseErrors=0
+stateEvidencePresent=true
+reason=bounded observation evidence is sufficient
 ```
 
-Missing or unusable evidence remains `INDETERMINATE`.
+Two real supervisor cadences were observed and normalized/deduplicated before checker evaluation.
 
-## Candidate and provider boundary
-
-Candidate remains exactly:
-
-`fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`
-
-Required provider acceptance:
+## Provider scope
 
 ```text
-OpenAI    REQUIRED
-Ollama    REQUIRED
+OpenAI    REQUIRED / PASS
+Ollama    REQUIRED / PASS
 LM Studio NOT REQUIRED
 ```
 
-Do not change provider/model configuration merely to generate evidence. Do not restore `ollama/qwen3.5:9b` solely for pinned sessions. Do not substitute providers or models.
+## Required next step
+
+Execute Controlled Actionable Wake with exactly one durable work item through the documented normal acceptance path. Preserve session/Ticket/run identity, generation/ownership evidence, and successful handling/settlement evidence.
 
 ## Hard fences
 
@@ -56,38 +53,18 @@ Do not change provider/model configuration merely to generate evidence. Do not r
 - Do not publish GitHub Release.
 - Do not force-push.
 - Do not expose, copy, or mutate secrets or credentials.
+- Do not restore or recreate `ollama/qwen3.5:9b` solely to satisfy acceptance.
+- Do not substitute another provider or model for the required OpenAI/Ollama scope.
 - Do not perform unrelated service, Scheduled Task, provider-routing, or configuration changes.
 - Do not manually mutate Ticket, SQLite, session, transcript, or delivery state outside documented normal acceptance operations.
-- Do not fabricate observation records or infer PASS from absence of failure.
+- Do not fabricate evidence or infer Controlled Wake PASS from absence of failure.
 - If a genuine code defect is discovered, stop, reproduce, make only the minimum justified TDD repair, create a new candidate SHA, requalify it, and report it.
-- If evidence requires an out-of-scope mutation, stop and report `BLOCKED`.
-
-## Required order
-
-1. Verify exact candidate SHA.
-2. Verify installed provenance/fingerprint and runtime health.
-3. Diagnose the zero-record idle observation window using bounded read-only checks.
-4. Restore normal observation/evidence collection only if supported and in scope.
-5. Collect >=2 real supervisor cadences and rerun the idle checker.
-6. Require the complete idle evidence contract to PASS.
-7. Run Controlled Actionable Wake with exactly one durable work item.
-8. Preserve raw evidence and publish a successor report.
-9. Re-check candidate identity and all gates.
-10. Stop before PR #38 update, merge, tag, or release.
-
-## Completion gates
-
-```text
-Candidate identity       VERIFIED
-Runtime                  PASS
-OpenAI                   PASS
-Ollama                   PASS
-Idle Quiescence          PASS
-Controlled Wake          PASS
-Evidence                 PUBLISHED
-Finalization             remains a separate successor decision
-```
+- If Controlled Wake requires an out-of-scope mutation, stop and report `BLOCKED`.
 
 ## Evidence contract
 
-Every result must bind to the exact candidate and include environment, installed provenance/fingerprint, timestamps, observation-window boundaries, raw idle checker output, required idle fields, and Controlled Wake evidence if executed.
+Controlled Wake evidence must bind to candidate `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23` and include environment, installed provenance/fingerprint, timestamps, the single durable work-item identity, session/Ticket/run identity, generation/ownership evidence, wake/processing/settlement evidence, and evidence locations.
+
+## Stop condition
+
+After Controlled Wake evidence is collected and the successor report is published, stop. PR promotion, merge, tagging, and release remain a separate successor decision.
