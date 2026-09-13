@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 Status: `READY_FOR_HERMES`
-State: `V0.9.5_PROVIDER_READINESS_SUCCESSOR`
+State: `V0.9.5_PROVIDER_ACCEPTANCE_OPENAI_OLLAMA`
 Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
 Task ID: `CNX-20260913-321`
 Parent: `CNX-20260913-320`
@@ -13,19 +13,19 @@ Authority branch: `coord/v0.9.5-final-acceptance`
 
 ## Current position
 
-Task 320 established healthy v0.9.5 runtime and PASS results for the Ollama and OpenAI reply paths. The configured LM Studio endpoint at `http://127.0.0.1:1234` was unreachable with WinError 10061, so full Provider Switch Acceptance could not be claimed.
+Task 320 established healthy v0.9.5 runtime and PASS results for the Ollama and OpenAI reply paths. LM Studio was unavailable, but it is not part of the required v0.9.5 provider acceptance scope.
 
-The exact candidate remains `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`. A bounded successor task is authorized to verify candidate identity, re-run candidate-sensitive validation, diagnose LM Studio availability, and continue acceptance only without unrelated provider/model mutation.
+The exact candidate remains `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`. Task 321 is authorized to verify the candidate, re-run candidate-sensitive validation, confirm OpenAI and Ollama acceptance, then complete Idle Quiescence and Controlled Actionable Wake.
 
 ## Release gate state
 
 ```text
 Candidate                      fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23
 Runtime health                 PASS
-Ollama                         PASS
-OpenAI                         PASS
-LM Studio                     FAIL / UNAVAILABLE at last evidence
-Provider Switch                INDETERMINATE
+Ollama                         PASS / REQUIRED
+OpenAI                         PASS / REQUIRED
+LM Studio                     NOT REQUIRED
+Provider Acceptance            PENDING EXACT-CANDIDATE REVERIFICATION
 Idle Quiescence               INDETERMINATE
 Controlled Wake               INDETERMINATE
 Finalization                  BLOCKED
@@ -35,9 +35,17 @@ Tag                           None
 Release                       Not published
 ```
 
+## Provider acceptance scope
+
+```text
+OpenAI    REQUIRED
+Ollama    REQUIRED
+LM Studio NOT REQUIRED
+```
+
 ## Provider/model boundary
 
-Do not restore, recreate, replace, or mutate provider/model configuration merely to satisfy the acceptance gate. Do not restore `ollama/qwen3.5:9b` solely for pinned sessions. Do not substitute another provider/model and claim LM Studio acceptance passed.
+Do not restore, recreate, replace, or otherwise mutate provider/model configuration merely to satisfy acceptance. Do not restore `ollama/qwen3.5:9b` solely because older sessions remain pinned to it. Do not substitute another provider/model for the required OpenAI or Ollama acceptance.
 
 ## Required idle evidence
 
