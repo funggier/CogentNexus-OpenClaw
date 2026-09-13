@@ -254,10 +254,12 @@ $classificationInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-plugin
 if (-not $SkipPlugin) {
     Push-Location $pluginDir
     try {
-        npm ci
-        if ($LASTEXITCODE -ne 0) { throw "candidate npm ci failed before classification" }
-        npm run plugin:validate
-        if ($LASTEXITCODE -ne 0) { throw "candidate plugin validation failed before classification" }
+        $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+        if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
+        if ($npmCi.ExitCode -ne 0) { throw "candidate npm ci failed before classification" }
+        $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")
+        if ($npmValidate.Output) { Write-Host $npmValidate.Output.TrimEnd() }
+        if ($npmValidate.ExitCode -ne 0) { throw "candidate plugin validation failed before classification" }
         $pluginPrepared = $true
     }
     finally { Pop-Location }
@@ -448,10 +450,12 @@ if ($actions.installPlugin) {
     Push-Location $pluginDir
     try {
         if (-not $pluginPrepared) {
-            npm ci
-            if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
-            npm run plugin:validate
-            if ($LASTEXITCODE -ne 0) { throw "plugin validation failed" }
+            $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+            if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
+            if ($npmCi.ExitCode -ne 0) { throw "npm ci failed" }
+            $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")
+            if ($npmValidate.Output) { Write-Host $npmValidate.Output.TrimEnd() }
+            if ($npmValidate.ExitCode -ne 0) { throw "plugin validation failed" }
         }
 
         $currentPaths = $null
