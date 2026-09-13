@@ -1,8 +1,9 @@
 # CogentNexus-OpenClaw Current Operational State
 
 **Current release:** `v0.9.5` — published and operationally validated  
-**Main baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`  
-**Git tag:** `v0.9.5` → exact main merge SHA above  
+**Current `main` HEAD:** `22b735816d55562fc880f9b7fb1f0993606cfc0d`  
+**v0.9.5 release baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`  
+**Git tag:** `v0.9.5` → exact release baseline above  
 **GitHub Release:** `CogentNexus-OpenClaw v0.9.5` — published, non-draft, non-prerelease  
 **Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
 **Managed provider:** **Ollama**  
@@ -12,20 +13,20 @@ See [POST_RELEASE_BASELINE.md](POST_RELEASE_BASELINE.md) for the concise release
 
 ## Current classification
 
-CogentNexus-OpenClaw v0.9.5 is the current published stable baseline. Final acceptance, exact-head release-gating validation, controlled actionable-wake validation, PR merge verification, immutable tag verification, and post-release exact-tag installation/runtime verification have completed.
+CogentNexus-OpenClaw v0.9.5 is the current published stable release. Final acceptance, exact-head release-gating validation, controlled actionable-wake validation, PR merge verification, immutable tag verification, and post-release exact-tag installation/runtime verification have completed.
 
-The release was verified from a fresh detached checkout of `v0.9.5`. The checkout resolved to the exact merge SHA, reported repository and plugin version `0.9.5`, and executed the installer successfully. The installed plugin loaded in OpenClaw and matched the exact-tag `dist` tree by file count and tree fingerprint.
+The published release is immutable. `main` may now receive documentation or future development commits; those commits are not retroactively part of the published `v0.9.5` tag.
 
 ## Release identity
 
 ```text
-main:     50be0b973c30fd8d1528aaac3497c0fc3b0b4d95
-v0.9.5:   50be0b973c30fd8d1528aaac3497c0fc3b0b4d95
-PR:       #38 — merged
-release:  CogentNexus-OpenClaw v0.9.5
+current main HEAD: 22b735816d55562fc880f9b7fb1f0993606cfc0d
+v0.9.5 release tag: 50be0b973c30fd8d1528aaac3497c0fc3b0b4d95
+PR #38: merged
+release: CogentNexus-OpenClaw v0.9.5
 ```
 
-The merge commit has parent `6439dd963003856ee1b1f1f6f802fa2aa60d6612` and the accepted candidate `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`. GitHub verified the merge commit.
+The v0.9.5 merge commit has parent `6439dd963003856ee1b1f1f6f802fa2aa60d6612` and the accepted candidate `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`. GitHub verified the merge commit.
 
 ## Operational validation
 
@@ -45,7 +46,7 @@ Controlled actionable wake was verified with exactly one durable work item. Tick
 
 The post-release baseline additionally verified:
 
-- `main` and `v0.9.5` exact release identity;
+- exact `v0.9.5` tag and merge identity;
 - exact-tag detached installation;
 - `VERSION` and plugin package version `0.9.5`;
 - successful installer execution;
@@ -108,16 +109,16 @@ This is explicitly recorded as a **known checker anomaly**. It is not silently p
 
 ## Publication boundary
 
-The public release is now complete:
+The public release is complete:
 
 1. accepted candidate `fc3f4bc0...`;
 2. exact-head release-gating checks passed;
 3. PR #38 merged;
-4. `main` became `50be0b97...`;
+4. release baseline became `50be0b97...`;
 5. immutable `v0.9.5` tag created at that exact merge SHA;
 6. GitHub Release `v0.9.5` published;
 7. exact-tag post-release installation/runtime verification completed.
 
-Future source/documentation changes on `main` do not retroactively change the published `v0.9.5` tag or release contents.
+Current `main` contains post-release documentation clarification commits after the release baseline. These do not change the immutable release tag or published Release contents.
 
 Historical coordination reports remain immutable evidence and should not be rewritten merely to make their historical wording current.
