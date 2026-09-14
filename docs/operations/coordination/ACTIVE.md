@@ -1,72 +1,75 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-State: `V096_LIVE_TIMEOUT_REQUALIFICATION`
-Execution mode: `ONE_BOUNDED_LIVE_SEMANTIC_REQUEST`
-Task ID: `CNX-340F`
-Parent: `CNX-340E`
+State: `V096_LIVE_TIMEOUT_AUTHORITY_PROVENANCE_DIAGNOSTIC`
+Execution mode: `READ_ONLY_RUNTIME_DIAGNOSTIC`
+Task ID: `CNX-341`
+Parent: `CNX-340F`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
-Fresh session: `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`
-Active branch: `agent/v0.9.6-live-timeout-requalification-2`
+Known failing session: `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`
+Active branch: `agent/v0.9.6-live-timeout-authority-diagnostic`
 
 ## Objective
 
-Execute exactly one bounded live semantic request in the CNX-340E fresh Dashboard session and prove from real durable runtime evidence that the repaired direct-model-call lease carries `timeoutMs=2700000` (2700 seconds) into the actual Ollama model-call path.
-
-## Required provider/model
-
-- Provider: `ollama`
-- Model: `ollama/qwen3.8:27b`
-- Timeout authority: `2700s / 2700000ms`
-- OpenAI: excluded
+Determine why the real runtime direct-model-call lease produced `timeoutMs=900000` during CNX-340F despite the CNX-340A timeout-authority repair and the reported repaired artifact SHA. Identify the exact runtime timeout source/path that caused 900s so the next repair can be selected without guessing.
 
 ## Hard fences
 
-- Use only the exact fresh session above.
-- Exactly one semantic request.
-- No new session and no `New session` click.
-- No second request, retry, resend, recovery, fallback, or manual dispatch.
-- No provider/model/config/timeout/controller/database/install/release/tag mutation.
+- Read-only diagnostic by default.
+- No new Dashboard session.
+- No `New session` click.
+- No semantic request.
+- No additional live model call.
+- No retry, resend, recovery, fallback, or manual dispatch.
+- No provider/model/config/timeout/controller/database mutation.
+- No installation or Gateway restart in this task.
 - No production code or test changes.
-- Do not wait 2700 seconds; inspect the durable lease evidence directly.
-- If evidence is ambiguous or unavailable, stop `BLOCKED`; do not repeat the request.
-- Never modify `v0.9.5` history or force-push.
+- No change to `v0.9.5` or published history.
+- No force push/history rewrite.
+- If evidence is unavailable or contradictory, report `BLOCKED`; do not guess.
 
-## Preflight
+## Required investigation
 
-Capture read-only evidence for browser PID/window, current URL/session identity, exact fresh-session match, relevant provider/model/runtime configuration, and durable baseline counts needed for correlation.
+1. Establish the exact plugin artifact actually loaded by the running Gateway, including installed path, exact SHA-256, version/provenance, and whether the loaded file contains the repaired resolver and handler call site.
 
-If the session identity is not exactly `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`, stop `BLOCKED` without creating another session.
+2. Establish what can be proven about the running Gateway process/load boundary without restarting it: process identity/start time if available, plugin load evidence, artifact modification/install time if available, and the limits of any timestamp-based inference.
 
-## Semantic request
+3. Determine the timeout values visible at the model-call resolver boundary using existing diagnostic facilities or an isolated non-production harness. Capture, where observable:
+   - `event.timeoutMs`
+   - `event.timeoutSeconds`
+   - `ctx.timeoutMs`
+   - `ctx.timeoutSeconds`
+   - `api.config.agents.defaults.timeoutSeconds`
+   - `api.config.models.providers.ollama.timeoutSeconds`
+   - plugin/runtime config timeout fields used by the resolver
+   - final resolver result
 
-Send exactly:
+4. Reconcile the known CNX-340F live `timeoutMs=900000` with those observations and classify the narrowest proven cause:
+   - `ROOT_CAUSE_PROVEN — STALE_RUNTIME_ARTIFACT`
+   - `ROOT_CAUSE_PROVEN — RUNTIME_LOAD_BOUNDARY`
+   - `ROOT_CAUSE_PROVEN — LIVE_TIMEOUT_INPUT_OVERRIDE`
+   - `ROOT_CAUSE_PROVEN — RUNTIME_CONFIG_SHAPE`
+   - `ROOT_CAUSE_PROVEN — OTHER_RUNTIME_AUTHORITY`
+   - `ROOT_CAUSE_NOT_PROVEN — EVIDENCE_INSUFFICIENT`
 
-`CNX-340F-LIVE-TIMEOUT-TEST: Reply exactly with DONE.`
-
-## Required evidence
-
-Correlate one coherent real lifecycle:
-
-- Dashboard session
-- Ticket/admission identity (if applicable)
-- Run identity
-- `model_call_started` durable lease/event
-- `timeoutMs=2700000`
-- provider `ollama`
-- model `ollama/qwen3.8:27b`
-- no `timeoutMs=900000` on this call
-- completion/result
-- delivery confirmation
-- final outbox `0`
-- no duplicate owner
+Do not classify the runtime as stale merely because the local repository branch differs from the task branch.
 
 ## PASS
 
-PASS only if the real call uses the fresh session, produces durable lease evidence showing `timeoutMs=2700000`, uses the required provider/model, completes normally, and yields one correlated Ticket/Run/Result/Delivery lifecycle with outbox `0`.
+PASS only if the diagnostic identifies a concrete, evidence-backed cause for `900000` sufficient to choose the next repair/requalification action without guessing.
 
-## Disposition
+## BLOCKED
 
-Publish `docs/operations/coordination/reports/CNX-20260914-340F-live-timeout-requalification-report.md` and stop for independent ChatGPT review. Do not self-accept CNX-340F.
+BLOCKED if the runtime cannot expose enough evidence to distinguish the plausible causes safely. State the minimum next evidence needed.
+
+## Report
+
+Publish:
+
+`docs/operations/coordination/reports/CNX-20260914-341-live-timeout-authority-provenance-diagnostic-report.md`
+
+The report must distinguish proven facts from hypotheses and include exact artifact hashes, runtime/load evidence, timeout input values, resolver outcome, and recommendation for the next successor task.
+
+Stop for independent ChatGPT review. Do not self-accept CNX-341.
