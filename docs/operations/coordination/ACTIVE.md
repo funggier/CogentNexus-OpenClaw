@@ -1,70 +1,56 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-State: `V096_UI_CONTROL_REQUALIFICATION`
-Execution mode: `SINGLE_EXECUTOR`
-Task ID: `CNX-340D`
-Parent: `CNX-340C`
-Base candidate: `agent/v0.9.6-direct-model-call-timeout-authority-repair`
-Base candidate HEAD: `460a8cd661d02ba419cc1eff13c0efc721cfa928`
-Evidence qualification HEAD: `e42010f826a4707abc217cb4305b7639f76db8f8`
-Active branch: `agent/v0.9.6-ui-control-requalification`
+Status: `READY_FOR_OPERATOR`
+State: `V096_HUMAN_ASSISTED_SESSION_ACTIVATION`
+Execution mode: `HUMAN_UI_ACTION__READ_ONLY_VERIFICATION`
+Task ID: `CNX-340E`
+Parent: `CNX-340D`
+Executor: `Hermes`
+Reviewer: `ChatGPT`
+Human action: `Operator`
+Base CNX-340D HEAD: `30da4c5842d55f555e32155cc87391255938f296`
+Active branch: `agent/v0.9.6-human-assisted-session-activation`
 
 ## Objective
 
-Resolve the Dashboard/Web Session activation ambiguity that blocked CNX-340C. Establish a deterministic, repeatable control procedure that can select one fresh Dashboard session and prove the resulting session identity before any semantic input is submitted.
-
-## Executor / Reviewer
-
-- Executor: `Hermes`
-- Reviewer: `ChatGPT`
-- Human authority: fresh continuation explicitly authorized by the operator after CNX-340C review.
+Establish exactly one fresh Dashboard/Web Session by having the human operator perform the visible `New session` click, then allow Hermes to verify the resulting session identity and fresh state read-only. No semantic request is permitted in this task.
 
 ## Hard fences
 
-- No semantic Dashboard request.
-- No OpenAI or Ollama inference.
+- Exactly one human `New session` click.
+- No Hermes click or keyboard fallback.
+- No semantic request.
+- No OpenAI/Ollama inference.
+- No second session attempt.
+- No retry, recovery, fallback, resend, manual dispatch.
 - No provider/model/config/timeout mutation.
 - No controller or production database mutation.
 - No installation/release/tag mutation.
-- No retry, recovery, fallback, resend, or manual dispatch.
 - No force push/history rewrite.
-- Any ambiguous activation is consumed and is not repeated.
+
+## Operator protocol
+
+1. Hermes tells the operator to click the visible `New session` control once.
+2. Operator performs the click normally in the authenticated OpenClaw Control Dashboard.
+3. Operator replies with explicit confirmation, e.g. `กดแล้ว`.
+4. Hermes performs read-only verification only after confirmation.
+5. If a new session is not verifiable, stop; do not click again.
 
 ## Required evidence
 
-1. Exact targeted browser process/window identity.
-2. Exact control action sequence.
-3. Verifiable pre-action session identity.
-4. Verifiable post-action session identity or an independent fresh-session marker.
-5. Proof the resulting session is fresh before semantic input.
-6. Zero semantic traffic.
-7. Zero production-state mutation.
-8. If a test/control seam is added, focused verification and exact diff scope.
+- exact browser process/window identity
+- pre-action session identity
+- operator-confirmed action
+- post-action session identity
+- independent fresh-session marker
+- fresh rendered state
+- zero semantic traffic/inference
+- zero production-state mutation
 
 ## PASS criteria
 
-PASS only when a fresh Dashboard session can be established and independently verified before semantic input, with no semantic traffic or production mutation. This task must not run CNX-340C again.
-
-## Failure classifications
-
-- `UI_WINDOW_TARGET_NOT_DETERMINISTIC`
-- `UI_FOREGROUND_NOT_VERIFIABLE`
-- `UI_NEW_SESSION_NOT_VERIFIABLE`
-- `UI_FRESH_SESSION_STATE_NOT_VERIFIABLE`
-- `UNEXPECTED_SEMANTIC_TRAFFIC`
-- `PRODUCTION_STATE_MUTATION`
-- `CONTROL_SEAM_REGRESSION`
-- `ARTIFACT_PROVENANCE_MISMATCH`
+PASS only if the operator-confirmed click creates one fresh Dashboard session and Hermes independently verifies its new identity and fresh rendered state before any semantic input.
 
 ## Required report
 
-Publish `docs/operations/coordination/reports/CNX-20260914-340D-ui-control-requalification-report.md` and stop for independent ChatGPT review. Do not self-accept CNX-340D.
-
-## Previous state
-
-- Plan 2 remains closed.
-- CNX-339 remains historical evidence and is not replayed.
-- CNX-340A is the timeout-authority repair.
-- CNX-340B closed the hook-evidence gap.
-- CNX-340C was blocked by `UI_ACTIVATION_AMBIGUOUS`; do not repeat that semantic attempt.
+Publish `docs/operations/coordination/reports/CNX-20260914-340E-human-assisted-session-activation-report.md` and stop for independent ChatGPT review. Do not run live timeout requalification inside CNX-340E.
