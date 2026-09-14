@@ -1,0 +1,1 @@
+CNX-342 is ready for Hermes execution after branch creation. Parent diagnostic: CNX-341. Scope: complete artifact rebuild, hash verification of entry and imported lease module, safe installation, one Gateway restart/load refresh, no semantic traffic. Stop for independent ChatGPT review.
