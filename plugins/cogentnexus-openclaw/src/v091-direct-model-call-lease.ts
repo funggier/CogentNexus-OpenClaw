@@ -332,6 +332,22 @@ function installHostRecoveryResumeFence(api: any) {
  * sanitized observation hooks with stable runId/callId metadata. The Host is
  * the only component allowed to act on an expired lease.
  */
+function runtimeModelCallTimeoutMs(api: any, event: any, ctx: any): number | undefined {
+  const finiteMs = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+  const finiteSeconds = (value: unknown) => {
+    const seconds = finiteMs(value);
+    return seconds === undefined ? undefined : seconds * 1000;
+  };
+  const explicit = finiteMs(event?.timeoutMs) ?? finiteSeconds(event?.timeoutSeconds)
+    ?? finiteMs(ctx?.timeoutMs) ?? finiteSeconds(ctx?.timeoutSeconds);
+  if (explicit !== undefined) return explicit;
+  const runtime = api?.config ?? ctx?.config ?? {};
+  const provider = typeof event?.provider === "string" ? runtime?.models?.providers?.[event.provider] : undefined;
+  return finiteSeconds(runtime?.agents?.defaults?.timeoutSeconds)
+    ?? finiteSeconds(provider?.timeoutSeconds)
+    ?? finiteSeconds(configFor(api, event)?.timeoutSeconds);
+}
+
 export function installV091DirectModelCallLease(api: any) {
   if (typeof api?.on !== "function") return;
   // Ensure the additive table exists before the first model call can begin.
@@ -350,6 +366,7 @@ export function installV091DirectModelCallLease(api: any) {
         callId,
         provider: typeof event?.provider === "string" ? event.provider : undefined,
         model: typeof event?.model === "string" ? event.model : undefined,
+        timeoutMs: runtimeModelCallTimeoutMs(api, event, ctx),
       });
     } catch (error) {
       api.logger?.error?.(`CogentNexus-OpenClaw failed to persist Direct model-call start: ${error instanceof Error ? error.message : String(error)}`);

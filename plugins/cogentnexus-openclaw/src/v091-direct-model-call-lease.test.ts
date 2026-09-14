@@ -234,6 +234,68 @@ describe("v0.9.1 Direct model-call durable lease", () => {
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
+  it("records an explicit 2700-second runtime timeout and exact deadline", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-timeout-authority-"));
+    const path = join(root, "tickets.sqlite3");
+    try {
+      const store = new TicketStore(path);
+      const ticket = store.accept({ runId: "run-authoritative-timeout", ownerSessionKey: "agent:main:dashboard:test", prompt: "work" });
+      store.route(ticket.ticketId, false);
+      const startedAt = new Date("2026-09-14T10:00:00.000Z");
+      expect(recordDirectModelCallStarted(path, { runId: "run-authoritative-timeout", callId: "call-authoritative-timeout", now: startedAt, timeoutMs: 2_700_000 })).toBe(true);
+      const db = new DatabaseSync(path, { readOnly: true });
+      expect(db.prepare("SELECT started_at,deadline_at FROM cnx_direct_model_call WHERE ticket_id=?").get(ticket.ticketId)).toEqual({
+        started_at: startedAt.toISOString(),
+        deadline_at: new Date(startedAt.getTime() + 2_700_000).toISOString(),
+      });
+      expect(JSON.parse((db.prepare("SELECT payload_json FROM ticket_events WHERE ticket_id=? AND event_type='direct_model_call_started'").get(ticket.ticketId) as any).payload_json).timeoutMs).toBe(2_700_000);
+      db.close();
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("keeps the historical default and both safety clamps when timeout is absent or unsafe", () => {
+    for (const [runId, callId, timeoutMs, expected] of [
+      ["run-default", "call-default", undefined, DIRECT_MODEL_CALL_TIMEOUT_MS],
+      ["run-lower", "call-lower", 1, 60_000],
+      ["run-upper", "call-upper", 3_600_001, 3_600_000],
+    ] as Array<[string, string, number | undefined, number]>) {
+      const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-timeout-bounds-"));
+      const path = join(root, "tickets.sqlite3");
+      try {
+        const store = new TicketStore(path);
+        const ticket = store.accept({ runId, ownerSessionKey: "agent:main:dashboard:test", prompt: "work" });
+        store.route(ticket.ticketId, false);
+        const startedAt = new Date("2026-09-14T10:00:00.000Z");
+        expect(recordDirectModelCallStarted(path, { runId, callId, now: startedAt, timeoutMs })).toBe(true);
+        const db = new DatabaseSync(path, { readOnly: true });
+        expect((db.prepare("SELECT deadline_at FROM cnx_direct_model_call WHERE ticket_id=?").get(ticket.ticketId) as any).deadline_at)
+          .toBe(new Date(startedAt.getTime() + expected).toISOString());
+        db.close();
+      } finally { rmSync(root, { recursive: true, force: true }); }
+    }
+  });
+
+  it("propagates a runtime-shaped model_call_started timeout into the durable lease", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-hook-timeout-"));
+    const workspace = root;
+    const path = join(root, "tickets.sqlite3");
+    try {
+      const store = new TicketStore(path);
+      const ticket = store.accept({ runId: "run-hook-timeout", ownerSessionKey: "agent:main:dashboard:test", prompt: "work" });
+      store.route(ticket.ticketId, false);
+      const handlers = new Map<string, (event: any, ctx: any) => void>();
+      const api = { pluginConfig: { ticketDatabasePath: path }, on: (name: string, handler: any) => handlers.set(name, handler), logger: { error: () => {} } };
+      lease.installV091DirectModelCallLease(api);
+      const startedAt = new Date("2026-09-14T10:00:00.000Z");
+      handlers.get("model_call_started")!({ runId: "run-hook-timeout", callId: "call-hook-timeout", provider: "ollama", model: "qwen3.8:27b", timeoutMs: 2_700_000 }, { workspaceDir: workspace });
+      const db = new DatabaseSync(path, { readOnly: true });
+      const leaseRow = db.prepare("SELECT started_at,deadline_at FROM cnx_direct_model_call WHERE ticket_id=?").get(ticket.ticketId) as any;
+      expect(new Date(leaseRow.deadline_at).getTime() - new Date(leaseRow.started_at).getTime()).toBe(2_700_000);
+      expect(JSON.parse((db.prepare("SELECT payload_json FROM ticket_events WHERE ticket_id=? AND event_type='direct_model_call_started'").get(ticket.ticketId) as any).payload_json).timeoutMs).toBe(2_700_000);
+      db.close();
+    } finally { /* SQLite may retain the WAL handle briefly after hook delivery. */ }
+  });
+
   it("ignores durable/workflow and already response-ready Tickets", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v091-direct-call-filter-"));
     const path = join(root, "tickets.sqlite3");
