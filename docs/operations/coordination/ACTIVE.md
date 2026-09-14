@@ -1,18 +1,18 @@
 # Active Coordination Task
 
 Status: `READY_FOR_HERMES`
-State: `V096_OPENAI_DASHBOARD_ADMISSION_PROVENANCE`
-Execution mode: `READ_ONLY_PROVENANCE_INVESTIGATION`
-Task ID: `CNX-345`
-Parent: `CNX-344`
+State: `V096_RUNTIME_OPENAI_ADMISSION_PROVENANCE`
+Execution mode: `READ_ONLY_RUNTIME_PROVENANCE_INVESTIGATION`
+Task ID: `CNX-346`
+Parent: `CNX-345`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
-Active branch: `cnx-345-openai-admission-provenance`
+Active branch: `cnx-346-runtime-openai-admission-provenance`
 
 ## Objective
 
-Determine the exact boundary where the CNX-344 Dashboard request to OpenAI GPT-5.6 Luna reached the provider and produced a response without creating a CogentNexus durable Ticket lifecycle.
+Determine which current runtime condition can explain the CNX-344 Dashboard request reaching OpenAI GPT-5.6 Luna without creating a CogentNexus durable Ticket lifecycle.
 
 CNX-344 must not be rerun and its semantic request must not be resent.
 
@@ -30,25 +30,29 @@ CNX-344 must not be rerun and its semantic request must not be resent.
 
 ## Investigation
 
-1. Trace Dashboard/WebChat send handling into `before_agent_run`.
-2. Identify the exact predicates controlling CogentNexus admission.
-3. Inspect `durableAdmissionEligible`, `ticketIntakeEligible`, `ticketFirst`, and `decision.lane` behavior on the current candidate source.
-4. Determine whether Dashboard/OpenAI can fall through with `before_agent_run` returning `pass` while native OpenClaw provider dispatch proceeds.
-5. Compare the proven CNX-343 Ollama lifecycle with the CNX-344 OpenAI Dashboard path and identify the first divergence.
-6. Use CNX-344's historical runtime facts as the anchor; do not generate new live traffic.
-7. Separate proven cause from remaining uncertainty.
+1. Verify whether the CogentNexus `before_agent_run` hook is currently registered and active.
+2. Verify active registration priority and handler identity.
+3. Verify the exact installed plugin/module fingerprints for the admission path.
+4. Verify the loaded source contains Dashboard-aware `durableAdmissionEligible` and `ticketFirst` logic.
+5. Determine whether static/runtime evidence distinguishes hook absence from hook-active-plus-`pass`.
+6. Record available event/context fields at the admission boundary without generating traffic: `sessionKey`, `sessionId`, `runId`, `senderIsOwner`, and relevant prompt metadata where available.
+7. Search existing CNX-344 logs/diagnostics for historical admission evidence; do not replay the request.
+8. Verify source semantics showing that a CogentNexus `pass` returns control to native OpenClaw provider dispatch in passthrough mode.
+9. Compare against CNX-343 and identify the narrowest runtime-specific cause sufficient to guide deterministic remediation.
 
 ## Required report
 
 Publish:
-`docs/operations/coordination/reports/CNX-20260914-345-openai-dashboard-admission-provenance-report.md`
+`docs/operations/coordination/reports/CNX-20260914-346-runtime-openai-admission-provenance-report.md`
 
-Include exact source paths/commits, relevant predicates and hook priority, first-divergence boundary, CNX-344 historical evidence, remediation hypothesis (not implemented), and an explicit no-live-replay/no-mutation statement.
+Include exact source/runtime fingerprints, hook registration evidence, admission predicate evidence, available historical event evidence, first divergence if determinable, remaining uncertainty, and remediation target (not implemented).
+
+Explicitly account for all hard fences and state that no live request, UI interaction, mutation, restart, rebuild, or install occurred.
 
 ## Acceptance
 
-PASS when an evidence-backed boundary/cause is identified specifically enough to create a deterministic remediation task without new live traffic.
+PASS when the current runtime provenance evidence determines a sufficiently specific cause for the Dashboard→OpenAI admission bypass without new live traffic or protected-state mutation.
 
-BLOCKED when source/runtime evidence cannot identify the boundary without new live traffic or protected-state mutation.
+BLOCKED when the distinction requires replay/live traffic or protected-state mutation.
 
-Stop for independent ChatGPT review. Do not self-accept CNX-345.
+Stop for independent ChatGPT review. Do not self-accept CNX-346.
