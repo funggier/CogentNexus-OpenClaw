@@ -1,107 +1,54 @@
 # Active Coordination Task
 
-Status: `READY_FOR_OPERATOR`
-State: `V096_OPENAI_GPT56_LUNA_TICKET_ROUTING`
-Execution mode: `HUMAN_ASSISTED_ONE_BOUNDED_LIVE_REQUEST`
-Task ID: `CNX-344`
-Parent: `CNX-343`
+Status: `READY_FOR_HERMES`
+State: `V096_OPENAI_DASHBOARD_ADMISSION_PROVENANCE`
+Execution mode: `READ_ONLY_PROVENANCE_INVESTIGATION`
+Task ID: `CNX-345`
+Parent: `CNX-344`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
-Active branch: `agent/v0.9.6-openai-gpt56-luna-ticket-routing`
+Active branch: `cnx-345-openai-admission-provenance`
 
 ## Objective
 
-Verify whether a Dashboard session manually created and manually configured by the human operator to use OpenAI `gpt-5.6 Luna` traverses the real CogentNexus durable Ticket lifecycle.
+Determine the exact boundary where the CNX-344 Dashboard request to OpenAI GPT-5.6 Luna reached the provider and produced a response without creating a CogentNexus durable Ticket lifecycle.
 
-This is a routing/lifecycle acceptance test, not a timeout test.
-
-## Human operator setup
-
-1. Open the authenticated OpenClaw Control Dashboard.
-2. Click `New session` exactly once.
-3. Select the OpenAI model shown as `gpt-5.6 Luna` (or the exact configured UI label corresponding to that OpenAI model).
-4. Tell Hermes the fresh session is created and the requested model is selected.
-
-Hermes must not perform the New Session click or model-selection UI action.
+CNX-344 must not be rerun and its semantic request must not be resent.
 
 ## Hard fences
 
-- Exactly one human `New session` click.
-- Exactly one human selection of the requested OpenAI GPT-5.6 Luna model.
-- Exactly one semantic request.
-- No second session.
-- No second request.
-- No retry, resend, recovery, fallback, or manual dispatch.
-- No provider/model/config/timeout/controller/database mutation.
+- Read-only source/runtime inspection only.
+- No semantic request.
+- No UI interaction.
+- No resend/retry/recovery/fallback/manual dispatch.
+- No provider/model/config/controller/database mutation.
 - No production code/test changes.
 - No install/reinstall/rebuild/restart.
-- No `v0.9.5` mutation.
+- No v0.9.5 mutation.
 - No force-push/history rewrite.
-- If session/model identity cannot be verified before the request, stop `BLOCKED` and do not send it.
 
-## Preflight
+## Investigation
 
-After the operator reports setup complete, Hermes must read-only verify:
+1. Trace Dashboard/WebChat send handling into `before_agent_run`.
+2. Identify the exact predicates controlling CogentNexus admission.
+3. Inspect `durableAdmissionEligible`, `ticketIntakeEligible`, `ticketFirst`, and `decision.lane` behavior on the current candidate source.
+4. Determine whether Dashboard/OpenAI can fall through with `before_agent_run` returning `pass` while native OpenClaw provider dispatch proceeds.
+5. Compare the proven CNX-343 Ollama lifecycle with the CNX-344 OpenAI Dashboard path and identify the first divergence.
+6. Use CNX-344's historical runtime facts as the anchor; do not generate new live traffic.
+7. Separate proven cause from remaining uncertainty.
 
-- Firefox PID/window
-- current Dashboard URL
-- fresh session identity
-- session is new rather than the prior CNX-343 session
-- visible selected provider/model is OpenAI / GPT-5.6 Luna
-- relevant runtime configuration without mutation
-- durable baseline counts for tickets, events, inference, and delivery/outbox
-
-## Semantic request
-
-Send exactly:
-
-`CNX-344-OPENAI-TICKET-ROUTING: Reply exactly with DONE.`
-
-The request must be sent through the Dashboard UI in the human-created fresh session.
-
-## Required evidence
-
-Correlate the single request across the real runtime:
-
-- Dashboard session
-- provider/model
-- Ticket/admission identity
-- Run identity
-- Call/inference identity where available
-- durable event sequence
-- Result
-- Delivery
-- final Ticket status
-- outbox final state
-- duplicate-owner check
-
-The evidence must establish that the OpenAI request entered the CogentNexus Ticket path rather than reaching the provider outside the durable Ticket lifecycle.
-
-## PASS
-
-PASS only if the fresh human-created session and GPT-5.6 Luna selection are independently verified, exactly one request is sent, a correlated Ticket is accepted, the real OpenAI model call belongs to the same Ticket/Run lifecycle, Result and Delivery are durable and correlated, final Ticket state is successful, outbox is `0`, and no duplicate owner/call exists.
-
-## FAIL
-
-If the OpenAI request reaches the provider and produces a result but lacks a corresponding CogentNexus durable Ticket lifecycle:
-
-`FAIL — OPENAI_REQUEST_BYPASSED_TICKET_LIFECYCLE`
-
-Use another evidence-backed classification when a different concrete failure is established.
-
-## BLOCKED
-
-`BLOCKED — SESSION_OR_MODEL_IDENTITY_UNVERIFIED`
-
-Use when the fresh session or GPT-5.6 Luna selection cannot be safely verified before sending.
-
-## Report
+## Required report
 
 Publish:
+`docs/operations/coordination/reports/CNX-20260914-345-openai-dashboard-admission-provenance-report.md`
 
-`docs/operations/coordination/reports/CNX-20260914-344-openai-dashboard-ticket-routing-report.md`
+Include exact source paths/commits, relevant predicates and hook priority, first-divergence boundary, CNX-344 historical evidence, remediation hypothesis (not implemented), and an explicit no-live-replay/no-mutation statement.
 
-Include exact session/provider/model/Ticket/Run/Call/inference/Result/Delivery identifiers, event sequence, outbox final count, duplicate-owner evidence, and any limitation distinguishing UI model selection from internal provider/model identity.
+## Acceptance
 
-Stop for independent ChatGPT review. Do not self-accept CNX-344.
+PASS when an evidence-backed boundary/cause is identified specifically enough to create a deterministic remediation task without new live traffic.
+
+BLOCKED when source/runtime evidence cannot identify the boundary without new live traffic or protected-state mutation.
+
+Stop for independent ChatGPT review. Do not self-accept CNX-345.
