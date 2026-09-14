@@ -1,59 +1,107 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-State: `V096_LIVE_TIMEOUT_REQUALIFICATION_POST_INSTALL`
-Execution mode: `ONE_BOUNDED_LIVE_SEMANTIC_REQUEST`
-Task ID: `CNX-343`
-Parent: `CNX-342`
+Status: `READY_FOR_OPERATOR`
+State: `V096_OPENAI_GPT56_LUNA_TICKET_ROUTING`
+Execution mode: `HUMAN_ASSISTED_ONE_BOUNDED_LIVE_REQUEST`
+Task ID: `CNX-344`
+Parent: `CNX-343`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
-Fresh session: `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`
-Active branch: `agent/v0.9.6-installation-provenance-requalification`
+Active branch: `agent/v0.9.6-openai-gpt56-luna-ticket-routing`
 
 ## Objective
 
-Execute exactly one bounded live semantic request against the already-established CNX-340E fresh Dashboard session after CNX-342 verified the complete repaired artifact installation and one Gateway restart. Prove from real durable runtime evidence that the live Gateway now persists `timeoutMs=2700000` for the direct-model-call lease.
+Verify whether a Dashboard session manually created and manually configured by the human operator to use OpenAI `gpt-5.6 Luna` traverses the real CogentNexus durable Ticket lifecycle.
+
+This is a routing/lifecycle acceptance test, not a timeout test.
+
+## Human operator setup
+
+1. Open the authenticated OpenClaw Control Dashboard.
+2. Click `New session` exactly once.
+3. Select the OpenAI model shown as `gpt-5.6 Luna` (or the exact configured UI label corresponding to that OpenAI model).
+4. Tell Hermes the fresh session is created and the requested model is selected.
+
+Hermes must not perform the New Session click or model-selection UI action.
 
 ## Hard fences
 
-- Exact CNX-340E fresh session only.
+- Exactly one human `New session` click.
+- Exactly one human selection of the requested OpenAI GPT-5.6 Luna model.
 - Exactly one semantic request.
-- No new session / no `New session` click.
-- No reinstall, rebuild, or Gateway restart.
-- No provider/model/config/timeout/controller/database mutation.
+- No second session.
+- No second request.
 - No retry, resend, recovery, fallback, or manual dispatch.
-- No OpenAI.
-- Do not wait 2700 seconds; inspect durable lease evidence directly.
-- If evidence is ambiguous/unavailable, stop `BLOCKED` and do not repeat.
-- Never modify `v0.9.5` history or force-push.
+- No provider/model/config/timeout/controller/database mutation.
+- No production code/test changes.
+- No install/reinstall/rebuild/restart.
+- No `v0.9.5` mutation.
+- No force-push/history rewrite.
+- If session/model identity cannot be verified before the request, stop `BLOCKED` and do not send it.
 
 ## Preflight
 
-Verify browser PID/window, exact session identity, provider/model, installed entry/lease hashes, Gateway process identity, and durable baseline read-only. Session must equal `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`.
+After the operator reports setup complete, Hermes must read-only verify:
+
+- Firefox PID/window
+- current Dashboard URL
+- fresh session identity
+- session is new rather than the prior CNX-343 session
+- visible selected provider/model is OpenAI / GPT-5.6 Luna
+- relevant runtime configuration without mutation
+- durable baseline counts for tickets, events, inference, and delivery/outbox
 
 ## Semantic request
 
 Send exactly:
 
-`CNX-343-LIVE-TIMEOUT-REQUALIFICATION: Reply exactly with DONE.`
+`CNX-344-OPENAI-TICKET-ROUTING: Reply exactly with DONE.`
+
+The request must be sent through the Dashboard UI in the human-created fresh session.
 
 ## Required evidence
 
-Correlate one real lifecycle and capture exact session, Ticket, Run, Call, `direct_model_call_started`, `timeoutMs=2700000`, `deadlineAt-startedAt=2700000ms`, provider/model, inference attempt, completion, delivery, outbox `0`, and no duplicate owner. Record post-run installed artifact/load evidence where possible without mutation.
+Correlate the single request across the real runtime:
+
+- Dashboard session
+- provider/model
+- Ticket/admission identity
+- Run identity
+- Call/inference identity where available
+- durable event sequence
+- Result
+- Delivery
+- final Ticket status
+- outbox final state
+- duplicate-owner check
+
+The evidence must establish that the OpenAI request entered the CogentNexus Ticket path rather than reaching the provider outside the durable Ticket lifecycle.
 
 ## PASS
 
-PASS only if the live call produces durable `timeoutMs=2700000` and `deadlineAt-startedAt=2700000ms` with correct provider/model and coherent Ticket → Run → Call → Result → Delivery lifecycle, outbox `0`, and no duplicate ownership.
+PASS only if the fresh human-created session and GPT-5.6 Luna selection are independently verified, exactly one request is sent, a correlated Ticket is accepted, the real OpenAI model call belongs to the same Ticket/Run lifecycle, Result and Delivery are durable and correlated, final Ticket state is successful, outbox is `0`, and no duplicate owner/call exists.
 
 ## FAIL
 
-If live lease is `timeoutMs=900000`, report `FAIL — LEGACY_TIMEOUT_AUTHORITY_REMAINS` and do not retry.
+If the OpenAI request reaches the provider and produces a result but lacks a corresponding CogentNexus durable Ticket lifecycle:
+
+`FAIL — OPENAI_REQUEST_BYPASSED_TICKET_LIFECYCLE`
+
+Use another evidence-backed classification when a different concrete failure is established.
 
 ## BLOCKED
 
-Block on session mismatch, unreadable/ambiguous durable evidence, or inability to correlate the single call safely. Do not repeat the request.
+`BLOCKED — SESSION_OR_MODEL_IDENTITY_UNVERIFIED`
+
+Use when the fresh session or GPT-5.6 Luna selection cannot be safely verified before sending.
 
 ## Report
 
-Publish `docs/operations/coordination/reports/CNX-20260914-343-live-timeout-requalification-report.md` and stop for independent ChatGPT review. Do not self-accept CNX-343.
+Publish:
+
+`docs/operations/coordination/reports/CNX-20260914-344-openai-dashboard-ticket-routing-report.md`
+
+Include exact session/provider/model/Ticket/Run/Call/inference/Result/Delivery identifiers, event sequence, outbox final count, duplicate-owner evidence, and any limitation distinguishing UI model selection from internal provider/model identity.
+
+Stop for independent ChatGPT review. Do not self-accept CNX-344.
