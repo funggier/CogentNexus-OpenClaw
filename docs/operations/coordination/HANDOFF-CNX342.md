@@ -1,0 +1,1 @@
+CNX-342 handoff: create target branch `agent/v0.9.6-installation-provenance-requalification` from the current CNX-341 diagnostic lineage before executing the installation-provenance repair. Do not execute on the diagnostic branch.
