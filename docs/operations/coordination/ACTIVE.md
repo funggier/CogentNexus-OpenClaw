@@ -1,55 +1,62 @@
 # Active Coordination Task
 
-Status: `COMPLETED`
-State: `V095_PLAN2_SESSION_GENERATION`
-Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260911-PLAN2`
-Parent: `CNX-20260909-315`
-Base release: `v0.9.4`
-Base commit: `1e81b3cb9a8fe31a8e4df90563f15a3cde255c59`
-Implementation head: `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`
-Merged main: `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`
+Status: `READY_FOR_HERMES`
+State: `V096_HOOK_EVIDENCE_QUALIFICATION`
+Execution mode: `SINGLE_EXECUTOR`
+Task ID: `CNX-340B`
+Parent: `CNX-340A`
+Base candidate: `agent/v0.9.6-direct-model-call-timeout-authority-repair`
+Base candidate HEAD: `460a8cd661d02ba419cc1eff13c0efc721cfa928`
+Active branch: `agent/v0.9.6-hook-evidence-qualification`
 
 ## Objective
 
-Complete the remaining Plan 2 session-generation contract after the verified Plan 1 architecture repair was merged into `main`.
+Qualify the remaining `before_agent_run` hook evidence gap without sending another real Dashboard semantic request. Prove the registered callback is captured and invoked through an isolated deterministic harness, and that invocation reaches the canonical Ticket-first admission boundary without invoking a provider/model.
 
-## Completed outcome
+## Executor / Reviewer
 
-- Pure `shouldAdvanceSessionGeneration()` contract implemented and wired through physical deletion.
-- Provider/model/runtime events remain generation-neutral when the physical session is unchanged.
-- Canonical `cnx_sessions` remains the sole durable lifecycle authority.
-- InferenceAttempt stale-owner fencing is enforced at bind and finish.
-- Delivery Core stale-owner fencing is enforced on normal and idempotent settlement paths.
-- Delete/recreate regression proves stale S1 evidence cannot cross into recreated S2 when the tombstoned generation is reused.
-- Plan 2 implementation head passed the required pre-merge validation matrix.
-- PR #30 was merged into `main` after explicit operator authorization.
+- Executor: `Hermes`
+- Reviewer: `ChatGPT`
+- Human authority: fresh continuation explicitly authorized by the operator after CNX-340A.
 
-## Identity decision
+## Prerequisites
 
-The earlier concern that downstream attempt/delivery rows do not duplicate `sessionId` was formally discharged by the stronger durable generation invariant: deletion advances the authoritative generation before tombstoning; recreation reuses that tombstoned generation; stale work from the prior lifecycle therefore carries the older generation and is rejected by current-owner checks.
+- CNX-340A = PASS.
+- CNX-340A report is durably published on GitHub.
+- Candidate timeout repair HEAD `460a8cd661d02ba419cc1eff13c0efc721cfa928`.
+- Candidate artifact SHA `c15b2f61a1596f301510e9cd392851ef99427c6c129d653d2d336cfefa79b3a8`.
+- Provider/model reference `ollama/qwen3.8:27b`.
+- Configured provider/agent timeout authority `2700s`.
+- Published `v0.9.5` remains immutable at `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`.
 
-No second session authority was introduced.
+## Hard fences
 
-## Verification
+- No real Dashboard/Web Session request.
+- No OpenAI/Ollama inference.
+- No provider/model/routing/timeout configuration mutation.
+- No controller mutation.
+- No production database mutation.
+- No installation or release/tag mutation.
+- No retry/recovery/fallback/resend/duplicate-send/manual-dispatch test.
+- Do not claim hook execution from static source inspection alone.
+- Use an isolated test fixture/harness for invocation evidence.
 
-Final implementation head `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`:
+## Required outcome
 
-- Validate #4030 / run `34625800173` — success
-- PS5.1 Acceptance Smoke #2917 / run `34625800234` — success
-- PS5.1 Live Runner Smoke #842 / run `34625800226` — success
-- Windows Installer Pack Smoke #2908 / run `34625799984` — success
+The matching task document is:
+`docs/operations/coordination/tasks/CNX-20260914-340B-hook-evidence-qualification.md`
 
-Post-merge Actions were dispatched for `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`. At closeout verification, Acceptance #2918 and Installer #2909 were successful; Validate #4031 was still running, so post-merge full-matrix success is not claimed here.
+Hermes must publish:
+`docs/operations/coordination/reports/CNX-20260914-340B-hook-evidence-qualification-report.md`
 
-## Hard fences observed
+Then stop for independent ChatGPT review. Hermes must not self-accept the report.
 
-- No force push.
-- No release/tag/public-version mutation.
-- No provider/model/auth routing mutation.
-- No second session store.
-- Exact Ticket, InferenceAttempt, DeliveryAttempt, sessionId, and generation ownership semantics preserved.
+## Status semantics
 
-## Next authority
+This ACTIVE entry authorizes execution only. It does not imply PASS. Any missing, inferred-only, contradictory, or production-mutating evidence must be reported as failure with the task's exact failure classification.
 
-Plan 2 is closed. Future work should begin from `main` at merge commit `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c` and use a new task/branch; do not reopen this completed coordination state.
+## Previous state
+
+- Plan 2 remains closed and is not reopened.
+- CNX-339 remains historical evidence and is not replayed.
+- CNX-340A remains a completed repair on the candidate branch; CNX-340B is an evidence-qualification continuation, not a second timeout repair.
