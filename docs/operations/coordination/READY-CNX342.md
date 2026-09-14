@@ -1,0 +1,1 @@
+CNX-342 is ready. Target branch: agent/v0.9.6-installation-provenance-requalification. Run only after this target ref is created from the latest CNX-341 diagnostic head.
