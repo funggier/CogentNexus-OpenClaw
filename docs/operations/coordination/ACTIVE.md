@@ -1,55 +1,59 @@
 # Active Coordination Task
 
-Status: `COMPLETED`
-State: `V095_PLAN2_SESSION_GENERATION`
-Execution mode: `SINGLE_EXECUTOR__ROOT_CAUSE_TDD`
-Task ID: `CNX-20260911-PLAN2`
-Parent: `CNX-20260909-315`
-Base release: `v0.9.4`
-Base commit: `1e81b3cb9a8fe31a8e4df90563f15a3cde255c59`
-Implementation head: `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`
-Merged main: `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`
+Status: `READY_FOR_HERMES`
+State: `V096_LIVE_TIMEOUT_REQUALIFICATION_POST_INSTALL`
+Execution mode: `ONE_BOUNDED_LIVE_SEMANTIC_REQUEST`
+Task ID: `CNX-343`
+Parent: `CNX-342`
+Executor: `Hermes`
+Reviewer: `ChatGPT`
+Human final authority: `Operator`
+Fresh session: `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`
+Active branch: `agent/v0.9.6-installation-provenance-requalification`
 
 ## Objective
 
-Complete the remaining Plan 2 session-generation contract after the verified Plan 1 architecture repair was merged into `main`.
+Execute exactly one bounded live semantic request against the already-established CNX-340E fresh Dashboard session after CNX-342 verified the complete repaired artifact installation and one Gateway restart. Prove from real durable runtime evidence that the live Gateway now persists `timeoutMs=2700000` for the direct-model-call lease.
 
-## Completed outcome
+## Hard fences
 
-- Pure `shouldAdvanceSessionGeneration()` contract implemented and wired through physical deletion.
-- Provider/model/runtime events remain generation-neutral when the physical session is unchanged.
-- Canonical `cnx_sessions` remains the sole durable lifecycle authority.
-- InferenceAttempt stale-owner fencing is enforced at bind and finish.
-- Delivery Core stale-owner fencing is enforced on normal and idempotent settlement paths.
-- Delete/recreate regression proves stale S1 evidence cannot cross into recreated S2 when the tombstoned generation is reused.
-- Plan 2 implementation head passed the required pre-merge validation matrix.
-- PR #30 was merged into `main` after explicit operator authorization.
+- Exact CNX-340E fresh session only.
+- Exactly one semantic request.
+- No new session / no `New session` click.
+- No reinstall, rebuild, or Gateway restart.
+- No provider/model/config/timeout/controller/database mutation.
+- No retry, resend, recovery, fallback, or manual dispatch.
+- No OpenAI.
+- Do not wait 2700 seconds; inspect durable lease evidence directly.
+- If evidence is ambiguous/unavailable, stop `BLOCKED` and do not repeat.
+- Never modify `v0.9.5` history or force-push.
 
-## Identity decision
+## Preflight
 
-The earlier concern that downstream attempt/delivery rows do not duplicate `sessionId` was formally discharged by the stronger durable generation invariant: deletion advances the authoritative generation before tombstoning; recreation reuses that tombstoned generation; stale work from the prior lifecycle therefore carries the older generation and is rejected by current-owner checks.
+Verify browser PID/window, exact session identity, provider/model, installed entry/lease hashes, Gateway process identity, and durable baseline read-only. Session must equal `agent:main:dashboard:945504d3-42f1-497a-b635-9975561e4bd5`.
 
-No second session authority was introduced.
+## Semantic request
 
-## Verification
+Send exactly:
 
-Final implementation head `27e7f02af4556f9cd4ceede0c53122ce039ecdd0`:
+`CNX-343-LIVE-TIMEOUT-REQUALIFICATION: Reply exactly with DONE.`
 
-- Validate #4030 / run `34625800173` — success
-- PS5.1 Acceptance Smoke #2917 / run `34625800234` — success
-- PS5.1 Live Runner Smoke #842 / run `34625800226` — success
-- Windows Installer Pack Smoke #2908 / run `34625799984` — success
+## Required evidence
 
-Post-merge Actions were dispatched for `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c`. At closeout verification, Acceptance #2918 and Installer #2909 were successful; Validate #4031 was still running, so post-merge full-matrix success is not claimed here.
+Correlate one real lifecycle and capture exact session, Ticket, Run, Call, `direct_model_call_started`, `timeoutMs=2700000`, `deadlineAt-startedAt=2700000ms`, provider/model, inference attempt, completion, delivery, outbox `0`, and no duplicate owner. Record post-run installed artifact/load evidence where possible without mutation.
 
-## Hard fences observed
+## PASS
 
-- No force push.
-- No release/tag/public-version mutation.
-- No provider/model/auth routing mutation.
-- No second session store.
-- Exact Ticket, InferenceAttempt, DeliveryAttempt, sessionId, and generation ownership semantics preserved.
+PASS only if the live call produces durable `timeoutMs=2700000` and `deadlineAt-startedAt=2700000ms` with correct provider/model and coherent Ticket → Run → Call → Result → Delivery lifecycle, outbox `0`, and no duplicate ownership.
 
-## Next authority
+## FAIL
 
-Plan 2 is closed. Future work should begin from `main` at merge commit `52617e55e9ab3b8aa3fe5c5c2ce71a305c43954c` and use a new task/branch; do not reopen this completed coordination state.
+If live lease is `timeoutMs=900000`, report `FAIL — LEGACY_TIMEOUT_AUTHORITY_REMAINS` and do not retry.
+
+## BLOCKED
+
+Block on session mismatch, unreadable/ambiguous durable evidence, or inability to correlate the single call safely. Do not repeat the request.
+
+## Report
+
+Publish `docs/operations/coordination/reports/CNX-20260914-343-live-timeout-requalification-report.md` and stop for independent ChatGPT review. Do not self-accept CNX-343.
