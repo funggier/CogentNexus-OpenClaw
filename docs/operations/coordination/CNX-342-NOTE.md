@@ -1,0 +1,1 @@
+CNX-342 successor coordination note. See the dedicated task document for execution authority and fences.
