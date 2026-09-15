@@ -233,14 +233,15 @@ Only under a separately authorized read-only credential/scope, exercise an alrea
 
 ## Publication closeout
 
-This report is intended to be the only changed path in the publication commit. Final remote verification was completed:
+This report is the only changed path in the publication history from the verified starting HEAD. The exact final GitHub commit and report blob are intentionally verified from the remote branch/tree after publication rather than embedded as self-referential values: changing this report changes both its containing commit and its Git blob.
+
+Final closeout verification command:
 
 ```text
-Final GitHub HEAD: 6086a661328f8f174e25ec31661fdf29c17c2ca2
-Report blob: f2da718b6ea9a2b1f84791205c908043cc9c1084
-Changed paths from starting verified HEAD:
-A docs/operations/coordination/reports/CNX-20260915-354-operator-read-gateway-probe-report.md
-Remote ancestry verification: exit 0
+git fetch origin
+git rev-parse origin/cnx-354-operator-read-gateway-probe
+git ls-tree origin/cnx-354-operator-read-gateway-probe -- docs/operations/coordination/reports/CNX-20260915-354-operator-read-gateway-probe-report.md
+git diff --name-status 4862e9152de6084600e27b0b50be95e997273842 origin/cnx-354-operator-read-gateway-probe
 ```
 
-The report was read back from `origin/cnx-354-operator-read-gateway-probe` at that exact remote tip.
+The final values are reported from that remote read-back, not inferred from a stale value embedded in the report itself.
