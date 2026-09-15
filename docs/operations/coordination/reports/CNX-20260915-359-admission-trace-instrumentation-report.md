@@ -100,3 +100,31 @@ Do not resend `CNX357-DONE`, do not use the prior session key, and do not submit
 - No new live request has been made.
 - No defect is proven.
 - No Ticket-first PASS is proven.
+
+## Fresh human Dashboard result
+
+The Operator performed the requested single UI action. The supplied Dashboard URL identifies:
+
+- Dashboard session key: `agent:main:dashboard:435f5ff4-9468-4e9e-b9f4-d2aa289c9d1e`
+- Runtime session ID: `9bc0df75-8f23-458f-83f1-079424d53073`
+- OpenClaw run ID: `dcbe09c0-e903-409d-b8a6-0d6b5ff392ec`
+- OpenClaw trajectory trace ID: `9bc0df75-8f23-458f-83f1-079424d53073`
+- Payload: `Reply exactly with CNX359-DONE.`
+- Provider/model/API: `openai` / `gpt-5.6-luna` / `openai-chatgpt-responses`
+- Visible result: `CNX359-DONE`
+- Runtime prompt timestamp: `2026-09-15T15:32:41.647Z` UTC
+- Model/session completion: `2026-09-15T15:32:48.812Z` UTC
+
+The supported OpenClaw session JSONL and trajectory prove one successful OpenAI response. The exact CogentNexus SQLite database contains the matching `cnx_sessions` row, but no exact Ticket, inference attempt, direct model call, assistant delivery, or outbox row for this session/run.
+
+## Diagnostic activation finding
+
+No `admission.trace.*` record was found in the available runtime/session evidence for this fresh request. The installed/runtime evidence therefore does **not** prove that commit `1aa7b37c23e2bb2abdd150a893f1f37102731089` was active when the Operator sent the request. The candidate was built and validated in the isolated checkout, but the supported live install/reload activation boundary remained incomplete before this test.
+
+Consequently this run cannot distinguish hook non-dispatch from inactive candidate, and it cannot be used as a valid instrumentation requalification. It also does not prove CURRENT_RED: OpenClaw executed OpenAI successfully, but the governing candidate was not established as active.
+
+## Updated classification
+
+`UNRESOLVED / BLOCKED — candidate activation not proven`
+
+The next concrete action is to install/reload the exact candidate through the supported lifecycle, verify the active artifact/source identity, and only then perform one new human-gated Dashboard request with a new session. This existing `CNX359-DONE` request must not be replayed or reused.
