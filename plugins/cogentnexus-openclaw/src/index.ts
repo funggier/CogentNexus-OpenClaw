@@ -307,6 +307,29 @@ export function enforcementDecision(toolName: string, params: Record<string, unk
   return {block:true,blockReason:"CogentNexus-OpenClaw Enforced Mode: conversational durable workflows must start through cnxclaw_workflow_start with the trusted current owner session."};
 }
 
+export type AdmissionTraceState = "admission.trace.started" | "admission.trace.input" | "admission.trace.eligible" | "admission.trace.ticket-decision" | "admission.trace.ticket-persisted" | "admission.trace.blocked" | "admission.trace.completed";
+export type AdmissionTraceRecord = {
+  state: AdmissionTraceState;
+  traceId: string;
+  runId?: string;
+  sessionKey?: string;
+  sessionId?: string;
+  timestamp: string;
+  senderIsOwner?: boolean;
+  dashboardNamespaceMatch?: boolean;
+  ticketFirst?: boolean;
+  ticketIntakeEligible?: boolean;
+  classification?: string;
+  outcome?: string;
+  ticketId?: string;
+  reason?: string;
+};
+
+export function admissionTraceFields(input: Omit<AdmissionTraceRecord, "timestamp"> & { timestamp?: string }): AdmissionTraceRecord {
+  const { timestamp, ...fields } = input;
+  return { ...fields, timestamp: timestamp ?? new Date().toISOString() };
+}
+
 export function durableAdmissionEligible(input: { sessionKey?: string; senderIsOwner?: boolean }) {
   if (!input.sessionKey || input.sessionKey.includes(":subagent:")) return false;
   if (input.senderIsOwner !== false) return true;
@@ -731,6 +754,12 @@ entry.register = (api) => {
     const currentRunId=ctx.runId;
     const currentWorkspace=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
     if(currentRunId){runWorkspaces.set(currentRunId,currentWorkspace);if(ctx.sessionKey)runSessions.set(currentRunId,ctx.sessionKey);}
+    const traceId=randomUUID();
+    const sessionId=(ctx as {sessionId?:string}).sessionId;
+    const dashboardNamespaceMatch=typeof ctx.sessionKey === "string" && /^agent:[^:]+:dashboard:[^:]+$/u.test(ctx.sessionKey);
+    const trace=(state:AdmissionTraceState, extra:Omit<AdmissionTraceRecord,"state"|"traceId"|"timestamp">={}) => api.logger.info?.(JSON.stringify(admissionTraceFields({state,traceId,runId:currentRunId,sessionKey:ctx.sessionKey,sessionId,...extra})));
+    trace("admission.trace.started");
+    trace("admission.trace.input",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true});
     const deliveryTarget=parseDeliveryMarker(event.prompt);
     if(deliveryTarget){
       if(currentRunId && ctx.sessionKey){
@@ -758,8 +787,12 @@ entry.register = (api) => {
     // sessions_send do not consistently report "user"). Trust the resolved
     // owner bit and canonical session shape instead; classifier exclusions
     // fence internal completion and continuation messages.
-    if (!durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner})) return { outcome:"pass" };
+    const eligible=durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner});
+    trace("admission.trace.eligible",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true,outcome:eligible ? "eligible" : "ineligible"});
+    if (!eligible) { trace("admission.trace.blocked",{outcome:"ineligible",reason:"durable admission eligibility predicate returned false"}); trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
+    const intakeEligible=ticketIntakeEligible(event.prompt);
+    trace("admission.trace.ticket-decision",{ticketFirst:config.ticketFirst === true,ticketIntakeEligible:intakeEligible,classification:decision.lane});
     if (config.providerMode === "passthrough" && decision.lane === "durable") {
       return {
         outcome:"block",
@@ -771,7 +804,7 @@ entry.register = (api) => {
     const ownerSessionKey = ctx.sessionKey!;
     let acceptedTicket:ReturnType<TicketStore["accept"]> | undefined;
     let ticketStore:TicketStore | undefined;
-    if (config.ticketFirst === true && ticketIntakeEligible(event.prompt)) {
+    if (config.ticketFirst === true && intakeEligible) {
       const workspaceDir = ctx.workspaceDir ?? process.cwd();
       const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
       ticketStore = new TicketStore(databasePath);
@@ -783,14 +816,15 @@ entry.register = (api) => {
         maxAttempts:config.ticketMaximumAttempts,
       });
       ticketedRuns.add(ticketRunId);
+      trace("admission.trace.ticket-persisted",{ticketId:acceptedTicket.ticketId,outcome:"persisted"});
     }
     if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
-    if (decision.lane !== "durable") return { outcome:"pass" };
-    if (acceptedTicket) return {
+    if (decision.lane !== "durable") { trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
+    if (acceptedTicket) { trace("admission.trace.blocked",{outcome:"ticket-first",ticketId:acceptedTicket.ticketId,reason:"durable request committed and queued before conversational inference"}); trace("admission.trace.completed",{outcome:"block",ticketId:acceptedTicket.ticketId}); return {
       outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cnxclaw_ticket_admission",
       metadata:{ticketId:acceptedTicket.ticketId,score:decision.score,componentCount:decision.sections.length,deduplicated:acceptedTicket.duplicate},
       message:`CogentNexus-OpenClaw committed Ticket ${acceptedTicket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
-    };
+    }; }
     const workspaceDir = ctx.workspaceDir ?? process.cwd();
     const requestHash = durableRequestFingerprint(event.prompt);
     const duplicate = activeWorkflowForRequest(workspaceDir, requestHash);
