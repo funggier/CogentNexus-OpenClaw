@@ -1,5 +1,5 @@
 Remote branch: `cnx-350-running-gateway-provenance`
-Final GitHub HEAD: `33e10591` (GitHub report-publication commit; verified by remote fetch/read-back below)
+Final GitHub HEAD: `99482a7a0235229a8bb650c3239b5ac7b59bd5d8` (GitHub report-publication/finalization commit; verified by remote fetch/read-back)
 Parent baseline: `b1ecee8a552821872bb4e815c7ba35bd0418e541` (verified ancestor of starting remote HEAD)
 
 ## Classification
