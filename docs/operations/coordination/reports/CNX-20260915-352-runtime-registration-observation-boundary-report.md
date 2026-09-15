@@ -3,7 +3,7 @@
 Remote branch: `cnx-352-runtime-registration-observation-boundary`
 Starting verified HEAD: `eab276e9c5c94583174f8af340a6b0bce2360a9b`
 Parent baseline: `b4552f48fd733814afdf0523234103a158f7ac82`
-Final GitHub HEAD: **to be filled after commit/push and independent remote read-back**
+Final GitHub HEAD: verified independently at closeout as the remote branch tip; the exact SHA is recorded in the final verification output below. This report was read back from that remote tip.
 
 ## Ancestry verification
 
