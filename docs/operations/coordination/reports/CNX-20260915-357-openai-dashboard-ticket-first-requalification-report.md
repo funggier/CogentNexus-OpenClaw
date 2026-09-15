@@ -48,6 +48,22 @@ Read-only supported diagnostics observed:
 
 The Dashboard selection and visible response establish provider/model availability at the UI level for the Operator's action. They do not establish durable CogentNexus correlation.
 
+### Dashboard image evidence supplied after the initial report
+
+The supplied screenshot is the live Dashboard URL:
+
+`http://127.0.0.1:18789/chat?session=agent%3Amain%3Adashboard%3Afffd7146-8d4b-4a1b-88dc-d9f249d98779`
+
+It visibly shows:
+
+- user payload: `Reply exactly with CNX357-DONE.`;
+- visible assistant response: `CNX357-DONE`;
+- Dashboard session key matching `agent:main:dashboard:fffd7146-8d4b-4a1b-88dc-d9f249d98779`;
+- displayed time: `Sep 15, 2026, 9:25 PM`;
+- model indicator: `gpt-5.6-luna` / `GPT-5.6 Luna · Medium`.
+
+This strengthens the UI-side evidence and exact fresh session identification. It still does not display a Ticket ID, Run ID, Call ID, correlation ID, or durable lifecycle state, and it does not replace the missing read-only durable correlation.
+
 ## Durable evidence
 
 Authoritative SQLite was opened read-only:
