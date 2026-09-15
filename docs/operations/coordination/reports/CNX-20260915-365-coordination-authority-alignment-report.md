@@ -62,4 +62,12 @@ The existing CNX-364 report classifies CNX-364 as `BLOCKED` because CNX-361/CNX-
 
 CNX-365 is created and marked `READY_FOR_HERMES` for its explicitly bounded read-only path-bound preparation. Semantic requalification and any Dashboard handoff remain unauthorized until the path-bound preflight passes and a later explicit execution boundary authorizes them.
 
-Final remote HEAD/blob identities must be recorded after the fast-forward publication and verified by remote read-back.
+## Final remote verification
+
+- Remote branch HEAD: `5b57074bdabb98e900ec46f3641ccc8bb28d34e8`
+- `ACTIVE.md` blob: `b619c5b365acbfd1e99f6dcdeed12691e7d3086b`
+- `STATUS.md` blob: `a41cc713ca860465397d250fa049814f6439b706`
+- CNX-365 task blob: `447b1f3bdb71e2fee345d651ee70d1a7c553cb0e`
+- Intermediate report blob before this final verification update: `9135a54c778dd12551fedcb6e42a852cea440b4f`
+
+The branch HEAD and all four paths were read back from the fetched remote tip after the first fast-forward publication. This final verification update is published in a follow-up fast-forward commit; its resulting remote HEAD and report blob are verified in the closeout.
