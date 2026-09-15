@@ -1,22 +1,24 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
-State: `CNX360_RUNTIME_ACTIVATION_VERIFICATION`
-Task ID: `CNX-20260915-360`
-Parent: `CNX-20260915-359`
+Status: `BLOCKED`
+State: `CNX364_PATH_BOUND_RUNTIME_PROVENANCE`
+Task ID: `CNX-20260915-364`
+Parent: `CNX-20260915-363`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Candidate: `1aa7b37c23e2bb2abdd150a893f1f37102731089`
+Base report: `docs/operations/coordination/reports/CNX-20260915-364-path-bound-runtime-provenance-report.md`
 
 ## Current position
 
-CNX-359 proved source/test/build/package validation and recorded a fresh `CNX359-DONE` result, but did not prove candidate activation. CNX-360 is authorized only to install/reload through the supported lifecycle and collect read-only runtime identity evidence.
+CNX-360 is stale and no longer the current task. CNX-361 through CNX-364 are historical/preceding task records; CNX-364 remains `BLOCKED` because historical controller-path identity was not proven. The current canonical root is identified, but runtime state must not be normalized by guessing.
 
-## Stop conditions
+## Authorization boundary
 
-If any source/package/installed/active identity edge is unproven, classify `BLOCKED`, publish evidence, and stop. If active identity is proven, publish the report and stop for the Operator Dashboard handoff; do not control Dashboard in this task.
+Next authorized task: `CNX-365_PATH_BOUND_CONTROLLED_REQUALIFICATION`.
+
+This authority permits creation of the successor task and, only after that task is separately accepted as current authority, its read-only path-bound preflight. No runtime semantic test, Dashboard request, model request, or runtime mutation is authorized yet.
 
 ## Hard fences
 
-No `main`, `v0.9.5`, force-push/history rewrite, provider/auth/routing change, admission-semantic change, Dashboard request, or model inference.
+No Dashboard or model request; no semantic requalification; no enable/start/restart/disable/stop/reinstall; no controller edit; no provider/auth/routing, hook, main, v0.9.5 tag/release, force-push, or history rewrite.
