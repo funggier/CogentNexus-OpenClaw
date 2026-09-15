@@ -1,5 +1,5 @@
 Remote branch: `cnx-351-process-scoped-runtime-introspection`
-Final GitHub HEAD: pending publication verification
+Final GitHub HEAD: `77a8334c2c6c35d1e53b13fcd2364cb0be29dd5e` (verified from `origin/cnx-351-process-scoped-runtime-introspection` after push)
 Parent baseline: `f0426865160e6a4e2fdef35de397a648fc5a314f` (verified ancestor)
 Starting verified HEAD: `94a13cdec734a4c291bf99b69c88737fcb29fc7a`
 
