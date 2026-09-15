@@ -236,8 +236,8 @@ Only under a separately authorized read-only credential/scope, exercise an alrea
 This report is intended to be the only changed path in the publication commit. Final remote verification was completed:
 
 ```text
-Final GitHub HEAD: ffbf09e65d90d28c70195b1606b24a0d3dcc7cf2
-Report blob: 0d4de610bc8dad2d2fdfe69a3b0b47aff13c25b1
+Final GitHub HEAD: 6086a661328f8f174e25ec31661fdf29c17c2ca2
+Report blob: f2da718b6ea9a2b1f84791205c908043cc9c1084
 Changed paths from starting verified HEAD:
 A docs/operations/coordination/reports/CNX-20260915-354-operator-read-gateway-probe-report.md
 Remote ancestry verification: exit 0
