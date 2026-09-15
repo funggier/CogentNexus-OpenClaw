@@ -72,6 +72,38 @@ def _app_root_of(ws: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# CNX-361 — canonical disabled mode is rollover PASSTHROUGH
+# ---------------------------------------------------------------------------
+
+def test_require_passthrough_accepts_canonical_disabled_mode(tmp_path: Path):
+    controller = tmp_path / "host" / "controller.json"
+    controller.parent.mkdir(parents=True)
+    controller.write_text(json.dumps({"schemaVersion": 1, "cnxMode": "disabled"}), encoding="utf-8")
+
+    assert no._require_passthrough(tmp_path) == "passthrough"
+
+
+def test_require_passthrough_rejects_non_passthrough_canonical_modes(tmp_path: Path):
+    controller = tmp_path / "host" / "controller.json"
+    controller.parent.mkdir(parents=True)
+    for value in ("active", "maintenance", "unknown", None):
+        payload = {"schemaVersion": 1}
+        if value is not None:
+            payload["cnxMode"] = value
+        controller.write_text(json.dumps(payload), encoding="utf-8")
+        with pytest.raises(RuntimeError, match="PASSTHROUGH"):
+            no._require_passthrough(tmp_path)
+
+
+def test_require_passthrough_rejects_conflicting_modes(tmp_path: Path):
+    controller = tmp_path / "host" / "controller.json"
+    controller.parent.mkdir(parents=True)
+    controller.write_text(json.dumps({"mode": "passthrough", "cnxMode": "active"}), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="PASSTHROUGH"):
+        no._require_passthrough(tmp_path)
+
+
+# ---------------------------------------------------------------------------
 # F3 — application-data exact-root rollback
 # ---------------------------------------------------------------------------
 

@@ -778,10 +778,30 @@ def _require_passthrough(root: Path) -> str:
         controller = json.loads(controller_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise RuntimeError(f"CogentNexus-OpenClaw controller is missing or unreadable: {controller_path}") from error
-    mode = controller.get("mode") if isinstance(controller, dict) else None
-    if mode != "passthrough":
+    if not isinstance(controller, dict):
+        raise RuntimeError("plugin generation rollover requires PASSTHROUGH mode; observed malformed controller state")
+
+    # The v0.9.5 controller is canonicalized as cnxMode=active|disabled|
+    # maintenance. Keep the legacy mode compatibility view accepted, but do
+    # not treat missing, unknown, or conflicting state as safe.
+    mode = controller.get("mode")
+    canonical_mode = controller.get("cnxMode")
+    canonical_to_legacy = {
+        "active": "managed",
+        "disabled": "passthrough",
+        "maintenance": "maintenance",
+    }
+    if canonical_mode is not None and canonical_mode not in canonical_to_legacy:
+        raise RuntimeError(f"plugin generation rollover requires PASSTHROUGH mode; observed {canonical_mode!r}")
+    if mode is not None and mode not in {"managed", "passthrough", "maintenance"}:
         raise RuntimeError(f"plugin generation rollover requires PASSTHROUGH mode; observed {mode!r}")
-    return mode
+    if mode is not None and canonical_mode is not None and mode != canonical_to_legacy[canonical_mode]:
+        raise RuntimeError("plugin generation rollover requires PASSTHROUGH mode; observed conflicting controller modes")
+
+    resolved_mode = mode if mode is not None else canonical_to_legacy.get(canonical_mode)
+    if resolved_mode != "passthrough":
+        raise RuntimeError(f"plugin generation rollover requires PASSTHROUGH mode; observed {resolved_mode!r}")
+    return resolved_mode
 
 
 def _npm_project_for_plugin(plugin_path: Path, openclaw_state: Path) -> Path:
