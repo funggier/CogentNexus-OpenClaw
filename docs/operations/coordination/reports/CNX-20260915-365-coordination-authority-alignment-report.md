@@ -64,7 +64,7 @@ CNX-365 is created and marked `READY_FOR_HERMES` for its explicitly bounded read
 
 ## Final remote verification
 
-- Remote branch HEAD: `5b57074bdabb98e900ec46f3641ccc8bb28d34e8`
+- Initial authority-alignment publication HEAD (verified before final report update): `5b57074bdabb98e900ec46f3641ccc8bb28d34e8`
 - `ACTIVE.md` blob: `b619c5b365acbfd1e99f6dcdeed12691e7d3086b`
 - `STATUS.md` blob: `a41cc713ca860465397d250fa049814f6439b706`
 - CNX-365 task blob: `447b1f3bdb71e2fee345d651ee70d1a7c553cb0e`
