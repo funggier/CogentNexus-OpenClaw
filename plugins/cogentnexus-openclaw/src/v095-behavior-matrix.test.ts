@@ -68,6 +68,35 @@ describe("v0.9.5 provider-independent behavior matrix", () => {
     }
   });
 
+  it("rejects stale Web Chat confirmation after a session generation change", () => {
+    const { root, db, sessionKey, ticket } = setup();
+    try {
+      const text = "webchat stale matrix";
+      const payloadSha256 = createHash("sha256").update(text).digest("hex");
+      const key = {
+        ticketId: ticket.ticketId,
+        inferenceAttemptId: "matrix-attempt-webchat-stale",
+        runId: "matrix-run-a",
+        ownerSessionKey: sessionKey,
+        ownerGeneration: 0,
+        surface: "webchat" as const,
+        payloadSha256,
+        idempotencyKey: `cnx-delivery:${ticket.ticketId}:webchat-stale`,
+      };
+      prepareDelivery(db, { ...key, text });
+      stageDelivery(db, key.idempotencyKey, { evidenceType: "webchat-final-staged" });
+      acceptTransport(db, key.idempotencyKey, { evidenceType: "webchat-send-accepted" });
+      expect(db.prepare("UPDATE cnx_sessions SET generation=1 WHERE session_key=?").run(sessionKey).changes).toBe(1);
+      expect(() => confirmDelivery(db, key.idempotencyKey, { evidenceType: "stale-webchat-receipt" })).toThrow(
+        /delivery owner generation is stale/i,
+      );
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId)).toEqual({ status: "accepted" });
+    } finally {
+      db.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("allows exact Discord delivery while rejecting ambiguous receipt identity", () => {
     const { root, db, sessionKey, ticket } = setup();
     try {
