@@ -212,6 +212,6 @@ The response must be correlated with the PID from `openclaw gateway status`; it 
 
 ## Closeout fields
 
-- Final GitHub HEAD: to be filled after commit/push and independent remote verification.
-- Report blob: to be filled after reading this report from the final remote tip.
-- Changed paths: this report only.
+- Final GitHub HEAD: `25c37244ad5589e6422d2e0b809373907d9ec148` (verified from `origin/cnx-353-gateway-side-introspection`).
+- Report blob: `065c737316b5039996f42b5646f3405f98ef815f` (verified from the remote tree at the final tip).
+- Changed paths: `A docs/operations/coordination/reports/CNX-20260915-353-gateway-side-introspection-report.md` only.
