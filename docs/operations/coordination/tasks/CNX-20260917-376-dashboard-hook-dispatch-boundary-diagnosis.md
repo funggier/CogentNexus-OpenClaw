@@ -64,9 +64,20 @@ Do not collapse these into one claim.
 
 ## Semantic traffic authority
 
-**No Dashboard semantic request is authorized by default in CNX-376.**
+CNX-375 has already consumed one controlled semantic request. Additional semantic requests are now authorized in CNX-376 only when they are necessary to distinguish the dispatch hypotheses after static/read-only evidence is insufficient.
 
-The CNX-375 task already consumed its single semantic request. Do not send another semantic request unless a new explicit authorization is created after the dispatch boundary has been established.
+Maximum additional Dashboard semantic requests under CNX-376: **2**.
+
+Each additional request must have a distinct diagnostic purpose and must be recorded separately. Do not retry an identical request merely because the prior request produced an unexpected result.
+
+Recommended allocation:
+
+1. **Dispatch probe** — one deterministic Dashboard request whose sole purpose is to establish whether `before_agent_run` reaches the selected runner/handler. Capture runtime hook evidence immediately around the request.
+2. **Admission probe (conditional)** — only if dispatch/handler invocation is proven but Ticket-first still does not occur, send one second deterministic request specifically to expose the handler's event/context and admission decision. Do not send this second request when the first probe already proves the causal boundary.
+
+If read-only/process-local observation already proves the boundary, use **zero** additional semantic requests.
+
+If a semantic request is sent, there is no retry, follow-up, or third semantic probe under this task.
 
 ## Repair authority
 
@@ -76,8 +87,8 @@ If and only if a concrete causal defect is proven, the report may recommend the 
 
 ## Hard fences
 
-- No Dashboard semantic request by default.
-- No repeated semantic traffic.
+- Maximum 2 additional Dashboard semantic requests, only when required by the diagnostic decision tree above.
+- No repeated identical semantic traffic.
 - No provider/auth/routing/model changes.
 - No semantic contract changes.
 - No Dashboard UI/provider-layer redesign.
@@ -107,6 +118,7 @@ The report must contain:
 - runner lineage
 - evidence for registration vs dispatch vs invocation
 - first proven divergence
+- every semantic request count and exact purpose, if any
 - classification:
   - `DISPATCH_BOUNDARY_PROVEN`
   - `HANDLER_INVOCATION_PROVEN_BUT_ADMISSION_FAILS`
