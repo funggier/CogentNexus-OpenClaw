@@ -1,34 +1,45 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX375_DASHBOARD_TICKET_FIRST_SEMANTIC_REQUALIFICATION_COMPLETED`
-Task ID: `CNX-20260917-375`
-Parent: `CNX-20260916-374`
+Status: `READY_FOR_HERMES`
+State: `CNX376_DASHBOARD_HOOK_DISPATCH_BOUNDARY_DIAGNOSIS`
+Execution mode: `SUPPORTED_RUNTIME_HOOK_DISPATCH_DIAGNOSIS`
+Task ID: `CNX-20260917-376`
+Parent: `CNX-20260917-375`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260916-374-plugin-hook-registration-registry-wiring-report.md`
-Report: `docs/operations/coordination/reports/CNX-20260917-375-dashboard-ticket-first-semantic-requalification-report.md`
-
-## Classification
-
-**`FAIL / TICKET_FIRST_STILL_BYPASSED`**
+Base report: `docs/operations/coordination/reports/CNX-20260917-375-dashboard-ticket-first-semantic-requalification-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-376-dashboard-hook-dispatch-boundary-diagnosis.md`
 
 ## Current position
 
-CNX-375 performed exactly one controlled Dashboard semantic request against the CNX-374 repaired runtime (PID 27372, artifact SHA-256 2841b704). A fresh Dashboard session was created (`agent:main:dashboard:d4742ca0-1cef-43fc-b54c-0ed1a89853c0`) and a model response was delivered ("CNX375-SEMANTIC-ACK"). **No Ticket-first admission evidence was observed** — `tickets`, `ticket_events`, `ticket_outbox` tables contain no rows for the new session; no `admission.trace.*` records were produced. The request reached ordinary model inference directly, confirming the original CNX-370 bypass pattern persists.
+CNX-367 proved the Dashboard Ticket-first bypass as `CURRENT_RED`. CNX-368 repaired the schema-v2 Host authority compatibility gate. CNX-369 activated and verified the repaired artifact. CNX-370 reproduced the bypass semantically. CNX-371 established the Dashboard Gateway → embedded selection path. CNX-372 established that supported diagnostics did not expose process-local selection-runner hook state. CNX-373 proved live `allowConversationAccess=true`, `ticketFirst=true`, `preInferenceAdmission=true`, and `enforcedMode=true`. CNX-374 proved and repaired the plugin-definition conversation-hook registry gate. CNX-375 performed exactly one controlled Dashboard semantic request and confirmed `FAIL / TICKET_FIRST_STILL_BYPASSED`: direct model inference occurred with no Ticket or admission trace evidence.
 
-## Outcome
+## Next authorized task
 
-- Dashboard semantic requests: 1
-- Model/provider requests: 1 (GPT-5.6 Luna)
-- Tickets created: 0
-- Configuration mutations: 0
-- Source changes: 0
-- Historical edits to CNX-360–CNX-374: 0
-- Force-push/history rewrite: 0
+`CNX-20260917-376` is authorized to diagnose the exact runtime boundary between the repaired plugin hook registration and actual Dashboard/WebChat hook dispatch. It must distinguish registration, registry membership, runner attachment, hook dispatch, handler invocation, and admission decision without sending another Dashboard semantic request by default.
 
 ## Authorization boundary
 
-**STOP.** No further execution authority. ChatGPT review required. Do not create CNX-376 without explicit successor authorization.
+CNX-376 is diagnosis-only by default. No semantic request is authorized by this task. No source repair is authorized unless a concrete causal defect is proven and the smallest justified repair is explicitly documented.
+
+After evidence capture, publish the report and stop at `WAITING_FOR_CHATGPT_REVIEW`. Do not start CNX-377 yourself.
+
+## Hard fences
+
+- No Dashboard semantic request by default.
+- No repeated semantic traffic.
+- No provider/auth/routing/model changes.
+- No semantic-contract changes.
+- No Dashboard UI/provider-layer redesign.
+- No TicketStore redesign.
+- No admission redesign.
+- No controller normalization.
+- No speculative source patch.
+- No unrelated runtime mutation.
+- No release/tag/main changes.
+- No force-push/history rewrite.
+- No historical edits to CNX-360 through CNX-375.
+- If the dispatch boundary remains unproven, stop and report the exact uncertainty.
+- Do not start CNX-377 yourself.
