@@ -1,32 +1,39 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX370_COMPLETE_FAIL_NOT_REQUALIFIED`
-Task ID: `CNX-20260916-370`
-Parent: `CNX-20260916-369`
+Status: `READY_FOR_HERMES`
+State: `CNX371_DASHBOARD_RUNNER_ADMISSION_BOUNDARY_REPAIR`
+Task ID: `CNX-20260916-371`
+Parent: `CNX-20260916-370`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260916-369-runtime-activation-verification-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260916-370-live-semantic-requalification.md`
-Report: `docs/operations/coordination/reports/CNX-20260916-370-live-semantic-requalification-report.md`
+Base report: `docs/operations/coordination/reports/CNX-20260916-370-live-semantic-requalification-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260916-371-dashboard-runner-admission-boundary-repair.md`
 
 ## Current position
 
-CNX-367 completed as `CURRENT_RED`, with the Dashboard path proven to bypass Ticket-first admission. CNX-368 completed as `REPAIRED / VERIFIED` at source/test/build level and established the root cause as a schema-v2 Host authority gate mismatch that suppressed plugin registration. CNX-369 activated and verified the repaired artifact in the live Gateway process and established effective downstream registration without performing a semantic Dashboard request. CNX-370 completed as `FAIL / NOT_REQUALIFIED` — the live semantic requalification reproduced the CNX-367 bypass signature.
+CNX-367 completed as `CURRENT_RED`, with the Dashboard path proven to bypass Ticket-first admission. CNX-368 completed as `REPAIRED / VERIFIED` at source/test/build level and fixed the schema-v2 Host authority compatibility mismatch that suppressed plugin registration. CNX-369 activated and verified the repaired artifact in the live Gateway process and established effective downstream registration. CNX-370 completed as `FAIL / NOT_REQUALIFIED`: one controlled live Dashboard request still followed `prompt.submitted → model.completed` with no `before_agent_run`, no `admission.trace.*`, no Ticket, and no Ticket-first lifecycle evidence.
 
 ## Authorization boundary
 
-Awaiting ChatGPT review. No successor task is authorized. A separate, explicitly authorized repair task addressing the live admission path is required before any further semantic requalification.
+Current successor: `CNX-20260916-371` — DASHBOARD RUNNER ADMISSION BOUNDARY DIAGNOSIS AND MINIMAL REPAIR. This task is explicitly authorized to diagnose the exact OpenClaw Dashboard runner/invocation boundary responsible for the missing `before_agent_run` invocation and, only after the concrete cause is proven, implement the smallest justified source repair, focused regression tests, and supported runtime activation if needed.
+
+The repair must restore the existing intended lifecycle rather than creating a parallel Dashboard-only admission path. A semantic Dashboard request is not the default action; prefer handing the repaired runtime to a separate later requalification task unless one minimum-necessary bounded proof request is genuinely required.
 
 ## Hard fences
 
-- One minimum-necessary controlled Dashboard semantic request only; no CNX-367 retry or reproduction request.
-- No source-code changes during CNX-370.
 - No provider/auth/routing changes.
-- No manual controller normalization or configuration redesign.
-- No hooks/main, release/tag, or historical CNX-360 through CNX-369 edits.
-- Record every required runtime lifecycle mutation with exact before/after process identity.
+- No model/provider substitution.
+- No manual controller normalization.
+- No unrelated Dashboard traffic.
+- No historical edits to CNX-360 through CNX-370.
+- No release/tag/main changes.
 - No force-push or history rewrite.
-- After publishing the CNX-370 report, transition to `WAITING_FOR_CHATGPT_REVIEW` and stop.
+- Do not change the semantic contract merely to make a test pass.
+- Do not duplicate admission logic in the Dashboard UI or provider layer.
+- Do not introduce a competing Ticket admission path.
+- Do not broad-refactor unrelated code.
+- Do not claim Ticket-first restoration without lifecycle-ordering evidence.
+- If diagnosis is inconclusive, publish evidence and stop rather than guessing a repair.
+- After publishing the CNX-371 report, transition to `WAITING_FOR_CHATGPT_REVIEW` and stop.
