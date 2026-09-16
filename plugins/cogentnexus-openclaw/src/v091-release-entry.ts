@@ -112,15 +112,6 @@ function withWebchatLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Re
   return runtimeApi;
 }
 
-/**
- * Host controller.mode=managed/passthrough authorizes the CogentNexus-OpenClaw
- * plugin surface; provider/auth/routing ownership remains an OpenClaw concern.
- *
- * Neither provider mode nor provider selection is a capability switch. A valid
- * Host authority commit therefore allows the same Ticket, continuity, recovery,
- * delivery, and workflow surfaces regardless of which provider OpenClaw routes
- * an inference attempt to.
- */
 export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   const root = pluginCogentRoot(api);
   const controllerPath = resolve(root, "host", "controller.json");
@@ -149,14 +140,25 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
 }
 
 /**
- * v0.9.1 public mixed-plugin boundary.
+ * v0.9.5 mixed-plugin boundary with registry wiring fix.
  *
- * Host authority controls whether the plugin is active. Provider ownership is
- * deliberately not translated into capability suppression: PASSTHROUGH means
- * OpenClaw owns provider/auth/routing, while CogentNexus-OpenClaw continuity,
- * durable Ticket/recovery, delivery, and workflow capabilities remain active.
+ * CNX-374 root cause: OpenClaw 2026.7.1-2 host checks the plugin DEFINITION's
+ * `hooks.allowConversationAccess` property (entry?.hooks) to gate conversation
+ * hooks such as `before_agent_run`. This is NOT the runtime config
+ * `plugins.entries.<id>.hooks.allowConversationAccess` (which only feeds
+ * pluginConfig, not the gate). When the definition lacks `hooks`, the host
+ * blocks dynamic registration before it reaches the global hook registry,
+ * producing `hookCount: 0` and leaving the Dashboard runner's `hookRunner`
+ * without `before_agent_run` at dispatch time.
+ *
+ * The fix preserves the host-supported definition shape and adds the declaration
+ * to the exported entry object after `definePluginEntry(...)` (the installed
+ * helper itself does not preserve unknown properties).
  */
-const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
+const releaseEntry: ReturnType<typeof definePluginEntry> & {
+  hooks: { allowConversationAccess: boolean };
+} = {
+  ...definePluginEntry({
   id: "cogentnexus-openclaw",
   name: "CogentNexus-OpenClaw Bridge",
   description:
@@ -165,13 +167,13 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     const authority = hostPluginAuthority(api);
     if (!authority.authorized) {
       api.logger.info?.(
-        `CogentNexus-OpenClaw v0.9.1 runtime registration suppressed: Host authority=${authority.reason} mode=${authority.mode ?? "unknown"}`,
+        `CogentNexus-OpenClaw v0.9.5 runtime registration suppressed: Host authority=${authority.reason} mode=${authority.mode ?? "unknown"}`,
       );
       return;
     }
     const register = (legacyEntry as { register?: (runtimeApi: OpenClawPluginApi) => void | Promise<void> }).register;
     if (typeof register !== "function") {
-      throw new Error("CogentNexus-OpenClaw v0.9.1 compatibility entry does not expose register(api)");
+      throw new Error("CogentNexus-OpenClaw v0.9.5 compatibility entry does not expose register(api)");
     }
 
     const config = {
@@ -179,23 +181,12 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
       ...(authority.reason === "passthrough" ? { providerMode: undefined } : { providerMode: "managed" as const }),
     };
 
-    // ProviderMode is retained only as compatibility metadata. The legacy
-    // capability gates inspect it, so PASSTHROUGH is normalized to undefined
-    // here rather than being allowed to disable CNX continuity/recovery.
-    // Legacy Discord and Web Chat delivery hooks are fenced at this boundary so
-    // each surface has exactly one v0.9.5 delivery authority: its canonical adapter.
     const discordFencedApi = withDiscordLegacyDeliveryFence(api, config);
     const runtimeApi = withWebchatLegacyDeliveryFence(discordFencedApi, config);
 
-    // OpenClaw 2026.7.1-2 can start its own main-session restart recovery
-    // concurrently with Host-owned CogentNexus-OpenClaw Direct Recovery. Consume only
-    // the exact native restart system turn when durable CNX ownership exists, before
-    // the legacy before_agent_run Ticket-first gate can see it.
     installV099NativeRestartOwnershipFence(api, config);
 
     const installManagedRuntimeGuards = () => {
-      // Provider/auth/routing remain outside CNX authority, but continuity and
-      // durable recovery surfaces are valid in both managed and pass-through mode.
       installV092DurableDeliveryBoundary();
       const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
       if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
@@ -207,15 +198,16 @@ const releaseEntry: ReturnType<typeof definePluginEntry> = definePluginEntry({
     };
 
     const registered = register(runtimeApi);
-    // Keep startup-liveness ownership provider-independent: a Host restart must
-    // not strand a durable direct-recovery lane merely because OpenClaw uses a
-    // pass-through provider route.
     installV097DirectRecoveryStartupLiveness(api, config);
     if (registered && typeof (registered as Promise<void>).then === "function") {
       return Promise.resolve(registered).then(installManagedRuntimeGuards);
     }
     installManagedRuntimeGuards();
   },
-});
+}),
+  hooks: {
+    allowConversationAccess: true,
+  },
+};
 
 export default releaseEntry;
