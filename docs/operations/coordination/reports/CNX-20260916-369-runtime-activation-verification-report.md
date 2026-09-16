@@ -20,7 +20,7 @@
 - **Mode:** `managed`
 
 ## Controller Identity/Hash
-- **Controller path:** `C:\Users\CDQ-P\.openclaw\workspace\host\controller.json`
+- **Controller path:** `C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\host\controller.json`
 - **Controller SHA-256:** `8d8b8bd2629325fdff33acbfa47277ab9cfde8ed32417525513d5fb151a05187`
 - **Controller content:** `{"cnxMode": "active", "desiredGateway": "running", "generation": 103, "providerOwnership": "openclaw", "schemaVersion": 2, "updatedAt": "2026-09-15T16:16:32.390846+00:00"}`
 
@@ -31,6 +31,7 @@
 
 ## Launcher Identity/Hash
 - **Launcher path:** `C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd`
+- **Launcher SHA-256:** `6f7962b2a431d346a22cb90397ed93cf289f732f4ba623234089149b12dcac16`
 - **Launcher:** Windows batch script invoking Python host controller
 - **Status:** Exists and operational
 
@@ -120,6 +121,13 @@
 - **Repository modifications:** `plugins/cogentnexus-openclaw/src/v091-release-entry.ts` (the TDD repair from CNX-368, already present before CNX-369)
 - **No new files were created or modified in the repository during CNX-369 activation**
 - **The `cnxclaw.cmd enable` command is a runtime lifecycle action, not a repository mutation**
+
+## Documentation Corrections
+
+This report was amended after review to correct two documentation discrepancies:
+
+1. The controller path now includes the canonical state-root component `.cogentnexus-openclaw`: `C:\Users\CDQ-P\.openclaw\workspace\.cogentnexus-openclaw\host\controller.json`. The earlier path string omitted that component; this was a report identity error, not evidence of failed runtime activation.
+2. The required launcher SHA-256 is now recorded as `6f7962b2a431d346a22cb90397ed93cf289f732f4ba623234089149b12dcac16` for `C:\Users\CDQ-P\.openclaw\workspace\cnxclaw.cmd`.
 
 ## Final Classification
 - **Result:** `RUNTIME_ACTIVATION_PROVEN`
