@@ -1,7 +1,8 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
-State: `CNX376_DASHBOARD_HOOK_DISPATCH_BOUNDARY_DIAGNOSIS`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+State: `CNX376_DASHBOARD_HOOK_DISPATCH_BOUNDARY_DIAGNOSIS_COMPLETE`
+Execution mode: `SUPPORTED_RUNTIME_HOOK_DISPATCH_DIAGNOSIS`
 Task ID: `CNX-20260917-376`
 Parent: `CNX-20260917-375`
 Executor: `Hermes`
@@ -9,32 +10,22 @@ Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Base report: `docs/operations/coordination/reports/CNX-20260917-375-dashboard-ticket-first-semantic-requalification-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-376-dashboard-hook-dispatch-boundary-diagnosis.md`
+Report: `docs/operations/coordination/reports/CNX-20260917-376-dashboard-hook-dispatch-boundary-diagnosis-report.md`
 
 ## Current position
 
-CNX-367 completed as `CURRENT_RED`, establishing the original Dashboard Ticket-first bypass. CNX-368 repaired the schema-v2 Host authority compatibility gate. CNX-369 activated the repaired artifact. CNX-370 reproduced the bypass. CNX-371 established the Dashboard Gateway → embedded selection path. CNX-372 showed supported diagnostics did not expose the process-local runner hook state. CNX-373 proved the live admission configuration values. CNX-374 proved and repaired the plugin-definition conversation-hook registry gate. CNX-375 then performed exactly one controlled Dashboard semantic request on the repaired runtime and confirmed `FAIL / TICKET_FIRST_STILL_BYPASSED`: direct model inference occurred with no Ticket or admission trace evidence.
+CNX-367 proved the Dashboard Ticket-first bypass as `CURRENT_RED`. CNX-368 repaired the schema-v2 Host authority compatibility gate. CNX-369 activated and verified the repaired artifact. CNX-370 reproduced the bypass semantically. CNX-371 established the Dashboard Gateway → embedded selection path. CNX-372 established that supported diagnostics did not expose process-local selection-runner hook state. CNX-373 proved live `allowConversationAccess=true`, `ticketFirst=true`, `preInferenceAdmission=true`, and `enforcedMode=true`. CNX-374 proved and repaired the plugin-definition conversation-hook registry gate. CNX-375 performed exactly one controlled Dashboard semantic request and confirmed `FAIL / TICKET_FIRST_STILL_BYPASSED`. CNX-376 diagnosed the dispatch boundary and classified `DISPATCH_BOUNDARY_PROVEN`.
 
-## Authorization boundary
+## Diagnosis result
 
-Current successor: `CNX-20260917-376` — DASHBOARD HOOK DISPATCH BOUNDARY DIAGNOSIS. Diagnosis-first. Supported read-only/runtime observation comes first. If that evidence cannot distinguish the dispatch hypotheses, up to **2 additional Dashboard semantic requests** are authorized, each only for a distinct diagnostic purpose: one dispatch probe and, conditionally, one admission probe if handler invocation is proven but the Ticket-first decision remains unexplained. No identical retry is authorized.
+The boundary is between plugin-level hook registration and host-level composed-registry visibility. The hook registers at the source level (Layer 1 passes) but is absent from the live host registry inventory (`hookCount: 0`, `hookNames: []`), so `hasHooks("before_agent_run")` returns false and dispatch is skipped. Durable SQLite confirms: session created, model responded, zero ticket/admission/inference rows.
 
-No source repair is authorized unless a concrete causal defect is proven and the smallest justified repair is documented.
+## Next authorized task
+
+None. Awaiting ChatGPT review.
 
 ## Hard fences
 
-- Maximum 2 additional Dashboard semantic requests, only when required to distinguish dispatch hypotheses.
-- No repeated identical semantic traffic.
-- No provider/auth/routing/model changes.
-- No semantic-contract changes.
-- No Dashboard UI/provider-layer redesign.
-- No TicketStore redesign.
-- No admission redesign.
-- No controller normalization.
-- No speculative source patch.
+- No source repair authorized.
 - No unrelated runtime mutation.
-- No release/tag/main.
-- No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-375.
-- Stop and report if the dispatch boundary remains unproven.
-- Do not start CNX-377 yourself.
+- Do not start CNX-377.
