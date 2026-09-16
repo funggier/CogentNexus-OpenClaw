@@ -1,25 +1,23 @@
 # Coordination Channel Status
 
-Status: `BLOCKED`
-State: `CNX366_DASHBOARD_FRESH_SESSION_ESTABLISHMENT`
-Task ID: `CNX-20260916-366`
-Parent: `CNX-20260915-365`
+Status: `READY_FOR_HERMES`
+State: `CNX368_TICKET_FIRST_ADMISSION_ROOT_CAUSE_REPAIR`
+Task ID: `CNX-20260916-368`
+Parent: `CNX-20260916-367`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260915-365-semantic-execution-report.md`
+Base report: `docs/operations/coordination/reports/CNX-20260916-367-openai-dashboard-ticket-first-semantic-requalification-report.md`
 
 ## Current position
 
-CNX-360 through CNX-364 are historical and unchanged. CNX-365 completed as `UNRESOLVED/BLOCKED` at the evidence boundary. No verifiably fresh blank Dashboard session or independently verified Composer target/focus was established; the exact semantic message was not sent; verified Dashboard requests: `0`; verified OpenAI/model requests: `0`; runtime mutations: `0`; retry: `0`.
+CNX-367 completed as `CURRENT_RED`. The original Dashboard Ticket-first bypass is now reproduced and evidenced. The exact trajectory is `prompt.submitted → model.completed`; no `before_agent_run`, `admission.trace.*`, durable Ticket, Ticket lifecycle, or Ticket-linked Run/Call/Inference/Result/Delivery evidence exists for that execution.
 
 ## Authorization boundary
 
-Current successor: `CNX-366_DASHBOARD_FRESH_SESSION_ESTABLISHMENT`.
-
-CNX-366 authorizes only bounded preparation to establish a verifiably blank Dashboard conversation and exact UI/session identity before any semantic request. No semantic message, Dashboard/model request, runtime mutation, or CNX-365 retry is authorized. A later separate explicit authorization is required for semantic execution.
+Current successor: `CNX-20260916-368` — ROOT-CAUSE INVESTIGATION + REPAIR. It may investigate the plugin/runtime registration and dispatch boundary, add diagnostic-only instrumentation where necessary, and perform one minimal TDD-gated repair after proving the root cause. It must not issue another Dashboard/model request. Live semantic requalification is a separate later authorization.
 
 ## Hard fences
 
-No Dashboard/model request; no semantic test; no retry/resend; no runtime mutation; no controller edit; no provider/auth/routing, hook, main, or release/tag edit; no historical record edit; no force-push or history rewrite.
+No second semantic test; no Dashboard/model request; no runtime mutation before root cause and TDD authorization; no reinstall; no controller/provider/auth/routing/hooks/main edit before the applicable gate; no release/tag change; no historical record edit; no force-push or history rewrite.

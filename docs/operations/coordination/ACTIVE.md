@@ -1,34 +1,28 @@
 # Active Coordination Task
 
-Status: `BLOCKED`
-State: `CNX366_DASHBOARD_FRESH_SESSION_ESTABLISHMENT`
-Execution mode: `SUCCESSOR_TASK_CREATION_AND_READ_ONLY_SESSION-IDENTITY_PREPARATION_ONLY`
-Task ID: `CNX-20260916-366`
-Parent: `CNX-20260915-365`
+Status: `READY_FOR_HERMES`
+State: `CNX368_TICKET_FIRST_ADMISSION_ROOT_CAUSE_REPAIR`
+Execution mode: `ROOT_CAUSE_INVESTIGATION_AND_MINIMAL_REPAIR`
+Task ID: `CNX-20260916-368`
+Parent: `CNX-20260916-367`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260915-365-semantic-execution-report.md`
+Base report: `docs/operations/coordination/reports/CNX-20260916-367-openai-dashboard-ticket-first-semantic-requalification-report.md`
 
 ## Current position
 
-CNX-360 through CNX-364 remain historical records and are unchanged. CNX-365 completed at the evidence boundary as `UNRESOLVED/BLOCKED`: no verifiably fresh blank Dashboard session was established, Composer focus/target was not independently verified, the exact semantic message was not sent, verified Dashboard requests were `0`, verified OpenAI/model requests were `0`, runtime mutations were `0`, and no retry occurred.
-
-No CNX-365 retry is authorized. No Dashboard request, model request, semantic message, or runtime mutation is authorized by this authority.
+CNX-367 is completed with classification `CURRENT_RED`. The original Dashboard Ticket-first bypass is reproduced and evidenced: for the exact CNX-367 execution, the runtime proceeds from `prompt.submitted` directly to `model.completed`, with no `before_agent_run`, admission trace, durable Ticket, Ticket lifecycle, or Ticket-linked Run/Call/Inference/Result/Delivery evidence.
 
 ## Next authorized task
 
-`CNX-366_DASHBOARD_FRESH_SESSION_ESTABLISHMENT`
-
-CNX-366 is limited to read-only preparation and verification of a genuinely fresh blank Dashboard session. It may establish and document exact UI/session identity, composer target/focus observability, and provider/model selection observability only within the task's stated safety boundary. It must not send a semantic message or perform a model request. Any semantic execution requires separate explicit authorization after CNX-366 stops.
+`CNX-20260916-368` is the successor root-cause investigation and repair task. It must trace the failing boundary, add diagnostic-only instrumentation if needed, then use TDD for one minimal repair. It may not send another Dashboard/model request or perform live semantic requalification. Any live semantic requalification requires a separate later authorization after CNX-368 stops.
 
 ## Hard fences
 
-- Do not retry or resend CNX-365.
-- Do not send any Dashboard, semantic, OpenAI, or model request.
-- Do not perform a semantic test or claim semantic PASS/CURRENT_RED.
-- Do not mutate runtime state; required preparation must remain zero-mutation.
-- Do not edit controller.json, provider/auth/routing, hooks, main, or release/tag state.
-- Do not modify historical CNX-360 through CNX-365 task/report records.
-- Do not force-push or rewrite history.
+- Do not modify historical CNX-360 through CNX-367 task/report files.
+- Do not send another Dashboard/model request or semantic test.
+- Do not mutate runtime state or reinstall.
+- Do not edit controller/provider/auth/routing/hooks/main until the root cause is proven and the task's TDD gate is satisfied.
+- Do not release/tag, force-push, or rewrite history.
