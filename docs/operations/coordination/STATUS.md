@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX371_DASHBOARD_RUNNER_ADMISSION_BOUNDARY_REPAIR`
 Task ID: `CNX-20260916-371`
 Parent: `CNX-20260916-370`
@@ -13,7 +13,7 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260916-371-dashboa
 
 ## Current position
 
-CNX-367 completed as `CURRENT_RED`, with the Dashboard path proven to bypass Ticket-first admission. CNX-368 completed as `REPAIRED / VERIFIED` at source/test/build level and fixed the schema-v2 Host authority compatibility mismatch that suppressed plugin registration. CNX-369 activated and verified the repaired artifact in the live Gateway process and established effective downstream registration. CNX-370 completed as `FAIL / NOT_REQUALIFIED`: one controlled live Dashboard request still followed `prompt.submitted → model.completed` with no `before_agent_run`, no `admission.trace.*`, no Ticket, and no Ticket-first lifecycle evidence.
+CNX-367 completed as `CURRENT_RED`, with the Dashboard path proven to bypass Ticket-first admission. CNX-368 completed as `REPAIRED / VERIFIED` at source/test/build level and fixed the schema-v2 Host authority compatibility mismatch that suppressed plugin registration. CNX-369 activated and verified the repaired artifact in the live Gateway process and established effective downstream registration. CNX-370 completed as `FAIL / NOT REQUALIFIED`. CNX-371 inspected the installed Dashboard Gateway/embedded selection path but classification remained `BLOCKED / DIAGNOSIS INCONCLUSIVE` because the runtime hook-registry condition at the dispatch boundary was not proven; no repair or runtime mutation was performed. Report: `docs/operations/coordination/reports/CNX-20260916-371-dashboard-runner-admission-boundary-repair-report.md`.
 
 ## Authorization boundary
 
