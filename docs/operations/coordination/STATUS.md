@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX377_COMPOSED_HOOK_REGISTRY_WIRING_REPAIR`
-Execution mode: `ROOT_CAUSE_TDD_COMPOSED_REGISTRY_REPAIR`
-Task ID: `CNX-20260917-377`
-Parent: `CNX-20260917-376`
+Status: `READY_FOR_HERMES`
+State: `CNX378_LIVE_REGISTRY_IDENTITY_CORRELATION_DIAGNOSIS`
+Execution mode: `LIVE_REGISTRY_IDENTITY_CORRELATION_DIAGNOSIS`
+Task ID: `CNX-20260917-378`
+Parent: `CNX-20260917-377`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
@@ -12,22 +12,28 @@ Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
 ## Outcome
 
-CNX-377 is handed off as `INCONCLUSIVE`. Source tracing found that the current OpenClaw loader, active registry lifecycle, and global composed facade share live registry identity and dynamically compose live registries. The installed plugin artifact contains `hooks.allowConversationAccess: true`. The CNX-376 `hookCount: 0` observation was not reproducible or attributable to a proven repository-side defect without speculative changes.
+CNX-377 was reviewed as `INCONCLUSIVE`. Its source tracing did not justify a repository-side repair: the current OpenClaw dependency uses live registry composition, while the CNX-376 live runtime observed `hookCount: 0`. The contradiction remains an evidence-correlation problem.
 
-## Evidence
+## Current task
 
-Report: `docs/operations/coordination/reports/CNX-20260917-377-composed-registry-wiring-repair-report.md`
+`CNX-20260917-378` — LIVE REGISTRY IDENTITY CORRELATION DIAGNOSIS.
 
-- Focused CNX-374 regression: passed (1 test).
-- Dependency installation: passed.
-- Effective artifact SHA-256: freshly computed in the report from the installed file.
-- Semantic requests: 0.
-- Runtime activation: not performed.
+Correlate one exact runtime's OpenClaw process/build, effective plugin artifact, plugin registration event, registry object identity, global hook-runner registry, and composed registry queried by the Dashboard selection runner.
+
+Diagnosis only. No semantic traffic, production restart, OpenClaw dependency patch, or plugin source repair is authorized.
+
+## Evidence expectations
+
+- Fresh effective plugin artifact SHA-256 from disk.
+- Exact OpenClaw process/build/module identity where live inspection is possible.
+- Safe registry object identity/lineage evidence.
+- Correlation of plugin registration with global runner composition.
+- Explicit distinction between live-runtime evidence and disposable reproduction evidence.
 
 ## Hard fences
 
-No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes, no speculative or broad patch, no force-push, no main/release/tag mutation, no historical CNX-360..376 edits, and no CNX-378 work.
+No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes, no speculative or broad patch, no production config mutation, no production Gateway restart/reload by default, no semantic request, no release/tag/main, no force-push/history rewrite, no historical edits to CNX-360 through CNX-377, and no CNX-379 work.
 
 ## Handoff
 
-`WAITING_FOR_CHATGPT_REVIEW`. Stop after CNX-377 handoff.
+After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW` and stop.
