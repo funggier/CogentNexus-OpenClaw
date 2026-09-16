@@ -1,37 +1,52 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX377_COMPOSED_HOOK_REGISTRY_WIRING_REPAIR`
-Execution mode: `ROOT_CAUSE_TDD_COMPOSED_REGISTRY_REPAIR`
-Task ID: `CNX-20260917-377`
-Parent: `CNX-20260917-376`
+Status: `READY_FOR_HERMES`
+State: `CNX378_LIVE_REGISTRY_IDENTITY_CORRELATION_DIAGNOSIS`
+Execution mode: `LIVE_REGISTRY_IDENTITY_CORRELATION_DIAGNOSIS`
+Task ID: `CNX-20260917-378`
+Parent: `CNX-20260917-377`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-376-dashboard-hook-dispatch-boundary-diagnosis-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-377-composed-registry-wiring-repair.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-377-composed-registry-wiring-repair-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-378-live-registry-identity-correlation-diagnosis.md`
 
 ## Current position
 
-CNX-377 completed read-only/source tracing and focused validation. Classification: `INCONCLUSIVE`.
+CNX-376 proved the Dashboard dispatch boundary, but CNX-377 could not reconcile the live `hookCount: 0` observation with the current OpenClaw source's live registry composition model. No speculative repair was made.
 
-The current OpenClaw 2026.7.1-2 loader activates the same registry passed to `initializeGlobalHookRunner`, and its composed facade dynamically composes that registry with live plugin registries. The installed CogentNexus artifact also contains the authorized conversation-hook declaration. The CNX-376 live `hookCount: 0` observation could not be reproduced or causally bound to a repository-side defect without speculative host/runtime mutation.
+## Next authorized task
 
-Report: `docs/operations/coordination/reports/CNX-20260917-377-composed-registry-wiring-repair-report.md`
+`CNX-20260917-378` is authorized to correlate the exact live OpenClaw process/build, effective CogentNexus artifact, plugin load/registration event, registry object identity, global hook-runner state, and composed registry queried by the Dashboard selection runner.
 
-## Verification
+The purpose is diagnosis only. A concrete source defect or repair must not be claimed without direct evidence.
 
-- CNX-374 focused regression: passed (1 test).
-- `npm ci --ignore-scripts`: passed.
-- Effective installed artifact SHA-256 was freshly computed and recorded in the report.
-- Semantic requests: 0.
-- Runtime activation/restart: not performed; no validated repair existed.
+## Authorization boundary
+
+No Dashboard semantic request.
+No production Gateway restart/reload by default.
+No OpenClaw dependency patch.
+No plugin source patch unless a new explicit authorization extends this task.
+
+Use supported process-local/passive diagnostics where available. A disposable reproduction may be used only when clearly separated from the production runtime.
 
 ## Hard fences
 
-No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes, no broad or speculative patch, no force-push, no main/release/tag mutation, no historical CNX-360..376 edits, and no CNX-378 work.
+- No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes.
+- No speculative patch.
+- No production configuration changes.
+- No production Gateway restart/reload by default.
+- No semantic request.
+- No broad refactor.
+- No release/tag/main.
+- No force-push/history rewrite.
+- No historical edits to CNX-360 through CNX-377.
+- Do not start CNX-379 yourself.
 
-## Handoff
+## Closeout
 
-Waiting for ChatGPT review. Stop here.
+Required classification:
+`LIVE_REGISTRY_IDENTITY_CORRELATED`, `LIVE_REGISTRY_IDENTITY_CONTRADICTION_UNRESOLVED`, or `DIAGNOSTIC_ACCESS_BLOCKED`.
+
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
