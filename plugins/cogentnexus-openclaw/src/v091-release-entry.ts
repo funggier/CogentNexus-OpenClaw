@@ -20,7 +20,15 @@ import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ow
 type HostControllerState = {
   schemaVersion?: number;
   mode?: string;
+  cnxMode?: string;
   generation?: number;
+};
+
+const SUPPORTED_CONTROLLER_SCHEMA_VERSIONS = new Set([1, 2]);
+const CANONICAL_TO_LEGACY_MODE: Record<string, string> = {
+  active: "managed",
+  disabled: "passthrough",
+  maintenance: "maintenance",
 };
 
 type HostAuthority = {
@@ -125,11 +133,18 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
   }
   const mode = typeof state?.mode === "string" ? state.mode : undefined;
   const generation = Number.isSafeInteger(state?.generation) ? Number(state.generation) : undefined;
-  if (state?.schemaVersion !== 1 || !["managed", "passthrough", "maintenance"].includes(mode ?? "")) {
+  const schemaVersion = state?.schemaVersion;
+  if (typeof schemaVersion !== "number" || !Number.isInteger(schemaVersion) || !SUPPORTED_CONTROLLER_SCHEMA_VERSIONS.has(schemaVersion)) {
     return { authorized: false, reason: "invalid", mode, generation, controllerPath };
   }
-  if (mode === "managed" || mode === "passthrough") return { authorized: true, reason: mode, mode, generation, controllerPath };
-  if (mode === "maintenance") return { authorized: false, reason: "maintenance", mode, generation, controllerPath };
+  const effectiveMode = schemaVersion === 2
+    ? (typeof state?.cnxMode === "string" ? CANONICAL_TO_LEGACY_MODE[state.cnxMode] : undefined)
+    : mode;
+  if (!effectiveMode || !["managed", "passthrough", "maintenance"].includes(effectiveMode)) {
+    return { authorized: false, reason: "invalid", mode: effectiveMode, generation, controllerPath };
+  }
+  if (effectiveMode === "managed" || effectiveMode === "passthrough") return { authorized: true, reason: effectiveMode, mode: effectiveMode, generation, controllerPath };
+  if (effectiveMode === "maintenance") return { authorized: false, reason: "maintenance", mode: effectiveMode, generation, controllerPath };
   return { authorized: false, reason: "passthrough", mode, generation, controllerPath };
 }
 
