@@ -1,42 +1,41 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX371_DASHBOARD_RUNNER_ADMISSION_BOUNDARY_REPAIR`
-Execution mode: `SUPPORTED_HOST_RUNNER_DIAGNOSIS_AND_MINIMAL_REPAIR`
-Task ID: `CNX-20260916-371`
-Parent: `CNX-20260916-370`
+Status: `READY_FOR_HERMES`
+State: `CNX372_SELECTION_RUNNER_HOOK_REGISTRY_RUNTIME_OBSERVATION`
+Execution mode: `SUPPORTED_READ_ONLY_RUNTIME_HOOK_BOUNDARY_OBSERVATION`
+Task ID: `CNX-20260916-372`
+Parent: `CNX-20260916-371`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260916-370-live-semantic-requalification-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260916-371-dashboard-runner-admission-boundary-repair.md`
+Base report: `docs/operations/coordination/reports/CNX-20260916-371-dashboard-runner-admission-boundary-repair-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260916-372-selection-runner-hook-registry-runtime-observation.md`
 
 ## Current position
 
-CNX-367 proved the Dashboard Ticket-first bypass as `CURRENT_RED`. CNX-368 repaired the schema-v2 Host authority compatibility gate and verified source/test/build behavior. CNX-369 activated and verified the repaired artifact in the live Gateway process. CNX-370 then performed one authorized live Dashboard semantic request and reproduced the bypass. CNX-371 inspected the installed Dashboard Gateway/embedded selection path but could not prove the runtime hook-registry condition at the dispatch boundary; no repair or runtime mutation was performed. Report: `docs/operations/coordination/reports/CNX-20260916-371-dashboard-runner-admission-boundary-repair-report.md`.
+CNX-367 proved the Dashboard Ticket-first bypass as `CURRENT_RED`. CNX-368 repaired the schema-v2 Host authority compatibility gate and verified source/test/build behavior. CNX-369 activated and verified the repaired artifact in the live Gateway process. CNX-370 reproduced the bypass semantically. CNX-371 established the installed Dashboard → Gateway agent → embedded selection runner path and the runner's `before_agent_run` dispatch site, but could not determine the runtime hook-registry condition at that site; no repair was performed.
 
 ## Next authorized task
 
-`CNX-20260916-371` is authorized to diagnose the exact OpenClaw Dashboard runner/invocation boundary responsible for the missing `before_agent_run` invocation and, only after the concrete host-boundary cause is proven, implement the smallest justified repair at that boundary. The task must preserve the existing CogentNexus admission policy and Ticket lifecycle rather than creating a parallel Dashboard-only path.
+`CNX-20260916-372` is authorized for a bounded **read-only runtime observation** at the selection-runner dispatch boundary. It must distinguish whether the hook registry is absent, lacks `before_agent_run`, a different runner/path executes, dispatch is suppressed despite registration, or the hook is actually invoked. No source repair is authorized by this task.
 
 ## Authorization boundary
 
-This task explicitly authorizes bounded source repair after diagnosis, focused regression testing, supported runtime activation if needed to make the repaired artifact active, and the minimum read-only/live verification necessary to establish artifact identity. A semantic Dashboard request is not the default action of this task; prefer a separate later requalification task after repair unless one bounded proof request is genuinely required and recorded.
+Observation only. A semantic Dashboard request is not authorized by default. One minimum-necessary controlled request may be used only if a supported observation mechanism requires a live execution trigger; it must not be treated as semantic requalification.
 
 ## Hard fences
 
-- No provider/auth/routing changes.
-- No model/provider substitution.
-- No manual controller normalization.
-- No unrelated Dashboard traffic.
-- No historical edits to CNX-360 through CNX-370.
+- No source changes.
+- No provider/auth/routing/model changes.
+- No configuration redesign or manual controller normalization.
+- No plugin reinstall/reload/restart unless an approved diagnostic attachment intrinsically requires it; justify and record any such lifecycle mutation.
+- No semantic requalification.
+- No repeated Dashboard requests.
+- No historical edits to CNX-360 through CNX-371.
 - No release/tag/main changes.
 - No force-push or history rewrite.
-- Do not change the semantic contract merely to make the test pass.
-- Do not duplicate admission logic in the Dashboard UI or provider layer.
-- Do not introduce a competing Ticket admission path.
-- Do not broad-refactor unrelated code.
-- Do not claim Ticket-first restoration without lifecycle-ordering evidence.
-- If diagnosis is inconclusive, publish evidence and stop rather than guessing a repair.
-- After publishing the CNX-371 report, transition to `WAITING_FOR_CHATGPT_REVIEW` and stop.
+- No guessed repair.
+- Do not modify Dashboard UI or provider layer.
+- If the observation remains inconclusive, report the exact uncertainty and stop.
+- After publishing the CNX-372 report, transition to `WAITING_FOR_CHATGPT_REVIEW` and stop.
