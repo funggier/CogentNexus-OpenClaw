@@ -14,7 +14,7 @@ The host-side projection owner is confirmed, but this repository has no existing
 - Required starting status: `READY_FOR_HERMES` (confirmed)
 - Authoritative starting HEAD: `63f7f6134f6445b311b91e06fbc268aa68d52651`
 - Starting remote HEAD: `63f7f6134f6445b311b91e06fbc268aa68d52651`
-- Final HEAD: recorded after report/state publication and remote read-back
+- Final HEAD: `c3bd7fc08acfefce9cd47d83e71fc73445418352` (remote read-back before this report identity update)
 
 `ACTIVE.md`, `STATUS.md`, this task, and the CNX-383, CNX-382, CNX-381, and CNX-374 reports were read from the authoritative branch before action. The required identity was confirmed: `Task ID = CNX-20260917-384`; `Status = READY_FOR_HERMES`.
 
