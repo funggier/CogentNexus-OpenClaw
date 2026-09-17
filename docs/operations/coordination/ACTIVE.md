@@ -1,30 +1,30 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX398_GLOBAL_ORIGIN_ONLY_PRE_API_ELIGIBILITY`
-Execution mode: `GLOBAL_ORIGIN_ONLY_PRE_API_ELIGIBILITY`
-Task ID: `CNX-20260917-398`
-Parent: `CNX-20260917-397`
+Status: `READY_FOR_HERMES`
+State: `CNX399_GLOBAL_LOADER_INVOCATION_CACHE_PROVENANCE`
+Execution mode: `GLOBAL_LOADER_INVOCATION_CACHE_PROVENANCE`
+Task ID: `CNX-20260917-399`
+Parent: `CNX-20260917-398`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-397-global-candidate-pre-api-eligibility-and-manifest-provenance-trace-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-398-global-origin-only-pre-api-eligibility-ab-replay.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-398-global-origin-only-pre-api-eligibility-ab-replay-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-399-global-loader-invocation-cache-provenance.md`
 
 ## Current position
 
-CNX-397 is reviewed and accepted as `GLOBAL_CANDIDATE_PRODUCTION_CORRELATION_INCONCLUSIVE`. Exact OpenClaw source identifies the complete pre-API gate sequence and shows that global candidates can diverge through candidate data such as root/manifest association, scope filtering, duplicate precedence, enablement, and registration planning. Read-only production evidence is internally consistent but does not prove which historical gate, if any, blocked the running Gateway.
+CNX-398 is reviewed and accepted as `GLOBAL_ORIGIN_ONLY_PRE_API_DIAGNOSTICALLY_BLOCKED`. Exact OpenClaw source confirms `config` and `global` share the same non-bundled conversation-hook policy branch, but the supported loader API does not permit the exact origin-only runtime A/B without dependency patching or production global-discovery mutation. No synthetic A/B result was claimed.
 
-CNX-398 isolates candidate `origin` as the single variable in an exact disposable A/B replay. The purpose is to determine whether `origin=config` versus `origin=global` itself changes any pre-API eligibility, registration-plan, normalized-entry, or hook-policy outcome when all other candidate/config inputs are held constant.
+The remaining causal question is whether repeated Gateway loader invocations, loader-local/plugin-load caches, registry snapshots, prewarm/refresh lifecycles, or retained activation state can explain why the running process lacks `before_agent_run` despite the expected production config/artifact inputs.
 
 ## Current authorization
 
-CNX-398 is READY for Hermes execution.
+CNX-399 is READY for Hermes execution.
 
-Use the exact installed OpenClaw `2026.7.1-2 (0790d9f)` module graph. Build a disposable isolated A/B fixture with identical plugin/root/manifest/config/ID/enablement/plan inputs and only candidate origin changed between `config` and `global`, where internal APIs permit. Capture the exact pre-API and hook-registration outcomes.
+Trace exact loader invocation entry points and cache/lifecycle state in installed OpenClaw `2026.7.1-2 (0790d9f)`. Determine whether plugin discovery, normalized config, plugin load state, or registry state can be reused/retained across loader invocations and whether that mechanism can affect the missing hook registration path.
 
-Synthetic results are mechanism evidence only. Do not use them as historical production proof.
+Use read-only production evidence plus safe disposable exact-module probes where possible. Synthetic results are mechanism evidence only.
 
 No production mutation is authorized.
 
@@ -46,9 +46,9 @@ No production mutation is authorized.
 - No permanent instrumentation.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-397.
-- Do not create or start CNX-399 yourself.
+- No historical edits to CNX-360 through CNX-398.
+- Do not create or start CNX-400 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not create/start CNX-399.
+After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local/remote equality and a clean worktree, then stop. Do not create/start CNX-400.
