@@ -11,11 +11,12 @@ The read-only production boundary does not expose a correlated host acceptance/r
 - Repository: `funggier/CogentNexus-OpenClaw`
 - Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 - Authoritative starting HEAD: `7280ee25a050cc3389c4ae068102d4ffbdf6257f`
-- Final remote/publication HEAD: `5f7252e1416324bb5d7fa2c03c9b53f3d0cb235c`
+- Execution publication commit: `5f7252e1416324bb5d7fa2c03c9b53f3d0cb235c`
+- Review correction commit: `dd6053cbc16c6f70c48cc4532c3516a78f9c15f6`
 - Starting status: `READY_FOR_HERMES`
 - Task: `CNX-20260917-387`
 
-The authoritative branch was fetched and local HEAD was re-anchored to the supplied HEAD before investigation. Existing untracked files were not modified.
+The authoritative branch was fetched and local HEAD was re-anchored to the supplied HEAD before investigation. Existing untracked files were not modified. The report was subsequently corrected during ChatGPT review only to repair publication chronology and closeout wording; no runtime/source evidence was changed.
 
 ## Live runtime correlation
 
@@ -149,7 +150,7 @@ A registry-composition investigation remains **justified as an unresolved hypoth
 | Historical CNX-360 through CNX-386 edits | `0` |
 | Main/tags/releases changes | `0` |
 | Force-push/history rewrite | `0` |
-| CNX-388 created/started | `0` |
+| CNX-388 created/started during execution | `0` |
 
 Only read-only supported status/inventory commands, process inspection, artifact hashing, and log reads were used for production correlation. No semantic probe or retry was sent.
 
@@ -161,4 +162,4 @@ The observable production boundary ends after plugin-side startup/registration l
 
 ## Closeout
 
-The report was published at the final remote/publication HEAD above, and `ACTIVE.md` and `STATUS.md` were set to `WAITING_FOR_CHATGPT_REVIEW`. No successor task was created or started.
+The execution publication was completed at commit `5f7252e1416324bb5d7fa2c03c9b53f3d0cb235c`. ChatGPT subsequently corrected only report chronology/closeout wording in `dd6053cbc16c6f70c48cc4532c3516a78f9c15f6`. `ACTIVE.md` and `STATUS.md` remain the live coordination authorities and were set to `WAITING_FOR_CHATGPT_REVIEW`. No successor task was created or started by the CNX-387 executor.
