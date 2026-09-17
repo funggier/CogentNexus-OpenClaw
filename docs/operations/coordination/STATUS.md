@@ -1,24 +1,29 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX391_ISOLATED_PRODUCTION_CONFIG_HOOK_REGISTRATION_TRACE`
-Execution mode: `ISOLATED_PRODUCTION_CONFIG_HOOK_REGISTRATION_TRACE`
-Task ID: `CNX-20260917-391`
-Parent: `CNX-20260917-390`
+Status: `READY_FOR_HERMES`
+State: `CNX392_PRODUCTION_VS_CONFIG_ORIGIN_HOOK_POLICY_REPLAY`
+Execution mode: `PRODUCTION_VS_CONFIG_ORIGIN_HOOK_POLICY_REPLAY`
+Task ID: `CNX-20260917-392`
+Parent: `CNX-20260917-391`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-390-production-config-isolated-hook-policy-replay-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-391-isolated-production-config-hook-registration-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-391-isolated-production-config-hook-registration-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-392-production-vs-config-origin-hook-policy-replay.md`
 
 ## Current authorization
 
-CNX-390 is reviewed and accepted as `PRODUCTION_CONFIG_REPLAY_DIAGNOSTICALLY_BLOCKED`. The production-shaped isolated fixture loaded and activated through the real OpenClaw CLI, but the supported CLI did not expose `register(api)`, `api.on("before_agent_run")`, the host `registerTypedHook` decision, typed-hook inventory, or `hasHooks`. Therefore CNX-390 could not distinguish host acceptance from rejection. CNX-389 found no relevant User/Machine environment override; CNX-388 materially corroborates the production config source; CNX-381/382 provide the exact isolated loader/API and policy-gate mechanism for comparison.
+CNX-391 is reviewed and accepted as `PRODUCTION_CONFIG_REPLAY_ACCEPTS_HOOK_POLICY` in isolated evidence. With the relevant production plugin-entry configuration and `hooks.allowConversationAccess=true`, the exact OpenClaw `2026.7.1-2` loader/API path invoked `register(api)` and multiple `api.on("before_agent_run")` calls, and the final typed-hook registry contained six `before_agent_run` entries. A false-policy control omitted `before_agent_run` while retaining other typed hooks. This proves the configuration shape can support host acceptance in an isolated loader/API lifecycle.
 
-CNX-391 is READY for Hermes execution. Use the exact relevant production plugin-entry configuration from `C:\Users\CDQ-P\.openclaw\openclaw.json` to construct a disposable isolated fixture. Execute the real installed OpenClaw `2026.7.1-2` loader/plugin lifecycle and use disposable instrumentation only outside production to observe the registration boundary directly: `register(api)` → `api.on("before_agent_run")` → host `registerTypedHook` → policy decision → final typed-hook registry / `hasHooks` where exposed.
+Production still reports `origin=global`, `hookCount=0`, `hookNames=[]`, while CNX-390's production-shaped isolated CLI replay reported `origin=config`, `hookCount=0`. CNX-392 isolates this concrete activation-path difference before any further production reasoning.
 
-This task is an isolated reproduction only. Do not present the result as production memory observation or direct production root-cause proof.
+CNX-392 is READY for Hermes execution. First inspect exact installed OpenClaw `2026.7.1-2` source to determine whether plugin `origin` and/or `registrationMode` is causal to `hookPolicy`, `createApi`, or typed-hook registration. Then, only if technically justified and safe, run disposable isolated A/B activation paths using the same production plugin configuration and exact effective artifact:
+
+A. config-origin path;
+B. global-origin/discovered-extension equivalent.
+
+Observe `entry?.hooks`, `hookPolicy`, `registrationMode`, `register(api)`, `api.on("before_agent_run")`, host policy decision, and final typed-hook inventory where exposed.
 
 ## Hard fences
 
@@ -33,12 +38,15 @@ This task is an isolated reproduction only. Do not present the result as product
 - No semantic/model/provider/Dashboard requests.
 - No TicketStore/admission/routing/auth changes.
 - No speculative workaround.
+- No new dependency architecture.
+- No semantic probe or retry.
 - No permanent instrumentation.
+- No persistent installation of an isolated test copy into the production extension tree.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-390.
-- Do not start CNX-392 yourself.
+- No historical edits to CNX-360 through CNX-391.
+- Do not start CNX-393 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-392.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-393.
