@@ -1,56 +1,51 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX382_PLUGIN_HOOK_POLICY_PROJECTION_TRACE`
-Execution mode: `EXACT_HOOK_POLICY_PROJECTION_DIAGNOSIS`
-Task ID: `CNX-20260917-382`
-Parent: `CNX-20260917-381`
+Status: `READY_FOR_HERMES`
+State: `CNX383_HOOK_POLICY_PROJECTION_REPAIR`
+Execution mode: `ROOT_CAUSE_TDD_HOOK_POLICY_PROJECTION_REPAIR`
+Task ID: `CNX-20260917-383`
+Parent: `CNX-20260917-382`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-381-plugin-register-invocation-trace-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-382-plugin-hook-policy-projection-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-382-plugin-hook-policy-projection-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-383-hook-policy-projection-repair.md`
 
 ## Current position
 
-CNX-381 executed the exact isolated OpenClaw lifecycle and proved that the real `register(api)` and repeated `api.on("before_agent_run")` calls reach host `registerTypedHook`, but the host rejects them because the effective non-bundled hook policy is not true. The executable plugin definition simultaneously contains `hooks.allowConversationAccess: true`.
-
-CNX-382 proved `HOOK_POLICY_PROJECTION_LOSS_PROVEN`: the loader passes `normalized.entries[pluginId]?.hooks` to `createApi`, not the executable definition's `hooks`. Report: `docs/operations/coordination/reports/CNX-20260917-382-plugin-hook-policy-projection-trace-report.md`.
+CNX-382 proved `HOOK_POLICY_PROJECTION_LOSS_PROVEN`: the executable CogentNexus definition contains `hooks.allowConversationAccess=true`, but `definePluginEntry` does not preserve that property and the loader's `entry = normalized.entries[pluginId]` supplies `entry?.hooks` to `createApi` instead of the executable definition's hooks. The host non-bundled conversation-hook gate therefore rejects `before_agent_run` before registry storage.
 
 ## Next authorized task
 
-CNX-382 diagnosis is complete and awaiting ChatGPT review.
+`CNX-20260917-383` is authorized to make the smallest source repair that preserves/projects the already-declared hook policy into the host `hookPolicy` path consumed by `registerTypedHook`.
 
-Diagnosis only; no repair. No successor task authorized.
+Repair is authorized only at the proven boundary. The repair must not bypass the host gate, add a second registration path, or alter TicketStore/admission semantics.
 
 ## Authorization boundary
 
-No semantic request.
-No production Gateway restart/reload.
-No production configuration mutation.
-No OpenClaw dependency patch.
-No CogentNexus source/artifact patch.
-No artifact rebuild.
-Temporary instrumentation is allowed only in a disposable isolated process and must not be committed.
+Diagnosis is complete. Minimal source repair is authorized.
 
-## Hard fences
+No provider/auth/routing/model changes.
+No TicketStore/admission redesign.
+No Dashboard UI changes.
+No broad refactor.
+No force-push/history rewrite.
+No main/release/tag.
+No historical edits to CNX-360 through CNX-382.
+Do not start CNX-384 yourself.
 
-- No production runtime/configuration mutation.
-- No source or dependency patch.
-- No artifact rebuild.
-- No semantic/model requests.
-- No speculative repair.
-- No permanent or committed instrumentation.
-- No broad refactor.
-- No release/tag/main.
-- No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-381.
-- Do not start CNX-383 yourself.
+## TDD / validation
+
+Hermes must establish RED with a focused regression reproducing CNX-382, implement the smallest justified repair, then establish GREEN.
+
+After GREEN run relevant existing tests, plugin tests, build, and validation. Runtime activation may occur only after source/build evidence is green and only as needed to verify the effective artifact.
+
+A single Dashboard semantic probe is permitted only when runtime hook visibility cannot otherwise be verified and the report explicitly justifies it. No retry.
 
 ## Closeout
 
-Required classification:
-`HOOK_POLICY_PROJECTION_LOSS_PROVEN`, `HOOK_POLICY_PROJECTION_PRESERVED_GATE_SOURCE_MISMATCH`, `HOOK_POLICY_PROJECTION_PATH_NOT_REPRODUCED`, or `HOOK_POLICY_PROJECTION_DIAGNOSTICALLY_UNRESOLVED`.
+Create:
+`docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
+Then set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
