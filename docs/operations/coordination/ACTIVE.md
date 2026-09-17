@@ -1,33 +1,32 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX392_PRODUCTION_VS_CONFIG_ORIGIN_HOOK_POLICY_REPLAY`
-Execution mode: `PRODUCTION_VS_CONFIG_ORIGIN_HOOK_POLICY_REPLAY`
-Task ID: `CNX-20260917-392`
-Parent: `CNX-20260917-391`
+Status: `READY_FOR_HERMES`
+State: `CNX393_GLOBAL_CONFIG_ENTRY_ASSOCIATION_TRACE`
+Execution mode: `GLOBAL_CONFIG_ENTRY_ASSOCIATION_TRACE`
+Task ID: `CNX-20260917-393`
+Parent: `CNX-20260917-392`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-391-isolated-production-config-hook-registration-trace-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-392-production-vs-config-origin-hook-policy-replay.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-392-production-vs-config-origin-hook-policy-replay-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-393-global-discovery-config-entry-association-trace.md`
 
 ## Current position
 
-CNX-391 was reviewed and accepted as `PRODUCTION_CONFIG_REPLAY_ACCEPTS_HOOK_POLICY` in isolated evidence. With the relevant production plugin-entry configuration and `hooks.allowConversationAccess=true`, the exact OpenClaw `2026.7.1-2` loader/API path invoked `register(api)` and multiple `api.on("before_agent_run")` calls, and the final typed-hook registry contained six `before_agent_run` entries. A false-policy control omitted `before_agent_run` while retaining other typed hooks. This proves the configuration shape can support host acceptance in an isolated loader/API lifecycle.
-
-Production still reports `origin=global`, `hookCount=0`, `hookNames=[]`, while CNX-390's production-shaped isolated CLI replay reported `origin=config`, `hookCount=0`. CNX-392 isolates this concrete activation-path difference before any further production reasoning.
+CNX-392 was reviewed and accepted as `PRODUCTION_ORIGIN_REPLAY_DIAGNOSTICALLY_BLOCKED`. Exact source tracing showed `global` and `config` are discovery-origin labels and both use the same non-bundled conversation-hook policy branch; `registrationMode` is derived from `registrationPlan.mode`, not directly from origin. A safe exact global-origin isolated replay could not be constructed without mutating the production global extension/discovery state. CNX-391 already proved that the production-shaped `allowConversationAccess=true` configuration can be accepted through the exact loader/API path in isolation.
 
 ## Current authorization
 
-CNX-392 is READY for Hermes execution.
+CNX-393 is READY for Hermes execution.
 
-First inspect exact installed OpenClaw `2026.7.1-2` source to determine whether plugin `origin` and/or `registrationMode` is causal to `hookPolicy`, `createApi`, or typed-hook registration. Then, only if technically justified and safe, run disposable isolated A/B activation paths using the same production plugin configuration and exact effective artifact:
+Trace how a globally discovered candidate (`origin=global`) is associated with the normalized runtime configuration entry used for `hookPolicy`:
 
-A. config-origin path;
-B. global-origin/discovered-extension equivalent.
+`discovery candidate → pluginId → normalized.entries[pluginId] → entry.hooks → createApi(hookPolicy) → registerTypedHook`
 
-Observe `entry?.hooks`, `hookPolicy`, `registrationMode`, `register(api)`, `api.on("before_agent_run")`, host policy decision, and final typed-hook inventory where exposed.
+Determine whether global discovery can cause the candidate to miss, diverge from, or otherwise change its normalized config-entry association despite the same `plugins.entries.cogentnexus-openclaw` key being present in production configuration.
+
+Use read-only production evidence and disposable isolated/source-level probes only. Do not touch the production global extension tree.
 
 No production restart/reload.
 No production configuration mutation.
@@ -35,23 +34,22 @@ No environment mutation.
 No Scheduled Task mutation.
 No OpenClaw dependency patch.
 No CogentNexus source repair.
-No production artifact deployment/rebuild.
-No debugger/inspector attachment to production.
+No artifact deployment/rebuild.
+No debugger/inspector attachment.
 No semantic/model/provider request.
 
 ## Hard fences
 
 - No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes.
 - No speculative workaround.
-- No new dependency architecture.
+- No production global extension installation/mutation.
 - No semantic probe or retry.
 - No permanent instrumentation.
-- No persistent installation of an isolated test copy into the production extension tree.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-391.
-- Do not start CNX-393 yourself.
+- No historical edits to CNX-360 through CNX-392.
+- Do not start CNX-394 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-393.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-394.
