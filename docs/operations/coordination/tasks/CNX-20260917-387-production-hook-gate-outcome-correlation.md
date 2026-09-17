@@ -36,11 +36,10 @@ Begin from the authoritative branch HEAD and re-read:
 - this task
 - CNX-386 report
 - CNX-385 report
-- CNX-381 report
-- CNX-378 report
-- CNX-380 report
-- CNX-381 report
 - CNX-382 report
+- CNX-381 report
+- CNX-380 report
+- CNX-378 report
 - CNX-376 report
 
 Current authoritative branch head must be recorded in the report.
