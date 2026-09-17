@@ -1,22 +1,26 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX387_PRODUCTION_HOOK_GATE_OUTCOME_CORRELATION`
-Execution mode: `PRODUCTION_HOOK_GATE_OUTCOME_CORRELATION`
-Task ID: `CNX-20260917-387`
-Parent: `CNX-20260917-386`
+Status: `READY_FOR_HERMES`
+State: `CNX388_PRODUCTION_CONFIG_LAUNCH_PROVENANCE_CORRELATION`
+Execution mode: `PRODUCTION_CONFIG_LAUNCH_PROVENANCE_CORRELATION`
+Task ID: `CNX-20260917-388`
+Parent: `CNX-20260917-387`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-386-production-effective-config-provenance-diagnosis-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-387-production-hook-gate-outcome-correlation.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-387-production-hook-gate-outcome-correlation-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-388-production-config-launch-provenance-correlation.md`
 
 ## Current authorization
 
-CNX-386 is reviewed and accepted as `PRODUCTION_EFFECTIVE_CONFIG_PROVENANCE_UNRESOLVED`. CNX-385's normalization-strip hypothesis remains closed. CNX-386 established that the current config file contains `hooks.allowConversationAccess=true` and that supported config resolution points to that file, but the running gateway's historical in-memory config at plugin-registration time remains unobserved. Production inventory still reports `hookCount=0`, `hookNames=[]`.
+CNX-387 is reviewed and accepted as `PRODUCTION_HOOK_REGISTRATION_OUTCOME_UNRESOLVED`. Read-only production logs correlated the live gateway and plugin-side `hook-registered` events, but did not expose a host `registerTypedHook` acceptance/rejection result. The exact host policy rejection diagnostic was absent; `hookCount=0`, `hookNames=[]` remains a downstream symptom. CNX-385's normalization proof and CNX-386's config-provenance uncertainty remain unchanged.
 
-CNX-387 is READY for Hermes execution. Use read-only production logs and supported diagnostics to correlate the actual `before_agent_run` registration outcome. Determine whether production evidence correlates a host policy rejection, a gate pass followed by downstream registry loss, or an unresolved registration boundary.
+CNX-388 is READY for Hermes execution. Use only read-only launcher, scheduled-task, process, supported config-resolution, config-file metadata/content, and gateway-log evidence to trace:
+
+`scheduled launch / gateway.cmd → process launch context → OpenClaw config path selection → config file → startup log`
+
+Determine whether the production launch path materially corroborates the same config file containing `hooks.allowConversationAccess=true`, or whether an alternate config/profile remains materially plausible.
 
 ## Hard fences
 
@@ -31,12 +35,12 @@ CNX-387 is READY for Hermes execution. Use read-only production logs and support
 - No new dependency architecture.
 - No debugger/inspector attachment.
 - No semantic probe or retry.
-- No permanent instrumentation unless narrowly justified as a focused regression documenting the proven boundary.
+- No permanent instrumentation.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-386.
-- Do not start CNX-388 yourself.
+- No historical edits to CNX-360 through CNX-387.
+- Do not start CNX-389 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-388.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-389.
