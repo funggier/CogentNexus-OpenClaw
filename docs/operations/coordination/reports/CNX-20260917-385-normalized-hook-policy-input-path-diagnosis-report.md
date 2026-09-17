@@ -56,7 +56,7 @@ const PluginEntrySchema = object({
     allowPromptInjection: boolean().optional(),
     allowConversationAccess: boolean().optional(),
     timeoutMs: number().int().positive().max(6e5).optional(),
-    timeouts: record(string(), number().int().positive().max(6e5).optional())
+    timeouts: record(string(), number().int().positive().max(6e5)).optional()
   }).strict().optional(),
   subagent: ...,
   llm: ...,
