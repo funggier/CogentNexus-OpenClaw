@@ -1,6 +1,6 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX385_NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
 Execution mode: `NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
 Task ID: `CNX-20260917-385`
@@ -14,15 +14,11 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260917-385-normali
 
 ## Current position
 
-CNX-382 proved the executable definition declares `hooks.allowConversationAccess=true` while the loader passes `normalized.entries[pluginId]?.hooks` to `createApi` as `hookPolicy`. CNX-383/384 established that the plugin repository does not own the normalization/projection implementation and has no existing tracked, clean-install-reproducible host dependency patch mechanism.
+CNX-385 proved the raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedHook` gate path **preserves** `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. Classification: `NORMALIZED_HOOK_POLICY_PRESERVED_HOST_CONTRACT_FOUND`.
 
 ## Next authorized task
 
-`CNX-20260917-385` is authorized to diagnose the exact raw-config/schema/normalization path producing `normalized.entries[pluginId]` and determine whether the configured `plugins.entries.<id>.hooks.allowConversationAccess=true` is intentionally stripped, transformed, or otherwise not part of the supported normalized entry contract.
-
-The task must also determine whether an existing supported plugin/configuration or installation extension point can preserve the policy without patching OpenClaw or inventing a new dependency architecture.
-
-Diagnosis only. No repair is authorized.
+Awaiting ChatGPT review.
 
 ## Authorization boundary
 

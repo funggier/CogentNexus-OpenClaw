@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX385_NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
 Execution mode: `NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
 Task ID: `CNX-20260917-385`
@@ -14,9 +14,9 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260917-385-normali
 
 ## Current authorization
 
-CNX-385 is authorized for diagnosis only. Trace the raw `plugins.entries.<id>.hooks` configuration through schema validation and normalization into `normalized.entries[pluginId].hooks`, then into `createApi(hookPolicy)`. Determine whether the field is intentionally stripped/transformed and whether an existing supported plugin/configuration/install extension point can preserve it without patching OpenClaw or inventing a new dependency architecture.
+CNX-385 is complete. The raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedHook` gate path preserves `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. Classification: `NORMALIZED_HOOK_POLICY_PRESERVED_HOST_CONTRACT_FOUND`.
 
-No production mutation. No repair.
+Awaiting ChatGPT review.
 
 ## Hard fences
 
