@@ -13,9 +13,11 @@ The raw-config → normalization → `normalized.entries[pluginId]` → `entry.h
 - Task ID: `CNX-20260917-385`
 - Required starting status: `READY_FOR_HERMES` (confirmed)
 - Authoritative starting HEAD: `d7ad9b4e62becf26a456df60685e352a3753fcb2`
-- Starting remote HEAD: `d7ad9b4e62becf26a456df60685e352a3753fcb2`
+- Final executor HEAD before reviewer amendment: `97c138189821654e4f5f2818d0175136a798f04b`
 
 `ACTIVE.md`, `STATUS.md`, this task, and the CNX-384, CNX-383, CNX-382, CNX-381, CNX-374, and CNX-373 reports were read from the authoritative branch before action. The required identity was confirmed: `Task ID = CNX-20260917-385`; `Status = READY_FOR_HERMES`.
+
+The final executor HEAD above is the remote HEAD at which Hermes published the completed CNX-385 diagnosis and moved coordination to `WAITING_FOR_CHATGPT_REVIEW`. This report amendment is reviewer documentation only and does not alter the task's executor evidence.
 
 ## Proven baseline (predecessor evidence, not re-executed)
 
@@ -54,7 +56,7 @@ const PluginEntrySchema = object({
     allowPromptInjection: boolean().optional(),
     allowConversationAccess: boolean().optional(),
     timeoutMs: number().int().positive().max(6e5).optional(),
-    timeouts: record(string(), number().int().positive().max(6e5)).optional()
+    timeouts: record(string(), number().int().positive().max(6e5).optional())
   }).strict().optional(),
   subagent: ...,
   llm: ...,
@@ -271,13 +273,17 @@ This is:
 - **Read by the gate**: consumed at `registry-B8eQDFB4.js:4226`
 - **Documented**: field help text in `schema-DRyO1XBt.js:819` explicitly describes it
 
-No patch to OpenClaw, no new dependency architecture, no executable definition change, and no bypass registration mechanism is required. The config key is the smallest and only extension point needed.
+This is a **host-owned runtime configuration contract**. It is an existing supported input to OpenClaw's loader and gate; it is not a plugin manifest capability declaration and it is not the executable definition's `releaseEntry.hooks` object. CNX-385 found no plugin-owned source surface that can substitute for the runtime configuration entry without changing the host or introducing a new dependency/installation architecture.
+
+Therefore, the presence of this supported contract does **not** mean that CogentNexus can repair or guarantee the value from plugin source alone. A deployment/configuration owner must ensure `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true` is present in the effective host configuration before plugin loading. Under the CNX-385 fences, no such host-side repair was authorized or performed.
 
 ### Why CNX-382/383/384 observed loss
 
 CNX-382 proved that the executable definition's `releaseEntry.hooks.allowConversationAccess=true` is NOT projected into the loader's `entry?.hooks`. This is correct — the loader sources `hookPolicy` from `normalized.entries[pluginId].hooks` (runtime config), not from the executable definition. CNX-374's fix added the field to the executable definition, which does not affect the loader path. CNX-383/384 correctly identified that the plugin repository does not own the loader/normalization code.
 
-**The resolution**: the loss is not in the normalization path — it is in the assumption that the executable definition feeds the loader's `hookPolicy`. The runtime config path works correctly. If the effective runtime config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`, the gate receives `hookPolicy = {allowConversationAccess: true}` and allows the hook.
+**The resolution**: the observed "loss" is not a normalization loss. It is a data-ownership/path mismatch: the executable definition and the host runtime configuration are separate inputs, and only the latter supplies `hookPolicy`. The runtime config path itself preserves the field correctly. If the effective runtime config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`, the gate receives `hookPolicy = {allowConversationAccess: true}` and allows the hook.
+
+This means the next causal question is not whether normalization strips the policy, but whether the production loader actually receives the expected effective configuration object at registration time and, after registration, whether the resulting hook is visible through the production composed registry.
 
 ## Production vs isolated evidence separation
 
@@ -299,7 +305,7 @@ CNX-382 proved that the executable definition's `releaseEntry.hooks.allowConvers
 
 ### Correspondence
 
-The isolated probe uses the exact same module bytes (verified by SHA-256) as the production OpenClaw `2026.7.1-2`. The normalization logic is identical. Therefore, if the production effective runtime config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`, the production gate MUST receive `hookPolicy = {allowConversationAccess: true}` and ALLOW the hook.
+The isolated probe uses the exact same module bytes (verified by SHA-256) as the production OpenClaw `2026.7.1-2`. The normalization logic is identical. Therefore, if the production effective runtime config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`, the production gate is expected by the traced host logic to receive `hookPolicy = {allowConversationAccess: true}` and allow the hook.
 
 The remaining production uncertainty is NOT whether the normalization path preserves the field (proven that it does), but whether the production effective runtime config actually contains the field at the moment the loader runs. CNX-373 observed it in the raw config file, but `hookCount=0` in production suggests either:
 
@@ -316,6 +322,8 @@ This task does not resolve production causal equivalence — it resolves the nor
 2. **Registry composition boundary**: Even if the gate passes and `record.hookCount` increments, CNX-377/CNX-378 identified a separate registry-composition boundary where hooks may not reach the composed registry view. This task does not re-investigate that boundary.
 
 3. **Executable definition path**: CNX-374 added `hooks.allowConversationAccess=true` to the executable definition. This task confirms that path does not affect the loader's `hookPolicy` (loader uses normalized config, not definition). The CNX-374 fix's effect on production is not re-validated here.
+
+4. **Plugin-owned repair path**: No plugin-owned repair mechanism was identified that can guarantee the host configuration value without modifying the host, patching the dependency, or introducing a new installation/configuration architecture. The supported contract is real, but its owner is the host configuration/deployment layer.
 
 ## Hard-fence compliance
 
@@ -337,6 +345,8 @@ This task does not resolve production causal equivalence — it resolves the nor
 
 Classification: **`NORMALIZED_HOOK_POLICY_PRESERVED_HOST_CONTRACT_FOUND`**.
 
-The raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedHook` gate path preserves `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. The field is an intended, documented, supported host configuration contract. No repair is needed in the normalization path; the existing extension point is the config key itself.
+The raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedHook` gate path preserves `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. The field is an intended, documented, supported **host configuration contract**. CNX-385 found **no plugin-owned repair path** for supplying or guaranteeing that host value under the task fences, and no repair was performed.
 
-After publication, `ACTIVE.md` and `STATUS.md` are set to `WAITING_FOR_CHATGPT_REVIEW`. No runtime activation, semantic probe, or CNX-386 task is started.
+The completed task therefore closes the normalization-strip hypothesis without proving production causal equivalence. The remaining investigation should stay focused on production effective-config provenance and the already-identified registry-composition boundary, rather than reopening the normalization path.
+
+After publication, `ACTIVE.md` and `STATUS.md` were set to `WAITING_FOR_CHATGPT_REVIEW`. No runtime activation, semantic probe, or CNX-386 task was started.
