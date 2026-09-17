@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX382_PLUGIN_HOOK_POLICY_PROJECTION_TRACE`
 Execution mode: `EXACT_HOOK_POLICY_PROJECTION_DIAGNOSIS`
 Task ID: `CNX-20260917-382`
@@ -21,6 +21,8 @@ Diagnosis only; no repair.
 ## Evidence target
 
 Determine where `hooks.allowConversationAccess=true` is preserved, transformed, omitted, or replaced between plugin definition load and the host conversation-hook gate.
+
+CNX-382 result: `HOOK_POLICY_PROJECTION_LOSS_PROVEN`. The exact loader uses `normalized.entries[pluginId]?.hooks` as `hookPolicy`; executable `releaseEntry.hooks` is not projected into that object.
 
 ## Hard fences
 

@@ -1,6 +1,6 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX382_PLUGIN_HOOK_POLICY_PROJECTION_TRACE`
 Execution mode: `EXACT_HOOK_POLICY_PROJECTION_DIAGNOSIS`
 Task ID: `CNX-20260917-382`
@@ -16,11 +16,13 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260917-382-plugin-
 
 CNX-381 executed the exact isolated OpenClaw lifecycle and proved that the real `register(api)` and repeated `api.on("before_agent_run")` calls reach host `registerTypedHook`, but the host rejects them because the effective non-bundled hook policy is not true. The executable plugin definition simultaneously contains `hooks.allowConversationAccess: true`.
 
+CNX-382 proved `HOOK_POLICY_PROJECTION_LOSS_PROVEN`: the loader passes `normalized.entries[pluginId]?.hooks` to `createApi`, not the executable definition's `hooks`. Report: `docs/operations/coordination/reports/CNX-20260917-382-plugin-hook-policy-projection-trace-report.md`.
+
 ## Next authorized task
 
-`CNX-20260917-382` is authorized to diagnose the exact metadata/policy projection path that converts the loaded CogentNexus plugin definition into the `hookPolicy` consumed by `registerTypedHook`.
+CNX-382 diagnosis is complete and awaiting ChatGPT review.
 
-Diagnosis only; no repair.
+Diagnosis only; no repair. No successor task authorized.
 
 ## Authorization boundary
 
