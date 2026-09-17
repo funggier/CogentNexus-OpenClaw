@@ -1,53 +1,54 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX383_HOOK_POLICY_PROJECTION_REPAIR_BLOCKED`
-Execution mode: `ROOT_CAUSE_TDD_HOOK_POLICY_PROJECTION_REPAIR`
-Task ID: `CNX-20260917-383`
-Parent: `CNX-20260917-382`
+Status: `READY_FOR_HERMES`
+State: `CNX384_HOST_HOOK_POLICY_PROJECTION_REPAIR`
+Execution mode: `ROOT_CAUSE_TDD_HOST_HOOK_POLICY_PROJECTION_REPAIR`
+Task ID: `CNX-20260917-384`
+Parent: `CNX-20260917-383`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-382-plugin-hook-policy-projection-trace-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-383-hook-policy-projection-repair.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-384-host-hook-policy-projection-repair.md`
 
 ## Current position
 
-CNX-383 is blocked at the proven host projection boundary. The focused regression reproduced the loss, but the required projection owner is the OpenClaw loader dependency, not plugin source. No prohibited dependency patch or gate bypass was made. See `docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`.
-
-CNX-382 proved `HOOK_POLICY_PROJECTION_LOSS_PROVEN`: the executable CogentNexus definition contains `hooks.allowConversationAccess=true`, but `definePluginEntry` does not preserve that property and the loader's `entry = normalized.entries[pluginId]` supplies `entry?.hooks` to `createApi` instead of the executable definition's hooks. The host non-bundled conversation-hook gate therefore rejects `before_agent_run` before registry storage.
+CNX-383 blocked the plugin-only repair because the proven projection owner is the OpenClaw loader dependency. CNX-382 proved the underlying projection loss. CNX-383's focused RED regression reproduced that loss without modifying the host.
 
 ## Next authorized task
 
-`CNX-20260917-383` is authorized to make the smallest source repair that preserves/projects the already-declared hook policy into the host `hookPolicy` path consumed by `registerTypedHook`.
+`CNX-20260917-384` is authorized to make the smallest reproducible host-side repair at the proven hook-policy projection boundary. A host dependency change is explicitly permitted only at this boundary and must be reproducible from a clean checkout.
 
-Repair is authorized only at the proven boundary. The repair must not bypass the host gate, add a second registration path, or alter TicketStore/admission semantics.
+The repair must preserve the existing host conversation-hook policy gate. No bypass, second registration path, or admission/TicketStore change is allowed.
 
 ## Authorization boundary
 
-Diagnosis is complete. Minimal source repair is authorized.
+Diagnosis is complete. Bounded host-side repair is authorized.
 
 No provider/auth/routing/model changes.
 No TicketStore/admission redesign.
 No Dashboard UI changes.
+No unrelated OpenClaw changes.
 No broad refactor.
 No force-push/history rewrite.
 No main/release/tag.
-No historical edits to CNX-360 through CNX-382.
-Do not start CNX-384 yourself.
+No historical edits to CNX-360 through CNX-383.
+Do not start CNX-385 yourself.
 
 ## TDD / validation
 
-Hermes must establish RED with a focused regression reproducing CNX-382, implement the smallest justified repair, then establish GREEN.
+Hermes must establish RED at the exact host projection boundary, implement the smallest justified host-side repair, then establish GREEN.
 
-After GREEN run relevant existing tests, plugin tests, build, and validation. Runtime activation may occur only after source/build evidence is green and only as needed to verify the effective artifact.
+If the repair requires OpenClaw dependency changes, the chosen mechanism must be repository-tracked and reproducible by clean install. Hand-editing node_modules alone is not acceptable.
 
-A single Dashboard semantic probe is permitted only when runtime hook visibility cannot otherwise be verified and the report explicitly justifies it. No retry.
+After GREEN, run relevant existing/plugin tests, build, and validation. Runtime activation is allowed only after source/build/test evidence is green and only when needed to verify effective runtime hook visibility.
+
+At most one Dashboard semantic probe is permitted only if supported runtime evidence cannot verify hook visibility. No retry.
 
 ## Closeout
 
 Create:
-`docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`
+`docs/operations/coordination/reports/CNX-20260917-384-host-hook-policy-projection-repair-report.md`
 
 Then set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
