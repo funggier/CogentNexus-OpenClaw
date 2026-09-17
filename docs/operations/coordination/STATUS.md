@@ -1,32 +1,30 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX396_GLOBAL_CANDIDATE_NORMALIZED_CONFIG_PROVENANCE`
-Execution mode: `GLOBAL_CANDIDATE_NORMALIZED_CONFIG_PROVENANCE`
-Task ID: `CNX-20260917-396`
-Parent: `CNX-20260917-395`
+Status: `READY_FOR_HERMES`
+State: `CNX397_GLOBAL_CANDIDATE_PRE_API_ELIGIBILITY`
+Execution mode: `GLOBAL_CANDIDATE_PRE_API_ELIGIBILITY`
+Task ID: `CNX-20260917-397`
+Parent: `CNX-20260917-396`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-395-installed-plugin-index-population-freshness-provenance-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-396-global-candidate-normalized-config-provenance-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-396-global-candidate-normalized-config-provenance-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-397-global-candidate-pre-api-eligibility-and-manifest-provenance-trace.md`
 
 ## Current position
 
-CNX-395 was reviewed and accepted as `INSTALLED_INDEX_PROVEN_STALE_OR_PREEXISTING`. Exact read-only evidence proved the production installed-plugin index row is persisted in SQLite and predates the current gateway process by approximately 21 hours. Its `pluginId`, root, origin, and source match the current inventory/effective artifact, but the index can also be refreshed by policy/install/migration/discovery lifecycles without receiving the live loader record. Therefore installed-index provenance cannot establish what the running global loader supplied as `hookPolicy` during registration.
+CNX-396 is reviewed and accepted as `GLOBAL_CONFIG_NORMALIZATION_DIAGNOSTICALLY_BLOCKED`. Exact OpenClaw source proves that `origin=config` and `origin=global` candidates enter the same normalized configuration producer and downstream `entry?.hooks → createApi({ hookPolicy })` path. Exact global-origin A/B replay remained diagnostically blocked because reproducing the real global discovery path would require production global installation-state mutation.
 
-CNX-391 proved exact config-origin acceptance of `hooks.allowConversationAccess=true` through the loader/API lifecycle. CNX-392 proved candidate origin is not itself the direct selector for the downstream conversation-hook policy branch. CNX-393 traced `candidate.rootDir → manifestRecord.id → normalized.entries[pluginId]` but could not observe the historical live values. CNX-394 and CNX-395 established that supported inventory/index output is a separate persisted/derived projection and is not live typed-hook registry state.
+The remaining causal gap is therefore earlier in the global candidate lifecycle: manifest/root association, plugin-ID derivation, scoped filtering, duplicate-ID handling, enablement, registration-plan selection, and whether the global candidate actually reaches `normalized.entries[pluginId]` before `createApi`.
 
 ## Current authorization
 
-CNX-396 is READY for Hermes execution.
+CNX-397 is READY for Hermes execution.
 
-Trace how the loader constructs/selects `normalized` configuration before `entry = normalized.entries[pluginId]`, specifically comparing `origin=config` and `origin=global` for the same plugin and production-shaped config.
+Trace the exact global candidate pre-API lifecycle and correlate the production global extension root, manifest identity, and eligibility inputs using read-only evidence. Compare the global path with an equivalent config-origin path and identify any divergence that can prevent `createApi({ hookPolicy })`.
 
-Determine whether global discovery can diverge from config-origin before `createApi({ hookPolicy })` through any difference in normalized entry presence, plugin ID, enablement, policy, registration plan, config object, or candidate filtering.
-
-Use read-only production evidence and disposable exact-source/isolated probes only.
+Use exact installed OpenClaw `2026.7.1-2` source tracing plus disposable isolated probes where internal APIs permit. Treat synthetic evidence as mechanism evidence only.
 
 No production mutation is authorized.
 
@@ -48,9 +46,9 @@ No production mutation is authorized.
 - No permanent instrumentation.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-395.
-- Do not create or start CNX-397 yourself.
+- No historical edits to CNX-360 through CNX-396.
+- Do not create or start CNX-398 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not create/start CNX-397.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not create/start CNX-398.
