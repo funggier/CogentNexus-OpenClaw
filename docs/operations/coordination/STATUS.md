@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX379_DISPOSABLE_REGISTRY_TRACE_HARNESS`
 Execution mode: `DISPOSABLE_REGISTRY_IDENTITY_DIAGNOSIS`
 Task ID: `CNX-20260917-379`
@@ -12,11 +12,13 @@ Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
 ## Outcome
 
+CNX-379 completed as `DIAGNOSTIC_HARNESS_INSUFFICIENT`. The disposable harness validated identity tracing and controlled failure-mode cases, but did not safely execute the exact production OpenClaw/plugin lifecycle. No production root cause or repair is claimed.
+
 CNX-378 completed as `LIVE_REGISTRY_IDENTITY_CONTRADICTION_UNRESOLVED`. The production PID/build/effective artifact/plugin inventory correlation is established, but supported diagnostics cannot expose JavaScript object identity or global hook-runner state.
 
 ## Current authorization
 
-CNX-379 is authorized for diagnosis only using a disposable, non-production trace harness. The harness may instrument copied/isolated runtime files to observe registry object identity and hook visibility across registration, active-registry initialization, live-plugin collection, composed-facade evaluation, and `hasHooks("before_agent_run")`.
+CNX-379 is complete. Report: `docs/operations/coordination/reports/CNX-20260917-379-disposable-registry-trace-harness-report.md`.
 
 No production runtime or configuration mutation is authorized.
 

@@ -1,6 +1,6 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX379_DISPOSABLE_REGISTRY_TRACE_HARNESS`
 Execution mode: `DISPOSABLE_REGISTRY_IDENTITY_DIAGNOSIS`
 Task ID: `CNX-20260917-379`
@@ -14,11 +14,13 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260917-379-disposa
 
 ## Current position
 
+CNX-379 completed as `DIAGNOSTIC_HARNESS_INSUFFICIENT`. The disposable harness proved WeakMap identity tracing and controlled registry failure-mode discrimination, but did not execute the exact production OpenClaw/plugin lifecycle; no production cause or repair is claimed.
+
 CNX-376 proved the Dashboard dispatch boundary. CNX-377 found the current OpenClaw source model dynamically composes live registries but could not reproduce the observed divergence as a proven repository-side defect. CNX-378 correlated the same production PID, OpenClaw build, effective CogentNexus artifact, loaded plugin record, and `hookCount: 0` inventory, but supported diagnostics could not expose JavaScript object identity. No speculative repair has been made.
 
 ## Next authorized task
 
-`CNX-20260917-379` is authorized to build and run a disposable, non-production trace harness that directly records registry object identity and hook visibility across plugin registration, active registry initialization, live plugin collection, composed facade evaluation, and `hasHooks("before_agent_run")`.
+`CNX-20260917-379` is complete. Report: `docs/operations/coordination/reports/CNX-20260917-379-disposable-registry-trace-harness-report.md`.
 
 This task is diagnosis-only. The purpose is to resolve the contradiction without mutating the production runtime.
 
