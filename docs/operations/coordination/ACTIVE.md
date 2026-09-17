@@ -1,24 +1,24 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX380_EXACT_ISOLATED_OPENCLAW_REGISTRY_TRACE`
-Execution mode: `EXACT_ISOLATED_OPENCLAW_REGISTRY_DIAGNOSIS`
-Task ID: `CNX-20260917-380`
-Parent: `CNX-20260917-379`
+Status: `READY_FOR_HERMES`
+State: `CNX381_PLUGIN_REGISTER_INVOCATION_TRACE`
+Execution mode: `EXACT_PLUGIN_REGISTRATION_LIFECYCLE_DIAGNOSIS`
+Task ID: `CNX-20260917-381`
+Parent: `CNX-20260917-380`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-379-disposable-registry-trace-harness-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-380-exact-isolated-openclaw-registry-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-380-exact-isolated-openclaw-registry-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-381-plugin-register-invocation-trace.md`
 
 ## Current position
 
-CNX-376 proved the Dashboard dispatch boundary. CNX-377 found the current OpenClaw source model dynamically composes live registries but could not reproduce the divergence as a proven repository-side defect. CNX-378 correlated the production PID/build/effective artifact/plugin inventory but could not expose JavaScript object identity. CNX-379 proved disposable identity instrumentation and controlled failure-mode discrimination, but did not execute the exact OpenClaw/plugin lifecycle.
+CNX-380 executed the exact installed OpenClaw `2026.7.1-2` lifecycle in an isolated process. The same registry identity was observed through loader, active registry, and live collection, yet `before_agent_run` did not appear and `hasHooks("before_agent_run")` was false. No replacement, retirement, collection exclusion, or causal transition was proven. The next boundary is plugin register invocation itself.
 
 ## Next authorized task
 
-`CNX-20260917-380` is authorized to execute the exact installed OpenClaw `2026.7.1-2` module graph and effective CogentNexus plugin artifact in a non-production isolated process with temporary instrumentation, to observe real registry identities, lifecycle ordering, composition, and `hasHooks("before_agent_run")` visibility.
+`CNX-20260917-381` is authorized to diagnose whether the real CogentNexus plugin `register(api)` lifecycle is invoked and whether its `api.on("before_agent_run")` calls actually occur in the exact OpenClaw isolated lifecycle. The task must inspect the compatibility/delegation chain from the exported plugin entry through `index.ts`.
 
 Diagnosis only. No repair is authorized.
 
@@ -28,8 +28,8 @@ No Dashboard semantic request.
 No production Gateway restart/reload.
 No production configuration mutation.
 No production OpenClaw dependency patch.
-No permanent CogentNexus source patch.
-Temporary instrumentation is allowed only in an isolated disposable environment and must not be committed.
+No CogentNexus source patch.
+Temporary instrumentation is allowed only in a disposable isolated process and must not be committed.
 
 ## Hard fences
 
@@ -39,18 +39,19 @@ Temporary instrumentation is allowed only in an isolated disposable environment 
 - No production Gateway restart/reload.
 - No OpenClaw dependency patch.
 - No CogentNexus source patch.
-- No semantic request.
+- No semantic request or production model request.
 - No speculative repair.
 - No permanent instrumentation.
+- No committed disposable harness changes.
 - No broad refactor.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-379.
-- Do not start CNX-381 yourself.
+- No historical edits to CNX-360 through CNX-380.
+- Do not start CNX-382 yourself.
 
 ## Closeout
 
 Required classification:
-`EXACT_REGISTRY_LIFECYCLE_CAUSE_REPRODUCED`, `EXACT_LIFECYCLE_STILL_CONTRADICTORY`, or `EXACT_ISOLATION_NOT_ACHIEVED`.
+`PLUGIN_REGISTER_INVOCATION_PROVEN`, `PLUGIN_REGISTER_PATH_FAILURE_PROVEN`, `PLUGIN_REGISTRATION_ACCEPTED_REGISTRY_MUTATION_PROVEN`, or `PLUGIN_REGISTER_DIAGNOSTICALLY_UNRESOLVED`.
 
 After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
