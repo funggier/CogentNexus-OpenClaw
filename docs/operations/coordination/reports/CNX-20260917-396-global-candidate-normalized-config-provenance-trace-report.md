@@ -11,7 +11,8 @@ The exact installed source proves one common normalized configuration producer a
 - Repository: `funggier/CogentNexus-OpenClaw`
 - Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 - Authoritative starting HEAD: `d35421bf26189c8ccc8e43df66cdeaa12706c752`
-- Authoritative final HEAD: recorded after publication and remote verification
+- Hermes publication HEAD: `10ccd8b362d4d929cce3ab6f9869aa07f224b9c7`
+- Reviewer documentation-correction HEAD: this commit
 - Starting gate: `READY_FOR_HERMES`
 - Task: `CNX-20260917-396`
 - Parent: `CNX-20260917-395`
