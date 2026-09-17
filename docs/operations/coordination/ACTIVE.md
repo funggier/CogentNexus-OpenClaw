@@ -1,34 +1,36 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX394_PRODUCTION_PLUGIN_ID_PROJECTION_TRACE`
-Execution mode: `PRODUCTION_PLUGIN_ID_PROJECTION_TRACE`
-Task ID: `CNX-20260917-394`
-Parent: `CNX-20260917-393`
+Status: `READY_FOR_HERMES`
+State: `CNX395_INSTALLED_INDEX_POPULATION_FRESHNESS_PROVENANCE`
+Execution mode: `INSTALLED_INDEX_POPULATION_FRESHNESS_PROVENANCE`
+Task ID: `CNX-20260917-395`
+Parent: `CNX-20260917-394`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-393-global-discovery-config-entry-association-trace-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-394-production-plugin-id-inventory-projection-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-394-production-plugin-id-inventory-projection-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-395-installed-plugin-index-population-freshness-provenance.md`
 
 ## Current position
 
-CNX-393 was reviewed and accepted as `GLOBAL_CONFIG_ENTRY_ASSOCIATION_DIAGNOSTICALLY_BLOCKED`. Exact source tracing proved:
+CNX-394 was reviewed and accepted as `PRODUCTION_PLUGIN_ID_PROJECTION_INCONCLUSIVE`. Exact source tracing proved that the live loader uses `manifestRecord.id` as `pluginId`, indexes `normalized.entries[pluginId]`, and creates a live plugin record with that ID. It also proved that `openclaw plugins list --json` reads a persisted/derived installed-plugin index and constructs a separate inventory object whose `id` comes from `plugin.pluginId`; `hookCount` and `hookNames` are initialized independently as `0` and `[]` rather than projected from the live typed-hook registry.
 
-`candidate.rootDir → manifestByRoot.get(candidate.rootDir) → manifestRecord.id → normalized.entries[pluginId] → entry?.hooks → createApi(hookPolicy) → registerTypedHook`
-
-The remaining uncertainty is whether the production `openclaw plugins list --json` record's displayed `id` is a direct projection of that same loader `pluginId`, or whether an intermediate registry/inventory projection can alter or detach the identity. The production record currently reports `id=cogentnexus-openclaw`, `origin=global`, `status=loaded`, `hookCount=0`, `hookNames=[]` while production config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`.
+The remaining uncertainty is whether the installed-plugin index entry containing `pluginId=cogentnexus-openclaw` was populated from the same loader/plugin identity during the relevant production activation, or whether the index is stale, independently derived, or populated by another lifecycle such as installation/configuration/migration.
 
 ## Current authorization
 
-CNX-394 is READY for Hermes execution.
+CNX-395 is READY for Hermes execution.
 
-Trace the production plugin-ID projection path from loader `manifestRecord.id` / `pluginId` to the record returned by `openclaw plugins list --json`. Determine whether the inventory `id` is the exact identity used for `normalized.entries[pluginId]`, and whether `hookCount` / `hookNames` are projected from the same registry state that receives `registerTypedHook`.
+Trace the installed-plugin index population and freshness provenance:
 
-Use read-only production evidence and disposable isolated/source-level probes only.
+`loader/plugin identity → installed-index write/update path → persisted/derived index record → loadPluginRegistrySnapshotWithMetadata → buildPluginRecordFromInstalledIndex → plugins list --json`
 
-No production restart/reload.
+Determine whether the production installed-index entry can be contemporaneously correlated to the live loader's `manifestRecord.id`, using read-only production evidence and disposable isolated/source-level probes only.
+
+No production mutation is authorized.
+
+No production Gateway restart/reload.
 No production configuration mutation.
 No environment mutation.
 No Scheduled Task mutation.
@@ -40,17 +42,16 @@ No debugger/inspector attachment.
 No semantic/model/provider/Dashboard request.
 
 ## Hard fences
-
-- No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes.
+- No TicketStore/admission/routing/auth/provider/model/Dashboard changes.
 - No speculative workaround.
 - No production global extension installation/mutation.
 - No semantic probe or retry.
 - No permanent instrumentation.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-393.
-- Do not start CNX-395 yourself.
+- No historical edits to CNX-360 through CNX-394.
+- Do not start CNX-396 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-395.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-396.
