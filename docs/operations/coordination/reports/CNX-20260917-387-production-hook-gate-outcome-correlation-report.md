@@ -11,7 +11,7 @@ The read-only production boundary does not expose a correlated host acceptance/r
 - Repository: `funggier/CogentNexus-OpenClaw`
 - Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 - Authoritative starting HEAD: `7280ee25a050cc3389c4ae068102d4ffbdf6257f`
-- Final publication HEAD: `4e2aa93204b1a25d77e649533676a7a36ebe09e8` (pre-amend publication commit; final remote HEAD is recorded below)
+- Final remote/publication HEAD: `5f7252e1416324bb5d7fa2c03c9b53f3d0cb235c`
 - Starting status: `READY_FOR_HERMES`
 - Task: `CNX-20260917-387`
 
@@ -161,4 +161,4 @@ The observable production boundary ends after plugin-side startup/registration l
 
 ## Closeout
 
-After this report is committed and pushed, `ACTIVE.md` and `STATUS.md` will be set to `WAITING_FOR_CHATGPT_REVIEW`. No successor task will be created or started.
+The report was published at the final remote/publication HEAD above, and `ACTIVE.md` and `STATUS.md` were set to `WAITING_FOR_CHATGPT_REVIEW`. No successor task was created or started.
