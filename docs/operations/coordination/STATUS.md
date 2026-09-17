@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX384_HOST_HOOK_POLICY_PROJECTION_REPAIR`
 Execution mode: `ROOT_CAUSE_TDD_HOST_HOOK_POLICY_PROJECTION_REPAIR`
 Task ID: `CNX-20260917-384`
@@ -14,11 +14,11 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260917-384-host-ho
 
 ## Outcome to date
 
-CNX-383 was blocked because the proven projection owner is the OpenClaw loader dependency. CNX-382 established the projection loss: executable `releaseEntry.hooks.allowConversationAccess=true` is not the object used by the loader's `entry?.hooks` policy path.
+CNX-384 confirmed that the proven projection owner is the OpenClaw loader dependency, but no existing repository-tracked, clean-install-reproducible patch/vendor/override mechanism exists. The repair is blocked; see `docs/operations/coordination/reports/CNX-20260917-384-host-hook-policy-projection-repair-report.md`.
 
 ## Current authorization
 
-CNX-384 is authorized for the smallest reproducible host-side repair at the proven hook-policy projection boundary. A dependency change is permitted only at this boundary and only through a repository-tracked, clean-install-reproducible mechanism.
+CNX-384 execution is complete and awaits ChatGPT review. No successor task is authorized or started.
 
 The existing host policy gate must remain intact. No bypass, second registration path, or admission/TicketStore redesign is authorized.
 
