@@ -4,7 +4,7 @@
 
 **`NORMALIZED_HOOK_POLICY_PRESERVED_HOST_CONTRACT_FOUND`**
 
-The raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedTypedHook` gate path **preserves** `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. The field is not stripped, transformed, renamed, schema-rejected, defaulted, or overwritten by the host normalization pipeline. It is an intended, supported host configuration contract, and the smallest existing extension point that carries the policy to the gate is the OpenClaw runtime config key itself.
+The raw-config → normalization → `normalized.entries[pluginId]` → `entry.hooks` → `createApi(hookPolicy)` → `registerTypedHook` gate path **preserves** `plugins.entries.<id>.hooks.allowConversationAccess=true` end-to-end. The field is not stripped, transformed, renamed, schema-rejected, defaulted, or overwritten by the host normalization pipeline. It is an intended, supported host configuration contract, and the smallest existing extension point that carries the policy to the gate is the OpenClaw runtime config key itself.
 
 ## Authority
 
@@ -189,7 +189,7 @@ The gate reads `policy?.allowConversationAccess` directly. When `policy` is `{al
 
 ## Required runtime probe (disposable, isolated)
 
-A disposable probe (`cnx385-probe.mjs`) imported the exact installed OpenClaw `2026.7.1-2` modules and exercised the real `normalizePluginsConfigWithResolver` and `OpenClawSchema.safeParse` against three fixtures. PID `24428`, Node `v22.23.2`.
+A disposable probe (`cnx385-probe.mjs`) imported the exact installed OpenClaw `2026.7.1-2` modules and exercised the exported `normalizePluginsConfigWithResolver` and `OpenClawSchema.safeParse` functions against three fixtures. PID `24428`, Node `v22.23.2`. This probe directly captures raw, validated, normalized, `entry.hooks`, and the policy values that the source-proven loader/API/gate assignments consume; it does not itself instrument private `loadOpenClawPlugins` internals or intercept the actual `createApi` call. The loader/API/gate behavior is established by the exact source trace and predecessor CNX-381 runtime lifecycle evidence.
 
 ### Fixture A — `hooks.allowConversationAccess: true`
 
