@@ -1,56 +1,48 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX384_HOST_HOOK_POLICY_PROJECTION_REPAIR`
-Execution mode: `ROOT_CAUSE_TDD_HOST_HOOK_POLICY_PROJECTION_REPAIR`
-Task ID: `CNX-20260917-384`
-Parent: `CNX-20260917-383`
+Status: `READY_FOR_HERMES`
+State: `CNX385_NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
+Execution mode: `NORMALIZED_HOOK_POLICY_INPUT_PATH_DIAGNOSIS`
+Task ID: `CNX-20260917-385`
+Parent: `CNX-20260917-384`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-384-host-hook-policy-projection-repair.md`
-
-## Outcome to date
-
-CNX-384 confirmed that the proven projection owner is the OpenClaw loader dependency, but no existing repository-tracked, clean-install-reproducible patch/vendor/override mechanism exists. The repair is blocked; see `docs/operations/coordination/reports/CNX-20260917-384-host-hook-policy-projection-repair-report.md`.
+Base report: `docs/operations/coordination/reports/CNX-20260917-384-host-hook-policy-projection-repair-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-385-normalized-hook-policy-input-path-diagnosis.md`
 
 ## Current authorization
 
-CNX-384 execution is complete and awaits ChatGPT review. No successor task is authorized or started.
+CNX-385 is authorized for diagnosis only. Trace the raw `plugins.entries.<id>.hooks` configuration through schema validation and normalization into `normalized.entries[pluginId].hooks`, then into `createApi(hookPolicy)`. Determine whether the field is intentionally stripped/transformed and whether an existing supported plugin/configuration/install extension point can preserve it without patching OpenClaw or inventing a new dependency architecture.
 
-The existing host policy gate must remain intact. No bypass, second registration path, or admission/TicketStore redesign is authorized.
-
-## TDD / validation
-
-Establish RED at the exact projection boundary, implement the minimal host-side repair, then establish GREEN. After GREEN run relevant tests, plugin suite, build, and validation. Runtime activation is permitted only after green evidence and only if required to verify effective hook visibility.
-
-At most one Dashboard semantic probe may be used only if supported runtime evidence cannot verify hook visibility. No retry.
+No production mutation. No repair.
 
 ## Hard fences
 
-No provider/auth/routing/model changes.
-No TicketStore/admission redesign.
-No Dashboard UI changes.
-No unrelated OpenClaw changes.
-No broad refactor.
-No speculative changes outside the proven boundary.
-No bypass of host policy gate.
-No second registration path.
-No force-push/history rewrite.
-No release/tag/main.
-No historical edits to CNX-360 through CNX-383.
-Do not start CNX-385 yourself.
+- No production Gateway restart/reload.
+- No production configuration mutation.
+- No OpenClaw dependency patch.
+- No CogentNexus source repair.
+- No artifact deployment/rebuild.
+- No semantic/model requests.
+- No TicketStore/admission/provider/model/auth/routing/Dashboard UI changes.
+- No speculative workaround.
+- No new dependency architecture.
+- No release/tag/main.
+- No force-push/history rewrite.
+- No historical edits to CNX-360 through CNX-384.
+- Do not start CNX-386 yourself.
 
 ## Closeout
 
 Required report:
-`docs/operations/coordination/reports/CNX-20260917-384-host-hook-policy-projection-repair-report.md`
+`docs/operations/coordination/reports/CNX-20260917-385-normalized-hook-policy-input-path-diagnosis-report.md`
 
 Classification:
-`HOST_HOOK_POLICY_PROJECTION_REPAIRED`
-`HOST_HOOK_POLICY_REPAIR_BLOCKED`
-`HOST_HOOK_POLICY_REPAIR_INCONCLUSIVE`
+`NORMALIZED_HOOK_POLICY_STRIPPING_PROVEN`
+`NORMALIZED_HOOK_POLICY_PRESERVED_HOST_CONTRACT_FOUND`
+`NORMALIZED_HOOK_POLICY_INPUT_PATH_UNRESOLVED`
+`NORMALIZED_HOOK_POLICY_DIAGNOSTICALLY_BLOCKED`
 
 After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop.
