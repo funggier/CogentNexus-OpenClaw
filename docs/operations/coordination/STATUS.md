@@ -1,22 +1,28 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX393_GLOBAL_CONFIG_ENTRY_ASSOCIATION_TRACE`
-Execution mode: `GLOBAL_CONFIG_ENTRY_ASSOCIATION_TRACE`
-Task ID: `CNX-20260917-393`
-Parent: `CNX-20260917-392`
+Status: `READY_FOR_HERMES`
+State: `CNX394_PRODUCTION_PLUGIN_ID_PROJECTION_TRACE`
+Execution mode: `PRODUCTION_PLUGIN_ID_PROJECTION_TRACE`
+Task ID: `CNX-20260917-394`
+Parent: `CNX-20260917-393`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-392-production-vs-config-origin-hook-policy-replay-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260917-393-global-discovery-config-entry-association-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260917-393-global-discovery-config-entry-association-trace-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260917-394-production-plugin-id-inventory-projection-trace.md`
 
 ## Current authorization
 
-CNX-392 is reviewed and accepted as `PRODUCTION_ORIGIN_REPLAY_DIAGNOSTICALLY_BLOCKED`. Exact source tracing showed `global` and `config` are discovery-origin labels and both use the same non-bundled conversation-hook policy branch; `registrationMode` is derived from `registrationPlan.mode`, not directly from origin. A safe exact global-origin isolated replay could not be constructed without mutating the production global extension/discovery state. CNX-391 already proved that the production-shaped `allowConversationAccess=true` configuration can be accepted through the exact loader/API path in isolation.
+CNX-393 is reviewed and accepted as `GLOBAL_CONFIG_ENTRY_ASSOCIATION_DIAGNOSTICALLY_BLOCKED`. Exact source tracing proved the association chain:
 
-CNX-393 is READY for Hermes execution. Trace how a globally discovered candidate (`origin=global`) is associated with the normalized runtime configuration entry used for `hookPolicy`: `discovery candidate → pluginId → normalized.entries[pluginId] → entry.hooks → createApi(hookPolicy) → registerTypedHook`. Determine whether global discovery can cause the candidate to miss, diverge from, or otherwise change its normalized config-entry association despite the same `plugins.entries.cogentnexus-openclaw` key being present in production configuration. Use read-only production evidence and disposable isolated/source-level probes only. Do not touch the production global extension tree.
+`candidate.rootDir → manifestByRoot.get(candidate.rootDir) → manifestRecord.id → normalized.entries[pluginId] → entry?.hooks → createApi(hookPolicy) → registerTypedHook`
+
+The remaining uncertainty is whether the production `openclaw plugins list --json` record's displayed `id` is a direct projection of that same loader `pluginId`, or whether an intermediate registry/inventory projection can alter or detach the identity. The production record currently reports `id=cogentnexus-openclaw`, `origin=global`, `status=loaded`, `hookCount=0`, `hookNames=[]` while production config contains `plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess=true`.
+
+CNX-394 is READY for Hermes execution. Trace the production plugin-ID projection path from loader `manifestRecord.id` / `pluginId` to the record returned by `openclaw plugins list --json`. Determine whether the inventory `id` is the exact identity used for `normalized.entries[pluginId]`, and whether `hookCount` / `hookNames` are projected from the same registry state that receives `registerTypedHook`.
+
+Use read-only production evidence and disposable isolated/source-level probes only.
 
 ## Hard fences
 
@@ -30,15 +36,15 @@ CNX-393 is READY for Hermes execution. Trace how a globally discovered candidate
 - No artifact deployment/rebuild.
 - No debugger/inspector attachment.
 - No semantic/model/provider/Dashboard request.
-- No TicketStore/admission/routing/auth changes.
+- No TicketStore/admission/provider/routing/auth changes.
 - No speculative workaround.
 - No semantic probe or retry.
 - No permanent instrumentation.
 - No release/tag/main.
 - No force-push/history rewrite.
-- No historical edits to CNX-360 through CNX-392.
-- Do not start CNX-394 yourself.
+- No historical edits to CNX-360 through CNX-393.
+- Do not start CNX-395 yourself.
 
 ## Closeout
 
-After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-394.
+After report publication, set ACTIVE/STATUS to `WAITING_FOR_CHATGPT_REVIEW` and stop. Do not start CNX-395.
