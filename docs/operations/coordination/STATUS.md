@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
-State: `CNX383_HOOK_POLICY_PROJECTION_REPAIR`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+State: `CNX383_HOOK_POLICY_PROJECTION_REPAIR_BLOCKED`
 Execution mode: `ROOT_CAUSE_TDD_HOOK_POLICY_PROJECTION_REPAIR`
 Task ID: `CNX-20260917-383`
 Parent: `CNX-20260917-382`
@@ -13,6 +13,8 @@ Base report: `docs/operations/coordination/reports/CNX-20260917-382-plugin-hook-
 Task specification: `docs/operations/coordination/tasks/CNX-20260917-383-hook-policy-projection-repair.md`
 
 ## Current position
+
+CNX-383 is blocked at the proven host projection boundary. The focused regression reproduced the loss, but the required projection owner is the OpenClaw loader dependency, not plugin source. No prohibited dependency patch or gate bypass was made. See `docs/operations/coordination/reports/CNX-20260917-383-hook-policy-projection-repair-report.md`.
 
 CNX-382 proved `HOOK_POLICY_PROJECTION_LOSS_PROVEN`: the executable CogentNexus definition contains `hooks.allowConversationAccess=true`, but `definePluginEntry` does not preserve that property and the loader's `entry = normalized.entries[pluginId]` supplies `entry?.hooks` to `createApi` instead of the executable definition's hooks. The host non-bundled conversation-hook gate therefore rejects `before_agent_run` before registry storage.
 
