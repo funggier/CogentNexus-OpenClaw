@@ -74,7 +74,7 @@ SESSION / CONVERSATION
 AGENT CORE
     |
     v
-PROVIDER ROUTER
+OPENCLAW PROVIDER / MODEL ROUTING
     |
     +--> Ollama Adapter ----> Selected Ollama Model
     |
@@ -88,9 +88,11 @@ EXECUTION / TOOLS / RESULT
 
 The session owns continuity.
 
-The provider router owns selection of an execution backend.
+In CogentNexus-OpenClaw v0.9.5, OpenClaw remains the provider/model/auth/routing authority. The logical provider router in this document is therefore OpenClaw-owned unless future evidence requires otherwise.
 
-A provider adapter owns provider-specific transport, authentication/configuration, model discovery/selection semantics, streaming translation, cancellation, and provider-specific error normalization.
+CogentNexus-OpenClaw must preserve Ticket/session/policy/delivery continuity across provider/model changes and must not create a competing routing authority.
+
+Provider-specific transport, authentication/configuration, model discovery/selection semantics, streaming translation, cancellation, and provider-specific error normalization should remain OpenClaw/provider-owned wherever existing OpenClaw behavior already provides them.
 
 The Web UI must expose provider/model selection but must not become the architectural owner of provider-routing logic.
 
@@ -184,7 +186,7 @@ The contract should cover, as applicable:
 - context/window constraints;
 - provider-specific metadata without leaking provider-specific behavior into Session/Core.
 
-Provider-specific details should remain behind the adapter/router boundary whenever practical.
+Provider-specific details should remain behind the OpenClaw-owned provider/adapter boundary whenever practical. CogentNexus should observe only the execution metadata needed for continuity, policy, evidence, and capability-safe behavior.
 
 ## Ollama as the Baseline
 
