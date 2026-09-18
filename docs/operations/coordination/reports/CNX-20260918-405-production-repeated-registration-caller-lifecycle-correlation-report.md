@@ -175,4 +175,4 @@ The remaining production explanation is materially narrowed from “duplicate ro
 
 ## Closeout
 
-The report is the only new report artifact authorized for publication. ACTIVE.md and STATUS.md will be set to `WAITING_FOR_CHATGPT_REVIEW` after publication. No CNX-406 will be created or started. Final authoritative HEAD, remote equality, changed paths, report blob, and clean-worktree state will be verified after the final push.
+The report and requested status-token updates were published in the first publication commit. The final report identity is recorded by the subsequent closeout commit after this line is updated.
