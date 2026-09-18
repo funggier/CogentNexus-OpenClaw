@@ -15,6 +15,7 @@ import { installV092DurableDeliveryBoundary } from "./v092-durable-delivery-boun
 import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
 import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
+import { registerRuntimeHookAttestation } from "./v095-runtime-hook-attestation.js";
 
 
 type HostControllerState = {
@@ -140,20 +141,17 @@ export function hostPluginAuthority(api: OpenClawPluginApi): HostAuthority {
 }
 
 /**
- * v0.9.5 mixed-plugin boundary with registry wiring fix.
+ * v0.9.5 mixed-plugin boundary.
  *
- * CNX-374 root cause: OpenClaw 2026.7.1-2 host checks the plugin DEFINITION's
- * `hooks.allowConversationAccess` property (entry?.hooks) to gate conversation
- * hooks such as `before_agent_run`. This is NOT the runtime config
- * `plugins.entries.<id>.hooks.allowConversationAccess` (which only feeds
- * pluginConfig, not the gate). When the definition lacks `hooks`, the host
- * blocks dynamic registration before it reaches the global hook registry,
- * producing `hookCount: 0` and leaving the Dashboard runner's `hookRunner`
- * without `before_agent_run` at dispatch time.
+ * Historical CNX-374 work added the executable-definition `hooks` declaration.
+ * Later exact-host tracing (CNX-385/CNX-391) established that OpenClaw
+ * 2026.7.1-2's authoritative non-bundled conversation-hook gate consumes
+ * `plugins.entries.<id>.hooks.allowConversationAccess` from normalized runtime
+ * configuration. The executable-definition field is retained for compatibility
+ * and documentation, but it is not treated as proof of live host acceptance.
  *
- * The fix preserves the host-supported definition shape and adds the declaration
- * to the exported entry object after `definePluginEntry(...)` (the installed
- * helper itself does not preserve unknown properties).
+ * CNX-408 adds a separate read-only runtime attestation RPC so live composed
+ * hook-runner visibility can be checked directly before semantic qualification.
  */
 const releaseEntry: ReturnType<typeof definePluginEntry> & {
   hooks: { allowConversationAccess: boolean };
@@ -184,6 +182,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> & {
     const discordFencedApi = withDiscordLegacyDeliveryFence(api, config);
     const runtimeApi = withWebchatLegacyDeliveryFence(discordFencedApi, config);
 
+    registerRuntimeHookAttestation(api);
     installV099NativeRestartOwnershipFence(api, config);
 
     const installManagedRuntimeGuards = () => {
