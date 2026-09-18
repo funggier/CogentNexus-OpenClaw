@@ -100,9 +100,13 @@ Provider and model are execution selections.
 
 Session identity must not depend on provider identity.
 
-### 3.3 Minimum-delta integration
+### 3.3 Minimum-delta integration and routing authority
 
-Prefer adapting existing OpenClaw provider/model behavior over creating a parallel CogentNexus-only provider stack.
+OpenClaw is the provider/model/auth/routing authority for Cloud/pass-through operation in the current v0.9.5 architecture.
+
+Prefer preserving and qualifying existing OpenClaw provider/model behavior over creating a parallel CogentNexus-only provider stack.
+
+CogentNexus-OpenClaw owns continuity, Ticket/session/generation policy, durable delivery/recovery fences, and provider-independent execution safeguards. It must not become a second provider-routing authority.
 
 A second independent provider architecture would create drift, duplicated lifecycle rules, and future maintenance cost.
 
@@ -187,8 +191,8 @@ The preferred logical boundary is:
                                 |
                                 v
 +-------------------------------------------------------------+
-|                      Provider Router                        |
-| resolve provider | resolve model | validate capabilities    |
+|             OpenClaw Provider / Model Routing               |
+| resolve provider | resolve model | auth | provider dispatch |
 +-----------+-------------------+-------------------+---------+
             |                   |                   |
             v                   v                   v
@@ -233,14 +237,17 @@ Web Chat must **not** own:
 - persisted selected provider/model metadata when persistence is desired;
 - continuity across turns.
 
-### 5.3 Provider Router owns
+### 5.3 OpenClaw provider/model routing owns
 
 - resolving the requested provider;
 - resolving the requested model;
+- OpenClaw-owned authentication/configuration;
 - checking provider/model availability;
-- validating required capabilities;
-- selecting the correct adapter;
-- normalizing routing errors.
+- selecting the correct provider adapter/client;
+- provider/model dispatch;
+- routing errors and provider-native execution semantics.
+
+CogentNexus should consume only the non-secret execution identity/capability evidence required to preserve its own continuity and safety contracts.
 
 ### 5.4 Provider Adapter owns
 
@@ -265,7 +272,7 @@ Web Chat must **not** own:
 
 ## 6. Core Data Concepts
 
-The implementation should converge on explicit concepts even if the existing OpenClaw structures use different names.
+The implementation should converge on explicit concepts only where needed by CogentNexus continuity and verification. Existing OpenClaw provider/model structures remain authoritative for routing and should be reused rather than duplicated.
 
 ### 6.1 Provider ID
 
