@@ -1,57 +1,48 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX406_REAL_PROVIDER_RUNTIME_BASELINE_OLLAMA_WEB_CHAT_TRACE`
-Execution mode: `READ_ONLY_PROVIDER_RUNTIME_ARCHAEOLOGY`
-Task ID: `CNX-20260918-406`
-Parent: `CNX-20260918-405`
+Status: `READY_FOR_HERMES`
+State: `CNX409_RUNTIME_ATTESTATION_LOCAL_BUILD_TEST_QUALIFICATION`
+Execution mode: `LOCAL_SOURCE_BUILD_TEST_ONLY`
+Task ID: `CNX-20260918-409`
+Parent: `CNX-20260918-408`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260918-405-production-repeated-registration-caller-lifecycle-correlation-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-406-real-provider-runtime-baseline-ollama-web-chat-end-to-end-trace.md`
+Base report: `docs/operations/coordination/reports/CNX-20260918-408-live-hook-runner-runtime-attestation-surface-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-409-runtime-attestation-local-build-test-qualification.md`
 Product goal: `docs/architecture/goals/REAL_PROVIDER_MODEL_RUNTIME_USAGE_GOAL.md`
 Development plan: `docs/architecture/goals/REAL_PROVIDER_MODEL_RUNTIME_DEVELOPMENT_PLAN.md`
 
 ## Current position
 
-CNX-405 is accepted as `PRODUCTION_REGISTRY_LIFECYCLE_PATH_MAPPED`. The registry-lifecycle investigation is sufficient for its stated read-only boundary and should not continue as the primary workstream.
+CNX-406 is accepted as `OLLAMA_VERTICAL_SLICE_MAPPED_READY_FOR_RED_TEST`.
 
-The Operator has explicitly authorized continued work toward the real provider/model runtime goal. That authorization supersedes the prior CNX-405 closeout fence that prohibited self-starting CNX-406.
+CNX-407 architecture review retained `before_agent_run` as the canonical provider-independent Ticket-first gate.
 
-The next practical boundary is to map the known-good Ollama Web Chat vertical slice before changing provider architecture.
+CNX-408 implemented a read-only operator-scoped Gateway RPC, `cogentnexus.runtimeAttestation`, using public OpenClaw plugin-runtime hook surfaces. Repository CI did not run automatically, so local build/test qualification is required before any deployment.
 
 ## Current authorization
 
-CNX-406 is READY for Hermes execution.
+CNX-409 is READY for Hermes execution.
 
-Trace the existing Ollama path end-to-end from Web Chat provider/model state through session lookup, provider/model resolution, agent execution, Ollama invocation, streaming/result handling, persistence, and the next turn.
-
-The purpose is to identify the smallest real ownership boundary for runtime provider/model switching while preserving working OpenClaw behavior.
+Run local source/build/test/package validation only. Minimal repository repair is authorized if validation exposes a source defect, using RED -> minimal fix -> GREEN.
 
 ## Hard fences
 
-- Read-only provider/runtime archaeology only.
-- No production Gateway restart/reload.
-- No production configuration mutation.
-- No environment mutation.
-- No Scheduled Task mutation.
-- No provider credential changes.
-- No provider/model selection mutation in production.
-- No semantic/model/provider/Dashboard request during CNX-406.
-- No OpenAI live request.
-- No new Ollama semantic request solely for CNX-406.
-- No TicketStore/admission/routing/auth mutation.
-- No production extension/artifact deploy.
-- No OpenClaw dependency patch.
-- No CogentNexus production repair.
+- No production install/install-over.
+- No production artifact replacement.
+- No Gateway restart/reload.
+- No production config/environment/Scheduled Task mutation.
+- No live Gateway RPC call.
+- No semantic/model/provider request.
+- No provider/model/auth/routing change.
+- No TicketStore/durable-state mutation.
+- No OpenClaw dependency version change/patch.
 - No release/tag/main.
 - No force-push/history rewrite.
-- Do not create or start CNX-407 yourself.
+- Do not create/start CNX-410 yourself.
 
 ## Closeout
 
-Publish the CNX-406 report with exact source/runtime ownership evidence, target gap matrix, and smallest recommended RED test.
-
-Set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify branch HEAD and clean worktree, then stop. Do not create/start CNX-407.
+Publish the CNX-409 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify exact remote/local HEAD and clean worktree, then stop. Do not deploy.
