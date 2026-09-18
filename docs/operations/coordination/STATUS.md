@@ -10,7 +10,7 @@ Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Base report: `docs/operations/coordination/reports/CNX-20260918-401-registry-activation-replacement-lineage-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-402-production-artifact-identity-registry-lineage-reconciliation.md
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-402-production-artifact-identity-registry-lineage-reconciliation.md`
 
 ## Current position
 
@@ -18,11 +18,9 @@ CNX-401 is reviewed as `REGISTRY_REPLACEMENT_MECHANISM_PROVEN`. Exact OpenClaw s
 
 ## Current authorization
 
-CNX-401 is READY for Hermes execution.
+CNX-402 is READY for Hermes execution.
 
-Trace exact OpenClaw registry creation, activation, cache restoration, active-registry replacement, and hook-state preservation semantics. Correlate those mechanisms with the existing production chronology without changing production state.
-
-Use exact installed source plus safe disposable probes only where the APIs are directly observable. Synthetic results are mechanism evidence only.
+Resolve the production artifact identity discrepancy recorded by CNX-401 using read-only inspection. Determine whether the differing artifact path/SHA is a report-local transcription error, an isolated/test artifact, an alternate production artifact, an alias with identical bytes, or an unresolved identity conflict.
 
 No production mutation is authorized.
 
