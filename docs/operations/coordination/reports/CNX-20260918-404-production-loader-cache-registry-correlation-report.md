@@ -167,9 +167,9 @@ For the missing `before_agent_run` state, the evidence narrows the possibilities
 
 ## Closeout evidence
 
-After publication, only this report and the requested status tokens were changed. Final verification recorded:
+After publication, this report plus the requested ACTIVE/STATUS status-token updates were committed. Final verification recorded:
 
-- authoritative final HEAD after final publication commit: `96cac46f5308d45053d6b0fab697ff8fff37d3ce`;
+- authoritative final HEAD after final publication/status commits: `70f233b766a43177b408a031764304452b25e4ee`;
 - `ACTIVE.md`: `WAITING_FOR_CHATGPT_REVIEW`;
 - `STATUS.md`: `WAITING_FOR_CHATGPT_REVIEW`;
 - no historical CNX-360 through CNX-403 report changed;
