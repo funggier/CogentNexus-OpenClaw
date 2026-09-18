@@ -1,26 +1,26 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX402_PRODUCTION_ARTIFACT_IDENTITY_RECONCILIATION`
-Execution mode: `PRODUCTION_ARTIFACT_IDENTITY_RECONCILIATION`
-Task ID: `CNX-20260918-402`
-Parent: `CNX-20260918-401`
+Status: `READY_FOR_HERMES`
+State: `CNX403_PRODUCTION_PLUGIN_DISCOVERY_ROOT_DUPLICATE_PROVENANCE`
+Execution mode: `PRODUCTION_PLUGIN_DISCOVERY_ROOT_DUPLICATE_PROVENANCE`
+Task ID: `CNX-20260918-403`
+Parent: `CNX-20260918-402`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260918-401-registry-activation-replacement-lineage-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-402-production-artifact-identity-registry-lineage-reconciliation.md`
+Base report: `docs/operations/coordination/reports/CNX-20260918-402-production-artifact-identity-registry-lineage-reconciliation-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-403-production-plugin-discovery-root-duplicate-provenance.md`
 
 ## Current position
 
-CNX-401 is reviewed as `REGISTRY_REPLACEMENT_MECHANISM_PROVEN`. Exact OpenClaw source proves active-registry pointer replacement and cached-registry activation can replace hook state without fresh registration. During review, CNX-401 also recorded a production artifact identity that differs from the previously established production baseline. CNX-402 resolves that identity discrepancy before later production causality claims rely on it.
+CNX-402 is reviewed and accepted as PRODUCTION_ARTIFACT_IDENTITY_RECONCILED. The established production extension entry is v091-release-entry.js with SHA-256 2841b704...c2d95. The separate dashboard-verified-delivery artifact is not proven to be Gateway-selected. The next unresolved pre-API question is whether production discovery exposes multiple CogentNexus roots/candidates whose manifest association, ordering, duplicate-ID precedence, or filtering can alter which candidate reaches registration.
 
 ## Current authorization
 
-CNX-402 is READY for Hermes execution.
+CNX-403 is READY for Hermes execution.
 
-Resolve the production artifact identity discrepancy recorded by CNX-401 using read-only inspection. Determine whether the differing artifact path/SHA is a report-local transcription error, an isolated/test artifact, an alternate production artifact, an alias with identical bytes, or an unresolved identity conflict.
+Establish the production CogentNexus discovery root/candidate set using read-only inspection and exact OpenClaw source. Determine whether duplicate same-ID candidates or root/manifest mismatches can affect pre-API selection.
 
 No production mutation is authorized.
 
@@ -43,8 +43,8 @@ No production mutation is authorized.
 - No release/tag/main.
 - No force-push/history rewrite.
 - No historical edits to CNX-360 through CNX-400.
-- Do not create or start CNX-403 yourself.
+- Do not create or start CNX-404 yourself.
 
 ## Closeout
 
-After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local/remote equality and clean worktree, then stop. Do not create/start CNX-403.
+After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local/remote equality and clean worktree, then stop. Do not create/start CNX-404.
