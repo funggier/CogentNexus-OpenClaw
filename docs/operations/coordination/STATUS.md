@@ -1,10 +1,10 @@
 # Coordination Channel Status
 
 Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX419_PRESERVED_DRAFT_ENTER_SUBMIT_OLLAMA_TICKET_FIRST`
-Execution mode: `ONE_ENTER_SUBMIT_PRESERVED_DASHBOARD_TICKET_FIRST_ACCEPTANCE`
-Task ID: `CNX-20260918-419`
-Parent: `CNX-20260918-418`
+State: `CNX418_PRESERVED_SESSION_OLLAMA_SEMANTIC_VERTICAL_SLICE`
+Execution mode: `ONE_SEMANTIC_PRESERVED_DASHBOARD_TICKET_FIRST_OLLAMA_ACCEPTANCE`
+Task ID: `CNX-20260918-418`
+Parent: `CNX-20260918-417`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
@@ -59,3 +59,8 @@ No retry or further live action is authorized in CNX-419.
 ## Closeout
 
 Publish the CNX-419 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and clean publication worktree, preserve the session if PASS, and stop.
+
+
+## Review hold
+
+CNX-418 report is still being finalized. Do not start CNX-419 or any successor until the complete report is published and reviewed by ChatGPT.
