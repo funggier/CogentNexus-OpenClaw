@@ -8,6 +8,7 @@ transactional enable path. OpenClaw owns provider/model/auth routing in v0.9.5.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from typing import Any, Callable
@@ -61,6 +62,71 @@ def enable(root: Path) -> dict[str, Any]:
         legacy.runtime = original_runtime
 
 
+
+def _read_maintenance_marker(root: Path) -> dict[str, Any] | None:
+    """Read the CNX runtime maintenance marker without mutating runtime state."""
+    path = root.resolve() / "runtime" / "maintenance.json"
+    if not path.exists():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as error:
+        return {
+            "active": True,
+            "recoveryPolicy": "invalid",
+            "error": f"invalid-maintenance-marker:{error}",
+        }
+    if not isinstance(value, dict):
+        return {
+            "active": True,
+            "recoveryPolicy": "invalid",
+            "error": "invalid-maintenance-marker:expected-object",
+        }
+    return value
+
+
+def _reconcile_healthy_runtime_marker(root: Path, execute_safe: bool) -> dict[str, Any] | None:
+    """Retire recoverable restart maintenance through the supported lifecycle path."""
+    marker = _read_maintenance_marker(root)
+    if not marker or not marker.get("active"):
+        return None
+
+    policy = str(marker.get("recoveryPolicy") or "")
+    if policy != "healthy-runtime":
+        return {
+            "status": "blocked",
+            "result": "maintenance-recovery-pending",
+            "recoveryPolicy": policy or "unknown",
+            "marker": marker,
+        }
+
+    if not execute_safe:
+        return {
+            "status": "pending",
+            "result": "maintenance-recovery-pending",
+            "recoveryPolicy": policy,
+        }
+
+    lifecycle = legacy.runtime(root, "lifecycle", "start", timeout=60, check=False)
+    after = _read_maintenance_marker(root)
+    marker_active = bool(after and after.get("active"))
+    if lifecycle.returncode != 0 or marker_active:
+        return {
+            "status": "incomplete",
+            "result": "maintenance-recovery-incomplete",
+            "recoveryPolicy": policy,
+            "exitCode": int(lifecycle.returncode),
+            "markerStillActive": marker_active,
+        }
+
+    return {
+        "status": "reconciled",
+        "result": "maintenance-reconciled",
+        "recoveryPolicy": policy,
+        "exitCode": int(lifecycle.returncode),
+    }
+
+
 def durable_work_hint(root: Path, now: str | None = None) -> bool:
     """Compatibility boolean backed exclusively by the canonical wake authority."""
     parsed_now = _parse_iso_timestamp(now) if now else None
@@ -110,6 +176,19 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
                 "heavyPath": False,
             }
 
+    maintenance_recovery = _reconcile_healthy_runtime_marker(root, execute_safe)
+    if maintenance_recovery is not None and maintenance_recovery.get("status") != "reconciled":
+        return {
+            "result": maintenance_recovery["result"],
+            "action": "none",
+            "recoveryPolicy": maintenance_recovery.get("recoveryPolicy"),
+            "gatewayHealthy": gateway_ok,
+            "durableWorkPending": False,
+            "providerRequired": False,
+            "heavyPath": False,
+            "maintenanceRecovery": maintenance_recovery,
+        }
+
     decision = classify_wake(root)
     if not decision.actionable:
         result: dict[str, Any] = {
@@ -125,6 +204,8 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
             "durableWorkPending": False,
             "heavyPath": False,
         }
+        if maintenance_recovery is not None:
+            result["maintenanceRecovery"] = maintenance_recovery
         return result
 
     result = _LEGACY_SUPERVISOR_TICK(root, execute_safe)
