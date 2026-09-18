@@ -47,4 +47,4 @@ No production mutation is authorized.
 
 ## Closeout
 
-After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and a clean worktree, then stop. Do not create/start CNX-402.
+After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and a clean worktree, then stop. Do not create/start CNX-403.
