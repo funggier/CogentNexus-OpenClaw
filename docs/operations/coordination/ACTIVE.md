@@ -1,6 +1,6 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX419_PRESERVED_DRAFT_ENTER_SUBMIT_OLLAMA_TICKET_FIRST`
 Execution mode: `ONE_ENTER_SUBMIT_PRESERVED_DASHBOARD_TICKET_FIRST_ACCEPTANCE`
 Task ID: `CNX-20260918-419`
@@ -27,17 +27,11 @@ Exact OpenClaw source proves the composer has an Enter-key submit path that dire
 
 ## Current authorization
 
-CNX-419 is READY for Hermes execution.
+CNX-419 is waiting for ChatGPT review.
 
-Reuse the exact session and exact existing draft. Do not create another nonce or session.
+Hermes classified execution as `BLOCKED_TICKET_FIRST_ORDERING`, with secondary `BLOCKED_SELECTED_ROUTE_NOT_HONORED`: one authenticated owner WebChat message and one exact visible response materialized, but no CogentNexus Ticket/admission/delivery lineage existed and the native response used `openai/gpt-5.6-luna` instead of the selected `ollama/qwen3.8:27b` route.
 
-Use **Enter only** for the semantic submit.
-
-If necessary, one normal UI preference change to set `Send shortcut = Enter` is authorized, provided it produces zero semantic effect and the composer subsequently exposes `aria-keyshortcuts="Enter"`.
-
-Then focus the exact composer and press Enter exactly once.
-
-Do not click the Send button and do not use Ctrl+Enter as fallback.
+No retry or further live action is authorized in CNX-419.
 
 ## Hard fences
 
