@@ -1,43 +1,48 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `REPOSITORY_REPAIR_AND_ISOLATED_CURRENT_OPENCLAW_QUALIFICATION`
-Task ID: `CNX-20260918-421`
-Parent: `CNX-20260918-420`
+Status: `READY_FOR_HERMES`
+State: `CNX422_READY_FOR_HERMES`
+Execution mode: `REPLY_DISPATCH_TICKET_FIRST_REPAIR_AND_ISOLATED_OPENCLAW_2026_9_4_QUALIFICATION`
+Task ID: `CNX-20260918-422`
+Parent: `CNX-20260918-421`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Parent report: `docs/operations/coordination/reports/CNX-20260918-420-operator-fresh-session-ollama-route-ticket-first-discrimination-report.md`
-Parent review: `docs/operations/coordination/reviews/CNX-20260918-420-chatgpt-review.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-421-openclaw-current-upgrade-qualification-and-harness-agnostic-ticket-first-admission.md`
-Expected report: `docs/operations/coordination/reports/CNX-20260918-421-openclaw-current-upgrade-qualification-and-harness-agnostic-ticket-first-admission-report.md`
+Parent report: `docs/operations/coordination/reports/CNX-20260918-421-openclaw-current-upgrade-qualification-and-harness-agnostic-ticket-first-admission-report.md`
+Parent review: `docs/operations/coordination/reviews/CNX-20260918-421-chatgpt-review.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification.md`
+Expected report: `docs/operations/coordination/reports/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification-report.md`
 
 ## Current position
 
-CNX-420 is accepted:
+CNX-421 correctly stopped as:
 
-`PASS_OPERATOR_FRESH_SESSION_OLLAMA_TICKET_FIRST_VERTICAL_SLICE`
+`BLOCKED_CURRENT_UPGRADE_QUALIFICATION`
 
-Fresh Ollama routing and Ticket-first lineage are proven.
+because RED/GREEN repair evidence and isolated v2026.9.4 qualification were not completed.
 
-CNX-419 still proves the current `before_agent_run` boundary is not sufficient for the Codex/OpenAI plugin-harness path.
+The successor has a stronger proven candidate boundary:
 
-CNX-421 is authorized to:
+`reply_dispatch`
 
-1. compare installed OpenClaw `2026.7.1-2` with upstream `v2026.9.4`;
-2. prove the earliest safe run-correlated owner-turn admission seam;
-3. add RED/GREEN repository tests and a minimal repair candidate only when proven;
-4. qualify v2026.9.4 with isolated/copy state only;
-5. characterize the CNX-420 15-minute deadline vs ~44m43s completion anomaly without another model call.
+because the event combines:
+
+- real `runId`;
+- `FinalizedMsgContext`;
+- inbound text;
+- session/message identity;
+- Gateway trust context;
+- and, on v2026.9.4, `InboundAccessAuthorized`.
+
+CNX-422 must now prove this with TDD and target-version isolation rather than repeating source-only analysis.
 
 ## Safety boundary
 
-Live OpenClaw remains unchanged during CNX-421.
+Live OpenClaw remains unchanged.
 
-No semantic send, live upgrade, live migration, live provider/model mutation, live plugin lifecycle mutation, release/tag/main, or history rewrite is authorized.
+No semantic send, live upgrade/migration, live provider/model change, live plugin lifecycle mutation, release/tag/main, or history rewrite is authorized.
 
 ## Closeout
 
-When CNX-421 is complete, publish its report, set coordination to `WAITING_FOR_CHATGPT_REVIEW`, verify exact local/remote HEAD and clean publication worktree, then stop.
+When CNX-422 is complete, publish its report, move coordination to `WAITING_FOR_CHATGPT_REVIEW`, verify exact local/remote HEAD and clean publication worktree, then stop.
