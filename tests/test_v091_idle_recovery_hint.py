@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,6 +39,18 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             "desiredProvider": "running",
             "generation": 9,
         })
+
+    def write_maintenance_marker(self, root: Path, recovery_policy: str = "healthy-runtime"):
+        path = root / "runtime" / "maintenance.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "schemaVersion": 1,
+            "active": True,
+            "reason": "test restart recovery",
+            "owner": "operator",
+            "recoveryPolicy": recovery_policy,
+        }), encoding="utf-8")
+        return path
 
     def create_ticket_db(self, root: Path):
         path = cnx.legacy.ticket_db(root)
@@ -141,6 +155,72 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             self.assertEqual(result["result"], "idle")
             self.assertFalse(result["providerRequired"])
             self.assertFalse(result["durableWorkPending"])
+
+
+    def test_healthy_runtime_marker_is_reconciled_before_idle_return(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            marker = self.write_maintenance_marker(root)
+            calls = []
+
+            self.patch(cnx, "gateway_fast_probe", lambda: True)
+            self.patch(
+                cnx,
+                "classify_wake",
+                lambda _root: cnx.WakeDecision(False, "none", None, "idle/no-actionable-work"),
+            )
+            self.patch(
+                cnx,
+                "LEGACY_SUPERVISOR_TICK",
+                lambda *_args, **_kwargs: self.fail("maintenance convergence must not re-enter legacy heavy supervisor"),
+            )
+
+            def runtime(_root, *args, timeout=180, check=True):
+                calls.append((args, timeout, check))
+                self.assertEqual(args, ("lifecycle", "start"))
+                marker.unlink()
+                return subprocess.CompletedProcess(
+                    args=list(args),
+                    returncode=0,
+                    stdout=json.dumps({"started": True, "maintenance": None}),
+                    stderr="",
+                )
+
+            self.patch(cnx.legacy, "runtime", runtime)
+
+            result = cnx.supervisor_tick(root, True)
+
+            self.assertEqual(len(calls), 1)
+            self.assertFalse(marker.exists())
+            self.assertEqual(result["result"], "idle")
+            self.assertEqual(result["maintenanceRecovery"]["status"], "reconciled")
+            self.assertFalse(result["heavyPath"])
+
+    def test_read_only_tick_reports_healthy_runtime_marker_without_mutating_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            marker = self.write_maintenance_marker(root)
+
+            self.patch(cnx, "gateway_fast_probe", lambda: True)
+            self.patch(
+                cnx.legacy,
+                "runtime",
+                lambda *_args, **_kwargs: self.fail("read-only supervisor tick must not mutate maintenance state"),
+            )
+            self.patch(
+                cnx,
+                "LEGACY_SUPERVISOR_TICK",
+                lambda *_args, **_kwargs: self.fail("read-only marker observation must not enter legacy heavy supervisor"),
+            )
+
+            result = cnx.supervisor_tick(root, False)
+
+            self.assertTrue(marker.exists())
+            self.assertEqual(result["result"], "maintenance-recovery-pending")
+            self.assertEqual(result["recoveryPolicy"], "healthy-runtime")
+            self.assertFalse(result["heavyPath"])
 
     def test_healthy_endpoints_without_work_stay_on_lightweight_path(self):
         with tempfile.TemporaryDirectory() as tmp:
