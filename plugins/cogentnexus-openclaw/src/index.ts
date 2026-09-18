@@ -8,6 +8,7 @@ import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
+import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchTrusted } from "./ticket-admission-kernel.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
@@ -790,9 +791,60 @@ entry.register = (api) => {
     const eligible=durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner});
     trace("admission.trace.eligible",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true,outcome:eligible ? "eligible" : "ineligible"});
     if (!eligible) { trace("admission.trace.blocked",{outcome:"ineligible",reason:"durable admission eligibility predicate returned false"}); trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
+    if (config.ticketFirst === true) {
+      const admission=admitTicketFirstTurn({
+        sessionKey:ctx.sessionKey,
+        runId:ctx.runId,
+        prompt:event.prompt,
+        trusted:true,
+        workspaceDir:ctx.workspaceDir,
+        config,
+      });
+      if (admission.state === "skipped") {
+        trace("admission.trace.ticket-decision",{ticketFirst:true,ticketIntakeEligible:false,classification:"excluded"});
+        trace("admission.trace.completed",{outcome:"pass"});
+        return { outcome:"pass" };
+      }
+      if (admission.state === "blocked") {
+        trace("admission.trace.blocked",{outcome:"block",reason:admission.reason});
+        trace("admission.trace.completed",{outcome:"block"});
+        return {
+          outcome:"block",
+          reason:`Ticket-first admission failed closed: ${admission.reason}`,
+          category:"cnxclaw_ticket_admission_integrity",
+          metadata:{reason:admission.reason},
+        };
+      }
+      ticketedRuns.add(admission.runId);
+      runWorkspaces.set(admission.runId,admission.workspaceDir);
+      runSessions.set(admission.runId,admission.sessionKey);
+      trace("admission.trace.ticket-decision",{ticketFirst:true,ticketIntakeEligible:true,classification:admission.lane});
+      trace("admission.trace.ticket-persisted",{ticketId:admission.ticket.ticketId,outcome:"persisted"});
+      if (config.providerMode === "passthrough" && admission.lane === "durable") {
+        trace("admission.trace.blocked",{outcome:"block",ticketId:admission.ticket.ticketId,reason:"durable workflow unsupported in provider passthrough mode"});
+        trace("admission.trace.completed",{outcome:"block",ticketId:admission.ticket.ticketId});
+        return {
+          outcome:"block",
+          reason:"durable workflow admission is unsupported in Cloud provider pass-through mode; use an ordinary direct OpenClaw turn",
+          category:"cnxclaw_cloud_workflow_unsupported",
+          metadata:{providerMode:"passthrough",durableWorkflow:"unsupported",ticketId:admission.ticket.ticketId},
+        };
+      }
+      if (admission.lane !== "durable") {
+        trace("admission.trace.completed",{outcome:"pass",ticketId:admission.ticket.ticketId});
+        return { outcome:"pass" };
+      }
+      trace("admission.trace.blocked",{outcome:"ticket-first",ticketId:admission.ticket.ticketId,reason:"durable request committed and queued before conversational inference"});
+      trace("admission.trace.completed",{outcome:"block",ticketId:admission.ticket.ticketId});
+      return {
+        outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cnxclaw_ticket_admission",
+        metadata:{ticketId:admission.ticket.ticketId,score:admission.score,componentCount:admission.componentCount,deduplicated:admission.ticket.duplicate},
+        message:`CogentNexus-OpenClaw committed Ticket ${admission.ticket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
+      };
+    }
     const decision = classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
     const intakeEligible=ticketIntakeEligible(event.prompt);
-    trace("admission.trace.ticket-decision",{ticketFirst:config.ticketFirst === true,ticketIntakeEligible:intakeEligible,classification:decision.lane});
+    trace("admission.trace.ticket-decision",{ticketFirst:false,ticketIntakeEligible:intakeEligible,classification:decision.lane});
     if (config.providerMode === "passthrough" && decision.lane === "durable") {
       return {
         outcome:"block",
@@ -801,30 +853,8 @@ entry.register = (api) => {
         metadata:{providerMode:"passthrough",durableWorkflow:"unsupported"},
       };
     }
-    const ownerSessionKey = ctx.sessionKey!;
-    let acceptedTicket:ReturnType<TicketStore["accept"]> | undefined;
-    let ticketStore:TicketStore | undefined;
-    if (config.ticketFirst === true && intakeEligible) {
-      const workspaceDir = ctx.workspaceDir ?? process.cwd();
-      const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
-      ticketStore = new TicketStore(databasePath);
-      const ticketRunId=ctx.runId ?? randomUUID();
-      acceptedTicket = ticketStore.accept({
-        runId:ticketRunId,
-        ownerSessionKey,
-        prompt:event.prompt,
-        maxAttempts:config.ticketMaximumAttempts,
-      });
-      ticketedRuns.add(ticketRunId);
-      trace("admission.trace.ticket-persisted",{ticketId:acceptedTicket.ticketId,outcome:"persisted"});
-    }
-    if (acceptedTicket && ticketStore) ticketStore.route(acceptedTicket.ticketId,decision.lane === "durable");
     if (decision.lane !== "durable") { trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
-    if (acceptedTicket) { trace("admission.trace.blocked",{outcome:"ticket-first",ticketId:acceptedTicket.ticketId,reason:"durable request committed and queued before conversational inference"}); trace("admission.trace.completed",{outcome:"block",ticketId:acceptedTicket.ticketId}); return {
-      outcome:"block",reason:"durable request committed and queued before conversational inference",category:"cnxclaw_ticket_admission",
-      metadata:{ticketId:acceptedTicket.ticketId,score:decision.score,componentCount:decision.sections.length,deduplicated:acceptedTicket.duplicate},
-      message:`CogentNexus-OpenClaw committed Ticket ${acceptedTicket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
-    }; }
+    const ownerSessionKey = ctx.sessionKey!;
     const workspaceDir = ctx.workspaceDir ?? process.cwd();
     const requestHash = durableRequestFingerprint(event.prompt);
     const duplicate = activeWorkflowForRequest(workspaceDir, requestHash);
@@ -845,6 +875,51 @@ entry.register = (api) => {
       message:`CogentNexus-OpenClaw ${duplicate ? "reused" : "admitted"} durable workflow ${started.taskId} before model inference. ${componentCount} bounded components run through the deterministic controller and Ollama without a temporary Codex worker; verified completion will return automatically.`,
     };
   }, { priority: 2000, timeoutMs: 30_000 });
+  if (config.ticketFirst === true) (api as any).on("reply_dispatch", (event:any, ctx:any) => {
+    const prompt=canonicalReplyDispatchPrompt(event?.ctx);
+    const identity=replyDispatchIdentity(event,ctx);
+    const trusted=replyDispatchTrusted(event);
+    // Unknown non-owner/internal dispatches are not claimed. Once the host
+    // supplies either owner identity or trusted ingress evidence, admission
+    // integrity becomes fail-closed.
+    if (!identity.sessionKey && !trusted && !identity.identityConflict) return;
+    const admission=admitTicketFirstTurn({
+      sessionKey:identity.sessionKey,
+      runId:identity.runId,
+      prompt,
+      trusted,
+      identityConflict:identity.identityConflict,
+      workspaceDir:config.workspaceDir ?? (api as any)?.config?.agents?.defaults?.workspace,
+      config,
+    });
+    if (admission.state === "skipped") return;
+    const zeroCounts={tool:0,block:0,final:0};
+    if (admission.state === "blocked") {
+      api.logger.warn?.(`CogentNexus-OpenClaw reply_dispatch admission failed closed: ${admission.reason}${admission.error ? `: ${admission.error}` : ""}`);
+      return {handled:true,queuedFinal:false,counts:zeroCounts};
+    }
+    ticketedRuns.add(admission.runId);
+    runWorkspaces.set(admission.runId,admission.workspaceDir);
+    runSessions.set(admission.runId,admission.sessionKey);
+    if (admission.lane !== "durable") return;
+    const message=config.providerMode === "passthrough"
+      ? `CogentNexus-OpenClaw committed Ticket ${admission.ticket.ticketId} before inference, but durable workflow execution is unavailable while providerMode=passthrough.`
+      : `CogentNexus-OpenClaw committed Ticket ${admission.ticket.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`;
+    let queuedFinal=false;
+    try { queuedFinal=ctx?.dispatcher?.sendFinalReply?.({text:message}) === true; }
+    catch(error) { api.logger.warn?.(`CogentNexus-OpenClaw durable admission notice enqueue failed: ${error instanceof Error ? error.message : String(error)}`); }
+    const observed=ctx?.dispatcher?.getQueuedCounts?.();
+    const counts=observed && typeof observed === "object"
+      ? {tool:Number(observed.tool ?? 0),block:Number(observed.block ?? 0),final:Number(observed.final ?? (queuedFinal ? 1 : 0))}
+      : {tool:0,block:0,final:queuedFinal ? 1 : 0};
+    return {handled:true,queuedFinal:queuedFinal || counts.final > 0,counts};
+  }, {
+    priority:2500,
+    timeoutMs:30_000,
+    registrationId:"cogentnexus-openclaw-ticket-first-admission",
+    eligibleDispatchKinds:["agent","acp"],
+  } as any);
+
   if (config.ticketFirst === true) api.on("session_end", (event, ctx) => {
     if(event.reason!=="new" || !event.sessionKey || !event.nextSessionKey || event.sessionKey===event.nextSessionKey) return;
     const workspaceDir=resolve(config.workspaceDir ?? process.cwd());

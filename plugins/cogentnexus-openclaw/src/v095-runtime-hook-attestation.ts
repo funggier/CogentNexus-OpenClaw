@@ -1,7 +1,4 @@
-import {
-  getGlobalHookRunner,
-  getGlobalPluginRegistry,
-} from "openclaw/plugin-sdk/plugin-runtime";
+import { getGlobalHookRunner } from "openclaw/plugin-sdk/plugin-runtime";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
 
 const PLUGIN_ID = "cogentnexus-openclaw";
@@ -45,17 +42,18 @@ export function classifyRuntimeHookAttestation(input: {
 
 export function readRuntimeHookAttestation(): RuntimeHookAttestation {
   const runner = getGlobalHookRunner();
-  const latestRegistry = getGlobalPluginRegistry();
 
   const globalHookCount = runner
     ? runner.getHookCount(TARGET_HOOK)
     : 0;
 
-  const latestRegistryPluginHookCount = latestRegistry
-    ? latestRegistry.typedHooks.filter(
-        (hook) => hook.hookName === TARGET_HOOK && hook.pluginId === PLUGIN_ID,
-      ).length
-    : null;
+  // OpenClaw v2026.9.4 intentionally keeps the active plugin registry out of
+  // the public plugin-runtime SDK. Do not bypass that boundary through a
+  // private/internal import merely to identify ownership. A positive global
+  // count proves that the composed runner sees this hook name, but without a
+  // public plugin-specific registry view ownership remains conservatively
+  // AMBIGUOUS rather than being upgraded to PRESENT.
+  const latestRegistryPluginHookCount = null;
 
   const runnerReady = Boolean(runner);
 

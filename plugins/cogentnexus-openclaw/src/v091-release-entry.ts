@@ -80,7 +80,8 @@ function withDiscordLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Re
     ...api,
     pluginConfig,
     on: (name: string, handler: (...args: any[]) => any, options?: any) => {
-      if (!LEGACY_DISCORD_DELIVERY_HOOKS.has(name)) {
+      const ticketAdmission = name === "reply_dispatch" && options?.registrationId === "cogentnexus-openclaw-ticket-first-admission";
+      if (ticketAdmission || !LEGACY_DISCORD_DELIVERY_HOOKS.has(name)) {
         return api.on(name as any, handler as any, options);
       }
       const fenced = (...args: any[]) => {
@@ -99,7 +100,8 @@ function withWebchatLegacyDeliveryFence(api: OpenClawPluginApi, pluginConfig: Re
     ...api,
     pluginConfig,
     on: (name: string, handler: (...args: any[]) => any, options?: any) => {
-      if (!LEGACY_WEBCHAT_DELIVERY_HOOKS.has(name)) {
+      const ticketAdmission = name === "reply_dispatch" && options?.registrationId === "cogentnexus-openclaw-ticket-first-admission";
+      if (ticketAdmission || !LEGACY_WEBCHAT_DELIVERY_HOOKS.has(name)) {
         return api.on(name as any, handler as any, options);
       }
       const fenced = (...args: any[]) => {
