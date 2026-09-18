@@ -1,31 +1,35 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX424_WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `DUAL_SESSION_CROSS_ADAPTER_RUN_IDEMPOTENCY_REPAIR_COMPLETE`
-Task ID: `CNX-20260919-424`
-Parent: `CNX-20260919-423`
+Status: `READY_FOR_EXECUTION`
+State: `CNX425_READY_FOR_EXECUTION`
+Execution mode: `CONTROLLED_LIVE_OPENCLAW_2026_9_4_UPGRADE_AND_ACCEPTANCE`
+Task ID: `CNX-20260919-425`
+Parent: `CNX-20260919-424`
 Executor: `ChatGPT via LConnect`
-Reviewer: `ChatGPT (independent review)`
+Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Report: `docs/operations/coordination/reports/CNX-20260919-424-dual-session-cross-adapter-run-idempotency-repair-report.md`
-Qualified implementation HEAD: `f56a62e41533710ec72a7bbab20d305109437289`
 
-## Result
+## Authorization
 
-`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE_REVIEW`
+Controlled live upgrade to exact OpenClaw `2026.9.4` is authorized only after a verified full rollback snapshot.
 
-CNX-424 repaired cross-adapter duplication when the same ACP run is observed under source-owner and effective-target session identities.
+## Rollback rule
 
-Current evidence:
+Binary-only downgrade is prohibited after target state migration.
 
-- CNX-424 `3/3 PASS`;
-- combined CNX-424/423/422 `27/27 PASS`;
-- focused baseline `102/102 PASS`;
-- target 2026.9.4 `100/100 PASS`;
-- broad suite `370 PASS / 1 known historical CNX-383 RED`;
-- isolated v2026.9.4 runtime GREEN;
-- clean shutdown GREEN.
+Rollback requires restoration of:
 
-Live OpenClaw remains unchanged pending review.
+- old OpenClaw package/wrappers;
+- complete pre-upgrade live state/config/session/workspace snapshot;
+- CNX runtime DB.
+
+## Current live baseline
+
+Expected before preflight:
+
+- OpenClaw `2026.7.1-2`;
+- Gateway `127.0.0.1:18789`;
+- sessions `19`.
+
+Executor must re-verify rather than assume these values.
