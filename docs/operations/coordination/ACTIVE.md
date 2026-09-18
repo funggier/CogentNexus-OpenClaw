@@ -1,56 +1,64 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX423_WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR_COMPLETE`
-Task ID: `CNX-20260919-423`
-Parent: `CNX-20260918-422`
-Executor: `ChatGPT via LConnect`
-Reviewer: `ChatGPT (independent review)`
+Status: `READY_FOR_HERMES`
+State: `CNX424_READY_FOR_HERMES`
+Execution mode: `DUAL_SESSION_CROSS_ADAPTER_RUN_IDEMPOTENCY_REPAIR`
+Task ID: `CNX-20260919-424`
+Parent: `CNX-20260919-423`
+Executor: `ChatGPT via LConnect / authorized repository executor`
+Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Task specification: `docs/operations/coordination/tasks/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair.md`
-Report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
-Qualified implementation HEAD: `59830e4512b89d8924295c886f121d077b3d6c61`
+Parent report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
+Parent review: `docs/operations/coordination/reviews/CNX-20260919-423-chatgpt-review.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260919-424-dual-session-cross-adapter-run-idempotency-repair.md`
+Expected report: `docs/operations/coordination/reports/CNX-20260919-424-dual-session-cross-adapter-run-idempotency-repair-report.md`
 
 ## Current position
 
-CNX-423 completed with executor classification:
+CNX-423 review decision:
 
-`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE_REVIEW`
+`REJECT_READY__DUAL_SESSION_ADAPTER_IDEMPOTENCY_REPAIR_REQUIRED`
 
-The two CNX-422 review blockers are repaired:
+The provenance and ACP source/effective identity repairs are accepted, but one residual cross-adapter defect remains:
 
-1. OpenClaw internal/inter-session/control provenance is excluded before external-owner trust evaluation.
-2. Source owner session and effective ACP dispatch session are normalized separately, so legitimate bound ACP retargeting is preserved while non-ACP same-role contradictions remain fail closed.
+- bound ACP `reply_dispatch` admits with source owner session A;
+- later `before_agent_run` can observe effective target session B;
+- TicketStore persistent idempotency uses `ownerSessionKey + runId`;
+- the same host run can therefore create two Tickets.
 
-Evidence:
+Reviewer RED observed:
 
-- CNX-423 RED: `5 failed / 3 passed`;
-- CNX-423 final: `8/8 PASS`;
-- CNX-423 + CNX-422: `24/24 PASS`;
-- focused baseline regressions: `99/99 PASS`;
-- package validation: `PASS`;
-- OpenClaw v2026.9.4 target build + tests: `97/97 PASS`;
-- full plugin suite: `367 PASS / 1 known predecessor CNX-383 RED`;
-- isolated v2026.9.4 runtime: ready, health `ok=true`, CNX loaded, clean SIGINT shutdown in `17ms`;
-- semantic provider sends: `0`;
-- live OpenClaw upgrade/migration: `0`.
+`tickets = 2`
 
-CNX-422 copied-state migration/rollback evidence is reused because CNX-423 changes no storage/startup/migration boundary.
+where the invariant requires:
 
-## Review boundary
+`tickets = 1`
 
-Await independent ChatGPT review.
+## Authorization
 
-Do not:
+CNX-424 may begin immediately.
 
-- perform the live OpenClaw upgrade;
-- create or execute a live-upgrade successor task before review;
-- send semantic provider acceptance traffic;
-- mutate live provider/model routing;
-- mutate live Ticket/outbox/recovery/SQLite state;
-- publish release/tag/main;
-- rewrite branch history.
+Authorized:
 
-The next action is review only.
+- RED characterization;
+- minimal source repair;
+- focused/broad regressions;
+- OpenClaw 2026.9.4 target isolated qualification;
+- report/coordination publication.
+
+Not authorized:
+
+- semantic provider sends;
+- live OpenClaw upgrade/migration;
+- live provider/model mutation;
+- live plugin lifecycle mutation for upgrade;
+- manual live Ticket/outbox/recovery/SQLite mutation;
+- release/tag/main;
+- force push/history rewrite.
+
+## Required invariant
+
+`ONE HOST RUN -> ONE TICKET -> ONE ROUTE EVENT`
+
+even when source-owner and effective ACP dispatch sessions differ.
