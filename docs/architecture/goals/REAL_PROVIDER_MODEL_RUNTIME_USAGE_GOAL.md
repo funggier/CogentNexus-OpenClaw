@@ -5,6 +5,8 @@ Owner: `Operator`
 Scope: `CogentNexus-OpenClaw`  
 Applies to: Web Chat, session execution, provider routing, model selection, and future provider adapters
 
+Development plan: `docs/architecture/goals/REAL_PROVIDER_MODEL_RUNTIME_DEVELOPMENT_PLAN.md`
+
 ## Purpose
 
 CogentNexus-OpenClaw must be usable in normal day-to-day operation in the same practical way that ordinary OpenClaw is used: the operator opens the Web Chat, selects a provider and model, sends messages, changes provider or model when needed, and continues working in the same conversation/session.
