@@ -1,6 +1,6 @@
 # CNX-20260918-419 — Preserved Draft Enter-Key Submit and Ollama Ticket-First Vertical Slice
 
-Status: `DRAFT_WAITING_FOR_PARENT_REPORT`
+Status: `COMPLETED_REPORTED`
 
 ## Authority
 
@@ -16,9 +16,9 @@ Status: `DRAFT_WAITING_FOR_PARENT_REPORT`
 
 GitHub remote is authoritative.
 
-## Hold
+## Historical coordination reconciliation
 
-Do not execute this task yet. CNX-418 reporting/review is not complete. This draft exists only because it was created prematurely and must not be treated as authorization.
+This task was temporarily marked as a draft during a coordination race while the CNX-418 report was still being finalized. The Operator subsequently authorized and completed the CNX-419 execution under the intended one-shot contract. The authoritative execution evidence is the published CNX-419 report and ChatGPT review.
 
 ## Objective
 
