@@ -43,7 +43,7 @@ No production mutation is authorized.
 - No release/tag/main.
 - No force-push/history rewrite.
 - No historical edits to CNX-360 through CNX-400.
-- Do not create or start CNX-402 yourself.
+- Do not create or start CNX-403 yourself.
 
 ## Closeout
 
