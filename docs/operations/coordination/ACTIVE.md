@@ -1,7 +1,7 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-State: `CNX420_OPERATOR_FRESH_SESSION_ROUTE_TICKET_FIRST_DISCRIMINATION`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+State: `CNX420_WAITING_FOR_CHATGPT_REVIEW`
 Execution mode: `OPERATOR_ASSISTED_TWO_STAGE_SEMANTIC_ACCEPTANCE`
 Task ID: `CNX-20260918-420`
 Parent: `CNX-20260918-419`
@@ -12,41 +12,30 @@ Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Parent report: `docs/operations/coordination/reports/CNX-20260918-419-preserved-draft-enter-submit-ollama-ticket-first-report.md`
 Parent review: `docs/operations/coordination/reviews/CNX-20260918-419-chatgpt-review.md`
 Task specification: `docs/operations/coordination/tasks/CNX-20260918-420-operator-fresh-session-ollama-route-ticket-first-discrimination.md`
+Report: `docs/operations/coordination/reports/CNX-20260918-420-operator-fresh-session-ollama-route-ticket-first-discrimination-report.md`
 
 ## Current position
 
-CNX-419 is reviewed and accepted as failed with:
+CNX-420 completed its one authorized Operator-owned fresh-session semantic turn.
 
-- primary: `BLOCKED_TICKET_FIRST_ORDERING`;
-- secondary: `BLOCKED_SELECTED_ROUTE_NOT_HONORED`.
+Confirmed:
 
-The Operator observed that after refreshing the browser, the UI showed `openai/gpt-5.6-luna`, raising a plausible stale-browser/session-presentation hypothesis for the earlier pre-send Ollama label.
+- route: `FRESH_SESSION_ROUTE_OLLAMA_CONFIRMED`;
+- Ticket-first: `FRESH_SESSION_TICKET_FIRST_CONFIRMED`.
 
-The Operator has explicitly authorized one new diagnostic semantic turn using a completely fresh Operator-created Dashboard session.
+The correlated `ollama/qwen3.8:27b` model call remained active without progress beyond its emitted deadline and the extended observation window. No terminal model-call event, response, durable delivery, native transcript message, or visible assistant output materialized.
 
-## Required interaction model
+Combined task classification:
 
-Hermes must first perform Stage-1 read-only preflight and baseline capture.
+`BLOCKED_FRESH_SESSION_EVIDENCE`
 
-If preflight is GREEN, Hermes must **stop and tell the Operator** to:
+Execution disposition:
 
-1. refresh the Dashboard page;
-2. click New Session;
-3. select Ollama / `qwen3.8:27b`;
-4. enter the exact nonce prompt supplied by Hermes;
-5. verify the UI shows `qwen3.8:27b`;
-6. send exactly once manually;
-7. return to Hermes and say `ส่งแล้ว`.
-
-Hermes must not perform any browser mutation and must not continue to post-send inspection until the Operator explicitly says `ส่งแล้ว`.
-
-While waiting, coordination may be moved to `WAITING_FOR_OPERATOR_ACTION`.
+`FAIL_OLLAMA_INFERENCE_NO_TERMINAL_SETTLEMENT`
 
 ## Current authorization
 
-CNX-420 is READY for Hermes Stage 1 only.
-
-The Operator is **not yet instructed to send** until Hermes reports preflight GREEN and supplies the fresh nonce.
+CNX-420 is waiting for ChatGPT review. No retry, resend, repair, lifecycle action, or successor task is authorized.
 
 ## Hard fences
 
