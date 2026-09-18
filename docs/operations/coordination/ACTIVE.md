@@ -1,54 +1,61 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX422_WAITING_FOR_CHATGPT_REVIEW`
-Execution mode: `REPLY_DISPATCH_TICKET_FIRST_REPAIR_AND_ISOLATED_OPENCLAW_2026_9_4_QUALIFICATION_COMPLETE`
-Task ID: `CNX-20260918-422`
-Parent: `CNX-20260918-421`
-Executor: `ChatGPT via LConnect`
-Reviewer: `ChatGPT (independent review)`
+Status: `READY_FOR_HERMES`
+State: `CNX423_READY_FOR_HERMES`
+Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR`
+Task ID: `CNX-20260919-423`
+Parent: `CNX-20260918-422`
+Executor: `Hermes / authorized repository executor`
+Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification.md`
-Report: `docs/operations/coordination/reports/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification-report.md`
-Qualified implementation HEAD: `5ae72d9ecc3f91da496b72d7b909f50bde07149a`
+Parent report: `docs/operations/coordination/reports/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification-report.md`
+Parent review: `docs/operations/coordination/reviews/CNX-20260918-422-chatgpt-review.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair.md`
+Expected report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
 
 ## Current position
 
-CNX-422 completed with classification:
+CNX-422 review decision:
 
-`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE`
+`REJECT_READY__ADMISSION_SEMANTICS_REPAIR_REQUIRED`
 
-The shared Ticket-first admission kernel is now reached from `reply_dispatch` for both `agent` and `acp` dispatch and from `before_agent_run` as idempotent defense-in-depth.
+The v2026.9.4 migration/rollback/build evidence remains useful, but controlled live-upgrade readiness is withdrawn pending two narrow admission repairs:
 
-Final evidence includes:
+1. classify `InputProvenance` / internal control paths before trust fallback so restart recovery, inter-session and subagent completion are not admitted as new owner intent;
+2. distinguish source owner session from effective ACP dispatch session so legitimate bound ACP retargeting is not treated as contradictory identity.
 
-- CNX-422 admission suite: `16/16 PASS`;
-- focused baseline regression: `91/91 PASS`;
-- package validation/build: `PASS`;
-- OpenClaw v2026.9.4 target build + focused suite: `89/89 PASS`;
-- full plugin suite: `359 PASS / 1 known predecessor CNX-383 RED`;
-- isolated v2026.9.4 fresh-state Gateway: startup/plugin registration `PASS`, graceful SIGINT shutdown `PASS`;
-- fully isolated copied-state migration: shared DB `v1 -> v17`, agent DB `v1 -> v19`, sessions `19 -> 19`;
-- copied-state runtime: `health.ok=true`, CNX residue preserved;
-- binary-only downgrade to 2026.7.1-2: proven unsafe after schema migration;
-- full pre-upgrade snapshot restore to 2026.7.1-2: `PASS`, sessions `19`;
-- semantic provider sends: `0`;
-- live OpenClaw upgrade: `0`.
+## Authorization
 
-A future controlled live-upgrade task must take a verified full pre-upgrade state/config/session/workspace snapshot before allowing v2026.9.4 migration. Binary-only downgrade is not a rollback procedure.
+CNX-423 may begin immediately.
 
-## Review boundary
+Authorized:
 
-Await independent ChatGPT review of the CNX-422 report and implementation.
+- RED characterization tests;
+- minimal repository source repair after RED;
+- focused and broad regression tests;
+- OpenClaw v2026.9.4 target build/isolated fresh runtime qualification;
+- report/coordination commits and fast-forward push on the working branch.
 
-Do not:
+Not authorized:
 
-- perform the live OpenClaw upgrade;
-- create the live-upgrade successor task;
-- mutate live Ticket/outbox/recovery/SQLite state;
-- change live provider/model routing;
-- publish release/tag/main;
-- rewrite branch history.
+- semantic provider sends;
+- external provider probes;
+- live OpenClaw upgrade or migration;
+- live provider/model mutation;
+- live plugin lifecycle mutation for upgrade;
+- manual live Ticket/outbox/recovery/SQLite mutation;
+- release/tag/main;
+- force push/history rewrite.
 
-The next action is review only.
+## Required invariant
+
+For eligible external owner turns:
+
+`NO TICKET = NO MODEL EXECUTION`
+
+Internal/control/recovery/inter-session turns must preserve host authority and must not become fresh owner Tickets.
+
+## Closeout
+
+Publish the CNX-423 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify exact local/remote HEAD and clean worktree, then stop before any live upgrade.
