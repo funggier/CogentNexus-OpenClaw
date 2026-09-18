@@ -1,20 +1,24 @@
 # Execution Ownership and Escalation Policy
 
-Updated: 2026-09-05 ICT
+Updated: 2026-09-18 ICT
 
 ## Standing model
 
-Future Hermes coordination uses the single-agent model in `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`.
+Current execution preference is ChatGPT-first when the current ChatGPT session already has the tools and authority needed to complete the work safely.
 
-- **Hermes:** sole routine execution agent for new tasks.
-- **ChatGPT:** independent reviewer, coordinator, successor/rework task framer, and technical adjudication layer.
+- **ChatGPT:** default repository-capable executor, independent reviewer, coordinator, successor/rework task framer, and technical adjudication layer.
+- **Hermes:** local/live machine executor for tasks that materially require the operator's environment, runtime, UI, filesystem, PowerShell, or other environment-specific access.
 - **Human operator:** final authority for fresh intent and ungranted live/destructive/semantic decisions.
+
+When Hermes is assigned, the execution/review behavior in `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` still applies. Session reuse/new-session and model-strength preferences are defined in `SESSION_EXECUTION_MODEL_GUIDELINES.md`.
 
 Historical Luna/Musethree tasks and reviews remain valid evidence. The old alternating dual-agent baton is retained only for historical interpretation.
 
 ## Primary technical ownership
 
-When `ACTIVE.md` assigns a task to Hermes, Hermes may perform the full technical loop authorized by that task:
+If ChatGPT can safely perform the next repository/source/review/documentation step with its current tools, ChatGPT should do it directly instead of creating an unnecessary Hermes task.
+
+When `ACTIVE.md` assigns a task to Hermes because local/live access is required, Hermes may perform the full technical loop authorized by that task:
 
 - fresh remote synchronization;
 - source/repository/upstream investigation;
@@ -45,10 +49,11 @@ If the next step requires new human intent or authority, ChatGPT records the mis
 
 ## ChatGPT lane
 
-ChatGPT is a routine review hop under this model, not merely an exceptional escalation layer.
+ChatGPT is both a routine execution lane for tool-accessible repository work and the independent review/coordination layer.
 
 ChatGPT handles:
 
+- direct repository/source/documentation/coordination work that can be completed safely with current tools;
 - independent review of every completed Hermes task report;
 - acceptance/rework disposition;
 - bounded successor task framing;
@@ -74,6 +79,6 @@ The coordination model does not broaden side-effect authority. Explicit task aut
 
 ## Evidence ownership
 
-Hermes owns implementation and the primary evidence package. ChatGPT owns independent review and acceptance/rework disposition. Evidence, not actor identity, determines acceptance.
+The actor that actually executes a bounded step owns its implementation evidence. For Hermes tasks, Hermes owns the primary local/live evidence package. ChatGPT owns independent review and acceptance/rework disposition and may also directly execute repository-capable work when no independent local executor is required. Evidence, not actor identity, determines acceptance.
 
 A Hermes self-review may be included for quality control but never replaces ChatGPT independent review.
