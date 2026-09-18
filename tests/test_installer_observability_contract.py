@@ -46,14 +46,14 @@ def _assert_stage_brackets_command(stage: str, command_pattern: str) -> None:
     assert completion, f"diagnostic COMPLETE for {stage} must follow its command before the next stage"
 
     between = INSTALL_PS1[command_pos : command_pos + completion.end()]
-    assert ("$LASTEXITCODE" in between or "$prepareCapture.ExitCode" in between), f"stage {stage} must snapshot child exit code before diagnostic completion"
+    assert ("$LASTEXITCODE" in between or "$prepareCapture.ExitCode" in between or "$ticketDbCapture.ExitCode" in between), f"stage {stage} must snapshot child exit code before diagnostic completion"
 
 
 def test_critical_late_install_over_substages_are_bracketed():
     stages = [
         (
             "ticket-db-bootstrap",
-            r"node\s+\(Join-Path\s+\$pluginDir\s+[\"']scripts\\bootstrap-ticket-db\.mjs[\"']\)\s+--workspace",
+            r"Invoke-NativeInstallerDiagnostic\s+-Executable\s+[\"']node[\"']\s+-Arguments\s+@\(",
         ),
         ("plugin-npm-pack", r"npm\s+pack\s+--json"),
         ("plugin-rollover-prepare", r"[\"']rollover-prepare[\"']"),

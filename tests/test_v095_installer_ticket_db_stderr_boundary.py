@@ -17,12 +17,11 @@ def test_ticket_db_bootstrap_routes_node_through_native_diagnostic_boundary():
         "on benign native stderr before LASTEXITCODE is observed"
     )
 
-    window_match = re.search(
-        r'if \(-not \$SkipPlugin\) \{(?P<body>[\s\S]{0,1800}?)\n\}',
-        SOURCE,
-    )
-    assert window_match, "ticket-db bootstrap installer block is missing"
-    body = window_match.group("body")
+    stage_pos = SOURCE.find('Start-InstallerDiagnosticStage -Stage "ticket-db-bootstrap"')
+    assert stage_pos >= 0, "ticket-db bootstrap installer stage is missing"
+    block_end = SOURCE.find('\n}', stage_pos)
+    assert block_end >= 0, "ticket-db bootstrap installer block is missing"
+    body = SOURCE[stage_pos:block_end]
 
     assert 'Start-InstallerDiagnosticStage -Stage "ticket-db-bootstrap"' in body
     assert 'Invoke-NativeInstallerDiagnostic -Executable "node"' in body
