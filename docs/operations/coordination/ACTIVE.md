@@ -1,66 +1,74 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX418_PRESERVED_SESSION_OLLAMA_SEMANTIC_VERTICAL_SLICE`
-Execution mode: `ONE_SEMANTIC_PRESERVED_DASHBOARD_TICKET_FIRST_OLLAMA_ACCEPTANCE`
-Task ID: `CNX-20260918-418`
-Parent: `CNX-20260918-417`
+Status: `READY_FOR_HERMES`
+State: `CNX420_OPERATOR_FRESH_SESSION_ROUTE_TICKET_FIRST_DISCRIMINATION`
+Execution mode: `OPERATOR_ASSISTED_TWO_STAGE_SEMANTIC_ACCEPTANCE`
+Task ID: `CNX-20260918-420`
+Parent: `CNX-20260918-419`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Installed source candidate: `c1baa815d6894f0d619d4d3695c61a442e206e38`
-Preserved target session key: `agent:main:dashboard:6e96fece-c6ad-47b9-bfb4-680dd8a3a75b`
-Preserved target session ID: `18fab7b9-2fb1-409f-9aed-d79168aaffdc`
-Preserved nonce: `CNX418-20260918T095632Z-2E7A2E6B`
-Parent review: `docs/operations/coordination/reviews/CNX-20260918-418-chatgpt-review.md`
-Parent report: `docs/operations/coordination/reports/CNX-20260918-418-preserved-session-ollama-semantic-vertical-slice-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-419-preserved-draft-enter-submit-ollama-ticket-first.md`
+Parent report: `docs/operations/coordination/reports/CNX-20260918-419-preserved-draft-enter-submit-ollama-ticket-first-report.md`
+Parent review: `docs/operations/coordination/reviews/CNX-20260918-419-chatgpt-review.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-420-operator-fresh-session-ollama-route-ticket-first-discrimination.md`
 
 ## Current position
 
-CNX-418 is accepted as correctly blocked at `BLOCKED_EVIDENCE`.
+CNX-419 is reviewed and accepted as failed with:
 
-The preserved session remains semantically empty and selected for `ollama/qwen3.8:27b`. The existing nonce draft remains unsent. One prior UIA Send-button Invoke produced zero `chat.send`, zero transcript append, zero Ticket, zero model call, and zero delivery effect.
+- primary: `BLOCKED_TICKET_FIRST_ORDERING`;
+- secondary: `BLOCKED_SELECTED_ROUTE_NOT_HONORED`.
 
-Exact OpenClaw source proves the composer has an Enter-key submit path that directly commits the current textarea draft and calls the normal send handler when the Send shortcut is configured to Enter.
+The Operator observed that after refreshing the browser, the UI showed `openai/gpt-5.6-luna`, raising a plausible stale-browser/session-presentation hypothesis for the earlier pre-send Ollama label.
+
+The Operator has explicitly authorized one new diagnostic semantic turn using a completely fresh Operator-created Dashboard session.
+
+## Required interaction model
+
+Hermes must first perform Stage-1 read-only preflight and baseline capture.
+
+If preflight is GREEN, Hermes must **stop and tell the Operator** to:
+
+1. refresh the Dashboard page;
+2. click New Session;
+3. select Ollama / `qwen3.8:27b`;
+4. enter the exact nonce prompt supplied by Hermes;
+5. verify the UI shows `qwen3.8:27b`;
+6. send exactly once manually;
+7. return to Hermes and say `ส่งแล้ว`.
+
+Hermes must not perform any browser mutation and must not continue to post-send inspection until the Operator explicitly says `ส่งแล้ว`.
+
+While waiting, coordination may be moved to `WAITING_FOR_OPERATOR_ACTION`.
 
 ## Current authorization
 
-CNX-419 is waiting for ChatGPT review.
+CNX-420 is READY for Hermes Stage 1 only.
 
-Hermes classified execution as `BLOCKED_TICKET_FIRST_ORDERING`, with secondary `BLOCKED_SELECTED_ROUTE_NOT_HONORED`: one authenticated owner WebChat message and one exact visible response materialized, but no CogentNexus Ticket/admission/delivery lineage existed and the native response used `openai/gpt-5.6-luna` instead of the selected `ollama/qwen3.8:27b` route.
-
-No retry or further live action is authorized in CNX-419.
+The Operator is **not yet instructed to send** until Hermes reports preflight GREEN and supplies the fresh nonce.
 
 ## Hard fences
 
-- New Session/New Chat: 0.
-- Send-button clicks/UIA Invoke: 0.
-- Ctrl+Enter submissions: 0.
-- Enter semantic submission attempts: max 1.
-- Semantic resend/retry: 0.
-- Direct Ollama/model probes: 0.
-- OpenAI semantic requests: 0.
-- Provider/model selection changes: 0.
-- Send-shortcut UI preference changes: max 1, only to Enter.
-- Other config mutation: 0.
-- Installer/install-over: 0.
-- Plugin lifecycle mutation: 0.
+- Hermes browser mutation: 0.
+- Hermes New Session: 0.
+- Hermes provider/model selection: 0.
+- Hermes typing/send/key action: 0.
+- Operator New Session: exactly 1 after Hermes instruction.
+- Operator semantic send: max 1 after Hermes instruction.
+- semantic retry/resend: 0.
+- direct provider/model probes: 0.
+- provider/model config mutation by executor: 0.
+- manual Ticket/outbox/recovery/SQLite mutation: 0.
 - Gateway restart/reload/repair: 0.
-- Lifecycle mutation: 0.
-- Manual Ticket/outbox/recovery/SQLite mutation: 0.
-- Manual durable replay/delivery: 0.
-- Session reset/delete/compact: 0.
-- Release/tag/main: 0.
-- Force push/history rewrite: 0.
-- Do not create/start CNX-420 yourself.
+- plugin lifecycle mutation: 0.
+- installer/install-over: 0.
+- lifecycle start/stop/restart: 0.
+- production source repair: 0.
+- release/tag/main: 0.
+- force push/history rewrite: 0.
+- do not create/start CNX-421.
 
 ## Closeout
 
-Publish the CNX-419 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and clean publication worktree, preserve the session if PASS, and stop.
-
-
-## Review hold
-
-CNX-418 report is still being finalized. Do not start CNX-419 or any successor until the complete report is published and reviewed by ChatGPT.
+After the Operator says `ส่งแล้ว`, collect read-only post-send evidence, publish the CNX-420 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and clean publication worktree, and stop.
