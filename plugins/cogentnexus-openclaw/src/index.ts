@@ -792,6 +792,10 @@ entry.register = (api) => {
     trace("admission.trace.eligible",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true,outcome:eligible ? "eligible" : "ineligible"});
     if (!eligible) { trace("admission.trace.blocked",{outcome:"ineligible",reason:"durable admission eligibility predicate returned false"}); trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
     if (config.ticketFirst === true) {
+      if (currentRunId && ticketedRuns.has(currentRunId)) {
+        trace("admission.trace.completed",{outcome:"pass",reason:"run already admitted by earlier host adapter"});
+        return { outcome:"pass" };
+      }
       const admission=admitTicketFirstTurn({
         sessionKey:ctx.sessionKey,
         runId:ctx.runId,
