@@ -1,6 +1,6 @@
 # CNX-20260918-419 — Preserved Draft Enter-Key Submit and Ollama Ticket-First Vertical Slice
 
-Status: `READY_FOR_HERMES`
+Status: `DRAFT_WAITING_FOR_PARENT_REPORT`
 
 ## Authority
 
@@ -15,6 +15,10 @@ Status: `READY_FOR_HERMES`
 - Installed source candidate: `c1baa815d6894f0d619d4d3695c61a442e206e38`
 
 GitHub remote is authoritative.
+
+## Hold
+
+Do not execute this task yet. CNX-418 reporting/review is not complete. This draft exists only because it was created prematurely and must not be treated as authorization.
 
 ## Objective
 
