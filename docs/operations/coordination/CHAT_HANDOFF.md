@@ -1,6 +1,6 @@
 # ChatGPT Session Handoff
 
-Updated: 2026-08-30 ICT
+Updated: 2026-09-18 ICT
 
 This file lets a new ChatGPT conversation recover active CogentNexus development context from GitHub instead of depending on a previous chat context window.
 
@@ -15,15 +15,16 @@ The operator can say:
 The new ChatGPT conversation should read, in this order:
 
 1. `docs/operations/coordination/README.md`
-2. `docs/operations/coordination/EXECUTION_OWNERSHIP.md`
-3. `docs/operations/coordination/SIGNALS.md`
-4. current remote branch HEAD for the named stabilization branch
-5. `docs/operations/coordination/ACTIVE.md` from that remote revision
-6. `docs/operations/coordination/STATUS.md` from that remote revision
-7. the active task referenced by `ACTIVE.md`
-8. the matching report under `docs/operations/coordination/reports/`, if present
-9. the matching review under `docs/operations/coordination/reviews/`, if present
-10. `docs/operations/STATUS.md`, `ROADMAP.md`, `WORKLOG.md`, and `DECISIONS.md` as supporting narrative/context
+2. `docs/operations/coordination/SESSION_EXECUTION_MODEL_GUIDELINES.md`
+3. `docs/operations/coordination/EXECUTION_OWNERSHIP.md`
+4. `docs/operations/coordination/SIGNALS.md`
+5. current remote branch HEAD for the named working branch
+6. `docs/operations/coordination/ACTIVE.md` from that remote revision
+7. `docs/operations/coordination/STATUS.md` from that remote revision
+8. the active task referenced by `ACTIVE.md`
+9. the matching report under `docs/operations/coordination/reports/`, if present
+10. the matching review under `docs/operations/coordination/reviews/`, if present
+11. only the additional architecture/status/worklog documents actually needed by that task
 
 GitHub remote coordination state is the durable handoff authority. Do not infer current task identity from this handoff file, an older chat, a default branch, or an arbitrary local checkout.
 
@@ -66,3 +67,16 @@ Then:
 - if a matching executor report exists, review it before creating successor work;
 - if an active `READY_FOR_HERMES` task requires local/live evidence and has no completed matching report, the operator may signal Hermes/Codex with `ต่อ`;
 - do not duplicate an already-running executor's production changes; observe/review until the report or explicit ownership transition.
+
+
+## Hermes session and model-use preference
+
+When Hermes is needed:
+
+- reuse the same Hermes session for a direct continuation of the same task/phase when existing local context materially helps;
+- prefer a fresh Hermes session for a new bounded task or distinct phase, bootstrapped from durable GitHub state rather than a large chat-history dump;
+- use a lighter/faster model for bounded source tracing, evidence collection, deterministic tests, and small repairs with known root cause;
+- escalate to a stronger reasoning model for multi-hypothesis root cause, cross-system architecture, difficult lifecycle/race/recovery reasoning, high-risk production planning, or final release acceptance;
+- ChatGPT should proactively tell the operator when that escalation point has been reached.
+
+See `SESSION_EXECUTION_MODEL_GUIDELINES.md` for the standing details.
