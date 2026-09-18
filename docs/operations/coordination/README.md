@@ -5,7 +5,7 @@ GitHub remote coordination state is the durable handoff surface between Hermes, 
 ## Canonical standing model
 
 - Repository: `funggier/CogentNexus-OpenClaw`
-- Branch: `agent/v0.9.3-full-stabilization`
+- Branch: use the current remote working branch named by `ACTIVE.md` / `STATUS.md`; do not rely on a hard-coded historical branch
 - Current authority: remote `ACTIVE.md` + `STATUS.md`
 - Default repository-capable executor/coordinator/reviewer: **ChatGPT**
 - Local/live machine executor: **Hermes**
