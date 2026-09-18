@@ -60,6 +60,27 @@ The project direction is now explicitly:
 
 Ollama is the known working baseline. Therefore abstraction must be derived from the working Ollama vertical slice rather than designed independently.
 
+
+## Reviewer preliminary evidence
+
+Before Hermes execution, ChatGPT performed a read-only repository surface check and found existing v0.9.5 material that must be treated as prior evidence rather than reinvented:
+
+- `docs/PROVIDERS.md` states that managed lifecycle is Ollama-only while Cloud routes are OpenClaw-owned pass-through. OpenClaw owns Cloud authentication, provider/model selection, routing, runtime, lifecycle, probing, and recovery.
+- `docs/operations/acceptance/V095_PROVIDER_SWITCH_ACCEPTANCE.md` already defines the intended live acceptance sequence `Ollama -> Cloud A -> Cloud B -> Ollama` through normal Web Chat while preserving CNX session/Ticket/generation/policy continuity.
+- `plugins/cogentnexus-openclaw/src/v090-model-selection-boundary.test.ts` proves that `sessions.patch` model selection is passed through without creating or mutating CNX Ticket state.
+- `tests/test_v095_provider_switch_matrix.py` encodes provider switching as OpenClaw-owned metadata that must not mutate CNX mode/generation/provider ownership state.
+- `docs/operations/coordination/reports/CNX-20260910-315-provider-cli-ownership-matrix.md` explicitly forbids CNX lifecycle commands from becoming provider/model routing authority.
+- `docs/operations/coordination/reports/CNX-20260910-315-provider-independent-capabilities-update.md` removed providerMode as a capability kill-switch so CNX capabilities can remain active in pass-through.
+- CNX-357 and CNX-367 already prove a real Dashboard OpenAI model path: OpenAI / GPT-5.6 Luna produced a visible and runtime-recorded response.
+- CNX-375 and CNX-376 prove the current blocker is not basic OpenAI model availability. The user-visible OpenAI request succeeds, while CNX Ticket-first continuity is bypassed because `before_agent_run` is absent from the live composed hook registry and dispatch is skipped.
+
+Therefore CNX-406 must distinguish two questions:
+
+1. **OpenClaw provider/model switching path:** likely substantially native/already present.
+2. **CogentNexus continuity across that path:** currently impaired by the live hook-registry/admission boundary.
+
+Do not propose a new CNX provider router unless evidence proves the OpenClaw-owned route cannot satisfy the target.
+
 ## Required Inputs
 
 Read before execution:
