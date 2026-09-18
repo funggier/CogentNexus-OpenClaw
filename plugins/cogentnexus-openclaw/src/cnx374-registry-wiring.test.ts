@@ -47,6 +47,7 @@ describe("CNX-374 plugin hook registration registry wiring gate", () => {
       on: (name: string) => { hooks.push(name); },
       registerService: vi.fn(),
       registerTool: vi.fn(),
+      registerGatewayMethod: vi.fn(),
       config: { agents: { defaults: { workspace: root } } },
     };
 
