@@ -1,12 +1,14 @@
 # Hermes + ChatGPT Single-Agent Coordination Protocol
 
-Updated: 2026-09-06 ICT
+Updated: 2026-09-18 ICT
 
 ## Authority and precedence
 
 This is the standing coordination policy requested by the human operator for future CogentNexus-OpenClaw work.
 
-For work after this policy is published, this protocol defines Hermes as the sole routine executor. Historical tasks, reports, reviews, and actor names remain valid evidence under the contract that produced them.
+For work assigned to Hermes, this protocol defines Hermes as the sole Hermes-side execution agent for that bounded task. Historical tasks, reports, reviews, and actor names remain valid evidence under the contract that produced them.
+
+Current operator preference is ChatGPT-first for work that ChatGPT can safely complete with its present tools. Hermes is primarily used when local/live/environment-specific execution is required. See `SESSION_EXECUTION_MODEL_GUIDELINES.md` and `EXECUTION_OWNERSHIP.md`.
 
 GitHub remote state is authoritative. The human operator remains final authority.
 
@@ -14,7 +16,7 @@ Read `DELAYED_RECHECK_QUEUE.md` together with this protocol for asynchronous CI/
 
 ## Roles
 
-- **Hermes — sole routine execution agent.** Hermes owns the bounded task named by `ACTIVE.md` and may continue deterministic successor tasks.
+- **Hermes — sole Hermes-side execution agent when assigned.** Hermes owns the bounded local/live task named by `ACTIVE.md` and may continue only within its authorized task boundary.
 - **ChatGPT — independent reviewer, coordinator, and decision layer.** ChatGPT is invoked when a task reaches a review/decision boundary, evidence is contradictory, or authority is missing. ChatGPT reviews evidence, decides acceptance/rework, and frames bounded successor tasks.
 - **Human operator — final authority.** Human intent controls new semantic/product direction and any live/destructive/semantic authority that is not already explicit.
 
@@ -24,7 +26,8 @@ Luna and Musethree are historical Hermes actor labels only after this protocol. 
 
 ```text
 Human / ChatGPT establishes or updates the goal
-  -> assign a bounded task to Hermes
+  -> ChatGPT executes directly when current tools are sufficient
+  -> otherwise assign a bounded local/live task to Hermes
 Hermes executes the assigned task
   -> if CI/external gate pending: Hermes rechecks until terminal
   -> Hermes publishes evidence-rich report and handoff
