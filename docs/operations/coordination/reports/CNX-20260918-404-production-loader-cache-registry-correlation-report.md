@@ -169,7 +169,7 @@ For the missing `before_agent_run` state, the evidence narrows the possibilities
 
 After publication, only this report and the requested status tokens were changed. Final verification recorded:
 
-- authoritative final HEAD: to be set by the publication commit and verified with `git ls-remote origin refs/heads/cnx-357-openai-dashboard-ticket-first-requalification-v2`;
+- authoritative final HEAD after final publication commit: `f6a69939808d2c2478695ca666a6167599d67d3a`;
 - `ACTIVE.md`: `WAITING_FOR_CHATGPT_REVIEW`;
 - `STATUS.md`: `WAITING_FOR_CHATGPT_REVIEW`;
 - no historical CNX-360 through CNX-403 report changed;
