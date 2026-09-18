@@ -18,20 +18,19 @@ Report: `docs/operations/coordination/reports/CNX-20260918-420-operator-fresh-se
 
 CNX-420 completed its one authorized Operator-owned fresh-session semantic turn.
 
+Final result:
+
+`PASS_OPERATOR_FRESH_SESSION_OLLAMA_TICKET_FIRST_VERTICAL_SLICE`
+
 Confirmed:
 
 - route: `FRESH_SESSION_ROUTE_OLLAMA_CONFIRMED`;
-- Ticket-first: `FRESH_SESSION_TICKET_FIRST_CONFIRMED`.
+- Ticket-first: `FRESH_SESSION_TICKET_FIRST_CONFIRMED`;
+- actual provider/model/API: `ollama/qwen3.8:27b`, API `ollama`;
+- exactly one Ticket, one model call, one durable delivery, one native/visible assistant response;
+- no duplicate, retry, resend, outbox row, or recovery.
 
-The correlated `ollama/qwen3.8:27b` model call remained active without progress beyond its emitted deadline and the extended observation window. No terminal model-call event, response, durable delivery, native transcript message, or visible assistant output materialized.
-
-Combined task classification:
-
-`BLOCKED_FRESH_SESSION_EVIDENCE`
-
-Execution disposition:
-
-`FAIL_OLLAMA_INFERENCE_NO_TERMINAL_SETTLEMENT`
+The model call completed successfully but required `2,682,699 ms` (`44m 42.699s`), finishing `29m 42.700s` after its emitted 15-minute deadline. This long-latency/runtime-authority anomaly remains material reviewer evidence.
 
 ## Current authorization
 

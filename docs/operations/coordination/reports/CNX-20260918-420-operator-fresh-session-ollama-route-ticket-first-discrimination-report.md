@@ -2,23 +2,21 @@
 
 ## Result
 
-Combined task classification:
+Final classification:
 
-`BLOCKED_FRESH_SESSION_EVIDENCE`
+`PASS_OPERATOR_FRESH_SESSION_OLLAMA_TICKET_FIRST_VERTICAL_SLICE`
 
-Confirmed route sub-classification:
+Route classification:
 
 `FRESH_SESSION_ROUTE_OLLAMA_CONFIRMED`
 
-Confirmed Ticket-first sub-classification:
+Ticket-first classification:
 
 `FRESH_SESSION_TICKET_FIRST_CONFIRMED`
 
-Observed execution disposition:
+The Operator-created fresh Dashboard session actually executed through `ollama/qwen3.8:27b`. CogentNexus created and routed exactly one Ticket before exactly one model call, persisted the exact response, confirmed durable Dashboard delivery, and completed the Ticket. The visible assistant result matched the requested nonce.
 
-`FAIL_OLLAMA_INFERENCE_NO_TERMINAL_SETTLEMENT`
-
-This is not a full vertical-slice PASS. The fresh Operator-created session selected and actually entered `ollama/qwen3.8:27b`, and CogentNexus created the Ticket before the model call. However, the one model call remained active without progress beyond both its emitted deadline and the extended observation window. No terminal model-call event, `response_ready`, durable assistant delivery, native transcript message, or visible assistant response materialized.
+The result is a PASS with a significant performance observation: the model call required `2,682,699 ms` — **44 minutes 42.699 seconds**. The response completed `1,782.700 seconds` — **29 minutes 42.700 seconds** — after the emitted 15-minute model-call deadline. No resend, retry, or recovery was used.
 
 ## Authority
 
@@ -26,12 +24,11 @@ This is not a full vertical-slice PASS. The fresh Operator-created session selec
 - Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 - Task: `CNX-20260918-420`
 - Parent: `CNX-20260918-419`
-- Authoritative starting HEAD: `c2357d1ad93ded79336515648e41e8bc0f21754b`
-- Authoritative ending execution HEAD before report publication: `c2357d1ad93ded79336515648e41e8bc0f21754b`
-- At both Stage 1 and closeout, local HEAD, remote-tracking HEAD, and live `git ls-remote` HEAD matched the authoritative HEAD.
-- Matching report was absent before execution.
+- Authoritative execution HEAD: `c2357d1ad93ded79336515648e41e8bc0f21754b`
+- First report publication HEAD: `a2c6df22bacbe7aabf2c78311cfbd23ffdb7742e`
+- GitHub remote remained authoritative.
 
-GitHub remote remained authoritative throughout execution.
+The first report publication recorded the run as observation-window blocked while it was still running. The Operator then stated that the model was still working and would report completion. After the Operator confirmed a response, fresh durable and native evidence proved terminal success. This amended report supersedes that provisional classification.
 
 ## Stage 1 preflight
 
@@ -56,7 +53,7 @@ Stage 1 was captured at `2026-09-18T11:52:10.119887Z` and rechecked immediately 
 | Configured default route | `ollama/qwen3.8:27b` |
 | Hermes browser mutations | `0` |
 
-Three old nonterminal Discord Tickets existed before this task. Their newest update was `2026-09-07T09:28:49.810043Z`; they were unchanged, had no active model calls, and did not represent a current semantic acceptance run. Counts remained unchanged between baseline and pre-handoff recheck.
+Three old nonterminal Discord Tickets existed before this task. Their newest update was `2026-09-07T09:28:49.810043Z`; they were unchanged, had no active model calls, and did not represent a current semantic acceptance run.
 
 ### Durable baseline
 
@@ -70,17 +67,9 @@ Three old nonterminal Discord Tickets existed before this task. Their newest upd
 | `cnx_direct_recovery` | 5 |
 | `cnx_sessions` | 59 |
 
-Baseline cursors:
-
-- maximum event ID: `864`;
-- model-call row cursor: `20`;
-- delivery row cursor: `14`;
-- recovery row cursor: `5`;
-- session row cursor: `59`.
-
 ## Operator handoff checkpoint
 
-Nonce generated after GREEN preflight:
+Nonce generated only after GREEN preflight:
 
 `CNX420-20260918T115325Z-6A95AC07`
 
@@ -95,18 +84,12 @@ Hermes instructed the Operator to:
 1. refresh the Dashboard once;
 2. click New Session once;
 3. select Ollama / `qwen3.8:27b`;
-4. enter the exact prompt above;
+4. enter the exact prompt;
 5. verify that the UI showed `qwen3.8:27b` before sending;
 6. send exactly once manually;
 7. return and say `ส่งแล้ว`.
 
-Hermes explicitly stated that it would not inspect post-send state until the Operator said `ส่งแล้ว` and that no resend was allowed.
-
-The Operator confirmed:
-
-`ส่งแล้วครับ`
-
-and supplied this fresh-session URL:
+The Operator confirmed `ส่งแล้วครับ` and supplied:
 
 `http://127.0.0.1:18789/chat?session=agent%3Amain%3Adashboard%3A67a8d5a6-09aa-4ba0-9963-1a243c6691af`
 
@@ -126,59 +109,71 @@ Hermes performed:
 - Enter/Ctrl+Enter actions: `0`;
 - UI Automation mutation actions: `0`.
 
-Hermes used read-only screenshot capture only after the Operator confirmation. The Dashboard screenshot showed:
+Hermes used read-only screenshot capture only after the Operator confirmation.
 
-- the exact user prompt bubble;
-- the session still responding;
-- the observational UI label `qwen3.8:27b · Medium`;
-- no visible assistant result.
-
-The UI label is observational evidence only and was not used as execution-route authority.
+The final Dashboard capture showed one user bubble and one assistant bubble. The assistant bubble contained the exact nonce plus the CogentNexus delivery marker. The Operator initially wondered whether the response had duplicated, then corrected that observation: **it was not duplicated**. Durable evidence independently confirms one Ticket, one model call, one delivery row, one native assistant message, and no retry/recovery.
 
 ## Fresh session identity
 
 - Session key: `agent:main:dashboard:67a8d5a6-09aa-4ba0-9963-1a243c6691af`
 - Session ID: `1794f564-be6c-4a40-8416-91e876acb367`
 - CNX session created at: `2026-09-18T11:53:39.775Z`
-- OpenClaw `sessionStartedAt`: epoch `1789732419747`
 - Parent session key: `agent:main:dashboard:6e96fece-c6ad-47b9-bfb4-680dd8a3a75b`
-- Native session status at closeout: `running`
-- Native model metadata at closeout: `ollama/qwen3.8:27b`
+- Final native session status: `done`
+- Native session runtime: `2,682,873 ms`
+- Native model metadata: `ollama/qwen3.8:27b`
 - Agent runtime metadata: `auto`, source `implicit`
-- Session transcript path: `C:\Users\CDQ-P\.openclaw\agents\main\sessions\1794f564-be6c-4a40-8416-91e876acb367.jsonl`
+- Transcript: `C:\Users\CDQ-P\.openclaw\agents\main\sessions\1794f564-be6c-4a40-8416-91e876acb367.jsonl`
+- Final transcript size: `1,551` bytes, `6` lines
+- Final transcript SHA-256: `bb78a91fd8d26625399b86abb4a99f38fc408911c5f927ea076f00a1bcfe97e4`
 
-At closeout the native transcript file remained zero bytes with SHA-256:
+Native transcript:
 
-`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+- user record at `2026-09-18T11:54:28.981Z` with the exact prompt;
+- assistant record at `2026-09-18T12:39:11.717Z`;
+- assistant provider: `ollama`;
+- assistant model: `qwen3.8:27b`;
+- assistant API: `ollama`;
+- stop reason: `stop`;
+- visible assistant text after removing the delivery marker: exact nonce.
 
-Therefore no native user or assistant transcript record had yet been committed. The exact semantic prompt is instead proven by the Operator-confirmed UI bubble, the exact Ticket prompt, its prompt hash, and the correlated session/run lineage.
+Native record-to-record response interval:
+
+`2,682.736 seconds` = **44 minutes 42.736 seconds**.
 
 ## Ticket-first evidence
 
-The exact run was:
+Exact lineage:
 
 - Ticket ID: `CNXT-901fe944-3e38-43e4-91f4-bdb4fb685bf8`
 - Run ID: `bb96c508-1cbb-4988-85cc-fd77be263966`
+- Model-call ID: `bb96c508-1cbb-4988-85cc-fd77be263966:model:1`
 - Prompt SHA-256: `e1220d55ed1f6cee1ef5550e49e0865d8c153fd4a5892dc391d519e7139053c1`
 - Admission trace ID: `848fe8f0-6f98-4664-a3b9-5abaf6b3897f`
 
-Gateway/plugin trace ordering:
+Admission trace ordering:
 
-1. `admission.trace.started` at `2026-09-18T11:54:28.895Z`;
-2. `admission.trace.input` with `senderIsOwner=true`, Dashboard namespace match, and `ticketFirst=true` at `11:54:28.898Z`;
-3. `admission.trace.eligible` at `11:54:28.901Z`;
-4. `admission.trace.ticket-decision` with `ticketIntakeEligible=true` at `11:54:28.905Z`;
-5. `admission.trace.ticket-persisted` at `11:54:28.914Z`;
-6. `admission.trace.completed`, outcome `pass`, at `11:54:28.920Z`.
+1. `admission.trace.started` — `2026-09-18T11:54:28.895Z`;
+2. `admission.trace.input`, `senderIsOwner=true`, Dashboard namespace match, `ticketFirst=true` — `11:54:28.898Z`;
+3. `admission.trace.eligible` — `11:54:28.901Z`;
+4. `admission.trace.ticket-decision`, `ticketIntakeEligible=true` — `11:54:28.905Z`;
+5. `admission.trace.ticket-persisted` — `11:54:28.914Z`;
+6. `admission.trace.completed`, outcome `pass` — `11:54:28.920Z`.
 
-Durable Ticket events:
+Durable event ordering:
 
-1. event `865`, `accepted`, `2026-09-18T11:54:28.913Z`;
-2. event `866`, `routed`, `2026-09-18T11:54:28.917Z`;
-3. event `867`, `direct_model_call_started`, `2026-09-18T11:54:28.992Z`;
-4. event `868`, `inference_attempt_started`, `2026-09-18T11:54:29.001Z`.
+1. event `865`, `accepted` — `2026-09-18T11:54:28.913Z`;
+2. event `866`, `routed` — `11:54:28.917Z`;
+3. event `867`, `direct_model_call_started` — `11:54:28.992Z`;
+4. event `868`, `inference_attempt_started` — `11:54:29.001Z`;
+5. event `869`, `direct_model_call_ended`, outcome `completed` — `12:39:11.692Z`;
+6. event `870`, `inference_attempt_ended`, outcome `completed` — `12:39:11.697Z`;
+7. event `871`, `response_ready` — `12:39:11.713Z`;
+8. event `872`, `direct_response_durable` — `12:39:11.713Z`;
+9. event `873`, `delivery_confirmed` — `12:39:11.720Z`;
+10. event `874`, `completed` — `12:39:11.720Z`.
 
-The accepted and routed events precede model execution. Ticket-first admission is therefore positively confirmed rather than inferred from configuration or UI state.
+Ticket-first admission is positively confirmed because acceptance and routing preceded model execution on the same session, Ticket, and run.
 
 Ticket-first classification:
 
@@ -186,67 +181,69 @@ Ticket-first classification:
 
 ## Actual execution route
 
-Correlated durable model-call evidence:
+Correlated model-call facts:
 
-- call ID: `bb96c508-1cbb-4988-85cc-fd77be263966:model:1`;
 - provider: `ollama`;
 - model: `qwen3.8:27b`;
-- state at closeout: `active`;
+- final state: `ended`;
+- outcome: `completed`;
 - started at: `2026-09-18T11:54:28.992Z`;
+- ended at: `2026-09-18T12:39:11.692Z`;
+- measured duration: `2,682,699 ms`;
 - emitted deadline: `2026-09-18T12:09:28.992Z`;
 - emitted timeout: `900000 ms`;
 - call source: `openclaw-model-call-hook`;
 - inference-attempt source: `cogentnexus-openclaw-canonical-attempt`.
 
-The actual route matches the Operator-selected route. This is stronger than the UI label because it is bound to the exact Ticket and run.
+The native assistant message independently reports provider `ollama`, model `qwen3.8:27b`, API `ollama`.
 
 Route classification:
 
 `FRESH_SESSION_ROUTE_OLLAMA_CONFIRMED`
 
-No native assistant message materialized, so native assistant API/runtime metadata is unavailable. It is reported as unproven rather than guessed. Durable CNX provider/model evidence proves the attempted actual route.
+CNX-420 therefore did not reproduce the CNX-419 OpenAI route mismatch.
 
-## Extended observation and terminal failure
+## Long response-time observation
 
-A read-only observer ran for 2,100 seconds with 15-second snapshots, producing 141 observations. This exceeded the expected first-response allowance and preserved the same exact run without retry.
+The Operator specifically requested that the report record how long this model took.
 
-At the final closeout observation `2026-09-18T12:32:57.662770Z`:
+Authoritative timing:
 
-- elapsed since model-call start: `2308.67077 s` (about 38 minutes 29 seconds);
-- time beyond emitted deadline: `1408.67077 s` (about 23 minutes 29 seconds);
-- Ticket status: `accepted`;
-- model-call state: `active`;
-- model-call `ended_at`: null;
-- terminal model-call event: absent;
-- `response_ready`: absent;
-- Ticket result: null;
-- durable assistant delivery rows: `0`;
+| Interval | Duration |
+|---|---:|
+| Model-call start → model-call end | `2,682.699 s` = **44m 42.699s** |
+| Native user record → assistant record | `2,682.736 s` = **44m 42.736s** |
+| Ticket accepted → Ticket completed | `2,682.807 s` = **44m 42.807s** |
+| Model-call deadline overrun | `1,782.700 s` = **29m 42.700s** |
+
+The model was therefore **very slow but ultimately successful**. During the run, Gateway diagnostics reported `active_model_call_without_progress` and classified the session as long-running. The original bounded observer ended after 2,100 seconds while the run was still active. The Operator explicitly stated that it was still working and later confirmed the response. Fresh settlement evidence then proved completion.
+
+The latency is not evidence of a retry: semantic sends remained `1`, model calls remained `1`, inference attempts remained `1`, and recovery rows remained `0`.
+
+The fact that a call with emitted `timeoutMs=900000` completed after about 44 minutes is a runtime-authority anomaly worth reviewer attention. This report records the observed facts without assigning a repair or changing timeout configuration.
+
+## Durable result and delivery
+
+Final Ticket state:
+
+- status: `completed`;
+- `response_ready_at`: `2026-09-18T12:39:11.713Z`;
+- `delivery_confirmed_at`: `2026-09-18T12:39:11.720Z`;
+- failure class/message: null;
+- delivery last error: null.
+
+Durable delivery:
+
+- delivery ID: `15`;
+- kind: `direct_result`;
+- text: exact nonce;
+- status: `delivered`;
+- attempt count: `0`;
+- delivered at: `2026-09-18T12:39:11.720Z`;
 - outbox rows: `0`;
-- Direct Recovery rows for the Ticket: `0`;
-- native session status: `running`;
-- native transcript bytes: `0`;
-- visible assistant response: absent;
-- Dashboard state: still responding.
+- recovery rows for this Ticket: `0`.
 
-Gateway diagnostics separately classified the session as long-running with:
-
-- `reason=active_model_call_without_progress`;
-- `classification=long_running`;
-- `activeWorkKind=model_call`;
-- `lastProgress=model_call:started`;
-- `recovery=none`.
-
-The log recorded this at 149, 300, 600, and 1201 seconds of age. No later progress event appeared.
-
-The runtime remained generally healthy at closeout:
-
-- Gateway PID `13192` remained running/Ready;
-- Recovery check remained `READY`;
-- Delivery check remained `READY`;
-- SQLite integrity remained `ok`;
-- global pending outbox remained `0`.
-
-Those global health results do not promote this run to PASS because the exact Ticket never reached terminal model, result, or delivery state.
+The delivery marker was visible in the Dashboard presentation. There was one assistant message, not a duplicate.
 
 ## Durable deltas
 
@@ -255,14 +252,12 @@ Relative to Stage 1:
 | Durable surface | Delta |
 |---|---:|
 | Tickets | `+1` |
-| Ticket events | `+4` |
+| Ticket events | `+10` |
 | CNX sessions | `+1` |
 | Direct model calls | `+1` |
-| Assistant deliveries | `+0` |
+| Assistant deliveries | `+1` |
 | Outbox rows | `+0` |
 | Direct recovery rows | `+0` |
-
-The one Ticket and one model call are both bound to the exact fresh session and run.
 
 ## Semantic cardinality ledger
 
@@ -275,13 +270,13 @@ The one Ticket and one model call are both bound to the exact fresh session and 
 | CNX Tickets for the turn | `1` |
 | CNX direct model calls | `1` |
 | CNX inference attempts | `1` |
-| CNX assistant deliveries | `0` |
+| CNX assistant deliveries | `1` |
 | CNX outbox rows | `0` |
-| Native committed user transcript records | `0` |
-| Native committed assistant transcript records | `0` |
-| Visible assistant responses | `0` |
-
-The zero native committed user records reflects the still-open zero-byte transcript, not a claim that the Operator did not send. The exact accepted Ticket and visible user bubble prove the one semantic turn.
+| Native user transcript records | `1` |
+| Native assistant transcript records | `1` |
+| Visible assistant responses | `1` |
+| Duplicate assistant responses | `0` |
+| Recovery attempts | `0` |
 
 ## Hard-fence ledger
 
@@ -306,23 +301,22 @@ The zero native committed user records reflects the still-open zero-byte transcr
 
 ## Interpretation
 
-CNX-420 does not reproduce the CNX-419 selected-route mismatch. The refreshed, Operator-created fresh session actually entered `ollama/qwen3.8:27b`.
+CNX-420 does not reproduce either CNX-419 defect:
 
-CNX-420 also does not reproduce the CNX-419 Ticket-first bypass. CogentNexus admission, Ticket acceptance, routing, and model-call correlation all occurred before inference.
+- the refreshed, Operator-created fresh session honored `ollama/qwen3.8:27b`;
+- CogentNexus Ticket-first admission occurred before inference.
 
-This does not prove that browser staleness caused CNX-419. It proves only that the fresh-session route mismatch was not reproduced in CNX-420.
+This does not prove that stale browser presentation caused CNX-419. It proves only that the fresh-session route mismatch and Ticket-first bypass were not reproduced in CNX-420.
 
-The remaining observed failure is later in the vertical slice: the Ollama model call made no recorded progress and never reached terminal result or delivery state within the extended observation window.
+The complete required lineage exists:
 
-Because the task's full PASS requires complete Ticket-first/durable lineage and visible output, the combined task result is:
+`Dashboard/WebChat → admission trace → Ticket accepted/routed → Ollama qwen3.8:27b → response_ready → durable direct result → delivery_confirmed → Ticket completed → visible exact nonce`
 
-`BLOCKED_FRESH_SESSION_EVIDENCE`
+Final classification:
 
-with execution disposition:
+`PASS_OPERATOR_FRESH_SESSION_OLLAMA_TICKET_FIRST_VERTICAL_SLICE`
 
-`FAIL_OLLAMA_INFERENCE_NO_TERMINAL_SETTLEMENT`
-
-No repair or resend was attempted.
+The unusually long ~44m43s response time remains a significant performance/runtime-authority observation and should not be lost merely because the final result passed.
 
 ## Evidence paths
 
@@ -339,24 +333,21 @@ Key artifacts:
 - `stage1/operator-handoff.json`
 - `post-send/authority-and-operator-confirmation.txt`
 - `post-send/openclaw-target-final.json`
-- `post-send/final-dashboard-still-responding.png`
-- `post-send/gateway-status-final.json`
-- `post-send/recovery-check-final.txt`
-- `post-send/delivery-check-final.txt`
+- `post-send/final-visible-response.png`
 - `observations/latest.json`
 - `observer-result.json`
-- `closeout-summary.json`
+- `final-success-summary.json`
+
+Final visible-response screenshot was captured read-only after settlement; the screen showed one assistant bubble with the nonce and delivery marker.
 
 Screenshot SHA-256:
 
-`1245f5ba54dc6b0cc20fb2c500a2881ce67ff9e8d001b63ab3f7bce4c9f97325`
+`0b307492642b818eb51be96f8b78080024a325644211690d189da34b2a815af9`
 
 ## Secret disclosure accounting
 
-No API key, bearer token, password, connection string, or credential value is included in this report or the summarized evidence. Credential-bearing configuration was not dumped into the report.
+No API key, bearer token, password, connection string, or credential value is included in this report or the summarized evidence.
 
 ## Closeout
 
-ACTIVE.md and STATUS.md are moved to `WAITING_FOR_CHATGPT_REVIEW` with this report as the current result. Publication verification records the report blob, report SHA-256, exact remote HEAD, changed paths, and clean worktree externally after push.
-
-CNX-421 was not created or started.
+ACTIVE.md and STATUS.md remain `WAITING_FOR_CHATGPT_REVIEW`, now with the final PASS and long-latency observation. CNX-421 was not created or started.
