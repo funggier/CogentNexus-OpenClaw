@@ -14,13 +14,11 @@ Task specification: `docs/operations/coordination/tasks/CNX-20260918-404-product
 
 ## Current position
 
-CNX-403 is reviewed as PRODUCTION_PLUGIN_DISCOVERY_INCONCLUSIVE. One manifest-selected production CogentNexus root was directly observed, no second same-ID production candidate was directly observed, and no concrete root/manifest/ID mismatch was found. Duplicate precedence remains source-proven only as a conditional mechanism. CNX-401 remains separately unresolved in production: active-registry replacement and cache restoration can change the active typed-hook registry without fresh registration.
+CNX-404 is complete and reviewed as PRODUCTION_REGISTRY_CACHE_CORRELATION_INCONCLUSIVE. Exact source proves cache restore, active-registry reuse, and activation/replacement mechanisms, but production PID 27372 exposes no loader invocation ID, cache hit/miss, cache key, registry identity, activation ordering, or host typed-hook acceptance record. The two plugin-side hook-registered events do not establish final registry identity or host acceptance. No production mutation occurred.
 
 ## Current authorization
 
-CNX-404 is READY for Hermes execution.
-
-Determine whether existing read-only production observability can correlate PID 27372 with OpenClaw loader cache decisions, active-registry activation/replacement, or registry lifecycle markers. Use exact OpenClaw 2026.7.1-2 source and production logs/diagnostics only. No production mutation is authorized.
+CNX-404 is CLOSED pending reviewer handoff. No further execution is authorized from this gate. A successor task, if needed, must be created by the reviewer through a new coordination transition.
 
 ## Hard fences
 
@@ -45,4 +43,4 @@ Determine whether existing read-only production observability can correlate PID 
 
 ## Closeout
 
-After report publication, set `ACTIVE.md` and `STATUS.md` to `WAITING_FOR_CHATGPT_REVIEW`, verify local HEAD equals remote HEAD and a clean worktree, then stop. Do not create/start CNX-405.
+CNX-404 is published and awaiting ChatGPT review. Verify the report/ACTIVE/STATUS state against the authoritative branch before any successor transition. Do not create/start CNX-405 from Hermes.
