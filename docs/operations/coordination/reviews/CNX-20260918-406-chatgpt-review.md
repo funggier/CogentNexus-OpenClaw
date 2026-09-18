@@ -77,3 +77,41 @@ If the real composed registry cannot be represented through repository-accessibl
 ChatGPT
 
 Human final authority: Operator
+
+
+## Historical reconciliation after initial review
+
+A full read-back of CNX-380 through CNX-405 materially changes the successor recommendation and prevents duplicate work.
+
+The following boundaries are already established:
+
+- CNX-380 executed the exact isolated OpenClaw loader and queried the real global hook runner.
+- CNX-381 proved repeated `api.on("before_agent_run", ...)` calls reached the real host registration path and can be rejected by the host policy gate.
+- CNX-385 subsequently proved that `plugins.entries.<id>.hooks.allowConversationAccess=true` is a supported host configuration contract and is preserved by normalization.
+- CNX-391 replayed a production-shaped true-policy configuration through the exact installed loader and proved that `before_agent_run` is accepted into the real registry; its false-policy control omitted it.
+- CNX-394/CNX-395 proved that `plugins list --json hookCount/hookNames` is an installed-index/status projection and is not reliable evidence of the live Gateway typed-hook registry.
+- CNX-399/CNX-400/CNX-401 proved cache/repeated-registration/registry-replacement mechanisms but not their production occurrence.
+- CNX-404/CNX-405 exhausted the available read-only production correlation without obtaining per-invocation cache/registry/acceptance identity.
+
+Therefore the initial review suggestion to create another basic loader/composed-registry RED test would duplicate stronger historical evidence and is superseded by this reconciliation.
+
+## Revised successor direction
+
+The next bounded work should stop treating registry lifecycle forensics as the primary path.
+
+Before any new live semantic requalification, perform an exact-version architecture review of OpenClaw's available pre-inference typed-hook boundaries and select the narrowest supported, provider-independent boundary for CogentNexus Ticket-first admission.
+
+The review must compare at least:
+
+- `before_agent_run`;
+- `before_agent_reply`;
+- `before_prompt_build`;
+- `before_model_resolve`;
+- `inbound_claim` where relevant to Web Chat ingress;
+- any exact selection-runner / Agent Core pre-model boundary in OpenClaw 2026.7.1-2.
+
+The decision must be based on exact source ownership, dispatch coverage, ordering relative to provider/model resolution and inference, fail-closed semantics, context/session identity availability, and provider/runtime independence.
+
+Do not migrate hooks merely because `before_agent_run` has been difficult to observe. If the exact source proves it is still the correct boundary, retain it and define the next smallest proof/repair. If another supported boundary is strictly better for the product invariant, document the migration cost and compatibility implications before implementation.
+
+This is architecture-level reasoning and should use a stronger reasoning model rather than a lightweight worker model.
