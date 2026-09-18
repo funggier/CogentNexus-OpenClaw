@@ -10,6 +10,8 @@
 - Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 - Starting HEAD: `4168127b39a38ae88f24d4deab12815afa20b965`
 - Starting remote HEAD: `4168127b39a38ae88f24d4deab12815afa20b965`
+- Ending validation HEAD before publication: `4168127b39a38ae88f24d4deab12815afa20b965`
+- First publication commit: `cdd6a749` (report/state publication; final closeout HEAD is verified after the final report read-back)
 - Validation checkout: clean sibling checkout at `C:/Users/CDQ-P/cnx412-work`
 - Python: `3.11.15`
 - Remote was fetched before validation; GitHub remote was treated as authoritative.
