@@ -1,22 +1,20 @@
 # Coordination Channel Status
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX401_REGISTRY_ACTIVATION_REPLACEMENT_LINEAGE`
-Execution mode: `REGISTRY_ACTIVATION_REPLACEMENT_LINEAGE`
-Task ID: `CNX-20260918-401`
-Parent: `CNX-20260917-400`
+Status: `READY_FOR_HERMES`
+State: `CNX402_PRODUCTION_ARTIFACT_IDENTITY_RECONCILIATION`
+Execution mode: `PRODUCTION_ARTIFACT_IDENTITY_RECONCILIATION`
+Task ID: `CNX-20260918-402`
+Parent: `CNX-20260918-401`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260917-400-production-loader-repeated-registration-cache-correlation-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-401-registry-activation-replacement-lineage.md`
+Base report: `docs/operations/coordination/reports/CNX-20260918-401-registry-activation-replacement-lineage-report.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-402-production-artifact-identity-registry-lineage-reconciliation.md
 
 ## Current position
 
-CNX-400 is reviewed and accepted as `PRODUCTION_CACHE_CAUSALITY_NARROWED`. Exact CogentNexus source proves `hook-registered` is emitted from the plugin `register(api)` path after `api.on(...)`, so a pure OpenClaw cache hit or active-registry short circuit cannot itself generate that event. Exact OpenClaw source separately proves process-global cached/active registry state can suppress later registration. Production cache hit/miss and registry identity remain unobserved.
-
-The remaining mechanism question is whether a later loader invocation or registry activation path can replace the active plugin registry after an earlier registration attempt, thereby changing which registry the running Gateway observes. The next task must distinguish true hook-state preservation/replacement from mere registry object replacement.
+CNX-401 is reviewed as `REGISTRY_REPLACEMENT_MECHANISM_PROVEN`. Exact OpenClaw source proves active-registry pointer replacement and cached-registry activation can replace hook state without fresh registration. During review, CNX-401 also recorded a production artifact identity that differs from the previously established production baseline. CNX-402 resolves that identity discrepancy before later production causality claims rely on it.
 
 ## Current authorization
 
