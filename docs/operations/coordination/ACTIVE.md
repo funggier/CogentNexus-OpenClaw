@@ -1,48 +1,54 @@
 # Active Coordination Task
 
-Status: `WAITING_FOR_CHATGPT_REVIEW`
-State: `CNX409_RUNTIME_ATTESTATION_LOCAL_BUILD_TEST_QUALIFICATION`
-Execution mode: `LOCAL_SOURCE_BUILD_TEST_ONLY`
-Task ID: `CNX-20260918-409`
-Parent: `CNX-20260918-408`
+Status: `READY_FOR_HERMES`
+State: `CNX410_EXACT_CANDIDATE_INSTALL_OVER_LIVE_RUNTIME_ATTESTATION`
+Execution mode: `BOUNDED_PRODUCTION_INSTALL_OVER_AND_READ_ONLY_ATTESTATION`
+Task ID: `CNX-20260918-410`
+Parent: `CNX-20260918-409`
 Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Base report: `docs/operations/coordination/reports/CNX-20260918-408-live-hook-runner-runtime-attestation-surface-report.md`
-Task specification: `docs/operations/coordination/tasks/CNX-20260918-409-runtime-attestation-local-build-test-qualification.md`
+Qualified source candidate: `3d27ee85ff84ff2bf80d537e9046fb25e7a260ff`
+Parent review: `docs/operations/coordination/reviews/CNX-20260918-409-chatgpt-review.md`
+Task specification: `docs/operations/coordination/tasks/CNX-20260918-410-exact-candidate-install-over-live-runtime-attestation.md`
 Product goal: `docs/architecture/goals/REAL_PROVIDER_MODEL_RUNTIME_USAGE_GOAL.md`
 Development plan: `docs/architecture/goals/REAL_PROVIDER_MODEL_RUNTIME_DEVELOPMENT_PLAN.md`
 
 ## Current position
 
-CNX-406 is accepted as `OLLAMA_VERTICAL_SLICE_MAPPED_READY_FOR_RED_TEST`.
+CNX-409 is accepted as `RUNTIME_ATTESTATION_LOCAL_REPAIR_GREEN`.
 
-CNX-407 architecture review retained `before_agent_run` as the canonical provider-independent Ticket-first gate.
+The runtime-attestation implementation has passed focused tests, regression tests, TypeScript/plugin build, package validation, and exact OpenClaw SDK resolution against `openclaw@2026.7.1-2`.
 
-CNX-408 implemented a read-only operator-scoped Gateway RPC, `cogentnexus.runtimeAttestation`, using public OpenClaw plugin-runtime hook surfaces. Repository CI did not run automatically, so local build/test qualification is required before any deployment.
+The remaining practical boundary is production installation and direct read-only observation of the running Gateway's composed hook runtime.
 
 ## Current authorization
 
-CNX-409 is READY for Hermes execution.
+CNX-410 is READY for Hermes execution.
 
-Run local source/build/test/package validation only. Minimal repository repair is authorized if validation exposes a source defect, using RED -> minimal fix -> GREEN.
+Perform exactly one ownership-safe install-over of the qualified candidate, allow only installer-owned Gateway/runtime convergence, then call `cogentnexus.runtimeAttestation` exactly once after Gateway health is established.
+
+A semantic Ollama/OpenAI/WebChat/model request is not authorized in CNX-410.
 
 ## Hard fences
 
-- No production install/install-over.
-- No production artifact replacement.
-- No Gateway restart/reload.
-- No production config/environment/Scheduled Task mutation.
-- No live Gateway RPC call.
-- No semantic/model/provider request.
-- No provider/model/auth/routing change.
-- No TicketStore/durable-state mutation.
-- No OpenClaw dependency version change/patch.
-- No release/tag/main.
-- No force-push/history rewrite.
-- Do not create/start CNX-410 yourself.
+- Semantic Web Chat submissions: 0.
+- Ollama/OpenAI/model requests: 0.
+- Provider/model selection changes: 0.
+- Provider credential/auth mutation: 0.
+- Manual Ticket/outbox/recovery/SQLite mutation: 0.
+- Manual durable delivery/replay: 0.
+- Manual plugin copy/replace/rename/delete: 0.
+- Installer invocations after actual start: no retry.
+- Manual Gateway restart/repair after installer execution: 0.
+- OpenClaw dependency patch/version change: 0.
+- Release/tag/main: 0.
+- Force-push/history rewrite: 0.
+- Do not create/start CNX-411 yourself.
 
 ## Closeout
 
-Publish the CNX-409 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify exact remote/local HEAD and clean worktree, then stop. Do not deploy.
+Publish the CNX-410 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify exact local/remote HEAD equality and clean worktree, then stop.
+
+Do not send semantic traffic even if attestation returns `PRESENT`.
