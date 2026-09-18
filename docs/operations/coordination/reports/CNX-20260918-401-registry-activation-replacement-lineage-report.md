@@ -32,7 +32,7 @@ Installed module root inspected:
 | `runtime-registry-loader-Duw3fvRO.js` | `bd6a9f363bc7aac2fb0503640e339ffce52e0eab15336e6489b6f8129df748fb` |
 | `runtime-D0xGMZdc.js` | `a050a101e3c352345179b77f8c304da99596238fcde95cf03319ebc11dea8791` |
 
-Effective production artifact identity retained from the exact current read-only evidence context: `C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw\dist\v091-dashboard-verified-delivery.js`, SHA-256 `1276bd624b62f96692eaa19f493f69e422771b6994b39ded94b2bcb3399e1f98`.
+Corrected production artifact identity (CNX-402 reconciliation): the manifest-selected entry is `C:\Users\CDQ-P\.openclaw\extensions\cogentnexus-openclaw\dist\v091-release-entry.js`, SHA-256 `2841b704ad1c923ba643ca885eaf1d34e2f9565350d501c9d4895746d56c2d95`. The previously recorded `v091-dashboard-verified-delivery.js` / `1276bd624b62f96692eaa19f493f69e422771b6994b39ded94b2bcb3399e1f98` is a distinct on-disk artifact; its production loading is unproven and it is not the package-manifest extension entry. CNX-401's OpenClaw mechanism proof is unaffected; production correlation must use the corrected identity and retain the registry-observability gap.
 
 ## Exact call graph and line mapping
 
