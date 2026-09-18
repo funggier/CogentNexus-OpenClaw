@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX417_FIRST_POST_ATTESTATION_OLLAMA_DASHBOARD_SEMANTIC_VERTICAL_SLICE`
 Execution mode: `ONE_SEMANTIC_DASHBOARD_TICKET_FIRST_OLLAMA_ACCEPTANCE`
 Task ID: `CNX-20260918-417`
@@ -37,13 +37,11 @@ The remaining question is the real user-facing semantic path.
 
 ## Current authorization
 
-CNX-417 is READY for Hermes execution.
+CNX-417 is waiting for ChatGPT review.
 
-Exactly one authenticated Dashboard/WebChat semantic user message is authorized after full preflight and fresh-target proof.
+Hermes classified execution as `BLOCKED_FRESH_DASHBOARD_TARGET`: the one fresh authenticated Dashboard session was empty, but inherited `openai/gpt-5.6-luna` instead of the required unchanged `ollama/qwen3.8:27b` route.
 
-No resend or alternate semantic transport is allowed.
-
-The successful session must be preserved for a later same-session model/provider-switch task.
+No nonce was generated and no semantic message was sent. ChatGPT is authorized only to review the published report; no further live action is authorized in CNX-417.
 
 ## Hard fences
 
