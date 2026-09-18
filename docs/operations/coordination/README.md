@@ -7,12 +7,12 @@ GitHub remote coordination state is the durable handoff surface between Hermes, 
 - Repository: `funggier/CogentNexus-OpenClaw`
 - Branch: `agent/v0.9.3-full-stabilization`
 - Current authority: remote `ACTIVE.md` + `STATUS.md`
-- Routine executor: **Hermes**
-- Routine independent reviewer/coordinator: **ChatGPT**
+- Default repository-capable executor/coordinator/reviewer: **ChatGPT**
+- Local/live machine executor: **Hermes**
 - Async dependency behavior: **persistent delayed self-recheck; GitHub Actions default 5 minutes**
 - Human operator: final authority
 
-Read `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` first and `DELAYED_RECHECK_QUEUE.md` for CI/external waits.
+Read `SESSION_EXECUTION_MODEL_GUIDELINES.md` first for current operator workflow preferences. When Hermes is assigned, use `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md`; use `DELAYED_RECHECK_QUEUE.md` for CI/external waits.
 
 `HERMES_DUAL_AGENT_BATON_PROTOCOL.md` is retained for historical interpretation only. Its Luna/Musethree alternating baton no longer governs new work after the single-agent protocol publication commit.
 
@@ -20,20 +20,22 @@ Read `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` first and `DELAYED_RECHECK_QUEUE.
 
 ```text
 ChatGPT / human defines or updates the goal
-    -> Hermes task
-    -> CI pending? Hermes self-wakes every ~5 min until terminal
-    -> Hermes report
+    -> if ChatGPT can safely execute with current tools: ChatGPT does the work directly
+    -> if local/live machine access is required: bounded Hermes task
+       -> same task/phase: prefer same Hermes session
+       -> new task/phase: prefer a fresh Hermes session bootstrapped from GitHub
+    -> Hermes report when Hermes was required
     -> WAITING_FOR_CHATGPT_REVIEW
-    -> ChatGPT independent review
-       -> ACCEPT + bounded successor -> assign Hermes
-       -> REWORK -> assign Hermes
+    -> ChatGPT independent review / direct successor work
+       -> ACCEPT / REWORK / bounded successor
        -> missing human authority -> WAITING_FOR_USER_AUTHORITY
        -> final goal -> ChatGPT final acceptance
 ```
 
 ## Standing documents
 
-- `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` — authoritative current actor/reviewer/successor/escalation rules.
+- `SESSION_EXECUTION_MODEL_GUIDELINES.md` — current operator preferences for ChatGPT-first execution, Hermes session reuse/new-session choice, and model-strength escalation.
+- `HERMES_CHATGPT_SINGLE_AGENT_PROTOCOL.md` — Hermes execution/review/successor rules when a Hermes task is assigned.
 - `DELAYED_RECHECK_QUEUE.md` — persistent five-minute CI/external wait queue, stale-wake, dedupe, retry, and stalled-CI rules.
 - `EXECUTION_OWNERSHIP.md` — ownership/race/live-authority boundaries.
 - `EXECUTOR_ANALYSIS_REVIEW_MODEL.md` — Hermes execution + ChatGPT independent-review model.
@@ -46,9 +48,12 @@ ChatGPT / human defines or updates the goal
 
 ## Key invariants
 
-- Hermes is the sole routine execution agent for new work.
+- ChatGPT should directly perform repository/source/review/documentation work it can safely complete with current tools.
+- Hermes is reserved primarily for local/live/environment-specific execution that ChatGPT cannot perform.
 - Hermes never independently accepts its own completed report.
 - ChatGPT reviews Hermes reports and owns acceptance/rework/successor framing.
+- Prefer a fresh Hermes session for a new bounded task/phase; reuse the existing Hermes session for direct continuation where local context materially helps.
+- ChatGPT should proactively flag when a task is too complex for a lighter model and recommend a stronger reasoning model.
 - Remote GitHub truth outranks local checkout and conversational memory.
 - Source/test/CI work may continue autonomously within the active task authority.
 - Waiting for queued/in-progress CI does not terminate the task; Hermes retains ownership and self-wakes.
