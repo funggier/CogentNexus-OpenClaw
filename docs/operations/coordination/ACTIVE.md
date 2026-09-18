@@ -1,61 +1,56 @@
 # Active Coordination Task
 
-Status: `READY_FOR_HERMES`
-State: `CNX423_READY_FOR_HERMES`
-Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+State: `CNX423_WAITING_FOR_CHATGPT_REVIEW`
+Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR_COMPLETE`
 Task ID: `CNX-20260919-423`
 Parent: `CNX-20260918-422`
-Executor: `Hermes / authorized repository executor`
-Reviewer: `ChatGPT`
+Executor: `ChatGPT via LConnect`
+Reviewer: `ChatGPT (independent review)`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Parent report: `docs/operations/coordination/reports/CNX-20260918-422-reply-dispatch-ticket-first-repair-and-openclaw-2026-9-4-isolated-qualification-report.md`
-Parent review: `docs/operations/coordination/reviews/CNX-20260918-422-chatgpt-review.md`
 Task specification: `docs/operations/coordination/tasks/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair.md`
-Expected report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
+Report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
+Qualified implementation HEAD: `59830e4512b89d8924295c886f121d077b3d6c61`
 
 ## Current position
 
-CNX-422 review decision:
+CNX-423 completed with executor classification:
 
-`REJECT_READY__ADMISSION_SEMANTICS_REPAIR_REQUIRED`
+`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE_REVIEW`
 
-The v2026.9.4 migration/rollback/build evidence remains useful, but controlled live-upgrade readiness is withdrawn pending two narrow admission repairs:
+The two CNX-422 review blockers are repaired:
 
-1. classify `InputProvenance` / internal control paths before trust fallback so restart recovery, inter-session and subagent completion are not admitted as new owner intent;
-2. distinguish source owner session from effective ACP dispatch session so legitimate bound ACP retargeting is not treated as contradictory identity.
+1. OpenClaw internal/inter-session/control provenance is excluded before external-owner trust evaluation.
+2. Source owner session and effective ACP dispatch session are normalized separately, so legitimate bound ACP retargeting is preserved while non-ACP same-role contradictions remain fail closed.
 
-## Authorization
+Evidence:
 
-CNX-423 may begin immediately.
+- CNX-423 RED: `5 failed / 3 passed`;
+- CNX-423 final: `8/8 PASS`;
+- CNX-423 + CNX-422: `24/24 PASS`;
+- focused baseline regressions: `99/99 PASS`;
+- package validation: `PASS`;
+- OpenClaw v2026.9.4 target build + tests: `97/97 PASS`;
+- full plugin suite: `367 PASS / 1 known predecessor CNX-383 RED`;
+- isolated v2026.9.4 runtime: ready, health `ok=true`, CNX loaded, clean SIGINT shutdown in `17ms`;
+- semantic provider sends: `0`;
+- live OpenClaw upgrade/migration: `0`.
 
-Authorized:
+CNX-422 copied-state migration/rollback evidence is reused because CNX-423 changes no storage/startup/migration boundary.
 
-- RED characterization tests;
-- minimal repository source repair after RED;
-- focused and broad regression tests;
-- OpenClaw v2026.9.4 target build/isolated fresh runtime qualification;
-- report/coordination commits and fast-forward push on the working branch.
+## Review boundary
 
-Not authorized:
+Await independent ChatGPT review.
 
-- semantic provider sends;
-- external provider probes;
-- live OpenClaw upgrade or migration;
-- live provider/model mutation;
-- live plugin lifecycle mutation for upgrade;
-- manual live Ticket/outbox/recovery/SQLite mutation;
-- release/tag/main;
-- force push/history rewrite.
+Do not:
 
-## Required invariant
+- perform the live OpenClaw upgrade;
+- create or execute a live-upgrade successor task before review;
+- send semantic provider acceptance traffic;
+- mutate live provider/model routing;
+- mutate live Ticket/outbox/recovery/SQLite state;
+- publish release/tag/main;
+- rewrite branch history.
 
-For eligible external owner turns:
-
-`NO TICKET = NO MODEL EXECUTION`
-
-Internal/control/recovery/inter-session turns must preserve host authority and must not become fresh owner Tickets.
-
-## Closeout
-
-Publish the CNX-423 report, set ACTIVE.md and STATUS.md to `WAITING_FOR_CHATGPT_REVIEW`, verify exact local/remote HEAD and clean worktree, then stop before any live upgrade.
+The next action is review only.

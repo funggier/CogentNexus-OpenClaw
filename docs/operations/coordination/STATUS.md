@@ -1,47 +1,49 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
-State: `CNX423_READY_FOR_HERMES`
-Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
+State: `CNX423_WAITING_FOR_CHATGPT_REVIEW`
+Execution mode: `REPLY_DISPATCH_PROVENANCE_AND_ACP_IDENTITY_SEMANTICS_REPAIR_COMPLETE`
 Task ID: `CNX-20260919-423`
 Parent: `CNX-20260918-422`
-Executor: `Hermes / authorized repository executor`
-Reviewer: `ChatGPT`
+Executor: `ChatGPT via LConnect`
+Reviewer: `ChatGPT (independent review)`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Review: `docs/operations/coordination/reviews/CNX-20260918-422-chatgpt-review.md`
-Task: `docs/operations/coordination/tasks/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair.md`
+Report: `docs/operations/coordination/reports/CNX-20260919-423-reply-dispatch-provenance-and-acp-identity-semantics-repair-report.md`
+Qualified implementation HEAD: `59830e4512b89d8924295c886f121d077b3d6c61`
 
-## Review result
+## Result
 
-CNX-422 executor classification:
+`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE_REVIEW`
 
-`READY_FOR_CONTROLLED_OPENCLAW_2026_9_4_UPGRADE`
+CNX-423 repaired the provenance/control-path and ACP dual-session identity blockers found in CNX-422 review.
 
-is **not accepted**.
+Current evidence:
 
-Reviewer classification:
+- RED captured before production repair: `5 fail / 3 pass`;
+- CNX-423: `8/8 PASS`;
+- combined CNX-423/CNX-422: `24/24 PASS`;
+- focused baseline: `99/99 PASS`;
+- package validation: PASS;
+- v2026.9.4 target suite: `97/97 PASS`;
+- broad suite: `367 PASS / 1 known historical CNX-383 RED`;
+- fresh isolated v2026.9.4 runtime: GREEN;
+- clean SIGINT shutdown: GREEN;
+- live OpenClaw remains `2026.7.1-2`, health `ok=true`;
+- semantic sends: `0`.
 
-`REJECT_READY__ADMISSION_SEMANTICS_REPAIR_REQUIRED`
+## Preserved migration boundary
 
-Blocking findings:
+CNX-423 does not change storage, startup migration, installer bootstrap, session persistence, or rollback logic.
 
-- privileged internal/control provenance can reach the owner-admission adapter without being excluded;
-- valid OpenClaw ACP retargeting can intentionally use different source-owner and effective-dispatch session keys, but CNX-422 treats that relation as identity conflict.
+CNX-422 evidence remains applicable:
 
-## Preserved evidence
-
-Accepted from CNX-422:
-
-- v2026.9.4 build/plugin compatibility;
-- fresh isolated startup/shutdown;
-- copied-state migration characterization;
-- full-state rollback proof;
-- binary-only downgrade incompatibility;
-- no provider/model/harness rewrite.
-
-These do not authorize live upgrade until CNX-423 passes review.
+- shared DB `v1 -> v17`;
+- agent DB `v1 -> v19`;
+- sessions `19 -> 19`;
+- binary-only downgrade unsafe;
+- full pre-upgrade snapshot restore required.
 
 ## Safety boundary
 
-Live OpenClaw upgrade, live migration, semantic acceptance send, release/tag/main and force-push remain prohibited.
+No live upgrade, live migration, semantic acceptance send, release/tag/main, or force push is authorized before review accepts CNX-423.
