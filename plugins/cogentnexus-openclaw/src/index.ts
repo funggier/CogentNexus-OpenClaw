@@ -8,7 +8,7 @@ import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
-import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchTrusted } from "./ticket-admission-kernel.js";
+import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchProvenanceExcluded, replyDispatchTrusted } from "./ticket-admission-kernel.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
@@ -876,6 +876,7 @@ entry.register = (api) => {
     };
   }, { priority: 2000, timeoutMs: 30_000 });
   if (config.ticketFirst === true) (api as any).on("reply_dispatch", (event:any, ctx:any) => {
+    if (replyDispatchProvenanceExcluded(event)) return;
     const prompt=canonicalReplyDispatchPrompt(event?.ctx);
     const identity=replyDispatchIdentity(event,ctx);
     const trusted=replyDispatchTrusted(event);

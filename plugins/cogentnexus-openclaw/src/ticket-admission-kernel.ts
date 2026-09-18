@@ -135,15 +135,36 @@ export function canonicalReplyDispatchPrompt(ctx: any): string | undefined {
   return undefined;
 }
 
+export function replyDispatchProvenanceExcluded(event: any): boolean {
+  const provenanceKind = text(event?.ctx?.InputProvenance?.kind).toLowerCase();
+  if (provenanceKind === "internal_system" || provenanceKind === "inter_session") return true;
+
+  const internalTurnSource = text(event?.ctx?.InternalTurnSource).toLowerCase();
+  if (internalTurnSource === "heartbeat" || internalTurnSource === "cron" || internalTurnSource === "exec") {
+    return true;
+  }
+
+  return false;
+}
+
 export function replyDispatchIdentity(event: any, runtimeCtx?: any) {
-  const eventSessionKey = text(event?.sessionKey);
-  const finalizedSessionKey = text(event?.ctx?.SessionKey);
-  const sessionKey = eventSessionKey || finalizedSessionKey || undefined;
+  const effectiveDispatchSessionKey = text(event?.sessionKey) || undefined;
+  const sourceSessionKey = text(event?.ctx?.SessionKey) || effectiveDispatchSessionKey;
+  const dispatchKind = text(runtimeCtx?.dispatchKind).toLowerCase();
   const identityConflict = Boolean(
-    eventSessionKey && finalizedSessionKey && eventSessionKey !== finalizedSessionKey,
+    dispatchKind !== "acp" &&
+      effectiveDispatchSessionKey &&
+      sourceSessionKey &&
+      effectiveDispatchSessionKey !== sourceSessionKey,
   );
   const runId = text(event?.runId) || text(runtimeCtx?.runId) || undefined;
-  return { sessionKey, runId, identityConflict };
+  return {
+    sessionKey: sourceSessionKey,
+    sourceSessionKey,
+    effectiveDispatchSessionKey,
+    runId,
+    identityConflict,
+  };
 }
 
 export function replyDispatchTrusted(event: any): boolean {
