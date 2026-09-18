@@ -1,6 +1,6 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_HERMES`
+Status: `WAITING_FOR_CHATGPT_REVIEW`
 State: `CNX418_PRESERVED_SESSION_OLLAMA_SEMANTIC_VERTICAL_SLICE`
 Execution mode: `ONE_SEMANTIC_PRESERVED_DASHBOARD_TICKET_FIRST_OLLAMA_ACCEPTANCE`
 Task ID: `CNX-20260918-418`
@@ -30,13 +30,11 @@ CNX-418 must re-prove that the exact preserved fresh session now resolves to `ol
 
 ## Current authorization
 
-CNX-418 is READY for Hermes execution.
+CNX-418 is waiting for ChatGPT review.
 
-Do not create another session.
+Hermes classified execution as `BLOCKED_EVIDENCE`: the exact preserved session was empty and selected for `ollama/qwen3.8:27b`, but the sole Send-control activation produced no observable semantic message, Ticket, model call, delivery, transcript append, or Gateway `chat.send` entry.
 
-If the exact preserved session is still empty and now resolves to `ollama/qwen3.8:27b`, exactly one semantic Dashboard/WebChat message is authorized.
-
-If the target/session/selection state is not exact, stop without sending.
+The one-shot budget was treated as consumed. No retry or further live action is authorized in CNX-418.
 
 ## Hard fences
 
