@@ -1,8 +1,8 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_EXECUTION`
-State: `CNX425_READY_FOR_EXECUTION`
-Execution mode: `CONTROLLED_LIVE_OPENCLAW_2026_9_4_UPGRADE_AND_ACCEPTANCE`
+Status: `WAITING_FOR_OPERATOR_SEMANTIC_SEND`
+State: `CNX425_WAITING_FOR_OPERATOR_SEMANTIC_SEND`
+Execution mode: `CONTROLLED_LIVE_OPENCLAW_2026_9_4_POST_UPGRADE_ACCEPTANCE`
 Task ID: `CNX-20260919-425`
 Parent: `CNX-20260919-424`
 Executor: `ChatGPT via LConnect`
@@ -10,26 +10,33 @@ Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Authorization
+## Upgrade state
 
-Controlled live upgrade to exact OpenClaw `2026.9.4` is authorized only after a verified full rollback snapshot.
+OpenClaw live version:
 
-## Rollback rule
+`2026.9.4 (3a9d69d)`
 
-Binary-only downgrade is prohibited after target state migration.
+Non-semantic gates:
 
-Rollback requires restoration of:
+- health: PASS
+- sessions 19: PASS
+- qualified CNX install: PASS
+- reply_dispatch registration: PASS
+- plugin errors 0: PASS
+- Discord connected: PASS
+- state DB integrity: PASS
+- CNX counters preserved: PASS
+- supervisor restored: PASS
+- Dashboard HTTP 200: PASS
 
-- old OpenClaw package/wrappers;
-- complete pre-upgrade live state/config/session/workspace snapshot;
-- CNX runtime DB.
+External degraded dependency:
 
-## Current live baseline
+- Tailscale service exists, but backend remains `NoState`;
+- managed OpenClaw Tailscale exposure is temporarily set to `off`;
+- local loopback Gateway remains healthy.
 
-Expected before preflight:
+## Remaining gate
 
-- OpenClaw `2026.7.1-2`;
-- Gateway `127.0.0.1:18789`;
-- sessions `19`.
+One new Dashboard session using explicitly selected `OpenAI / gpt-5.6-luna` must send the single CNX-425 acceptance message.
 
-Executor must re-verify rather than assume these values.
+No CLI/provider substitute is accepted for this gate.
