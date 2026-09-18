@@ -440,10 +440,18 @@ if (-not $SkipAgentsPolicy) {
 
 if (-not $SkipPlugin) {
     $ticketDbDiagnostic = Start-InstallerDiagnosticStage -Stage "ticket-db-bootstrap"
-    node (Join-Path $pluginDir "scripts\bootstrap-ticket-db.mjs") --workspace $Workspace
-    $ticketDbExit = $LASTEXITCODE
+    $ticketDbCapture = Invoke-NativeInstallerDiagnostic -Executable "node" -Arguments @(
+        (Join-Path $pluginDir "scripts\bootstrap-ticket-db.mjs"),
+        "--workspace",
+        $Workspace
+    )
+    if ($ticketDbCapture.Output) { Write-Host $ticketDbCapture.Output.TrimEnd() }
+    $ticketDbExit = $ticketDbCapture.ExitCode
     Complete-InstallerDiagnosticStage -Context $ticketDbDiagnostic -ExitCode $ticketDbExit
-    if ($ticketDbExit -ne 0) { throw "Ticket database bootstrap failed" }
+    if ($ticketDbExit -ne 0) {
+        $ticketDbFailure = Get-BoundedInstallerDiagnostic -Output ([string]$ticketDbCapture.Output)
+        throw "Ticket database bootstrap failed: $ticketDbFailure"
+    }
 }
 
 if ($actions.installPlugin) {
