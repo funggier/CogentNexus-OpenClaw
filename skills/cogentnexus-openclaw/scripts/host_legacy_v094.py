@@ -226,8 +226,10 @@ def reconcile_default_session() -> dict[str, Any]:
     return {"ok": True, "created": True, "sessionKey": created_key, "expectedMainSessionKey": expected}
 
 
+PLUGIN_MUTATION_TIMEOUT_SECONDS = 180
+
 def plugin_enabled(enabled: bool) -> None:
-    run([openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=60, check=True)
+    run([openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=PLUGIN_MUTATION_TIMEOUT_SECONDS, check=True)
 
 
 def configure_managed_plugin() -> None:

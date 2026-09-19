@@ -20,14 +20,17 @@ spec.loader.exec_module(cnx)
 
 class HostControlTests(unittest.TestCase):
     def setUp(self):
+        self.original_supported = cnx.config_path_supported
         self.original_get = cnx.config_get
         self.original_set = cnx.config_set
         self.original_unset = cnx.config_unset
         self.original_delegate = cnx.delegate
         self.original_subprocess_run = cnx.subprocess.run
         self.original_argv = list(sys.argv)
+        cnx.config_path_supported = lambda _path: True
 
     def tearDown(self):
+        cnx.config_path_supported = self.original_supported
         cnx.config_get = self.original_get
         cnx.config_set = self.original_set
         cnx.config_unset = self.original_unset

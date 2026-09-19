@@ -116,6 +116,18 @@ def append_audit(root: Path, action: str, payload: dict[str, Any]) -> None:
         handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
 
 
+def config_path_supported(path: str) -> bool:
+    result = run([openclaw_executable(), "config", "get", path, "--json"], timeout=30)
+    if result.returncode == 0:
+        return True
+    detail = (captured_text(result.stderr) + "\\n" + captured_text(result.stdout)).strip()
+    if "Unknown config path:" in detail:
+        return False
+    if "Config path is valid but unset:" in detail:
+        return True
+    raise RuntimeError(detail or f"failed to inspect OpenClaw config schema path {path}")
+
+
 def config_get(path: str) -> tuple[bool, Any]:
     result = run([openclaw_executable(), "config", "get", path, "--json"], timeout=30)
     if result.returncode != 0:
@@ -157,6 +169,19 @@ def write_snapshot(root: Path, value: dict[str, Any]) -> None:
 def apply_watchdog_compat(root: Path) -> dict[str, Any]:
     path = snapshot_path(root)
     existing = path.exists()
+    if not config_path_supported(WATCHDOG_PATH):
+        if existing:
+            try:
+                snapshot = json.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                snapshot = {"schemaVersion": 1, "path": WATCHDOG_PATH}
+            snapshot["applied"] = False
+            snapshot["schemaUnsupported"] = True
+            snapshot["schemaUnsupportedAt"] = now_iso()
+            write_snapshot(root, snapshot)
+        result = {"changed": False, "supported": False, "reason": "unsupported-by-host"}
+        append_audit(root, "watchdog-compat-host-schema-unsupported", result)
+        return result
     if existing:
         try:
             snapshot = json.loads(path.read_text(encoding="utf-8"))
@@ -175,6 +200,8 @@ def apply_watchdog_compat(root: Path) -> dict[str, Any]:
         }
         write_snapshot(root, snapshot)
 
+    snapshot.pop("schemaUnsupported", None)
+    snapshot.pop("schemaUnsupportedAt", None)
     present, current = config_get(WATCHDOG_PATH)
     if existing and snapshot.get("applied") is True and (not present or current != MANAGED_WATCHDOG_ABORT_MS):
         # The value moved after CNXCLAW had applied it. Treat that as operator-owned
@@ -206,6 +233,18 @@ def restore_watchdog_compat(root: Path) -> dict[str, Any]:
     path = snapshot_path(root)
     if not path.exists():
         return {"restored": False, "reason": "no-snapshot"}
+    if not config_path_supported(WATCHDOG_PATH):
+        try:
+            snapshot = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            snapshot = {"schemaVersion": 1, "path": WATCHDOG_PATH}
+        snapshot["applied"] = False
+        snapshot["schemaUnsupported"] = True
+        snapshot["schemaUnsupportedAt"] = now_iso()
+        write_snapshot(root, snapshot)
+        result = {"restored": False, "reason": "unsupported-by-host"}
+        append_audit(root, "watchdog-compat-restore-skipped-host-schema-unsupported", result)
+        return result
     snapshot = json.loads(path.read_text(encoding="utf-8"))
     present, current = config_get(WATCHDOG_PATH)
     managed_value = snapshot.get("managedValue", MANAGED_WATCHDOG_ABORT_MS)
