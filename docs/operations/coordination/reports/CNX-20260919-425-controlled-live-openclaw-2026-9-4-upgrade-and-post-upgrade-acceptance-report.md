@@ -2,11 +2,11 @@
 
 ## Current classification
 
-`WAITING_FOR_OPERATOR_SEMANTIC_SEND`
+`LIVE_OPENCLAW_2026_9_4_UPGRADE_ACCEPTED`
 
-The controlled live upgrade itself has completed successfully through every non-semantic acceptance gate.
+CNX-425 completed all required upgrade, migration, non-semantic, and semantic Ticket-first acceptance gates.
 
-The only remaining CNX-425 phase is one bounded Dashboard owner-message acceptance. LConnect has no browser/UI automation surface, so substituting a CLI message would not prove the required Dashboard/provider/model/harness contract.
+The live OpenClaw 2026.9.4 runtime is retained. No rollback trigger is met.
 
 ## Authority
 
@@ -313,69 +313,167 @@ Result:
 
 Normal operational ownership is restored.
 
-## Provider/model readiness
+## Provider/model readiness and semantic acceptance
 
-Current OpenClaw model state:
+The operator refreshed the 2026.9.4 Dashboard, created a new session, explicitly selected OpenAI / GPT-5.6 Luna, and sent the single bounded acceptance message.
 
-- default: `ollama/qwen3.8:27b`
-- CNX provider mode: `passthrough`
-- CNX Ticket-first: `true`
-- OpenAI OAuth: `status=ok`
-- allowed OpenAI models include:
-  - `openai/gpt-5.6-luna`
-  - `openai/gpt-5.6-sol`
-  - `openai/gpt-5.6-terra`
+Dashboard session:
 
-The most recent Dashboard session is an existing explicit override:
+`agent:main:dashboard:2edc17af-d27c-440d-b175-6730239d4d38`
 
-- provider: `openai`
-- model: `gpt-5.6-luna`
-- runtime: `codex`
+Session evidence:
 
-Because CNX-419 previously demonstrated stale Dashboard/provider state, that old session must not be reused for the final semantic acceptance.
+- session id: `bec7851d-28ae-47a2-9286-7be557f7e192`;
+- provider: `openai`;
+- model: `gpt-5.6-luna`;
+- provider override: `openai`;
+- model override: `gpt-5.6-luna`;
+- agent runtime: `codex`;
+- run status: `done`;
+- output tokens: `8`.
 
-## Control UI freshness warning
-
-After the upgrade, an existing client identifying itself as:
-
-`Hermes/0.17.0`
-
-attempted to connect with:
-
-`clientBuild=legacy`
-
-OpenClaw 2026.9.4 rejected it with:
-
-`reload required`
-
-This is a stale client/UI-build warning, not a Gateway/CNX health failure.
-
-The local Dashboard itself responds HTTP `200`.
-
-## Required single operator action
-
-Use the local Dashboard:
-
-`http://127.0.0.1:18789/`
-
-Then:
-
-1. reload/refresh the Dashboard so it loads the 2026.9.4 Control UI build;
-2. create a **new session**;
-3. explicitly choose provider **OpenAI**;
-4. explicitly choose model **gpt-5.6-luna**;
-5. send exactly one owner message:
+Acceptance prompt:
 
 `CNX-425 semantic acceptance — reply exactly CNX425_OK`
 
-Do not resend if the UI appears slow. Report back only that the message was sent.
+CNX Ticket:
 
-The executor will then inspect the new run/Ticket/event/model/delivery evidence and complete CNX-425.
+- ticket: `CNXT-14f69475-e05d-4364-a362-6762cc939b23`;
+- run: `bbc34b0d-d681-4bdd-bc4b-6b083e0fc046`;
+- final ticket status: `completed`;
+- assistant delivery text: `CNX425_OK`;
+- delivery status: `delivered`;
+- delivery mode: `native-dashboard-marker`;
+- delivery error: none.
 
-## Current decision
+Exact durable event chain:
 
-`WAITING_FOR_OPERATOR_SEMANTIC_SEND`
+1. event 896 — `accepted`;
+2. event 897 — `routed`;
+3. event 898 — `response_ready`;
+4. event 899 — `direct_response_durable`;
+5. event 900 — `delivery_confirmed`;
+6. event 901 — `completed`.
 
-The OpenClaw 2026.9.4 live upgrade is retained and healthy locally. No rollback trigger is currently met.
+This proves one eligible Dashboard owner request became one durable Ticket before the accepted run completed, while provider/model/harness remained OpenClaw-owned.
 
-The full verified pre-upgrade rollback snapshot must remain untouched through final acceptance review.
+### Ollama Dashboard model-picker repair
+
+After the successful OpenAI acceptance, the operator reported that Ollama models could not be selected in the 2026.9.4 Dashboard.
+
+Initial evidence:
+
+- Ollama runtime was healthy and listed the installed models;
+- the bundled Ollama plugin was loaded;
+- Dashboard-facing `models.list` projected the Ollama entries as `available=false`;
+- OpenClaw status reported that auth readiness could not be confirmed for `ollama/qwen3.8:27b`.
+
+Installed local Ollama models:
+
+- `qwen3.8:27b`;
+- `qwen3.6:27b`;
+- `qwen3:1.7b`.
+
+Root cause was a post-migration provider-config/readiness gap in OpenClaw 2026.9.4:
+
+- the migrated Ollama provider retained `api=ollama` and timeout policy;
+- the authored local `baseUrl` was absent;
+- the canonical non-secret local marker `ollama-local` was absent from the provider entry;
+- the authored provider `models` path was absent;
+- OpenClaw 2026.9.4 requires a local provider config with non-empty `baseUrl`, `api`, and at least one explicit model before its local non-secret marker is considered usable by the read-only model availability evaluator;
+- the ordinary Dashboard catalog request does not request detailed unknown-availability preservation, so the incomplete readiness was projected as disabled.
+
+Bounded canonical repair:
+
+- set `models.providers.ollama.baseUrl=http://127.0.0.1:11434`;
+- set `models.providers.ollama.apiKey=ollama-local`;
+- retained `api=ollama`;
+- retained `timeoutSeconds=2700`;
+- authored the three actually installed Ollama models;
+- populated model capability metadata from the live local Ollama `/api/show` endpoint;
+- removed obsolete configured entries for locally absent `qwen3.5:9b` and `muse-glimmer:30b`;
+- replaced the broad `ollama/*` allow-list entry with the three installed model ids so the Dashboard does not expose non-installed catalog rows.
+
+Live capability evidence:
+
+`qwen3.8:27b`
+
+- context window: `262144`;
+- reasoning: true;
+- input: text + image;
+- tools: supported.
+
+`qwen3.6:27b`
+
+- context window: `262144`;
+- reasoning: true;
+- input: text + image;
+- tools: supported.
+
+`qwen3:1.7b`
+
+- context window: `40960`;
+- reasoning: true;
+- input: text;
+- tools: supported.
+
+Final Dashboard-equivalent session-scoped `models.list` now contains exactly these three Ollama entries and reports all three as `available=true`.
+
+The earlier failed Ticket `CNXT-e723d7d6-1138-4019-ae3a-05dbd28813a9` was an internal pre-repair Ollama probe with a roughly 20-second timeout. It occurred before the final CNX-425 acceptance and before the picker repair. It is not the acceptance Ticket and no new failed Ticket was created by the picker repair.
+
+## Final live state
+
+Current live runtime after the repair:
+
+- OpenClaw: `2026.9.4 (3a9d69d)`;
+- Gateway listener: `127.0.0.1:18789`;
+- Gateway PID after controlled repair restart: `27576`;
+- Gateway health: `ok=true`;
+- plugin errors: `0`;
+- Discord: connected / ready;
+- sessions: `21` after subsequent operator Dashboard activity;
+- CogentNexus supervisor: enabled;
+- latest controlled supervisor tick result: `0`;
+- default model: `ollama/qwen3.8:27b`;
+- CNX provider mode: `passthrough`;
+- CNX Ticket-first: `true`.
+
+Database integrity remains valid:
+
+- shared state DB `user_version=17`, `quick_check=ok`;
+- agent DB `user_version=19`, `quick_check=ok`;
+- CNX DB `quick_check=ok`.
+
+The increase from the migration-preserved 19 sessions to 21 occurred through post-upgrade operator activity and is not migration loss/corruption.
+
+## Known residual external dependency
+
+Managed Tailscale exposure remains disabled because the separate Windows Tailscale daemon is still stuck in `BackendState=NoState` and the LConnect account does not have permission to restart its LocalSystem service.
+
+Current OpenClaw exposure therefore remains:
+
+- `gateway.bind=loopback`;
+- `gateway.tailscale.mode=off`.
+
+This does not block the healthy local Dashboard/Gateway/CNX acceptance and does not trigger rollback under the CNX-425 contract. The verified rollback snapshot is retained.
+
+## Final decision
+
+`LIVE_OPENCLAW_2026_9_4_UPGRADE_ACCEPTED`
+
+CNX-425 is complete.
+
+Evidence supports:
+
+- exact OpenClaw 2026.9.4 live upgrade;
+- successful canonical state migration;
+- preserved state integrity;
+- healthy Gateway and expected channel/plugin state;
+- qualified CogentNexus runtime loaded;
+- one bounded Dashboard OpenAI semantic acceptance with exact Ticket-first durable event chain;
+- successful delivery of `CNX425_OK`;
+- post-upgrade Ollama Dashboard picker defect identified and repaired without dummy secrets or binary patching.
+
+No rollback action is required.
+
+The full verified pre-upgrade rollback snapshot must remain retained until normal operator retention policy permits deletion.

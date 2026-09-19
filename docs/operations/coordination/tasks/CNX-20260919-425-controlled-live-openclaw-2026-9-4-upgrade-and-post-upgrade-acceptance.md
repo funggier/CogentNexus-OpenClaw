@@ -1,6 +1,6 @@
 # CNX-20260919-425 — Controlled Live OpenClaw 2026.9.4 Upgrade and Post-Upgrade Acceptance
 
-Status: `READY_FOR_EXECUTION`
+Status: `COMPLETE`
 
 ## Authority
 
