@@ -1,6 +1,6 @@
 # CNX-20260919-426 — Model-Switch-Aware Context Pressure Budget Repair
 
-Status: `READY_FOR_EXECUTION`
+Status: `COMPLETE`
 
 Parent: `CNX-20260919-425`
 

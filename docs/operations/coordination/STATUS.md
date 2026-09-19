@@ -1,36 +1,43 @@
 # Coordination Channel Status
 
-Status: `READY_FOR_EXECUTION`
-State: `CNX426_READY_FOR_EXECUTION`
-Execution mode: `MODEL_SWITCH_CONTEXT_BUDGET_REPAIR`
+Status: `COMPLETE`
+State: `CNX426_MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_GREEN`
+Execution mode: `MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_COMPLETE`
 Task ID: `CNX-20260919-426`
 Parent: `CNX-20260919-425`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Trigger evidence
+## Repair result
 
-Session:
+Final classification:
 
-`agent:main:dashboard:7ce3cf7e-0ad6-4ed9-a17d-cf3b712954bb`
+`MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_GREEN`
 
-Blocked run:
+Implementation commits:
 
-`fd47fa35-8ff5-49cf-854c-fe0d076af784`
+- `e8418b8e7010c205b4e0496d6f41e8730c1f535e`
+- `0a8759e190ef42f952f92bd5d095b4bfe25f9191`
 
-Observed CNX pressure:
+Validation:
 
-- contextWindow `32768`
-- projectedTokens `28425`
-- level `soft`
+- CNX-426 focused: `6/6 PASS`
+- targeted regression: `67/67 PASS`
+- plugin validation: PASS
+- full suite: `376/377`, only historical CNX-383 RED
 
-Turn model selected by OpenClaw:
+Live qualification:
 
-`ollama/qwen3.8:27b`
+- exact candidate package installed;
+- implementation hashes match;
+- stale terminal context row cancelled without compaction;
+- physical session/transcript unchanged;
+- non-semantic live-artifact up/down model-switch probe PASS;
+- Gateway health true;
+- plugin errors 0;
+- Discord connected;
+- Supervisor result 0;
+- SQLite quick_check PASS.
 
-Expected effective context budget:
+Known unrelated residual:
 
-`262144`
-
-## Required TDD
-
-RED first, then minimal production repair, then GREEN/regression/live qualification.
+- Tailscale managed exposure remains off while external daemon stays `NoState`.
