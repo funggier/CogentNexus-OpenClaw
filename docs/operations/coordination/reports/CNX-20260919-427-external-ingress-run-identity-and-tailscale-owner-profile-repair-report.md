@@ -272,3 +272,42 @@ Detailed checkpoint:
 `docs/operations/coordination/reports/CNX-20260919-427-storage-relocation-and-pre-acceptance-runtime-checkpoint.md`
 
 The only remaining CNX-427 gate is one new operator-originated Discord turn on live OpenClaw 2026.9.5 proving authoritative runId, exactly one Ticket before inference, exactly one model execution, exactly one Discord delivery, terminal completion, and no stale/duplicate lane.
+
+## Post-checkpoint continuation — CNX-428 startup grace and isolated Ticket-first proof
+
+A separate live defect was discovered while preparing the final OpenClaw 9.5 Discord acceptance: the CogentNexus external supervisor could misclassify a valid slow OpenClaw 9.5 cold start as a hard hang.
+
+This was repaired under:
+
+- task: `CNX-20260919-428`;
+- implementation: `13dfba9a55f4d64ceb9aa8440670c9ee9792354a`;
+- report: `docs/operations/coordination/reports/CNX-20260919-428-openclaw-9.5-supervisor-cold-start-grace-repair-report.md`.
+
+Live cold-start evidence showed approximately 90.7 seconds from startup to `gateway ready`, including a roughly 38-second event-loop stall in `sidecars.model-runtime`. The previous two-probe/one-second hard-hang rule therefore restarted a valid boot.
+
+The repaired supervisor uses a bounded 180-second grace grounded in OpenClaw `gateway_boot_lifecycle`. A real live boot inside that grace returned `gateway-starting`, `action=none`, `heavyPath=false`, and did not invoke restart. The stale `healthy-runtime` marker then converged through the supported lifecycle path. Recurring supervisor returned to Enabled / Last Result 0 with no new restart request.
+
+A PID-bound isolated pre-acceptance probe then exercised the OpenClaw 9.5 Gateway execution path without Discord delivery:
+
+- session: `agent:main:cnx427-process-probe-1958`;
+- run: `62a61c83-8c61-446c-9a6d-20b4138dd857`;
+- Ticket: `CNXT-7a349016-6de3-4f20-bc7a-73c82cca6603`;
+- exactly one persisted user turn;
+- exactly one authoritative run;
+- exactly one CNX Ticket;
+- exactly one CNX model call.
+
+Ordering evidence:
+
+1. Ticket accepted: `12:59:26.475Z`;
+2. Ticket routed: `12:59:26.478Z`;
+3. model call started: `12:59:26.521Z`;
+4. inference attempt started: `12:59:26.532Z`.
+
+Ticket persistence therefore preceded model-call authority by approximately 46 ms.
+
+The explicit 90-second local-model probe timed out in provider execution and closed terminally as `failed` without recovery inference, duplicate Ticket, or duplicate model call. This is sufficient to prove the OpenClaw 9.5 execution-generation Ticket-first boundary, but it is intentionally not used as the final Discord delivery acceptance.
+
+A prior long-running PowerShell probe that materialized four independent user turns is excluded from one-turn acceptance evidence because connector timeout/replay behavior contaminated the harness. The PID-bound `start_process` probe removed that ambiguity.
+
+CNX-427 therefore remains `IN_PROGRESS`, but the pre-inference admission boundary is now live-proven. The remaining gate is exactly one genuine operator-originated Discord turn proving delivery and terminal semantics end-to-end.

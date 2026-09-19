@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 Status: `IN_PROGRESS`
-State: `CNX427_STORAGE_RELOCATION_GREEN_FINAL_DISCORD_ACCEPTANCE_PENDING`
+State: `CNX427_OPENCLAW95_TICKET_FIRST_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
@@ -46,6 +46,44 @@ OpenClaw 9.5 contains upstream generation continuity fix `983782594807a23c006b49
 
 Final semantic acceptance on 9.5 is still pending.
 
+## CNX-428 supervisor cold-start repair
+
+A live OpenClaw 9.5 cold start exposed a separate supervisor defect: the CNX external supervisor used two lightweight Gateway probes separated by one second and interpreted a valid slow cold start as a hard hang.
+
+Measured service-owned 9.5 boot:
+
+- HTTP listener after about 42.4 s;
+- event-loop stall around 38 s during `sidecars.model-runtime`;
+- `gateway ready` after about 90.7 s.
+
+Repair commit:
+
+`13dfba9a55f4d64ceb9aa8440670c9ee9792354a`
+
+The repaired Host reads OpenClaw `gateway_boot_lifecycle` and applies a bounded 180-second startup/restart grace. A real live boot inside that window returned `gateway-starting`, `action=none`, `heavyPath=false`, and did not invoke restart.
+
+Validation:
+
+- focused Host: 8/8 PASS;
+- expanded Python: 44/44 PASS;
+- CNX-427 plugin tests: 5/5 PASS;
+- full plugin suite: 381/382 PASS, with the sole failure the pre-existing intentional CNX-383 RED.
+
+Recurring supervisor is restored Enabled / Last Result 0, the stale maintenance marker was reconciled, and no new post-repair restart request was observed.
+
+Isolated PID-bound pre-acceptance probe:
+
+- session `agent:main:cnx427-process-probe-1958`;
+- run `62a61c83-8c61-446c-9a6d-20b4138dd857`;
+- Ticket `CNXT-7a349016-6de3-4f20-bc7a-73c82cca6603`;
+- exactly one user turn / one run / one Ticket / one model call;
+- Ticket accepted at `12:59:26.475Z`;
+- model call started at `12:59:26.521Z`;
+- Ticket-first ordering therefore preceded model authority by about 46 ms;
+- local `qwen3:1.7b` hit the explicit 90-second provider timeout and terminated `failed` without duplicate/recovery inference.
+
+This proves the 9.5 execution-generation Ticket-first boundary before the genuine Discord final gate.
+
 ## OOM finding
 
 The first live 9.5 start crashed because qwen3.8:27b remained loaded in Ollama and llama-server reserved ~22.94 GB private memory, filling the 20 GB pagefile and leaving ~2 GB free commit.
@@ -77,7 +115,7 @@ Current state:
 Post-relocation live runtime remains GREEN:
 
 - OpenClaw 2026.9.5;
-- Gateway PID 29604, health ok;
+- Gateway service child PID 30416 after controlled handoff, health ok;
 - Discord ready/connected;
 - CNX runnerReady=true / globalHookCount=7;
 - Tailscale Serve -> 127.0.0.1:12651;
