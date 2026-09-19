@@ -1,6 +1,6 @@
 # CNX-20260919-427 — External Ingress Run Identity and Tailscale Owner Profile Repair
 
-Status: `IN_PROGRESS`
+Status: `WAITING_FOR_LIVE_DISCORD_ACCEPTANCE`
 
 Parent: `CNX-20260919-426`
 
@@ -186,3 +186,20 @@ PASS:
 `EXTERNAL_INGRESS_AND_TAILSCALE_OWNER_PROFILE_REPAIR_GREEN`
 
 Partial/blockers must use a narrower evidence-backed classification rather than claiming full success.
+
+## Execution checkpoint — 2026-09-19
+
+Track A has been repaired, qualified, and deployed live.
+
+- source commit: `4ed98c8c5cbd03b3cd26acff8082fc1f14c0537b`;
+- focused regression: 39/39 PASS;
+- plugin validation: PASS;
+- full suite: 381/382 PASS, with only the pre-existing CNX-383 baseline failure;
+- qualified package SHA256: `1E1D337FEAFC339A3E1523C68C751D04DC72CA00C7BBF84770AEFF1390D89491`;
+- live `dist/index.js` SHA256: `6D96AD5FC4F419105E7E6A82EC941926886A05937C143E599C47FE9143A8FBE3`.
+
+Track B root cause is now proven as transient GitHub identity verification failure rather than Tailscale transport failure.
+
+Pre-restart remote connections authenticated as `funggier@github`, then GitHub identity synchronization failed with HTTP 403. After the controlled Gateway restart, Tailscale Serve came back GREEN, the remote browser authenticated again, and previously failing session RPCs completed successfully without any new profile-verification failure. No auth bypass or additional GitHub credential was introduced.
+
+The remaining final gate is one new operator-originated Discord turn.

@@ -1,32 +1,39 @@
 # Coordination Channel Status
 
-Status: `IN_PROGRESS`
-State: `CNX427_EXTERNAL_INGRESS_AND_TAILSCALE_PROFILE_REPAIR`
-Execution mode: `TDD_AND_BOUNDED_LIVE_REPAIR`
+Status: `WAITING_FOR_LIVE_DISCORD_ACCEPTANCE`
+State: `CNX427_TRACK_A_DEPLOYED_TRACK_B_GREEN_WAITING_DISCORD`
 Task ID: `CNX-20260919-427`
-Parent: `CNX-20260919-426`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Current evidence
+## Track A — Discord/CNX
 
-Discord:
+- root cause proven: early Discord `reply_dispatch` had no authoritative run ID and CNX claimed the turn fail-closed;
+- RED reproduced the defect;
+- minimal adapter repair implemented;
+- focused regression 39/39 PASS;
+- plugin validation PASS;
+- full suite 381/382 PASS with only the known historical CNX-383 failure;
+- qualified package installed live;
+- live `dist/index.js` SHA256 `6D96AD5FC4F419105E7E6A82EC941926886A05937C143E599C47FE9143A8FBE3`;
+- waiting for one new real Discord turn.
 
-- external Discord ingress is received by OpenClaw;
-- both current traces fail in CNX `reply_dispatch` with `missing-run-id`;
-- no current CNX Ticket/model run is created;
-- OpenClaw later releases the stale lane via watchdog.
+## Track B — Tailscale remote profile
 
-Tailscale remote UI:
+- Tailscale backend Running;
+- mode `serve`;
+- HTTPS Serve active through OpenClaw mediation on local port 1721;
+- remote HTTPS returns 200;
+- root cause of prior Activity failure: transient GitHub identity verification HTTP 403 for `funggier@github`;
+- post-restart remote RPCs `sessions.groups.list`, `sessions.subscribe`, and `chat.startup` succeeded;
+- no post-restart `GitHub identity sync failed` or `AUTHENTICATED_PROFILE_UNAVAILABLE` observed;
+- no auth bypass and no extra GitHub secret configured.
 
-- HTTPS/WebSocket transport reaches the Gateway;
-- `gateway.tailscale.mode=serve`;
-- session RPCs fail with `AUTHENTICATED_PROFILE_UNAVAILABLE`;
-- OpenClaw source shows this state means GitHub identity sync is present while `authenticatedUserProfile` is still absent.
+## Runtime integrity
 
-## Work in progress
-
-Track A: RED test and minimal deferred-admission repair.
-
-Track B: durable identity/profile inspection and narrow OpenClaw/Tailscale profile convergence repair.
-
-No security relaxation, provider routing change, force push, tag, release, or main mutation is authorized.
+- OpenClaw 2026.9.4;
+- Gateway healthy;
+- plugin errors 0;
+- Discord connected;
+- config valid;
+- three SQLite quick checks ok;
+- supervisor LastTaskResult 0.
