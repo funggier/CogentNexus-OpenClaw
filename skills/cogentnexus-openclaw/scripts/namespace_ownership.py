@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 import stat as stat_module
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -591,12 +592,19 @@ def _project_tree_entries(root: Path) -> list[dict[str, Any]]:
         for child in children:
             child_path = Path(child.path)
             relative = child_path.relative_to(root).as_posix()
-            is_junction = bool(getattr(os.path, "isjunction", lambda _path: False)(child.path))
-            if child.is_symlink() or is_junction:
+            is_symlink = child.is_symlink()
+            is_reparse = _is_reparse_point(child_path)
+            if is_symlink or is_reparse:
+                try:
+                    target = os.readlink(child.path)
+                except OSError as error:
+                    raise RuntimeError(
+                        f"managed npm project reparse target is unreadable: {child_path}"
+                    ) from error
                 entries.append({
                     "path": relative,
-                    "type": "junction" if is_junction else "symlink",
-                    "target": os.readlink(child.path),
+                    "type": "symlink" if is_symlink else "junction",
+                    "target": target,
                 })
             elif child.is_dir(follow_symlinks=False):
                 entries.append({"path": relative, "type": "directory"})
@@ -613,6 +621,69 @@ def _project_tree_entries(root: Path) -> list[dict[str, Any]]:
 
     visit(root)
     return entries
+
+
+def _windows_junction_target(value: str) -> str:
+    """Normalize os.readlink() Windows namespace prefixes for mklink /J."""
+    if value.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + value[8:]
+    if value.startswith("\\\\?\\"):
+        return value[4:]
+    return value
+
+
+def _copy_project_tree_preserving_reparse_points(source: Path, destination: Path) -> Path:
+    """Copy one owned project tree without dereferencing symlinks or Windows junctions."""
+    source = Path(source)
+    destination = Path(destination)
+    if destination.exists():
+        raise RuntimeError(f"project-tree backup destination already exists: {destination}")
+
+    def copy_directory(src: Path, dst: Path) -> None:
+        dst.mkdir()
+        with os.scandir(src) as iterator:
+            children = sorted(iterator, key=lambda item: item.name)
+        for child in children:
+            src_child = Path(child.path)
+            dst_child = dst / child.name
+            is_symlink = child.is_symlink()
+            is_reparse = _is_reparse_point(src_child)
+            if is_symlink:
+                os.symlink(
+                    os.readlink(child.path),
+                    dst_child,
+                    target_is_directory=child.is_dir(follow_symlinks=True),
+                )
+            elif is_reparse:
+                if os.name != "nt":
+                    raise RuntimeError(
+                        f"unsupported non-symlink reparse point in project tree: {src_child}"
+                    )
+                target = _windows_junction_target(os.readlink(child.path))
+                created = subprocess.run(
+                    ["cmd.exe", "/d", "/c", "mklink", "/J", str(dst_child), target],
+                    capture_output=True,
+                    text=True,
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                )
+                if created.returncode != 0:
+                    evidence = (created.stderr or created.stdout or "mklink /J failed").strip()
+                    raise RuntimeError(
+                        f"could not preserve Windows junction in project-tree backup: "
+                        f"{src_child} -> {target}: {evidence}"
+                    )
+            elif child.is_dir(follow_symlinks=False):
+                copy_directory(src_child, dst_child)
+            elif child.is_file(follow_symlinks=False):
+                shutil.copy2(src_child, dst_child, follow_symlinks=False)
+            else:
+                raise RuntimeError(
+                    f"managed npm project has an unsupported filesystem entry: {src_child}"
+                )
+        shutil.copystat(src, dst, follow_symlinks=False)
+
+    copy_directory(source, destination)
+    return destination
 
 
 def _project_tree_snapshot(root: Path) -> dict[str, Any]:
@@ -964,7 +1035,7 @@ def prepare_plugin_rollover_transaction(*, root: Path, workspace: Path,
     if not _contained(backup_path, backup_root) or backup_path == backup_root or backup_path.exists():
         raise RuntimeError("rollover backup destination is invalid or already exists")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(retired_project, backup_path)
+    _copy_project_tree_preserving_reparse_points(retired_project, backup_path)
     retired_snapshot = _project_tree_snapshot(retired_project)
     backup_snapshot = _project_tree_snapshot(backup_path)
     retired_project_tree_sha256 = retired_snapshot["sha256"]

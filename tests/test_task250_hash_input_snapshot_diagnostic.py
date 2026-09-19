@@ -13,7 +13,7 @@ def test_task250_mismatch_reports_exact_same_scan_snapshot_delta(tmp_path: Path,
     mutable = paths["direct"] / "runtime-state.txt"
     mutable.write_text("before-copy", encoding="utf-8")
 
-    original_copytree = ownership.shutil.copytree
+    original_copytree = ownership._copy_project_tree_preserving_reparse_points
     original_snapshot = getattr(ownership, "_project_tree_snapshot", None)
     calls = []
     mutated = False
@@ -30,7 +30,7 @@ def test_task250_mismatch_reports_exact_same_scan_snapshot_delta(tmp_path: Path,
         calls.append(Path(root).resolve())
         return original_snapshot(root)
 
-    monkeypatch.setattr(ownership.shutil, "copytree", copy_then_change_source)
+    monkeypatch.setattr(ownership, "_copy_project_tree_preserving_reparse_points", copy_then_change_source)
     if original_snapshot is not None:
         monkeypatch.setattr(ownership, "_project_tree_snapshot", snapshot)
 

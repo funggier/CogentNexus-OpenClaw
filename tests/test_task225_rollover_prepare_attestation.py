@@ -78,7 +78,7 @@ def test_prepare_fails_closed_when_nonpayload_source_changes_after_backup_copy(
     mutable_nonpayload = paths["direct"] / "runtime-state.txt"
     mutable_nonpayload.write_text("before-copy", encoding="utf-8")
 
-    original_copytree = ownership.shutil.copytree
+    original_copytree = ownership._copy_project_tree_preserving_reparse_points
     top_level_source = paths["direct"].resolve()
     mutated = False
 
@@ -90,7 +90,7 @@ def test_prepare_fails_closed_when_nonpayload_source_changes_after_backup_copy(
             mutated = True
         return result
 
-    monkeypatch.setattr(ownership.shutil, "copytree", copy_then_change_source)
+    monkeypatch.setattr(ownership, "_copy_project_tree_preserving_reparse_points", copy_then_change_source)
 
     with pytest.raises(RuntimeError, match="project-tree attestation mismatch"):
         ownership.prepare_plugin_rollover_transaction(
