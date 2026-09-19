@@ -1,38 +1,36 @@
 # Coordination Channel Status
 
-Status: `COMPLETE`
-State: `CNX425_LIVE_OPENCLAW_2026_9_4_UPGRADE_ACCEPTED`
-Execution mode: `CONTROLLED_LIVE_OPENCLAW_2026_9_4_COMPLETE`
-Task ID: `CNX-20260919-425`
-Parent: `CNX-20260919-424`
-Executor: `ChatGPT via LConnect`
-Reviewer: `ChatGPT`
-Human final authority: `Operator`
+Status: `READY_FOR_EXECUTION`
+State: `CNX426_READY_FOR_EXECUTION`
+Execution mode: `MODEL_SWITCH_CONTEXT_BUDGET_REPAIR`
+Task ID: `CNX-20260919-426`
+Parent: `CNX-20260919-425`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Final acceptance
+## Trigger evidence
 
-- OpenClaw live version: `2026.9.4 (3a9d69d)`
-- Gateway: PASS
-- state migration: PASS
-- session preservation through migration: PASS
-- qualified CNX install: PASS
-- Ticket-first reply_dispatch path: PASS
-- OpenAI Dashboard semantic acceptance: PASS
-- exact delivery: `CNX425_OK`
-- database integrity: PASS
-- supervisor restoration: PASS
-- Discord: connected / ready
-- Ollama picker repair: PASS
+Session:
 
-Final Dashboard-facing Ollama availability:
+`agent:main:dashboard:7ce3cf7e-0ad6-4ed9-a17d-cf3b712954bb`
 
-- `ollama/qwen3.8:27b` — available
-- `ollama/qwen3.6:27b` — available
-- `ollama/qwen3:1.7b` — available
+Blocked run:
 
-## Residual external dependency
+`fd47fa35-8ff5-49cf-854c-fe0d076af784`
 
-Tailscale managed exposure remains disabled while the external Tailscale daemon remains `NoState`.
+Observed CNX pressure:
 
-This residual is recorded but does not invalidate the local OpenClaw/CogentNexus acceptance.
+- contextWindow `32768`
+- projectedTokens `28425`
+- level `soft`
+
+Turn model selected by OpenClaw:
+
+`ollama/qwen3.8:27b`
+
+Expected effective context budget:
+
+`262144`
+
+## Required TDD
+
+RED first, then minimal production repair, then GREEN/regression/live qualification.
