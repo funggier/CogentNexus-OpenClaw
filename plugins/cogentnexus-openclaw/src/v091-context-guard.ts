@@ -227,7 +227,7 @@ async function snapshotCapsule(api:any,workspaceDir:string,databasePath:string,r
   mkdirSync(dir,{recursive:true});
   const path=resolve(dir,`g${row.owner_generation}-${iso().replace(/[:.]/g,"-")}.json`);
   writeFileSync(path,`${JSON.stringify({schemaVersion:1,createdAt:iso(),reason,ownerSessionKey:row.session_key,ownerGeneration:row.owner_generation,
-    ticketId:row.ticket_id,sessionId:session?.sessionId??row.session_id,contextWindow:session?.contextTokens??row.context_window,
+    ticketId:row.ticket_id,sessionId:session?.sessionId??row.session_id,contextWindow:Number(row.context_window)>0?Number(row.context_window):session?.contextTokens,
     projectedTokens:row.projected_tokens,totalTokens:session?.totalTokens,totalTokensFresh:session?.totalTokensFresh,
     compactionCheckpointCount:session?.compactionCheckpointCount,tickets,recentHistory:recent,
     note:"OpenClaw keeps/archives the full transcript. This bounded capsule preserves CNXCLAW authority, active intent and recent context before deterministic hard trimming."},null,2)}\n`);
@@ -240,7 +240,8 @@ async function maintain(api:any,row:Maintenance,config:ContextGuardConfig,worksp
   let current=await describe(api,row.session_key);
   if(!current){finish(databasePath,row,{state:"cancelled",action:"owner-missing",error:"OpenClaw session missing"});return {action:"owner-missing"};}
   if(row.session_id&&current.sessionId&&row.session_id!==current.sessionId){finish(databasePath,row,{state:"cancelled",action:"physical-session-changed"});return {action:"physical-session-changed"};}
-  const window=Math.max(8192,Number(current.contextTokens??row.context_window??32768));
+  const storedWindow=Number(row.context_window),describedWindow=Number(current.contextTokens);
+  const window=Math.max(8192,Number.isFinite(storedWindow)&&storedWindow>0?storedWindow:Number.isFinite(describedWindow)&&describedWindow>0?describedWindow:32768);
   const agentId=/^agent:([^:]+):/u.exec(row.session_key)?.[1];
   const timeoutMs=Math.max(30000,Math.min(config.contextCompactionTimeoutMs??600000,1800000));
   const hardTarget=Math.floor(window*0.86);
@@ -315,7 +316,10 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
     if(!ticket)return {outcome:"pass"};
     let session:SessionDescription|null=null;
     try{session=await describe(api,ctx.sessionKey);}catch(error){api.logger.warn?.(`CogentNexus-OpenClaw context describe failed: ${error instanceof Error?error.message:String(error)}`);}
-    const pressure=contextPressure({messages:event.messages,prompt:event.prompt,systemPrompt:event.systemPrompt,session,config});
+    const rawTurnBudget=Number(ctx.contextTokenBudget);
+    const turnBudget=Number.isFinite(rawTurnBudget)&&rawTurnBudget>0?Math.floor(rawTurnBudget):undefined;
+    const pressureSession=turnBudget?{...(session??{}),contextTokens:turnBudget}:session;
+    const pressure=contextPressure({messages:event.messages,prompt:event.prompt,systemPrompt:event.systemPrompt,session:pressureSession,config});
     if(pressure.level==="normal")return {outcome:"pass"};
     const queued=authorize(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,session,pressure});
     if(!queued)return {outcome:"pass"};

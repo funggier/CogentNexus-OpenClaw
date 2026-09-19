@@ -48,7 +48,7 @@ export function settleExistingContextHoldFromCompaction(input:{
       db.exec("COMMIT");return {found:true,settled:false,reason:"maintenance-running"};
     }
     const session=input.session??{};
-    const contextWindow=Number(session.contextTokens)>0?Number(session.contextTokens):Number(row.context_window)>0?Number(row.context_window):undefined;
+    const contextWindow=Number(row.context_window)>0?Number(row.context_window):Number(session.contextTokens)>0?Number(session.contextTokens):undefined;
     const eventTokens=Number(input.tokenCount)>0?Number(input.tokenCount):undefined;
     const freshTokens=session.totalTokensFresh===true&&Number(session.totalTokens)>0?Number(session.totalTokens):undefined;
     const observed=eventTokens??freshTokens;
