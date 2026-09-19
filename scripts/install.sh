@@ -202,7 +202,7 @@ if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then
     node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     PACKAGE_JSON=$(npm pack --json)
     PACKAGE_FILE=$(printf '%s' "$PACKAGE_JSON" | python -c 'import json,sys; x=json.load(sys.stdin); assert isinstance(x,list) and len(x)==1 and x[0].get("filename"); print(x[0]["filename"])')
-    openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force
+    openclaw plugins install "npm-pack:$PLUGIN_DIR/$PACKAGE_FILE" --force --accept-capabilities
     rm -f "$PLUGIN_DIR/$PACKAGE_FILE"
     trap - EXIT HUP INT TERM
     openclaw plugins disable cogentnexus-openclaw

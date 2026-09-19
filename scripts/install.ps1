@@ -516,7 +516,7 @@ if ($actions.installPlugin) {
                 if (-not (Test-Path -LiteralPath $rolloverTransactionPath)) { throw "rollover transaction proof was not persisted" }
             }
             $pluginInstallDiagnostic = Start-InstallerDiagnosticStage -Stage "plugin-install-local-package"
-            openclaw plugins install $packagePath --force
+            openclaw plugins install $packagePath --force --accept-capabilities
             $pluginInstallExit = $LASTEXITCODE
             Complete-InstallerDiagnosticStage -Context $pluginInstallDiagnostic -ExitCode $pluginInstallExit
             if ($pluginInstallExit -ne 0) { throw "plugin installation from local package archive failed" }
