@@ -187,6 +187,9 @@ function due(databasePath:string,maxAttempts:number):Maintenance[] {
       updated_at=?,completed_at=? WHERE state IN ('pending','running','degraded') AND NOT EXISTS(
         SELECT 1 FROM cnx_sessions s WHERE s.session_key=cnx_context_maintenance.session_key AND s.state='active'
           AND s.generation=cnx_context_maintenance.owner_generation)`).run(stamp,stamp);
+    db.prepare(`UPDATE cnx_context_maintenance SET state='cancelled',last_error='ticket no longer accepted',next_attempt_at=NULL,
+      updated_at=?,completed_at=? WHERE state IN ('pending','running','degraded') AND NOT EXISTS(
+        SELECT 1 FROM tickets t WHERE t.ticket_id=cnx_context_maintenance.ticket_id AND t.status='accepted')`).run(stamp,stamp);
     db.prepare(`UPDATE cnx_context_maintenance SET state='cancelled',last_error=COALESCE(last_error,'context maintenance retry limit reached'),
       next_attempt_at=NULL,updated_at=?,completed_at=? WHERE state='degraded' AND attempt_count>=?`).run(stamp,stamp,maxAttempts);
     return db.prepare(`SELECT session_key,owner_generation,ticket_id,state,hard_required,attempt_count,session_id,context_window,projected_tokens
@@ -199,13 +202,18 @@ function claim(databasePath:string,row:Maintenance) {
   const db=openDb(databasePath),stamp=iso();
   try{return Number(db.prepare(`UPDATE cnx_context_maintenance SET state='running',attempt_count=attempt_count+1,next_attempt_at=NULL,
     last_error=NULL,updated_at=? WHERE session_key=? AND owner_generation=? AND state IN ('pending','degraded') AND EXISTS(
-      SELECT 1 FROM cnx_sessions s WHERE s.session_key=? AND s.state='active' AND s.generation=?)`)
+      SELECT 1 FROM cnx_sessions s WHERE s.session_key=? AND s.state='active' AND s.generation=?) AND EXISTS(
+      SELECT 1 FROM tickets t WHERE t.ticket_id=cnx_context_maintenance.ticket_id AND t.status='accepted')`)
     .run(stamp,row.session_key,row.owner_generation,row.session_key,row.owner_generation).changes)===1;}finally{db.close();}
 }
 
 function currentAuthority(databasePath:string,row:Maintenance) {
   const db=openDb(databasePath);
-  try{const auth=authority(db,row.session_key);return Boolean(auth&&auth.state==="active"&&auth.generation===row.owner_generation);}finally{db.close();}
+  try{
+    const auth=authority(db,row.session_key);
+    if(!auth||auth.state!=="active"||auth.generation!==row.owner_generation)return false;
+    return Boolean(db.prepare("SELECT 1 FROM tickets WHERE ticket_id=? AND status='accepted'").get(row.ticket_id));
+  }finally{db.close();}
 }
 
 function finish(databasePath:string,row:Maintenance,input:{state:"done"|"degraded"|"cancelled";action:string;before?:number;after?:number;error?:string;retryMs?:number;capsule?:string}) {

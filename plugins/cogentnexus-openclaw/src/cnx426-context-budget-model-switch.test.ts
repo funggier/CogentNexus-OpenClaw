@@ -191,6 +191,52 @@ describe("CNX-426 model-switch-aware context budget",()=>{
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
+
+  it("cancels terminal Ticket context residue without calling Gateway compaction",async()=>{
+    vi.useFakeTimers();
+    const root=mkdtempSync(join(tmpdir(),"cnx426-terminal-residue-"));
+    try{
+      const runId="run-terminal-residue",{path,ticket,sessionKey}=setup(root,runId);
+      let hook:any,service:any,gatewayCalls=0;
+      const registration={
+        on:(name:string,fn:any)=>{if(name==="before_agent_run")hook=fn;},
+        registerService:(value:any)=>{service=value;},
+      };
+      const api={
+        runtime:{gateway:{request:async(method:string)=>{
+          gatewayCalls++;
+          if(method==="sessions.describe")return {session:{
+            key:sessionKey,sessionId:"physical-terminal",contextTokens:32768,totalTokens:30000,totalTokensFresh:true,
+          }};
+          if(method==="sessions.compact")return {ok:true,compacted:true,result:{tokensBefore:30000,tokensAfter:4000}};
+          throw new Error(`unexpected ${method}`);
+        }}},
+        logger:{info:()=>{},warn:()=>{}},
+      };
+      installContextGuard(api,registration,{workspaceDir:root,ticketDatabasePath:path});
+      expect(await hook(
+        {prompt:"next",messages:[],systemPrompt:""},
+        {sessionKey,runId,workspaceDir:root,contextTokenBudget:32768},
+      )).toMatchObject({outcome:"block",metadata:{ticketId:ticket.ticketId}});
+      const db=new DatabaseSync(path);
+      db.prepare("UPDATE tickets SET status='failed',failure_class='permanent',failure_message='host blocked',updated_at=? WHERE ticket_id=?")
+        .run(new Date().toISOString(),ticket.ticketId);
+      db.close();
+
+      gatewayCalls=0;
+      await service.start({workspaceDir:root});
+      await vi.advanceTimersByTimeAsync(1100);
+      await Promise.resolve();
+      await service.stop();
+
+      expect(gatewayCalls).toBe(0);
+      const verify=new DatabaseSync(path,{readOnly:true});
+      expect(verify.prepare("SELECT state,last_error,completed_at FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
+        .toMatchObject({state:"cancelled",last_error:"ticket no longer accepted"});
+      verify.close();
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
   it("preserves the legacy session-window fallback when OpenClaw does not provide a valid turn budget",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx426-fallback-"));
     try{
