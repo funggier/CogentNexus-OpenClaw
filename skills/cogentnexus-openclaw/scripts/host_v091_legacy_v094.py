@@ -34,6 +34,9 @@ IDLE_GATEWAY_PORT = 18789
 IDLE_OLLAMA_PORT = 11434
 IDLE_PROBE_TIMEOUT_SECONDS = 0.75
 HARD_HANG_CONFIRM_DELAY_SECONDS = 1.0
+NATIVE_GATEWAY_READY_TIMEOUT_SECONDS = 180.0
+NATIVE_GATEWAY_READY_POLL_SECONDS = 2.0
+NATIVE_GATEWAY_PROBE_TIMEOUT_SECONDS = 20
 UNVERIFIABLE_DIRECT_MESSAGE = (
     "direct response delivery became unverifiable before the final payload was durably captured; "
     "refusing regeneration to avoid duplicate output"
@@ -294,20 +297,60 @@ def validate_managed_config() -> None:
     legacy.run([legacy.openclaw_executable(), "config", "validate"], timeout=60, check=True)
 
 
+def _wait_native_gateway_ready(
+    timeout_seconds: float = NATIVE_GATEWAY_READY_TIMEOUT_SECONDS,
+    poll_interval_seconds: float = NATIVE_GATEWAY_READY_POLL_SECONDS,
+) -> dict[str, Any]:
+    """Wait through bounded OpenClaw cold-start transients before declaring restore failure."""
+    started = time.monotonic()
+    deadline = started + max(0.0, float(timeout_seconds))
+    attempts = 0
+    last_status: dict[str, Any] | None = None
+    last_probe_timeout = 1
+    while True:
+        remaining = max(0.0, deadline - time.monotonic())
+        last_probe_timeout = max(1, min(NATIVE_GATEWAY_PROBE_TIMEOUT_SECONDS, int(remaining) if remaining >= 1 else 1))
+        attempts += 1
+        last_status = legacy.gateway_status(timeout=last_probe_timeout)
+        if last_status.get("healthy"):
+            return {
+                "healthy": True,
+                "attempts": attempts,
+                "elapsedSeconds": round(time.monotonic() - started, 3),
+                "probeTimeoutSeconds": last_probe_timeout,
+                "lastStatus": last_status,
+            }
+        now = time.monotonic()
+        if now >= deadline:
+            return {
+                "healthy": False,
+                "attempts": attempts,
+                "elapsedSeconds": round(now - started, 3),
+                "probeTimeoutSeconds": last_probe_timeout,
+                "lastStatus": last_status,
+            }
+        sleep_for = min(max(0.0, float(poll_interval_seconds)), max(0.0, deadline - now))
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+
+
 def _restore_native_gateway() -> dict[str, Any]:
     restart = legacy.run([legacy.openclaw_executable(), "gateway", "restart"], timeout=180)
     if restart.returncode != 0:
         restart = legacy.run([legacy.openclaw_executable(), "gateway", "start"], timeout=180)
     if restart.returncode != 0:
         raise RuntimeError((restart.stderr or restart.stdout or "native Gateway restore command failed").strip())
-    status = legacy.gateway_status()
-    if not status.get("healthy"):
-        raise RuntimeError(f"native Gateway failed health verification after restore: {status}")
+    readiness = _wait_native_gateway_ready()
+    if not readiness.get("healthy"):
+        raise RuntimeError(f"native Gateway failed health verification after bounded restore wait: {readiness}")
     return {
         "exitCode": restart.returncode,
         "stdout": (restart.stdout or "").strip(),
         "stderr": (restart.stderr or "").strip(),
         "healthy": True,
+        "readinessAttempts": readiness.get("attempts"),
+        "readinessElapsedSeconds": readiness.get("elapsedSeconds"),
+        "readinessProbeTimeoutSeconds": readiness.get("probeTimeoutSeconds"),
     }
 
 
