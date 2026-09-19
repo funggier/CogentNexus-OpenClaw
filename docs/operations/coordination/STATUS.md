@@ -1,39 +1,24 @@
-# Coordination Channel Status
+﻿# Coordination Channel Status
 
-Status: `WAITING_FOR_LIVE_DISCORD_ACCEPTANCE`
-State: `CNX427_TRACK_A_DEPLOYED_TRACK_B_GREEN_WAITING_DISCORD`
+Status: `IN_PROGRESS`
+State: `CNX427_SECOND_STAGE_DISCORD_TICKET_FIRST_REPAIR`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Track A — Discord/CNX
+## Track A — current result
 
-- root cause proven: early Discord `reply_dispatch` had no authoritative run ID and CNX claimed the turn fail-closed;
-- RED reproduced the defect;
-- minimal adapter repair implemented;
-- focused regression 39/39 PASS;
-- plugin validation PASS;
-- full suite 381/382 PASS with only the known historical CNX-383 failure;
-- qualified package installed live;
-- live `dist/index.js` SHA256 `6D96AD5FC4F419105E7E6A82EC941926886A05937C143E599C47FE9143A8FBE3`;
-- waiting for one new real Discord turn.
+- early Discord `reply_dispatch` missing-run-id suppression: repaired;
+- acceptance trace: `343c6efbf788333b585d1160af9ed4e6`;
+- authoritative OpenClaw run: `a0660423-e586-4e89-a5c9-fca25d842e1d`;
+- visible Discord delivery: GREEN;
+- local and Tailscale UI visibility: GREEN;
+- CNX Ticket for that turn: **ABSENT**;
+- final Ticket-first acceptance: **NOT YET ACCEPTED**.
 
-## Track B — Tailscale remote profile
+## Refined repair direction
 
-- Tailscale backend Running;
-- mode `serve`;
-- HTTPS Serve active through OpenClaw mediation on local port 1721;
-- remote HTTPS returns 200;
-- root cause of prior Activity failure: transient GitHub identity verification HTTP 403 for `funggier@github`;
-- post-restart remote RPCs `sessions.groups.list`, `sessions.subscribe`, and `chat.startup` succeeded;
-- no post-restart `GitHub identity sync failed` or `AUTHENTICATED_PROFILE_UNAVAILABLE` observed;
-- no auth bypass and no extra GitHub secret configured.
+OpenClaw 2026.9.4 creates the authoritative run ID before `before_agent_reply`. That supported pre-inference hook has run/session/channel identity and can short-circuit model execution. CNX-427 is qualifying it as a second-stage admission boundary for deferred external ingress.
 
-## Runtime integrity
+## Track B
 
-- OpenClaw 2026.9.4;
-- Gateway healthy;
-- plugin errors 0;
-- Discord connected;
-- config valid;
-- three SQLite quick checks ok;
-- supervisor LastTaskResult 0.
+Tailscale Serve / owner-profile recovery remains GREEN with no authentication relaxation.

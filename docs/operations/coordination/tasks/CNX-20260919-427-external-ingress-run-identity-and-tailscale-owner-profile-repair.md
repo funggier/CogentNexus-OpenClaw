@@ -203,3 +203,44 @@ Track B root cause is now proven as transient GitHub identity verification failu
 Pre-restart remote connections authenticated as `funggier@github`, then GitHub identity synchronization failed with HTTP 403. After the controlled Gateway restart, Tailscale Serve came back GREEN, the remote browser authenticated again, and previously failing session RPCs completed successfully without any new profile-verification failure. No auth bypass or additional GitHub credential was introduced.
 
 The remaining final gate is one new operator-originated Discord turn.
+
+## Live acceptance discovery — second-stage Ticket-first gap
+
+The first live Discord acceptance after deploying the early `reply_dispatch` deferral produced a visible correct reply but exposed a deeper Ticket-first gap.
+
+Operator message:
+
+`@Ce ตอบคำว่า CNX427_OK เท่านั้น`
+
+Visible assistant reply:
+
+`CNX427_OK`
+
+Live evidence:
+
+- trace ID: `343c6efbf788333b585d1160af9ed4e6`;
+- early `reply_dispatch` correctly logged `admission deferred: authoritative run identity is not assigned yet`;
+- OpenClaw subsequently created authoritative run ID `a0660423-e586-4e89-a5c9-fca25d842e1d`;
+- the model executed and Discord delivered the reply;
+- CNX `message_sent` correctly refused ambiguous receipt correlation without a run ID;
+- **no CNX Ticket exists for the 15:38 Discord turn**.
+
+Therefore the first repair restored delivery but did not satisfy Ticket-first. The live turn would be a false PASS if judged only by visible output.
+
+### Refined root cause
+
+OpenClaw 2026.9.4 external Discord dispatch invokes CNX `reply_dispatch` before an authoritative run ID exists. After deferral, this execution path does not invoke the CNX `before_agent_run` handler in the effective Discord execution scope, even though `before_agent_run` is supported by the embedded runner and is observed on Dashboard runs.
+
+OpenClaw creates the authoritative run ID before `before_agent_reply` in `embedded-agent-runner/run-orchestrator.ts`. That hook receives the exact run ID, session key, channel and identity context before model execution. CNX-427 will qualify a narrow second-stage adapter at that supported boundary rather than synthesizing a run ID or moving admission after inference.
+
+### Additional acceptance requirements
+
+The final Discord acceptance must now prove all of the following in the same turn:
+
+1. early `reply_dispatch` defers missing run identity;
+2. authoritative host run identity is later observed before inference;
+3. exactly one Ticket is created before the model executes;
+4. no duplicate is created if another admission hook also sees the same run;
+5. one assistant response is delivered;
+6. the Ticket reaches terminal delivered/completed state;
+7. no ambiguous receipt is used as authority for Ticket creation.

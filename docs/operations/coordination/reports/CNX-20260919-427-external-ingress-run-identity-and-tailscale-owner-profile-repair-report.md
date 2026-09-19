@@ -206,3 +206,24 @@ Required live acceptance:
 6. verify no stale lane remains.
 
 Until that new turn is observed, final CNX-427 classification remains pending.
+
+## Live Discord acceptance attempt #1 — visible delivery, Ticket-first NOT accepted
+
+At approximately 15:38 Asia/Bangkok, the operator sent the requested acceptance message and received `CNX427_OK` in Discord. The same turn was visible in both local and Tailscale Control UI views.
+
+Runtime trace:
+
+- trace: `343c6efbf788333b585d1160af9ed4e6`;
+- `reply_dispatch`: deferred due to missing authoritative run identity;
+- authoritative OpenClaw run later created: `a0660423-e586-4e89-a5c9-fca25d842e1d`;
+- model execution occurred;
+- Discord response delivered;
+- CNX logged `ignored ambiguous Discord message_sent receipt` because that receipt carried no authoritative run ID.
+
+Database verification found no Ticket for this turn and no new Ticket near the 15:38 acceptance timestamp. The latest CNX Ticket rows remained older Dashboard turns.
+
+Classification of acceptance attempt #1:
+
+`VISIBLE_DELIVERY_GREEN__TICKET_FIRST_BYPASS_REMAINS`
+
+This is not a final PASS. Work continues on a pre-inference second-stage admission boundary with authoritative OpenClaw run identity.

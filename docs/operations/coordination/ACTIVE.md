@@ -1,8 +1,8 @@
-# Active Coordination Task
+﻿# Active Coordination Task
 
-Status: `WAITING_FOR_LIVE_DISCORD_ACCEPTANCE`
-State: `CNX427_TRACK_A_DEPLOYED_TRACK_B_GREEN_WAITING_DISCORD`
-Execution mode: `CONTROLLED_LIVE_ACCEPTANCE`
+Status: `IN_PROGRESS`
+State: `CNX427_SECOND_STAGE_DISCORD_TICKET_FIRST_REPAIR`
+Execution mode: `TDD_AND_CONTROLLED_LIVE_REQUALIFICATION`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
 Executor: `ChatGPT via LConnect`
@@ -14,10 +14,10 @@ Report: `docs/operations/coordination/reports/CNX-20260919-427-external-ingress-
 
 ## Current state
 
-Track A is qualified and deployed. Early trusted external `reply_dispatch` without authoritative run ID now defers to `before_agent_run`; execution-boundary fail-closed semantics remain intact.
+Track B (Tailscale owner profile) remains GREEN.
 
-Track B is GREEN after controlled restart. Tailscale Serve is active, the remote browser authenticated as `funggier@github`, no post-restart GitHub identity-sync/profile-verification failure was observed, and previously failing session RPCs completed successfully.
+Track A acceptance attempt #1 proved the early missing-run-id drop is repaired, but it also proved a second-stage Ticket-first bypass: OpenClaw created run `a0660423-e586-4e89-a5c9-fca25d842e1d`, executed the model, and delivered `CNX427_OK` without a CNX Ticket.
 
-## Next required action
+## Current objective
 
-One new operator-originated Discord message is required for final live Track A acceptance. The two pre-repair messages are not replayed automatically.
+Add and qualify a narrow pre-inference second-stage admission adapter at the OpenClaw 2026.9.4 boundary where authoritative run identity exists. Do not synthesize run IDs, do not weaken Ticket-first, and do not move admission after inference.
