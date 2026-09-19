@@ -54,17 +54,22 @@ class OpenClawRuntimeBoundaryV092Tests(unittest.TestCase):
         self.assertIsNotNone(result["fallbackStart"])
 
     def test_unhealthy_post_boundary_status_fails_closed(self):
-        def fake_run(args, **kwargs):
-            if args[-2:] == ["gateway", "status"]:
-                return self.completed(args, stdout="Runtime: stopped\nConnectivity probe: failed\n")
-            return self.completed(args)
-
+        unhealthy = {
+            "healthy": False,
+            "attempts": 4,
+            "elapsedSeconds": 180.0,
+            "probeTimeoutSeconds": 1,
+            "lastStatus": {"ok": True, "stdout": "Runtime: stopped", "stderr": "Connectivity probe: failed"},
+        }
         with mock.patch.object(boundary, "openclaw_executable", return_value="openclaw"), \
-             mock.patch.object(boundary.subprocess, "run", side_effect=fake_run):
+             mock.patch.object(boundary, "_run", return_value={"ok": True, "exitCode": 0, "stdout": "", "stderr": ""}), \
+             mock.patch.object(boundary, "_wait_gateway_ready", return_value=unhealthy):
             result = boundary.activate_current_config()
 
         self.assertFalse(result["ok"])
         self.assertEqual(result["phase"], "gateway-verification")
+        self.assertEqual(result["readinessAttempts"], 4)
+
 
     def test_missing_openclaw_cli_fails_closed(self):
         with mock.patch.object(boundary, "openclaw_executable", return_value=None):

@@ -5,7 +5,12 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import time
 from typing import Any
+
+GATEWAY_READY_TIMEOUT_SECONDS = 180.0
+GATEWAY_READY_POLL_SECONDS = 2.0
+GATEWAY_STATUS_PROBE_TIMEOUT_SECONDS = 20
 
 
 def creation_flags() -> int:
@@ -56,6 +61,44 @@ def _healthy_status(result: dict[str, Any]) -> bool:
     return "runtime: running" in evidence and "connectivity probe: ok" in evidence
 
 
+def _wait_gateway_ready(
+    executable: str,
+    timeout_seconds: float = GATEWAY_READY_TIMEOUT_SECONDS,
+    poll_interval_seconds: float = GATEWAY_READY_POLL_SECONDS,
+) -> dict[str, Any]:
+    """Wait through bounded OpenClaw cold-start transients after a process boundary."""
+    started = time.monotonic()
+    deadline = started + max(0.0, float(timeout_seconds))
+    attempts = 0
+    last_status: dict[str, Any] | None = None
+    last_probe_timeout = 1
+    while True:
+        remaining = max(0.0, deadline - time.monotonic())
+        last_probe_timeout = max(1, min(GATEWAY_STATUS_PROBE_TIMEOUT_SECONDS, int(remaining) if remaining >= 1 else 1))
+        attempts += 1
+        last_status = _run([executable, "gateway", "status"], last_probe_timeout)
+        if _healthy_status(last_status):
+            return {
+                "healthy": True,
+                "attempts": attempts,
+                "elapsedSeconds": round(time.monotonic() - started, 3),
+                "probeTimeoutSeconds": last_probe_timeout,
+                "lastStatus": last_status,
+            }
+        now = time.monotonic()
+        if now >= deadline:
+            return {
+                "healthy": False,
+                "attempts": attempts,
+                "elapsedSeconds": round(now - started, 3),
+                "probeTimeoutSeconds": last_probe_timeout,
+                "lastStatus": last_status,
+            }
+        sleep_for = min(max(0.0, float(poll_interval_seconds)), max(0.0, deadline - now))
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+
+
 def activate_current_config() -> dict[str, Any]:
     """Force Gateway to reload the config currently durable on disk, then verify.
 
@@ -79,12 +122,16 @@ def activate_current_config() -> dict[str, Any]:
                 "fallbackStart": fallback,
             }
 
-    status = _run([executable, "gateway", "status"], 60)
-    healthy = _healthy_status(status)
+    readiness = _wait_gateway_ready(executable)
+    status = readiness.get("lastStatus") or {}
+    healthy = bool(readiness.get("healthy"))
     return {
         "ok": healthy,
         "phase": "verified" if healthy else "gateway-verification",
         "restart": restart,
         "fallbackStart": fallback,
         "status": status,
+        "readinessAttempts": readiness.get("attempts"),
+        "readinessElapsedSeconds": readiness.get("elapsedSeconds"),
+        "readinessProbeTimeoutSeconds": readiness.get("probeTimeoutSeconds"),
     }
