@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -179,6 +182,49 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(result["result"], "gateway-recovery")
             self.assertEqual(result["hardHangRecovery"], {"attempted": True, "exitCode": 0})
             self.assertFalse(result["heavyPath"])
+
+    def test_active_openclaw_boot_grace_suppresses_false_hard_hang_restart(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            self.patch(cnx, "gateway_fast_probe", lambda: False)
+            self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "gateway_startup_grace", lambda: {
+                "active": True,
+                "bootId": "boot-427",
+                "ageSeconds": 70.0,
+                "graceSeconds": 180.0,
+                "reason": "active-boot-grace",
+            })
+            self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: self.fail("active startup grace must not restart Gateway"))
+
+            result = cnx.supervisor_tick(root, True)
+
+            self.assertEqual(result["result"], "gateway-starting")
+            self.assertEqual(result["action"], "none")
+            self.assertEqual(result["wakeReason"], "gateway/startup-grace")
+            self.assertEqual(result["startupGrace"]["bootId"], "boot-427")
+            self.assertFalse(result["heavyPath"])
+
+    def test_gateway_startup_grace_reads_openclaw_boot_lifecycle_and_expires(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "openclaw-state"
+            database = state_dir / "state" / "openclaw.sqlite"
+            database.parent.mkdir(parents=True)
+            db = sqlite3.connect(database)
+            db.execute("CREATE TABLE gateway_boot_lifecycle(boot_id TEXT,pid INTEGER,started_at_ms INTEGER,completed_at_ms INTEGER,outcome TEXT,startup_reason TEXT,reason TEXT)")
+            db.execute("INSERT INTO gateway_boot_lifecycle VALUES(?,?,?,?,?,?,?)", ("boot-live", 123, 1_000_000, None, None, None, None))
+            db.commit()
+            db.close()
+            with mock.patch.dict(os.environ, {"OPENCLAW_STATE_DIR": str(state_dir)}):
+                active = cnx.gateway_startup_grace(now_ms=1_070_000)
+                expired = cnx.gateway_startup_grace(now_ms=1_181_000)
+
+            self.assertTrue(active["active"])
+            self.assertEqual(active["bootId"], "boot-live")
+            self.assertEqual(active["ageSeconds"], 70.0)
+            self.assertFalse(expired["active"])
+            self.assertEqual(expired["reason"], "active-boot-grace-expired")
 
     def test_transient_gateway_probe_failure_does_not_restart(self):
         with tempfile.TemporaryDirectory() as tmp:

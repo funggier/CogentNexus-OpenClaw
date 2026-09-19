@@ -39,6 +39,7 @@ classify_wake = _WAKE_MODULE.classify_wake
 
 _LEGACY_ENABLE = enable
 _LEGACY_SUPERVISOR_TICK = supervisor_tick
+GATEWAY_STARTUP_GRACE_SECONDS = 180.0
 
 
 def _provider_neutral_runtime(original: Callable[..., Any]) -> Callable[..., Any]:
@@ -133,6 +134,46 @@ def durable_work_hint(root: Path, now: str | None = None) -> bool:
     return bool(classify_wake(root, parsed_now).actionable)
 
 
+def gateway_startup_grace(now_ms: int | None = None) -> dict[str, Any]:
+    """Return bounded OpenClaw boot/restart grace from authoritative lifecycle state.
+
+    OpenClaw 2026.9.x may expose its HTTP socket well before plugin/model/channel
+    startup reaches ``ready``. A failed lightweight probe during that admitted
+    boot window is therefore not proof of a hard hang. The grace is deliberately
+    bounded; once it expires, the existing two-probe hard-hang recovery remains
+    authoritative.
+    """
+    state_dir = Path(os.environ.get("OPENCLAW_STATE_DIR") or (Path.home() / ".openclaw"))
+    database = state_dir / "state" / "openclaw.sqlite"
+    if not database.exists():
+        return {"active": False, "reason": "boot-lifecycle-unavailable"}
+    try:
+        db = sqlite3.connect(f"file:{database.as_posix()}?mode=ro", uri=True, timeout=0.1)
+        try:
+            row = db.execute(
+                "SELECT boot_id,started_at_ms,startup_reason FROM gateway_boot_lifecycle "
+                "WHERE completed_at_ms IS NULL ORDER BY started_at_ms DESC LIMIT 1"
+            ).fetchone()
+        finally:
+            db.close()
+    except sqlite3.Error as error:
+        return {"active": False, "reason": "boot-lifecycle-read-failed", "error": str(error)}
+    if not row:
+        return {"active": False, "reason": "no-active-boot"}
+    current_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    started_ms = int(row[1])
+    age_ms = max(0, current_ms - started_ms)
+    grace_ms = int(GATEWAY_STARTUP_GRACE_SECONDS * 1000)
+    return {
+        "active": age_ms <= grace_ms,
+        "bootId": str(row[0]),
+        "ageSeconds": round(age_ms / 1000.0, 3),
+        "graceSeconds": GATEWAY_STARTUP_GRACE_SECONDS,
+        "startupReason": row[2],
+        "reason": "active-boot-grace" if age_ms <= grace_ms else "active-boot-grace-expired",
+    }
+
+
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     """Use one canonical durable wake decision before provider/heavy work."""
     legacy.initialize(root)
@@ -148,6 +189,21 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
         time.sleep(HARD_HANG_CONFIRM_DELAY_SECONDS)
         gateway_ok = gateway_fast_probe()
         if not gateway_ok:
+            startup_grace = gateway_startup_grace()
+            if startup_grace.get("active"):
+                return {
+                    "result": "gateway-starting",
+                    "action": "none",
+                    "wakeAuthority": "none",
+                    "wakeWorkId": None,
+                    "wakeReason": "gateway/startup-grace",
+                    "probe": "lightweight-http+sqlite-ro",
+                    "gatewayHealthy": False,
+                    "durableWorkPending": False,
+                    "providerRequired": False,
+                    "heavyPath": False,
+                    "startupGrace": startup_grace,
+                }
             if execute_safe:
                 hard_hang_restart = _restart_unresponsive_gateway(root)
                 return {
