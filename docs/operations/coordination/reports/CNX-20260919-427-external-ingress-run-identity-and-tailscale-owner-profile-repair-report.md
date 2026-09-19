@@ -227,3 +227,48 @@ Classification of acceptance attempt #1:
 `VISIBLE_DELIVERY_GREEN__TICKET_FIRST_BYPASS_REMAINS`
 
 This is not a final PASS. Work continues on a pre-inference second-stage admission boundary with authoritative OpenClaw run identity.
+
+## Post-handoff continuation — OpenClaw 2026.9.5 storage/runtime checkpoint
+
+The live host is now OpenClaw `2026.9.5 (ec9c1a1)`. The upstream admitted-runtime-generation continuity fix remains the selected mechanism for the final Discord requalification; no CNX-specific synthetic second-stage workaround was added.
+
+The operator-requested C: -> T: backup relocation is complete and fidelity-verified.
+
+Canonical destination:
+
+`T:\CogentNexus\CogentNexus-OpenClaw`
+
+Current mappings:
+
+- C: `backups` -> T: `backups` via NTFS junction;
+- C: `plugin-generation-rollover-backups` -> T: rollover tree via NTFS junction.
+
+Verification evidence:
+
+- main backup dry mirror: 509,383 files / 9.479 GiB, zero copied/mismatch/failed/extras;
+- rollover dry mirror: 159,271 files / 1.408 GiB, zero copied/mismatch/failed/extras;
+- authoritative CNX-427 manifest hash matched;
+- critical config/wrapper/SQLite/CNX artifact hashes matched;
+- authoritative reparse topology matched 10 -> 10;
+- old C: rollback paths resolve after junction cutover;
+- reparse-safe source cleanup completed with no failed deletions;
+- C: free space increased from ~13.43 GiB to ~25.48 GiB.
+
+Post-relocation runtime remained GREEN:
+
+- Gateway health ok, event loop not degraded;
+- PID 29604 on 127.0.0.1:18789;
+- Discord ready/connected, active runs 0;
+- CNX runtime attestation runnerReady=true / globalHookCount=7;
+- CNX live artifact SHA256 remains `6D96AD5FC4F419105E7E6A82EC941926886A05937C143E599C47FE9143A8FBE3`;
+- Supervisor LastTaskResult 0;
+- Tailscale Serve -> `http://127.0.0.1:12651`;
+- remote HTTPS 200;
+- `ollama ps` empty;
+- free virtual/commit ~20.57 GiB.
+
+Detailed checkpoint:
+
+`docs/operations/coordination/reports/CNX-20260919-427-storage-relocation-and-pre-acceptance-runtime-checkpoint.md`
+
+The only remaining CNX-427 gate is one new operator-originated Discord turn on live OpenClaw 2026.9.5 proving authoritative runId, exactly one Ticket before inference, exactly one model execution, exactly one Discord delivery, terminal completion, and no stale/duplicate lane.

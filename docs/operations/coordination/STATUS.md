@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 Status: `IN_PROGRESS`
-State: `CNX427_LIVE_9_5_GREEN_FINAL_DISCORD_ACCEPTANCE_PENDING_WITH_STORAGE_RELOCATION`
+State: `CNX427_STORAGE_RELOCATION_GREEN_FINAL_DISCORD_ACCEPTANCE_PENDING`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
@@ -56,19 +56,39 @@ After unload, free commit recovered to ~25 GB and live 9.5 became stable.
 
 ## Storage relocation
 
-Operator requested CNX backups move from C: to T:.
+Operator-requested CNX backup relocation is GREEN.
+
+Canonical destination:
+
+`T:\CogentNexus\CogentNexus-OpenClaw`
 
 Current state:
 
-- C: free ~13.45 GB;
-- T: free ~641.19 GB;
-- C: `...\CogentNexus-OpenClaw\backups` is still a normal directory;
-- observed T: tree: `T:\CogentNexus\CogentNexus-OpenClaw`;
-- T: backups contained only CNX-425 at final verification;
-- CNX-427 rollback backup is not yet verified on T:;
-- no C: junction exists.
+- C: `...\CogentNexus-OpenClaw\backups` -> T: `backups` via NTFS junction;
+- C: `...\plugin-generation-rollover-backups` -> T: rollover tree via NTFS junction;
+- main backup dry mirror: 509,383 files / 9.479 GiB, zero differences;
+- rollover dry mirror: 159,271 files / 1.408 GiB, zero differences;
+- authoritative manifest and critical backup hashes matched;
+- authoritative reparse topology matched 10 -> 10;
+- old rollback paths resolve through the original C: path;
+- renamed C: source copies were removed only after fidelity verification and reparse-safe cleanup;
+- C: free space recovered from ~13.43 GiB to ~25.48 GiB.
 
-Do not delete C: backups until the T: copy passes fidelity verification.
+Post-relocation live runtime remains GREEN:
+
+- OpenClaw 2026.9.5;
+- Gateway PID 29604, health ok;
+- Discord ready/connected;
+- CNX runnerReady=true / globalHookCount=7;
+- Tailscale Serve -> 127.0.0.1:12651;
+- remote HTTPS 200;
+- supervisor Last Result 0;
+- `ollama ps` empty;
+- free virtual/commit ~20.57 GiB.
+
+Checkpoint:
+
+`docs/operations/coordination/reports/CNX-20260919-427-storage-relocation-and-pre-acceptance-runtime-checkpoint.md`
 
 ## Handoff
 

@@ -1,7 +1,7 @@
 # Active Coordination Task
 
 Status: `IN_PROGRESS`
-State: `CNX427_LIVE_9_5_GREEN_FINAL_DISCORD_ACCEPTANCE_PENDING_WITH_STORAGE_RELOCATION`
+State: `CNX427_STORAGE_RELOCATION_GREEN_FINAL_DISCORD_ACCEPTANCE_PENDING`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
@@ -42,22 +42,27 @@ One new Discord turn on live 9.5 must prove:
 - correct terminal Ticket state;
 - no duplicate Ticket or stale lane.
 
-Do not ask for the next Discord acceptance until current storage relocation maintenance is stable.
+Storage/runtime maintenance is now stable. The next operator action is exactly one new Discord acceptance turn.
 
 ## Secondary operator-requested maintenance
 
-The operator asked to reclaim C: space by moving CNX backups to T:.
+The operator-requested C: -> T: backup relocation is complete and verified.
 
-Current state is incomplete:
+Current state:
 
-- C: backup source is still a normal directory and must be preserved;
-- C: free ~13.45 GB;
-- T: free ~641.19 GB;
-- observed T: destination tree is `T:\CogentNexus\CogentNexus-OpenClaw`;
-- T: backups currently showed only CNX-425;
-- CNX-427 rollback backups are not yet verified on T:;
-- no C: junction has been created.
+- canonical destination: `T:\CogentNexus\CogentNexus-OpenClaw`;
+- C: `backups` is an NTFS junction to the T: backup tree;
+- C: `plugin-generation-rollover-backups` is an NTFS junction to the T: rollover tree;
+- main backup dry mirror: 509,383 files / 9.479 GiB, copied 0, mismatch 0, failed 0, extras 0;
+- rollover dry mirror: 159,271 files / 1.408 GiB, copied 0, mismatch 0, failed 0, extras 0;
+- authoritative CNX-427 manifest and critical hashes match source/target;
+- authoritative reparse count matches 10 -> 10;
+- old C: rollback/report paths resolve through the junction;
+- reparse-safe source cleanup completed with no failed deletions;
+- C: free space increased from ~13.43 GiB to ~25.48 GiB.
 
-Next session must finish and verify the C: -> T: backup relocation before deleting anything from C:.
+Checkpoint:
 
-Read the full handoff before continuing.
+`docs/operations/coordination/reports/CNX-20260919-427-storage-relocation-and-pre-acceptance-runtime-checkpoint.md`
+
+The only remaining CNX-427 gate is one new live Discord acceptance turn on OpenClaw 2026.9.5.
