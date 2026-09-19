@@ -331,6 +331,31 @@ export function admissionTraceFields(input: Omit<AdmissionTraceRecord, "timestam
   return { ...fields, timestamp: timestamp ?? new Date().toISOString() };
 }
 
+export function discordExactAllowFromOwnerFallback(input: {
+  sessionKey?: string;
+  senderId?: string;
+  accountId?: string;
+  config?: any;
+}) {
+  if (!input.sessionKey || !/^agent:[^:]+:discord:/u.test(input.sessionKey)) return false;
+  const senderId = typeof input.senderId === "string" ? input.senderId.trim() : "";
+  if (!senderId) return false;
+  const discord = input.config?.channels?.discord;
+  const account = typeof input.accountId === "string" && input.accountId
+    ? discord?.accounts?.[input.accountId]
+    : undefined;
+  const allowFrom = Array.isArray(account?.allowFrom)
+    ? account.allowFrom
+    : Array.isArray(discord?.allowFrom)
+      ? discord.allowFrom
+      : [];
+  return allowFrom.some((value: unknown) => (
+    typeof value === "string"
+    && value !== "*"
+    && value.trim() === senderId
+  ));
+}
+
 export function durableAdmissionEligible(input: { sessionKey?: string; senderIsOwner?: boolean }) {
   if (!input.sessionKey || input.sessionKey.includes(":subagent:")) return false;
   if (input.senderIsOwner !== false) return true;
@@ -788,8 +813,20 @@ entry.register = (api) => {
     // sessions_send do not consistently report "user"). Trust the resolved
     // owner bit and canonical session shape instead; classifier exclusions
     // fence internal completion and continuation messages.
-    const eligible=durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:event.senderIsOwner});
-    trace("admission.trace.eligible",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true,outcome:eligible ? "eligible" : "ineligible"});
+    // OpenClaw 2026.9.5 can project senderIsOwner=false for an authorized
+    // Discord channel sender while still supplying exact senderId/accountId
+    // on before_agent_run. Recover owner authority only for an exact string
+    // match in channels.discord[.accounts.<id>].allowFrom. Never promote
+    // wildcard access or arbitrary channel participants.
+    const discordOwnerFallback=event.senderIsOwner === false && discordExactAllowFromOwnerFallback({
+      sessionKey:ctx.sessionKey,
+      senderId:(event as any).senderId,
+      accountId:(event as any).accountId,
+      config:(api as any).config,
+    });
+    const effectiveSenderIsOwner=event.senderIsOwner === false && discordOwnerFallback ? true : event.senderIsOwner;
+    const eligible=durableAdmissionEligible({sessionKey:ctx.sessionKey,senderIsOwner:effectiveSenderIsOwner});
+    trace("admission.trace.eligible",{senderIsOwner:event.senderIsOwner,dashboardNamespaceMatch,ticketFirst:config.ticketFirst === true,outcome:eligible ? "eligible" : "ineligible",reason:discordOwnerFallback ? "discord-exact-allowFrom-owner-fallback" : undefined});
     if (!eligible) { trace("admission.trace.blocked",{outcome:"ineligible",reason:"durable admission eligibility predicate returned false"}); trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
     if (config.ticketFirst === true) {
       if (currentRunId && ticketedRuns.has(currentRunId)) {
