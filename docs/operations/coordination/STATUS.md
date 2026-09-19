@@ -1,43 +1,32 @@
 # Coordination Channel Status
 
-Status: `COMPLETE`
-State: `CNX426_MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_GREEN`
-Execution mode: `MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_COMPLETE`
-Task ID: `CNX-20260919-426`
-Parent: `CNX-20260919-425`
+Status: `IN_PROGRESS`
+State: `CNX427_EXTERNAL_INGRESS_AND_TAILSCALE_PROFILE_REPAIR`
+Execution mode: `TDD_AND_BOUNDED_LIVE_REPAIR`
+Task ID: `CNX-20260919-427`
+Parent: `CNX-20260919-426`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
-## Repair result
+## Current evidence
 
-Final classification:
+Discord:
 
-`MODEL_SWITCH_CONTEXT_BUDGET_REPAIR_GREEN`
+- external Discord ingress is received by OpenClaw;
+- both current traces fail in CNX `reply_dispatch` with `missing-run-id`;
+- no current CNX Ticket/model run is created;
+- OpenClaw later releases the stale lane via watchdog.
 
-Implementation commits:
+Tailscale remote UI:
 
-- `e8418b8e7010c205b4e0496d6f41e8730c1f535e`
-- `0a8759e190ef42f952f92bd5d095b4bfe25f9191`
+- HTTPS/WebSocket transport reaches the Gateway;
+- `gateway.tailscale.mode=serve`;
+- session RPCs fail with `AUTHENTICATED_PROFILE_UNAVAILABLE`;
+- OpenClaw source shows this state means GitHub identity sync is present while `authenticatedUserProfile` is still absent.
 
-Validation:
+## Work in progress
 
-- CNX-426 focused: `6/6 PASS`
-- targeted regression: `67/67 PASS`
-- plugin validation: PASS
-- full suite: `376/377`, only historical CNX-383 RED
+Track A: RED test and minimal deferred-admission repair.
 
-Live qualification:
+Track B: durable identity/profile inspection and narrow OpenClaw/Tailscale profile convergence repair.
 
-- exact candidate package installed;
-- implementation hashes match;
-- stale terminal context row cancelled without compaction;
-- physical session/transcript unchanged;
-- non-semantic live-artifact up/down model-switch probe PASS;
-- Gateway health true;
-- plugin errors 0;
-- Discord connected;
-- Supervisor result 0;
-- SQLite quick_check PASS.
-
-Known unrelated residual:
-
-- Tailscale managed exposure remains off while external daemon stays `NoState`.
+No security relaxation, provider routing change, force push, tag, release, or main mutation is authorized.
