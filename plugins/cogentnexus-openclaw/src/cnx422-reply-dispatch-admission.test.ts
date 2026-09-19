@@ -327,7 +327,7 @@ describe("CNX-422 reply_dispatch Ticket-first admission", () => {
     expect(result.claimed).toMatchObject({ handled: true });
   });
 
-  it("RED: trusted external owner turn without exact runId fails closed", async () => {
+  it("CNX-427: trusted external owner turn without exact runId defers to the execution boundary", async () => {
     const { databasePath, hooks } = setup();
     const result = await runReply(hooks, replyEvent({
       prompt: DIRECT,
@@ -335,6 +335,6 @@ describe("CNX-422 reply_dispatch Ticket-first admission", () => {
       authorized: true,
     }));
     expect(rows(databasePath, "SELECT count(*) AS n FROM tickets")).toEqual([{ n: 0 }]);
-    expect(result.claimed).toMatchObject({ handled: true });
+    expect(result.claimed).toBeUndefined();
   });
 });

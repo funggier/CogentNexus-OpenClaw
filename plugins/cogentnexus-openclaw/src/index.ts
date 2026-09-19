@@ -900,6 +900,10 @@ entry.register = (api) => {
     if (admission.state === "skipped") return;
     const zeroCounts={tool:0,block:0,final:0};
     if (admission.state === "blocked") {
+      if (admission.reason === "missing-run-id") {
+        api.logger.info?.("CogentNexus-OpenClaw reply_dispatch admission deferred: authoritative run identity is not assigned yet");
+        return;
+      }
       api.logger.warn?.(`CogentNexus-OpenClaw reply_dispatch admission failed closed: ${admission.reason}${admission.error ? `: ${admission.error}` : ""}`);
       return {handled:true,queuedFinal:false,counts:zeroCounts};
     }
