@@ -18,6 +18,7 @@ from pathlib import Path
 WORKSPACE = Path(__file__).resolve().parents[3]
 DEFAULT_ROOT = WORKSPACE / ".cogentnexus-openclaw"
 OUTPUT_LIMIT = 3000
+LIFECYCLE_START_READY_TIMEOUT_SECONDS = 180.0
 
 DEFAULT_CONFIG = {
     "schemaVersion": 1,
@@ -455,11 +456,17 @@ def lifecycle_cmd(args):
         if initial_delay:
             time.sleep(initial_delay)
         verified, verification_attempts, healthy = wait_for_runtime_health(
-            config, timeout_seconds=30, require_ollama=bool(args.provider)
+            config,
+            timeout_seconds=LIFECYCLE_START_READY_TIMEOUT_SECONDS,
+            require_ollama=bool(args.provider),
         )
         if healthy:
             clear_maintenance(root)
-        verification = {"attempts": verification_attempts, "timeoutSeconds": 30, "initialDelaySeconds": initial_delay}
+        verification = {
+            "attempts": verification_attempts,
+            "timeoutSeconds": LIFECYCLE_START_READY_TIMEOUT_SECONDS,
+            "initialDelaySeconds": initial_delay,
+        }
         append_runtime_event(root, "VERIFICATION", "Runtime startup verified" if healthy else "Runtime startup incomplete", {"results": results, "verified": verified, "verification": verification})
         emit({"started": healthy, "maintenance": maintenance_status(root), "results": results, "verified": verified, "verification": verification})
         return 0 if healthy else 2
