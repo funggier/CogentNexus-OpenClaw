@@ -1,8 +1,8 @@
 # CNX-20260920-442 — Session Input Serialization and Terminal Truth
 
-Status: `SOURCE_QUALIFIED`
+Status: `LIVE_READY_FOR_OPERATOR_TEST`
 
-State: `SOURCE_QUALIFIED_READY_FOR_LIVE_INSTALL`
+State: `LIVE_READY_FOR_OPERATOR_TEST`
 
 Parent: `CNX-20260920-427`
 
@@ -183,3 +183,57 @@ The migration preserves history by terminally cancelling the stranded Ticket and
 Migration regression coverage: 3/3 PASS.
 
 Additional release/authority wiring qualification after the migration was wired: 8/8 PASS.
+
+## Live readiness checkpoint
+
+Exact deployed implementation candidate:
+
+`80a42cf4489196f653d1af84abfe92444e0099ff`
+
+Supported install-over:
+
+- LConnect session: `proc-1789896554229-45`;
+- installer PID: `11784`;
+- terminal exit: `0`;
+- terminal text: `CogentNexus-OpenClaw v0.9.5 installation completed successfully.`;
+- controller: `cnxMode=active`, `mode=managed`, generation `113`;
+- Gateway healthy; event loop not degraded;
+- Discord ready/running/connected; `activeRuns=0`;
+- supervisor Enabled/Ready; `LastTaskResult=0`;
+- Ollama resident model list empty after install.
+
+Candidate/live SHA-256 parity is exact for:
+
+- `dist/index.js`;
+- `dist/v091-release-entry.js`;
+- `dist/v095-session-serialization.js`;
+- `dist/v095-host-terminal-evidence.js`;
+- `dist/v095-native-command-retirement.js`.
+
+Historical native-command cleanup is live:
+
+- `CNXT-7b523819-6b36-4c83-8ec7-8186e60417cc` (`/context`) -> `cancelled`;
+- `CNXT-738a99f9-2619-4d50-a574-6b13aa6d1471` (`/context detail`) -> `cancelled`;
+- each received `native_command_ticket_retired`;
+- target channel now has zero non-terminal CNX Tickets;
+- no active Direct Recovery exists.
+
+Live queue qualification found existing session entries did not persist a per-session `queueMode` override.
+A supported OpenClaw config write was therefore applied:
+
+`messages.queue.mode = followup`
+
+OpenClaw reported no Gateway restart required. The active config now returns `followup`.
+This provides the required provider- and ingress-independent safe default for sessions without an explicit override.
+
+Current model policy remains:
+
+- primary `ollama/qwen3.8:27b`;
+- `OLLAMA_CONTEXT_LENGTH=24576`;
+- `OLLAMA_KEEP_ALIVE=2h`.
+
+The historical target Discord session still contains a stale persisted `activeWriterRunId` from the failed pre-repair run, while Host health reports `activeRuns=0` and no pending input rows exist. For the cleanest operator acceptance, start a new physical session before the first post-repair message.
+
+Classification:
+
+`CNX442_LIVE_READY_FOR_OPERATOR_TEST`

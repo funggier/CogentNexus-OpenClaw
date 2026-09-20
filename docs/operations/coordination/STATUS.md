@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
-Status: `SOURCE_QUALIFIED`
-State: `CNX442_SOURCE_QUALIFIED_READY_FOR_LIVE_INSTALL`
+Status: `LIVE_READY_FOR_OPERATOR_TEST`
+State: `CNX442_LIVE_READY_FOR_OPERATOR_TEST`
 Task ID: `CNX-20260920-442`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 ## CNX-442 — session serialization / terminal truth
