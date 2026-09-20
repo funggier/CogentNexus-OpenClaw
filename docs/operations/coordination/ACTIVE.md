@@ -17,7 +17,7 @@ Active task:
 
 Primary scope: native slash-command bypass, OpenClaw followup queue semantics for same-session concurrent user turns, and authoritative user-visible terminal settlement. Status/progress UI is explicitly out of scope for CNX-442.
 
-Source qualification is GREEN: 117 targeted/integration tests PASS, `plugin:validate` PASS, build PASS, Ticket DB bootstrap PASS, package verification PASS, and `git diff --check` PASS.
+Source qualification is GREEN: 120 targeted/integration tests PASS, `plugin:validate` PASS, build PASS, Ticket DB bootstrap PASS, package verification PASS, and `git diff --check` PASS.
 
 Report:
 

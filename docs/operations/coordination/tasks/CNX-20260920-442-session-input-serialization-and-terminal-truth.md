@@ -146,9 +146,9 @@ Validation:
 - Host claim/session ingress fences: 8/8 PASS;
 - `src/index.test.ts`: 42/42 PASS;
 - v0.9.5 behavior/delivery/session/no-reply matrix: 21/21 PASS;
-- total targeted/integration regression count: **117 PASS**;
+- total core targeted/integration regression count: **120 PASS**;
 - `npm run plugin:validate`: PASS;
-- package verification: PASS, 278 packed files;
+- package verification: PASS, 280 packed files;
 - mixed-plugin artifact/schema verification: PASS;
 - Ticket DB bootstrap: PASS;
 - `git diff --check`: PASS;
@@ -161,3 +161,25 @@ Next gate:
 1. freeze exact candidate commit and push;
 2. run one supported `scripts/install.ps1 -Workspace C:\Users\CDQ-P\.openclaw\workspace` install-over;
 3. verify live plugin/runtime health, session queue policy, command bypass behavior, and Host-terminal reconciliation without sending a semantic Discord message on the operator's behalf.
+
+## Historical native-command retirement
+
+Live preflight found the two reproducing command Tickets still stranded as `accepted`:
+
+- `CNXT-7b523819-6b36-4c83-8ec7-8186e60417cc` — `/context`;
+- `CNXT-738a99f9-2619-4d50-a574-6b13aa6d1471` — `/context detail`.
+
+Both have zero Direct model-call rows, zero inference-attempt rows, zero assistant-delivery rows, and zero Direct-recovery rows.
+
+CNX-442 now includes a bounded startup retirement migration. It retires only an old accepted Direct Ticket when:
+
+- OpenClaw's own command detector recognizes the stored prompt as a native/control command;
+- the Ticket is older than the bounded minimum age;
+- response/delivery are still absent;
+- no model-call, inference, delivery, or recovery evidence exists.
+
+The migration preserves history by terminally cancelling the stranded Ticket and appending `native_command_ticket_retired`. It does not rewrite Tickets that have execution/delivery evidence.
+
+Migration regression coverage: 3/3 PASS.
+
+Additional release/authority wiring qualification after the migration was wired: 8/8 PASS.

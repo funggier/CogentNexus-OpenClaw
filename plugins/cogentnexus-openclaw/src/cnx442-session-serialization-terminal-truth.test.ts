@@ -10,9 +10,33 @@ import {
 } from "./v095-session-serialization.js";
 import { readHostRunTerminalEvidence, resolveHostAgentDatabasePath, scheduleHostRunTerminalReconcile } from "./v095-host-terminal-evidence.js";
 import { TicketStore } from "./ticket-store.js";
+import { retireHistoricalNativeCommandTickets } from "./v095-native-command-retirement.js";
 import entry from "./index.js";
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+function ensureCommandRetirementEvidenceTables(db: DatabaseSync) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cnx_direct_model_call(
+      call_id TEXT PRIMARY KEY,
+      ticket_id TEXT
+    );
+    CREATE TABLE IF NOT EXISTS cnx_inference_attempt(
+      attempt_id TEXT PRIMARY KEY,
+      ticket_id TEXT
+    );
+    CREATE TABLE IF NOT EXISTS cnx_assistant_delivery(
+      delivery_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id TEXT,
+      status TEXT
+    );
+    CREATE TABLE IF NOT EXISTS cnx_direct_recovery(
+      ticket_id TEXT PRIMARY KEY,
+      mode TEXT,
+      state TEXT
+    );
+  `);
+}
 
 function bestEffortRemove(path: string) {
   try { rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 }); } catch { /* Windows may retain SQLite handles until worker exit. */ }
@@ -126,6 +150,105 @@ describe("CNX-442 session serialization and terminal truth", () => {
     expect(ownerConversationSessionEligible("agent:main:subagent:worker-1")).toBe(false);
     expect(ownerConversationSessionEligible("agent:main:cron:job-1")).toBe(false);
     expect(ownerConversationSessionEligible("agent:main:cogent-rotate-task")).toBe(false);
+  });
+
+  it("retires only stranded historical native-command Tickets with zero execution or delivery evidence", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-native-retirement-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const store = new TicketStore(databasePath);
+      const old = new Date("2026-09-20T07:36:00Z");
+      const a = store.accept({ runId:"run-context", ownerSessionKey:"agent:main:discord:channel:1", prompt:"/context" });
+      store.route(a.ticketId, false, old);
+      const b = store.accept({ runId:"run-context-detail", ownerSessionKey:"agent:main:dashboard:main", prompt:"/context detail" });
+      store.route(b.ticketId, false, old);
+      const ordinary = store.accept({ runId:"run-ordinary", ownerSessionKey:"agent:main:webchat:1", prompt:"/this-is-user-text please explain it" });
+      store.route(ordinary.ticketId, false, old);
+
+      const db = new DatabaseSync(databasePath);
+      ensureCommandRetirementEvidenceTables(db);
+      db.prepare("UPDATE tickets SET created_at=?,updated_at=? WHERE ticket_id IN (?,?,?)")
+        .run(old.toISOString(),old.toISOString(),a.ticketId,b.ticketId,ordinary.ticketId);
+      db.close();
+
+      const result = retireHistoricalNativeCommandTickets({
+        ticketDatabasePath: databasePath,
+        cfg: { commands:{ native:"auto" } },
+        now: new Date("2026-09-20T07:40:00Z"),
+        minAgeMs: 60_000,
+      });
+      expect(result).toMatchObject({ retired:2, skippedForEvidence:0, schemaReady:true });
+
+      const check = new DatabaseSync(databasePath, { readOnly:true });
+      expect(check.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(a.ticketId)).toEqual({status:"cancelled"});
+      expect(check.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(b.ticketId)).toEqual({status:"cancelled"});
+      expect(check.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ordinary.ticketId)).toEqual({status:"accepted"});
+      expect(check.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE event_type='native_command_ticket_retired'").get()).toEqual({n:2});
+      check.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("does not retire a native-command Ticket once execution evidence exists", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-native-evidence-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const store = new TicketStore(databasePath);
+      const old = new Date("2026-09-20T07:36:00Z");
+      const ticket = store.accept({ runId:"run-context-evidence", ownerSessionKey:"agent:main:discord:channel:1", prompt:"/context" });
+      store.route(ticket.ticketId, false, old);
+
+      const db = new DatabaseSync(databasePath);
+      ensureCommandRetirementEvidenceTables(db);
+      db.prepare("UPDATE tickets SET created_at=?,updated_at=? WHERE ticket_id=?")
+        .run(old.toISOString(),old.toISOString(),ticket.ticketId);
+      db.prepare("INSERT INTO cnx_direct_model_call(call_id,ticket_id) VALUES (?,?)").run("call-1",ticket.ticketId);
+      db.close();
+
+      const result = retireHistoricalNativeCommandTickets({
+        ticketDatabasePath: databasePath,
+        cfg: {},
+        now: new Date("2026-09-20T07:40:00Z"),
+      });
+      expect(result).toMatchObject({ retired:0, skippedForEvidence:1, schemaReady:true });
+
+      const check = new DatabaseSync(databasePath, { readOnly:true });
+      expect(check.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId)).toEqual({status:"accepted"});
+      check.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("does not retire a fresh native-command Ticket inside the bounded migration age", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-native-fresh-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const store = new TicketStore(databasePath);
+      const fresh = new Date("2026-09-20T07:39:30Z");
+      const ticket = store.accept({ runId:"run-context-fresh", ownerSessionKey:"agent:main:dashboard:main", prompt:"/context" });
+      store.route(ticket.ticketId, false, fresh);
+      const db = new DatabaseSync(databasePath);
+      ensureCommandRetirementEvidenceTables(db);
+      db.prepare("UPDATE tickets SET created_at=?,updated_at=? WHERE ticket_id=?")
+        .run(fresh.toISOString(),fresh.toISOString(),ticket.ticketId);
+      db.close();
+
+      const result = retireHistoricalNativeCommandTickets({
+        ticketDatabasePath: databasePath,
+        cfg: {},
+        now: new Date("2026-09-20T07:40:00Z"),
+        minAgeMs: 60_000,
+      });
+      expect(result).toMatchObject({ retired:0, schemaReady:true });
+
+      const check = new DatabaseSync(databasePath, { readOnly:true });
+      expect(check.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(ticket.ticketId)).toEqual({status:"accepted"});
+      check.close();
+    } finally {
+      bestEffortRemove(root);
+    }
   });
 
   it("reads authoritative host terminal error evidence by exact run id", () => {

@@ -17,6 +17,7 @@ import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery
 import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
 import { registerRuntimeHookAttestation } from "./v095-runtime-hook-attestation.js";
 import { installV095SessionSerialization } from "./v095-session-serialization.js";
+import { retireHistoricalNativeCommandTickets } from "./v095-native-command-retirement.js";
 
 
 type HostControllerState = {
@@ -191,7 +192,16 @@ const releaseEntry: ReturnType<typeof definePluginEntry> & {
     const installManagedRuntimeGuards = () => {
       installV092DurableDeliveryBoundary();
       const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
-      if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
+      if (existsSync(ticketDatabase)) {
+        installV095DirectRecoveryLaneFence(ticketDatabase);
+        const retired = retireHistoricalNativeCommandTickets({
+          ticketDatabasePath: ticketDatabase,
+          cfg: (api as any).config ?? {},
+        });
+        if (retired.retired > 0) {
+          api.logger.info?.(`CogentNexus-OpenClaw retired ${retired.retired} stranded native-command Ticket(s) during CNX-442 migration`);
+        }
+      }
       installV091DirectModelCallLease(api);
       installV095SessionSerialization(api);
       installV095InferenceHookBridge(runtimeApi);
