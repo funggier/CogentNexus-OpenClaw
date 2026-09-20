@@ -1,7 +1,7 @@
 # Active Coordination Task
 
 Status: `IN_PROGRESS`
-State: `CNX427_OPENCLAW95_TICKET_FIRST_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_OPENCLAW95_LIVE_INSTALL_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
@@ -46,6 +46,43 @@ Task/report:
 - `docs/operations/coordination/reports/CNX-20260919-428-openclaw-9.5-supervisor-cold-start-grace-repair-report.md`
 
 A PID-bound isolated Gateway probe also proved the OpenClaw 9.5 execution generation carries CNX Ticket-first admission correctly: one process -> one user turn -> one host run -> one Ticket -> one model call, with Ticket persistence before model-call authority. The small probe model timed out at 90 s and terminated without duplicate/recovery inference, so it does not replace the final Discord delivery acceptance.
+
+## CNX-436 / CNX-437 live qualification
+
+The remaining OpenClaw 9.5 install/enable blockers found after CNX-428 are now repaired and live-qualified.
+
+CNX-436:
+
+- implementation commit `321fda1e5a2564973a9868141413fb73b8c26805`;
+- `lifecycle start` readiness budget repaired from 30 s to bounded 180 s;
+- repository affected-surface regression: 107/107 PASS;
+- live supported install observed 5 readiness attempts with `timeoutSeconds=180.0`;
+- classification: `OPENCLAW95_LIFECYCLE_START_READINESS_GREEN`.
+
+CNX-437:
+
+- implementation commit `d67e86ae212222e62bd6eba2e194c1fd78fcf785`;
+- Windows captured subprocess boundaries now decode UTF-8 with replacement instead of locale CP1252;
+- exact prior `json.loads(None)` failure covered by TDD;
+- real Thai UTF-8 byte regression (including byte 0x81) passes;
+- supported install-over from exact candidate completed with terminal exit 0;
+- MANAGED generation 109 remains committed;
+- CNX supervisor Enabled / Last Result 0;
+- Gateway healthy and Discord ready/connected;
+- no post-install UnicodeDecodeError, NoneType JSON failure, transactional rollback, or new crash-loop breaker event;
+- classification: `WINDOWS_UTF8_SUBPROCESS_AND_GATEWAY_TEMP_COMPAT_GREEN`.
+
+Storage hardening discovered during CNX-437 is also active:
+
+- Gateway process-local TMPDIR/TEMP/TMP -> `T:\CogentNexus\CogentNexus-OpenClaw\temp\openclaw-gateway`;
+- LConnect child TEMP/TMP -> `T:\CogentNexus\CogentNexus-OpenClaw\temp\lconnect`;
+- C: current `openclaw-plugin-build-*` count = 0;
+- C: free space remains about 103.8 GB.
+
+Reports:
+
+- `docs/operations/coordination/reports/CNX-20260920-436-openclaw-9.5-lifecycle-start-readiness-budget-repair-report.md`
+- `docs/operations/coordination/reports/CNX-20260920-437-windows-utf8-subprocess-and-gateway-temp-compatibility-repair-report.md`
 
 ## Remaining primary acceptance
 

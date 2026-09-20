@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 Status: `IN_PROGRESS`
-State: `CNX427_OPENCLAW95_TICKET_FIRST_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_OPENCLAW95_LIVE_INSTALL_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
@@ -45,6 +45,45 @@ Acceptance #2:
 OpenClaw 9.5 contains upstream generation continuity fix `983782594807a23c006b49bd16172b1ba6980924`.
 
 Final semantic acceptance on 9.5 is still pending.
+
+## CNX-436 / CNX-437 final live repair state
+
+The OpenClaw 9.5 post-install lifecycle path is now GREEN.
+
+CNX-436:
+
+- implementation commit `321fda1e5a2564973a9868141413fb73b8c26805`;
+- readiness budget = bounded 180 seconds;
+- live installer crossed 5 readiness attempts and completed;
+- classification `OPENCLAW95_LIFECYCLE_START_READINESS_GREEN`.
+
+CNX-437:
+
+- implementation commit `d67e86ae212222e62bd6eba2e194c1fd78fcf785`;
+- Windows subprocess capture now uses explicit UTF-8 + replacement;
+- focused regression 5/5 PASS;
+- affected Host/session regression 55 PASS with 2 unrelated cases deselected;
+- supported install-over terminal exit = 0;
+- controller `cnxMode=active`, generation 109;
+- plugin loaded by Gateway;
+- supervisor Enabled / hidden / Last Result 0;
+- Gateway health ok;
+- Discord ready/connected;
+- no new UnicodeDecodeError / NoneType JSON / transactional rollback after install;
+- classification `WINDOWS_UTF8_SUBPROCESS_AND_GATEWAY_TEMP_COMPAT_GREEN`.
+
+OpenClaw's native restart-loop breaker self-recovered after its 300000 ms window drained. No OpenClaw state DB rows were manually deleted.
+
+Current final acceptance baseline:
+
+- Discord session key: `agent:main:discord:channel:1391855033993138217`;
+- existing failed physical session: `8fc2e9fe-e413-4979-b7ce-e2baeb960418`;
+- current model: `ollama/qwen3.8:27b`;
+- CNX Tickets: 44;
+- max Ticket event id: 1087;
+- direct model calls: 32.
+
+The failed Discord session must be removed before the final one-turn acceptance so the final evidence is unambiguous.
 
 ## CNX-428 supervisor cold-start repair
 
