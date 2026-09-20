@@ -43,8 +43,24 @@ def creation_flags() -> int:
     return subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
 
 
+def captured_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
 def run(cmd: list[str], timeout: int = 120, check: bool = False) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, creationflags=creation_flags())
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+        creationflags=creation_flags(),
+    )
     if check and result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or f"command failed: {cmd}").strip())
     return result
@@ -155,7 +171,7 @@ def gateway_status(timeout: int = 30) -> dict[str, Any]:
 def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int = 30) -> Any:
     command = [openclaw_executable(), "gateway", "call", method, "--params", json.dumps(params or {}, separators=(",", ":")), "--json"]
     result = run(command, timeout=timeout, check=True)
-    value = result.stdout.strip()
+    value = captured_text(result.stdout).strip()
     if not value:
         return None
     try:
@@ -167,7 +183,7 @@ def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int 
 def default_agent_id() -> str:
     result = run([openclaw_executable(), "agents", "list", "--json"], timeout=30, check=True)
     try:
-        agents = json.loads(result.stdout)
+        agents = json.loads(captured_text(result.stdout))
     except json.JSONDecodeError as error:
         raise RuntimeError("OpenClaw agents list returned invalid JSON") from error
     if not isinstance(agents, list) or not agents:
@@ -184,7 +200,7 @@ def configured_main_key() -> str:
     result = run([openclaw_executable(), "config", "get", "session.mainKey"], timeout=20)
     if result.returncode != 0:
         return "main"
-    value = result.stdout.strip()
+    value = captured_text(result.stdout).strip()
     if not value:
         return "main"
     try:
@@ -205,7 +221,7 @@ def reconcile_default_session() -> dict[str, Any]:
     expected = f"agent:{agent_id}:{main_key}"
     result = run([openclaw_executable(), "sessions", "--json"], timeout=30, check=True)
     try:
-        snapshot = json.loads(result.stdout)
+        snapshot = json.loads(captured_text(result.stdout))
     except json.JSONDecodeError as error:
         raise RuntimeError("OpenClaw sessions list returned invalid JSON") from error
     sessions = snapshot.get("sessions", []) if isinstance(snapshot, dict) else []
@@ -217,7 +233,7 @@ def reconcile_default_session() -> dict[str, Any]:
         raise RuntimeError(f"OpenClaw sessions.create returned no session key: {created!r}")
     verify = run([openclaw_executable(), "sessions", "--json"], timeout=30, check=True)
     try:
-        verified = json.loads(verify.stdout)
+        verified = json.loads(captured_text(verify.stdout))
     except json.JSONDecodeError as error:
         raise RuntimeError("OpenClaw sessions verification returned invalid JSON") from error
     verified_sessions = verified.get("sessions", []) if isinstance(verified, dict) else []

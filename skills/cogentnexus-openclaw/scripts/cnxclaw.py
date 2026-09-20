@@ -114,25 +114,34 @@ def run_host(root: Path, args: list[str], timeout: int = 420, target: str | None
         [sys.executable, str(HOST_CONTROL), "--root", str(root), *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
         creationflags=creation_flags(),
         env=env,
     )
-    raw = proc.stdout.strip()
+    raw = (proc.stdout or "").strip()
     parsed: Any = None
     if raw:
         try:
             parsed = json.loads(raw)
         except json.JSONDecodeError:
             parsed = raw
-    return {"ok": proc.returncode == 0, "exitCode": proc.returncode, "output": parsed, "stdout": raw, "stderr": proc.stderr.strip()}
+    return {"ok": proc.returncode == 0, "exitCode": proc.returncode, "output": parsed, "stdout": raw, "stderr": (proc.stderr or "").strip()}
 
 
 def delegate(root: Path, args: list[str], interactive: bool = False) -> int:
     command = [sys.executable, str(HOST_CONTROL), "--root", str(root), *args]
     if interactive:
         return int(subprocess.run(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, creationflags=creation_flags()).returncode)
-    proc = subprocess.run(command, capture_output=True, text=True, creationflags=creation_flags())
+    proc = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        creationflags=creation_flags(),
+    )
     if proc.stdout:
         sys.stdout.write(proc.stdout)
     if proc.stderr:

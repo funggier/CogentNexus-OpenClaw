@@ -49,6 +49,8 @@ def run(cmd: list[str], timeout: int = 120) -> subprocess.CompletedProcess[str]:
         cmd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=timeout,
         creationflags=creation_flags(),
     )
