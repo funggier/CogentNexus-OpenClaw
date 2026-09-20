@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -13,6 +13,7 @@ import {
   markDirectRecovery,
   patchTicketStore,
   prepareV090RecoveryState,
+  resolveAgentEndUserCancellation,
 } from "./v090.js";
 
 describe("CogentNexus-OpenClaw v0.9.0 intent boundary", () => {
@@ -118,6 +119,70 @@ describe("CogentNexus-OpenClaw v0.9.0 intent boundary", () => {
   it("keeps Direct Recovery synthetic prompts outside human Ticket intake", () => {
     expect(ticketIntakeEligible("#cogent-direct\n[CogentNexus-OpenClaw Continuation: direct-recovery:CNXT-test]\nResume committed state.")).toBe(false);
     expect(ticketIntakeEligible("ทำงานนี้ต่อให้ผมครับ")).toBe(true);
+  });
+
+  it("resolves an empty agent_end error as user Stop only from authoritative Host direct-abort evidence", async () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx-v090-host-stop-"));
+    try {
+      const agentDir=join(root,"agents","main","agent");
+      mkdirSync(agentDir,{recursive:true});
+      const hostDb=join(agentDir,"openclaw-agent.sqlite");
+      const db=new DatabaseSync(hostDb);
+      db.exec(`
+        CREATE TABLE trajectory_runtime_events(
+          session_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          run_id TEXT,
+          event_json TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(session_id,seq)
+        );
+      `);
+      db.prepare("INSERT INTO trajectory_runtime_events(session_id,seq,run_id,event_json,created_at) VALUES (?,?,?,?,?)")
+        .run(
+          "physical-stop",
+          1,
+          "run-empty-error-stop",
+          JSON.stringify({
+            type:"session.ended",
+            runId:"run-empty-error-stop",
+            data:{
+              status:"interrupted",
+              aborted:true,
+              externalAbort:true,
+              timedOut:false,
+              stopReason:"aborted",
+              promptError:"agent run aborted | OPENCLAW_DIRECT_ABORT",
+            },
+          }),
+          Date.now(),
+        );
+      db.close();
+      const api:any={config:{},runtime:{agent:{resolveAgentDir:()=>agentDir}}};
+      const result=await resolveAgentEndUserCancellation(api,{
+        sessionKey:"agent:main:discord:channel:42",
+        runId:"run-empty-error-stop",
+        success:false,
+        error:"",
+        timeoutMs:100,
+      });
+      expect(result).toMatchObject({cancel:true,reason:"Reply operation aborted by user"});
+    } finally {
+      rmSync(root,{recursive:true,force:true});
+    }
+  });
+
+  it("does not wait for Host terminal evidence when a non-user failure already has a reason", async () => {
+    const started=Date.now();
+    const api:any={config:{},runtime:{agent:{resolveAgentDir:()=>join(tmpdir(),"missing-agent-dir")}}};
+    const result=await resolveAgentEndUserCancellation(api,{
+      sessionKey:"agent:main:discord:channel:42",
+      runId:"generic-error-run",
+      success:false,
+      error:"provider interrupted",
+    });
+    expect(result).toMatchObject({cancel:false,reason:"provider interrupted"});
+    expect(Date.now()-started).toBeLessThan(250);
   });
 
   it("uses a narrow user-cancellation classifier and bounded recovery backoff", () => {

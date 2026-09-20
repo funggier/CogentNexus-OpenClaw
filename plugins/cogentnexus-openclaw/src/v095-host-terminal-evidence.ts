@@ -10,7 +10,9 @@ export type HostRunTerminalEvidence =
       status: string;
       stopReason?: string;
       aborted?: boolean;
+      externalAbort?: boolean;
       timedOut?: boolean;
+      promptError?: string;
       sessionId?: string;
       createdAt?: number;
     };
@@ -40,7 +42,9 @@ export function readHostRunTerminalEvidence(input: {
       status,
       ...(typeof event?.data?.stopReason === "string" ? { stopReason: event.data.stopReason } : {}),
       ...(typeof event?.data?.aborted === "boolean" ? { aborted: event.data.aborted } : {}),
+      ...(typeof event?.data?.externalAbort === "boolean" ? { externalAbort: event.data.externalAbort } : {}),
       ...(typeof event?.data?.timedOut === "boolean" ? { timedOut: event.data.timedOut } : {}),
+      ...(typeof event?.data?.promptError === "string" ? { promptError: event.data.promptError } : {}),
       ...(typeof row.session_id === "string" ? { sessionId: row.session_id } : {}),
       ...(typeof row.created_at === "number" ? { createdAt: row.created_at } : {}),
     };
@@ -70,6 +74,30 @@ export function resolveHostAgentDatabasePath(api: any, sessionKey: string): stri
   }
 }
 
+
+export async function waitForHostRunTerminalEvidence(input: {
+  api: any;
+  sessionKey: string;
+  runId: string;
+  timeoutMs?: number;
+  pollMs?: number;
+}): Promise<HostRunTerminalEvidence> {
+  const databasePath = resolveHostAgentDatabasePath(input.api, input.sessionKey);
+  if (!databasePath) return { state: "pending" };
+  const timeoutMs = Math.max(0, Math.min(input.timeoutMs ?? 1500, 5000));
+  const pollMs = Math.max(10, Math.min(input.pollMs ?? 25, 250));
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    const evidence = readHostRunTerminalEvidence({ databasePath, runId: input.runId });
+    if (evidence.state === "terminal") return evidence;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return { state: "pending" };
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, Math.min(pollMs, remaining));
+      timer.unref?.();
+    });
+  }
+}
 
 function tableExists(db: DatabaseSync, name: string) {
   return Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
@@ -211,6 +239,138 @@ export function settleSilentHostSuccess(input: {
     addTicketEvent(db, row.ticket_id, "completed", result, stamp);
     db.exec("COMMIT");
     return "completed";
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch {}
+    throw error;
+  } finally {
+    db.close();
+  }
+}
+
+export function isAuthoritativeUserStop(
+  evidence: Extract<HostRunTerminalEvidence, { state: "terminal" }>,
+) {
+  const stopReason = (evidence.stopReason ?? "").trim().toLowerCase();
+  return evidence.aborted === true
+    && evidence.externalAbort === true
+    && evidence.timedOut !== true
+    && stopReason === "aborted";
+}
+
+export function cancelDirectOwnerSessionForAuthoritativeUserStop(input: {
+  ticketDatabasePath: string;
+  sessionKey: string;
+  evidence: Extract<HostRunTerminalEvidence, { state: "terminal" }>;
+  now?: Date;
+}): { state: "cancelled" | "unchanged" | "conflict"; cancelled: string[]; generation?: number } {
+  if (!isAuthoritativeUserStop(input.evidence)) return { state:"unchanged", cancelled:[] };
+  const db = new DatabaseSync(input.ticketDatabasePath);
+  const stamp = (input.now ?? new Date()).toISOString();
+  const reason = "Reply operation aborted by user";
+  try {
+    db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; BEGIN IMMEDIATE;");
+    const active = db.prepare(`
+      SELECT ticket_id,status,owner_session_key,delivery_confirmed_at
+      FROM tickets
+      WHERE run_id=? AND owner_session_key=?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(input.evidence.runId, input.sessionKey) as any;
+    if (!active) {
+      db.exec("COMMIT");
+      return { state:"unchanged", cancelled:[] };
+    }
+    const delivery = deliveryEvidence(db, active.ticket_id);
+    if (active.delivery_confirmed_at != null || delivery.confirmed || delivery.transportAccepted) {
+      recordConflictOnce(db, active.ticket_id, {
+        runId: input.evidence.runId,
+        hostStatus: input.evidence.status,
+        stopReason: input.evidence.stopReason,
+        reason: "authoritative user stop conflicts with delivery evidence",
+      }, stamp);
+      db.exec("COMMIT");
+      return { state:"conflict", cancelled:[] };
+    }
+
+    const rows = db.prepare(`
+      SELECT ticket_id,status,run_id
+      FROM tickets
+      WHERE owner_session_key=? AND workflow_eligible=0
+        AND (
+          status IN ('accepted','planned','running','waiting')
+          OR (run_id=? AND status='failed')
+        )
+      ORDER BY created_at,ticket_id
+    `).all(input.sessionKey, input.evidence.runId) as any[];
+    if (!rows.length) {
+      db.exec("COMMIT");
+      return { state:"unchanged", cancelled:[] };
+    }
+
+    let generation = 0;
+    if (tableExists(db, "cnx_sessions")) {
+      const row = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(input.sessionKey) as any;
+      generation = Number(row?.generation ?? 0);
+      if (row?.state === "active") {
+        generation += 1;
+        db.prepare(`
+          UPDATE cnx_sessions
+          SET generation=?,updated_at=?,delete_reason=NULL
+          WHERE session_key=? AND state='active'
+        `).run(generation, stamp, input.sessionKey);
+      }
+    }
+
+    const cancelled: string[] = [];
+    for (const row of rows) {
+      const changed = db.prepare(`
+        UPDATE tickets
+        SET status='cancelled',worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,
+          heartbeat_at=NULL,result_json=NULL,response_ready_at=NULL,
+          failure_class=NULL,failure_message=?,delivery_last_error=NULL,updated_at=?
+        WHERE ticket_id=? AND (
+          status IN ('accepted','planned','running','waiting')
+          OR (run_id=? AND status='failed')
+        )
+      `).run(reason, stamp, row.ticket_id, input.evidence.runId);
+      if (changed.changes !== 1) continue;
+      cancelled.push(row.ticket_id);
+      addTicketEvent(db, row.ticket_id, "cancelled_by_user", {
+        source: "host-terminal-external-abort",
+        previousStatus: row.status,
+        previousRunId: row.run_id,
+        runId: input.evidence.runId,
+        sessionGeneration: generation,
+        message: reason,
+      }, stamp);
+    }
+
+    if (cancelled.length) {
+      if (tableExists(db, "ticket_outbox")) {
+        db.prepare(`
+          DELETE FROM ticket_outbox
+          WHERE owner_session_key=? AND delivery_status='pending'
+            AND ticket_id IN (SELECT ticket_id FROM tickets WHERE owner_session_key=? AND status='cancelled')
+        `).run(input.sessionKey, input.sessionKey);
+      }
+      if (tableExists(db, "cnx_assistant_delivery")) {
+        db.prepare(`
+          DELETE FROM cnx_assistant_delivery
+          WHERE owner_session_key=? AND status='pending'
+            AND ticket_id IN (SELECT ticket_id FROM tickets WHERE owner_session_key=? AND status='cancelled')
+        `).run(input.sessionKey, input.sessionKey);
+      }
+      if (tableExists(db, "cnx_direct_recovery")) {
+        db.prepare(`
+          UPDATE cnx_direct_recovery
+          SET state='cancelled',active_run_id=NULL,next_attempt_at=NULL,last_error=?,updated_at=?
+          WHERE ticket_id IN (
+            SELECT ticket_id FROM tickets WHERE owner_session_key=? AND status='cancelled'
+          ) AND state<>'cancelled'
+        `).run(reason, stamp, input.sessionKey);
+      }
+    }
+    db.exec("COMMIT");
+    return { state:"cancelled", cancelled, generation };
   } catch (error) {
     try { db.exec("ROLLBACK"); } catch {}
     throw error;

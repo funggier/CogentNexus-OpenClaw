@@ -13,7 +13,7 @@ import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
 import { bindDeliveryRun, hasPendingDirectExecutionForSession, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
-import { reconcileHostTerminalFailure, scheduleHostRunTerminalReconcile, settleSilentHostSuccess } from "./v095-host-terminal-evidence.js";
+import { cancelDirectOwnerSessionForAuthoritativeUserStop, isAuthoritativeUserStop, reconcileHostTerminalFailure, scheduleHostRunTerminalReconcile, settleSilentHostSuccess } from "./v095-host-terminal-evidence.js";
 import { createDiscordActiveTypingManager } from "./discord-active-typing.js";
 
 type Handoff = {
@@ -1221,6 +1221,20 @@ entry.register = (api) => {
             onTerminal:(evidence)=>{
               try {
                 const ticketDatabasePath=config.ticketDatabasePath??defaultTicketDatabase(workspaceDir);
+                if(sessionKey && isAuthoritativeUserStop(evidence)){
+                  const state=cancelDirectOwnerSessionForAuthoritativeUserStop({
+                    ticketDatabasePath,
+                    sessionKey,
+                    evidence,
+                  });
+                  if(state.state==="cancelled"){
+                    api.logger.info?.(`CogentNexus-OpenClaw cancelled owner direct session from authoritative user stop for run ${runId}; tickets=${state.cancelled.length}; generation=${state.generation ?? "unknown"}`);
+                  } else if(state.state==="conflict"){
+                    api.logger.error?.(`CogentNexus-OpenClaw authoritative user stop conflicted with delivery evidence for run ${runId}`);
+                  }
+                  cleanupRunDelivery(runId);
+                  return;
+                }
                 const terminalSuccess=["success","completed","ok"].includes(evidence.status.toLowerCase());
                 if(terminalSuccess){
                   if(!visible){

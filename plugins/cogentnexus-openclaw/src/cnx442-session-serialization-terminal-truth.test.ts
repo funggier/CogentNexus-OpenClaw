@@ -8,7 +8,7 @@ import {
   enforceOwnerSessionFollowupQueue,
   ownerConversationSessionEligible,
 } from "./v095-session-serialization.js";
-import { readHostRunTerminalEvidence, resolveHostAgentDatabasePath, scheduleHostRunTerminalReconcile } from "./v095-host-terminal-evidence.js";
+import { cancelDirectOwnerSessionForAuthoritativeUserStop, isAuthoritativeUserStop, readHostRunTerminalEvidence, resolveHostAgentDatabasePath, scheduleHostRunTerminalReconcile, waitForHostRunTerminalEvidence } from "./v095-host-terminal-evidence.js";
 import { TicketStore } from "./ticket-store.js";
 import { retireHistoricalNativeCommandTickets } from "./v095-native-command-retirement.js";
 import entry from "./index.js";
@@ -655,6 +655,223 @@ describe("CNX-442 session serialization and terminal truth", () => {
     }
   });
 
+  it("cancels current and queued direct Tickets from authoritative external user abort before the queued turn can execute", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx442-authoritative-user-stop-"));
+    try {
+      const databasePath=join(root,"tickets.sqlite3");
+      const store=new TicketStore(databasePath);
+      store.snapshot();
+      const sessionKey="agent:main:discord:channel:authoritative-stop";
+      const sessionId="physical-authoritative-stop";
+      const db=new DatabaseSync(databasePath);
+      const now="2026-09-20T16:32:48.781Z";
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS cnx_sessions(
+          session_key TEXT PRIMARY KEY,
+          state TEXT NOT NULL DEFAULT 'active',
+          generation INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT,
+          delete_reason TEXT,
+          session_id TEXT
+        );
+        CREATE TABLE IF NOT EXISTS cnx_direct_recovery(
+          ticket_id TEXT PRIMARY KEY,
+          mode TEXT NOT NULL DEFAULT 'resume',
+          state TEXT NOT NULL DEFAULT 'pending',
+          attempt_count INTEGER NOT NULL DEFAULT 0,
+          active_run_id TEXT,
+          next_attempt_at TEXT,
+          last_error TEXT,
+          owner_generation INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+      db.prepare("INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id) VALUES (?,'active',11,?,?,?)")
+        .run(sessionKey,now,now,sessionId);
+      db.close();
+
+      const first=store.acceptIngress({
+        sourceKey:"source-stop-1",
+        sourceChannel:"discord",
+        sourceMessageId:"msg-stop-1",
+        ownerSessionKey:sessionKey,
+        prompt:"@Ce STOP 1",
+      });
+      expect(store.bindPendingIngressRun({
+        ownerSessionKey:sessionKey,
+        ownerSessionId:sessionId,
+        runId:"run-stop-1",
+        prompt:"@Ce STOP 1",
+        sourceChannel:"discord",
+      }).state).toBe("bound");
+      store.route(first.ticketId,false);
+
+      const second=store.acceptIngress({
+        sourceKey:"source-stop-2",
+        sourceChannel:"discord",
+        sourceMessageId:"msg-stop-2",
+        ownerSessionKey:sessionKey,
+        prompt:"@Ce STOP 2",
+      });
+
+      let mutate=new DatabaseSync(databasePath);
+      mutate.prepare("UPDATE tickets SET status='failed',failure_class='permanent',failure_message='' WHERE ticket_id=?")
+        .run(first.ticketId);
+      mutate.prepare(`
+        INSERT INTO cnx_direct_recovery(ticket_id,mode,state,attempt_count,active_run_id,next_attempt_at,last_error,owner_generation,created_at,updated_at)
+        VALUES (?,'resume','pending',0,NULL,?,?,11,?,?)
+      `).run(second.ticketId,now,"queued",now,now);
+      mutate.close();
+
+      const evidence:any={
+        state:"terminal",
+        runId:"run-stop-1",
+        status:"interrupted",
+        stopReason:"aborted",
+        aborted:true,
+        externalAbort:true,
+        timedOut:false,
+      };
+      expect(isAuthoritativeUserStop(evidence)).toBe(true);
+      const result=cancelDirectOwnerSessionForAuthoritativeUserStop({
+        ticketDatabasePath:databasePath,
+        sessionKey,
+        evidence,
+        now:new Date("2026-09-20T16:32:48.900Z"),
+      });
+      expect(result.state).toBe("cancelled");
+      expect(new Set(result.cancelled)).toEqual(new Set([first.ticketId,second.ticketId]));
+      expect(result.generation).toBe(12);
+      const duplicate=cancelDirectOwnerSessionForAuthoritativeUserStop({
+        ticketDatabasePath:databasePath,
+        sessionKey,
+        evidence,
+        now:new Date("2026-09-20T16:32:49.000Z"),
+      });
+      expect(duplicate).toEqual({state:"unchanged",cancelled:[]});
+
+      let check=new DatabaseSync(databasePath,{readOnly:true});
+      expect(check.prepare("SELECT ticket_id,status FROM tickets ORDER BY created_at").all()).toEqual([
+        {ticket_id:first.ticketId,status:"cancelled"},
+        {ticket_id:second.ticketId,status:"cancelled"},
+      ]);
+      expect(check.prepare("SELECT generation,state FROM cnx_sessions WHERE session_key=?").get(sessionKey))
+        .toEqual({generation:12,state:"active"});
+      expect(check.prepare("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id=?").get(second.ticketId))
+        .toEqual({state:"cancelled",active_run_id:null,next_attempt_at:null});
+      expect(check.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE event_type='cancelled_by_user' AND ticket_id IN (?,?)").get(first.ticketId,second.ticketId))
+        .toEqual({n:2});
+      check.close();
+
+      const dequeue=store.bindPendingIngressRun({
+        ownerSessionKey:sessionKey,
+        ownerSessionId:sessionId,
+        runId:"run-stop-2-after-host-dequeue",
+        prompt:"@Ce STOP 2",
+        sourceChannel:"discord",
+      });
+      expect(dequeue).toMatchObject({state:"cancelled",ticketId:second.ticketId});
+
+      check=new DatabaseSync(databasePath,{readOnly:true});
+      expect(check.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:2});
+      expect(check.prepare("SELECT bound_run_id FROM ticket_ingress_claims WHERE ticket_id=?").get(second.ticketId))
+        .toEqual({bound_run_id:"run-stop-2-after-host-dequeue"});
+      check.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("waits boundedly for a delayed authoritative user-stop terminal event", async () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx442-delayed-stop-terminal-"));
+    try {
+      const agentDir=join(root,"agents","main","agent");
+      mkdirSync(agentDir,{recursive:true});
+      const dbPath=join(agentDir,"openclaw-agent.sqlite");
+      const db=new DatabaseSync(dbPath);
+      db.exec(`
+        CREATE TABLE trajectory_runtime_events(
+          session_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          run_id TEXT,
+          event_json TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY(session_id,seq)
+        );
+      `);
+      db.close();
+
+      const api:any={
+        config:{},
+        runtime:{agent:{resolveAgentDir:()=>agentDir}},
+      };
+      const timer=setTimeout(()=>{
+        const write=new DatabaseSync(dbPath);
+        write.prepare("INSERT INTO trajectory_runtime_events(session_id,seq,run_id,event_json,created_at) VALUES (?,?,?,?,?)")
+          .run(
+            "physical-stop",
+            1,
+            "run-delayed-stop",
+            JSON.stringify({
+              type:"session.ended",
+              runId:"run-delayed-stop",
+              data:{
+                status:"interrupted",
+                aborted:true,
+                externalAbort:true,
+                timedOut:false,
+                stopReason:"aborted",
+                promptError:"agent run aborted | OPENCLAW_DIRECT_ABORT",
+              },
+            }),
+            Date.now(),
+          );
+        write.close();
+      },40);
+
+      const started=Date.now();
+      const evidence=await waitForHostRunTerminalEvidence({
+        api,
+        sessionKey:"agent:main:discord:channel:42",
+        runId:"run-delayed-stop",
+        timeoutMs:500,
+        pollMs:10,
+      });
+      clearTimeout(timer);
+      expect(Date.now()-started).toBeLessThan(500);
+      expect(evidence).toMatchObject({
+        state:"terminal",
+        runId:"run-delayed-stop",
+        status:"interrupted",
+        aborted:true,
+        externalAbort:true,
+        timedOut:false,
+        stopReason:"aborted",
+        promptError:"agent run aborted | OPENCLAW_DIRECT_ABORT",
+      });
+      expect(evidence.state==="terminal" && isAuthoritativeUserStop(evidence)).toBe(true);
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("does not classify restart or supersession aborts as an authoritative user Stop", () => {
+    for (const stopReason of ["restart","superseded"]) {
+      expect(isAuthoritativeUserStop({
+        state:"terminal",
+        runId:`run-${stopReason}`,
+        status:"interrupted",
+        aborted:true,
+        externalAbort:true,
+        timedOut:false,
+        stopReason,
+      })).toBe(false);
+    }
+  });
+
   it("reads authoritative host terminal error evidence by exact run id", () => {
     const root = mkdtempSync(join(tmpdir(), "cnx442-host-terminal-"));
     try {
@@ -676,7 +893,7 @@ describe("CNX-442 session serialization and terminal truth", () => {
         JSON.stringify({
           type: "session.ended",
           runId: "run-failed",
-          data: { status: "error", stopReason: "error", aborted: false, timedOut: false },
+          data: { status: "error", stopReason: "error", aborted: false, externalAbort: false, timedOut: false },
         }),
         1,
       );
