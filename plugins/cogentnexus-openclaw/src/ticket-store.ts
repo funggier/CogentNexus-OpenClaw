@@ -98,6 +98,8 @@ CREATE TABLE IF NOT EXISTS ticket_ingress_claims (
   owner_session_key TEXT NOT NULL,
   source_channel TEXT NOT NULL,
   source_message_id TEXT NOT NULL,
+  owner_session_id TEXT,
+  owner_generation INTEGER NOT NULL DEFAULT 0,
   provisional_run_id TEXT NOT NULL,
   bound_run_id TEXT,
   created_at TEXT NOT NULL,
@@ -171,10 +173,13 @@ export class TicketStore {
       this.ensureColumn(db,"tickets","manifest_path","TEXT");
       this.ensureColumn(db,"ticket_outbox","scheduled_at","TEXT");
       this.ensureColumn(db,"ticket_outbox","delivery_run_id","TEXT");
+      this.ensureColumn(db,"ticket_ingress_claims","owner_session_id","TEXT");
+      this.ensureColumn(db,"ticket_ingress_claims","owner_generation","INTEGER NOT NULL DEFAULT 0");
       db.exec("CREATE INDEX IF NOT EXISTS idx_tickets_recovery ON tickets(status, lease_expires_at)");
       db.exec("CREATE INDEX IF NOT EXISTS idx_tickets_direct_delivery ON tickets(status, workflow_eligible, response_ready_at, delivery_confirmed_at)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_ticket_ingress_owner_fifo ON ticket_ingress_claims(owner_session_key, owner_generation, bound_run_id, created_at)");
       const applied = new Date().toISOString();
-      for (const version of [1,2,3,4,5,6,7]) db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version,applied);
+      for (const version of [1,2,3,4,5,6,7,8]) db.prepare("INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version,applied);
       return db;
     } catch (error) {
       db.close();
@@ -395,6 +400,18 @@ export class TicketStore {
     if (!columns.some((item) => item.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${declaration}`);
   }
 
+  private ingressOwnerAuthority(db: DatabaseSync, ownerSessionKey: string): { state: string | null; generation: number; sessionId: string | null } {
+    const table = db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='cnx_sessions'").get() as any;
+    if (!table) return { state:null, generation:0, sessionId:null };
+    const row = db.prepare("SELECT state,generation,session_id FROM cnx_sessions WHERE session_key=?").get(ownerSessionKey) as any;
+    if (!row) return { state:null, generation:0, sessionId:null };
+    return {
+      state: typeof row.state === "string" ? row.state : null,
+      generation: Number.isFinite(Number(row.generation)) ? Number(row.generation) : 0,
+      sessionId: typeof row.session_id === "string" && row.session_id.trim() ? row.session_id.trim() : null,
+    };
+  }
+
   acceptIngress(input: {
     sourceKey: string;
     sourceChannel: string;
@@ -411,6 +428,8 @@ export class TicketStore {
     const ticketId = `CNXT-${randomUUID()}`;
     try {
       db.exec("BEGIN IMMEDIATE");
+      const authority = this.ingressOwnerAuthority(db, input.ownerSessionKey);
+      const ingressSessionId = authority.state === "active" ? authority.sessionId : null;
       const existing = db.prepare(`
         SELECT c.ticket_id,c.owner_session_key,c.source_channel,c.source_message_id,c.provisional_run_id,
                t.status,t.created_at,t.prompt_sha256,t.run_id
@@ -443,9 +462,10 @@ export class TicketStore {
         ticketId, requestKey, provisionalRunId, input.ownerSessionKey, input.prompt, promptSha256, maxAttempts, now, now,
       );
       db.prepare(`INSERT INTO ticket_ingress_claims(
-        source_key,ticket_id,owner_session_key,source_channel,source_message_id,provisional_run_id,created_at
-      ) VALUES (?,?,?,?,?,?,?)`).run(
-        input.sourceKey, ticketId, input.ownerSessionKey, input.sourceChannel, input.sourceMessageId, provisionalRunId, now,
+        source_key,ticket_id,owner_session_key,source_channel,source_message_id,owner_session_id,owner_generation,provisional_run_id,created_at
+      ) VALUES (?,?,?,?,?,?,?,?,?)`).run(
+        input.sourceKey, ticketId, input.ownerSessionKey, input.sourceChannel, input.sourceMessageId,
+        ingressSessionId, authority.generation, provisionalRunId, now,
       );
       this.event(db, ticketId, "accepted", {
         runId: provisionalRunId,
@@ -457,6 +477,8 @@ export class TicketStore {
         sourceKey: input.sourceKey,
         sourceChannel: input.sourceChannel,
         sourceMessageId: input.sourceMessageId,
+        ownerSessionId: ingressSessionId,
+        ownerGeneration: authority.generation,
         provisionalRunId,
       }, now);
       db.exec("COMMIT");
@@ -521,6 +543,113 @@ export class TicketStore {
       }, nowIso);
       db.exec("COMMIT");
       return { state: "bound", ticketId: row.ticket_id };
+    } catch (error) {
+      try { db.exec("ROLLBACK"); } catch {}
+      throw error;
+    } finally {
+      db.close();
+    }
+  }
+
+  bindPendingIngressRun(input: {
+    ownerSessionKey: string;
+    ownerSessionId?: string;
+    runId: string;
+    prompt: string;
+    sourceChannel?: string;
+    now?: Date;
+  }): { state: "bound" | "already-bound" | "missing" | "cancelled" | "mismatch"; ticketId?: string; sourceKey?: string } {
+    const db = this.open();
+    const nowIso = (input.now ?? new Date()).toISOString();
+    const promptSha256 = hash(input.prompt);
+    const requestedSessionId = input.ownerSessionId?.trim() || null;
+    const requestedChannel = input.sourceChannel?.trim().toLowerCase() || null;
+    try {
+      db.exec("BEGIN IMMEDIATE");
+      const authority = this.ingressOwnerAuthority(db, input.ownerSessionKey);
+      if (
+        authority.state === "active"
+        && requestedSessionId
+        && authority.sessionId
+        && authority.sessionId !== requestedSessionId
+      ) throw new Error("ingress owner lifecycle conflict");
+
+      const effectiveSessionId = requestedSessionId ?? authority.sessionId;
+      const row = db.prepare(`
+        SELECT c.rowid AS ingress_rowid,c.source_key,c.ticket_id,c.owner_session_key,c.source_channel,
+               c.source_message_id,c.owner_session_id,c.owner_generation,c.bound_run_id,
+               t.status,t.run_id,t.prompt_sha256
+        FROM ticket_ingress_claims c
+        JOIN tickets t ON t.ticket_id=c.ticket_id
+        WHERE c.owner_session_key=? AND c.bound_run_id IS NULL
+          AND (
+            (c.owner_session_id IS NOT NULL AND c.owner_session_id=?)
+            OR (c.owner_session_id IS NULL AND c.owner_generation=?)
+          )
+        ORDER BY c.rowid
+        LIMIT 1
+      `).get(input.ownerSessionKey, effectiveSessionId, authority.generation) as any;
+
+      if (!row) {
+        const already = db.prepare(`
+          SELECT c.source_key,c.ticket_id,t.status
+          FROM ticket_ingress_claims c JOIN tickets t ON t.ticket_id=c.ticket_id
+          WHERE c.owner_session_key=? AND c.bound_run_id=?
+          LIMIT 1
+        `).get(input.ownerSessionKey, input.runId) as any;
+        db.exec("COMMIT");
+        if (!already) return { state:"missing" };
+        return {
+          state: already.status === "cancelled" ? "cancelled" : "already-bound",
+          ticketId: already.ticket_id,
+          sourceKey: already.source_key,
+        };
+      }
+
+      const rowChannel = typeof row.source_channel === "string" ? row.source_channel.trim().toLowerCase() : "";
+      if (row.prompt_sha256 !== promptSha256 || (requestedChannel && rowChannel && rowChannel !== requestedChannel)) {
+        db.exec("COMMIT");
+        return { state:"mismatch", ticketId:row.ticket_id, sourceKey:row.source_key };
+      }
+
+      const bindClaim = () => db.prepare(`
+        UPDATE ticket_ingress_claims
+        SET bound_run_id=?,bound_at=?,owner_session_id=COALESCE(owner_session_id,?)
+        WHERE source_key=? AND bound_run_id IS NULL
+      `).run(input.runId, nowIso, effectiveSessionId, row.source_key);
+
+      if (row.status === "cancelled") {
+        const changed = bindClaim();
+        if (changed.changes !== 1) throw new Error("stale cancelled ingress run binding");
+        this.event(db, row.ticket_id, "ingress_run_suppressed", {
+          runId: input.runId,
+          reason: "ticket-cancelled-before-agent-run",
+          sourceKey: row.source_key,
+        }, nowIso);
+        db.exec("COMMIT");
+        return { state:"cancelled", ticketId:row.ticket_id, sourceKey:row.source_key };
+      }
+      if (row.status !== "accepted") throw new Error(`cannot bind pending ingress run while ticket status is ${row.status}`);
+
+      const actualRequestKey = hash(`${input.ownerSessionKey}\0${input.runId}`);
+      const collision = db.prepare("SELECT ticket_id FROM tickets WHERE request_key=?").get(actualRequestKey) as any;
+      if (collision && collision.ticket_id !== row.ticket_id) throw new Error("actual run id already belongs to a different Ticket");
+
+      const changed = db.prepare(`
+        UPDATE tickets SET request_key=?,run_id=?,updated_at=?
+        WHERE ticket_id=? AND status='accepted' AND run_id=?
+      `).run(actualRequestKey, input.runId, nowIso, row.ticket_id, row.run_id);
+      if (changed.changes !== 1) throw new Error("stale pending ingress run binding");
+      const claimChanged = bindClaim();
+      if (claimChanged.changes !== 1) throw new Error("stale pending ingress claim binding");
+      this.event(db, row.ticket_id, "ingress_run_bound", {
+        provisionalRunId: row.run_id,
+        runId: input.runId,
+        sourceKey: row.source_key,
+        phase: "before_agent_run",
+      }, nowIso);
+      db.exec("COMMIT");
+      return { state:"bound", ticketId:row.ticket_id, sourceKey:row.source_key };
     } catch (error) {
       try { db.exec("ROLLBACK"); } catch {}
       throw error;

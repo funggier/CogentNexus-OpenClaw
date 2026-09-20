@@ -63,6 +63,223 @@ describe("CNX-442 session serialization and terminal truth", () => {
     expect(replyDispatchNativeCommandExcluded(event, { cfg })).toBe(true);
   });
 
+  it("binds the provisional ingress Ticket at before_agent_run when the host gate precedes reply_dispatch", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-agent-gate-before-reply-dispatch-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, Array<{ callback:any; options:any }>>();
+      const api:any = {
+        config:{},
+        pluginConfig:{
+          ticketFirst:true,
+          preInferenceAdmission:true,
+          ticketDatabasePath:databasePath,
+          autoWorkflowCompletion:false,
+          discordActiveTyping:false,
+        },
+        registerTool:()=>{},
+        registerService:()=>{},
+        on:(name:string,callback:any,options?:any) => hooks.set(name,[...(hooks.get(name) ?? []),{callback,options:options ?? {}}]),
+        logger:{warn:()=>{},error:()=>{},info:()=>{}},
+        session:{workflow:{unscheduleSessionTurnsByTag:async()=>{},scheduleSessionTurn:async()=>{}}},
+        runtime:{tasks:{managedFlows:{}}},
+      };
+      entry.register?.(api);
+
+      const beforeDispatch = hooks.get("before_dispatch")?.find((item)=>item.options?.registrationId==="cogentnexus-openclaw-pre-dispatch-ticket-intake")?.callback;
+      expect(beforeDispatch).toBeTypeOf("function");
+      const sessionKey="agent:main:discord:channel:agent-gate-order";
+      const prompt="@Ce first live turn";
+      await beforeDispatch({
+        messageId:"msg-agent-gate-order",
+        content:prompt,
+        body:prompt,
+        channel:"discord",
+        sessionKey,
+        senderId:"owner",
+      },{
+        messageId:"msg-agent-gate-order",
+        channelId:"discord",
+        accountId:"default",
+        conversationId:"agent-gate-order",
+        sessionKey,
+        senderId:"owner",
+      });
+
+      const runId="run-agent-gate-order";
+      const beforeAgent = [...(hooks.get("before_agent_run") ?? [])]
+        .sort((a,b)=>Number(b.options?.priority ?? 0)-Number(a.options?.priority ?? 0));
+      expect(beforeAgent.length).toBeGreaterThan(0);
+      let gateResult:any;
+      for (const item of beforeAgent) {
+        const result=await item.callback({
+          prompt,
+          messages:[],
+          accountId:"default",
+          channelId:"discord",
+          senderId:"owner",
+          senderIsOwner:true,
+        },{
+          runId,
+          sessionKey,
+          sessionId:"physical-agent-gate-order",
+          workspaceDir:root,
+          channel:"discord",
+          accountId:"default",
+          senderId:"owner",
+          inputProvenance:{kind:"external_user",sourceChannel:"discord"},
+        });
+        if (result?.outcome==="block") { gateResult={...result,priority:item.options?.priority,registrationId:item.options?.registrationId}; break; }
+      }
+      expect(gateResult).toBeUndefined();
+
+      let db=new DatabaseSync(databasePath,{readOnly:true});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      const row=db.prepare("SELECT ticket_id,run_id,status FROM tickets").get() as any;
+      expect(row).toMatchObject({run_id:runId,status:"accepted"});
+      expect(db.prepare("SELECT bound_run_id FROM ticket_ingress_claims WHERE ticket_id=?").get(row.ticket_id)).toEqual({bound_run_id:runId});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='ingress_run_bound'").get(row.ticket_id)).toEqual({n:1});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='routed'").get(row.ticket_id)).toEqual({n:1});
+      db.close();
+
+      const replyDispatch = hooks.get("reply_dispatch")?.find((item)=>item.options?.registrationId==="cogentnexus-openclaw-ticket-first-admission")?.callback;
+      expect(replyDispatch).toBeTypeOf("function");
+      await replyDispatch({
+        runId,
+        sessionKey,
+        ctx:{
+          SessionKey:sessionKey,
+          MessageSidFull:"msg-agent-gate-order",
+          OriginatingChannel:"discord",
+          AccountId:"default",
+          BodyForAgent:prompt,
+          RawBody:prompt,
+          InboundAccessAuthorized:true,
+        },
+      },{cfg:{},dispatchKind:"agent",dispatcher:{}});
+
+      db=new DatabaseSync(databasePath,{readOnly:true});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      expect(db.prepare("SELECT run_id FROM tickets").get()).toEqual({run_id:runId});
+      db.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("suppresses a cancelled queued ingress at before_agent_run even after Stop advances the owner generation", async () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx442-stop-before-agent-run-"));
+    try {
+      const databasePath=join(root,"tickets.sqlite3");
+      const hooks=new Map<string,Array<{callback:any;options:any}>>();
+      const api:any={
+        config:{},
+        pluginConfig:{
+          ticketFirst:true,
+          preInferenceAdmission:true,
+          ticketDatabasePath:databasePath,
+          autoWorkflowCompletion:false,
+          discordActiveTyping:false,
+        },
+        registerTool:()=>{},
+        registerService:()=>{},
+        on:(name:string,callback:any,options?:any)=>hooks.set(name,[...(hooks.get(name)??[]),{callback,options:options??{}}]),
+        logger:{warn:()=>{},error:()=>{},info:()=>{}},
+        session:{workflow:{unscheduleSessionTurnsByTag:async()=>{},scheduleSessionTurn:async()=>{}}},
+        runtime:{tasks:{managedFlows:{}}},
+      };
+      entry.register?.(api);
+
+      const sessionKey="agent:main:discord:channel:stop-before-agent";
+      const sessionId="physical-stop-before-agent";
+      {
+        const db=new DatabaseSync(databasePath);
+        new TicketStore(databasePath).snapshot();
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS cnx_sessions(
+            session_key TEXT PRIMARY KEY,
+            state TEXT NOT NULL DEFAULT 'active',
+            generation INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT,
+            delete_reason TEXT,
+            session_id TEXT
+          );
+        `);
+        db.prepare("INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id) VALUES (?,'active',9,?,?,?)")
+          .run(sessionKey,new Date().toISOString(),new Date().toISOString(),sessionId);
+        db.close();
+      }
+
+      const beforeDispatch=hooks.get("before_dispatch")?.find((item)=>item.options?.registrationId==="cogentnexus-openclaw-pre-dispatch-ticket-intake")?.callback;
+      expect(beforeDispatch).toBeTypeOf("function");
+      const prompt="@Ce queued work that must be cancelled";
+      await beforeDispatch({
+        messageId:"msg-stop-before-agent",
+        content:prompt,
+        body:prompt,
+        channel:"discord",
+        sessionKey,
+        senderId:"owner",
+      },{
+        messageId:"msg-stop-before-agent",
+        channelId:"discord",
+        accountId:"default",
+        conversationId:"stop-before-agent",
+        sessionKey,
+        senderId:"owner",
+      });
+
+      {
+        const db=new DatabaseSync(databasePath);
+        const ticket=db.prepare("SELECT ticket_id FROM tickets").get() as any;
+        db.prepare("UPDATE tickets SET status='cancelled',failure_message=?,updated_at=? WHERE ticket_id=?")
+          .run("Reply operation aborted by user",new Date().toISOString(),ticket.ticket_id);
+        db.prepare("UPDATE cnx_sessions SET generation=10,updated_at=? WHERE session_key=?")
+          .run(new Date().toISOString(),sessionKey);
+        db.close();
+      }
+
+      const runId="run-must-not-reach-model";
+      const beforeAgent=[...(hooks.get("before_agent_run")??[])]
+        .sort((a,b)=>Number(b.options?.priority??0)-Number(a.options?.priority??0));
+      let gateResult:any;
+      for(const item of beforeAgent){
+        const result=await item.callback({
+          prompt,
+          messages:[],
+          accountId:"default",
+          channelId:"discord",
+          senderId:"owner",
+          senderIsOwner:true,
+        },{
+          runId,
+          sessionKey,
+          sessionId,
+          workspaceDir:root,
+          channel:"discord",
+          accountId:"default",
+          senderId:"owner",
+          inputProvenance:{kind:"external_user",sourceChannel:"discord"},
+        });
+        if(result?.outcome==="block"){gateResult={...result,priority:item.options?.priority};break;}
+      }
+      expect(gateResult).toMatchObject({outcome:"block",category:"cnxclaw_cancelled_ingress",priority:2000});
+
+      const db=new DatabaseSync(databasePath,{readOnly:true});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      const ticket=db.prepare("SELECT ticket_id,status FROM tickets").get() as any;
+      expect(ticket.status).toBe("cancelled");
+      expect(db.prepare("SELECT bound_run_id,owner_session_id FROM ticket_ingress_claims WHERE ticket_id=?").get(ticket.ticket_id))
+        .toEqual({bound_run_id:runId,owner_session_id:sessionId});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='ingress_run_suppressed'").get(ticket.ticket_id)).toEqual({n:1});
+      db.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
   it("persists a provisional Ticket at before_dispatch and atomically binds it to the actual run at reply_dispatch", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx442-predispatch-durable-"));
     try {

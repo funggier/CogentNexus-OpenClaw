@@ -883,6 +883,91 @@ entry.register = (api) => {
         trace("admission.trace.completed",{outcome:"pass",reason:"run already admitted by earlier host adapter"});
         return { outcome:"pass" };
       }
+      if (currentRunId && ctx.sessionKey && ticketIntakeEligible(event.prompt)) {
+        const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(currentWorkspace));
+        let pendingBinding: ReturnType<TicketStore["bindPendingIngressRun"]>;
+        try {
+          pendingBinding=store.bindPendingIngressRun({
+            ownerSessionKey:ctx.sessionKey,
+            ownerSessionId:sessionId,
+            runId:currentRunId,
+            prompt:event.prompt,
+            sourceChannel:(ctx as any).channel ?? (event as any).channelId ?? (ctx as any).messageProvider,
+          });
+        } catch(error) {
+          trace("admission.trace.blocked",{outcome:"block",reason:"pending ingress binding failed"});
+          api.logger.error?.(`CogentNexus-OpenClaw pending ingress binding failed closed: ${error instanceof Error ? error.message : String(error)}`);
+          return {
+            outcome:"block",
+            reason:"Ticket-first pending ingress binding failed closed",
+            category:"cnxclaw_ticket_admission_integrity",
+          };
+        }
+        if (pendingBinding.state === "mismatch") {
+          trace("admission.trace.blocked",{outcome:"block",ticketId:pendingBinding.ticketId,reason:"pending ingress FIFO/source mismatch"});
+          return {
+            outcome:"block",
+            reason:"Ticket-first pending ingress order/source did not match the authoritative run",
+            category:"cnxclaw_ticket_admission_integrity",
+            metadata:{ticketId:pendingBinding.ticketId,sourceKey:pendingBinding.sourceKey},
+          };
+        }
+        if (pendingBinding.state === "cancelled") {
+          trace("admission.trace.blocked",{outcome:"block",ticketId:pendingBinding.ticketId,reason:"queued ingress was cancelled before execution"});
+          return {
+            outcome:"block",
+            reason:"Queued input was cancelled before execution",
+            category:"cnxclaw_cancelled_ingress",
+            metadata:{ticketId:pendingBinding.ticketId,sourceKey:pendingBinding.sourceKey},
+          };
+        }
+        if (pendingBinding.state === "bound" || pendingBinding.state === "already-bound") {
+          const decision=classifyDurableRequest(event.prompt, config.admissionMinimumScore ?? 5);
+          if (!pendingBinding.ticketId) {
+            trace("admission.trace.blocked",{outcome:"block",reason:"bound ingress missing Ticket identity"});
+            return {
+              outcome:"block",
+              reason:"Ticket-first bound ingress is missing Ticket identity",
+              category:"cnxclaw_ticket_admission_integrity",
+            };
+          }
+          store.route(pendingBinding.ticketId, decision.lane === "durable");
+          ticketedRuns.add(currentRunId);
+          runWorkspaces.set(currentRunId,currentWorkspace);
+          runSessions.set(currentRunId,ctx.sessionKey);
+          trace("admission.trace.ticket-decision",{ticketFirst:true,ticketIntakeEligible:true,classification:decision.lane});
+          trace("admission.trace.ticket-persisted",{ticketId:pendingBinding.ticketId,outcome:pendingBinding.state});
+          if (config.providerMode === "passthrough" && decision.lane === "durable") {
+            trace("admission.trace.blocked",{outcome:"block",ticketId:pendingBinding.ticketId,reason:"durable workflow unsupported in provider passthrough mode"});
+            return {
+              outcome:"block",
+              reason:"durable workflow admission is unsupported in Cloud provider pass-through mode; use an ordinary direct OpenClaw turn",
+              category:"cnxclaw_cloud_workflow_unsupported",
+              metadata:{providerMode:"passthrough",durableWorkflow:"unsupported",ticketId:pendingBinding.ticketId},
+            };
+          }
+          if (decision.lane !== "durable") {
+            if (config.discordActiveTyping !== false) {
+              await discordActiveTyping.start({
+                runId:currentRunId,
+                sessionKey:ctx.sessionKey,
+                accountId:(event as any).accountId ?? (ctx as any).accountId,
+                cfg:(api as any).config,
+              });
+            }
+            trace("admission.trace.completed",{outcome:"pass",ticketId:pendingBinding.ticketId});
+            return {outcome:"pass"};
+          }
+          trace("admission.trace.blocked",{outcome:"ticket-first",ticketId:pendingBinding.ticketId,reason:"durable request committed and queued before conversational inference"});
+          return {
+            outcome:"block",
+            reason:"durable request committed and queued before conversational inference",
+            category:"cnxclaw_ticket_admission",
+            metadata:{ticketId:pendingBinding.ticketId,score:decision.score,componentCount:decision.sections.length,deduplicated:true},
+            message:`CogentNexus-OpenClaw committed Ticket ${pendingBinding.ticketId} before inference. The resource-admitted dispatcher will start and link its verified workflow; terminal evidence will return automatically.`,
+          };
+        }
+      }
       const admission=admitTicketFirstTurn({
         sessionKey:ctx.sessionKey,
         runId:ctx.runId,
