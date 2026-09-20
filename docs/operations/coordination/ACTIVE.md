@@ -390,3 +390,79 @@ Current gate:
 `CNX442_LIVE_READY_FOR_NEW_SESSION_OPERATOR_TURN`
 
 The next semantic Discord message must be sent by the operator. The executor must not send it on the operator's behalf.
+
+## CNX-442 first-turn duplicate-Ticket repair candidate — 2026-09-20
+
+A genuine new-session Discord turn exposed a host ordering not covered by the prior candidate:
+
+`before_dispatch -> before_agent_run -> reply_dispatch`
+
+Under that ordering, the provisional ingress Ticket existed before the authoritative run, but `before_agent_run` created a second Ticket before `reply_dispatch` had a chance to bind the claim. The live turn therefore produced two Tickets for one user message.
+
+Repair candidate:
+
+`49d8e259fb6760583caa706af526cb1b165a5799`
+
+The repair:
+- adds lifecycle-fenced owner session/generation metadata to provisional ingress claims (schema migration 8);
+- binds the next exact FIFO pending ingress claim during `before_agent_run` before ordinary Ticket admission;
+- fences by owner session key, physical session identity/generation, prompt hash, and source channel;
+- fails closed on FIFO/source mismatch rather than selecting a latest same-session Ticket;
+- suppresses a previously cancelled queued ingress before provider/model execution;
+- preserves the existing `reply_dispatch` binding path for host surfaces whose ordering reaches that adapter first.
+
+TDD / qualification:
+- exact live-order RED reproduced 2 Tickets before repair and GREEN 1 Ticket after repair;
+- cancelled queued ingress before `before_agent_run`: GREEN;
+- focused qualification: 88/88 PASS;
+- full plugin suite: 415 PASS / 1 historical intentional CNX-383 projection RED, with no new regression;
+- `plugin:validate`: PASS;
+- TypeScript build: PASS;
+- mixed-plugin schema: PASS (46 properties, 5 tools);
+- Ticket DB bootstrap: PASS;
+- package verification: PASS, 286 files;
+- `git diff --check`: PASS.
+
+Supported install-over from exact candidate:
+- installer process exit code 0;
+- terminal message `CogentNexus-OpenClaw v0.9.5 installation completed successfully.`;
+- MANAGED canonical authority: `cnxMode=active`, generation 117;
+- Gateway 2026.9.5 healthy; event loop not degraded;
+- Discord ready/running/connected, busy=false, activeRuns=0;
+- supervisor enabled, LastTaskResult=0;
+- `messages.queue.mode=followup`;
+- runtime attestation: runnerReady=true, global before_agent_run hook count=7;
+- attestation classification remains conservatively `AMBIGUOUS` because OpenClaw does not expose plugin-specific hook ownership.
+
+Candidate/live SHA-256 parity:
+- `dist/index.js`: `CC91F8FBB98E8D2B084AB2A4886877B4517534A5E4D0F5FE24232ADEA5E6D3F1`;
+- `dist/v091-release-entry.js`: `4EA526CCF0E82D3A2EC24AD219A2EF38A78DB7367955DCECC0AE9F6F0AA19ADF`;
+- `dist/discord-active-typing.js`: `A130C70FB61B784F2D34BA7C780A0B0DDDAFB6AB39F8E197B1AAEDFC07EDB9D3`;
+- `dist/ticket-store.js`: `5491DE03F75824EFD45489B269EE4BE237781CBE411E0CA1E3BD098572469048`;
+- `dist/ticket-admission-kernel.js`: `5728E6452A79D668E089E4D7BC0CEDAC8C6AC74F9329A8837EAFF08B9431738A`.
+
+Live DB migration proof:
+- migrations = 1..8;
+- `ticket_ingress_claims` includes `owner_session_id` and `owner_generation`;
+- target physical OpenClaw session remains absent;
+- target CNX session remains deleted at generation 10;
+- target pending input / non-terminal Ticket / pending outbox = 0;
+- one historical unbound claim remains from the pre-repair failed turn, but it is a cancelled Ticket with `owner_session_id=NULL` and `owner_generation=0`; generation 10 therefore fences it from any new lifecycle.
+
+Pre-send baseline:
+- Tickets 55;
+- Ticket events 1167;
+- direct model calls 40;
+- inference attempts 39;
+- assistant deliveries 30;
+- ingress claims 1;
+- target-channel Tickets 13;
+- target-channel non-terminal Tickets 0;
+- target session node count 0;
+- pending inputs 0.
+
+Current gate:
+
+`CNX442_LIVE_READY_FOR_RETRY_FIRST_OPERATOR_TURN`
+
+The operator must send the semantic Discord test message. The executor must not send it on the operator's behalf.
