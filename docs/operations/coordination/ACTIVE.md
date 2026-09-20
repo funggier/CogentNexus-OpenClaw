@@ -1,7 +1,7 @@
 # Active Coordination Task
 
 Status: `IN_PROGRESS`
-State: `CNX427_RECOVERY_PRESSURE_REPAIRED_FRESH_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_CNX440_441_DEPLOYED_FINAL_DISCORD_ACCEPTANCE_READY`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
@@ -9,6 +9,56 @@ Executor: `ChatGPT via LConnect`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+
+## CNX-440 / CNX-441 live deployment update
+
+This section is the current authoritative pre-acceptance state and supersedes older baseline figures later in this file.
+
+Exact candidate:
+
+- branch `cnx-357-openai-dashboard-ticket-first-requalification-v2`;
+- local HEAD = remote HEAD = `5263b6aed9acf77a4db39be47c4d96fecfe8a431`;
+- CNX-441 implementation commit = `5263b6aed9acf77a4db39be47c4d96fecfe8a431`;
+- CNX-440 implementation commit = `a4f27ad097e721edfe566a7495864b7e15ae88e8`.
+
+Supported install-over:
+
+- managed LConnect process session `proc-1789885920190-35`, PID `10220`;
+- terminal exit code `0`;
+- installer stdout ended with `CogentNexus-OpenClaw v0.9.5 installation completed successfully.`;
+- live v095 adapter SHA-256 = candidate SHA-256 = `7809B18C4BAE1209624D5E69112722EF9AD7F5E39A92A2815C6889DFF6C646A1`;
+- controller is `cnxMode=active`, `mode=managed`, generation `111`;
+- Gateway health `ok=true`, event loop `degraded=false`;
+- Discord lifecycle `ready`, running/connected `true`;
+- CNX supervisor restored Enabled/Ready with `LastTaskResult=0`;
+- OpenClaw Gateway Scheduled Task is Running;
+- `ollama ps` is empty.
+
+Current qwen policy:
+
+- primary model `ollama/qwen3.8:27b`;
+- OpenClaw `contextWindow=24576`;
+- Ollama `num_ctx=24576`;
+- `OLLAMA_CONTEXT_LENGTH=24576`;
+- `OLLAMA_KEEP_ALIVE=2h`.
+
+Fresh CNX DB baseline before final Discord acceptance:
+
+- Tickets = `47`;
+- max Ticket event ID = `1109`;
+- direct model calls = `35`;
+- inference attempts = `33`;
+- assistant deliveries = `26`;
+- target channel `1391855033993138217` has zero non-terminal Tickets;
+- its prior CNX session is deleted at generation `7`;
+- the two remaining accepted Tickets belong to other historical Discord channels;
+- their recovery rows are pending redelivery with `active_run_id=null`; no target recovery row is active.
+
+CNX-441 live classification is now:
+
+`INSTALLER_SUPERVISOR_HANDOFF_QUIESCENCE_GREEN`
+
+CNX-440 is deployed and provenance-qualified, but its final live Discord marker/receipt settlement remains pending one human-originated Discord turn.
 Task: `docs/operations/coordination/tasks/CNX-20260919-427-external-ingress-run-identity-and-tailscale-owner-profile-repair.md`
 Report: `docs/operations/coordination/reports/CNX-20260919-427-external-ingress-run-identity-and-tailscale-owner-profile-repair-report.md`
 Handoff: `docs/operations/coordination/reports/CNX-20260919-427-full-session-handoff-openclaw-9.5-and-storage-relocation.md`

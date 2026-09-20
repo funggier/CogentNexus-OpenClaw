@@ -1,6 +1,6 @@
 # CNX-20260920-440 — OpenClaw 9.5 Discord Durable Marker Settlement
 
-Status: `IMPLEMENTED_AWAITING_LIVE_REQUALIFICATION`
+Status: `DEPLOYED_AWAITING_LIVE_DISCORD_REQUALIFICATION`
 
 Parent: `CNX-20260919-427`
 
@@ -83,3 +83,28 @@ Source qualification:
 `OPENCLAW95_DISCORD_DURABLE_MARKER_SETTLEMENT_SOURCE_GREEN`
 
 Final live classification remains pending supported deployment + one genuine Discord acceptance.
+
+## Supported deployment qualification
+
+The CNX-441 repaired install-over from exact candidate HEAD
+`5263b6aed9acf77a4db39be47c4d96fecfe8a431` completed successfully.
+
+Evidence:
+
+- LConnect process session `proc-1789885920190-35`, PID `10220`;
+- installer terminal exit code `0`;
+- live v095 adapter SHA-256 equals candidate:
+  `7809B18C4BAE1209624D5E69112722EF9AD7F5E39A92A2815C6889DFF6C646A1`;
+- controller committed active/managed generation `111`;
+- Gateway healthy, event loop settled;
+- Discord ready/connected;
+- supervisor restored Enabled/Ready with Last Result `0`;
+- target Discord channel has zero non-terminal CNX Tickets before final acceptance;
+- current qwen3.8 context is `24576`, keep-alive `2h`;
+- Ollama has no resident model at baseline.
+
+The code is therefore installed and ready for live requalification. Final CNX-440 classification remains pending one genuine Discord message and proof that the durable delivery row is staged before native transport, then safely settled by the marker-bearing receipt.
+
+Deployment checkpoint:
+
+`docs/operations/coordination/reports/CNX-20260920-440-openclaw95-discord-durable-marker-deployment-checkpoint.md`

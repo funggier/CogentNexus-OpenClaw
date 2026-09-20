@@ -1,9 +1,32 @@
 # Coordination Channel Status
 
 Status: `IN_PROGRESS`
-State: `CNX427_RECOVERY_PRESSURE_REPAIRED_FRESH_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_CNX440_441_DEPLOYED_FINAL_DISCORD_ACCEPTANCE_READY`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+
+## CNX-440 / CNX-441 current authoritative state
+
+This section supersedes older pre-install baseline figures below.
+
+- exact local/remote candidate HEAD: `5263b6aed9acf77a4db39be47c4d96fecfe8a431`;
+- supported install session: `proc-1789885920190-35` / PID `10220`;
+- installer terminal exit: `0`;
+- live v095 adapter SHA-256 matches candidate: `7809B18C4BAE1209624D5E69112722EF9AD7F5E39A92A2815C6889DFF6C646A1`;
+- CNX controller: active/managed generation `111`;
+- Gateway: healthy, event loop not degraded;
+- Discord: ready/connected;
+- supervisor: Enabled/Ready, Last Result `0`;
+- Ollama resident models: none;
+- primary model: `ollama/qwen3.8:27b`;
+- live context: `contextWindow=24576`, `num_ctx=24576`;
+- environment: `OLLAMA_CONTEXT_LENGTH=24576`, `OLLAMA_KEEP_ALIVE=2h`;
+- target Discord channel `1391855033993138217`: zero non-terminal CNX Tickets;
+- fresh counters: Tickets `47`, max event `1109`, direct model calls `35`, inference attempts `33`, assistant deliveries `26`.
+
+CNX-441: `INSTALLER_SUPERVISOR_HANDOFF_QUIESCENCE_GREEN`.
+
+CNX-440: candidate is deployed; final durable-marker settlement still requires exactly one human Discord acceptance turn.
 
 ## OpenClaw 9.5
 
