@@ -5,10 +5,11 @@ import { defaultTicketDatabase } from "./ticket-store.js";
 import { acceptTransport, confirmDelivery, prepareDelivery, stageDelivery } from "./v095-delivery-core.js";
 
 export type DiscordDeliveryContext = {
-  runId: string;
-  sessionKey: string;
+  runId?: string;
+  sessionKey?: string;
   callId?: string;
   channel?: string;
+  channelId?: string;
   messageProvider?: string;
   workspaceDir?: string;
 };
@@ -146,31 +147,71 @@ export function confirmDiscordDelivery(databasePath: string, context: DiscordDel
   } finally { db.close(); }
 }
 
-/** Evidence-only Discord adapter. A run-less receipt is deliberately ignored. */
+export function confirmDiscordDeliveryByMarker(databasePath: string, context: { sessionKey?: string; content?: string }) {
+  const sessionKey = text(context.sessionKey);
+  const content = text(context.content);
+  if (!sessionKey || !isDiscordSession(sessionKey) || !content) {
+    return { confirmed: false as const, reason: "missing-discord-marker-identity" };
+  }
+  const db = new DatabaseSync(databasePath);
+  db.exec("PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;");
+  try {
+    const rows = db.prepare(`SELECT idempotency_key,owner_generation FROM cnx_assistant_delivery
+      WHERE owner_session_key=? AND surface='discord' AND status='pending'
+      ORDER BY delivery_id`).all(sessionKey) as Array<{ idempotency_key?: string; owner_generation?: number }>;
+    const matches = rows.filter((row) => Boolean(row.idempotency_key && content.includes(discordDeliveryMarker(row.idempotency_key))));
+    if (matches.length !== 1 || !matches[0]?.idempotency_key) {
+      return { confirmed: false as const, reason: matches.length > 1 ? "ambiguous-discord-marker" : "discord-marker-not-found" };
+    }
+    const session = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(sessionKey) as
+      { state?: string; generation?: number } | undefined;
+    if (!session || session.state !== "active" || Number(session.generation) !== Number(matches[0].owner_generation)) {
+      return { confirmed: false as const, reason: "stale-discord-generation" };
+    }
+    const accepted = acceptTransport(db, matches[0].idempotency_key, { evidenceType: "discord-message-sent-marker" });
+    const confirmed = confirmDelivery(db, accepted.idempotencyKey, { evidenceType: "discord-message-receipt-marker" });
+    return { confirmed: true as const, ...confirmed };
+  } finally { db.close(); }
+}
+
+function discordHookChannel(event: any, ctx: DiscordDeliveryContext) {
+  return text(event?.channel) || text(ctx?.channel) || text(ctx?.messageProvider) || text(ctx?.channelId);
+}
+
+/** Discord adapter: stage by exact run identity; settle run-less receipts only by an exact durable marker. */
 export function registerDiscordDeliveryAdapter(api: DiscordAdapterApi) {
   if (typeof api?.on !== "function") return;
   api.on("reply_payload_sending", async (event: any, ctx: DiscordDeliveryContext) => {
-    if (text(ctx?.channel) !== "discord" && text(ctx?.messageProvider) !== "discord") return;
+    if (discordHookChannel(event, ctx) !== "discord") return;
     const databasePath = databaseFor(api, ctx);
     const payload = Array.isArray(event?.payload?.content)
       ? event.payload.content.filter((part: any) => part?.type === "text" && typeof part.text === "string").map((part: any) => part.text).join("\n")
       : text(event?.payload?.text);
-    const staged = stageDiscordDelivery(databasePath, { ...ctx, callId: text(event?.callId) || text(ctx?.callId) || undefined }, payload);
+    const runId = text(event?.runId) || text(ctx?.runId);
+    const sessionKey = text(event?.sessionKey) || text(ctx?.sessionKey);
+    const callId = text(event?.callId) || text(ctx?.callId) || undefined;
+    const staged = stageDiscordDelivery(databasePath, { ...ctx, runId, sessionKey, callId, channel: "discord" }, payload);
     if (!staged.staged) return;
-    return { ...event, payload: { ...(event.payload ?? {}), text: staged.nativeText } };
+    return { payload: { ...(event.payload ?? {}), text: staged.nativeText } };
   }, { registrationId: "cogentnexus-openclaw-v095-discord-delivery" });
 
   api.on("message_sent", (event: any, ctx: DiscordDeliveryContext) => {
-    if (text(ctx?.channel) !== "discord" && text(ctx?.messageProvider) !== "discord") return;
+    if (discordHookChannel(event, ctx) !== "discord") return;
+    if (event?.success !== true) return;
     const runId = text(event?.runId);
-    const sessionKey = text(event?.sessionKey ?? ctx?.sessionKey);
+    const sessionKey = text(event?.sessionKey) || text(ctx?.sessionKey);
     const callId = text(event?.callId) || text(ctx?.callId) || undefined;
-    if (!runId || !sessionKey) {
-      api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt without exact run identity");
+    if (!sessionKey) {
+      api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt without exact session identity");
       return;
     }
-    try { return confirmDiscordDelivery(databaseFor(api, ctx), { runId, sessionKey, callId, channel: "discord", messageProvider: "discord" }); }
-    catch (error) {
+    try {
+      if (runId) return confirmDiscordDelivery(databaseFor(api, ctx), { runId, sessionKey, callId, channel: "discord", messageProvider: "discord" });
+      const marker = confirmDiscordDeliveryByMarker(databaseFor(api, ctx), { sessionKey, content: text(event?.content) });
+      if (marker.confirmed) return marker;
+      api.logger?.info?.("CogentNexus-OpenClaw ignored ambiguous Discord message_sent receipt without exact run identity or durable marker");
+      return;
+    } catch (error) {
       api.logger?.warn?.(`CogentNexus-OpenClaw Discord delivery receipt rejected: ${error instanceof Error ? error.message : String(error)}`);
       return;
     }

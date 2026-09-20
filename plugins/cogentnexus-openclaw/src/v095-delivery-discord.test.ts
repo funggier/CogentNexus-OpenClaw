@@ -89,6 +89,126 @@ describe("v0.9.5 Discord delivery adapter", () => {
     }
   });
 
+  it("stages and settles the exact OpenClaw 9.5 Discord hook shape by durable marker", async () => {
+    const { root, databasePath, sessionKey } = setup();
+    try {
+      const handlers = new Map<string, any>();
+      registerDiscordDeliveryAdapter({
+        pluginConfig: { ticketDatabasePath: databasePath, workspaceDir: root },
+        on: (name: string, handler: any) => handlers.set(name, handler),
+        logger: { info: () => {}, warn: () => {} },
+      });
+
+      const sending = handlers.get("reply_payload_sending");
+      const sent = handlers.get("message_sent");
+      expect(sending).toBeTypeOf("function");
+      expect(sent).toBeTypeOf("function");
+
+      // OpenClaw 2026.9.5 puts channel/run/session on the event, while
+      // PluginHookMessageContext exposes channelId rather than channel/messageProvider.
+      const stagedHookResult = await sending(
+        {
+          payload: { text: "reply A" },
+          kind: "final",
+          channel: "discord",
+          sessionKey,
+          runId: "discord-adapter-a",
+        },
+        {
+          channelId: "discord",
+          sessionKey,
+          runId: "discord-adapter-a",
+          workspaceDir: root,
+        },
+      );
+      expect(stagedHookResult?.payload?.text).toContain("reply A");
+      expect(stagedHookResult?.payload?.text).toContain("<!-- cogentnexus-openclaw-delivery:");
+
+      const pending = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        expect(pending.prepare("SELECT run_id,status FROM cnx_assistant_delivery WHERE owner_session_key=? ORDER BY delivery_id")
+          .all(sessionKey)).toEqual([{ run_id: "discord-adapter-a", status: "pending" }]);
+      } finally { pending.close(); }
+
+      // OpenClaw 2026.9.5 documents outbound message_sent.runId as not yet
+      // plumbed. The content marker must therefore be the exact correlation proof.
+      await sent(
+        {
+          to: "discord-target",
+          content: stagedHookResult.payload.text,
+          success: true,
+          sessionKey,
+          messageId: "discord-message-a",
+        },
+        {
+          channelId: "discord",
+          sessionKey,
+          workspaceDir: root,
+        },
+      );
+
+      const settled = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        expect(settled.prepare("SELECT run_id,status FROM tickets WHERE run_id IN (?,?) ORDER BY run_id")
+          .all("discord-adapter-a", "discord-adapter-b")).toEqual([
+            { run_id: "discord-adapter-a", status: "completed" },
+            { run_id: "discord-adapter-b", status: "accepted" },
+          ]);
+        expect(settled.prepare("SELECT run_id,status FROM cnx_assistant_delivery WHERE owner_session_key=? ORDER BY delivery_id")
+          .all(sessionKey)).toEqual([{ run_id: "discord-adapter-a", status: "delivered" }]);
+      } finally { settled.close(); }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("uses the durable marker to settle only one concurrent run from a runId-less receipt", async () => {
+    const { root, databasePath, sessionKey } = setup();
+    try {
+      const handlers = new Map<string, any>();
+      registerDiscordDeliveryAdapter({
+        pluginConfig: { ticketDatabasePath: databasePath, workspaceDir: root },
+        on: (name: string, handler: any) => handlers.set(name, handler),
+        logger: { info: () => {}, warn: () => {} },
+      });
+      const sending = handlers.get("reply_payload_sending");
+      const sent = handlers.get("message_sent");
+
+      const a = await sending(
+        { payload: { text: "reply A" }, kind: "final", channel: "discord", sessionKey, runId: "discord-adapter-a" },
+        { channelId: "discord", sessionKey, runId: "discord-adapter-a", workspaceDir: root },
+      );
+      const b = await sending(
+        { payload: { text: "reply B" }, kind: "final", channel: "discord", sessionKey, runId: "discord-adapter-b" },
+        { channelId: "discord", sessionKey, runId: "discord-adapter-b", workspaceDir: root },
+      );
+      expect(a?.payload?.text).toContain("<!-- cogentnexus-openclaw-delivery:");
+      expect(b?.payload?.text).toContain("<!-- cogentnexus-openclaw-delivery:");
+      expect(a.payload.text).not.toBe(b.payload.text);
+
+      await sent(
+        { to: "discord-target", content: a.payload.text, success: true, sessionKey, messageId: "message-a" },
+        { channelId: "discord", sessionKey, workspaceDir: root },
+      );
+
+      const db = new DatabaseSync(databasePath, { readOnly: true });
+      try {
+        expect(db.prepare("SELECT run_id,status FROM tickets WHERE run_id IN (?,?) ORDER BY run_id")
+          .all("discord-adapter-a", "discord-adapter-b")).toEqual([
+            { run_id: "discord-adapter-a", status: "completed" },
+            { run_id: "discord-adapter-b", status: "accepted" },
+          ]);
+        expect(db.prepare("SELECT run_id,status FROM cnx_assistant_delivery WHERE owner_session_key=? ORDER BY run_id")
+          .all(sessionKey)).toEqual([
+            { run_id: "discord-adapter-a", status: "delivered" },
+            { run_id: "discord-adapter-b", status: "pending" },
+          ]);
+      } finally { db.close(); }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("ignores a message_sent receipt without event runId even when ctx has a runId", () => {
     const { root, databasePath, sessionKey } = setup();
     try {
