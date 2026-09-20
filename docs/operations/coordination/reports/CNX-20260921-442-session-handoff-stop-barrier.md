@@ -1,7 +1,7 @@
 # CNX-442 Session Handoff — Authoritative Stop Barrier
 
-Date: 2026-09-21  
-Repository: `funggier/CogentNexus-OpenClaw`  
+Date: 2026-09-21
+Repository: `funggier/CogentNexus-OpenClaw`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
 ## Authoritative repository state
