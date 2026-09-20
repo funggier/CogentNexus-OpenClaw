@@ -1,7 +1,7 @@
 # Active Coordination Task
 
-Status: `IN_PROGRESS`
-State: `CNX427_CNX440_441_DEPLOYED_FINAL_DISCORD_ACCEPTANCE_READY`
+Status: `COMPLETE`
+State: `CNX427_CNX440_441_FINAL_ACCEPTANCE_GREEN`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
@@ -9,6 +9,83 @@ Executor: `ChatGPT via LConnect`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+
+## Final Discord acceptance — GREEN
+
+The operator sent exactly one genuine Discord turn on channel `1391855033993138217`:
+
+`@Ce CNX427_FINAL_ACCEPTANCE_20260920_A1 Reply exactly: CNX427_FINAL_OK_20260920_A1`
+
+Observed lineage:
+
+- physical OpenClaw session: `06e736f1-01e5-45b7-8c0b-bbaa9ed6f700`;
+- authoritative run: `e683efcf-b00e-4ee9-bb11-cac0da94a840`;
+- CNX Ticket: `CNXT-d6ed7093-5440-435d-91f7-77caaac7ffb3`;
+- inference attempt: `cnx-attempt-8004886f-cf61-468d-8dd3-e7649a374398`;
+- durable delivery: `27`;
+- owner generation: `7`.
+
+Ordering and cardinality from the clean pre-send baseline:
+
+- Tickets: `47 -> 48` (+1);
+- direct model calls: `35 -> 36` (+1);
+- inference attempts: `33 -> 34` (+1);
+- assistant deliveries: `26 -> 27` (+1);
+- exactly one new target-channel Ticket;
+- exactly one Ticket for the authoritative run;
+- Ticket accepted at `2026-09-20T07:04:19.655Z`;
+- model call started at `2026-09-20T07:04:19.714Z`;
+- inference attempt started at `2026-09-20T07:04:19.726Z`;
+- Ticket persistence therefore preceded model-call authority by about 59 ms;
+- no direct-recovery row exists for the accepted Ticket;
+- no duplicate Ticket, duplicate model call, duplicate inference attempt, or stale-generation settlement occurred.
+
+Terminal delivery proof:
+
+- model call ended `completed` at `2026-09-20T07:22:51.387Z`;
+- inference attempt ended `completed` at `2026-09-20T07:22:51.396Z`;
+- `response_ready` at `2026-09-20T07:22:51.460Z`;
+- durable delivery row 27 was created at `2026-09-20T07:22:51.578Z`;
+- durable idempotency key:
+  `cnx-discord:CNXT-d6ed7093-5440-435d-91f7-77caaac7ffb3:g7:cnx-attempt-8004886f-cf61-468d-8dd3-e7649a374398`;
+- delivery settled as `delivered / confirmed`;
+- receipt evidence type:
+  `discord-message-receipt-marker`;
+- `delivery_confirmed` event count = `1`;
+- `completed` event count = `1`;
+- Ticket terminal status = `completed`;
+- exact delivered text:
+  `CNX427_FINAL_OK_20260920_A1`.
+
+OpenClaw trajectory independently recorded:
+
+- finalStatus = `success`;
+- timedOut = `false`;
+- provider/model = `ollama / qwen3.8:27b`;
+- input tokens = `12105`;
+- output tokens = `19`;
+- compaction count = `0`;
+- assistant text = `CNX427_FINAL_OK_20260920_A1`;
+- target session status = `done`.
+
+The operator supplied visual Discord screenshots confirming exactly one visible assistant response with the exact expected text.
+
+Current local-model policy remains intentionally unchanged:
+
+- primary model `ollama/qwen3.8:27b`;
+- `contextWindow=24576`;
+- `num_ctx=24576`;
+- `OLLAMA_CONTEXT_LENGTH=24576`;
+- `OLLAMA_KEEP_ALIVE=2h`.
+
+The live acceptance used 24K context successfully. During execution llama-server private memory reached about 21.4 GB and free physical RAM was observed as low as about 1.3 GB, so 24K remains the operator-approved default unless future workload proves insufficient.
+
+Final classifications:
+
+`CNX427_EXTERNAL_INGRESS_TICKET_FIRST_DURABLE_DISCORD_GREEN`
+
+`OPENCLAW95_DISCORD_DURABLE_MARKER_SETTLEMENT_GREEN`
+
 
 ## CNX-440 / CNX-441 live deployment update
 
@@ -58,7 +135,7 @@ CNX-441 live classification is now:
 
 `INSTALLER_SUPERVISOR_HANDOFF_QUIESCENCE_GREEN`
 
-CNX-440 is deployed and provenance-qualified, but its final live Discord marker/receipt settlement remains pending one human-originated Discord turn.
+CNX-440 live Discord marker/receipt settlement is final GREEN; see the authoritative final acceptance section above.
 Task: `docs/operations/coordination/tasks/CNX-20260919-427-external-ingress-run-identity-and-tailscale-owner-profile-repair.md`
 Report: `docs/operations/coordination/reports/CNX-20260919-427-external-ingress-run-identity-and-tailscale-owner-profile-repair-report.md`
 Handoff: `docs/operations/coordination/reports/CNX-20260919-427-full-session-handoff-openclaw-9.5-and-storage-relocation.md`
@@ -187,9 +264,9 @@ Classification:
 
 ## Remaining primary acceptance
 
-CNX-427 is NOT final PASS yet.
+CNX-427 final Discord acceptance is now PASS; the historical acceptance checklist below is retained as provenance.
 
-One new Discord turn on live 9.5 must prove:
+The completed live 9.5 acceptance proved:
 
 - one authoritative host run;
 - exactly one CNX Ticket;
@@ -223,3 +300,7 @@ Checkpoint:
 `docs/operations/coordination/reports/CNX-20260919-427-storage-relocation-and-pre-acceptance-runtime-checkpoint.md`
 
 The only remaining CNX-427 gate is one new live Discord acceptance turn on OpenClaw 2026.9.5.
+
+Final acceptance report:
+
+`docs/operations/coordination/reports/CNX-20260920-427-440-final-discord-acceptance-report.md`
