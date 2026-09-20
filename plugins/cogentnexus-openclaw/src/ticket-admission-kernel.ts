@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { isControlCommandMessage } from "openclaw/plugin-sdk/command-detection";
 import { classifyDurableRequest } from "./admission.js";
 import {
   defaultTicketDatabase,
@@ -174,4 +175,25 @@ export function replyDispatchTrusted(event: any): boolean {
     ? event.ctx.GatewayClientScopes.filter((scope: unknown): scope is string => typeof scope === "string")
     : [];
   return scopes.includes("operator.write") || scopes.includes("operator.admin");
+}
+
+export function replyDispatchNativeCommandExcluded(event: any, runtimeCtx?: any): boolean {
+  const ctx = event?.ctx ?? {};
+  const eventKind = text(ctx?.InboundEventKind).toLowerCase();
+  if (eventKind === "slash-command" || eventKind === "native-command") return true;
+
+  if (ctx?.CommandAuthorized !== true) return false;
+  const cfg = runtimeCtx?.cfg;
+  const botUsername = text(ctx?.BotUsername) || undefined;
+  for (const candidate of [ctx?.CommandBody, ctx?.BodyForCommands, ctx?.RawBody, ctx?.rawText]) {
+    const value = text(candidate);
+    if (!value) continue;
+    try {
+      if (isControlCommandMessage(value, cfg, { botUsername })) return true;
+    } catch {
+      // Host command facts remain authoritative; detection failure must not
+      // turn ordinary conversational text into a command exclusion.
+    }
+  }
+  return false;
 }

@@ -8,11 +8,12 @@ import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
-import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchProvenanceExcluded, replyDispatchTrusted } from "./ticket-admission-kernel.js";
+import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchNativeCommandExcluded, replyDispatchProvenanceExcluded, replyDispatchTrusted } from "./ticket-admission-kernel.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
 import { bindDeliveryRun, hasPendingDirectExecutionForSession, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
+import { reconcileHostTerminalFailure, scheduleHostRunTerminalReconcile, settleSilentHostSuccess } from "./v095-host-terminal-evidence.js";
 
 type Handoff = {
   taskId: string;
@@ -918,6 +919,7 @@ entry.register = (api) => {
   }, { priority: 2000, timeoutMs: 30_000 });
   if (config.ticketFirst === true) (api as any).on("reply_dispatch", (event:any, ctx:any) => {
     if (replyDispatchProvenanceExcluded(event)) return;
+    if (replyDispatchNativeCommandExcluded(event,ctx)) return;
     const prompt=canonicalReplyDispatchPrompt(event?.ctx);
     const identity=replyDispatchIdentity(event,ctx);
     const trusted=replyDispatchTrusted(event);
@@ -1048,7 +1050,35 @@ entry.register = (api) => {
         const store=new TicketStore(config.ticketDatabasePath??defaultTicketDatabase(workspaceDir));
         runWorkspaces.set(runId,workspaceDir); if(sessionKey)runSessions.set(runId,sessionKey);
         const visible=hasVisibleAssistantOutput(event.messages);
-        const directState=store.finalizeDirectRun({runId,success:event.success,interrupted:isResumableInterruption(event.success,event.error),message:event.error??"",expectsDelivery:visible});
+        const directState=store.finalizeDirectRun({runId,success:event.success,interrupted:isResumableInterruption(event.success,event.error),message:event.error??"",expectsDelivery:true});
+        if(ticketedDirect && sessionKey){
+          scheduleHostRunTerminalReconcile({
+            api,
+            sessionKey,
+            runId,
+            onTerminal:(evidence)=>{
+              try {
+                const ticketDatabasePath=config.ticketDatabasePath??defaultTicketDatabase(workspaceDir);
+                const terminalSuccess=["success","completed","ok"].includes(evidence.status.toLowerCase());
+                if(terminalSuccess){
+                  if(!visible){
+                    const state=settleSilentHostSuccess({ticketDatabasePath,evidence});
+                    if(state==="completed") api.logger.info?.(`CogentNexus-OpenClaw settled silent Ticket run ${runId} after authoritative Host success`);
+                    else if(state==="conflict") api.logger.warn?.(`CogentNexus-OpenClaw silent Host success conflicted with existing delivery evidence for run ${runId}`);
+                    cleanupRunDelivery(runId);
+                  }
+                  return;
+                }
+                const state=reconcileHostTerminalFailure({ticketDatabasePath,evidence});
+                if(state==="recovery_pending") api.logger.warn?.(`CogentNexus-OpenClaw queued Direct recovery from authoritative Host terminal ${evidence.status} for run ${runId}`);
+                else if(state==="conflict") api.logger.error?.(`CogentNexus-OpenClaw Host terminal/delivery conflict for run ${runId}; preserving delivery evidence`);
+                cleanupRunDelivery(runId);
+              } catch(error) {
+                api.logger.warn?.(`CogentNexus-OpenClaw host terminal reconciliation failed for ${runId}: ${error instanceof Error ? error.message : String(error)}`);
+              }
+            },
+          });
+        }
         const earlyReceipt=earlyDeliveryReceipts.get(runId);
         if(!event.success){
           const timer=deliveryTimers.get(runId);if(timer)clearTimeout(timer);deliveryTimers.delete(runId);

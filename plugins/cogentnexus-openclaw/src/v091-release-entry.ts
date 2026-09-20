@@ -16,6 +16,7 @@ import { installV095DirectRecoveryLaneFence } from "./v095-direct-recovery.js";
 import { installV097DirectRecoveryStartupLiveness } from "./v097-direct-recovery-liveness.js";
 import { installV099NativeRestartOwnershipFence } from "./v099-native-restart-ownership.js";
 import { registerRuntimeHookAttestation } from "./v095-runtime-hook-attestation.js";
+import { installV095SessionSerialization } from "./v095-session-serialization.js";
 
 
 type HostControllerState = {
@@ -192,6 +193,7 @@ const releaseEntry: ReturnType<typeof definePluginEntry> & {
       const ticketDatabase = resolve(pluginCogentRoot(api), "runtime", "cogentnexus-openclaw.sqlite3");
       if (existsSync(ticketDatabase)) installV095DirectRecoveryLaneFence(ticketDatabase);
       installV091DirectModelCallLease(api);
+      installV095SessionSerialization(api);
       installV095InferenceHookBridge(runtimeApi);
       installV091DashboardVerifiedDelivery(runtimeApi, config);
       registerWebchatDeliveryAdapter(api);

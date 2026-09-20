@@ -1,14 +1,29 @@
 # Active Coordination Task
 
-Status: `COMPLETE`
-State: `CNX427_CNX440_441_FINAL_ACCEPTANCE_GREEN`
+Status: `SOURCE_QUALIFIED`
+State: `CNX442_SOURCE_QUALIFIED_READY_FOR_LIVE_INSTALL`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
-Task ID: `CNX-20260919-427`
+Task ID: `CNX-20260920-442`
 Parent: `CNX-20260919-426`
 Executor: `ChatGPT via LConnect`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+## CNX-442 — session serialization / terminal truth
+
+Active task:
+
+`docs/operations/coordination/tasks/CNX-20260920-442-session-input-serialization-and-terminal-truth.md`
+
+Primary scope: native slash-command bypass, OpenClaw followup queue semantics for same-session concurrent user turns, and authoritative user-visible terminal settlement. Status/progress UI is explicitly out of scope for CNX-442.
+
+Source qualification is GREEN: 117 targeted/integration tests PASS, `plugin:validate` PASS, build PASS, Ticket DB bootstrap PASS, package verification PASS, and `git diff --check` PASS.
+
+Report:
+
+`docs/operations/coordination/reports/CNX-20260920-442-session-input-serialization-and-terminal-truth-report.md`
+
+
 
 ## Final Discord acceptance — GREEN
 
