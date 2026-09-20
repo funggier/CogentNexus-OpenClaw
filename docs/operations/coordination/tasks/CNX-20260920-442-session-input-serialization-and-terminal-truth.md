@@ -237,3 +237,74 @@ The historical target Discord session still contains a stale persisted `activeWr
 Classification:
 
 `CNX442_LIVE_READY_FOR_OPERATOR_TEST`
+
+## CNX-442 queued-run typing hardening and clean-session checkpoint — 2026-09-20
+
+This checkpoint supersedes the earlier `80a42cf...` live candidate for the current operator acceptance.
+
+Implementation candidate:
+
+`f27a5fbd273419bebf9ac624c3fb0524403bb1c2`
+
+The candidate adds the post-live-test hardening that was not present in the earlier checkpoint:
+
+- durable provisional ingress claims for queued follow-up turns, atomically bound to the authoritative run at dequeue;
+- same-session Stop cancellation that fences current and queued Tickets against resurrection;
+- migration-7 coverage for the ingress-claim ledger;
+- installer enforcement of the surface-independent OpenClaw queue default `messages.queue.mode=followup`;
+- Discord active-run typing continuity for an admitted run, including a dequeued follow-up run whose upstream outer-dispatch typing controller was already sealed;
+- Discord typing uses OpenClaw's public SecretInput resolver, does not log/persist the credential, refreshes only while the exact run is active, stops at `agent_end`, and has a bounded 30-minute safety TTL;
+- decorative Dashboard status phrases remain out of scope and unchanged.
+
+Source qualification after the hardening:
+
+- focused queue/terminal/Stop/installer/typing/migration suite: 44/44 PASS;
+- Discord active-typing unit suite: 5/5 PASS;
+- TypeScript/plugin build: PASS;
+- `plugin:validate`: PASS;
+- mixed-plugin schema: PASS;
+- Ticket DB bootstrap: PASS (9 required tables + v0.9.5 registration fence);
+- package verification: PASS, 286 files;
+- `git diff --check`: PASS;
+- first broad suite before the migration-test expectation repair: 412/414 PASS;
+- the real new failure was only the stale migration expectation `[1..6]` versus schema migration 7; that focused regression was repaired and rerun GREEN;
+- the only remaining broad-suite RED is the repository's pre-existing intentional CNX-383 projection test, already documented historically as unrelated.
+
+Supported install-over from `f27a5fbd...`:
+
+- terminal exit code: 0;
+- terminal message: `CogentNexus-OpenClaw v0.9.5 installation completed successfully.`;
+- MANAGED authority: `cnxMode=active`, `mode=managed`, generation `115`;
+- Gateway 2026.9.5 healthy; event loop not degraded;
+- Discord ready/running/connected; busy=false; activeRuns=0;
+- supervisor Enabled/Ready; LastTaskResult=0;
+- Ollama reachable with no resident model after install;
+- `messages.queue.mode = followup`;
+- runtime attestation: runnerReady=true, global before_agent_run hook count=7;
+- OpenClaw's public runtime does not expose plugin-specific hook ownership, so the attestation classification remains conservatively `AMBIGUOUS` rather than being promoted to `PRESENT`.
+
+Exact candidate/live SHA-256 parity is GREEN for:
+
+- `dist/index.js` = `6002AE5F42349D5C69DC7E7331EC53E1CAF61042C3F73DEBF5FE58266DB10738`;
+- `dist/v091-release-entry.js` = `4EA526CCF0E82D3A2EC24AD219A2EF38A78DB7367955DCECC0AE9F6F0AA19ADF`;
+- `dist/discord-active-typing.js` = `A130C70FB61B784F2D34BA7C780A0B0DDDAFB6AB39F8E197B1AAEDFC07EDB9D3`;
+- `dist/ticket-store.js` = `7EE132A195498FA35792F224B94784D218267B6BDF8E17D048F0784FA6104B8D`;
+- `dist/ticket-admission-kernel.js` = `5728E6452A79D668E089E4D7BC0CEDAC8C6AC74F9329A8837EAFF08B9431738A`.
+
+Clean-session preparation:
+
+- prior physical Discord session: `e265aae1-a7ce-4384-a3e9-2e2042e1aa7c`;
+- pre-delete state: status=done, pending inputs=0, target non-terminal Tickets=0, pending outbox=0, Direct Recovery=0, Discord activeRuns=0;
+- the prior entry still retained its completed-run `activeWriterRunId`, so a genuinely new physical session was preferred for acceptance;
+- supported fenced `sessions.delete` returned `deleted:true`;
+- prior transcript was archived by OpenClaw;
+- post-delete OpenClaw session-node count for the target key=0;
+- post-delete CNX session state=`deleted`, generation=9;
+- post-delete pending inputs=0, target non-terminal Tickets=0, pending outbox=0;
+- Gateway/Discord health remained GREEN.
+
+Current gate:
+
+`CNX442_LIVE_READY_FOR_NEW_SESSION_OPERATOR_TURN`
+
+The next semantic Discord message must be sent by the operator. The executor must not send it on the operator's behalf.
