@@ -1,7 +1,7 @@
 # Active Coordination Task
 
 Status: `IN_PROGRESS`
-State: `CNX427_OPENCLAW95_LIVE_INSTALL_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_RECOVERY_PRESSURE_REPAIRED_FRESH_DISCORD_ACCEPTANCE_READY`
 Execution mode: `CONTROLLED_LIVE_ACCEPTANCE_AND_MAINTENANCE`
 Task ID: `CNX-20260919-427`
 Parent: `CNX-20260919-426`
@@ -83,6 +83,57 @@ Reports:
 
 - `docs/operations/coordination/reports/CNX-20260920-436-openclaw-9.5-lifecycle-start-readiness-budget-repair-report.md`
 - `docs/operations/coordination/reports/CNX-20260920-437-windows-utf8-subprocess-and-gateway-temp-compatibility-repair-report.md`
+
+## CNX-438 recovery-triggered qwen memory-pressure repair
+
+The first post-delete Discord acceptance attempt was rehydrated automatically by OpenClaw main-session restart recovery.
+
+Exact recovery lineage:
+
+- physical Discord session: `38ef9799-a8ed-49fb-963c-aad35519a771`;
+- admission run: `9000715c-c8db-4d2c-b040-6663f8235d33`;
+- Ticket: `CNXT-26e773e3-9506-4bfb-8ee0-4ec16fea9661`;
+- recovery log: `started interrupted main session`;
+- qwen3.8 launched with `-c 262144`.
+
+The 262k load drove llama-server private memory to about 28.2 GB and Gateway event-loop delay to about 11.5 seconds, making the Dashboard effectively unusable.
+
+Repair/qualification:
+
+- recovered run aborted through supported `sessions.abort`;
+- qwen unloaded and Gateway event loop recovered;
+- 64k isolated load remained unsafe (free RAM about 0.6 GB at pressure peak);
+- qwen3.8 live `contextWindow` and `num_ctx` reduced to `32768`;
+- isolated 32k load completed successfully in about 22.46 seconds;
+- target Discord session deleted through supported OpenClaw lifecycle;
+- recovery Ticket became `cancelled`;
+- session authority became `deleted`, generation 6;
+- no direct-recovery row remains;
+- historical active model-call/inference rows are terminal-Ticket fenced because Host claim requires `t.status='accepted'`;
+- local and Tailscale Dashboard endpoints return HTTP 200;
+- Gateway event loop is not degraded;
+- Discord ready/connected, activeRuns=0.
+
+Current fresh target baseline:
+
+- target Discord session absent;
+- model `ollama/qwen3.8:27b`;
+- context cap `32768`;
+- Tickets 46;
+- max event id 1101;
+- direct model-call rows 34;
+- inference attempts 32;
+- assistant deliveries 26;
+- free physical RAM about 21.4 GB.
+
+Task/report:
+
+- `docs/operations/coordination/tasks/CNX-20260920-438-recovery-triggered-qwen-memory-pressure-and-safe-context-cap.md`
+- `docs/operations/coordination/reports/CNX-20260920-438-recovery-triggered-qwen-memory-pressure-repair-report.md`
+
+Classification:
+
+`RECOVERY_TRIGGERED_QWEN_MEMORY_PRESSURE_REPAIRED_GREEN`
 
 ## Remaining primary acceptance
 

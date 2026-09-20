@@ -1,7 +1,7 @@
 # Coordination Channel Status
 
 Status: `IN_PROGRESS`
-State: `CNX427_OPENCLAW95_LIVE_INSTALL_GREEN_FINAL_DISCORD_ACCEPTANCE_READY`
+State: `CNX427_RECOVERY_PRESSURE_REPAIRED_FRESH_DISCORD_ACCEPTANCE_READY`
 Task ID: `CNX-20260919-427`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
@@ -74,16 +74,48 @@ CNX-437:
 
 OpenClaw's native restart-loop breaker self-recovered after its 300000 ms window drained. No OpenClaw state DB rows were manually deleted.
 
+## CNX-438 recovery/memory-pressure repair
+
+The post-delete target Discord turn was automatically rehydrated by OpenClaw main-session restart recovery.
+
+Recovery lineage:
+
+- session `38ef9799-a8ed-49fb-963c-aad35519a771`;
+- run `9000715c-c8db-4d2c-b040-6663f8235d33`;
+- Ticket `CNXT-26e773e3-9506-4bfb-8ee0-4ec16fea9661`;
+- qwen3.8 loaded with `num_ctx=262144`.
+
+This caused severe local memory pressure and Gateway event-loop starvation.
+
+The recovery was aborted through supported RPC, qwen unloaded, and the target session was deleted through supported OpenClaw session lifecycle.
+
+qwen3.8 memory qualification:
+
+- 65536 context: unsafe on this host; free physical RAM fell to about 0.6 GB;
+- 32768 context: isolated one-token load completed successfully in about 22.46 s;
+- current live OpenClaw qwen3.8 config: `contextWindow=32768`, `num_ctx=32768`.
+
 Current final acceptance baseline:
 
-- Discord session key: `agent:main:discord:channel:1391855033993138217`;
-- existing failed physical session: `8fc2e9fe-e413-4979-b7ce-e2baeb960418`;
+- target Discord session key absent from OpenClaw session store;
+- CNX session authority for the prior physical session: deleted, generation 6;
+- recovery Ticket status: cancelled;
+- no `cnx_direct_recovery` row for the target Ticket;
+- historical active call/attempt rows are terminal-Ticket fenced from Host recovery;
 - current model: `ollama/qwen3.8:27b`;
-- CNX Tickets: 44;
-- max Ticket event id: 1087;
-- direct model calls: 32.
+- context cap: 32768;
+- CNX Tickets: 46;
+- max Ticket event id: 1101;
+- direct model-call rows: 34;
+- inference attempts: 32;
+- assistant deliveries: 26;
+- Gateway health ok / event loop degraded=false;
+- Discord ready/connected / activeRuns=0;
+- free physical RAM about 21.4 GB.
 
-The failed Discord session must be removed before the final one-turn acceptance so the final evidence is unambiguous.
+Two unrelated historical non-terminal Tickets remain on other Discord channels from 2026-09-03 and 2026-09-06; neither belongs to target channel `1391855033993138217`.
+
+The next acceptance must be exactly one new Discord turn with no Gateway restart between baseline and send.
 
 ## CNX-428 supervisor cold-start repair
 
