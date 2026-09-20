@@ -759,6 +759,13 @@ if (-not $SkipAgentsPolicy) {
 }
 
 if (-not $SkipGatewayRestart) {
+    # CNX-442: managed owner conversations serialize new turns behind the
+    # active run. Active-run Discord typing is driven by the plugin at the
+    # execution boundary; do not force typingMode=instant because OpenClaw
+    # also signals tool activity while a follow-up is still queued.
+    openclaw config set messages.queue.mode followup
+    if ($LASTEXITCODE -ne 0) { throw "failed to enforce OpenClaw followup queue policy" }
+
     & $ownedPython $cliScript --root $cogentNexusOpenClawRoot enable
     if ($LASTEXITCODE -ne 0) { throw "CogentNexus-OpenClaw Host enable failed" }
 }

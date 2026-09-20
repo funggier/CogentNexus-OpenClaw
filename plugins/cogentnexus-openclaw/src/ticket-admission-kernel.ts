@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { isControlCommandMessage } from "openclaw/plugin-sdk/command-detection";
 import { classifyDurableRequest } from "./admission.js";
@@ -196,4 +197,57 @@ export function replyDispatchNativeCommandExcluded(event: any, runtimeCtx?: any)
     }
   }
   return false;
+}
+
+export function beforeDispatchPrompt(event: any): string | undefined {
+  for (const candidate of [event?.body, event?.content]) {
+    if (typeof candidate === "string" && candidate.length > 0) return candidate;
+  }
+  return undefined;
+}
+
+function sourceMessageIdentity(input: {
+  sessionKey?: unknown;
+  channel?: unknown;
+  accountId?: unknown;
+  messageId?: unknown;
+}) {
+  const sessionKey = text(input.sessionKey);
+  const channel = text(input.channel).toLowerCase();
+  const accountId = text(input.accountId);
+  const messageId = text(input.messageId);
+  if (!sessionKey || !channel || !messageId) return undefined;
+  const sourceKey = createHash("sha256")
+    .update(JSON.stringify([sessionKey, channel, accountId, messageId]), "utf8")
+    .digest("hex");
+  return { sourceKey, sessionKey, channel, accountId, messageId };
+}
+
+export function beforeDispatchSourceIdentity(event: any, ctx?: any) {
+  return sourceMessageIdentity({
+    sessionKey: event?.sessionKey ?? ctx?.sessionKey,
+    channel: event?.channel ?? ctx?.channelId,
+    accountId: ctx?.accountId,
+    messageId: event?.messageId ?? ctx?.messageId,
+  });
+}
+
+export function replyDispatchSourceIdentity(event: any) {
+  const ctx = event?.ctx ?? {};
+  return sourceMessageIdentity({
+    sessionKey: ctx?.SessionKey ?? event?.sessionKey,
+    channel: ctx?.OriginatingChannel ?? ctx?.Surface ?? ctx?.Provider,
+    accountId: ctx?.AccountId,
+    messageId: ctx?.MessageSidFull ?? ctx?.MessageSid ?? ctx?.MessageSidFirst ?? ctx?.MessageSidLast,
+  });
+}
+
+export function beforeDispatchNativeCommandExcluded(event: any, cfg?: any): boolean {
+  const prompt = beforeDispatchPrompt(event);
+  if (!prompt) return false;
+  try {
+    return isControlCommandMessage(prompt, cfg);
+  } catch {
+    return false;
+  }
 }

@@ -21,7 +21,7 @@ describe("Ticket runtime", () => {
     store.route("OLD-1",true);
     expect(store.ready()).toEqual([{ticketId:"OLD-1",attemptCount:0,maxAttempts:3}]);
     const check = new DatabaseSync(path,{readOnly:true});
-    expect((check.prepare("SELECT version FROM schema_migrations ORDER BY version").all() as any[]).map(x=>x.version)).toEqual([1,2,3,4,5,6]);
+    expect((check.prepare("SELECT version FROM schema_migrations ORDER BY version").all() as any[]).map(x=>x.version)).toEqual([1,2,3,4,5,6,7]);
     const columns=(check.prepare("PRAGMA table_info(tickets)").all() as any[]).map(x=>x.name);
     expect(columns).toEqual(expect.arrayContaining(["response_ready_at","delivery_confirmed_at","delivery_last_error"]));
     check.close(); rmSync(root,{recursive:true,force:true});

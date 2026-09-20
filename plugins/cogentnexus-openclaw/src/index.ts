@@ -8,12 +8,13 @@ import { Type } from "typebox";
 import { defineToolPlugin } from "openclaw/plugin-sdk/tool-plugin";
 import { classifyDurableRequest, compileDurableIntake, durableRequestFingerprint } from "./admission.js";
 import { defaultTicketDatabase, TicketStore, ticketIntakeEligible, type TicketOutbox } from "./ticket-store.js";
-import { admitTicketFirstTurn, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchNativeCommandExcluded, replyDispatchProvenanceExcluded, replyDispatchTrusted } from "./ticket-admission-kernel.js";
+import { admitTicketFirstTurn, beforeDispatchNativeCommandExcluded, beforeDispatchPrompt, beforeDispatchSourceIdentity, canonicalReplyDispatchPrompt, replyDispatchIdentity, replyDispatchNativeCommandExcluded, replyDispatchProvenanceExcluded, replyDispatchSourceIdentity, replyDispatchTrusted } from "./ticket-admission-kernel.js";
 import { TicketDispatcher } from "./ticket-dispatcher.js";
 import { KnowledgeStore, type ApplicationOutcome, type ExperienceKind } from "./knowledge-store.js";
 import { ExternalResearchStore, type ClaimRelation, type SourceType } from "./external-research.js";
 import { bindDeliveryRun, hasPendingDirectExecutionForSession, hasPendingSessionWork, hasVisibleAssistantOutput, markWorkflowDeliveryScheduleFailed, markWorkflowDeliveryScheduled, parseDeliveryMarker, postCompactionResumeTag, settleDeliveryTarget, ticketDeliveryMarker, workflowDeliveryIsRetryable, workflowDeliveryMarker, type DeliveryTarget } from "./delivery-continuity.js";
 import { reconcileHostTerminalFailure, scheduleHostRunTerminalReconcile, settleSilentHostSuccess } from "./v095-host-terminal-evidence.js";
+import { createDiscordActiveTypingManager } from "./discord-active-typing.js";
 
 type Handoff = {
   taskId: string;
@@ -59,6 +60,7 @@ type RotationConfig = {
   ticketMaximumAttempts?: number;
   knowledgeEnabled?: boolean;
   externalResearchEnabled?: boolean;
+  discordActiveTyping?: boolean;
 };
 
 export type TicketResourceSnapshot = {freeMemoryBytes:number;freeDiskBytes:number;running:number};
@@ -599,6 +601,7 @@ const configSchema = Type.Object({
   ticketMaximumAttempts: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "Maximum Ticket claim attempts before a retryable failure becomes terminal." })),
   knowledgeEnabled: Type.Optional(Type.Boolean({ description: "Enable the additive SQLite Experience/Lesson store. Retrieval remains optional and never controls durable execution." })),
   externalResearchEnabled: Type.Optional(Type.Boolean({ description: "Enable bounded external-research job storage and evidence ingestion. Network access still requires an explicit capability adapter." })),
+  discordActiveTyping: Type.Optional(Type.Boolean({ description: "Keep Discord typing visible only while an admitted direct run is actively executing. Defaults on; disable after the upstream queued-followup typing lifecycle is fixed." })),
 }, { additionalProperties: false });
 
 const entry = defineToolPlugin({
@@ -748,6 +751,7 @@ entry.register = (api) => {
   registerTools?.(api);
   const config = (api.pluginConfig ?? {}) as RotationConfig;
   const scheduledRuns = new Set<string>();
+  const discordActiveTyping = createDiscordActiveTypingManager({ logger: api.logger });
   const deliveryTargets = new Map<string,DeliveryTarget>();
   const runWorkspaces = new Map<string,string>();
   const runSessions = new Map<string,string>();
@@ -777,7 +781,44 @@ entry.register = (api) => {
     cleanupRunDelivery(runId);
   };
   api.on("before_tool_call", (event, ctx) => enforcementDecision(event.toolName, event.params, ctx.sessionKey, config.enforcedMode !== false), { priority: 1000 });
-  if (config.preInferenceAdmission !== false) api.on("before_agent_run", (event, ctx) => {
+  if (config.ticketFirst === true) api.on("before_dispatch", (event:any, ctx:any) => {
+    const source = beforeDispatchSourceIdentity(event, ctx);
+    const prompt = beforeDispatchPrompt(event);
+    if (!source || !prompt) return;
+    if (beforeDispatchNativeCommandExcluded(event, (api as any).config)) return;
+    if (!ticketIntakeEligible(prompt)) return;
+    if (!durableAdmissionEligible({ sessionKey: source.sessionKey })) return;
+
+    const workspaceDir = resolve(config.workspaceDir ?? (api as any)?.config?.agents?.defaults?.workspace ?? process.cwd());
+    const databasePath = config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir);
+    try {
+      const store = new TicketStore(databasePath);
+      const ticket = store.acceptIngress({
+        sourceKey: source.sourceKey,
+        sourceChannel: source.channel,
+        sourceMessageId: source.messageId,
+        ownerSessionKey: source.sessionKey,
+        prompt,
+        maxAttempts: config.ticketMaximumAttempts,
+      });
+      api.logger.info?.(
+        `CogentNexus-OpenClaw durably persisted inbound source before dispatch/queue ${source.channel}:${source.messageId} ` +
+        `(ticket=${ticket.ticketId}, provisionalRun=${ticket.runId}, duplicate=${ticket.duplicate})`,
+      );
+      return;
+    } catch (error) {
+      api.logger.error?.(
+        `CogentNexus-OpenClaw pre-dispatch durable persistence failed closed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return { handled: true };
+    }
+  }, {
+    priority: 2600,
+    timeoutMs: 30_000,
+    registrationId: "cogentnexus-openclaw-pre-dispatch-ticket-intake",
+  } as any);
+
+  if (config.preInferenceAdmission !== false) api.on("before_agent_run", async (event, ctx) => {
     const currentRunId=ctx.runId;
     const currentWorkspace=resolve(ctx.workspaceDir ?? config.workspaceDir ?? process.cwd());
     if(currentRunId){runWorkspaces.set(currentRunId,currentWorkspace);if(ctx.sessionKey)runSessions.set(currentRunId,ctx.sessionKey);}
@@ -831,6 +872,14 @@ entry.register = (api) => {
     if (!eligible) { trace("admission.trace.blocked",{outcome:"ineligible",reason:"durable admission eligibility predicate returned false"}); trace("admission.trace.completed",{outcome:"pass"}); return { outcome:"pass" }; }
     if (config.ticketFirst === true) {
       if (currentRunId && ticketedRuns.has(currentRunId)) {
+        if (config.discordActiveTyping !== false) {
+          await discordActiveTyping.start({
+            runId: currentRunId,
+            sessionKey: ctx.sessionKey,
+            accountId: (event as any).accountId ?? (ctx as any).accountId,
+            cfg: (api as any).config,
+          });
+        }
         trace("admission.trace.completed",{outcome:"pass",reason:"run already admitted by earlier host adapter"});
         return { outcome:"pass" };
       }
@@ -873,6 +922,14 @@ entry.register = (api) => {
         };
       }
       if (admission.lane !== "durable") {
+        if (config.discordActiveTyping !== false) {
+          await discordActiveTyping.start({
+            runId: admission.runId,
+            sessionKey: admission.sessionKey,
+            accountId: (event as any).accountId ?? (ctx as any).accountId,
+            cfg: (api as any).config,
+          });
+        }
         trace("admission.trace.completed",{outcome:"pass",ticketId:admission.ticket.ticketId});
         return { outcome:"pass" };
       }
@@ -923,6 +980,26 @@ entry.register = (api) => {
     const prompt=canonicalReplyDispatchPrompt(event?.ctx);
     const identity=replyDispatchIdentity(event,ctx);
     const trusted=replyDispatchTrusted(event);
+    const zeroCounts={tool:0,block:0,final:0};
+    const source=replyDispatchSourceIdentity(event);
+    if (source && identity.sessionKey && identity.runId) {
+      const workspaceDir=resolve(config.workspaceDir ?? (api as any)?.config?.agents?.defaults?.workspace ?? process.cwd());
+      try {
+        const store=new TicketStore(config.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
+        const binding=store.bindIngressRun({
+          sourceKey:source.sourceKey,
+          ownerSessionKey:identity.sessionKey,
+          runId:identity.runId,
+        });
+        if (binding.state === "cancelled") {
+          api.logger.info?.(`CogentNexus-OpenClaw suppressed dequeued source ${source.channel}:${source.messageId} because its Ticket was cancelled before execution`);
+          return {handled:true,queuedFinal:false,counts:zeroCounts};
+        }
+      } catch(error) {
+        api.logger.error?.(`CogentNexus-OpenClaw ingress run binding failed closed: ${error instanceof Error ? error.message : String(error)}`);
+        return {handled:true,queuedFinal:false,counts:zeroCounts};
+      }
+    }
     // Unknown non-owner/internal dispatches are not claimed. Once the host
     // supplies either owner identity or trusted ingress evidence, admission
     // integrity becomes fail-closed.
@@ -937,7 +1014,6 @@ entry.register = (api) => {
       config,
     });
     if (admission.state === "skipped") return;
-    const zeroCounts={tool:0,block:0,final:0};
     if (admission.state === "blocked") {
       if (admission.reason === "missing-run-id") {
         api.logger.info?.("CogentNexus-OpenClaw reply_dispatch admission deferred: authoritative run identity is not assigned yet");
@@ -1028,6 +1104,7 @@ entry.register = (api) => {
 
   if (config.autoResume !== false || config.autoRotate === true || config.ticketFirst === true) api.on("agent_end", async (event, ctx) => {
     const runId = event.runId ?? ctx.runId;
+    if (runId) discordActiveTyping.stop(runId);
     const sessionKey = ctx.sessionKey;
     if(sessionKey) {
       try { await api.session.workflow.unscheduleSessionTurnsByTag({sessionKey,tag:postCompactionResumeTag(sessionKey)}); }

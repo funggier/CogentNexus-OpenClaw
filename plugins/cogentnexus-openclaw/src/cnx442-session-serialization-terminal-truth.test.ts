@@ -63,6 +63,193 @@ describe("CNX-442 session serialization and terminal truth", () => {
     expect(replyDispatchNativeCommandExcluded(event, { cfg })).toBe(true);
   });
 
+  it("persists a provisional Ticket at before_dispatch and atomically binds it to the actual run at reply_dispatch", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-predispatch-durable-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any[]>();
+      const api: any = {
+        config: {},
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {},
+        registerService: () => {},
+        on: (name: string, callback: any) => hooks.set(name, [...(hooks.get(name) ?? []), callback]),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: { unscheduleSessionTurnsByTag: async () => {}, scheduleSessionTurn: async () => {} } },
+        runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+
+      const beforeDispatch = hooks.get("before_dispatch")?.[0];
+      expect(beforeDispatch).toBeTypeOf("function");
+      const sessionKey = "agent:main:discord:channel:42";
+      await beforeDispatch({
+        messageId:"msg-queued-42",
+        content:"@Ce queued followup",
+        body:"@Ce queued followup",
+        channel:"discord",
+        sessionKey,
+        senderId:"owner-42",
+        isGroup:true,
+      }, {
+        messageId:"msg-queued-42",
+        channelId:"discord",
+        accountId:"default",
+        conversationId:"42",
+        sessionKey,
+        senderId:"owner-42",
+      });
+
+      let db = new DatabaseSync(databasePath, { readOnly:true });
+      const first = db.prepare("SELECT ticket_id,run_id,owner_session_key,prompt,status FROM tickets").get() as any;
+      expect(first).toMatchObject({ owner_session_key:sessionKey, prompt:"@Ce queued followup", status:"accepted" });
+      expect(first.run_id).toMatch(/^ingress:/u);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='routed'").get(first.ticket_id)).toEqual({n:0});
+      db.close();
+
+      const replyDispatch = hooks.get("reply_dispatch")?.[0];
+      expect(replyDispatch).toBeTypeOf("function");
+      const actualRunId = "run-followup-queued";
+      await replyDispatch({
+        runId:actualRunId,
+        sessionKey,
+        ctx: {
+          SessionKey:sessionKey,
+          MessageSidFull:"msg-queued-42",
+          OriginatingChannel:"discord",
+          AccountId:"default",
+          BodyForAgent:"@Ce queued followup",
+          RawBody:"@Ce queued followup",
+          InboundAccessAuthorized:true,
+        },
+      }, { cfg:{}, dispatchKind:"agent", dispatcher:{} });
+
+      db = new DatabaseSync(databasePath, { readOnly:true });
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      expect(db.prepare("SELECT ticket_id,run_id FROM tickets").get()).toEqual({ticket_id:first.ticket_id,run_id:actualRunId});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='ingress_run_bound'").get(first.ticket_id)).toEqual({n:1});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='routed'").get(first.ticket_id)).toEqual({n:1});
+      db.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("suppresses a dequeued followup whose provisional Ticket was cancelled before execution", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-cancelled-before-dequeue-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any[]>();
+      const api: any = {
+        config: {},
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {},
+        registerService: () => {},
+        on: (name: string, callback: any) => hooks.set(name, [...(hooks.get(name) ?? []), callback]),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: { unscheduleSessionTurnsByTag: async () => {}, scheduleSessionTurn: async () => {} } },
+        runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const beforeDispatch = hooks.get("before_dispatch")?.[0];
+      const replyDispatch = hooks.get("reply_dispatch")?.[0];
+      expect(beforeDispatch).toBeTypeOf("function");
+      expect(replyDispatch).toBeTypeOf("function");
+
+      const sessionKey="agent:main:discord:channel:stop-queue";
+      await beforeDispatch({
+        messageId:"msg-stop-queued",
+        content:"@Ce queued then stopped",
+        body:"@Ce queued then stopped",
+        channel:"discord",
+        sessionKey,
+        senderId:"owner",
+      }, {
+        messageId:"msg-stop-queued",
+        channelId:"discord",
+        accountId:"default",
+        conversationId:"stop-queue",
+        sessionKey,
+        senderId:"owner",
+      });
+
+      let db=new DatabaseSync(databasePath);
+      const provisional=db.prepare("SELECT ticket_id FROM tickets").get() as any;
+      db.prepare("UPDATE tickets SET status='cancelled',failure_message='Reply operation aborted by user' WHERE ticket_id=?")
+        .run(provisional.ticket_id);
+      db.close();
+
+      const result=await replyDispatch({
+        runId:"actual-run-after-stop",
+        sessionKey,
+        ctx:{
+          SessionKey:sessionKey,
+          MessageSidFull:"msg-stop-queued",
+          OriginatingChannel:"discord",
+          AccountId:"default",
+          BodyForAgent:"@Ce queued then stopped",
+          RawBody:"@Ce queued then stopped",
+          InboundAccessAuthorized:true,
+        },
+      }, {cfg:{},dispatchKind:"agent",dispatcher:{}});
+      expect(result).toMatchObject({handled:true,queuedFinal:false});
+
+      db=new DatabaseSync(databasePath,{readOnly:true});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:1});
+      expect(db.prepare("SELECT status FROM tickets WHERE ticket_id=?").get(provisional.ticket_id)).toEqual({status:"cancelled"});
+      expect(db.prepare("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='ingress_run_suppressed'").get(provisional.ticket_id)).toEqual({n:1});
+      db.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
+  it("pre-dispatch intake bypasses recognized native commands and requires a stable source message identity", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx442-predispatch-bypass-"));
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      const hooks = new Map<string, any[]>();
+      const api: any = {
+        config: { commands:{ native:"auto" } },
+        pluginConfig: { ticketFirst: true, preInferenceAdmission: true, ticketDatabasePath: databasePath, autoWorkflowCompletion: false },
+        registerTool: () => {},
+        registerService: () => {},
+        on: (name: string, callback: any) => hooks.set(name, [...(hooks.get(name) ?? []), callback]),
+        logger: { warn: () => {}, error: () => {}, info: () => {} },
+        session: { workflow: { unscheduleSessionTurnsByTag: async () => {}, scheduleSessionTurn: async () => {} } },
+        runtime: { tasks: { managedFlows: {} } },
+      };
+      entry.register?.(api);
+      const beforeDispatch = hooks.get("before_dispatch")?.[0];
+      expect(beforeDispatch).toBeTypeOf("function");
+
+      await beforeDispatch({
+        messageId:"msg-native",
+        content:"/context",
+        body:"/context",
+        channel:"discord",
+        sessionKey:"agent:main:discord:channel:1",
+        senderId:"owner-42",
+      }, { channelId:"discord", sessionKey:"agent:main:discord:channel:1", messageId:"msg-native", senderId:"owner-42" });
+
+      await beforeDispatch({
+        content:"ordinary message with no source id",
+        body:"ordinary message with no source id",
+        channel:"webchat",
+        sessionKey:"agent:main:webchat:1",
+      }, { channelId:"webchat", sessionKey:"agent:main:webchat:1" });
+
+      if (existsSync(databasePath)) {
+        const db = new DatabaseSync(databasePath, { readOnly:true });
+        expect(db.prepare("SELECT COUNT(*) AS n FROM tickets").get()).toEqual({n:0});
+        db.close();
+      }
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
   it("does not create a Ticket when reply_dispatch receives an authorized native command", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx442-command-bypass-"));
     try {
