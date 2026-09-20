@@ -466,3 +466,21 @@ Current gate:
 `CNX442_LIVE_READY_FOR_RETRY_FIRST_OPERATOR_TURN`
 
 The operator must send the semantic Discord test message. The executor must not send it on the operator's behalf.
+
+## CNX-442 Stop-barrier handoff — 2026-09-21
+
+- Source/remote HEAD: `beaa9cb2a76f64eb06e3713e2857f1f37acd664e`
+- Focused authoritative Stop/terminal qualification: 34/34 PASS
+- TypeScript build: PASS
+- Current installed live runtime is still the older pre-Stop-barrier candidate; source/live hashes differ for `index.js`, `v090.js`, and `v095-host-terminal-evidence.js`.
+- Live queue + FIFO + single-writer + Discord typing acceptance is GREEN.
+- Live Stop acceptance on the older runtime is RED: current Ticket became failed/permanent, queued Ticket was later dequeued/bound then blocked, though it never entered model inference.
+- Exact Host Stop evidence: `status=interrupted`, `aborted=true`, `externalAbort=true`, `timedOut=false`, `stopReason=aborted`, `promptError=agent run aborted | OPENCLAW_DIRECT_ABORT`.
+- New source fix at `beaa9cb2` uses authoritative Host terminal evidence to cancel the whole owner session and fence queued work.
+- Full suite/plugin validation after `beaa9cb2` still must be rerun before install-over.
+- qwen3.8:27b was unloaded at handoff because `activeRuns=0`.
+- Full handoff report: `docs/operations/coordination/reports/CNX-20260921-442-session-handoff-stop-barrier.md`
+
+Current gate:
+
+`CNX442_SOURCE_STOP_BARRIER_GREEN_PENDING_FULL_QUALIFICATION_INSTALL_AND_LIVE_RETEST`
