@@ -129,6 +129,122 @@ function Get-ExistingCnxMode {
     return $mode
 }
 
+function Enter-ExistingSupervisorQuiescence {
+    param([Parameter(Mandatory = $true)][string]$Mode)
+
+    # Legacy migration has a different startup surface. The current v0.9.x
+    # startup adapter is only used for a coherent current installation.
+    if ($migrationSource -or $Mode -notin @("managed", "maintenance")) { return $false }
+
+    $startupScript = Join-Path $targetSkill "scripts\startup_v091.py"
+    if (-not (Test-Path -LiteralPath $startupScript -PathType Leaf)) {
+        throw "Existing CogentNexus-OpenClaw supervisor startup adapter is missing; refusing native handoff: $startupScript"
+    }
+
+    $capture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments @(
+        $startupScript, "--root", $cogentNexusOpenClawRoot, "disable"
+    )
+    if ($capture.ExitCode -ne 0) {
+        $detail = Get-BoundedInstallerDiagnostic $capture.Output
+        throw "Could not quiesce future CogentNexus-OpenClaw supervisor ticks before native handoff: $detail"
+    }
+    Write-Host "Pre-handoff supervisor scheduling quiesced."
+    return $true
+}
+
+function Wait-ExistingSupervisorQuiescence {
+    param([int]$TimeoutSeconds = 300)
+
+    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        $active = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+            $line = if ($null -eq $_.CommandLine) { "" } else { [string]$_.CommandLine }
+            $line.IndexOf("host_control_v092.py", [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+            $line.IndexOf("supervisor tick", [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+            $line.IndexOf("--execute-safe", [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+            $line.IndexOf($cogentNexusOpenClawRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0
+        })
+        if ($active.Count -eq 0) {
+            $stopwatch.Stop()
+            Write-Host ("Pre-handoff supervisor invocation quiescent after {0} ms." -f $stopwatch.ElapsedMilliseconds)
+            return
+        }
+        if ($stopwatch.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
+            $ids = (($active | Select-Object -ExpandProperty ProcessId) -join ",")
+            throw "Timed out waiting for running CogentNexus-OpenClaw supervisor invocation(s) to finish before native handoff (pids=$ids)."
+        }
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+function Wait-GatewayStableForNativeHandoff {
+    param([int]$TimeoutSeconds = 180)
+
+    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+    $consecutiveHealthy = 0
+    $lastDiagnostic = "[no Gateway health probe completed]"
+    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        $capture = Invoke-NativeInstallerDiagnostic -Executable "openclaw" -Arguments @("gateway", "health", "--json")
+        $healthy = $false
+        if ($capture.ExitCode -eq 0) {
+            try {
+                $probe = $capture.Output | ConvertFrom-Json
+                $healthy = [bool]$probe.ok
+            }
+            catch {
+                $healthy = $false
+            }
+        }
+        if ($healthy) {
+            $consecutiveHealthy += 1
+            if ($consecutiveHealthy -ge 2) {
+                $stopwatch.Stop()
+                Write-Host ("Pre-handoff Gateway stability: PASS after {0} ms." -f $stopwatch.ElapsedMilliseconds)
+                return
+            }
+            Start-Sleep -Seconds 1
+            continue
+        }
+
+        $consecutiveHealthy = 0
+        $lastDiagnostic = Get-BoundedInstallerDiagnostic $capture.Output
+        Start-Sleep -Seconds 2
+    }
+    throw "Gateway did not become stably healthy before native handoff within $TimeoutSeconds seconds: $lastDiagnostic"
+}
+
+function Restore-ExistingSupervisorAfterFailedHandoff {
+    if ($migrationSource) { return }
+
+    $startupScript = Join-Path $targetSkill "scripts\startup_v091.py"
+    if (-not (Test-Path -LiteralPath $startupScript -PathType Leaf)) {
+        throw "Cannot restore CogentNexus-OpenClaw supervisor because the installed startup adapter is missing: $startupScript"
+    }
+
+    $statusCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments @(
+        $startupScript, "--root", $cogentNexusOpenClawRoot, "status"
+    )
+    if ($statusCapture.ExitCode -eq 0) {
+        try {
+            $status = $statusCapture.Output | ConvertFrom-Json
+            if ([bool]$status.adapter.installed -and [bool]$status.adapter.Enabled) {
+                Write-Host "Pre-handoff supervisor rollback not required; startup adapter is already enabled."
+                return
+            }
+        }
+        catch { }
+    }
+
+    $enableCapture = Invoke-NativeInstallerDiagnostic -Executable "python" -Arguments @(
+        $startupScript, "--root", $cogentNexusOpenClawRoot, "enable"
+    )
+    if ($enableCapture.ExitCode -ne 0) {
+        $detail = Get-BoundedInstallerDiagnostic $enableCapture.Output
+        throw "Failed to restore CogentNexus-OpenClaw supervisor after native handoff failure: $detail"
+    }
+    Write-Host "Restored CogentNexus-OpenClaw supervisor after failed native handoff."
+}
+
 function Enter-NativeInstallBoundary {
     $mode = Get-ExistingCnxMode
     if ($null -eq $mode) { return }
@@ -144,16 +260,39 @@ function Enter-NativeInstallBoundary {
         throw "Existing CogentNexus-OpenClaw is $mode but launcher is missing: $handoffLauncher. Refusing install mutation before native handoff."
     }
 
-    Write-Host "Existing CogentNexus-OpenClaw is $mode; entering PASSTHROUGH/native boundary before upgrade mutation."
-    & $handoffLauncher disable
-    if ($LASTEXITCODE -ne 0) {
-        throw "Existing CogentNexus-OpenClaw disable failed; refusing install mutation."
+    $supervisorPreQuiesced = $false
+    try {
+        $supervisorPreQuiesced = [bool](Enter-ExistingSupervisorQuiescence -Mode $mode)
+        if ($supervisorPreQuiesced) {
+            Wait-ExistingSupervisorQuiescence
+            Wait-GatewayStableForNativeHandoff
+        }
+
+        Write-Host "Existing CogentNexus-OpenClaw is $mode; entering PASSTHROUGH/native boundary before upgrade mutation."
+        & $handoffLauncher disable
+        if ($LASTEXITCODE -ne 0) {
+            throw "Existing CogentNexus-OpenClaw disable failed; refusing install mutation."
+        }
+        $afterMode = Get-ExistingCnxMode
+        if ($afterMode -ne "passthrough") {
+            throw "Existing CogentNexus-OpenClaw did not reach PASSTHROUGH after disable (mode=$afterMode); refusing install mutation."
+        }
+        Write-Host "Pre-install native handoff: PASS"
     }
-    $afterMode = Get-ExistingCnxMode
-    if ($afterMode -ne "passthrough") {
-        throw "Existing CogentNexus-OpenClaw did not reach PASSTHROUGH after disable (mode=$afterMode); refusing install mutation."
+    catch {
+        $handoffError = $_.Exception
+        $currentMode = $null
+        try { $currentMode = Get-ExistingCnxMode } catch { }
+        if ($supervisorPreQuiesced -and $currentMode -ne "passthrough") {
+            try {
+                Restore-ExistingSupervisorAfterFailedHandoff
+            }
+            catch {
+                throw "Native handoff failed AND supervisor rollback failed. Handoff error: $($handoffError.Message) || Supervisor rollback error: $($_.Exception.Message)"
+            }
+        }
+        throw $handoffError
     }
-    Write-Host "Pre-install native handoff: PASS"
 }
 
 Write-Host "Installing CogentNexus-OpenClaw v$version"
