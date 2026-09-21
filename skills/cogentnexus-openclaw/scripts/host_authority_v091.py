@@ -135,6 +135,16 @@ def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
         startup_attempted = True
         startup_result = legacy.startup(root, "enable", check=True)
 
+        # OpenClaw 2026.9.x can transiently accept configuration mutations while
+        # its Gateway is still completing cold-start/plugin reload work. Do not
+        # attempt inference-capable plugin activation until native OpenClaw is
+        # observably ready; MANAGED authority remains uncommitted during this wait.
+        native_readiness = v091._wait_native_gateway_ready()
+        if not native_readiness.get("healthy"):
+            raise RuntimeError(
+                f"native Gateway not ready before managed plugin activation: {native_readiness}"
+            )
+
         # Enable plugin configuration while still PASSTHROUGH. The release-entry
         # Host gate deliberately suppresses runtime registration at this point.
         plugin_enable_attempted = True

@@ -330,9 +330,31 @@ A regression contract was added RED-first. The minimal repair adds an applicatio
 
 covering clean-reinstall, namespace install/ownership, and plugin rollover contracts. Candidate `ade5fa7f...` is therefore rejected for publication and a new exact candidate is required after full requalification and renewed live lifecycle acceptance.
 
+## Live fresh-install activation transient found before publication
+
+The next frozen candidate was:
+
+`a4aa49f8ec1ec290aa0da6b847fed2be70891052`
+
+Its clean-reinstall backup repair worked in the live path: both external application-data junctions were explicitly skipped and the bounded backup completed successfully at `T:\CogentNexus-OpenClaw-Release-Acceptance-Backups\20260921-195319`. The existing managed runtime then disabled to PASSTHROUGH successfully, the plugin and owned paths were removed, and a fresh v0.9.6 installation recreated ownership/plugin/runtime state.
+
+The fresh install then failed before MANAGED authority commit while enabling the CNX plugin. OpenClaw 2026.9.5 returned a transient Gateway `ETIMEDOUT` during `plugins enable`. Transactional activation correctly rolled back to PASSTHROUGH and restored the native Gateway healthy. Post-rollback verification showed OpenClaw/Gateway 2026.9.5 healthy, v0.9.6 ownership/plugin artifacts present, and the CNX plugin disabled.
+
+Root cause: the activation path already had a bounded OpenClaw 2026.9.x native-Gateway readiness primitive, but used it only during native rollback/restore. The normal pre-commit activation path did not wait for Gateway readiness after staging configuration/startup and before `plugin_enabled(True)`.
+
+A RED-first activation contract reproduced the missing readiness call. Minimal repair now requires `_wait_native_gateway_ready()` after startup-adapter staging and before plugin activation. MANAGED authority remains uncommitted during the wait and the path still fails closed if readiness does not converge.
+
+Focused post-repair qualification:
+
+```text
+10 passed
+```
+
+covering activation safety, single-authority ordering, OpenClaw 2026.9.5 native-Gateway readiness, and plugin mutation timeout behavior. Candidate `a4aa49f8...` is rejected for publication. Full requalification after the readiness repair is now GREEN: full Python `710 passed, 5 skipped, 38 subtests passed`; plugin tests `428/428`; evaluation PASS with evidence SHA-256 `a2e96fbf5d3623385751259273e83576c69f880768cee59ec72066351c0b1e0c`; production audit `0 vulnerabilities`; and `plugin:validate` PASS with 290 packed files. A new exact candidate is required for renewed lifecycle acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `709 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `8f50eaefe8ecce4f0c94fdfefc15d04e46df61d7985f5a673cfe2e84838f5cb2`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `710 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `a2e96fbf5d3623385751259273e83576c69f880768cee59ec72066351c0b1e0c`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 

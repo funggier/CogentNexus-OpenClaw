@@ -44,6 +44,51 @@ class ActivationSafetyContractTests(unittest.TestCase):
                     authority.enable(root)
             self.assertEqual(quiescence.read(root)["status"], "absent")
 
+    def test_enable_waits_for_native_gateway_readiness_before_plugin_activation(self):
+        events = []
+        completed = mock.Mock(returncode=0, stdout="{}", stderr="")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            with mock.patch.object(authority.legacy, "initialize"), mock.patch.object(
+                authority.legacy, "load_state", return_value={"mode": "passthrough", "generation": 1}
+            ), mock.patch.object(
+                authority.v091, "_snapshot_file", return_value=None
+            ), mock.patch.object(
+                authority.legacy, "reconcile_terminal_fences", return_value={}
+            ), mock.patch.object(
+                authority.v091, "reconcile_direct_delivery_before_recovery", return_value={}
+            ), mock.patch.object(
+                authority.legacy, "plugin_enabled", side_effect=lambda enabled: events.append(f"plugin:{enabled}")
+            ), mock.patch.object(
+                authority.v091, "configure_managed_plugin"
+            ), mock.patch.object(
+                authority.v091, "validate_managed_config"
+            ), mock.patch.object(
+                authority.legacy, "apply_policy", return_value=False
+            ), mock.patch.object(
+                authority.legacy, "startup", return_value=completed
+            ), mock.patch.object(
+                authority.v091, "_wait_native_gateway_ready",
+                side_effect=lambda: events.append("gateway-ready") or {"healthy": True, "attempts": 3},
+            ) as readiness, mock.patch.object(
+                authority.legacy, "transition", return_value={"mode": "managed", "generation": 2}
+            ), mock.patch.object(
+                authority.legacy, "runtime", return_value=completed
+            ), mock.patch.object(
+                authority.legacy, "gateway_status", return_value={"healthy": True}
+            ), mock.patch.object(
+                authority.legacy, "reconcile_default_session", return_value={"ok": True, "created": False}
+            ), mock.patch.object(
+                authority.v091, "promote_interrupted_direct_v091", return_value=[]
+            ), mock.patch.object(
+                authority.legacy, "policy_info", return_value={}
+            ):
+                result = authority._enable_under_lease(root, "2026-09-21T13:00:00Z")
+
+        self.assertEqual(result["mode"], "managed")
+        readiness.assert_called_once_with()
+        self.assertLess(events.index("gateway-ready"), events.index("plugin:True"))
+
     def test_interrupted_promotion_requires_fresh_identified_session(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / ".cogentnexus-openclaw"
