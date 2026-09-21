@@ -97,11 +97,15 @@ describe("v0.9 abort authority",()=>{
       const handlers=new Map<string,any[]>();
       let subscription:any;
       const entry={sessionId:"physical-a"};
+      const gatewayRequest=vi.fn(async()=>({ok:true,abortedRunId:null,status:"no-active-run"}));
       const api={
-        runtime:{agent:{session:{getSessionEntry:vi.fn(()=>entry)}}},
+        runtime:{
+          agent:{session:{getSessionEntry:vi.fn(()=>entry)}},
+          gateway:{request:gatewayRequest},
+        },
         agent:{events:{registerAgentEventSubscription:vi.fn((value:any)=>{subscription=value;})}},
         on:vi.fn((name:string,handler:any)=>{const list=handlers.get(name)??[];list.push(handler);handlers.set(name,list);}),
-        logger:{info:vi.fn()},
+        logger:{info:vi.fn(),warn:vi.fn()},
       };
       const proxy=createAbortAuthorityApi(api,{workspaceDir:root,cogentNexusOpenClawRoot:join(root,".cogentnexus-openclaw")});
       const seen:any[]=[];
@@ -109,7 +113,13 @@ describe("v0.9 abort authority",()=>{
       proxy.on("agent_end",(event:any)=>seen.push(event));
       const ctx={runId:"run-ui-stop",sessionKey:"agent:main:dashboard:A",workspaceDir:root};
       await handlers.get("before_agent_run")?.[0]({runId:"run-ui-stop"},ctx);
-      await subscription.handle({runId:"run-ui-stop",sessionKey:ctx.sessionKey,stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"rpc"}},{});
+      const stopEvent={runId:"run-ui-stop",sessionKey:ctx.sessionKey,stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"rpc"}};
+      await subscription.handle(stopEvent,{});
+      await subscription.handle(stopEvent,{});
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(gatewayRequest).toHaveBeenCalledTimes(1);
+      expect(gatewayRequest).toHaveBeenCalledWith("sessions.abort",{key:ctx.sessionKey,clearQueued:true});
       await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-ui-stop",messages:[]},ctx);
       expect(seen[0].error).toBe("agent run aborted");
     }finally{rmSync(root,{recursive:true,force:true});}
