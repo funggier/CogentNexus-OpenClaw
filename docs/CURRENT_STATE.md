@@ -2,8 +2,8 @@
 
 **Current source/release line:** `v0.9.6`
 **Current working branch:** `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-**Latest physical runtime acceptance:** OpenClaw `2026.9.5 (ec9c1a1)`
-**Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
+**Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
+**Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
@@ -70,8 +70,8 @@ After Stop:
 | Gateway lifecycle control | Accepted |
 | Managed local provider | Ollama |
 | Cloud/model/auth routing | OpenClaw-owned pass-through |
-| Latest physical OpenClaw compatibility | `2026.9.5 (ec9c1a1)` |
-| Regression/dev OpenClaw dependency pin | `2026.7.1-2` |
+| Validated OpenClaw runtime baseline | `2026.9.5 (ec9c1a1)` |
+| Regression/dev OpenClaw dependency pin | `2026.7.1-2` (test/development only) |
 | Response-ready immutability | Accepted |
 | Durable result/delivery confirmation | Accepted |
 | Session-generation fencing | Accepted |

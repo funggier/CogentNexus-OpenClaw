@@ -20,7 +20,7 @@ Authoritative predecessor evidence:
 
 - final production repair candidate: `8dee9cd635ca3dfcbf96f2f4161b5026355dbcf9`;
 - final documentation acceptance commit: `aa46f7041ef32f00d34c4c5b72720d8552520775`;
-- latest physical OpenClaw acceptance: `2026.9.5 (ec9c1a1)`;
+- validated/current live OpenClaw runtime baseline: `2026.9.5 (ec9c1a1)`;
 - no-successor Host run after authoritative Stop: accepted;
 - held queued Ticket zero-inference cancellation: accepted.
 

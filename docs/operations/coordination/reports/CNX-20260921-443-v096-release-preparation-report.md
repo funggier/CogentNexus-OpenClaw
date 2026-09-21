@@ -352,9 +352,21 @@ Focused post-repair qualification:
 
 covering activation safety, single-authority ordering, OpenClaw 2026.9.5 native-Gateway readiness, and plugin mutation timeout behavior. Candidate `a4aa49f8...` is rejected for publication. Full requalification after the readiness repair is now GREEN: full Python `710 passed, 5 skipped, 38 subtests passed`; plugin tests `428/428`; evaluation PASS with evidence SHA-256 `a2e96fbf5d3623385751259273e83576c69f880768cee59ec72066351c0b1e0c`; production audit `0 vulnerabilities`; and `plugin:validate` PASS with 290 packed files. A new exact candidate is required for renewed lifecycle acceptance.
 
+## Renewed clean-reinstall acceptance and reset first-activation transient
+
+Candidate `7c8b5468c0ca2bfb689607dda039b3e19cb14851` passed the full live clean-reinstall path on OpenClaw 2026.9.5. The run completed with `CLEAN REINSTALL: PASS`, rebuilt v0.9.6 from owned fresh state, returned CNX to `active/managed` generation 2, left Gateway/Ollama healthy, restored the hidden supervisor Ready/Enabled with `LastTaskResult=0`, loaded plugin v0.9.6, and retained zero pending outbox. Backup completed at `T:\CogentNexus-OpenClaw-Release-Acceptance-Backups\20260921-202850`.
+
+The subsequent provider-neutral reset acceptance preserved the OpenClaw-owned route `ollama/qwen3.8:27b` but exposed a fourth pre-release lifecycle transient. The first post-reset managed activation failed and the reset correctly ended fail-closed with CNX disabled. OpenClaw logs showed repeated loopback Gateway connectivity timeouts while the Gateway process still owned port 18789, followed by `ETIMEDOUT`. A controlled second enable from the exact same reconstructed state then succeeded fully: MANAGED generation 2, Gateway 2026.9.5 healthy, Ollama healthy, and supervisor Ready.
+
+The repair is intentionally bounded rather than a general retry loop. Reset may perform exactly one additional transactional `enable` only when the first enable fails and a fresh `gateway_health()` proves the native Gateway has recovered. If Gateway health is absent, or if the second enable fails, reset still terminates fail-closed. Provider/model/auth routing remains OpenClaw-owned and unchanged.
+
+A RED-first reset contract reproduced the missing bounded retry. Focused post-repair tests are GREEN (`4 passed`) across provider-neutral reset and the existing pre-plugin activation readiness contract. Full repository requalification after the bounded reset repair is GREEN: Python `711 passed, 5 skipped, 38 subtests passed`; plugin tests `428/428`; evaluation PASS with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`; production audit `0 vulnerabilities`; and `plugin:validate` PASS with 290 packed files.
+
+Candidate `7c8b5468...` is therefore not the final release identity because the reset repair changes production lifecycle source. A new exact candidate is required after full requalification and renewed reset/install-over acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `710 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `a2e96fbf5d3623385751259273e83576c69f880768cee59ec72066351c0b1e0c`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `711 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 

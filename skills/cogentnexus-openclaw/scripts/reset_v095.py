@@ -134,7 +134,24 @@ def reset(root: Path) -> int:
 
         enabled = _run_host(root, "enable")
         if enabled.returncode != 0:
-            raise RuntimeError("CogentNexus-OpenClaw enable failed after provider-neutral reset")
+            # OpenClaw 2026.9.x can transiently lose the Gateway control path
+            # during the first plugin activation after fresh reset. The Host
+            # enable path is transactional and rolls back to PASSTHROUGH. Retry
+            # exactly once only after the native Gateway is observably healthy.
+            retry_gateway = base.gateway_health()
+            if not retry_gateway.get("healthy"):
+                detail = (enabled.stderr or enabled.stdout or "").strip()
+                raise RuntimeError(
+                    "CogentNexus-OpenClaw enable failed after provider-neutral reset "
+                    f"and native Gateway did not recover: {detail or retry_gateway}"
+                )
+            enabled = _run_host(root, "enable")
+            if enabled.returncode != 0:
+                detail = (enabled.stderr or enabled.stdout or "").strip()
+                raise RuntimeError(
+                    "CogentNexus-OpenClaw enable failed after one bounded "
+                    f"provider-neutral reset retry: {detail or 'no child-process detail'}"
+                )
 
         boundary = runtime_boundary.activate_current_config()
         if not boundary.get("ok"):

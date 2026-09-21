@@ -6,11 +6,11 @@ This plugin is the OpenClaw-side bridge for durable Ticket admission, same-sessi
 
 - Package version: `0.9.6`
 - Peer install range: OpenClaw `>=2026.5.17`
-- Regression/dev dependency pin: OpenClaw `2026.7.1-2`
-- Validated OpenClaw baseline: `2026.7.1-2` (regression/dev package baseline)
+- Regression/dev dependency pin: OpenClaw `2026.7.1-2` (test/development dependency only)
+- Validated OpenClaw runtime baseline: `2026.9.5 (ec9c1a1)`
 - Latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`
 
-The peer range declares package-install compatibility only; it does not extend the operational guarantee beyond explicitly qualified evidence. The regression pin and latest physical acceptance are deliberately reported separately.
+The peer range declares package-install compatibility only; it does not extend the operational guarantee beyond explicitly qualified evidence. The validated runtime baseline is the currently used and physically qualified OpenClaw runtime; the older regression/dev pin is retained only for repository test/development compatibility.
 
 ## Provider boundary
 

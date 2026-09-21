@@ -46,6 +46,40 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
             run_host.assert_any_call(root, "init")
             run_host.assert_any_call(root, "enable")
 
+    def test_reset_retries_one_transactional_enable_after_gateway_recovers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            calls = []
+            failed = mock.Mock(returncode=1, stdout="first enable transient", stderr="ETIMEDOUT")
+            succeeded = mock.Mock(returncode=0, stdout="managed", stderr="")
+            ok = mock.Mock(returncode=0, stdout="{}", stderr="")
+
+            def run_host(_root, command):
+                calls.append(command)
+                if command == "enable":
+                    return failed if calls.count("enable") == 1 else succeeded
+                return ok
+
+            with (
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.6"}),
+                mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
+                mock.patch.object(reset_v095.base, "confirm", return_value=True),
+                mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
+                mock.patch.object(reset_v095.openclaw_route, "restore_native", return_value={"ok": True}),
+                mock.patch.object(reset_v095, "bootstrap_ticket_database"),
+                mock.patch.object(reset_v095.base, "disable_startup"),
+                mock.patch.object(reset_v095.base, "reset_plugin_configuration"),
+                mock.patch.object(reset_v095.base, "verify_plugin_loaded", return_value={"status": "loaded"}),
+                mock.patch.object(reset_v095.base, "gateway_health", side_effect=[{"healthy": True}, {"healthy": True}]) as gateway_health,
+                mock.patch.object(reset_v095.runtime_boundary, "activate_current_config", return_value={"ok": True}),
+                mock.patch("reset_v095.shutil.rmtree"),
+            ):
+                code = reset_v095.reset(root)
+
+            self.assertEqual(code, 0)
+            self.assertEqual(calls.count("enable"), 2)
+            self.assertGreaterEqual(gateway_health.call_count, 2)
+
     def test_reset_source_has_no_provider_transition_authority(self):
         source = Path(reset_v095.__file__).read_text(encoding="utf-8")
         self.assertNotIn("resolve_fresh_provider", source)

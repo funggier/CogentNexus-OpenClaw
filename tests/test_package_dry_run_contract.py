@@ -103,11 +103,13 @@ def test_package_dry_run_records_exact_candidate_provenance_and_uploads_proof():
 def test_openclaw_peer_range_is_documented_as_package_install_compatibility_only():
     package = json.loads((PLUGIN_ROOT / "package.json").read_text(encoding="utf-8"))
     peer_range = package["peerDependencies"]["openclaw"]
-    validated_baseline = package["devDependencies"]["openclaw"]
+    regression_pin = package["devDependencies"]["openclaw"]
     readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
     lowered = readme.lower()
 
     assert f"`{peer_range}`" in readme
     assert "package-install compatibility" in lowered
-    assert f"Validated OpenClaw baseline: `{validated_baseline}`" in readme
+    assert f"Regression/dev dependency pin: OpenClaw `{regression_pin}`" in readme
+    assert "Validated OpenClaw runtime baseline: `2026.9.5" in readme
+    assert "test/development dependency only" in lowered
     assert "does not extend the operational guarantee" in lowered

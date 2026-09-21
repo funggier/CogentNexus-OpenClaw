@@ -27,9 +27,9 @@ Required remaining sequence:
 
 CNX-442 final physical Stop acceptance is GREEN. It must not be reopened or reinterpreted merely because release/docs work is continuing.
 
-Latest physically accepted OpenClaw runtime: `2026.9.5 (ec9c1a1)`.
+Validated/current live OpenClaw runtime baseline: `2026.9.5 (ec9c1a1)`.
 
-Regression/dev OpenClaw dependency pin remains `2026.7.1-2` unless a separately qualified dependency update changes it.
+Regression/dev OpenClaw dependency pin remains `2026.7.1-2` for repository test/development compatibility only; it is not the current live runtime baseline.
 
 ## Watcher retirement
 
