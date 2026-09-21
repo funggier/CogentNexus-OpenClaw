@@ -252,6 +252,30 @@ def test_owned_v093_layout_is_a_coherent_upgrade_candidate(tmp_path: Path):
     assert ownership.classify_install(workspace, app_data=tmp_path / "absent-app-data")["mode"] == "upgrade"
 
 
+def test_owned_v095_layout_is_a_coherent_v096_upgrade_candidate(tmp_path: Path):
+    workspace, root, skill, launcher, plugin = layout(tmp_path)
+    root.mkdir(parents=True)
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("name: CogentNexus-OpenClaw", encoding="utf-8")
+    launcher.write_text("cnxclaw", encoding="utf-8")
+    write_plugin(plugin, version="0.9.5")
+    ownership.write_manifest(
+        root,
+        ownership.build_manifest(
+            root=root,
+            workspace=workspace,
+            skill=skill,
+            plugin_path=plugin,
+            launcher=launcher,
+            version="0.9.5",
+        ),
+    )
+    assert ownership.classify_install(
+        workspace,
+        app_data=tmp_path / "absent-app-data",
+    )["mode"] == "upgrade"
+
+
 def test_second_exact_product_child_makes_existing_install_ambiguous(tmp_path: Path):
     workspace, _, _ = complete_install(tmp_path)
     second = workspace.parent / "npm/projects/conflict/node_modules" / ownership.PLUGIN_PACKAGE

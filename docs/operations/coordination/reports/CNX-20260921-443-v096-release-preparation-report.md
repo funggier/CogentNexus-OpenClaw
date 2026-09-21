@@ -132,10 +132,16 @@ These changes were reviewed rather than reverted blindly.
 
 ### Python and repository gates
 
-Full Python suite:
+Full Python suite before live install-over repair:
 
 ```text
 708 passed, 5 skipped, 38 subtests passed
+```
+
+Full Python suite after the v0.9.5 -> v0.9.6 upgrade-source repair:
+
+```text
+709 passed, 5 skipped, 38 subtests passed
 ```
 
 Repository gates:
@@ -204,7 +210,7 @@ Measured gate summary:
 
 Evaluation evidence SHA-256:
 
-`c389b7abead0acf07457fb6e8e0a22e87eb616f166dad9fe0f977f209f9308ea`
+`11b6183a25fdb31436527672aacf1efd5e4e98a1252c429763f9ce179b773279`
 
 ### Production dependency audit
 
@@ -267,6 +273,39 @@ The current v0.9.6 authority is different:
 - no current v0.9.6 authority requires a PR or merge to `main` before publication.
 
 Therefore this preparation does not introduce an unrequired PR/merge merely to reproduce v0.9.5 history. The authoritative publication identity will be the exact committed/pushed candidate that passes GitHub validation.
+
+## Live install-over defect found before publication
+
+The first frozen local candidate was:
+
+`12cdea0473146bd114826e496f51ca8a8b93518c`
+
+It was intentionally **not pushed** after live install-over qualification found a real v0.9.6 upgrade blocker. Installing over the accepted live v0.9.5 runtime failed before mutation with:
+
+```text
+ownership manifest mismatch; refusing mutation:
+installedVersion actual 0.9.5 expected 0.9.6
+```
+
+The live runtime remained on the accepted v0.9.5 installation and the installer failed closed.
+
+TDD reproduction added an exact v0.9.5-owned installation fixture. The new test reproduced the same mismatch RED. Root cause was that v0.9.6 updated `INSTALLED_VERSION` to `0.9.6` while `UPGRADE_FROM_VERSIONS` still contained only `0.9.4`.
+
+Minimal repair:
+
+```python
+UPGRADE_FROM_VERSIONS = ("0.9.4", "0.9.5")
+```
+
+Focused post-repair qualification:
+
+```text
+117 passed, 1 skipped
+```
+
+covering namespace ownership, namespace install contract, and plugin generation rollover.
+
+Candidate `12cdea04...` is therefore rejected and must never be used for v0.9.6 publication. Full requalification after the repair is now GREEN: repository gates PASS, Python `709 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed, production audit `0 vulnerabilities`, and `plugin:validate` PASS. A new exact candidate will be frozen next and must pass live install-over / clean-reinstall / reset acceptance before publication.
 
 ## Local verdict
 
