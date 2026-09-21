@@ -109,11 +109,15 @@ export function stopMarkerAdvanced(before:StopMarker|undefined,after:StopMarker|
 export function isAuthoritativeAbortLifecycle(event:any):boolean {
   if(event?.stream!=="lifecycle")return false;
   const data=event?.data;
-  return Boolean(data&&typeof data==="object"
-    && data.phase==="end"
-    && data.status==="cancelled"
-    && data.aborted===true
-    && (data.stopReason==="rpc"||data.stopReason==="stop-command"));
+  if(!data||typeof data!=="object"||data.phase!=="end"||data.aborted!==true)return false;
+  const legacyHumanStop=data.status==="cancelled"
+    && (data.stopReason==="rpc"||data.stopReason==="stop-command");
+  // OpenClaw 2026.9.5's plugin event bus publishes the direct UI Stop as
+  // phase=end + aborted=true + stopReason=aborted. The later trajectory
+  // projection enriches that same terminal with status=interrupted and
+  // externalAbort=true, but those projection-only fields are not present here.
+  const currentDirectHumanStop=data.stopReason==="aborted";
+  return legacyHumanStop||currentDirectHumanStop;
 }
 
 export type AbortAuthority = "not-abort"|"structured-human"|"lifecycle-human-stop"|"durable-human-stop"|"recoverable-maintenance"|"recoverable-ambiguous";
@@ -150,10 +154,14 @@ export function createAbortAuthorityApi(api:any,cfg:any={}) {
   const clearHostQueuedInputs=(runId:string,sessionKey:string)=>{
     const request=api.runtime?.gateway?.request;
     if(typeof request!=="function")return;
-    void Promise.resolve()
-      .then(()=>request("sessions.abort",{key:sessionKey,clearQueued:true}))
-      .then(()=>api.logger?.info?.(`CogentNexus-OpenClaw cleared Host queued inputs after authoritative user Stop for ${sessionKey}`))
-      .catch((error)=>api.logger?.warn?.(`CogentNexus-OpenClaw Host queued-input cancellation failed for ${sessionKey} (run ${runId}): ${error instanceof Error?error.message:String(error)}`));
+    try {
+      const pending=request("sessions.abort",{key:sessionKey,clearQueued:true});
+      void Promise.resolve(pending)
+        .then(()=>api.logger?.info?.(`CogentNexus-OpenClaw cleared Host queued inputs after authoritative user Stop for ${sessionKey}`))
+        .catch((error)=>api.logger?.warn?.(`CogentNexus-OpenClaw Host queued-input cancellation failed for ${sessionKey} (run ${runId}): ${error instanceof Error?error.message:String(error)}`));
+    } catch(error) {
+      api.logger?.warn?.(`CogentNexus-OpenClaw Host queued-input cancellation failed for ${sessionKey} (run ${runId}): ${error instanceof Error?error.message:String(error)}`);
+    }
   };
 
   const registerEvents=api.agent?.events?.registerAgentEventSubscription?.bind(api.agent.events)

@@ -23,6 +23,10 @@ describe("v0.9 abort authority",()=>{
   it("recognizes only explicit rpc/stop-command lifecycle cancellations",()=>{
     expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"rpc"}})).toBe(true);
     expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"stop-command"}})).toBe(true);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",aborted:true,stopReason:"aborted"}})).toBe(true);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",aborted:true,stopReason:"restart"}})).toBe(false);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",aborted:true,stopReason:"superseded"}})).toBe(false);
+    expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",aborted:true,stopReason:"timeout"}})).toBe(false);
     expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true,stopReason:"stuck_recovery"}})).toBe(false);
     expect(isAuthoritativeAbortLifecycle({stream:"lifecycle",data:{phase:"end",status:"cancelled",aborted:true}})).toBe(false);
   });
@@ -121,6 +125,46 @@ describe("v0.9 abort authority",()=>{
       expect(gatewayRequest).toHaveBeenCalledTimes(1);
       expect(gatewayRequest).toHaveBeenCalledWith("sessions.abort",{key:ctx.sessionKey,clearQueued:true});
       await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-ui-stop",messages:[]},ctx);
+      expect(seen[0].error).toBe("agent run aborted");
+    }finally{rmSync(root,{recursive:true,force:true});}
+  });
+
+  it("clears Host queued inputs for the OpenClaw 2026.9.5 direct-abort lifecycle shape",async()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx-abort-current-external-"));
+    try{
+      const handlers=new Map<string,any[]>();
+      let subscription:any;
+      const entry={sessionId:"physical-current"};
+      const gatewayRequest=vi.fn(async()=>({ok:true,abortedRunId:null,status:"no-active-run"}));
+      const api={
+        runtime:{
+          agent:{session:{getSessionEntry:vi.fn(()=>entry)}},
+          gateway:{request:gatewayRequest},
+        },
+        agent:{events:{registerAgentEventSubscription:vi.fn((value:any)=>{subscription=value;})}},
+        on:vi.fn((name:string,handler:any)=>{const list=handlers.get(name)??[];list.push(handler);handlers.set(name,list);}),
+        logger:{info:vi.fn(),warn:vi.fn()},
+      };
+      const proxy=createAbortAuthorityApi(api,{workspaceDir:root,cogentNexusOpenClawRoot:join(root,".cogentnexus-openclaw")});
+      const seen:any[]=[];
+      proxy.on("before_agent_run",()=>undefined);
+      proxy.on("agent_end",(event:any)=>seen.push(event));
+      const ctx={runId:"run-current-stop",sessionKey:"agent:main:discord:channel:test",workspaceDir:root};
+      await handlers.get("before_agent_run")?.[0]({runId:"run-current-stop"},ctx);
+      const stopEvent={
+        runId:"run-current-stop",
+        sessionKey:ctx.sessionKey,
+        stream:"lifecycle",
+        data:{phase:"end",aborted:true,stopReason:"aborted"},
+      };
+      subscription.handle(stopEvent,{});
+      expect(gatewayRequest).toHaveBeenCalledTimes(1);
+      expect(gatewayRequest).toHaveBeenCalledWith("sessions.abort",{key:ctx.sessionKey,clearQueued:true});
+      await subscription.handle(stopEvent,{});
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(gatewayRequest).toHaveBeenCalledTimes(1);
+      await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-current-stop",messages:[]},ctx);
       expect(seen[0].error).toBe("agent run aborted");
     }finally{rmSync(root,{recursive:true,force:true});}
   });
