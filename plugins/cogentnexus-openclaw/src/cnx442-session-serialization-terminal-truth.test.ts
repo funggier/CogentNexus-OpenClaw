@@ -168,6 +168,42 @@ describe("CNX-442 session serialization and terminal truth", () => {
   });
 
 
+
+  it("allows the first fresh ingress after a deleted owner session when generation is unchanged", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx442-fresh-after-delete-"));
+    try {
+      const databasePath=join(root,"tickets.sqlite3");
+      const store=new TicketStore(databasePath);
+      store.snapshot();
+      const sessionKey="agent:main:discord:channel:fresh-after-delete";
+      const stamp=new Date().toISOString();
+      const db=new DatabaseSync(databasePath);
+      db.exec("CREATE TABLE IF NOT EXISTS cnx_sessions(session_key TEXT PRIMARY KEY,state TEXT NOT NULL DEFAULT 'active',generation INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,deleted_at TEXT,delete_reason TEXT,session_id TEXT);");
+      db.prepare("INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,deleted_at,delete_reason,session_id) VALUES (?,'deleted',21,?,?,?,?,?)")
+        .run(sessionKey,stamp,stamp,stamp,"OpenClaw owner session deleted","old-physical");
+      db.close();
+
+      const ticket=store.acceptIngress({
+        sourceKey:"discord:fresh-after-delete",
+        sourceChannel:"discord",
+        sourceMessageId:"msg-fresh-after-delete",
+        ownerSessionKey:sessionKey,
+        prompt:"@Ce fresh",
+      });
+      expect(store.ingressTurnGate({sourceKey:"discord:fresh-after-delete"}))
+        .toMatchObject({state:"ready",ticketId:ticket.ticketId,ownerGeneration:21});
+
+      const write=new DatabaseSync(databasePath);
+      write.prepare("UPDATE cnx_sessions SET generation=22,updated_at=? WHERE session_key=?")
+        .run(stamp,sessionKey);
+      write.close();
+      expect(store.ingressTurnGate({sourceKey:"discord:fresh-after-delete"}))
+        .toMatchObject({state:"superseded",ticketId:ticket.ticketId,ownerGeneration:21});
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
   it("holds a later ingress before Host queue admission until the older direct Ticket is fully completed", async () => {
     const root=mkdtempSync(join(tmpdir(),"cnx442-predispatch-fifo-hold-"));
     try {

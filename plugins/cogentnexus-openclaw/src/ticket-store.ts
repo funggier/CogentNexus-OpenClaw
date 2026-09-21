@@ -522,7 +522,7 @@ export class TicketStore {
       const sessionTable=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_sessions'").get();
       if(sessionTable){
         const authority=db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(current.owner_session_key) as any;
-        if(authority&&(authority.state!=="active"||Number(authority.generation)!==ownerGeneration)){
+        if(authority&&Number(authority.generation)!==ownerGeneration){
           return{state:"superseded",ticketId:current.ticket_id,ownerGeneration};
         }
       }
