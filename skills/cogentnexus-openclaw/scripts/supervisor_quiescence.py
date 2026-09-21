@@ -9,6 +9,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from provider_event_liveness_v092 import safe_pid_alive as _pid_alive
+
 
 class QuiescenceError(RuntimeError):
     pass
@@ -180,6 +182,48 @@ def release(root: Path, owner: str, *, token: str | None = None, now: float | No
         except FileNotFoundError:
             return {"released": False, "status": "absent", "path": str(path)}
         return {"released": True, "status": "released", "path": str(path), "owner": owner}
+
+
+def reclaim_dead_enable_owner(root: Path, now: float | None = None) -> dict[str, Any]:
+    """Reclaim only an enable lease whose PID is provably no longer alive."""
+    del now
+    path = lease_path(root)
+    with _operation_lock(root):
+        value = _read_raw(path)
+        if value is None:
+            return {"reclaimed": False, "reason": "absent", "path": str(path)}
+        owner = str(value.get("owner") or "")
+        parts = owner.split(":", 2)
+        if len(parts) != 3 or parts[0] != "enable" or not parts[1].isdigit():
+            return {
+                "reclaimed": False,
+                "reason": "not-enable-owner",
+                "path": str(path),
+                "owner": owner,
+            }
+        pid = int(parts[1])
+        if _pid_alive(pid):
+            return {
+                "reclaimed": False,
+                "reason": "owner-alive",
+                "path": str(path),
+                "owner": owner,
+                "pid": pid,
+            }
+        current = _read_raw(path)
+        if current != value:
+            raise QuiescenceBusyError("quiescence lease changed while reclaiming dead enable owner")
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            return {"reclaimed": False, "reason": "absent", "path": str(path)}
+        return {
+            "reclaimed": True,
+            "reason": "dead-enable-owner",
+            "path": str(path),
+            "owner": owner,
+            "pid": pid,
+        }
 
 
 def supervisor_is_quiesced(root: Path, now: float | None = None) -> bool:

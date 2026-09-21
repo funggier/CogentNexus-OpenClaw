@@ -20,6 +20,7 @@ import lifecycle_v091 as base
 import namespace_ownership
 import openclaw_route_v092 as openclaw_route
 import openclaw_runtime_boundary_v092 as runtime_boundary
+import supervisor_quiescence
 
 HERE = Path(__file__).resolve()
 HOST = HERE.with_name("host_provider_v092.py")
@@ -143,6 +144,12 @@ def reset(root: Path) -> int:
                 raise RuntimeError(
                     "CogentNexus-OpenClaw first reset enable timed out and "
                     "the disabled safety boundary could not be re-established"
+                ) from error
+            reclaimed = supervisor_quiescence.reclaim_dead_enable_owner(root)
+            if not reclaimed.get("reclaimed") and reclaimed.get("reason") != "absent":
+                raise RuntimeError(
+                    "CogentNexus-OpenClaw first reset enable timed out but "
+                    f"its quiescence lease could not be safely reclaimed: {reclaimed}"
                 ) from error
             first_enable_detail = f"timed out after {error.timeout} seconds"
             enabled = None

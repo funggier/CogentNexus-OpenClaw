@@ -102,13 +102,13 @@ only after documentation convergence, MIT licensing, exact-candidate validation,
 
 ## Local release-preparation checkpoint — 2026-09-21
 
-Status: `LOCAL_REQUALIFICATION_GREEN / LIVE_RESET_REACCEPTANCE_PENDING`
+Status: `LOCAL_REQUALIFICATION_GREEN / LIVE_RESET_REACCEPTANCE_PENDING_AFTER_DEAD_LEASE_RECLAIM_REPAIR`
 
 The existing uncommitted v0.9.6 worktree was preserved throughout qualification. No `git reset`, `git checkout`, or `git restore` was used to reconstruct the release work.
 
 Local evidence now GREEN:
 
-- full Python suite: `712 passed, 5 skipped, 38 subtests passed`;
+- full Python suite: `715 passed, 5 skipped, 38 subtests passed`;
 - namespace isolation: PASS;
 - v0.9.6 baseline consistency: PASS;
 - skill validation: PASS;

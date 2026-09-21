@@ -103,6 +103,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
                 mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
                 mock.patch.object(reset_v095.openclaw_route, "restore_native", return_value={"ok": True}),
                 mock.patch.object(reset_v095, "bootstrap_ticket_database"),
+                mock.patch.object(reset_v095.supervisor_quiescence, "reclaim_dead_enable_owner", return_value={"reclaimed": True, "reason": "dead-enable-owner"}) as reclaim,
                 mock.patch.object(reset_v095.base, "disable_startup"),
                 mock.patch.object(reset_v095.base, "reset_plugin_configuration"),
                 mock.patch.object(reset_v095.base, "verify_plugin_loaded", return_value={"status": "loaded"}),
@@ -115,6 +116,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertEqual(calls.count("enable"), 2)
             self.assertGreaterEqual(calls.count("disable"), 2)
+            reclaim.assert_called_once_with(root)
             self.assertGreaterEqual(gateway_health.call_count, 2)
 
     def test_reset_source_has_no_provider_transition_authority(self):

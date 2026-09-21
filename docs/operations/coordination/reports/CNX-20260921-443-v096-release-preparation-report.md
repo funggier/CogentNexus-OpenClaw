@@ -374,6 +374,18 @@ A RED-first timeout regression now covers this exact live failure. Minimal repai
 
 Candidate `5887e29f...` is rejected for publication because the timeout-aware recovery changes production reset source. A new exact candidate is required after full requalification and renewed live reset acceptance.
 
+## Reset orphaned-quiescence acceptance blocker on candidate 8bd4d6e1
+
+Candidate `8bd4d6e14053752d1ee2a4eaf521a78c9102b7a4` passed v0.9.6 -> v0.9.6 install-over on OpenClaw 2026.9.5 with installer exit code 0. Live verification showed CNX active/managed generation 2, Gateway 2026.9.5 healthy, Ollama healthy, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, ownership/plugin version `0.9.6`, route unchanged at `ollama/qwen3.8:27b`, and exact source/installed SHA-256 parity for `reset_v095.py`.
+
+The renewed reset acceptance exercised the new timeout-aware path exactly as intended: the first fresh-state enable exceeded the 300-second Host subprocess budget, reset entered the disabled/native safety cleanup instead of escaping directly to the outer failure handler, and then attempted its single bounded retry. That retry was correctly rejected by the quiescence fence with `Supervisor quiescence lease is held by another owner`.
+
+Inspection proved that the active lease owner was `enable:31848:2026-09-21T15:50:32.528397+00:00`, while PID 31848 no longer existed. The timed-out child had therefore been terminated before its `finally` block could release the 900-second supervisor quiescence lease. This was an orphaned dead-owner lease, not an active concurrent owner. The post-failure state remained safe: CNX disabled/PASSTHROUGH generation 1, plugin disabled, Gateway healthy, pending outbox zero, and OpenClaw route unchanged.
+
+A RED-first lease contract now distinguishes three cases: a dead `enable:<pid>` owner may be reclaimed before TTL expiry; a live enable owner may not; and a non-enable owner may not. Reclamation occurs under the existing quiescence operation lock and rechecks the lease before unlinking. The reset timeout path performs this reclamation only after successfully restoring the disabled/native safety boundary and before the single retry. Focused lifecycle/quiescence coverage is GREEN (`17 passed`), and the full Python requalification is GREEN (`715 passed, 5 skipped, 38 subtests passed`).
+
+Candidate `8bd4d6e1...` is rejected for publication because the dead-owner reclaim changes production lifecycle source. A new exact candidate is required for renewed live install/reset acceptance.
+
 ## Local verdict
 
 All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused reset/activation coverage `5 passed`, full Python `712 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.

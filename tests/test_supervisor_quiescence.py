@@ -83,6 +83,38 @@ class SupervisorQuiescenceTests(unittest.TestCase):
             with self.assertRaises(q.QuiescenceBusyError):
                 q.acquire(root, "owner-b", now=101.0, ttl=30.0)
 
+    def test_dead_enable_owner_can_be_reclaimed_before_ttl_expiry(self):
+        with TemporaryDirectory() as d:
+            root = Path(d) / ".cogentnexus-openclaw"
+            lease = q.acquire(root, "enable:424242:2026-09-21T00:00:00+00:00", now=100.0, ttl=900.0)
+            with mock.patch.object(q, "_pid_alive", return_value=False) as alive:
+                reclaimed = q.reclaim_dead_enable_owner(root, now=101.0)
+            self.assertTrue(reclaimed["reclaimed"])
+            self.assertEqual(reclaimed["owner"], lease["owner"])
+            alive.assert_called_once_with(424242)
+            self.assertEqual(q.read(root, now=101.0)["status"], "absent")
+
+    def test_live_enable_owner_is_never_reclaimed(self):
+        with TemporaryDirectory() as d:
+            root = Path(d) / ".cogentnexus-openclaw"
+            lease = q.acquire(root, "enable:424242:2026-09-21T00:00:00+00:00", now=100.0, ttl=900.0)
+            with mock.patch.object(q, "_pid_alive", return_value=True):
+                reclaimed = q.reclaim_dead_enable_owner(root, now=101.0)
+            self.assertFalse(reclaimed["reclaimed"])
+            self.assertEqual(reclaimed["reason"], "owner-alive")
+            self.assertEqual(q.read(root, now=101.0)["owner"], lease["owner"])
+
+    def test_non_enable_owner_is_never_reclaimed_early(self):
+        with TemporaryDirectory() as d:
+            root = Path(d) / ".cogentnexus-openclaw"
+            lease = q.acquire(root, "maintenance-owner", now=100.0, ttl=900.0)
+            with mock.patch.object(q, "_pid_alive") as alive:
+                reclaimed = q.reclaim_dead_enable_owner(root, now=101.0)
+            self.assertFalse(reclaimed["reclaimed"])
+            self.assertEqual(reclaimed["reason"], "not-enable-owner")
+            alive.assert_not_called()
+            self.assertEqual(q.read(root, now=101.0)["owner"], lease["owner"])
+
     def test_stale_lease_is_reclaimed_only_by_new_owner(self):
         with TemporaryDirectory() as d:
             root = Path(d) / ".cogentnexus-openclaw"
