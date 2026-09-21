@@ -1,10 +1,10 @@
 # CNX-20260920-442 — Session Input Serialization and Terminal Truth Report
 
-Status: `LIVE_READY_FOR_OPERATOR_TEST`
+Status: `FINAL_GREEN`
 
 Classification:
 
-`CNX442_SESSION_SERIALIZATION_TERMINAL_TRUTH_SOURCE_GREEN`
+`CNX442_PRE_DISPATCH_FIFO_AUTHORITATIVE_STOP_GREEN`
 
 ## Trigger
 
@@ -303,3 +303,109 @@ Current gate:
 `CNX442_LIVE_READY_FOR_RETRY_FIRST_OPERATOR_TURN`
 
 The operator must send the semantic Discord test message. The executor must not send it on the operator's behalf.
+
+## CNX-442 final live Stop acceptance — GREEN (2026-09-21)
+
+Production candidate:
+
+`8dee9cd635ca3dfcbf96f2f4161b5026355dbcf9`
+
+Candidate ancestry relevant to the final repair:
+
+- `120d8d6c002487904b828a034a276172d5f10dac` — move queued owner ingress behind a durable pre-dispatch FIFO barrier and add restart recovery for held ingress;
+- `8dee9cd635ca3dfcbf96f2f4161b5026355dbcf9` — allow the first fresh ingress after a deleted owner session when the owner generation is unchanged.
+
+### Why the architecture changed
+
+Earlier Stop repairs cancelled CNX Tickets correctly but still allowed OpenClaw's native follow-up queue to dequeue a successor Host run. CNX then had to block that successor at `before_agent_run`, which preserved zero inference but surfaced the user-visible error:
+
+`Your message could not be sent: blocked by cogentnexus-openclaw`
+
+OpenClaw Dashboard Stop uses `chat.abort`; queue clearing performed after terminal lifecycle evidence is too late to be an authoritative ordering boundary. The final repair removes the race instead of compensating after it:
+
+1. eligible owner ingress is durably persisted at `before_dispatch`;
+2. if an older same-owner/same-generation Ticket is non-terminal, the later request remains held inside the claiming `before_dispatch` hook and never enters the Host queue;
+3. normal predecessor completion releases the original request with its original Discord/auth/session context;
+4. authoritative Stop increments the owner generation once and cancels current + held Tickets;
+5. a held cancelled request returns `{handled:true}` from `before_dispatch`, so it is consumed silently before Host queue admission;
+6. restart recovery exists only for held accepted ingress with `bound_run_id IS NULL`, and recovery ordering remains FIFO behind older non-terminal ingress.
+
+The prior `sessions.abort(clearQueued:true)` lifecycle compensation and diagnostic instrumentation were removed from production. The lifecycle subscription remains only for authoritative human-Stop provenance.
+
+### Source qualification
+
+- affected Stop/FIFO/restart-recovery/wiring suite: `49/49 PASS`;
+- full plugin suite: `427 PASS / 1 FAIL`;
+- the one FAIL is the repository's pre-existing intentional CNX-383 hook-policy projection baseline and is unrelated to CNX-442;
+- TypeScript/plugin build: PASS;
+- `plugin:validate`: PASS;
+- mixed-plugin/schema verification: PASS;
+- Ticket DB bootstrap: PASS;
+- package verification: PASS;
+- `git diff --check`: PASS.
+
+### Supported deployment
+
+Supported install-over from exact candidate `8dee9cd...` completed with terminal exit code `0`.
+
+- CNX controller: `active / managed`;
+- managed authority generation after install: `129`;
+- Gateway: reachable and event loop healthy;
+- Discord: ON / OK;
+- installed candidate parity verified for critical `index.js`, `ticket-store.js`, `v090-final-entry.js`, `v091-direct-recovery.js`, and `v095-ingress-restart-recovery.js` surfaces.
+
+### Final physical Discord Stop test
+
+Target owner: `agent:main:discord:channel:1391855033993138217`
+
+Fresh physical session: `16c1fe33-c906-4391-91ae-b2f0bc3f51b0`
+
+Owner generation before Stop: `22`
+
+First Ticket / active run:
+
+- Ticket: `CNXT-add61119-da8e-475b-9dc5-21d3e9096b9b`
+- Run: `63d998b2-6b12-4639-a0b5-0ce240518fb1`
+- source message ID: `1551501333431844867`
+- prompt: first operator `OK1` Stop-test request
+- provider/model: `ollama / qwen3.8:27b`
+- context: `24576`
+- one model call and one inference attempt started.
+
+Second Ticket / held ingress:
+
+- Ticket: `CNXT-abca44db-728b-4bf1-aef7-9c7d993002a0`
+- source message ID: `1551501659312496701`
+- prompt: second queued `QUEUE`-only operator request
+- owner generation: `22`
+- `bound_run_id = NULL`
+- model-call rows: `0`
+- inference-attempt rows: `0`
+- Gateway log explicitly recorded that it was held behind the first Ticket at the pre-dispatch FIFO barrier.
+
+After the operator pressed Stop:
+
+- owner generation advanced exactly once: `22 -> 23`;
+- first Ticket settled `cancelled`, not permanent failure;
+- second Ticket settled `cancelled`;
+- second Ticket remained `bound_run_id = NULL`;
+- second Ticket remained `0` model calls / `0` inference attempts;
+- pending outbox = `0`;
+- active Direct Recovery = `0`;
+- Gateway log recorded `consumed pre-dispatch FIFO ingress CNXT-abca44db-728b-4bf1-aef7-9c7d993002a0 without Host queue admission (state=cancelled)`;
+- OpenClaw session terminal state = `killed`, not `failed`;
+- Host trajectory contains exactly one run for the physical session, `63d998b2-...`;
+- Host transcript contains only the first user message and contains no second queued user message;
+- therefore no successor Host run was created;
+- bounded post-Stop log inspection found no new `blocked by cogentnexus-openclaw` and no new `This turn ended before a reply`;
+- Gateway remained reachable, event loop healthy, Discord OK.
+
+The operator refreshed the browser and supplied final Dashboard + Discord screenshots. The operator explicitly accepted the resulting user-visible behavior as good: Stop is visible, the queued message does not execute, and no CNX block/failure message is shown.
+
+Final classification:
+
+`CNX442_PRE_DISPATCH_FIFO_AUTHORITATIVE_STOP_GREEN`
+
+`CNX442_NO_SUCCESSOR_HOST_RUN_GREEN`
+
+`CNX442_USER_VISIBLE_STOP_GREEN`
