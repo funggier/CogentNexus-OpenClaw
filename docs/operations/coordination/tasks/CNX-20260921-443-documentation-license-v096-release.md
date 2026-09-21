@@ -102,7 +102,7 @@ only after documentation convergence, MIT licensing, exact-candidate validation,
 
 ## Local release-preparation checkpoint — 2026-09-21
 
-Status: `LOCAL_REQUALIFICATION_GREEN / LIVE_RESET_REACCEPTANCE_PENDING_AFTER_DEAD_LEASE_RECLAIM_REPAIR`
+Status: `LOCAL_REQUALIFICATION_GREEN / EXACT_CANDIDATE_LIFECYCLE_PENDING`
 
 The existing uncommitted v0.9.6 worktree was preserved throughout qualification. No `git reset`, `git checkout`, or `git restore` was used to reconstruct the release work.
 

@@ -86,8 +86,12 @@ class ActivationSafetyContractTests(unittest.TestCase):
                 result = authority._enable_under_lease(root, "2026-09-21T13:00:00Z")
 
         self.assertEqual(result["mode"], "managed")
-        readiness.assert_called_once_with()
-        self.assertLess(events.index("gateway-ready"), events.index("plugin:True"))
+        self.assertEqual(readiness.call_count, 2)
+        first_ready = events.index("gateway-ready")
+        second_ready = events.index("gateway-ready", first_ready + 1)
+        self.assertLess(first_ready, events.index("plugin:False"))
+        self.assertLess(events.index("plugin:False"), second_ready)
+        self.assertLess(second_ready, events.index("plugin:True"))
 
     def test_interrupted_promotion_requires_fresh_identified_session(self):
         with tempfile.TemporaryDirectory() as directory:

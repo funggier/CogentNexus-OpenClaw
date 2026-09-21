@@ -122,6 +122,15 @@ def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
     rollback: list[dict[str, Any]] = []
 
     try:
+        # Any OpenClaw config mutation may traverse the Gateway control path on
+        # 2026.9.x. Prove native readiness before staging even inert/disabled
+        # plugin configuration; Host authority is still PASSTHROUGH here.
+        staging_readiness = v091._wait_native_gateway_ready()
+        if not staging_readiness.get("healthy"):
+            raise RuntimeError(
+                f"native Gateway not ready before managed staging: {staging_readiness}"
+            )
+
         # Stage everything that is safe while Host remains PASSTHROUGH.
         legacy.plugin_enabled(False)
         configuration_attempted = True

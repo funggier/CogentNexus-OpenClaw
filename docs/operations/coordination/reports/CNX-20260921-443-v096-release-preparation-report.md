@@ -386,9 +386,19 @@ A RED-first lease contract now distinguishes three cases: a dead `enable:<pid>` 
 
 Candidate `8bd4d6e1...` is rejected for publication because the dead-owner reclaim changes production lifecycle source. A new exact candidate is required for renewed live install/reset acceptance.
 
+## Pre-staging Gateway readiness blocker on candidate 62a970c4
+
+Candidate `62a970c44c91de7eee7d7629f167f76ba397efb0` passed v0.9.6 -> v0.9.6 install-over with installer exit code 0 and exact source/installed parity for both `reset_v095.py` and `supervisor_quiescence.py`. Live state after install-over was active/managed generation 2, Gateway/OpenClaw 2026.9.5 healthy, Ollama healthy, supervisor Ready/Enabled, pending outbox zero, and route unchanged at `ollama/qwen3.8:27b`.
+
+The subsequent reset acceptance proved the dead-owner reclaim repair: after the first fresh-state enable failed and reset entered its bounded retry, the retry no longer hit `Supervisor quiescence lease is held by another owner`. Instead it advanced into transactional staging. The retry then failed before authority commit because `openclaw plugins disable cogentnexus-openclaw` hit Gateway `ETIMEDOUT`. Rollback completed to native passthrough, including a healthy native Gateway restore after six readiness attempts / about 90 seconds.
+
+Code inspection showed the existing OpenClaw 2026.9.x readiness guard was positioned only before `plugin_enabled(True)`. The earlier `plugin_enabled(False)` staging mutation still traverses OpenClaw's Gateway control path and therefore remained exposed to the same cold-start transient. A RED-first activation-ordering contract now requires two distinct readiness fences: one before any plugin/config staging mutation and one before inference-capable plugin activation. Focused activation/quiescence/reset coverage is GREEN (`17 passed`).
+
+Candidate `62a970c4...` is rejected for publication because the pre-staging readiness repair changes production Host activation source. A new exact candidate is required after full requalification and renewed live reset acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused reset/activation coverage `5 passed`, full Python `712 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused activation/quiescence/reset coverage `17 passed`, full Python `715 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `b5e3490dd34e963695fc926150b769db744c41b638885d20c7b5cd279279d531`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 
