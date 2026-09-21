@@ -6,7 +6,7 @@ Executor: `Hermes`
 Reviewer: `ChatGPT`
 Human final authority: `Operator`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
-Parent: `CNX-20260916-368`
+Parent evidence: `docs/operations/coordination/reports/CNX-20260916-368-ticket-first-admission-root-cause-repair-report.md`
 
 ## Objective
 
