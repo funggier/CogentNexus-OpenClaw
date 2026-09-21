@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -78,6 +79,42 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
 
             self.assertEqual(code, 0)
             self.assertEqual(calls.count("enable"), 2)
+            self.assertGreaterEqual(gateway_health.call_count, 2)
+
+    def test_reset_recovers_one_timed_out_enable_through_disabled_gateway_boundary(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            calls = []
+            succeeded = mock.Mock(returncode=0, stdout="managed", stderr="")
+            ok = mock.Mock(returncode=0, stdout="{}", stderr="")
+
+            def run_host(_root, command):
+                calls.append(command)
+                if command == "enable" and calls.count("enable") == 1:
+                    raise subprocess.TimeoutExpired(cmd=["host_provider_v092.py", "enable"], timeout=300)
+                if command == "enable":
+                    return succeeded
+                return ok
+
+            with (
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.6"}),
+                mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
+                mock.patch.object(reset_v095.base, "confirm", return_value=True),
+                mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
+                mock.patch.object(reset_v095.openclaw_route, "restore_native", return_value={"ok": True}),
+                mock.patch.object(reset_v095, "bootstrap_ticket_database"),
+                mock.patch.object(reset_v095.base, "disable_startup"),
+                mock.patch.object(reset_v095.base, "reset_plugin_configuration"),
+                mock.patch.object(reset_v095.base, "verify_plugin_loaded", return_value={"status": "loaded"}),
+                mock.patch.object(reset_v095.base, "gateway_health", side_effect=[{"healthy": True}, {"healthy": True}]) as gateway_health,
+                mock.patch.object(reset_v095.runtime_boundary, "activate_current_config", return_value={"ok": True}),
+                mock.patch("reset_v095.shutil.rmtree"),
+            ):
+                code = reset_v095.reset(root)
+
+            self.assertEqual(code, 0)
+            self.assertEqual(calls.count("enable"), 2)
+            self.assertGreaterEqual(calls.count("disable"), 2)
             self.assertGreaterEqual(gateway_health.call_count, 2)
 
     def test_reset_source_has_no_provider_transition_authority(self):

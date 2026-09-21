@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -131,21 +132,41 @@ def reset(root: Path) -> int:
         policy = base.run([sys.executable, str(HOST), "--root", str(root), "policy", "apply"], timeout=120, check=False)
         if policy.returncode != 0:
             raise RuntimeError("fresh CogentNexus-OpenClaw policy application failed")
+        first_enable_detail = ""
+        try:
+            enabled = _run_host(root, "enable")
+        except subprocess.TimeoutExpired as error:
+            # A timed-out Host child may not finish its transactional rollback.
+            # Re-establish the disabled/native boundary before the one permitted retry.
+            cleanup = _run_host(root, "disable")
+            if cleanup.returncode != 0:
+                raise RuntimeError(
+                    "CogentNexus-OpenClaw first reset enable timed out and "
+                    "the disabled safety boundary could not be re-established"
+                ) from error
+            first_enable_detail = f"timed out after {error.timeout} seconds"
+            enabled = None
 
-        enabled = _run_host(root, "enable")
-        if enabled.returncode != 0:
+        if enabled is None or enabled.returncode != 0:
             # OpenClaw 2026.9.x can transiently lose the Gateway control path
-            # during the first plugin activation after fresh reset. The Host
-            # enable path is transactional and rolls back to PASSTHROUGH. Retry
+            # during the first plugin activation after fresh reset. Retry
             # exactly once only after the native Gateway is observably healthy.
             retry_gateway = base.gateway_health()
             if not retry_gateway.get("healthy"):
-                detail = (enabled.stderr or enabled.stdout or "").strip()
+                detail = first_enable_detail
+                if enabled is not None:
+                    detail = (enabled.stderr or enabled.stdout or "").strip()
                 raise RuntimeError(
                     "CogentNexus-OpenClaw enable failed after provider-neutral reset "
                     f"and native Gateway did not recover: {detail or retry_gateway}"
                 )
-            enabled = _run_host(root, "enable")
+            try:
+                enabled = _run_host(root, "enable")
+            except subprocess.TimeoutExpired as error:
+                raise RuntimeError(
+                    "CogentNexus-OpenClaw enable timed out after the one bounded "
+                    f"provider-neutral reset retry ({error.timeout} seconds)"
+                ) from error
             if enabled.returncode != 0:
                 detail = (enabled.stderr or enabled.stdout or "").strip()
                 raise RuntimeError(

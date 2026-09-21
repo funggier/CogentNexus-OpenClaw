@@ -364,9 +364,19 @@ A RED-first reset contract reproduced the missing bounded retry. Focused post-re
 
 Candidate `7c8b5468...` is therefore not the final release identity because the reset repair changes production lifecycle source. A new exact candidate is required after full requalification and renewed reset/install-over acceptance.
 
+## Reset enable-timeout acceptance blocker on candidate 5887e29f
+
+Candidate `5887e29f416bc0e410e09b8877ec54a8fe04dd9a` passed v0.9.6 -> v0.9.6 install-over into an active/managed live state on OpenClaw 2026.9.5. Post-install verification showed ownership/plugin version `0.9.6`, Gateway healthy, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, OpenClaw route still `ollama/qwen3.8:27b`, and exact source/installed SHA-256 parity for `reset_v095.py` and the plugin README.
+
+The subsequent reset acceptance again reproduced the OpenClaw 2026.9.5 first-activation transient. This time the first `enable` did not return a nonzero child result; it exceeded the 300-second Host subprocess budget and raised `subprocess.TimeoutExpired`. The previously added bounded retry handled returned failures but not this exception path, so reset correctly fell through to its outer fail-closed handler instead of performing the allowed retry. Post-failure state was safe: CNX disabled/PASSTHROUGH generation 1, plugin disabled, Gateway healthy, pending outbox zero, and route unchanged at `ollama/qwen3.8:27b`.
+
+A RED-first timeout regression now covers this exact live failure. Minimal repair catches only first-enable `TimeoutExpired`, explicitly re-establishes the disabled/native boundary, requires native Gateway health, and then permits the same single bounded retry. Timeout or failure on the retry remains terminal/fail-closed. Focused coverage is GREEN: `5 passed`.
+
+Candidate `5887e29f...` is rejected for publication because the timeout-aware recovery changes production reset source. A new exact candidate is required after full requalification and renewed live reset acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `711 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused reset/activation coverage `5 passed`, full Python `712 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `55a41c2ff538a07f588c28759bb5e37a20b0bc9756eacddbf95f48adba5191a0`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 
