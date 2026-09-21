@@ -28,6 +28,8 @@ BOOTSTRAP_RELATIVE = Path("scripts") / "bootstrap-ticket-db.mjs"
 TICKET_STORE_RELATIVE = Path("dist") / "ticket-store.js"
 PLUGIN_ID = base.PLUGIN_ID
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
+HOST_COMMAND_TIMEOUT_SECONDS = 300
+HOST_ENABLE_TIMEOUT_SECONDS = 600
 
 
 def _plugin_payload(root: Path) -> bool:
@@ -93,7 +95,8 @@ def bootstrap_ticket_database(state_root: Path | None = None) -> Path:
 
 
 def _run_host(root: Path, command: str) -> Any:
-    return base.run([sys.executable, str(HOST), "--root", str(root), command], timeout=300, check=False)
+    timeout = HOST_ENABLE_TIMEOUT_SECONDS if command == "enable" else HOST_COMMAND_TIMEOUT_SECONDS
+    return base.run([sys.executable, str(HOST), "--root", str(root), command], timeout=timeout, check=False)
 
 
 def reset(root: Path) -> int:
@@ -170,6 +173,18 @@ def reset(root: Path) -> int:
             try:
                 enabled = _run_host(root, "enable")
             except subprocess.TimeoutExpired as error:
+                reclaimed = supervisor_quiescence.reclaim_dead_enable_owner(root)
+                if not reclaimed.get("reclaimed") and reclaimed.get("reason") != "absent":
+                    raise RuntimeError(
+                        "CogentNexus-OpenClaw retry enable timed out but its "
+                        f"quiescence lease could not be safely reclaimed: {reclaimed}"
+                    ) from error
+                cleanup = _run_host(root, "disable")
+                if cleanup.returncode != 0:
+                    raise RuntimeError(
+                        "CogentNexus-OpenClaw retry enable timed out and the "
+                        "disabled safety boundary could not be re-established"
+                    ) from error
                 raise RuntimeError(
                     "CogentNexus-OpenClaw enable timed out after the one bounded "
                     f"provider-neutral reset retry ({error.timeout} seconds)"

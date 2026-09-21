@@ -108,7 +108,7 @@ The existing uncommitted v0.9.6 worktree was preserved throughout qualification.
 
 Local evidence now GREEN:
 
-- full Python suite: `715 passed, 5 skipped, 38 subtests passed`;
+- full Python suite: `717 passed, 5 skipped, 38 subtests passed`;
 - namespace isolation: PASS;
 - v0.9.6 baseline consistency: PASS;
 - skill validation: PASS;

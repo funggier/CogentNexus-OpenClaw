@@ -396,9 +396,24 @@ Code inspection showed the existing OpenClaw 2026.9.x readiness guard was positi
 
 Candidate `62a970c4...` is rejected for publication because the pre-staging readiness repair changes production Host activation source. A new exact candidate is required after full requalification and renewed live reset acceptance.
 
+## Reset Host enable-budget blocker on candidate e41f4ddc
+
+Candidate `e41f4ddc31ee9ea53eb46f7c40ec5a5c7ffbc57a` passed exact install-over and exact clean-reinstall acceptance on OpenClaw 2026.9.5. The clean reinstall completed with exit code 0 and `CLEAN REINSTALL: PASS`, with backup preserved at `T:\CogentNexus-OpenClaw-Release-Acceptance-Backups\20260922-000700`. Fresh installation returned to active/MANAGED generation 2 with Gateway healthy, supervisor Ready/Enabled, plugin v0.9.6 enabled, Ollama healthy, and pending outbox zero.
+
+The subsequent exact-candidate reset acceptance exercised the full timeout-recovery path. The first fresh-state enable reached the fixed 300-second subprocess budget and was safely rolled back through the disabled/native boundary. Dead-owner lease reclamation succeeded and the one permitted retry began without a quiescence fence. The retry passed pre-staging readiness, plugin-disable staging, managed config staging, second readiness, plugin enable, MANAGED authority commit, and entered post-commit `runtime lifecycle start`. It then reached the same fixed 300-second parent subprocess budget before the post-commit health path returned, despite having already committed MANAGED authority.
+
+Terminal result was therefore FAIL:
+`CogentNexus-OpenClaw enable timed out after the one bounded provider-neutral reset retry (300 seconds)`.
+
+Post-failure state remained safe: CNX disabled/PASSTHROUGH generation 3, plugin disabled, Gateway healthy, pending outbox zero, and OpenClaw route unchanged at `ollama/qwen3.8:27b`. The timed-out retry left an orphaned quiescence lease owned by dead PID 15716 until its 900-second TTL, confirming that retry-timeout cleanup also needs explicit dead-owner reclamation.
+
+This evidence shows that 300 seconds is not a valid Host-enable budget on the validated OpenClaw 2026.9.5 runtime: a normal activation can legitimately spend time in two Gateway readiness fences, multiple OpenClaw config mutations, plugin activation, MANAGED reload, and post-commit lifecycle verification. RED-first regressions now require a command-specific Host budget of 600 seconds for `enable` while ordinary Host commands remain at 300 seconds, and require a timed-out bounded retry to reclaim only a provably dead `enable:<pid>` lease before fail-closed cleanup. Focused reset/quiescence/activation coverage is GREEN (`19 passed`).
+
+Candidate `e41f4ddc...` is rejected for publication because the reset Host-budget repair changes production reset source. A new exact candidate is required after full requalification and renewed lifecycle acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused activation/quiescence/reset coverage `17 passed`, full Python `715 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `b5e3490dd34e963695fc926150b769db744c41b638885d20c7b5cd279279d531`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused activation/quiescence/reset coverage `19 passed`, full Python `717 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `2f674506a55a63c9e8b8c02371a32326b5d77490cce02922ec86917add71c909`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 
