@@ -33,7 +33,7 @@ Change Model and continue
 Change Provider and continue
     |
     v
-Keep the same session, conversation, CogentNexus state, and execution semantics
+Keep the same session, conversation, CogentNexus-OpenClaw state, and execution semantics
 ```
 
 The plan deliberately begins from the known working Ollama path and derives the common provider architecture from real runtime behavior.
@@ -55,7 +55,7 @@ The system should eventually satisfy all of the following:
 - Provider and model can be changed during an existing conversation.
 - A provider/model change does not create a new session by itself.
 - Conversation history remains available.
-- CogentNexus session/ticket/project state remains intact.
+- CogentNexus-OpenClaw session/ticket/project state remains intact.
 - The same Agent Core and tool pipeline remain in use.
 - Provider-specific differences are expressed through capabilities and adapter behavior.
 - Ollama remains fully usable.
@@ -79,7 +79,7 @@ Session S
   |
   +-- same session
   +-- same conversation
-  +-- same CogentNexus continuity
+  +-- same CogentNexus-OpenClaw continuity
 ```
 
 ---
@@ -102,9 +102,9 @@ Session identity must not depend on provider identity.
 
 ### 3.3 Minimum-delta integration and routing authority
 
-OpenClaw is the provider/model/auth/routing authority for Cloud/pass-through operation in the current v0.9.5 architecture.
+OpenClaw is the provider/model/auth/routing authority for Cloud/pass-through operation in the current v0.9.6 architecture.
 
-Prefer preserving and qualifying existing OpenClaw provider/model behavior over creating a parallel CogentNexus-only provider stack.
+Prefer preserving and qualifying existing OpenClaw provider/model behavior over creating a parallel CogentNexus-OpenClaw-only provider stack.
 
 CogentNexus-OpenClaw owns continuity, Ticket/session/generation policy, durable delivery/recovery fences, and provider-independent execution safeguards. It must not become a second provider-routing authority.
 
@@ -233,7 +233,7 @@ Web Chat must **not** own:
 
 - conversation identity;
 - conversation history;
-- session-scoped CogentNexus state;
+- session-scoped CogentNexus-OpenClaw state;
 - persisted selected provider/model metadata when persistence is desired;
 - continuity across turns.
 
@@ -247,7 +247,7 @@ Web Chat must **not** own:
 - provider/model dispatch;
 - routing errors and provider-native execution semantics.
 
-CogentNexus should consume only the non-secret execution identity/capability evidence required to preserve its own continuity and safety contracts.
+CogentNexus-OpenClaw should consume only the non-secret execution identity/capability evidence required to preserve its own continuity and safety contracts.
 
 ### 5.4 Provider Adapter owns
 
@@ -272,7 +272,7 @@ CogentNexus should consume only the non-secret execution identity/capability evi
 
 ## 6. Core Data Concepts
 
-The implementation should converge on explicit concepts only where needed by CogentNexus continuity and verification. Existing OpenClaw provider/model structures remain authoritative for routing and should be reused rather than duplicated.
+The implementation should converge on explicit concepts only where needed by CogentNexus-OpenClaw continuity and verification. Existing OpenClaw provider/model structures remain authoritative for routing and should be reused rather than duplicated.
 
 ### 6.1 Provider ID
 
@@ -410,7 +410,7 @@ Establish a trustworthy reference before provider work changes behavior.
 Record the current known-good Ollama behavior:
 
 - OpenClaw version;
-- CogentNexus plugin/build identity;
+- CogentNexus-OpenClaw plugin/build identity;
 - branch/commit;
 - current provider configuration shape;
 - current Ollama model configuration;
@@ -428,7 +428,7 @@ Capture the current repository/runtime boundaries:
 - where model identity is resolved;
 - where session metadata is stored;
 - where responses are persisted;
-- where CogentNexus intercepts or participates in execution.
+- where CogentNexus-OpenClaw intercepts or participates in execution.
 
 ### Deliverables
 
@@ -478,13 +478,13 @@ Web Chat selection
 - Is model selection stored in conversation/session metadata?
 - Is selection stored globally?
 - Does OpenClaw infer provider from model ID?
-- Does CogentNexus alter selection?
+- Does CogentNexus-OpenClaw alter selection?
 - Where is provider authentication resolved?
 - Where is streaming normalized?
 - Where are tool calls normalized?
 - What state is retained across turns?
 - What changes when the user changes model today?
-- Does the existing OpenClaw UI already support most of the required behavior when CogentNexus is absent?
+- Does the existing OpenClaw UI already support most of the required behavior when CogentNexus-OpenClaw is absent?
 
 ### Deliverables
 
@@ -492,7 +492,7 @@ Web Chat selection
 - sequence diagram;
 - state ownership table;
 - provider/model resolution table;
-- list of CogentNexus interception points;
+- list of CogentNexus-OpenClaw interception points;
 - list of OpenClaw-native mechanisms that should be reused.
 
 ### Exit gate
@@ -607,14 +607,14 @@ Do not store secrets here.
 
 ### Compatibility rule
 
-If OpenClaw already has an equivalent state model, extend/reuse it instead of creating a CogentNexus duplicate.
+If OpenClaw already has an equivalent state model, extend/reuse it instead of creating a CogentNexus-OpenClaw duplicate.
 
 ### Tests
 
 - same session ID before/after model switch;
 - same session ID before/after provider switch;
 - conversation history remains addressable;
-- CogentNexus state references remain stable;
+- CogentNexus-OpenClaw state references remain stable;
 - tool/session state remains stable unless explicitly provider-scoped.
 
 ### Exit gate
@@ -695,7 +695,7 @@ Session S
 
 - Session ID unchanged.
 - Conversation context retained.
-- CogentNexus state retained.
+- CogentNexus-OpenClaw state retained.
 - Model resolution changes correctly.
 - Streaming still works.
 - Tool path remains intact where supported.
@@ -735,7 +735,7 @@ Web Chat
 
 Use the existing OpenClaw provider configuration mechanism wherever possible.
 
-CogentNexus should not invent a second credential store unless the existing architecture cannot satisfy required security/ownership constraints.
+CogentNexus-OpenClaw should not invent a second credential store unless the existing architecture cannot satisfy required security/ownership constraints.
 
 ### Security requirements
 
@@ -798,7 +798,7 @@ Turn 5:
 - selected execution target;
 - active provider;
 - active model;
-- CogentNexus ticket/project/session references;
+- CogentNexus-OpenClaw ticket/project/session references;
 - tool state;
 - persistence record;
 - stream completion;
@@ -995,7 +995,7 @@ It should not require redesigning:
 - session identity;
 - conversation persistence;
 - Web Chat conversation semantics;
-- CogentNexus ticket/project state;
+- CogentNexus-OpenClaw ticket/project state;
 - Agent Core lifecycle.
 
 ### Exit gate
@@ -1047,7 +1047,7 @@ Turn the implementation into a stable user-facing capability.
 
 - same session identity;
 - history retained;
-- CogentNexus state retained;
+- CogentNexus-OpenClaw state retained;
 - no unnecessary reset.
 
 #### Reliability
@@ -1261,7 +1261,7 @@ A stale model catalog must fail safely when execution resolves the actual target
 
 ## R1 — Duplicating OpenClaw provider architecture
 
-**Risk:** CogentNexus creates a parallel provider system.
+**Risk:** CogentNexus-OpenClaw creates a parallel provider system.
 
 **Consequence:** lifecycle drift, duplicated bugs, incompatible UI/runtime behavior.
 
@@ -1516,7 +1516,7 @@ The overall provider/model runtime project is done only when all of the followin
 6. The user can switch OpenAI models and continue in the same session.
 7. The user can switch Ollama -> OpenAI -> Ollama without creating a new conversation.
 8. Conversation history remains coherent.
-9. CogentNexus session/ticket/project continuity remains coherent.
+9. CogentNexus-OpenClaw session/ticket/project continuity remains coherent.
 10. Provider/model selection is observable and auditable.
 11. Tool execution uses the common Agent Core path where supported.
 12. Failure/cancellation does not corrupt the session.
@@ -1577,7 +1577,7 @@ Trace the current known-good Ollama path from Web Chat provider/model selection 
 - current provider/model selection lifetime;
 - Web Chat request shape;
 - session persistence behavior;
-- CogentNexus interception points;
+- CogentNexus-OpenClaw interception points;
 - provider-resolution path;
 - streaming path;
 - tool path;

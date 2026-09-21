@@ -1,3 +1,5 @@
+> **Historical evidence:** This file preserves the version/environment facts accepted when it was written. For current v0.9.6 state, see `docs/CURRENT_STATE.md`.
+
 # Transient Model-Call Stall Recovery
 
 CogentNexus-OpenClaw treats a transient model-call stall as a continuity problem, not as automatic proof that a provider, model, or tool is permanently defective.

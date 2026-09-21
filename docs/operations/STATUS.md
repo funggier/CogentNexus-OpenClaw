@@ -1,80 +1,73 @@
 # Current Project Status
 
-**Updated:** 2026-09-08
-**Development line:** v0.9.4 (**unreleased; no v0.9.4 tag or GitHub Release yet**)
-**Current branch:** `agent/v0.9.3-full-stabilization`  
-**Previously accepted product candidate:** `050ab53f4b593ab538143084d6bbdbf7e1672e34` (historical evidence; current hardening has changed source)
-**Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
-**Managed provider:** **Ollama only**  
-**Package payload-v2:** `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files  
-**Installed skill tree:** `a1e873ba404205507a1623961b49f1b1a0689f9f`  
-**Executable skill scripts tree:** `3d9d323ba19443d46e970b87cef52ce878da274f`  
-**Repaired Dashboard delivery source blob:** `aa97d7a5411f799c612cd0aeece050085298a8bb`
+**Updated:** 2026-09-21
+**Active task:** CNX-443 — documentation convergence, MIT License, and v0.9.6 release
+**Current source/release line:** v0.9.6
+**Working branch:** `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+**Latest physical OpenClaw acceptance:** `2026.9.5 (ec9c1a1)`
+**Regression/dev OpenClaw pin:** `2026.7.1-2`
+**Managed provider:** Ollama
+**Cloud/model/auth routing:** OpenClaw-owned pass-through
+**License target:** MIT
 
-**Provider boundary:** CogentNexus-OpenClaw manages Ollama health/lifecycle/recovery. Cloud is OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw owns only continuity/Ticket/durable delivery and never handles Cloud credentials.
+## Current accepted runtime position
 
-**Current gate:** v0.9.4 source is being hardened. Prior exact-candidate acceptance remains evidence for those bytes only; changed surfaces require fresh review/tests/CI before publication.
+CNX-442 is final live GREEN. The accepted architecture now owns same-session queued input at the durable pre-dispatch boundary rather than allowing OpenClaw's follow-up queue to dequeue a cancelled successor after Stop.
 
-## Accepted evidence chain
+Final live proof established:
 
-The broad v0.9.3 lifecycle implementation baseline completed:
+- first owner Ticket bound to one physical Host run;
+- second owner Ticket persisted and held before Host queue admission;
+- second Ticket remained `bound_run_id=NULL` with zero model/inference activity;
+- user Stop advanced generation exactly once;
+- active + held Tickets became `cancelled`;
+- held Ticket was silently consumed before Host queue admission;
+- Host trajectory contained no successor run;
+- no new `blocked by cogentnexus-openclaw` error appeared;
+- Gateway/Discord remained healthy.
 
-- Task 182 — install-over/provenance reacceptance;
-- Task 183 — reset/fresh-state reacceptance;
-- Task 184 — uninstall/external-preservation acceptance;
-- Task 185 — fresh reinstall/post-install acceptance;
-- Task 186 — final Dashboard semantic/durable-delivery acceptance.
+See `docs/CURRENT_STATE.md` and the final CNX-442 coordination report for exact evidence IDs.
 
-Task 187 then stopped publication because stale current guidance existed inside package/installed product surfaces. Task 188 corrected those documentation-bearing bytes.
+## Current task: CNX-443
 
-The first proportional human Dashboard requalification exposed a narrow `NO_REPLY` semantic defect. Task 191 repaired the executable Dashboard delivery boundary with RED -> minimal fix -> GREEN, including bare-sentinel staging protection and a bounded same-run revision path.
+CNX-443 must:
 
-Task 192 requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host and is accepted `PASS`.
+1. audit every tracked Markdown file and separate current guidance from historical evidence;
+2. converge current docs on v0.9.6 / CNX-442 / OpenClaw compatibility facts;
+3. retire stale hard-coded branch/watch instructions;
+4. add the MIT License;
+5. align exact v0.9.6 release metadata and release tests/workflow;
+6. run complete local/repository release gates;
+7. publish and verify GitHub Release v0.9.6.
 
-## Task-192 real-runtime proof
+## Coordination model
 
-The accepted shape was:
+The retired one-minute Codex `legacy coordination watch` automation has been removed. Do not recreate it from historical instructions.
 
-```text
-1 human Send
--> 1 Ticket
--> 1 logical OpenClaw run
--> 1 Ollama model call
--> 1 durable assistant delivery
--> 1 logical visible Dashboard assistant result
-```
+Current execution model:
 
-Observed deltas were exactly +1 Ticket, +1 direct model call, +1 durable assistant delivery, +0 Direct Recovery, +0 pending outbox. The requested nonce was the durable/UI result. No duplicate and no bare `NO_REPLY` was present. The first natural final succeeded, so same-run sentinel revision count was zero.
+- ChatGPT performs repository/documentation/review work directly when tools permit.
+- Hermes is used for bounded local/live execution when needed.
+- `ACTIVE.md` / `STATUS.md` carry the current durable coordination task.
+- Historical watcher/baton documents remain interpretable history but are not standing authority.
 
-Post-install Gateway/Ollama/delivery/recovery/SQLite health passed, and the installed repaired module was byte-identical to the candidate built module. The active facade remained at accepted SHA-256 `aa747f8f...`.
+## Release topology
 
-## Candidate identity policy
+The current working branch includes the previous default-branch history plus the current development line. Release publication uses `.github/workflows/release.yml` with an exact validated candidate SHA.
 
-The product candidate remains frozen at `050ab53f...` for Task-191/192 acceptance evidence. Later coordination/review/living-document commits do not redefine that product candidate.
+No force push. Tag/release publication must fail closed if:
 
-Unlike the earlier Task-188 documentation-only state, the repaired Dashboard delivery plugin source is intentionally changed. That changed executable surface has direct repository regression proof and real-Windows requalification. The skill scripts/facade remain unchanged.
+- v0.9.6 metadata disagree;
+- required release notes are absent;
+- exact candidate validation is not acceptable;
+- tag/release already exists;
+- package/checksum verification fails.
 
-## Unreleased release topology
+## Known boundaries still outside full production proof
 
-- default branch: `main`;
-- fresh `main` before final reconciliation: `874dd8f8ce9c1ca5595b29207281430a86c074de`;
-- `main` contains two documentation-only commits not yet in the stabilization history;
-- stale PR #24 is closed and must not be reused;
-- `.github/workflows/release.yml` is the required exact-SHA publication gate;
-- public release/tag state is authoritative only on GitHub Releases/tags.
+- long high-concurrency soak;
+- disk-full / DB-corruption hardening;
+- universal exactly-once external side effects;
+- arbitrary future OpenClaw versions beyond explicitly tested evidence.
 
-The current branch contains the v0.9.4 working candidate and must pass documentation/version contracts plus changed-surface validation before any release PR or publication action. A branch, version file, or release-note file is not evidence that v0.9.4 is released.
-
-## Publication path
-
-1. finish and independently review the v0.9.4 hardening changes;
-2. require exact-HEAD CI/package and supported recovery/installer proof to pass and record the new candidate identity;
-3. create a fresh `agent/v0.9.3-full-stabilization` -> `main` release PR;
-4. inspect exact diff/topology/checks and merge only when green;
-5. freeze exact merged `main` SHA;
-6. dispatch `.github/workflows/release.yml` with `version=0.9.4` and that exact SHA;
-7. verify workflow success, tag target, release notes, archives, `SHA256SUMS.txt`, and independent checksums.
-
-## Safety boundary
-
-Do not force push. Do not change production/runtime/plugin executable source, tests, dependencies, workflow behavior, provider/runtime semantics, or durable schema merely to obtain release success. Any new need for such a change is a separate product defect and blocks publication.
+Historical evidence remains in coordination tasks/reports/reviews and release notes; it is not rewritten merely to make old wording look current.

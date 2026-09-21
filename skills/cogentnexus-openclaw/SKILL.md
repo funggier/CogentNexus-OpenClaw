@@ -1,15 +1,17 @@
 ---
 name: "CogentNexus-OpenClaw"
-description: "Durable Host-managed recovery, lifecycle control, and verified execution for OpenClaw work that needs CogentNexus-OpenClaw machinery."
+description: "Durable Host-managed continuity, lifecycle control, session serialization, recovery, and verified execution for OpenClaw work."
 ---
 
 # CogentNexus-OpenClaw
 
-**Current release:** `v0.9.5` — published and operationally validated.  
-**Validated OpenClaw baseline:** `2026.7.1-2`.  
-**Current managed provider:** **Ollama** for health/lifecycle/recovery. Cloud providers remain OpenClaw-owned pass-through.
+**Current source/release line:** `v0.9.6`
+**Latest physical OpenClaw acceptance:** `2026.9.5 (ec9c1a1)`
+**Regression/dev OpenClaw pin:** `2026.7.1-2`
+**Managed local provider:** Ollama
+**Cloud/model/auth routing:** OpenClaw-owned pass-through
 
-CogentNexus-OpenClaw separates **continuity** from **execution depth**. In MANAGED mode, eligible owner messages may be durably admitted before inference, while ordinary DIRECT work remains lightweight.
+CogentNexus-OpenClaw separates **continuity** from **execution depth**. Eligible owner input may be durably admitted before inference without forcing ordinary DIRECT work into a heavyweight workflow.
 
 Keep private reasoning private. Expose useful status, evidence, decisions, and results.
 
@@ -17,76 +19,78 @@ Keep private reasoning private. Expose useful status, evidence, decisions, and r
 
 1. Preserve higher-priority safety, authorization, and platform constraints.
 2. Preserve the user's intended outcome.
-3. Respect durable Ticket/session/recovery state; do not duplicate accepted work blindly.
-4. Choose the lightest reliable lane.
+3. Respect durable Ticket/session/generation state.
+4. Choose the lightest reliable execution lane.
 5. Claim consequential completion only from evidence.
 
 ## Request lanes
 
-- **DIRECT** — ordinary conversation, explanation, brainstorming, simple drafting, and simple questions.
+- **DIRECT** — ordinary conversation, explanation, drafting, simple questions.
 - **LOOKUP** — focused read-only retrieval.
 - **ACTION** — bounded reversible execution with proportionate verification.
-- **STAGED** — multi-step, consequential, interruption-prone, dependency-heavy, repeatedly failing, or independently verified work using the durable workflow controller.
+- **STAGED** — multi-step, interruption-prone, dependency-heavy, or independently verified work using durable workflow state.
 
 Ticket creation does not imply STAGED execution.
 
-## Host-managed continuity
+## Same-session serialization
 
-For a committed Direct turn interrupted before durable response, the external Host may authorize Direct Recovery. Recovery must preserve the Ticket owner session/generation and original provider/model.
+Later eligible owner input in the same generation is held at `before_dispatch` while an older Ticket is non-terminal. This keeps queued input outside the native Host queue.
 
-A transient SQLite BUSY read during authority polling is not durable revocation and must not create a competing retry while embedded inference is still running.
+A valid user Stop advances owner generation once and cancels active + held Tickets. Held cancelled ingress is consumed before Host queue admission, preventing a cancelled successor inference.
 
-When durable CNXCLAW ownership exists, consume only the exact OpenClaw native restart continuation that belongs to the same session/generation/original prompt. Ordinary user messages and unreadable durable state fail open to native behavior.
+## Host-managed recovery
+
+For a committed Direct turn interrupted before durable response, bounded recovery may be authorized only from durable evidence. Recovery preserves Ticket owner generation and original provider/model provenance.
+
+Restart recovery for a held pre-dispatch message is limited to accepted ingress that never bound to a Host run (`bound_run_id IS NULL`) and remains FIFO-fenced.
 
 ## Provider boundary
 
-v0.9.5 manages Ollama only. Historical provider modules may remain in-tree for migration/native-restore behavior, but current operator paths must not advertise or select historical providers as managed runtime ownership.
+Managed local-provider ownership is Ollama-only. OpenClaw owns Cloud credentials, provider/model selection, routing, runtime probing, and Cloud recovery.
 
-Cloud providers are OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves continuity and durable delivery without handling Cloud credentials.
+Do not silently fall back to another provider.
 
 ## Operating modes
 
-- **MANAGED** — Ticket-first continuity and CNXCLAW recovery/lifecycle ownership.
-- **PASSTHROUGH** — CNXCLAW interception/background ownership disabled; OpenClaw behaves natively.
-- **MAINTENANCE** — deliberate stop; state preserved and recovery must not fight operator intent.
-
-`disable` means PASSTHROUGH. `stop` means MAINTENANCE.
+- **MANAGED** — Ticket-first continuity and managed lifecycle ownership.
+- **PASSTHROUGH** — provider/model/auth remain OpenClaw-owned; managed provider ownership inactive.
+- **MAINTENANCE** — deliberate stop; durable state preserved and recovery must not fight operator intent.
 
 ## Runtime invariants
 
-- Recover committed state before starting replacement action.
+- Recover committed state before replacement action.
 - Never repeat external side effects blindly after interruption.
-- `response_ready` is a durable boundary, not merely model text in memory.
-- Delivery retry may retransport a durable result but must not regenerate inference without new recovery authority.
+- `response_ready` is durable and immutable.
+- Delivery retry must not silently regenerate inference.
 - Fence duplicate workers with leases/generations.
-- Respect terminal/cancelled state and mode authority.
+- Respect terminal/cancelled state.
 - Periodic supervision performs no model inference.
-- A durably accepted request must become delivered/completed, cancelled, or explicitly failed with evidence.
+- Accepted work must become completed/delivered, cancelled, or explicitly failed.
 
 ## Module routing
 
 Do not load heavy CogentNexus-OpenClaw modules merely to answer an obvious DIRECT request.
 
-Load references lazily and only when the selected lane/unit needs them:
+Load references lazily:
 
-- Ambiguity, consequence, safety, low confidence: [constitution.md](references/constitution.md)
-- Multi-step execution loop: [task-loop.md](references/task-loop.md)
-- Tool-heavy or repeatedly failing execution: [execution-success.md](references/execution-success.md)
-- Resource/interruption survival: [resource-survival.md](references/resource-survival.md)
-- Minimal durable memory: [minimal-memory.md](references/minimal-memory.md)
-- Evidence-backed reusable lessons: [lesson-learning.md](references/lesson-learning.md)
-- Resume from committed state: [task-resumption.md](references/task-resumption.md)
-- Final output/delivery verification: [output-verification.md](references/output-verification.md)
-- Architecture baseline: [architecture.md](references/architecture.md)
-- Runtime toolkit details: [runtime-toolkit.md](references/runtime-toolkit.md)
-- Recovery controller: [recovery-controller.md](references/recovery-controller.md)
-- Capability registry: [capability-registry.md](references/capability-registry.md)
-- Artifact integrity: [artifact-integrity.md](references/artifact-integrity.md)
-- Runtime supervision: [runtime-supervisor.md](references/runtime-supervisor.md)
-- Concurrency admission: [concurrency-manager.md](references/concurrency-manager.md)
-- Context continuity: [context-continuity.md](references/context-continuity.md)
-- Scheduler adapters: [scheduler-adapters.md](references/scheduler-adapters.md)
-- Startup policy: [startup-policy.md](references/startup-policy.md)
+- [constitution.md](references/constitution.md) — ambiguity/consequence/safety.
+- [task-loop.md](references/task-loop.md) — multi-step loop.
+- [execution-success.md](references/execution-success.md) — tool-heavy/failing work.
+- [resource-survival.md](references/resource-survival.md) — interruption/resource survival.
+- [minimal-memory.md](references/minimal-memory.md) — minimal durable memory.
+- [lesson-learning.md](references/lesson-learning.md) — reusable lessons.
+- [task-resumption.md](references/task-resumption.md) — resume from committed state.
+- [output-verification.md](references/output-verification.md) — final verification.
+- [architecture.md](references/architecture.md) — architecture baseline.
+- [runtime-toolkit.md](references/runtime-toolkit.md) — runtime tooling.
+- [recovery-controller.md](references/recovery-controller.md) — recovery.
+- [capability-registry.md](references/capability-registry.md) — capabilities.
+- [artifact-integrity.md](references/artifact-integrity.md) — artifact identity.
+- [runtime-supervisor.md](references/runtime-supervisor.md) — supervision.
+- [concurrency-manager.md](references/concurrency-manager.md) — admission/concurrency.
+- [context-continuity.md](references/context-continuity.md) — context.
+- [scheduler-adapters.md](references/scheduler-adapters.md) — scheduling.
+- [startup-policy.md](references/startup-policy.md) — startup policy.
 
 ## Validation
 
@@ -100,28 +104,4 @@ python skills/cogentnexus-openclaw/scripts/runtime.py self-test
 python -m pytest -q
 ```
 
-## Published baseline
-
-The current published release is `v0.9.5`, tagged at merge SHA `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`.
-
-Final release acceptance and post-release verification established the intended durable execution shape:
-
-```text
-human intent
--> durable Ticket admission
--> logical session/run ownership
--> model execution
--> durable result
--> delivery confirmation
--> settled state
-```
-
-Controlled actionable wake preserved Ticket/session/run identity, generation and ownership semantics, completed with one durable work item, and returned to idle without duplicate ownership.
-
-The exact-tag post-release verification also established that the release can be installed from a detached `v0.9.5` checkout, loaded by OpenClaw, and operated with healthy Gateway/Ollama state and zero pending outbox.
-
-## Known diagnostic discrepancy
-
-The validated host still exposes a narrow `cnxclaw.cmd check system` provider-selection diagnostic that can contradict the authoritative active runtime/provider status. This remains a quarantined checker anomaly. Do not reinterpret it as runtime failure and do not modify the published `v0.9.5` tag to address it; repair requires a new development candidate and the normal validation/release path.
-
-Historical coordination and release reports remain evidence for the states they describe and should not be rewritten merely to match this current status.
+Historical versioned coordination/release artifacts remain evidence for the state they describe and are not rewritten to match later releases.

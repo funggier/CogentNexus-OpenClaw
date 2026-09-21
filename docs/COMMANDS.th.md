@@ -1,13 +1,13 @@
-# คู่มือคำสั่ง CogentNexus-OpenClaw v0.9.4
+# คู่มือคำสั่ง CogentNexus-OpenClaw v0.9.6
 
-คู่มือนี้ใช้กับ CogentNexus-OpenClaw v0.9.4 บน Windows โดยรันจาก OpenClaw workspace:
+คู่มือนี้ใช้กับ CogentNexus-OpenClaw v0.9.6 บน Windows โดยรันจาก OpenClaw workspace:
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd --help
 ```
 
-> v0.9.4 ยังไม่ถือว่า release จนกว่าจะมี immutable tag และ GitHub Release จริง ให้ตรวจ artifact และ `SHA256SUMS.txt` ก่อนติดตั้งเสมอ
+> ใช้ exact GitHub Release และตรวจ `SHA256SUMS.txt` ก่อนติดตั้งเสมอ สถานะ publication จริงให้ยึด GitHub Releases/tags เป็น authority
 
 ## เลือกโหมดให้ถูก
 
@@ -28,7 +28,7 @@ CogentNexus-OpenClaw เป็นเจ้าของ health check, lifecycle, 
 - `start` ต้องการสถานะ managed และทำให้ managed runtime ทำงาน
 - `restart` restart managed runtime ภายใต้ maintenance/recovery fences
 - `stop` คือ deliberate MAINTENANCE; เก็บ durable state แต่หยุด managed runtime
-- v0.9.4 จัดการ provider ได้เฉพาะ Ollama และไม่จัดการ LM Studio
+- v0.9.6 จัดการ managed local-provider lifecycle เฉพาะ Ollama และไม่จัดการ LM Studio
 
 ### OpenClaw-owned Cloud pass-through
 

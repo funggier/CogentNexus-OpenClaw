@@ -24,7 +24,7 @@ def layout(tmp_path: Path):
     return workspace, root, skill, launcher, plugin
 
 
-def write_plugin(root: Path, *, marker="same", version="0.9.5") -> Path:
+def write_plugin(root: Path, *, marker="same", version=ownership.INSTALLED_VERSION) -> Path:
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     (root / "dist").mkdir(parents=True, exist_ok=True)
     (root / "openclaw.plugin.json").write_text(json.dumps({"id": ownership.PRODUCT_ID, "version": version}), encoding="utf-8")

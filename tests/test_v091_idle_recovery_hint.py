@@ -135,6 +135,7 @@ class V091IdleRecoveryHintTests(unittest.TestCase):
             self.patch(cnx, "ollama_fast_probe", lambda: True)
             self.patch(cnx, "durable_work_hint", lambda _root: False)
             self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "gateway_startup_grace", lambda: {"active": False, "reason": "unit-test-no-active-boot"})
             self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: {"attempted": True, "exitCode": 0})
             self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: {"result": "gateway-recovery", "execute": execute})
 

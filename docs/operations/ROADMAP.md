@@ -1,142 +1,69 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-09-08
+**Updated:** 2026-09-21
 
-This roadmap is directional, not contractual. Movement is evidence-driven: a phase advances because its gate passes, not merely because code was written.
+This roadmap is directional and evidence-driven. A phase advances because its gate passes, not because code exists.
 
-## Architectural rule — responsibility-local data and policy
+## Current position — v0.9.6 release convergence
 
-Every subsystem should define only information actually necessary to perform or verify that subsystem's own responsibility.
+CNX-442 closed the authoritative Stop/session-queue defect by moving later owner ingress behind a durable pre-dispatch FIFO barrier. Final physical acceptance on OpenClaw 2026.9.5 proved no successor Host run after Stop and zero inference for the held cancelled Ticket.
 
-Before adding a parameter, default, configuration field, dependency check, or policy decision to a layer, ask:
+CNX-443 is the current release-convergence phase:
 
-1. does this layer need the value to perform its own operation?
-2. does this layer need the value to verify its own postcondition?
-3. is this layer the authority that owns the decision represented by that value?
+- reconcile current documentation with the accepted runtime;
+- add MIT licensing;
+- align version/release metadata to v0.9.6;
+- retain historical evidence without presenting it as current guidance;
+- pass complete release validation;
+- publish and independently verify v0.9.6.
 
-If all three answers are no, the value should not exist in that layer.
+## Short term — v0.9.6 publication
 
-For v0.9.4 this means installation remains provider-neutral while the managed runtime/operator contract owns Ollama health, lifecycle, and recovery only. Cloud is OpenClaw-owned pass-through: OpenClaw owns credentials, routing/model selection, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw owns continuity/Ticket/durable delivery and never handles Cloud credentials.
+Required gates:
 
-## Current position — v0.9.4 hardening, unreleased
+1. current docs contain no misleading active v0.9.4/v0.9.5 release-state claims;
+2. current branch/watch instructions do not recreate retired automation;
+3. MIT License is present and linked;
+4. VERSION/package/manifest/lock/CI release contract agree on 0.9.6;
+5. namespace/baseline/skill/Python/plugin tests pass;
+6. package dry-run and release archive verification pass;
+7. exact candidate SHA is frozen and pushed;
+8. required GitHub checks are terminal and acceptable;
+9. release workflow publishes tag/assets/checksums against the exact candidate;
+10. public release identity and checksums are independently verified.
 
-The broad lifecycle implementation baseline completed the bounded real-Windows sequence through Tasks 182–186.
+## Medium term — compatibility and resilience evidence
 
-Task 187 then found stale current guidance inside artifact-sensitive product surfaces. Task 188 corrected those documentation/instruction bytes.
+After v0.9.6 publication:
 
-A proportional human Dashboard requalification subsequently exposed a narrow direct-result defect: bare OpenClaw `NO_REPLY` could be marker-staged into durable visible output. Task 191 repaired that executable plugin boundary with TDD, producing frozen repaired candidate:
-
-`050ab53f4b593ab538143084d6bbdbf7e1672e34`
-
-Current candidate identities include:
-
-- package payload-v2 `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / 186 files;
-- plugin tree `eeab5fb8c67e5c16284d5df49ec413a53c251a13`;
-- repaired Dashboard source blob `aa97d7a5411f799c612cd0aeece050085298a8bb`;
-- installed skill tree `a1e873ba404205507a1623961b49f1b1a0689f9f`;
-- executable skill scripts tree `3d9d323ba19443d46e970b87cef52ce878da274f`;
-- facade Git blob `879083d6186589d4b2774b8fd87fa93692dd2dfc`.
-
-Task 192 then performed exactly one supported install-over of that candidate on the accepted Windows host and exactly one genuine human Dashboard Send. The real runtime produced one Ticket, one logical run, one Ollama model call, one durable delivery, and one logical visible nonce result with no duplicate, no recovery, no pending outbox, and no bare `NO_REPLY`. Task 192 is accepted `PASS`.
-
-That exact-candidate evidence remains historical. The current v0.9.4 working candidate includes later hardening and is not released or tagged. Its changed surfaces must pass focused contracts, full relevant validation, independent review, and exact-SHA CI before publication.
-
-## Short term — v0.9.4 candidate completion
-
-### 1. Task-191/192 repaired candidate — complete
-
-Repository RED/GREEN and real-Windows requalification are accepted for exact candidate `050ab53f...`.
-
-### 2. Complete current hardening — in progress
-
-Keep managed Ollama and OpenClaw-owned Cloud pass-through responsibilities explicit. Qualify quarantined rollover recovery only through an explicit transaction file, its independently expected SHA-256, and the independently expected replacement fingerprint. Do not add or document an unsupported installer source-commit parameter.
-
-Requirements:
-
-- no force push;
-- preserve managed Ollama semantics and the Cloud credential/control boundary;
-- preserve useful historical transient-stall evidence;
-- keep Task-191/192 product candidate identity separate from later living-document/coordination commits;
-- rerun CI/package proof on the reconciled branch HEAD.
-
-### 3. Reconciled-HEAD validation
-
-Require:
-
-- full Validate workflow success;
-- Windows Installer Pack Smoke success;
-- PS5.1 Acceptance Smoke success where triggered/required;
-- package dry-run success;
-- package-sensitive payload identity remains `b1ca9f3b...` / 186 files unless an explicitly product-bearing change is discovered;
-- no new executable/runtime/test/dependency/workflow behavior change.
-
-If the package-sensitive identity unexpectedly changes, publication stops and the changed surface must be classified before continuing.
-
-### 4. Final release PR
-
-After reconciled-HEAD validation:
-
-1. create a fresh `agent/v0.9.3-full-stabilization` -> `main` release PR;
-2. keep stale PR #24 closed;
-3. inspect exact topology, changed files, mergeability, and checks;
-4. merge only when green and only with the expected head SHA;
-5. no force push.
-
-### 5. Release workflow and public verification
-
-Freeze exact merged `main` SHA, then dispatch `.github/workflows/release.yml` with:
-
-```text
-version = 0.9.4
-candidate_sha = <exact merged publication SHA>
-```
-
-Require successful package/publish jobs and verify:
-
-- tag `v0.9.4` targets the exact merged SHA;
-- GitHub Release is public and non-draft/non-prerelease unless intentionally specified otherwise;
-- `cogentnexus-openclaw-v0.9.4.tar.gz`;
-- `cogentnexus-openclaw-v0.9.4.zip`;
-- `SHA256SUMS.txt`;
-- published archive checksums independently match `SHA256SUMS.txt`.
-
-## Medium term — extend continuity evidence
-
-After v0.9.4 publication, continue proving work continuity rather than only process recovery.
-
-Priority scenarios include:
-
-- abrupt machine power loss and cold-boot continuation;
+- formalize a newer OpenClaw regression dependency baseline rather than relying only on the older 2026.7.1-2 dev pin;
+- expand explicit compatibility testing around OpenClaw 2026.9.x+;
+- abrupt machine power-loss/cold-boot continuation;
 - high-concurrency/long-soak behavior;
-- disk-full and database-corruption handling;
-- stronger external side-effect adapters with idempotency/receipt/read-after-write evidence;
-- explicit compatibility qualification for OpenClaw versions newer than `2026.7.1-2`.
-
-A healthy listener is not sufficient proof that durable recovery is complete, and elapsed time alone is never recovery authority.
+- disk-full/database-corruption handling;
+- stronger external-side-effect adapters with idempotency/receipt/read-after-write evidence.
 
 ## Long term — durable intent across replaceable intelligence/runtime
-
-The architectural destination is broader than a watchdog or process supervisor:
 
 ```text
 human intent
 -> durable accepted work
 -> replaceable runtime/intelligence workers
--> failure/interruption
+-> interruption/failure
 -> durable reconciliation
 -> resume only incomplete work
 -> deliver without duplicating completed effects
 ```
 
-Preserve these invariants recursively as the system scales:
+Preserve recursively:
 
 - durable intent outranks transient model memory;
-- each layer owns only policy/data required for its responsibility;
-- local failure must not silently redirect original intent;
-- completed/terminal evidence must fence duplicate work;
-- external irreversible effects require explicit reconciliation evidence;
-- coordination scale must not weaken artifact identity or proof requirements.
+- responsibility-local data and policy;
+- terminal evidence fences duplicate work;
+- provider/model replacement must not silently redirect intent;
+- irreversible effects require explicit reconciliation evidence;
+- scaling coordination must not weaken artifact identity or proof.
 
 ## Roadmap movement rule
 
-Move an item forward because its **evidence gate passed**, not because code was written. When evidence reveals a blocker, moving backward to create a narrower repair/requalification phase is correct behavior when it preserves the integrity of accepted evidence.
+Move forward only when the relevant evidence gate passes. If evidence exposes a narrower defect, creating a repair/requalification phase is correct behavior rather than schedule failure.

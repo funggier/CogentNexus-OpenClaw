@@ -1,3 +1,5 @@
+> **Historical evidence:** This file preserves the version/environment facts accepted when it was written. For current v0.9.6 state, see `docs/CURRENT_STATE.md`.
+
 # v0.9.5 Post-release Baseline
 
 This document is the current-facing operational baseline for the published v0.9.5 release.

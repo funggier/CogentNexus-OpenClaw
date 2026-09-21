@@ -174,6 +174,7 @@ class HostV091Tests(unittest.TestCase):
             self.patch(cnx, "gateway_fast_probe", lambda: False)
             self.patch(cnx, "ollama_fast_probe", lambda: self.fail("provider probe must not precede gateway recovery"))
             self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "gateway_startup_grace", lambda: {"active": False, "reason": "no-active-boot"})
             self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: calls.append("restart") or {"attempted": True, "exitCode": 0})
             self.patch(cnx, "LEGACY_SUPERVISOR_TICK", lambda _root, execute: calls.append("heavy") or {"result":"recovery","execute":execute})
 

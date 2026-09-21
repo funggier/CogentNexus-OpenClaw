@@ -1,109 +1,125 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 # CogentNexus-OpenClaw Recovery Architecture Baseline
 
-This document records accepted Recovery Core architecture/invariants. It is a **historical technical baseline**, not the current public-release identity.
+This document records the durable architectural invariants that survive across release lines. It is not a release-status page; use [CURRENT_STATE.md](CURRENT_STATE.md) for the current source/release state.
 
-Current development line: **v0.9.4 (unreleased; no tag or GitHub Release yet)**.
-Current managed provider: **Ollama** (health, lifecycle, and recovery). Cloud providers use an OpenClaw-owned **pass-through** route: OpenClaw owns credentials, routing, runtime, lifecycle, probing, and recovery; CogentNexus-OpenClaw owns only Ticket/session continuity and durable delivery and never handles Cloud credentials.
-Validated OpenClaw baseline: `2026.7.1-2 (0790d9f)`.  
-Accepted Recovery Core checkpoint: `eadb89099637d24f96e265a500d66c577aa939a3`.  
-Historical broad-lifecycle implementation candidate: `f6392da3e4112ce441526d5ef19925c90a872b0b`.  
-Frozen repaired publication candidate for Task-191/192 evidence: `050ab53f4b593ab538143084d6bbdbf7e1672e34`.
+**Current source/release line:** `v0.9.6`
+**Latest physical runtime acceptance:** OpenClaw `2026.9.5 (ec9c1a1)`
+**Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
+**Managed provider ownership:** Ollama
+**Cloud/provider/model/auth routing:** OpenClaw-owned pass-through
 
-The v0.9.4 implementation completed bounded real-Windows install-over, reset, uninstall/external-preservation, fresh-reinstall, and Dashboard semantic/durable-delivery acceptance. Those results extend this historical Recovery Core checkpoint; they do not rewrite it.
-
-Task 187 stopped initial publication when stale current guidance was found inside documentation-bearing product surfaces. Task 188 corrected those bytes. A subsequent proportional Dashboard requalification exposed a narrow executable integration defect where bare OpenClaw `NO_REPLY` could be promoted into a visible durable result after CogentNexus-OpenClaw marker decoration.
-
-Task 191 repaired that boundary with TDD. Task 192 then requalified exact candidate `050ab53f4b593ab538143084d6bbdbf7e1672e34` on the accepted Windows host. Current package payload-v2 is `b1ca9f3b42009cf4b1ae0a04f0e75add8d2ff9bd5dc97fce4040dc4753562d93` / `186` files, installed skill-tree identity remains `a1e873ba404205507a1623961b49f1b1a0689f9f`, executable skill scripts tree remains `3d9d323ba19443d46e970b87cef52ce878da274f`, and repaired Dashboard source blob is `aa97d7a5411f799c612cd0aeece050085298a8bb`.
-
-See `docs/CURRENT_STATE.md` for current release/acceptance/publication status. Historical release notes describe the state that existed at their respective versions and must remain historically accurate.
-
-## Purpose
-
-CogentNexus-OpenClaw preserves user intent across process/runtime boundaries while keeping execution proportional to the task. A message may be durably admitted before inference without being forced into a heavyweight workflow.
+Historical checkpoints such as the v0.9.1 Recovery Core and v0.9.4/v0.9.5 publication candidates remain evidence for the exact bytes and environments they described. They are not rewritten into later releases.
 
 ## Core continuity invariant
 
-Once eligible work is durably accepted, it must not silently disappear. It must reach one of these durable outcomes: delivered/completed, cancelled by valid authority, or explicitly failed with evidence.
+Once eligible work is durably accepted, it must not silently disappear. It must reach one of these durable outcomes:
+
+- delivered/completed;
+- cancelled by valid authority; or
+- explicitly failed with durable evidence.
 
 ## Authority model
 
-In MANAGED mode, durable CNXCLAW state determines recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable Host ownership.
+In MANAGED mode, durable CNX state determines continuity/recovery authority. Process timing, a late OpenClaw observation, or a transient SQLite read failure must not silently revoke durable ownership.
 
-Authority is fenced by Ticket identity, owner session, session generation, model-call/Host timeout state, Direct Recovery run identity, cancellation/terminal state, and operating mode.
+Authority is fenced by:
 
-OpenClaw native restart continuation is suppressed only when the exact continuation shape belongs to the same CNX-owned session/generation and durable evidence matches the owned recovery. Ordinary messages continue normally.
+- Ticket identity;
+- owner session key and physical session identity;
+- owner generation;
+- active/bound run identity;
+- model/inference attempt state;
+- cancellation/terminal state;
+- operating mode;
+- delivery/result evidence.
+
+## Pre-dispatch serialization baseline
+
+Eligible owner input is durably persisted before inference. If an older Ticket in the same owner generation remains non-terminal, later input is held at the claiming `before_dispatch` hook instead of entering OpenClaw's native follow-up queue.
+
+This establishes a deterministic boundary:
+
+```text
+message accepted
+  -> durable Ticket + ingress claim
+  -> older same-generation Ticket exists?
+       yes -> hold outside Host queue
+       no  -> continue original request
+```
+
+A valid user Stop advances owner generation once, cancels active + held Tickets, and causes held cancelled ingress to return `handled:true` before Host queue admission. This prevents cancelled queued input from creating a successor Host run.
 
 ## Request lanes
 
-- **DIRECT** — ordinary conversation and simple tasks; Ticket durability does not imply workflow creation.
+- **DIRECT** — ordinary conversation and simple work.
 - **LOOKUP** — focused read-only retrieval.
-- **ACTION** — bounded reversible execution with proportionate checks.
-- **STAGED** — durable multi-step work requiring checkpoints, validators, bounded repair, or interruption-safe orchestration.
+- **ACTION** — bounded reversible execution.
+- **STAGED** — durable multi-step work requiring checkpoints, validators, retries, or interruption-safe orchestration.
+
+Ticket creation does not imply STAGED execution.
 
 ## Recovery boundary
 
 ```text
 Ticket accepted
   -> original model call
-  -> Host confirms eligible pre-response interruption
-  -> Host records recovery authority
-  -> runtime/provider quiesce/restart as required
-  -> Direct Recovery claims same session/generation
-  -> inference on original provider/model
+  -> eligible interruption evidence
+  -> recovery authority
+  -> bounded Direct Recovery
   -> response_ready committed once
-  -> direct_result durable once
-  -> delivery confirmed
+  -> durable result
+  -> delivery confirmation
   -> Ticket completed
 ```
 
-### Single-owner rule
+### Restart recovery for held ingress
 
-When CNXCLAW owns Direct Recovery, OpenClaw native restart recovery must not create a competing inference attempt. Compatibility fencing consumes only the exact native restart dispatch proved to belong to durable CNX-owned recovery.
+If the Gateway process disappears while later ingress is being held before Host admission, only accepted ingress with `bound_run_id IS NULL` is eligible for the dedicated restart-recovery path. It remains FIFO-fenced behind older non-terminal ingress.
+
+Bound active runs remain owned by the normal Host/recovery reconciliation path; the held-ingress restart mechanism does not regenerate them.
 
 ### SQLite BUSY rule
 
-Transient `SQLITE_BUSY` / WAL recovery contention while polling authority is not durable revocation. Read-only authority connections use bounded tolerance. A BUSY read must not race a still-running inference against a replacement attempt.
+Transient `SQLITE_BUSY`/WAL contention while reading authority is not durable revocation. Bounded read tolerance must not race a still-running inference against a replacement attempt.
 
 ### Response/delivery rule
 
-`response_ready` is immutable once committed. Delivery transport may retry delivery of a durable result; it must not regenerate inference merely because delivery is uncertain.
+`response_ready` is immutable once committed. Delivery uncertainty permits bounded retransmission of a durable result; it does not by itself authorize inference regeneration.
 
-CogentNexus-OpenClaw therefore provides an exactly-once-ish durable delivery boundary, not a universal guarantee that arbitrary external side effects happen exactly once.
+### External side effects
 
-### Direct Dashboard silent-sentinel rule
-
-A bare OpenClaw `NO_REPLY` / `no_reply` silent sentinel is not visible semantic content and must never be marker-staged into a durable visible Dashboard result.
-
-For a genuine direct Dashboard Ticket whose natural final is exactly the bare sentinel, the repaired integration may request at most one same-run OpenClaw finalization revision. CogentNexus-OpenClaw does not fabricate the answer and does not authorize a separate external Direct Recovery run merely because the sentinel appeared.
-
-Task 192's accepted real turn required zero revisions because the first natural final was already the requested visible nonce. The repair remains protected by repository regression tests even though the fallback branch was not needed in that successful live turn.
+CogentNexus-OpenClaw does not claim universal exactly-once execution of arbitrary external side effects. Repetition after interruption requires adapter-specific idempotency, receipts, or read-after-write proof.
 
 ## Operating modes
 
-- **MANAGED** — CNXCLAW owns Ticket-first continuity, managed lifecycle, and recovery behavior.
-- **PASSTHROUGH** — CNXCLAW interception/background ownership are disabled and OpenClaw remains natively usable.
-- **MAINTENANCE** — deliberate stop; durable state remains and recovery must not fight operator intent.
+- **MANAGED** — CNX owns Ticket/session continuity and managed lifecycle boundaries.
+- **PASSTHROUGH** — provider/model/auth routing remains OpenClaw-owned and managed provider ownership is inactive.
+- **MAINTENANCE** — deliberate stop; durable state is preserved and recovery must not fight operator intent.
 
-OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH is therefore an operational boundary, not merely a configuration label.
+## Provider boundary
 
-The durable policy register is stored at `.cogentnexus-openclaw/host/managed-policy.md`. Registration is independent from whether MANAGED integration is currently applied, so PASSTHROUGH can remove active integration without destroying the registered policy source.
+The durable managed-policy register is stored at `.cogentnexus-openclaw/host/managed-policy.md`; registration is separate from whether MANAGED integration is currently applied.
 
-## Host and supervisor
+OpenClaw must remain usable without CogentNexus-OpenClaw. PASSTHROUGH/disable/uninstall boundaries must preserve native OpenClaw operation rather than making CNX a mandatory runtime dependency.
 
-The external supervisor is deterministic and CPU-only in its periodic healthy path. It may inspect endpoint health and durable state, but does not perform model inference itself.
+Managed local-provider ownership is Ollama-only. Cloud routes remain OpenClaw-owned pass-through. Historical LM Studio/provider work is retained as historical compatibility evidence and does not define the current managed-provider promise.
 
-## Durable workflow baseline
+## OpenClaw compatibility
 
-STAGED work retains revisioned task state, checkpoint/resume/rollback, worker leases and generation fences, durable outboxes, deterministic validators, artifact hashes/manifests, bounded retry/repair, and terminal evidence gates.
+OpenClaw `2026.7.1-2` remains the regression/dev dependency pin used by the package test surface. The latest physical runtime acceptance is OpenClaw `2026.9.5 (ec9c1a1)`. These are distinct facts and must remain labeled separately.
 
-## Accepted checkpoint and later evidence
+## Accepted latest live proof
 
-Recovery Core commit: `eadb89099637d24f96e265a500d66c577aa939a3`.
+CNX-442 final physical acceptance proved:
 
-Accepted live Test A v16 demonstrated one Host-authorized recovery attempt, no competing native recovery inference, no recursive Ticket, no same-session duplicate Ticket, no escaped SQLite lock retry, original model provenance retained, one durable result, and confirmed delivery.
+- first Ticket bound to one Host run;
+- second Ticket durably accepted and held at pre-dispatch;
+- second Ticket had zero model/inference activity before Stop;
+- Stop advanced owner generation exactly once;
+- both Tickets became cancelled;
+- held Ticket remained unbound;
+- no successor Host run was created;
+- no new CNX block error reached Dashboard/Discord;
+- Gateway and Discord remained healthy after settlement.
 
-The later broad-lifecycle candidate `f6392da3...` completed the lifecycle sequence. The documentation-corrected candidate `604569c...` was later superseded after the `NO_REPLY` defect was exposed. Task 191/192 provide the repair and proportional real-Windows evidence for `050ab53f...`.
-
-Acceptance remains exact-artifact based. Later living-document/coordination commits may accompany publication without redefining the Task-191/192 product candidate, but any new product-bearing executable/package change requires classification and evidence appropriate to that changed surface.
+See the CNX-442 final coordination report and [CURRENT_STATE.md](CURRENT_STATE.md) for exact IDs and current classification.

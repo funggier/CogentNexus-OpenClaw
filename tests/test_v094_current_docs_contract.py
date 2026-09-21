@@ -8,17 +8,23 @@ CURRENT_DOCS = (
     ROOT / "docs" / "CURRENT_STATE.md",
     ROOT / "docs" / "PROVIDERS.md",
     ROOT / "docs" / "INSTALL.md",
-    ROOT / "docs" / "TRANSIENT_STALL_RECOVERY.md",
     ROOT / "docs" / "operations" / "ROADMAP.md",
     ROOT / "docs" / "operations" / "STATUS.md",
-    ROOT / "docs" / "releases" / "v0.9.4.md",
+    ROOT / "docs" / "releases" / "v0.9.6.md",
 )
 
 
-def test_v094_current_docs_identify_the_candidate_as_unreleased():
+def test_current_docs_use_v096_and_delegate_publication_state_to_release_authority():
     for path in CURRENT_DOCS:
-        text = path.read_text(encoding="utf-8").lower()
-        assert "unreleased" in text or "not released" in text, path
+        text = path.read_text(encoding="utf-8")
+        assert "v0.9.6" in text or "`0.9.6`" in text, path
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    current = (ROOT / "docs" / "CURRENT_STATE.md").read_text(encoding="utf-8")
+    install = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")
+    assert "GitHub Release" in readme
+    assert "GitHub Releases/tags are authoritative" in current
+    assert "GitHub Release" in install
 
 
 def test_current_provider_docs_preserve_managed_and_passthrough_boundaries():

@@ -37,6 +37,19 @@ def test_superpowers_specs_and_plans_are_non_operational_design_evidence():
     )
 
 
+def test_exact_runtime_attestation_compatibility_literal_is_allowed_only_on_attestation_surface():
+    literal = '"cogentnexus.runtimeAttestation"'
+    assert not lint.find_violations(
+        "plugins/cogentnexus-openclaw/src/v095-runtime-hook-attestation.ts",
+        f"export const RUNTIME_ATTESTATION_METHOD = {literal};",
+    )
+    assert not lint.find_violations(
+        "plugins/cogentnexus-openclaw/src/v095-runtime-hook-attestation.test.ts",
+        f"expect(method).toBe({literal});",
+    )
+    assert lint.find_violations("scripts/example.py", literal)
+
+
 def test_generic_check_component_fails_even_in_current_migration_documentation():
     current_doc = "docs/V093_RECOVERY_REALITY_TESTS.md"
     generic_command = "cnxclaw.cmd check " + "cogentnexus"

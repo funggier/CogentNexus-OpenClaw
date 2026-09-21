@@ -16,7 +16,7 @@ from typing import Any
 
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
-INSTALLED_VERSION = "0.9.5"
+INSTALLED_VERSION = "0.9.6"
 UPGRADE_FROM_VERSIONS = ("0.9.4",)
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"

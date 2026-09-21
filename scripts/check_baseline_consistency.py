@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v0.9.5 baseline-consistency façade for the split Host compatibility surface."""
+"""v0.9.6 baseline-consistency façade for the split Host compatibility surface."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,7 +15,7 @@ finally:
 
 # The implementation remains archived as a compatibility engine, while the
 # live validator contract advances with the current repository baseline.
-EXPECTED_VERSION = "0.9.5"
+EXPECTED_VERSION = "0.9.6"
 
 _LEGACY_MAIN = main
 _LEGACY_CURRENT_TEXT_FILES = current_text_files

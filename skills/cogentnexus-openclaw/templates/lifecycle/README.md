@@ -1,8 +1,6 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 # Lifecycle launchers
 
-The current v0.9.4 operator surface is the `cnxclaw` launcher installed in the OpenClaw workspace:
+The current v0.9.6 operator surface is the `cnxclaw` launcher installed in the OpenClaw workspace. Historical v0.9.4 launcher behavior remains part of the compatibility lineage covered by the versioned regression tests:
 
 ```text
 cnxclaw status
@@ -20,7 +18,7 @@ The `cnxclaw.cmd` compatibility template routes through `cnxclaw_v093.py`, which
 
 Use `cnxclaw` for normal operation because Host operating mode, desired state, Ticket recovery, watchdog compatibility, startup ownership, provider policy, and runtime lifecycle must remain aligned.
 
-In v0.9.4 the managed inference-provider surface is Ollama, while Cloud routes are supported through OpenClaw-owned pass-through. The facade accepts an explicit `--provider ollama` for managed compatibility and does not accept Cloud provider lifecycle selections.
+In v0.9.6 the managed inference-provider surface is Ollama, while Cloud routes are supported through OpenClaw-owned pass-through. The facade accepts an explicit `--provider ollama` for managed compatibility and does not accept Cloud provider lifecycle selections.
 
 `cnxclaw stop` means intentional MAINTENANCE. `cnxclaw disable` means PASSTHROUGH and must leave native OpenClaw usable; the low-level stop wrapper is **not** a substitute for PASSTHROUGH.
 

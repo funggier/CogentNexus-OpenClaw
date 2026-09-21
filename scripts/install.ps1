@@ -758,6 +758,9 @@ if (-not $SkipAgentsPolicy) {
     if ($LASTEXITCODE -ne 0) { throw "managed AGENTS.md policy integration failed" }
 }
 
+openclaw config set plugins.entries.cogentnexus-openclaw.hooks.allowConversationAccess true
+if ($LASTEXITCODE -ne 0) { throw "failed to enforce OpenClaw conversation-hook policy" }
+
 if (-not $SkipGatewayRestart) {
     # CNX-442: managed owner conversations serialize new turns behind the
     # active run. Active-run Discord typing is driven by the plugin at the

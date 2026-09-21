@@ -1,124 +1,129 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current release:** `v0.9.5` — published and operationally validated  
-**Current `main` HEAD:** `22b735816d55562fc880f9b7fb1f0993606cfc0d`  
-**v0.9.5 release baseline:** `50be0b973c30fd8d1528aaac3497c0fc3b0b4d95`  
-**Git tag:** `v0.9.5` → exact release baseline above  
-**GitHub Release:** `CogentNexus-OpenClaw v0.9.5` — published, non-draft, non-prerelease  
-**Validated OpenClaw:** `2026.7.1-2 (0790d9f)`  
-**Managed provider:** **Ollama**  
-**Cloud provider mode:** OpenClaw-owned **pass-through**
+**Current source/release line:** `v0.9.6`
+**Current working branch:** `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+**Latest physical runtime acceptance:** OpenClaw `2026.9.5 (ec9c1a1)`
+**Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
+**Managed provider ownership:** **Ollama**
+**Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
+**License:** MIT
 
-See [POST_RELEASE_BASELINE.md](POST_RELEASE_BASELINE.md) for the concise release baseline and evidence summary.
+GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-CogentNexus-OpenClaw v0.9.5 is the current published stable release. Final acceptance, exact-head release-gating validation, controlled actionable-wake validation, PR merge verification, immutable tag verification, and post-release exact-tag installation/runtime verification have completed.
+The v0.9.6 source line includes the CNX-442 session-input serialization and authoritative Stop repair, physically requalified on Windows against OpenClaw 2026.9.5.
 
-The published release is immutable. `main` may now receive documentation or future development commits; those commits are not retroactively part of the published `v0.9.5` tag.
+Final CNX-442 classification:
 
-## Release identity
+- `CNX442_PRE_DISPATCH_FIFO_AUTHORITATIVE_STOP_GREEN`
+- `CNX442_NO_SUCCESSOR_HOST_RUN_GREEN`
+- `CNX442_USER_VISIBLE_STOP_GREEN`
 
-```text
-current main HEAD: 22b735816d55562fc880f9b7fb1f0993606cfc0d
-v0.9.5 release tag: 50be0b973c30fd8d1528aaac3497c0fc3b0b4d95
-PR #38: merged
-release: CogentNexus-OpenClaw v0.9.5
-```
+The repair changed queue ownership rather than compensating after OpenClaw had already dequeued a successor message. Later same-generation owner input is durably accepted and held at the claiming `before_dispatch` boundary until older work settles. A valid Stop cancels current + held Tickets before held input reaches the Host queue.
 
-The v0.9.5 merge commit has parent `6439dd963003856ee1b1f1f6f802fa2aa60d6612` and the accepted candidate `fc3f4bc0b1946815fb9063fb7a9d0675e1eb5a23`. GitHub verified the merge commit.
+## Final CNX-442 live evidence
 
-## Operational validation
+Accepted physical session:
 
-The accepted runtime path demonstrated:
+`16c1fe33-c906-4391-91ae-b2f0bc3f51b0`
 
-```text
-human intent
--> durable Ticket admission
--> logical session/run ownership
--> model execution
--> durable result
--> delivery confirmation
--> settled state
-```
+Active Ticket / run:
 
-Controlled actionable wake was verified with exactly one durable work item. Ticket/session/run identity, generation and ownership semantics were preserved, and the system returned to idle without duplicate owner activity.
+- Ticket `CNXT-add61119-da8e-475b-9dc5-21d3e9096b9b`
+- run `63d998b2-6b12-4639-a0b5-0ce240518fb1`
+- provider/model `ollama / qwen3.8:27b`
+- context `24576`
 
-The post-release baseline additionally verified:
+Held Ticket:
 
-- exact `v0.9.5` tag and merge identity;
-- exact-tag detached installation;
-- `VERSION` and plugin package version `0.9.5`;
-- successful installer execution;
-- plugin loaded at version `0.9.5`;
-- Gateway healthy;
-- Ollama installed/reachable/healthy/ready;
-- Ticket store integrity;
-- supervisor health;
+- Ticket `CNXT-abca44db-728b-4bf1-aef7-9c7d993002a0`
+- `bound_run_id = NULL`
+- model calls `0`
+- inference attempts `0`
+
+After Stop:
+
+- owner generation advanced exactly once: `22 -> 23`;
+- active Ticket became `cancelled`;
+- held Ticket became `cancelled`;
+- held Ticket remained unbound with zero inference;
 - pending outbox `0`;
-- source/installed `dist` tree identity;
-- completed GitHub check-runs on the merge SHA with successful conclusions.
+- active Direct Recovery `0`;
+- OpenClaw session ended `killed`, not `failed`;
+- Host trajectory contained one run only;
+- Host transcript did not contain the queued second message;
+- no successor Host run was created;
+- no new `blocked by cogentnexus-openclaw` or `This turn ended before a reply` appeared.
 
 ## Capability boundary
 
-| Capability | Current v0.9.5 state |
+| Capability | Current state |
 | --- | --- |
-| Ticket-first durable admission | Operationally validated |
-| DIRECT lane without forced workflow promotion | Operationally validated |
-| Host-owned managed recovery authority | Operationally validated |
-| Gateway/Ollama lifecycle and recovery path | Operationally validated |
-| Managed provider | **Ollama** |
-| Cloud provider mode | **OpenClaw-owned pass-through** |
-| Validated OpenClaw | `2026.7.1-2 (0790d9f)` |
-| Original provider/model recovery provenance | Accepted |
-| Native OpenClaw restart ownership fence | Accepted |
-| Recursive recovery intake suppression | Accepted |
-| Same-session duplicate Ticket suppression | Accepted |
-| Transient SQLite BUSY authority-read tolerance | Accepted |
+| Ticket-first durable admission | Accepted |
+| Pre-dispatch same-session FIFO | Accepted and physically requalified |
+| Authoritative user Stop generation barrier | Accepted and physically requalified |
+| Held queued Ticket zero-inference cancellation | Accepted |
+| No-successor Host run after Stop | Accepted |
+| DIRECT lane without forced workflow promotion | Accepted |
+| Host-managed recovery authority | Accepted |
+| Gateway lifecycle control | Accepted |
+| Managed local provider | Ollama |
+| Cloud/model/auth routing | OpenClaw-owned pass-through |
+| Latest physical OpenClaw compatibility | `2026.9.5 (ec9c1a1)` |
+| Regression/dev OpenClaw dependency pin | `2026.7.1-2` |
 | Response-ready immutability | Accepted |
-| Durable direct result and delivery confirmation | Accepted |
-| Bare `NO_REPLY` durable/UI leakage fence | Accepted and requalified |
-| Bounded same-run sentinel finalization handling | Implemented and requalified |
-| PASSTHROUGH / native OpenClaw compatibility | Accepted |
+| Durable result/delivery confirmation | Accepted |
+| Session-generation fencing | Accepted |
+| Restart recovery for held unbound ingress | Accepted in repository tests |
+| PASSTHROUGH/native compatibility | Accepted |
 | MAINTENANCE deliberate-stop semantics | Accepted |
-| `reset` explicit-`y` fresh-state reconstruction | Accepted |
-| `uninstall` ownership-safe external preservation | Accepted |
-| Fresh reinstall after uninstall | Accepted |
-| Public v0.9.5 GitHub Release | **Published** |
-| Real abrupt power-loss/cold-boot acceptance | Deferred |
-| Newer OpenClaw compatibility | Deferred |
+| reset/uninstall ownership boundaries | Accepted |
+| Abrupt power-loss/cold-boot acceptance | Still broader than the final CNX-442 proof |
 | High-concurrency/long-soak hardening | Not fully accepted |
-| Disk-full / DB-corruption recovery | Not production-hardened |
-| Exactly-once arbitrary external side effects | Requires adapter idempotency/verification |
+| Disk-full/DB-corruption recovery | Not production-hardened |
+| Arbitrary external side effects exactly once | Requires adapter idempotency/receipt verification |
 
-Operationally validated does not mean every future workload, provider, OpenClaw version, or failure mode is production-proven. The deferred boundaries above remain explicit.
+## OpenClaw compatibility wording
 
-## Provider semantics
+Two separate facts must not be conflated:
 
-v0.9.5 manages Ollama health, lifecycle, and recovery. Cloud routes remain OpenClaw-owned pass-through: OpenClaw owns authentication, routing/model selection, provider runtime, lifecycle, probing, and recovery. CogentNexus-OpenClaw preserves Ticket/session/generation continuity and durable delivery only; it does not read, copy, persist, refresh, or log Cloud credentials.
+1. `plugins/cogentnexus-openclaw/package.json` keeps OpenClaw `2026.7.1-2` as the regression/dev dependency pin.
+2. The latest real installed runtime used for final CNX-442 physical acceptance was OpenClaw `2026.9.5 (ec9c1a1)`.
 
-Historical LM Studio behavior belongs to the frozen historical provider layer and is not a current managed v0.9.5 provider contract.
+The package peer range is an install compatibility declaration, not an operational guarantee across every OpenClaw version.
 
-## System-check semantics and known discrepancy
+## Provider boundary
 
-`cnxclaw check ...` is observational and does not own provider-state mutation or model inference.
+OpenClaw owns Cloud authentication, routing, provider runtime lifecycle, and probing; CogentNexus-OpenClaw owns durable continuity/recovery evidence and managed Ollama health/lifecycle only.
 
-The validated post-release host still exposes a narrow checker inconsistency: `cnxclaw.cmd check system` may exit `2` with a provider-selection diagnostic while the same environment reports an active managed runtime, selected Ollama model, healthy Gateway, and Ollama `ready: true`.
+CogentNexus-OpenClaw manages Ollama only when local managed-provider ownership is active. Cloud providers and model selection remain OpenClaw-owned. CogentNexus-OpenClaw does not take ownership of Cloud credentials, authentication refresh, or provider lifecycle.
 
-This is explicitly recorded as a **known checker anomaly**. It is not silently promoted to PASS and is not treated as evidence that the v0.9.5 runtime is inactive. It must be repaired only through a new development candidate and the normal validation/release process; the published v0.9.5 tag is not modified.
+Historical LM Studio/provider experiments remain historical evidence only.
 
-## Publication boundary
+## Known validation baseline
 
-The public release is complete:
+The final CNX-442 source qualification before documentation/release convergence reported:
 
-1. accepted candidate `fc3f4bc0...`;
-2. exact-head release-gating checks passed;
-3. PR #38 merged;
-4. release baseline became `50be0b97...`;
-5. immutable `v0.9.5` tag created at that exact merge SHA;
-6. GitHub Release `v0.9.5` published;
-7. exact-tag post-release installation/runtime verification completed.
+- affected Stop/FIFO/restart/wiring suite: `49/49 PASS`;
+- full plugin suite: `427 PASS / 1 historical CNX-383 RED`;
+- TypeScript build: PASS;
+- `plugin:validate`: PASS;
+- Ticket DB/package validation: PASS;
+- supported Windows install-over: PASS.
 
-Current `main` contains post-release documentation clarification commits after the release baseline. These do not change the immutable release tag or published Release contents.
+CNX-443 re-runs the release gates against the final v0.9.6 candidate before publication.
 
-Historical coordination reports remain immutable evidence and should not be rewritten merely to make their historical wording current.
+## Coordination state
+
+The old Codex `legacy coordination watch` automation was retired and removed. Current coordination is explicit GitHub state plus direct ChatGPT/Hermes execution when required. Do not recreate the retired one-minute watcher from historical instructions.
+
+See:
+
+- `docs/operations/coordination/ACTIVE.md`
+- `docs/operations/coordination/STATUS.md`
+- `docs/operations/coordination/README.md`
+
+## Historical evidence policy
+
+Completed versioned release notes, acceptance files, tasks, reports, and reviews describe the states that existed when they were written. They remain immutable evidence unless a factual transcription error is discovered. Current-facing documents point to the latest accepted state instead of rewriting history.

@@ -1,3 +1,5 @@
+> **Historical evidence:** This file preserves the version/environment facts accepted when it was written. For current v0.9.6 state, see `docs/CURRENT_STATE.md`.
+
 # Continuity / Recovery Acceptance (ภาษาไทย)
 
 เอกสารนี้อธิบายสถานะ acceptance ปัจจุบัน ไม่ใช่คำสั่งให้ทำ fault injection กับระบบใช้งานจริงซ้ำโดยไม่มีเหตุผล

@@ -79,7 +79,7 @@ describe("v0.9.5 runtime hook attestation", () => {
     expect(response).toEqual({ ok: true, payload: expected });
   });
 
-  it("does not upgrade a global hook owned by another registry/plugin into CogentNexus PRESENT", () => {
+  it("does not upgrade a global hook owned by another registry/plugin into CogentNexus-OpenClaw PRESENT", () => {
     expect(classifyRuntimeHookAttestation({
       runnerReady: true,
       globalHookCount: 1,

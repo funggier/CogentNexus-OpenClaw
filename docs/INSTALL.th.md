@@ -1,28 +1,25 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
+# ติดตั้ง CogentNexus-OpenClaw v0.9.6 บน Windows
 
-# ติดตั้ง CogentNexus-OpenClaw v0.9.4 บน Windows
+คู่มือนี้เป็น **current-facing installation guide** สำหรับสาย v0.9.6 ครับ ควรติดตั้งจาก GitHub Release ที่ระบุเวอร์ชันชัดเจนและตรวจ `SHA256SUMS.txt` ก่อนใช้งานเสมอ
 
-CogentNexus-OpenClaw v0.9.4 ยังไม่ release/tag และใช้ compatibility baseline ที่ยืนยันแล้วคือ OpenClaw `2026.7.1-2 (0790d9f)` โดย CogentNexus-OpenClaw จัดการ health/lifecycle/recovery เฉพาะ Ollama ส่วน Cloud เป็น OpenClaw-owned pass-through: OpenClaw เป็นเจ้าของ credentials, routing/model selection, runtime, lifecycle, probing และ recovery; CogentNexus-OpenClaw ดูแลเฉพาะ Ticket/continuity/durable delivery และจะไม่อ่าน คัดลอก เก็บ refresh หรือ log Cloud credentials
+## ข้อมูล compatibility ที่ต้องแยกให้ออก
 
-implementation candidate `f6392da3e4112ce441526d5ef19925c90a872b0b` ผ่าน bounded real-Windows lifecycle acceptance และ final Dashboard semantic/durable-delivery acceptance แล้ว หลังจากนั้น Task 188 แก้ current-facing documentation ภายใน npm package และ installed skill surface โดยไม่เปลี่ยน executable/runtime source โดย corrected package payload-v2 identity คือ `408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b` / `184` files และ installed skill-tree identity คือ `a1e873ba404205507a1623961b49f1b1a0689f9f`
+- OpenClaw ที่ pin ไว้สำหรับ regression/dev dependency: `2026.7.1-2`
+- OpenClaw ที่ผ่าน physical runtime acceptance ล่าสุดจริง: `2026.9.5 (ec9c1a1)`
 
-การอ้างว่า artifact ถูก publish หรือติดตั้งต้องผูกกับ exact candidate/release artifact เสมอ GitHub Releases/tags เป็น authority ว่า public `v0.9.4` ถูก publish แล้วหรือยัง ส่วน moving branch ไม่ใช่ release identity
+สองค่านี้มีความหมายต่างกัน ไม่ควรใช้ peer/dependency range เป็นหลักฐานว่า runtime ทุกเวอร์ชันผ่าน acceptance แล้ว
 
 ## สิ่งที่ต้องมี
 
-- Windows 10/11 หรือ Windows Server พร้อม PowerShell 5.1 ขึ้นไป
+- Windows 10/11 หรือ Windows Server
+- PowerShell 5.1 ขึ้นไป
 - OpenClaw ที่ใช้งานได้
-- OpenClaw `2026.7.1-2` สำหรับ validated compatibility baseline
 - Python 3.11+ และ PyYAML
-- Node.js + npm
-
-รายการนี้เป็น prerequisite ของ installer ส่วน managed-provider readiness ตรวจหลังติดตั้งผ่าน runtime checks ไม่ใช่ความรับผิดชอบของ installer prerequisite contract
+- Node.js + npm เมื่อติดตั้งจาก source/release tree
 
 ## ติดตั้งจาก development candidate
 
-ตั้งใจ **ไม่มี** คำสั่ง `cnxclaw.cmd install` การติดตั้งทำผ่าน repository installer จาก exact source/archive ที่ตรวจสอบแล้ว
-
-บน Windows:
+ไม่มีคำสั่ง `cnxclaw.cmd install` โดยตั้งใจ การติดตั้งทำผ่าน repository installer จาก exact release tree หรือ source checkout ที่ตรวจแล้ว
 
 ```powershell
 python -m pip install "PyYAML>=6.0,<7"
@@ -39,145 +36,86 @@ python -m pip install 'PyYAML>=6.0,<7'
 
 ## สิ่งที่ installer ทำ
 
-Installer เป็น provider-neutral: ทำหน้าที่ stage/validate skill, สร้าง owned Host/runtime state อย่างปลอดภัย, install/validate OpenClaw Bridge, สร้าง launcher และเปิด runtime หลัง verification ที่ installer เป็นเจ้าของผ่านแล้วเท่านั้น ส่วน provider/runtime readiness เป็น post-install concern แยกต่างหาก
+Installer เป็น provider-neutral: ติดตั้งและตรวจเฉพาะ CogentNexus-OpenClaw-owned surfaces ที่จำเป็น โดยไม่รับ provider/model credential เป็น installation authority
 
-LM Studio เป็นส่วนของ frozen historical v0.9.2 และไม่ใช่ managed provider ของ v0.9.4 ส่วน managed runtime/operator target คือ Ollama ขณะที่ Cloud route ใช้ OpenClaw-owned pass-through โดย responsibility เรื่อง selection/readiness อยู่นอก installer prerequisite boundary
-
-### Installer parameters และ quarantined plugin rollover recovery
-
-Windows installer รองรับ `-Workspace`, `-RecoverRolloverTransaction`, `-RecoverRolloverTransactionSha256`, `-RecoverRolloverSourcePluginRoot`, `-SkipPlugin`, `-SkipGatewayRestart`, `-SkipAgentsPolicy` และ `-LinkPlugin` และไม่มี parameter `-InstallSourceCommit` การ recovery ต้องได้รับอนุญาตแยกต่างหากและระบุ transaction file พร้อม expected SHA-256 จากอำนาจภายนอก:
-
-```powershell
-.\scripts\install.ps1 `
-  -Workspace "$HOME\.openclaw\workspace" `
-  -RecoverRolloverTransaction "C:\path\to\plugin-rollover-transaction.json" `
-  -RecoverRolloverTransactionSha256 "<SHA-256 64 hex ของ transaction file นั้น>" `
-  -RecoverRolloverSourcePluginRoot "C:\path\to\verified-artifact\plugins\cogentnexus-openclaw"
-```
-
-installer คำนวณ expected recovery replacement fingerprint จาก plugin root ของ exact verified artifact, capture inventory สด และ forward transaction path, expected transaction SHA-256 และ artifact-derived expected replacement fingerprint ไปยัง lower-level recovery ถ้า file ไม่มีอยู่ ค่าไม่ครบ รูปแบบไม่ถูก หรือ hash/fingerprint ไม่ตรง ต้อง fail closed ก่อน preflight/classification และก่อน installation mutation
-
-## Artifact identity และ acceptance lineage
-
-full Windows acceptance sequence ผ่านครั้งแรกบน implementation baseline นี้:
-
-```text
-source candidate: f6392da3e4112ce441526d5ef19925c90a872b0b
-active facade SHA-256: aa747f8f30080ef839a8d2cbf5758f9981a007ca01f41a988576f42edea8682f
-installed plugin inventory fingerprint: e7d7d6c115040368e35232c83cacec315f6667c92452a5641f7a48a6947baf19
-OpenClaw: 2026.7.1-2 (0790d9f)
-managed provider: ollama
-```
-
-Task 188 แก้ documentation-bearing product bytes โดยรักษา executable/runtime source เดิมไว้ corrected artifact identities คือ:
-
-```text
-package payload-v2: 408167da1bfba7fa9723d1bd557f29d516ed27c27398b4e48abf9a4f294e6b5b
-package file count: 184
-installed skill tree: a1e873ba404205507a1623961b49f1b1a0689f9f
-executable scripts tree: 3d9d323ba19443d46e970b87cef52ce878da274f (unchanged)
-facade Git blob: 879083d6186589d4b2774b8fd87fa93692dd2dfc (unchanged)
-```
-
-เพราะ package/skill bytes เปลี่ยน corrected artifact จึงต้องผ่าน proportional changed-surface requalification ก่อน publication การทำเช่นนี้ไม่ได้ลบหลักฐาน lifecycle เดิม แต่เก็บหลักฐานนั้นไว้สำหรับ executable surface ที่พิสูจน์ว่า byte-identical และ requalify เฉพาะ installed documentation/instruction surface ที่เปลี่ยน
-
-## ตรวจ runtime/provider หลังติดตั้ง
-
-managed runtime/provider target ของ v0.9.4 คือ Ollama ส่วน Cloud route ที่ตั้งค่าไว้ใช้ OpenClaw-owned pass-through ซึ่ง OpenClaw เป็นเจ้าของ authentication, model readiness, lifecycle, probing และ recovery; การตรวจ executable, endpoint/model readiness และ health ของ managed Ollama เป็นความรับผิดชอบของ CogentNexus-OpenClaw runtime หลังติดตั้ง
+หลังติดตั้ง:
 
 ```powershell
 cd "$HOME\.openclaw\workspace"
 .\cnxclaw.cmd status
 .\cnxclaw.cmd check system
 .\cnxclaw.cmd check provider
-.\cnxclaw.cmd check provider ollama
 ```
 
-managed readiness ควรมีอย่างน้อย:
+## Provider boundary ปัจจุบัน
 
-- controller mode = `managed`
-- managed provider = Ollama
-- Ollama ติดตั้งและ reachable
-- Gateway healthy
-- CogentNexus-OpenClaw plugin enabled/loaded
-- Ticket database อ่านได้และ integrity ผ่าน
-- ไม่มี recovery/outbox backlog ที่ไม่คาดคิดในระบบ idle
+- Managed local provider lifecycle: **Ollama**
+- Cloud/provider/model/auth routing: **OpenClaw เป็นเจ้าของ**
+- CogentNexus-OpenClaw ดูแล Ticket/session/generation continuity และ durable delivery
+- ไม่เก็บ/refresh Cloud credentials
+- ไม่ fallback provider แบบเงียบ
 
-ทุกคำสั่งใต้ `check` ต้องเป็น **read-only** และห้ามแก้ lifecycle/config/Ticket state
+## พฤติกรรม Stop/Queue ที่ v0.9.6 รับรอง
 
-## คำสั่งใช้งานประจำ
+ข้อความที่สองใน owner session เดียวกันจะถูก persist แล้ว hold ที่ `before_dispatch` หาก Ticket ก่อนหน้ายังไม่ terminal จึงยังไม่เข้า Host queue
 
-ดูคำอธิบายแต่ละคำสั่ง, ความต่างระหว่าง Managed Ollama กับ Cloud pass-through, ลำดับเข้า/ออกโหมด และข้อควรระวังได้ที่ [คู่มือคำสั่งภาษาไทย](COMMANDS.th.md)
+เมื่อผู้ใช้กด Stop:
+
+- generation เพิ่มหนึ่งครั้ง
+- active + held Ticket ถูก cancel
+- held Ticket ที่ยังไม่เคย bind run จะถูก consume ก่อน Host queue
+- ต้องไม่มี inference ของ held Ticket
+- ต้องไม่มี successor Host run จากข้อความที่ถูกยกเลิก
+
+CNX-442 ผ่าน physical Discord acceptance บน OpenClaw 2026.9.5 แล้ว
+
+## คำสั่งประจำ
 
 ```powershell
 .\cnxclaw.cmd status
-.\cnxclaw.cmd provider list
-.\cnxclaw.cmd check system
 .\cnxclaw.cmd start
-.\cnxclaw.cmd start --provider ollama
 .\cnxclaw.cmd stop
 .\cnxclaw.cmd restart
-.\cnxclaw.cmd restart --provider ollama
 .\cnxclaw.cmd gateway start
 .\cnxclaw.cmd gateway stop
 .\cnxclaw.cmd gateway restart
 .\cnxclaw.cmd ticket list
+.\cnxclaw.cmd ticket cancel <ticket-id>
+.\cnxclaw.cmd session cancel <session-key>
 .\cnxclaw.cmd disable
 .\cnxclaw.cmd enable
 ```
 
-- `disable` = คืน OpenClaw ไป native/PASSTHROUGH
-- `stop` = deliberate MAINTENANCE โดยเก็บ durable state
+ดูรายละเอียดเพิ่มที่ [COMMANDS.th.md](COMMANDS.th.md)
 
-## Reset ให้เหมือน fresh install
+## Reset / Uninstall
 
 ```powershell
 .\cnxclaw.cmd reset
-```
-
-หรือระบุ Ollama อย่างชัดเจนเมื่อ interface รองรับ:
-
-```powershell
-.\cnxclaw.cmd reset --provider ollama
-```
-
-`reset` เป็น destructive operation และต้องพิมพ์ `y` ยืนยันอย่างชัดเจน ระบบจะล้างเฉพาะ CogentNexus-OpenClaw-owned Ticket/recovery/delivery/runtime/session/workflow/diagnostic/config state แล้วสร้าง fresh state จาก candidate ที่ติดตั้งอยู่ โดยต้องไม่ลบ OpenClaw ภายนอก, Ollama models/data หรือ unrelated workspace data
-
-Task 183 ยืนยัน boundary นี้บน implementation baseline แล้ว Task 188 จะไม่ทำ destructive boundary นี้ซ้ำโดยอัตโนมัติเพราะไฟล์ที่แก้เป็น documentation/instruction bytes และจะทำซ้ำเฉพาะเมื่อ evidence ของ corrected candidate ให้เหตุผลด้าน lifecycle ที่ชัดเจน
-
-## ถอน CogentNexus-OpenClaw ออกทั้งหมด
-
-```powershell
 .\cnxclaw.cmd uninstall
 ```
 
-`uninstall` เป็น destructive operation และต้องพิมพ์ `y` ยืนยัน ระบบต้องคืน native/PASSTHROUGH อย่างปลอดภัยแล้วลบเฉพาะ CogentNexus-OpenClaw-owned surfaces โดยรักษา OpenClaw, Ollama, user data และ namespace อื่นไว้
+ทั้งสองคำสั่งเป็น destructive operation และต้องยืนยันอย่างชัดเจน ระบบต้องลบเฉพาะ CogentNexus-OpenClaw-owned state และรักษา OpenClaw/Ollama/user data ที่อยู่นอก ownership boundary
 
-Task 184 ยืนยัน external-preservation boundary บน implementation baseline แล้ว และ Task 185 ยืนยัน fresh reinstall + post-install health ต่อจาก uninstall แล้ว
+## Clean reinstall
 
-## Final semantic acceptance lineage
+ใช้ [CLEAN_REINSTALL.th.md](CLEAN_REINSTALL.th.md) เมื่อต้องการล้าง CNX-owned durable state และติดตั้งใหม่ โดยค่าเริ่มต้นควร backup ออกนอก active tree ก่อน
 
-Task 186 ยืนยันหนึ่ง bounded Dashboard turn หลัง lifecycle sequence:
+## ติดตั้งจาก GitHub Release v0.9.6
 
-```text
-1 human Send
--> 1 Ticket
--> 1 session/run
--> 1 Ollama model call
--> 1 durable assistant delivery
--> 1 logical Dashboard assistant result
-```
+ไฟล์ที่คาดหวัง:
 
-ไม่มี retry, duplicate semantic work, direct recovery หรือ outbox residue เนื่องจาก Task 188 เปลี่ยน installed instruction surface การ proportional requalification จึงรวม bounded semantic/durable-delivery turn เพิ่มอีกหนึ่งครั้งก่อน publication
-
-## การติดตั้งจาก Release
-
-เมื่อ GitHub Release `v0.9.4` มีอยู่จริง ให้ใช้ exact assets ที่ `.github/workflows/release.yml` สร้างและ verify:
-
-- `cogentnexus-openclaw-v0.9.4.tar.gz`
-- `cogentnexus-openclaw-v0.9.4.zip`
+- `cogentnexus-openclaw-v0.9.6.tar.gz`
+- `cogentnexus-openclaw-v0.9.6.zip`
 - `SHA256SUMS.txt`
+- release notes
 
-ให้ตรวจ checksum ของ archive จาก `SHA256SUMS.txt`, extract archive แล้วรัน installer จาก exact extracted release tree นั้น หาก GitHub Release/tag ยังไม่มีอยู่ ให้ใช้ exact candidate ที่ได้รับการ review ชัดเจนแทน และห้ามเดาหรือสร้าง release download URL ขึ้นเอง
+ให้ตรวจ checksum ก่อน extract/install
 
-ดูเพิ่มเติมที่ [CURRENT_STATE.md](CURRENT_STATE.md), [PROVIDERS.md](PROVIDERS.md), [CHECK_SYSTEM.md](CHECK_SYSTEM.md) และ [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md)
+## อ่านเพิ่มเติม
+
+- [CURRENT_STATE.md](CURRENT_STATE.md)
+- [PROVIDERS.md](PROVIDERS.md)
+- [CHECK_SYSTEM.md](CHECK_SYSTEM.md)
+- [COMMANDS.th.md](COMMANDS.th.md)
+- [CLEAN_REINSTALL.th.md](CLEAN_REINSTALL.th.md)

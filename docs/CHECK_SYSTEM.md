@@ -1,8 +1,6 @@
-**Current v0.9.5 release candidate:** pre-publication validation in progress.
-
 # `cnxclaw check` — read-only system pre-flight
 
-CogentNexus-OpenClaw v0.9.4 groups diagnostic inspection under the `check` namespace. The current managed provider contract is **Ollama only**.
+CogentNexus-OpenClaw v0.9.6 groups diagnostic inspection under the `check` namespace. The current managed provider contract is **Ollama only**.
 
 `status` answers what state is recorded now. `check` actively verifies whether that state and its dependencies are coherent/ready, but never repairs or mutates them.
 
@@ -44,14 +42,14 @@ Exit codes are stable for scripts:
 
 ## Provider checks
 
-Current v0.9.4 provider checks target Ollama:
+Current v0.9.6 managed-provider checks target Ollama:
 
 ```powershell
 .\cnxclaw.cmd check provider
 .\cnxclaw.cmd check provider ollama
 ```
 
-The report is observational only. Unsupported provider names are outside the v0.9.4 managed contract.
+The report is observational only. Unsupported provider names are outside the v0.9.6 managed contract.
 
 ## Component checks
 
@@ -113,4 +111,4 @@ Component rows use four diagnostic states:
 
 ## Historical compatibility note
 
-Frozen v0.9.2 source/evidence may describe provider-neutral checks, including LM Studio. That history remains valid historical evidence, but it is not current v0.9.4 operator guidance.
+Frozen v0.9.2 source/evidence may describe provider-neutral checks, including LM Studio. That history remains valid historical evidence, but it is not current v0.9.6 operator guidance.

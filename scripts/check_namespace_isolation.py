@@ -9,6 +9,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORICAL_PREFIXES = ("docs/operations/coordination/", "docs/superpowers/")
+COMPATIBILITY_LITERAL_PATHS = {
+    "plugins/cogentnexus-openclaw/src/v095-runtime-hook-attestation.ts",
+    "plugins/cogentnexus-openclaw/src/v095-runtime-hook-attestation.test.ts",
+}
+COMPATIBILITY_LITERALS = ("cogentnexus.runtimeAttestation",)
+
 MIGRATION_PATHS = {
     "scripts/install.ps1", "scripts/install.sh",
     "skills/cogentnexus-openclaw/scripts/namespace_ownership.py",
@@ -39,6 +45,8 @@ def historical(relative: str) -> bool:
 
 
 def migration_literal_allowed(relative: str, line: str) -> bool:
+    if relative in COMPATIBILITY_LITERAL_PATHS and any(literal in line for literal in COMPATIBILITY_LITERALS):
+        return True
     if relative not in MIGRATION_PATHS:
         return False
     if relative.startswith("docs/") or relative.startswith("scripts/test-v093-") or relative.startswith("tests/test_namespace_"):

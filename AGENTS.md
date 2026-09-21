@@ -1,46 +1,48 @@
 # CogentNexus-OpenClaw Agent Instructions
 
-Use this file as a compact entry point. Deeper project truth lives under `docs/`.
+Use this file as the compact repository entry point. Current operational truth lives under `docs/`.
 
-## Coordination with ChatGPT
+## Project identity
 
-When the operator is using the GitHub coordination workflow, read:
+- Repository: `funggier/CogentNexus-OpenClaw`
+- Current source/release line: `v0.9.6`
+- Current working branch: read from remote coordination `ACTIVE.md` / `STATUS.md`; do not hard-code an older branch
+- License: MIT
 
-- `docs/operations/coordination/README.md`
-- `docs/operations/coordination/SIGNALS.md`
-- `docs/operations/coordination/ACTIVE.md`
-- the active task linked by `ACTIVE.md`
+## Coordination
 
-The operator should not need to copy the task body from ChatGPT into Hermes/Codex.
+When using the GitHub coordination workflow, read:
 
-### Minimal trigger
+1. `docs/operations/coordination/README.md`
+2. `docs/operations/coordination/ACTIVE.md`
+3. `docs/operations/coordination/STATUS.md`
+4. the task linked by `ACTIVE.md`
 
-If the operator sends only:
+ChatGPT should execute repository/source/documentation/review work directly when current tools permit. Hermes is primarily for bounded local/live work that requires the user's machine.
 
-```text
-ต่อ
-```
+The old Codex `legacy coordination watch` automation was retired and removed. Do not recreate it from historical task/report text.
 
-safely synchronize the current authorized coordination branch, re-read the current GitHub coordination records, and execute the active task **only if** `ACTIVE.md` is `READY_FOR_HERMES`.
+## Minimal signals
 
-The executor contract is **Hermes/Codex**: either authorized executor may perform the exact READY task, but the durable GitHub task/report/review state remains authoritative.
+- `ต่อ` — synchronize current durable authority and continue the exact assigned task.
+- `สถานะ` — read/report state only.
+- `หยุด` — do not begin a new coordination task.
 
-Write the result to the matching file under `docs/operations/coordination/reports/`, commit/push normally, then stop for ChatGPT review.
-
-Do not repeat completed disruptive effects if a matching completed report already exists or review is pending.
-
-`สถานะ` is read-only coordination status. `หยุด` means do not begin a new coordination task.
+Historical READY/WAITING tokens remain meaningful in old evidence but are not substitutes for reading current authority.
 
 ## Safety
 
-Task-specific safety gates are mandatory. A trigger never overrides them. If prerequisites are unsafe, ambiguous, or unsatisfied, report `BLOCKED` rather than improvising.
+- Task-specific safety gates are mandatory.
+- Never force-push unless the operator explicitly gives separate, unmistakable authority requiring it.
+- Protect unknown local work.
+- Do not repeat completed external side effects after matching terminal evidence.
+- Do not infer destructive/live/semantic authority from repository access.
+- Historical tasks/reports/releases remain historical evidence.
 
-Never force-push coordination history unless the operator explicitly gives a separate instruction that clearly requires it.
+## Technical truth
 
-## Project truth
+Accepted technical claims require code/tests/evidence/release gates. Current-facing documentation must distinguish:
 
-- Repository identity: `funggier/CogentNexus-OpenClaw`.
-- Current stabilization branch: `agent/v0.9.3-full-stabilization`.
-- `docs/operations/` is living project status/roadmap/history.
-- Accepted technical claims require code/tests/evidence/release gates.
-- v0.9.2 is a frozen historical baseline; do not rewrite it for v0.9.3 convenience.
+- latest physical runtime acceptance from regression dependency pins;
+- published release identity from an in-progress source/release line;
+- historical compatibility code names from the current package version.

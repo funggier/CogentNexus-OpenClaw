@@ -16,4 +16,4 @@ Manual stop is not a crash. A later explicit start/restart may resume eligible d
 
 Transactional enable must not commit MANAGED until plugin/policy/runtime health stages succeed. Disable must restore native surfaces before PASSTHROUGH is considered complete.
 
-Compatibility baseline: OpenClaw 2026.7.1-2. Newer versions require a new compatibility check before claiming identical lifecycle/recovery behavior.
+Regression/dev compatibility pin: OpenClaw 2026.7.1-2. Latest physical runtime acceptance: OpenClaw 2026.9.5 (ec9c1a1). Future versions still require explicit compatibility evidence before claiming identical lifecycle/recovery behavior.

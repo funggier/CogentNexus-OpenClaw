@@ -19,7 +19,7 @@ The target is a complete user-visible execution path in which provider and model
 
 The operator must be able to:
 
-1. Open the CogentNexus/OpenClaw Web Chat.
+1. Open the CogentNexus-OpenClaw/OpenClaw Web Chat.
 2. Select an available provider.
 3. Select a model exposed by that provider.
 4. Send a message and receive a real response.
@@ -88,7 +88,7 @@ EXECUTION / TOOLS / RESULT
 
 The session owns continuity.
 
-In CogentNexus-OpenClaw v0.9.5, OpenClaw remains the provider/model/auth/routing authority. The logical provider router in this document is therefore OpenClaw-owned unless future evidence requires otherwise.
+In CogentNexus-OpenClaw v0.9.6, OpenClaw remains the provider/model/auth/routing authority. The logical provider router in this document is therefore OpenClaw-owned unless future evidence requires otherwise.
 
 CogentNexus-OpenClaw must preserve Ticket/session/policy/delivery continuity across provider/model changes and must not create a competing routing authority.
 
@@ -102,7 +102,7 @@ Changing provider or model must not, by itself:
 
 - create a new session;
 - discard conversation history;
-- silently reset CogentNexus state;
+- silently reset CogentNexus-OpenClaw state;
 - discard ticket/project context;
 - change agent identity;
 - clear tool state that is defined as session-scoped;
@@ -186,7 +186,7 @@ The contract should cover, as applicable:
 - context/window constraints;
 - provider-specific metadata without leaking provider-specific behavior into Session/Core.
 
-Provider-specific details should remain behind the OpenClaw-owned provider/adapter boundary whenever practical. CogentNexus should observe only the execution metadata needed for continuity, policy, evidence, and capability-safe behavior.
+Provider-specific details should remain behind the OpenClaw-owned provider/adapter boundary whenever practical. CogentNexus-OpenClaw should observe only the execution metadata needed for continuity, policy, evidence, and capability-safe behavior.
 
 ## Ollama as the Baseline
 
@@ -250,7 +250,7 @@ while retaining the same session and conversation continuity.
 
 ### M5 — Common Agent/Tool Path
 
-The same CogentNexus agent/tool execution architecture is used regardless of provider, subject to declared provider/model capabilities.
+The same CogentNexus-OpenClaw agent/tool execution architecture is used regardless of provider, subject to declared provider/model capabilities.
 
 Provider-specific code must not create separate incompatible agent architectures.
 
@@ -290,7 +290,7 @@ The main goal is considered achieved only when a real user can demonstrate all o
 7. Change back to Ollama or another admitted provider.
 8. Continue the same conversation without reconstructing context.
 9. Observe no unintended session reset caused solely by the provider/model change.
-10. Use the common CogentNexus execution path rather than a provider-specific side channel.
+10. Use the common CogentNexus-OpenClaw execution path rather than a provider-specific side channel.
 
 The strongest representative end-to-end acceptance statement is:
 
@@ -311,9 +311,9 @@ It does not require:
 
 Differences should be surfaced through capabilities and normalized behavior rather than hidden by false equivalence.
 
-## Relationship to CogentNexus Direction
+## Relationship to CogentNexus-OpenClaw Direction
 
-This goal supports the broader CogentNexus invariant:
+This goal supports the broader CogentNexus-OpenClaw invariant:
 
 ```text
 Human intent
@@ -344,7 +344,7 @@ Future coordination tasks should reference this document when planning provider/
 When this goal becomes an authorized implementation task, the preferred first step is repository/runtime archaeology rather than immediate redesign:
 
 1. Trace the current real Ollama path from Web Chat selection through session dispatch, routing, provider invocation, streaming, and response persistence.
-2. Identify which parts are OpenClaw-native behavior and which parts CogentNexus intercepts or owns.
+2. Identify which parts are OpenClaw-native behavior and which parts CogentNexus-OpenClaw intercepts or owns.
 3. Identify the existing provider/model selection state and its lifetime.
 4. Determine whether provider/model selection is already session-scoped, turn-scoped, or globally configured.
 5. Preserve the known-good path wherever possible.

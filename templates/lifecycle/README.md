@@ -12,4 +12,4 @@ Current mode semantics:
 
 Do not treat a deliberate stop as a crash or allow the supervisor to immediately undo it.
 
-The accepted recovery baseline is v0.9.1 on OpenClaw 2026.7.1-2; see root `docs/CURRENT_STATE.md`.
+Historical recovery-core evidence began on v0.9.1/OpenClaw 2026.7.1-2; current physical acceptance is recorded in root `docs/CURRENT_STATE.md`.
