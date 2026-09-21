@@ -19,8 +19,10 @@ spec.loader.exec_module(cnx)
 class V091PluginMutationTimeoutTests(unittest.TestCase):
     def test_plugin_enable_disable_timeout_covers_openclaw95_startup_window(self):
         original_run = cnx.legacy.run
+        original_openclaw_executable = cnx.legacy.openclaw_executable
         seen = []
         try:
+            cnx.legacy.openclaw_executable = lambda: "openclaw"
             def fake_run(cmd, timeout=30, check=False):
                 seen.append({"cmd": cmd, "timeout": timeout, "check": check})
                 return subprocess.CompletedProcess(cmd, 0, "", "")
@@ -29,6 +31,7 @@ class V091PluginMutationTimeoutTests(unittest.TestCase):
             cnx.legacy.plugin_enabled(True)
         finally:
             cnx.legacy.run = original_run
+            cnx.legacy.openclaw_executable = original_openclaw_executable
 
         self.assertEqual(len(seen), 2)
         self.assertTrue(all(item["timeout"] >= 180 for item in seen), seen)

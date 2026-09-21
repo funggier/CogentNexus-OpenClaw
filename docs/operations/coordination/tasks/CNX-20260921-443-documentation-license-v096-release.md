@@ -147,3 +147,23 @@ Therefore no unrequired PR/merge will be introduced merely to imitate v0.9.5 his
 7. dispatch `release.yml` for `0.9.6` with that SHA;
 8. verify public tag/release/assets/checksums independently;
 9. only then mark CNX-443 and coordination COMPLETE.
+
+## Exact-candidate CI portability checkpoint — 2026-09-22
+
+Candidate `c566af807e45ec9ba6cf7ef2db908482cbb58734` completed the required live lifecycle gates on OpenClaw 2026.9.5:
+
+- exact install-over: PASS;
+- exact clean reinstall: PASS;
+- exact reset: PASS;
+- final same-version v0.9.6 -> v0.9.6 install-over: PASS;
+- post-stage Host state: active/MANAGED, Gateway healthy, supervisor Ready/Enabled, pending outbox zero;
+- OpenClaw-owned route remained `ollama/qwen3.8:27b`;
+- installed/source production-script SHA-256 parity: PASS.
+
+The candidate was then pushed without force and local/remote SHA equality was proven. Exact-SHA GitHub smoke workflows `PS5.1 Acceptance Smoke` and `Windows Installer Pack Smoke` passed.
+
+The matrix `Validate` workflow rejected the candidate because four Python tests mocked command execution but still resolved a real OpenClaw executable before the mock boundary. Clean GitHub runners therefore raised `FileNotFoundError: OpenClaw CLI not found on PATH`. Local reproduction with OpenClaw removed from PATH reproduced the same four failures.
+
+This is a test-isolation/CI-portability defect, not a production runtime defect. Candidate `c566af80...` is rejected for publication. The minimal repair mocks `openclaw_executable()` inside the four affected tests while leaving production code unchanged. Focused no-OpenClaw-PATH verification is GREEN: `12 passed`.
+
+A new exact candidate is required after final local requalification and exact-SHA GitHub validation.

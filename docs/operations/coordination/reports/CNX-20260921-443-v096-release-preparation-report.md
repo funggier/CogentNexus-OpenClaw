@@ -445,3 +445,32 @@ This is **not** the final CNX-443 success classification because a new post-repa
 10. verify public tag target, release state, tar.gz, zip, `SHA256SUMS.txt`, and release notes;
 11. independently download and verify release checksums;
 12. only after public verification update CNX-443, `ACTIVE.md`, and `STATUS.md` to COMPLETE in a post-release coordination commit newer than the immutable v0.9.6 tag.
+
+## Exact-candidate GitHub CI portability blocker on c566af80
+
+The next frozen candidate was:
+
+`c566af807e45ec9ba6cf7ef2db908482cbb58734`
+
+It completed the renewed physical lifecycle acceptance on OpenClaw 2026.9.5. Exact install-over, clean reinstall, provider-neutral reset, and the required final same-version v0.9.6 -> v0.9.6 install-over all completed with exit code 0. The final state was active/MANAGED, Gateway 2026.9.5 healthy, plugin v0.9.6 enabled, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, and the OpenClaw-owned model route remained `ollama/qwen3.8:27b`. The reset left no `supervisor-quiescence.json` lease residue; the remaining `supervisor-quiescence.lock` is the operation mutex defined by `supervisor_quiescence.py`, not an active lease. Selected installed production scripts matched repository SHA-256 values exactly.
+
+The branch was pushed without force and local/remote SHA equality was proven for `c566af80...`. Exact-SHA GitHub results then showed:
+
+- `PS5.1 Acceptance Smoke`: SUCCESS;
+- `Windows Installer Pack Smoke`: SUCCESS;
+- `Validate`: FAILURE.
+
+The Validate package dry-run passed. The matrix failures all occurred in `python -m pytest -q`. Clean runners do not install the OpenClaw CLI, while four unit tests mocked the command runner but still called `openclaw_executable()` first. Representative failures were `FileNotFoundError: OpenClaw CLI not found on PATH` in:
+
+- `test_config_path_supported_distinguishes_removed_path_from_valid_unset`;
+- `test_default_agent_id_fails_controlled_when_captured_stdout_is_missing`;
+- `test_restore_native_gateway_uses_bounded_readiness_wait`;
+- `test_plugin_enable_disable_timeout_covers_openclaw95_startup_window`.
+
+A local RED reproduction removed OpenClaw from PATH only for those four focused test modules and reproduced exactly four failures. The minimal repair keeps production source unchanged and makes the tests fully isolated by mocking `openclaw_executable()` at the same boundary as the mocked command execution. The same focused no-OpenClaw-PATH run is now GREEN:
+
+```text
+12 passed
+```
+
+Candidate `c566af80...` is rejected for publication because exact-candidate GitHub validation is not GREEN. A new exact candidate will be frozen only after final local requalification of this test-isolation repair.

@@ -82,9 +82,10 @@ class WindowsSubprocessUtf8BoundaryTests(unittest.TestCase):
 
     def test_default_agent_id_fails_controlled_when_captured_stdout_is_missing(self):
         completed = subprocess.CompletedProcess(["openclaw"], 0, stdout=None, stderr=None)
-        with mock.patch.object(host, "run", return_value=completed):
-            with self.assertRaisesRegex(RuntimeError, "agents list returned invalid JSON"):
-                host.default_agent_id()
+        with mock.patch.object(host, "openclaw_executable", return_value="openclaw"):
+            with mock.patch.object(host, "run", return_value=completed):
+                with self.assertRaisesRegex(RuntimeError, "agents list returned invalid JSON"):
+                    host.default_agent_id()
 
 
 if __name__ == "__main__":

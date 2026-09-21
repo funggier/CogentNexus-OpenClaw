@@ -19,7 +19,9 @@ spec.loader.exec_module(cnx)
 class HostWatchdogSchemaCompatTests(unittest.TestCase):
     def test_config_path_supported_distinguishes_removed_path_from_valid_unset(self):
         original_run = cnx.run
+        original_openclaw_executable = cnx.openclaw_executable
         try:
+            cnx.openclaw_executable = lambda: "openclaw"
             cnx.run = lambda *_args, **_kwargs: subprocess.CompletedProcess(
                 ["stub"], 1,
                 stdout=json.dumps({"ok": False, "error": {"message": "Unknown config path: diagnostics.stuckSessionAbortMs. Run openclaw config schema to inspect valid paths."}}),
@@ -35,6 +37,7 @@ class HostWatchdogSchemaCompatTests(unittest.TestCase):
             self.assertTrue(cnx.config_path_supported(cnx.WATCHDOG_PATH))
         finally:
             cnx.run = original_run
+            cnx.openclaw_executable = original_openclaw_executable
 
     def test_apply_skips_removed_watchdog_schema_without_config_mutation(self):
         with tempfile.TemporaryDirectory() as tmp:

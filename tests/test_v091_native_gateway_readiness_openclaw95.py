@@ -67,6 +67,7 @@ class V091NativeGatewayReadinessTests(unittest.TestCase):
 
     def test_restore_native_gateway_uses_bounded_readiness_wait(self):
         run_calls = []
+        self.patch(cnx.legacy, "openclaw_executable", lambda: "openclaw")
         self.patch(cnx.legacy, "run", lambda cmd, timeout=120, check=False: (
             run_calls.append((cmd, timeout, check))
             or self.completed(stdout="restart accepted", returncode=0)
