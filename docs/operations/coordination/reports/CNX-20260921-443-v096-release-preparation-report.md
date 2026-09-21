@@ -411,9 +411,19 @@ This evidence shows that 300 seconds is not a valid Host-enable budget on the va
 
 Candidate `e41f4ddc...` is rejected for publication because the reset Host-budget repair changes production reset source. A new exact candidate is required after full requalification and renewed lifecycle acceptance.
 
+## Post-commit managed Gateway readiness blocker on candidate fbfde30b
+
+Candidate `fbfde30b82790b166143832983704c3454e594f6` passed local qualification (`717 passed, 5 skipped, 38 subtests passed`) and exact install-over. Its exact reset acceptance also passed with terminal `COGENTNEXUS-OPENCLAW RESET: PASS`, exit code 0, plugin loaded, provider/routing unchanged, active/MANAGED generation 2, OpenClaw/Gateway 2026.9.5 healthy, plugin v0.9.6 loaded, pending outbox zero, route unchanged at `ollama/qwen3.8:27b`, supervisor Ready/Enabled with `LastTaskResult=0`, and no quiescence lease residue.
+
+The required final same-version install-over then exposed a distinct post-commit transient. The transaction successfully entered PASSTHROUGH, reinstalled the exact payload, staged managed configuration, enabled the plugin, committed MANAGED authority, restarted the runtime, and reached managed health verification. At that instant the Gateway process was running and owned port 18789, but a single WebSocket connectivity probe timed out. The Host treated that one probe as terminal failure and correctly rolled back to PASSTHROUGH. Native rollback then converged healthy after six readiness attempts / about 88 seconds.
+
+Code inspection proved the asymmetry: activation already used bounded readiness convergence before staging and before plugin activation, while the post-MANAGED lifecycle check still called `gateway_status()` exactly once. RED-first ordering coverage now requires a third bounded readiness fence after `runtime lifecycle start`. The repair reuses the existing health-only bounded readiness poll; despite its historical helper name it performs no provider, routing, or authority mutation. Focused activation/reset/quiescence coverage is GREEN (`22 tests + 2 subtests`).
+
+Candidate `fbfde30b...` is rejected for publication because the post-commit readiness repair changes production Host activation source. A new exact candidate is required after full requalification and renewed exact lifecycle acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused activation/quiescence/reset coverage `19 passed`, full Python `717 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `2f674506a55a63c9e8b8c02371a32326b5d77490cce02922ec86917add71c909`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
+All currently executable local release gates are GREEN after the live-found lifecycle repairs. The latest requalification completed with focused activation/reset/quiescence coverage `22 tests + 2 subtests`, full Python `717 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `479bee5dd79d97d659e55027c6ce120633667e54f33f4c35c84b3d79189e2226`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 

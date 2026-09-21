@@ -185,9 +185,16 @@ def _enable_under_lease(root: Path, started: str) -> dict[str, Any]:
         runtime_start_attempted = True
         lifecycle = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
 
-        gateway = legacy.gateway_status()
-        if not gateway.get("healthy"):
-            raise RuntimeError(f"Gateway failed managed health verification: {gateway}")
+        # OpenClaw 2026.9.x can briefly own the port before its WebSocket
+        # control path becomes responsive after a managed restart. Reuse the
+        # bounded health-only readiness poll (historical helper name says
+        # "native", but it performs no authority/provider mutation).
+        managed_readiness = v091._wait_native_gateway_ready()
+        if not managed_readiness.get("healthy"):
+            raise RuntimeError(
+                "Gateway failed managed health verification after bounded readiness convergence: "
+                f"{managed_readiness}"
+            )
 
         session_bootstrap = legacy.reconcile_default_session()
         if session_bootstrap.get("ok") is False and not session_bootstrap.get("skipped"):

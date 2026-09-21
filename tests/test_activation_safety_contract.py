@@ -73,7 +73,7 @@ class ActivationSafetyContractTests(unittest.TestCase):
             ) as readiness, mock.patch.object(
                 authority.legacy, "transition", return_value={"mode": "managed", "generation": 2}
             ), mock.patch.object(
-                authority.legacy, "runtime", return_value=completed
+                authority.legacy, "runtime", side_effect=lambda _root, *args, **_kwargs: events.append("runtime:" + ":".join(args)) or completed
             ), mock.patch.object(
                 authority.legacy, "gateway_status", return_value={"healthy": True}
             ), mock.patch.object(
@@ -86,12 +86,14 @@ class ActivationSafetyContractTests(unittest.TestCase):
                 result = authority._enable_under_lease(root, "2026-09-21T13:00:00Z")
 
         self.assertEqual(result["mode"], "managed")
-        self.assertEqual(readiness.call_count, 2)
+        self.assertEqual(readiness.call_count, 3)
         first_ready = events.index("gateway-ready")
         second_ready = events.index("gateway-ready", first_ready + 1)
+        third_ready = events.index("gateway-ready", second_ready + 1)
         self.assertLess(first_ready, events.index("plugin:False"))
         self.assertLess(events.index("plugin:False"), second_ready)
         self.assertLess(second_ready, events.index("plugin:True"))
+        self.assertLess(events.index("runtime:lifecycle:start"), third_ready)
 
     def test_interrupted_promotion_requires_fresh_identified_session(self):
         with tempfile.TemporaryDirectory() as directory:
