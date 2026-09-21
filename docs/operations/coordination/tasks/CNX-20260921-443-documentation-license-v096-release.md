@@ -108,7 +108,7 @@ The existing uncommitted v0.9.6 worktree was preserved throughout qualification.
 
 Local evidence now GREEN:
 
-- full Python suite: `708 passed, 5 skipped, 38 subtests passed`;
+- full Python suite: `709 passed, 5 skipped, 38 subtests passed`;
 - namespace isolation: PASS;
 - v0.9.6 baseline consistency: PASS;
 - skill validation: PASS;
@@ -116,6 +116,7 @@ Local evidence now GREEN:
 - Python compile and repository benchmark-validator self-test: PASS;
 - Windows PowerShell syntax, PowerShell 5.1 serializer, and exact root-process exit-code self-tests: PASS;
 - clean plugin dependency install: PASS;
+- clean-reinstall/namespace/rollover focused requalification after the reparse-point repair: `122 passed, 1 skipped`;
 - plugin Vitest suite: `91/91` files, `428/428` tests PASS, including CNX-383;
 - `npm run evaluation`: PASS with all evaluation gates true;
 - `npm audit --omit=dev`: `0 vulnerabilities`;
@@ -139,9 +140,10 @@ Therefore no unrequired PR/merge will be introduced merely to imitate v0.9.5 his
 
 1. publish this local qualification evidence in the CNX-443 preparation report;
 2. rerun candidate-sensitive checks after the final documentation evidence changes;
-3. commit the release candidate and freeze its exact SHA;
-4. push without force and verify local/remote SHA equality;
-5. require exact-candidate GitHub validation to finish GREEN;
-6. dispatch `release.yml` for `0.9.6` with that SHA;
-7. verify public tag/release/assets/checksums independently;
-8. only then mark CNX-443 and coordination COMPLETE.
+3. commit the post-repair release candidate and freeze its exact SHA;
+4. complete live install-over / clean-reinstall / reset acceptance against that SHA on OpenClaw 2026.9.5;
+5. push without force and verify local/remote SHA equality;
+6. require exact-candidate GitHub validation to finish GREEN;
+7. dispatch `release.yml` for `0.9.6` with that SHA;
+8. verify public tag/release/assets/checksums independently;
+9. only then mark CNX-443 and coordination COMPLETE.

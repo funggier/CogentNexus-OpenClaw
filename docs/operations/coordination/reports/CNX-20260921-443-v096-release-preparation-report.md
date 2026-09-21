@@ -307,26 +307,50 @@ covering namespace ownership, namespace install contract, and plugin generation 
 
 Candidate `12cdea04...` is therefore rejected and must never be used for v0.9.6 publication. Full requalification after the repair is now GREEN: repository gates PASS, Python `709 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed, production audit `0 vulnerabilities`, and `plugin:validate` PASS. A new exact candidate will be frozen next and must pass live install-over / clean-reinstall / reset acceptance before publication.
 
+## Live clean-reinstall backup defect found before publication
+
+The next frozen candidate was:
+
+`ade5fa7faac5f592246f58816c5f580de4ec04f7`
+
+Live install-over from the accepted v0.9.5 installation to this v0.9.6 candidate completed successfully on OpenClaw 2026.9.5. Installed ownership and plugin metadata both reported v0.9.6, selected installed plugin artifacts matched repository SHA-256 values, controller mode returned to `active/managed`, generation advanced to 131, Gateway and Ollama were healthy, supervisor startup was Ready, and pending outbox was zero.
+
+The subsequent clean-reinstall acceptance exposed a second pre-release blocker in the backup stage. The live application-data root contains external archive junctions:
+
+- `backups -> T:\CogentNexus\CogentNexus-OpenClaw\backups`
+- `plugin-generation-rollover-backups -> T:\CogentNexus\CogentNexus-OpenClaw\plugin-generation-rollover-backups`
+
+The original `Copy-Item -Recurse` application-data backup followed those junctions and began copying already-external T: backup archives into a new T: clean-reinstall backup. The run was stopped before `Backup created` and before any destructive mutation. Post-stop live verification still showed v0.9.6 `active/managed`, generation 131, healthy Gateway, and pending outbox zero.
+
+A regression contract was added RED-first. The minimal repair adds an application-data backup helper that copies active top-level children while explicitly skipping `[IO.FileAttributes]::ReparsePoint` entries. Focused post-repair qualification is GREEN:
+
+```text
+122 passed, 1 skipped
+```
+
+covering clean-reinstall, namespace install/ownership, and plugin rollover contracts. Candidate `ade5fa7f...` is therefore rejected for publication and a new exact candidate is required after full requalification and renewed live lifecycle acceptance.
+
 ## Local verdict
 
-All currently executable local release gates are GREEN. A final candidate-sensitive rerun after adding this CNX-443 evidence also completed GREEN: full Python remained `708 passed, 5 skipped, 38 subtests passed`; plugin tests remained `428/428`; evaluation remained passed; production audit remained `0 vulnerabilities`; and `plugin:validate` remained PASS with 290 packed files.
+All currently executable local release gates are GREEN after both live-found repairs. The current requalification completed with focused clean-reinstall/namespace/rollover coverage `122 passed, 1 skipped`, full Python `709 passed, 5 skipped, 38 subtests passed`, plugin tests `428/428`, evaluation passed with evidence SHA-256 `8f50eaefe8ecce4f0c94fdfefc15d04e46df61d7985f5a673cfe2e84838f5cb2`, production audit `0 vulnerabilities`, and `plugin:validate` PASS with 290 packed files.
 
 Classification:
 
 `CNX443_V096_LOCAL_RELEASE_GATES_GREEN`
 
-This is **not** the final CNX-443 success classification because the candidate has not yet been committed/pushed, GitHub exact-candidate CI has not yet been accepted, and v0.9.6 has not yet been published or independently verified.
+This is **not** the final CNX-443 success classification because a new post-repair candidate has not yet been frozen, renewed live install-over / clean-reinstall / reset acceptance is still required, GitHub exact-candidate CI has not yet been accepted, and v0.9.6 has not yet been published or independently verified.
 
 ## Remaining exact-candidate sequence
 
 1. include this report/task checkpoint in the release-preparation worktree;
-2. rerun candidate-sensitive validation affected by final documentation edits;
-3. commit the complete v0.9.6 release candidate;
-4. verify a clean candidate worktree and freeze exact SHA;
-5. push without force;
-6. verify local HEAD equals remote branch HEAD;
-7. require exact-candidate GitHub validation to complete GREEN;
-8. dispatch `.github/workflows/release.yml` with `version=0.9.6` and the exact candidate SHA;
-9. verify public tag target, release state, tar.gz, zip, `SHA256SUMS.txt`, and release notes;
-10. independently download and verify release checksums;
-11. only after public verification update CNX-443, `ACTIVE.md`, and `STATUS.md` to COMPLETE in a post-release coordination commit newer than the immutable v0.9.6 tag.
+2. rerun final candidate-sensitive validation affected by the evidence edits;
+3. commit the complete post-repair v0.9.6 release candidate and freeze exact SHA;
+4. require renewed live install-over / clean-reinstall / reset lifecycle acceptance against that exact SHA;
+5. verify the live installed artifacts and OpenClaw 2026.9.5 health after each destructive lifecycle stage;
+6. push the exact accepted candidate without force;
+7. verify local HEAD equals remote branch HEAD;
+8. require exact-candidate GitHub validation to complete GREEN;
+9. dispatch `.github/workflows/release.yml` with `version=0.9.6` and the exact candidate SHA;
+10. verify public tag target, release state, tar.gz, zip, `SHA256SUMS.txt`, and release notes;
+11. independently download and verify release checksums;
+12. only after public verification update CNX-443, `ACTIVE.md`, and `STATUS.md` to COMPLETE in a post-release coordination commit newer than the immutable v0.9.6 tag.

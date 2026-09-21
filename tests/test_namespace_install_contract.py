@@ -156,8 +156,11 @@ def test_destructive_current_paths_are_manifest_gated():
     assert 'CogentNexus-OpenClaw-Clean-Reinstall-Backups' in reinstall
     assert "validate-boundary" in reinstall
     assert "write-recovery" in reinstall
-    assert 'Copy-Backup $applicationDataRoot "application-data\\CogentNexus-OpenClaw"' in reinstall
+    assert 'Copy-Backup $applicationDataRoot "application-data\\CogentNexus-OpenClaw"' not in reinstall
     assert "Remove-OwnedPath $applicationDataRoot" in reinstall
     assert "clean-reinstall-backups" not in reinstall
     assert "[switch]$NoBackup" in reinstall
     assert "-NoBackup selected" in reinstall
+    assert "Copy-BackupTreeWithoutExternalReparsePoints" in reinstall
+    assert "[IO.FileAttributes]::ReparsePoint" in reinstall
+    assert r'Copy-BackupTreeWithoutExternalReparsePoints $applicationDataRoot "application-data\CogentNexus-OpenClaw"' in reinstall

@@ -45,6 +45,19 @@ function Copy-Backup([string]$Path, [string]$Name) {
     Copy-Item -LiteralPath $Path -Destination $dest -Recurse -Force
 }
 
+function Copy-BackupTreeWithoutExternalReparsePoints([string]$Path, [string]$Name) {
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $dest = Join-Path $backup $Name
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    foreach ($item in Get-ChildItem -LiteralPath $Path -Force) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Write-Host "Skipped external reparse point from clean-reinstall backup: $($item.FullName)"
+            continue
+        }
+        Copy-Item -LiteralPath $item.FullName -Destination $dest -Recurse -Force
+    }
+}
+
 function Remove-OwnedPath([string]$Path) {
     if (Test-Path -LiteralPath $Path) {
         Remove-Item -LiteralPath $Path -Recurse -Force
@@ -93,7 +106,7 @@ if (-not $NoBackup) {
     Copy-Backup $skill "skills\cogentnexus-openclaw"
     Copy-Backup $launcher "cnxclaw.cmd"
     Copy-Backup $extension "extension\cogentnexus-openclaw"
-    Copy-Backup $applicationDataRoot "application-data\CogentNexus-OpenClaw"
+    Copy-BackupTreeWithoutExternalReparsePoints $applicationDataRoot "application-data\CogentNexus-OpenClaw"
     Copy-Backup $agents "AGENTS.md"
     Copy-Backup $openclawConfig "openclaw.json"
     Write-Host "Backup created: $backup"
