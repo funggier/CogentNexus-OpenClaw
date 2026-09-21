@@ -279,6 +279,9 @@ export function cancelDirectOwnerSessionForAuthoritativeUserStop(input: {
       db.exec("COMMIT");
       return { state:"unchanged", cancelled:[] };
     }
+    const ingressGeneration = tableExists(db, "ticket_ingress_claims")
+      ? Number((db.prepare("SELECT owner_generation FROM ticket_ingress_claims WHERE ticket_id=? LIMIT 1").get(active.ticket_id) as any)?.owner_generation)
+      : Number.NaN;
     const delivery = deliveryEvidence(db, active.ticket_id);
     if (active.delivery_confirmed_at != null || delivery.confirmed || delivery.transportAccepted) {
       recordConflictOnce(db, active.ticket_id, {
@@ -311,12 +314,15 @@ export function cancelDirectOwnerSessionForAuthoritativeUserStop(input: {
       const row = db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(input.sessionKey) as any;
       generation = Number(row?.generation ?? 0);
       if (row?.state === "active") {
-        generation += 1;
-        db.prepare(`
-          UPDATE cnx_sessions
-          SET generation=?,updated_at=?,delete_reason=NULL
-          WHERE session_key=? AND state='active'
-        `).run(generation, stamp, input.sessionKey);
+        const stopBarrierAlreadyAdvanced = Number.isFinite(ingressGeneration) && generation > ingressGeneration;
+        if (!stopBarrierAlreadyAdvanced) {
+          generation += 1;
+          db.prepare(`
+            UPDATE cnx_sessions
+            SET generation=?,updated_at=?,delete_reason=NULL
+            WHERE session_key=? AND state='active'
+          `).run(generation, stamp, input.sessionKey);
+        }
       }
     }
 

@@ -785,6 +785,108 @@ describe("CNX-442 session serialization and terminal truth", () => {
     }
   });
 
+  it("does not advance the Stop generation twice when an earlier UI Stop already advanced the owner barrier", () => {
+    const root=mkdtempSync(join(tmpdir(),"cnx442-stop-generation-convergence-"));
+    try {
+      const databasePath=join(root,"tickets.sqlite3");
+      const store=new TicketStore(databasePath);
+      store.snapshot();
+      const sessionKey="agent:main:discord:channel:stop-generation-convergence";
+      const sessionId="physical-stop-generation-convergence";
+      const now="2026-09-21T01:03:28.900Z";
+      let db=new DatabaseSync(databasePath);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS cnx_sessions(
+          session_key TEXT PRIMARY KEY,
+          state TEXT NOT NULL DEFAULT 'active',
+          generation INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT,
+          delete_reason TEXT,
+          session_id TEXT
+        );
+        CREATE TABLE IF NOT EXISTS cnx_direct_recovery(
+          ticket_id TEXT PRIMARY KEY,
+          mode TEXT NOT NULL DEFAULT 'resume',
+          state TEXT NOT NULL DEFAULT 'pending',
+          attempt_count INTEGER NOT NULL DEFAULT 0,
+          active_run_id TEXT,
+          next_attempt_at TEXT,
+          last_error TEXT,
+          owner_generation INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+      db.prepare("INSERT INTO cnx_sessions(session_key,state,generation,created_at,updated_at,session_id) VALUES (?,'active',11,?,?,?)")
+        .run(sessionKey,now,now,sessionId);
+      db.close();
+
+      const first=store.acceptIngress({
+        sourceKey:"source-converge-1",
+        sourceChannel:"discord",
+        sourceMessageId:"msg-converge-1",
+        ownerSessionKey:sessionKey,
+        prompt:"@Ce STOP CONVERGE 1",
+      });
+      expect(store.bindPendingIngressRun({
+        ownerSessionKey:sessionKey,
+        ownerSessionId:sessionId,
+        runId:"run-converge-1",
+        prompt:"@Ce STOP CONVERGE 1",
+        sourceChannel:"discord",
+      }).state).toBe("bound");
+      store.route(first.ticketId,false);
+      const second=store.acceptIngress({
+        sourceKey:"source-converge-2",
+        sourceChannel:"discord",
+        sourceMessageId:"msg-converge-2",
+        ownerSessionKey:sessionKey,
+        prompt:"@Ce STOP CONVERGE 2",
+      });
+
+      db=new DatabaseSync(databasePath);
+      db.prepare("UPDATE tickets SET status='failed',failure_class='permanent',failure_message='' WHERE ticket_id=?").run(first.ticketId);
+      db.prepare("UPDATE tickets SET status='cancelled',failure_class=NULL,failure_message='Reply operation aborted by user' WHERE ticket_id=?").run(second.ticketId);
+      db.prepare("UPDATE cnx_sessions SET generation=12,updated_at=? WHERE session_key=?").run(now,sessionKey);
+      db.close();
+
+      const evidence:any={
+        state:"terminal",
+        runId:"run-converge-1",
+        status:"interrupted",
+        stopReason:"aborted",
+        aborted:true,
+        externalAbort:true,
+        timedOut:false,
+      };
+      const result=cancelDirectOwnerSessionForAuthoritativeUserStop({
+        ticketDatabasePath:databasePath,
+        sessionKey,
+        evidence,
+        now:new Date("2026-09-21T01:03:29.100Z"),
+      });
+      expect(result.state).toBe("cancelled");
+      expect(result.cancelled).toEqual([first.ticketId]);
+      expect(result.generation).toBe(12);
+
+      const check=new DatabaseSync(databasePath,{readOnly:true});
+      expect(check.prepare("SELECT generation,state FROM cnx_sessions WHERE session_key=?").get(sessionKey))
+        .toEqual({generation:12,state:"active"});
+      expect(check.prepare("SELECT ticket_id,status FROM tickets WHERE ticket_id IN (?,?) ORDER BY created_at").all(first.ticketId,second.ticketId))
+        .toEqual([
+          {ticket_id:first.ticketId,status:"cancelled"},
+          {ticket_id:second.ticketId,status:"cancelled"},
+        ]);
+      expect(check.prepare("SELECT owner_generation FROM ticket_ingress_claims WHERE ticket_id=?").get(first.ticketId))
+        .toEqual({owner_generation:11});
+      check.close();
+    } finally {
+      bestEffortRemove(root);
+    }
+  });
+
   it("waits boundedly for a delayed authoritative user-stop terminal event", async () => {
     const root=mkdtempSync(join(tmpdir(),"cnx442-delayed-stop-terminal-"));
     try {

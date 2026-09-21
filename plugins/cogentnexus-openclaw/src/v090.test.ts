@@ -64,6 +64,9 @@ describe("CogentNexus-OpenClaw v0.9.0 intent boundary", () => {
       db.prepare("INSERT INTO ticket_outbox(ticket_id,owner_session_key,terminal_status,payload_json,delivery_status,delivery_attempts,created_at) VALUES (?,?,'cancelled','{}','pending',3,?)")
         .run(ticket.ticketId,"agent:main:dashboard:owner",new Date().toISOString());
       db.close();
+      const before=new DatabaseSync(path,{readOnly:true});
+      const beforeGeneration=Number((before.prepare("SELECT generation FROM cnx_sessions WHERE session_key=?").get("agent:main:dashboard:owner") as any)?.generation ?? -1);
+      before.close();
       const cancelled=cancelSessionByKey(path,{sessionKey:"agent:main:dashboard:owner",message:"agent run aborted"});
       expect(cancelled.cancelled).toEqual([]);
       expect(cancelled.outboxTags).toEqual([`cogent-ticket-result-${ticket.ticketId}`]);
@@ -71,6 +74,8 @@ describe("CogentNexus-OpenClaw v0.9.0 intent boundary", () => {
       expect(verify.prepare("SELECT count(*) AS count FROM ticket_outbox WHERE delivery_status='pending'").get()).toEqual({count:0});
       expect(verify.prepare("SELECT state,active_run_id,next_attempt_at FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId))
         .toEqual({state:"cancelled",active_run_id:null,next_attempt_at:null});
+      expect(verify.prepare("SELECT generation FROM cnx_sessions WHERE session_key=?").get("agent:main:dashboard:owner"))
+        .toEqual({generation:beforeGeneration});
       verify.close();
     }finally{rmSync(root,{recursive:true,force:true});}
   });
