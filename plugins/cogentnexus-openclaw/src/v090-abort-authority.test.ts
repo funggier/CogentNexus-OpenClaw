@@ -122,14 +122,13 @@ describe("v0.9 abort authority",()=>{
       await subscription.handle(stopEvent,{});
       await Promise.resolve();
       await Promise.resolve();
-      expect(gatewayRequest).toHaveBeenCalledTimes(1);
-      expect(gatewayRequest).toHaveBeenCalledWith("sessions.abort",{key:ctx.sessionKey,clearQueued:true});
+      expect(gatewayRequest).not.toHaveBeenCalled();
       await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-ui-stop",messages:[]},ctx);
       expect(seen[0].error).toBe("agent run aborted");
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
-  it("clears Host queued inputs for the OpenClaw 2026.9.5 direct-abort lifecycle shape",async()=>{
+  it("preserves the OpenClaw 2026.9.5 direct-abort lifecycle shape without queue-clearing RPC",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx-abort-current-external-"));
     try{
       const handlers=new Map<string,any[]>();
@@ -158,12 +157,11 @@ describe("v0.9 abort authority",()=>{
         data:{phase:"end",aborted:true,stopReason:"aborted"},
       };
       subscription.handle(stopEvent,{});
-      expect(gatewayRequest).toHaveBeenCalledTimes(1);
-      expect(gatewayRequest).toHaveBeenCalledWith("sessions.abort",{key:ctx.sessionKey,clearQueued:true});
+      expect(gatewayRequest).not.toHaveBeenCalled();
       await subscription.handle(stopEvent,{});
       await Promise.resolve();
       await Promise.resolve();
-      expect(gatewayRequest).toHaveBeenCalledTimes(1);
+      expect(gatewayRequest).not.toHaveBeenCalled();
       await handlers.get("agent_end")?.[0]({success:false,error:"agent run aborted",runId:"run-current-stop",messages:[]},ctx);
       expect(seen[0].error).toBe("agent run aborted");
     }finally{rmSync(root,{recursive:true,force:true});}

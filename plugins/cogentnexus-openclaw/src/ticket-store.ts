@@ -491,6 +491,78 @@ export class TicketStore {
     }
   }
 
+
+  ingressTurnGate(input: {
+    sourceKey: string;
+    failedReconcileGraceMs?: number;
+    now?: Date;
+  }): {
+    state: "ready" | "waiting" | "cancelled" | "superseded" | "already-bound" | "already-managed" | "missing";
+    ticketId?: string;
+    predecessorTicketId?: string;
+    predecessorStatus?: string;
+    retryAfterMs?: number;
+    ownerGeneration?: number;
+  } {
+    const db=this.open();
+    const nowMs=(input.now??new Date()).getTime();
+    const failedGraceMs=Math.max(0,Math.min(input.failedReconcileGraceMs??6000,30000));
+    try {
+      const current=db.prepare(
+        "SELECT c.rowid AS ingress_order,c.ticket_id,c.owner_session_key,c.owner_generation,c.bound_run_id,t.status,t.updated_at " +
+        "FROM ticket_ingress_claims c JOIN tickets t ON t.ticket_id=c.ticket_id WHERE c.source_key=?"
+      ).get(input.sourceKey) as any;
+      if(!current)return{state:"missing"};
+
+      const ownerGeneration=Number(current.owner_generation);
+      if(current.status==="cancelled")return{state:"cancelled",ticketId:current.ticket_id,ownerGeneration};
+      if(current.bound_run_id)return{state:"already-bound",ticketId:current.ticket_id,ownerGeneration};
+      if(current.status!=="accepted")return{state:"already-managed",ticketId:current.ticket_id,ownerGeneration};
+
+      const sessionTable=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_sessions'").get();
+      if(sessionTable){
+        const authority=db.prepare("SELECT state,generation FROM cnx_sessions WHERE session_key=?").get(current.owner_session_key) as any;
+        if(authority&&(authority.state!=="active"||Number(authority.generation)!==ownerGeneration)){
+          return{state:"superseded",ticketId:current.ticket_id,ownerGeneration};
+        }
+      }
+
+      const predecessors=db.prepare(
+        "SELECT c.ticket_id,t.status,t.updated_at FROM ticket_ingress_claims c " +
+        "JOIN tickets t ON t.ticket_id=c.ticket_id " +
+        "WHERE c.owner_session_key=? AND c.owner_generation=? AND c.rowid<? ORDER BY c.rowid"
+      ).all(current.owner_session_key,ownerGeneration,current.ingress_order) as any[];
+
+      for(const predecessor of predecessors){
+        const status=String(predecessor.status??"");
+        if(status==="completed"||status==="cancelled")continue;
+        if(status==="failed"){
+          const updatedMs=Date.parse(String(predecessor.updated_at??""));
+          const elapsed=Number.isFinite(updatedMs)?Math.max(0,nowMs-updatedMs):0;
+          if(elapsed>=failedGraceMs)continue;
+          return{
+            state:"waiting",
+            ticketId:current.ticket_id,
+            predecessorTicketId:predecessor.ticket_id,
+            predecessorStatus:status,
+            retryAfterMs:Math.max(25,failedGraceMs-elapsed),
+            ownerGeneration,
+          };
+        }
+        return{
+          state:"waiting",
+          ticketId:current.ticket_id,
+          predecessorTicketId:predecessor.ticket_id,
+          predecessorStatus:status,
+          ownerGeneration,
+        };
+      }
+      return{state:"ready",ticketId:current.ticket_id,ownerGeneration};
+    } finally {
+      db.close();
+    }
+  }
+
   bindIngressRun(input: {
     sourceKey: string;
     ownerSessionKey: string;

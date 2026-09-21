@@ -151,19 +151,6 @@ export function createAbortAuthorityApi(api:any,cfg:any={}) {
   const baselines=new Map<string,RunStopBaseline>();
   const humanLifecycleRuns=new Set<string>();
 
-  const clearHostQueuedInputs=(runId:string,sessionKey:string)=>{
-    const request=api.runtime?.gateway?.request;
-    if(typeof request!=="function")return;
-    try {
-      const pending=request("sessions.abort",{key:sessionKey,clearQueued:true});
-      void Promise.resolve(pending)
-        .then(()=>api.logger?.info?.(`CogentNexus-OpenClaw cleared Host queued inputs after authoritative user Stop for ${sessionKey}`))
-        .catch((error)=>api.logger?.warn?.(`CogentNexus-OpenClaw Host queued-input cancellation failed for ${sessionKey} (run ${runId}): ${error instanceof Error?error.message:String(error)}`));
-    } catch(error) {
-      api.logger?.warn?.(`CogentNexus-OpenClaw Host queued-input cancellation failed for ${sessionKey} (run ${runId}): ${error instanceof Error?error.message:String(error)}`);
-    }
-  };
-
   const registerEvents=api.agent?.events?.registerAgentEventSubscription?.bind(api.agent.events)
     ?? api.registerAgentEventSubscription?.bind(api);
   if(typeof registerEvents==="function") {
@@ -173,14 +160,7 @@ export function createAbortAuthorityApi(api:any,cfg:any={}) {
       streams:["lifecycle"],
       handle:(event:any)=>{
         const runId=runIdOf(event,undefined);
-        if(runId&&isAuthoritativeAbortLifecycle(event)){
-          const first=!humanLifecycleRuns.has(runId);
-          humanLifecycleRuns.add(runId);
-          if(first){
-            const sessionKey=sessionKeyOf(event,undefined)??baselines.get(runId)?.sessionKey;
-            if(sessionKey)clearHostQueuedInputs(runId,sessionKey);
-          }
-        }
+        if(runId&&isAuthoritativeAbortLifecycle(event))humanLifecycleRuns.add(runId);
       },
     });
   }

@@ -11,6 +11,7 @@ import { installRecoveryOrderAdmission } from "./v090-recovery-order.js";
 import { createCnxRuntimeSafetyProxy } from "./v090-runtime-safety.js";
 import { isDashboardSession, prepareV090RecoveryState } from "./v090.js";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
+import { recoverStrandedIngressAfterRestart } from "./v095-ingress-restart-recovery.js";
 
 const WRAPPED = Symbol.for("cogentnexus-openclaw.v090.final-entry");
 const DASHBOARD_DIRECT_SETTLEMENT = Symbol.for("cogentnexus-openclaw.v090.dashboard-direct-settlement");
@@ -73,8 +74,9 @@ function wrapFinalEntry() {
         const databasePath=resolve(cfg.ticketDatabasePath ?? defaultTicketDatabase(workspaceDir));
         const nativeRestart=reconcileNativeRestartRecoveryTickets(databasePath);
         const prepared=prepareV090RecoveryState(workspaceDir,cfg);
+        const ingressRestart=recoverStrandedIngressAfterRestart(databasePath);
         const contextRecovered=recoverCrashStaleContextRows(databasePath);
-        proxy.logger.info?.(`CogentNexus-OpenClaw crash-start recovery: nativeRestartCancelled=${nativeRestart.cancelled} nativeRestartOutboxSuppressed=${nativeRestart.outboxSuppressed} nativeRestartRecoverySuppressed=${nativeRestart.recoverySuppressed} directReopened=${prepared.reopened} cancelledLegacy=${prepared.cancelledLegacy} outboxReset=${prepared.outboxReset} workflowDeliveryReset=${prepared.workflowDeliveryReset} contextRowsRecovered=${contextRecovered}`);
+        proxy.logger.info?.(`CogentNexus-OpenClaw crash-start recovery: nativeRestartCancelled=${nativeRestart.cancelled} nativeRestartOutboxSuppressed=${nativeRestart.outboxSuppressed} nativeRestartRecoverySuppressed=${nativeRestart.recoverySuppressed} directReopened=${prepared.reopened} cancelledLegacy=${prepared.cancelledLegacy} ingressRestartQueued=${ingressRestart.queued} ingressRestartExisting=${ingressRestart.existing} ingressRestartSuperseded=${ingressRestart.skippedSuperseded} outboxReset=${prepared.outboxReset} workflowDeliveryReset=${prepared.workflowDeliveryReset} contextRowsRecovered=${contextRecovered}`);
       })().catch((error)=>{startupRecovery=undefined;throw error;});
       await startupRecovery;
     };

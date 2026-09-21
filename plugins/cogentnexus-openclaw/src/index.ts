@@ -781,7 +781,7 @@ entry.register = (api) => {
     cleanupRunDelivery(runId);
   };
   api.on("before_tool_call", (event, ctx) => enforcementDecision(event.toolName, event.params, ctx.sessionKey, config.enforcedMode !== false), { priority: 1000 });
-  if (config.ticketFirst === true) api.on("before_dispatch", (event:any, ctx:any) => {
+  if (config.ticketFirst === true) api.on("before_dispatch", async (event:any, ctx:any) => {
     const source = beforeDispatchSourceIdentity(event, ctx);
     const prompt = beforeDispatchPrompt(event);
     if (!source || !prompt) return;
@@ -805,7 +805,40 @@ entry.register = (api) => {
         `CogentNexus-OpenClaw durably persisted inbound source before dispatch/queue ${source.channel}:${source.messageId} ` +
         `(ticket=${ticket.ticketId}, provisionalRun=${ticket.runId}, duplicate=${ticket.duplicate})`,
       );
-      return;
+
+      let heldBehind:string|undefined;
+      while (true) {
+        const gate=store.ingressTurnGate({
+          sourceKey:source.sourceKey,
+          failedReconcileGraceMs:6000,
+        });
+        if(gate.state==="ready"){
+          if(heldBehind)api.logger.info?.(
+            `CogentNexus-OpenClaw released pre-dispatch FIFO ingress ${ticket.ticketId} after predecessor ${heldBehind} settled`,
+          );
+          return;
+        }
+        if(gate.state==="waiting"){
+          if(heldBehind!==gate.predecessorTicketId){
+            heldBehind=gate.predecessorTicketId;
+            api.logger.info?.(
+              `CogentNexus-OpenClaw holding pre-dispatch FIFO ingress ${ticket.ticketId} behind ` +
+              `${gate.predecessorTicketId ?? "older-ticket"} (${gate.predecessorStatus ?? "nonterminal"})`,
+            );
+          }
+          const waitMs=Math.max(25,Math.min(gate.retryAfterMs??100,250));
+          await new Promise<void>((resolvePromise)=>setTimeout(resolvePromise,waitMs));
+          continue;
+        }
+        if(gate.state==="missing"){
+          api.logger.error?.(`CogentNexus-OpenClaw pre-dispatch FIFO ingress disappeared after durable acceptance: ${source.sourceKey}`);
+        } else {
+          api.logger.info?.(
+            `CogentNexus-OpenClaw consumed pre-dispatch FIFO ingress ${ticket.ticketId} without Host queue admission (state=${gate.state})`,
+          );
+        }
+        return { handled:true };
+      }
     } catch (error) {
       api.logger.error?.(
         `CogentNexus-OpenClaw pre-dispatch durable persistence failed closed: ${error instanceof Error ? error.message : String(error)}`,
@@ -814,7 +847,6 @@ entry.register = (api) => {
     }
   }, {
     priority: 2600,
-    timeoutMs: 30_000,
     registrationId: "cogentnexus-openclaw-pre-dispatch-ticket-intake",
   } as any);
 

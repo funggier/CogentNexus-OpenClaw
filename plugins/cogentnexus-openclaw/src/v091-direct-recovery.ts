@@ -51,6 +51,38 @@ function modelCallRecoveryFence(db:DatabaseSync,alias="r") {
     WHERE m.ticket_id=${alias}.ticket_id AND m.state IN ('active','recovering'))`;
 }
 
+function recoveryOrderFence(db:DatabaseSync,recoveryAlias="r",ticketAlias="t") {
+  const clauses:string[]=[];
+  if(tableExists(db,"ticket_events")) {
+    clauses.push(` AND NOT EXISTS (
+      SELECT 1 FROM cnx_direct_recovery prior_r
+      JOIN tickets prior_t ON prior_t.ticket_id=prior_r.ticket_id
+      WHERE prior_t.owner_session_key=${ticketAlias}.owner_session_key
+        AND prior_r.owner_generation=${recoveryAlias}.owner_generation
+        AND prior_r.ticket_id<>${recoveryAlias}.ticket_id
+        AND prior_r.state IN ('pending','running','awaiting_delivery')
+        AND (SELECT MIN(pe.event_id) FROM ticket_events pe
+             WHERE pe.ticket_id=prior_r.ticket_id AND pe.event_type='accepted')
+            < (SELECT MIN(ce.event_id) FROM ticket_events ce
+               WHERE ce.ticket_id=${recoveryAlias}.ticket_id AND ce.event_type='accepted')
+    )`);
+  }
+  if(tableExists(db,"ticket_ingress_claims")) {
+    clauses.push(` AND NOT EXISTS (
+      SELECT 1
+      FROM ticket_ingress_claims current_c
+      JOIN ticket_ingress_claims prior_c
+        ON prior_c.owner_session_key=current_c.owner_session_key
+       AND prior_c.owner_generation=current_c.owner_generation
+       AND prior_c.rowid<current_c.rowid
+      JOIN tickets prior_t ON prior_t.ticket_id=prior_c.ticket_id
+      WHERE current_c.ticket_id=${recoveryAlias}.ticket_id
+        AND prior_t.status NOT IN ('completed','cancelled','failed')
+    )`);
+  }
+  return clauses.join("");
+}
+
 function deliveryLeaseSupported(db:DatabaseSync) {
   return columnExists(db,"cnx_assistant_delivery","claim_token")&&columnExists(db,"cnx_assistant_delivery","claim_expires_at");
 }
@@ -94,13 +126,14 @@ export function dueDirectRecovery(path:string,now=new Date()):Recovery|undefined
   try {
     if(!tableExists(db,"cnx_direct_recovery")||!tableExists(db,"tickets")||!tableExists(db,"cnx_sessions"))return undefined;
     const modelFence=modelCallRecoveryFence(db,"r");
+    const orderFence=recoveryOrderFence(db,"r","t");
     const liveness=sessionLivenessFence(db,"s",now);
     return db.prepare(`SELECT r.ticket_id,t.owner_session_key,t.prompt,r.mode,r.attempt_count,r.owner_generation
       FROM cnx_direct_recovery r JOIN tickets t ON t.ticket_id=r.ticket_id
       JOIN cnx_sessions s ON s.session_key=t.owner_session_key
       WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
         AND s.state='active' AND s.generation=r.owner_generation
-        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)${liveness.sql}${modelFence}
+        AND (r.next_attempt_at IS NULL OR r.next_attempt_at<=?)${liveness.sql}${modelFence}${orderFence}
       ORDER BY COALESCE(r.next_attempt_at,r.created_at) LIMIT 1`).get(now.toISOString(),...liveness.params) as Recovery|undefined;
   } finally {db.close();}
 }
@@ -153,11 +186,12 @@ export function nextDirectRecoveryWakeMs(path:string,cfg:Config,now=new Date()):
     const hasRecoveryTables=tableExists(db,"cnx_direct_recovery")&&tableExists(db,"tickets")&&tableExists(db,"cnx_sessions");
     if(hasRecoveryTables) {
       const modelFence=modelCallRecoveryFence(db,"r");
+      const orderFence=recoveryOrderFence(db,"r","t");
       const liveness=sessionLivenessFence(db,"s",now);
       const pending=db.prepare(`SELECT r.next_attempt_at FROM cnx_direct_recovery r
         JOIN tickets t ON t.ticket_id=r.ticket_id JOIN cnx_sessions s ON s.session_key=t.owner_session_key
         WHERE r.state='pending' AND t.status='accepted' AND t.workflow_eligible=0 AND t.workflow_id IS NULL
-          AND s.state='active' AND s.generation=r.owner_generation${liveness.sql}${modelFence}
+          AND s.state='active' AND s.generation=r.owner_generation${liveness.sql}${modelFence}${orderFence}
         ORDER BY CASE WHEN r.next_attempt_at IS NULL THEN 0 ELSE 1 END,r.next_attempt_at LIMIT 1`).get(...liveness.params) as {next_attempt_at?:string|null}|undefined;
       if(pending) {
         if(!pending.next_attempt_at)delays.push(0);
