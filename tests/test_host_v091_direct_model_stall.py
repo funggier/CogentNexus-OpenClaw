@@ -339,6 +339,74 @@ class HostDirectModelStallTests(unittest.TestCase):
             self.assertEqual(after[0]["call_id"], "call-live")
             self.assertEqual(stale, [])
 
+    def test_gateway_interruption_evidence_scopes_recovery_to_exact_calls(self):
+        old_ticket = "CNXT-22222222-2222-2222-2222-222222222222"
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-scope-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.execute(
+                "INSERT INTO tickets(ticket_id,run_id,owner_session_key,status,workflow_eligible,workflow_id,response_ready_at,delivery_confirmed_at,"
+                "created_at,updated_at) VALUES (?,?,?,'accepted',0,NULL,NULL,NULL,?,?)",
+                (
+                    old_ticket,
+                    "run-old",
+                    OWNER,
+                    "2026-08-18T12:00:00+00:00",
+                    "2026-08-18T12:00:00+00:00",
+                ),
+            )
+            db.execute(
+                "INSERT INTO cnx_direct_model_call(ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,updated_at) "
+                "VALUES (?,?,?,'active','ollama','qwen3.5:9b',?,?,?)",
+                (
+                    old_ticket,
+                    "run-old",
+                    "call-old",
+                    "2026-08-18T12:00:00+00:00",
+                    "2026-08-18T12:15:00+00:00",
+                    "2026-08-18T12:00:00+00:00",
+                ),
+            )
+            db.commit()
+            db.close()
+
+            evidence = {
+                "kind": "confirmed-hard-hang-current-boot",
+                "boundary": {"bootId": "boot-current", "startedAt": "2026-08-18T12:59:30+00:00"},
+                "orphans": [{"ticket_id": TICKET, "call_id": "call-live"}],
+            }
+            results = stall.classify_quiesced_gateway_interrupted_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+                interruption_evidence=evidence,
+            )
+
+            self.assertEqual([item["ticketId"] for item in results], [TICKET])
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome FROM cnx_direct_model_call WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("interrupted", "host-gateway-interruption-authorized"),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome,recovery_attempt_count FROM cnx_direct_model_call WHERE ticket_id=?",
+                    (old_ticket,),
+                ).fetchone(),
+                ("active", None, 0),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) FROM cnx_direct_recovery WHERE ticket_id=?",
+                    (old_ticket,),
+                ).fetchone()[0],
+                0,
+            )
+            db.close()
+
     def test_gateway_interruption_classification_respects_response_ready_fence(self):
         with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-ready-") as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"

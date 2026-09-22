@@ -347,11 +347,21 @@ class HostV091Tests(unittest.TestCase):
                 calls.append(args[:2])
                 return self.completed('{"ok":true}')
 
+            evidence = {
+                "kind": "confirmed-hard-hang-current-boot",
+                "boundary": {"bootId": "boot-current", "startedAt": "2026-09-22T11:00:00+00:00"},
+                "orphans": [{"ticket_id": "T-GATEWAY", "call_id": "C-GATEWAY"}],
+            }
             self.patch(cnx.legacy, "runtime", runtime)
             with mock.patch.object(
                 cnx,
+                "_gateway_current_direct_evidence",
+                side_effect=lambda _root: calls.append(("evidence", "current")) or evidence,
+                create=True,
+            ) as current_evidence, mock.patch.object(
+                cnx,
                 "_recover_gateway_interrupted_direct_calls",
-                side_effect=lambda _root: calls.append(("classify", "direct")) or [{"ticketId": "T-GATEWAY"}],
+                side_effect=lambda _root, found: calls.append(("classify", "direct")) or [{"ticketId": "T-GATEWAY"}],
                 create=True,
             ) as classify:
                 result = cnx._restart_unresponsive_gateway(root)
@@ -359,13 +369,15 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(
                 calls,
                 [
+                    ("evidence", "current"),
                     ("lifecycle", "prepare"),
                     ("lifecycle", "stop"),
                     ("classify", "direct"),
                     ("lifecycle", "start"),
                 ],
             )
-            classify.assert_called_once_with(root)
+            current_evidence.assert_called_once_with(root)
+            classify.assert_called_once_with(root, evidence)
             self.assertEqual(result["interruptedDirectRecoveries"], [{"ticketId": "T-GATEWAY"}])
 
     def test_gateway_restart_restores_gateway_if_interruption_classification_fails(self):
@@ -378,8 +390,18 @@ class HostV091Tests(unittest.TestCase):
                 calls.append(args[:2])
                 return self.completed('{"ok":true}')
 
+            evidence = {
+                "kind": "confirmed-hard-hang-current-boot",
+                "boundary": {"bootId": "boot-current", "startedAt": "2026-09-22T11:00:00+00:00"},
+                "orphans": [{"ticket_id": "T-PARTIAL", "call_id": "C-PARTIAL"}],
+            }
             self.patch(cnx.legacy, "runtime", runtime)
             with mock.patch.object(
+                cnx,
+                "_gateway_current_direct_evidence",
+                return_value=evidence,
+                create=True,
+            ), mock.patch.object(
                 cnx,
                 "_recover_gateway_interrupted_direct_calls",
                 side_effect=RuntimeError("classification failed"),

@@ -134,7 +134,7 @@ After the minimal production repair:
 
 Python:
 
-- final full repository suite after v0.9.6→v0.9.7 upgrade-boundary repair: `729 passed, 5 skipped, 38 subtests passed`;
+- final full repository suite after exact Gateway-generation evidence scoping: `730 passed, 5 skipped, 38 subtests passed`;
 - version/baseline/current-doc focused suite: `53 passed`;
 - namespace isolation: PASS;
 - v0.9.7 baseline consistency: PASS;
@@ -154,7 +154,7 @@ Plugin:
 - dev dependency tree observation: 8 vulnerabilities (4 moderate, 4 high), unchanged class from predecessor and not the production audit;
 - Vitest: `91/91 files, 429/429 tests PASS`;
 - evaluation: PASS;
-- evaluation evidence SHA-256: `3cb8ea707b7029c5885bae94ef60c91d901aed23cb2c6cbce7a11723adced3f7`;
+- evaluation evidence SHA-256 after exact-scoping repair: `663cc43daf8d25521517d07b1e261451f2d0df62879870d6314f2dd8471c4d00`;
 - production `npm audit --omit=dev`: `0 vulnerabilities`;
 - plugin schema verification: PASS, 46 config properties / 5 tools;
 - Ticket DB bootstrap: PASS, 9 required tables + v095 registration fence;
@@ -176,6 +176,37 @@ The minimal repair adds `0.9.6` to `UPGRADE_FROM_VERSIONS` while retaining all f
 - final full suite accounting: `729 passed, 5 skipped, 38 subtests passed`.
 
 This repair was completed before any v0.9.7 mutation of the live v0.9.6 installation.
+
+## Exact Gateway-generation evidence scoping repair
+
+Before the first live interruption injection, read-only inspection of the installed v0.9.7 development candidate showed one older historical incident row still intentionally preserved as `active`. That exposed an important pre-acceptance safety issue: the quiesced classifier accepted Gateway-interruption evidence but still selected every eligible `active` Direct call in the database.
+
+That behavior could have replayed historical residue together with the genuinely interrupted current-generation call during a controlled or real hard-hang recovery.
+
+A new RED test added two simultaneous active calls: one exact call listed in the captured current-Gateway evidence and one older historical residue call not listed in that evidence. The RED result proved both were being selected.
+
+The minimal repair now:
+
+1. snapshots current-Gateway Direct calls before `prepare/stop`;
+2. resolves the current Gateway PID to its exact `gateway_boot_lifecycle` boundary;
+3. records an exact allow-list of `{ticket_id, call_id}` identities owned by that Gateway generation;
+4. passes that immutable evidence into the classifier only after Gateway quiescence;
+5. classifies only allow-listed calls;
+6. leaves older active residue untouched.
+
+Post-repair evidence:
+
+- focused Host/stall suite: `25/25 PASS`;
+- selected Host/provider/recovery regression: `60/60 PASS`;
+- full Python repository suite: `730 passed, 5 skipped, 38 subtests passed`;
+- Vitest: `91/91 files, 429/429 tests PASS`;
+- namespace isolation / v0.9.7 baseline / workspace / Cogent / runtime / workflow / benchmark gates: PASS;
+- evaluation: PASS, evidence SHA-256 `663cc43daf8d25521517d07b1e261451f2d0df62879870d6314f2dd8471c4d00`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- `git diff --check`: PASS.
+
+The previously installed `d2263cbe...` development candidate is therefore superseded for release acceptance. A new exact candidate must be committed, pushed, pass exact-SHA CI, and be installed over the live machine before the interruption acceptance is executed.
 
 ## Version state
 

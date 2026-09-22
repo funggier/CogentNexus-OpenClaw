@@ -347,6 +347,38 @@ def find_gateway_boundary_orphaned_direct_calls(
     finally:
         db.close()
 
+def find_current_gateway_direct_calls(
+    root: Path,
+    gateway_started_at_iso: str,
+) -> list[dict[str, Any]]:
+    """Find unfenced active Direct calls owned by the current Gateway boot."""
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return []
+    db = sqlite3.connect(path, timeout=2)
+    db.row_factory = sqlite3.Row
+    try:
+        if not _model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return []
+        ticket_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+        required = {"ticket_id", "owner_session_key", "status", "workflow_eligible", "workflow_id", "response_ready_at"}
+        if not required.issubset(ticket_columns):
+            return []
+        rows = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at,"
+            "t.owner_session_key,t.status,t.response_ready_at "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
+            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND julianday(m.started_at) >= julianday(?) "
+            "ORDER BY m.started_at,m.ticket_id",
+            (gateway_started_at_iso,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        db.close()
+
+
 def classify_quiesced_gateway_interrupted_direct_calls(
     root: Path,
     now_iso: str | None = None,
@@ -385,9 +417,26 @@ def classify_quiesced_gateway_interrupted_direct_calls(
             "ORDER BY m.started_at,m.ticket_id"
         ).fetchall()
 
+        allowed_calls: set[tuple[str, str]] | None = None
+        if interruption_evidence is not None:
+            evidence_calls = interruption_evidence.get("orphans")
+            if not isinstance(evidence_calls, list):
+                db.commit()
+                return []
+            allowed_calls = {
+                (str(item.get("ticket_id")), str(item.get("call_id")))
+                for item in evidence_calls
+                if isinstance(item, dict) and item.get("ticket_id") and item.get("call_id")
+            }
+            if not allowed_calls:
+                db.commit()
+                return []
+
         results: list[dict[str, Any]] = []
         for raw in rows:
             row = dict(raw)
+            if allowed_calls is not None and (str(row["ticket_id"]), str(row["call_id"])) not in allowed_calls:
+                continue
             ticket_id = str(row["ticket_id"])
 
             delivery_evidence = None

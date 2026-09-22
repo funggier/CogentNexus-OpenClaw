@@ -133,11 +133,36 @@ def _reconcile_healthy_runtime_marker(root: Path, execute_safe: bool) -> dict[st
 GATEWAY_HARD_HANG_REASON = "CogentNexus-OpenClaw external supervisor confirmed an unresponsive Gateway"
 
 
-def _recover_gateway_interrupted_direct_calls(root: Path) -> list[dict[str, Any]]:
-    """Classify old-generation Direct calls only while the Gateway is stopped."""
+def _recover_gateway_interrupted_direct_calls(
+    root: Path,
+    interruption_evidence: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Classify only exact Direct calls captured before Gateway quiescence."""
     import host_stall_v091 as stall
 
-    return stall.classify_quiesced_gateway_interrupted_direct_calls(root)
+    return stall.classify_quiesced_gateway_interrupted_direct_calls(
+        root,
+        interruption_evidence=interruption_evidence,
+    )
+
+
+def _gateway_current_direct_evidence(root: Path) -> dict[str, Any] | None:
+    """Snapshot exact active Direct calls owned by the Gateway being replaced."""
+    import host_stall_v091 as stall
+
+    if not stall.has_active_direct_model_calls(root):
+        return None
+    boundary = _current_gateway_boot_boundary(require_healthy=False)
+    if boundary is None:
+        return None
+    calls = stall.find_current_gateway_direct_calls(root, boundary["startedAt"])
+    if not calls:
+        return None
+    return {
+        "kind": "confirmed-hard-hang-current-boot",
+        "boundary": boundary,
+        "orphans": calls,
+    }
 
 
 def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
@@ -146,6 +171,7 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
     Pending Direct recovery rows are committed before the replacement Gateway
     starts so startup liveness can observe them.
     """
+    interruption_evidence = _gateway_current_direct_evidence(root)
     prepared = legacy.runtime(
         root,
         "lifecycle",
@@ -177,7 +203,11 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
             timeout=240,
             check=True,
         )
-        interrupted = _recover_gateway_interrupted_direct_calls(root)
+        interrupted = (
+            _recover_gateway_interrupted_direct_calls(root, interruption_evidence)
+            if interruption_evidence is not None
+            else []
+        )
         start_result = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
         started = True
         return {
@@ -186,6 +216,7 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
             "prepared": legacy.parse_json_output(getattr(prepared, "stdout", "") or ""),
             "stopped": legacy.parse_json_output(getattr(stop_result, "stdout", "") or ""),
             "started": legacy.parse_json_output(getattr(start_result, "stdout", "") or ""),
+            "interruptionEvidence": interruption_evidence,
             "interruptedDirectRecoveries": interrupted,
         }
     finally:
@@ -193,10 +224,10 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
             legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
 
 
-def _current_gateway_boot_boundary() -> dict[str, Any] | None:
+def _current_gateway_boot_boundary(require_healthy: bool = True) -> dict[str, Any] | None:
     """Resolve the currently running Gateway PID to its OpenClaw boot row."""
-    status = legacy.gateway_status()
-    if not status.get("healthy"):
+    status = legacy.gateway_status() if require_healthy else legacy.gateway_status(timeout=5)
+    if require_healthy and not status.get("healthy"):
         return None
     stdout = str(status.get("stdout") or "")
     match = re.search(r"Runtime:\s+running \(pid\s+(\d+)", stdout)
