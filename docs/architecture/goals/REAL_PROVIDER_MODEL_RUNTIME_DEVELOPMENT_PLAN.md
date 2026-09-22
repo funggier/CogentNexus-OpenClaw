@@ -102,7 +102,7 @@ Session identity must not depend on provider identity.
 
 ### 3.3 Minimum-delta integration and routing authority
 
-OpenClaw is the provider/model/auth/routing authority for Cloud/pass-through operation in the current v0.9.6 architecture.
+OpenClaw is the provider/model/auth/routing authority for Cloud/pass-through operation in the current v0.9.7 architecture.
 
 Prefer preserving and qualifying existing OpenClaw provider/model behavior over creating a parallel CogentNexus-OpenClaw-only provider stack.
 

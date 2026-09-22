@@ -1,14 +1,14 @@
 # Coordination Status
 
-Status: `COMPLETE`
-State: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
-Task: `CNX-20260921-443-documentation-license-v096-release.md`
+Status: `IN_PROGRESS`
+State: `CNX444_V097_GATEWAY_INTERRUPTION_RECOVERY_IN_PROGRESS`
+Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Executor: `ChatGPT`
 
 ## Current phase
 
-v0.9.6 publication and CNX-443 release coordination are complete.
+v0.9.7 development has started under CNX-444. The immediate repair target is exact Direct recovery after a confirmed Gateway hard-hang process-boundary replacement. v0.9.6 remains the published accepted baseline.
 
 Final accepted candidate/tag SHA:
 

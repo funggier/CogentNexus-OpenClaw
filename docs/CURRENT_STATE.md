@@ -1,6 +1,6 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current source/release line:** `v0.9.6`
+**Current source line:** `v0.9.7` (development)
 **Current working branch:** `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
@@ -14,7 +14,23 @@ GitHub Releases/tags are authoritative for whether a release has actually been p
 
 ## Current classification
 
-The v0.9.6 source line includes the CNX-442 session-input serialization and authoritative Stop repair, physically requalified on Windows against OpenClaw 2026.9.5.
+v0.9.7 development is active under CNX-444. The current repair addresses a production continuity gap where a confirmed Gateway hard-hang restart physically destroyed an in-flight Direct model call while the durable CNX model-call row remained `active`, preventing exact recovery and eventually exposing the configured OpenClaw whole-run timeout.
+
+The published v0.9.6 baseline remains accepted and immutable while v0.9.7 qualification proceeds.
+
+### CNX-444 v0.9.7 repair status
+
+Current repository evidence:
+
+- exact incident route was `ollama/qwen3.8:27b`;
+- OpenClaw whole-run timeout was correctly `2700s` (~45 minutes), so increasing timeout is not the repair;
+- the CNX 15-minute model-call deadline remains observational only;
+- confirmed hard-hang recovery now orders `prepare -> stop/quiesce -> exact Direct interruption classification -> start`;
+- pending Direct Recovery authority is persisted before the replacement Gateway becomes inference-capable;
+- gateway-specific recovery evidence is distinct from timeout evidence;
+- focused repair suite: `24/24 PASS`;
+- expanded Host/provider/recovery regression suite: `112/112 PASS`;
+- full local repository/plugin/package qualification is GREEN; exact-SHA CI and live Windows acceptance remain pending.
 
 Final CNX-442 classification:
 
@@ -78,6 +94,7 @@ After Stop:
 | Durable result/delivery confirmation | Accepted |
 | Session-generation fencing | Accepted |
 | Restart recovery for held unbound ingress | Accepted in repository tests |
+| Exact Gateway-interruption recovery for bound active Direct calls | v0.9.7 local repository/plugin/package qualification GREEN; exact-SHA CI/live Windows acceptance pending |
 | PASSTHROUGH/native compatibility | Accepted |
 | MAINTENANCE deliberate-stop semantics | Accepted |
 | reset/uninstall ownership boundaries | Accepted |
@@ -104,6 +121,13 @@ CogentNexus-OpenClaw manages Ollama only when local managed-provider ownership i
 Historical LM Studio/provider experiments remain historical evidence only.
 
 ## Known validation baseline
+
+Current CNX-444 v0.9.7 development evidence:
+
+- focused exact Gateway-interruption repair: `24/24 PASS`;
+- expanded Host/provider/recovery regression: `112/112 PASS`;
+- Python syntax: PASS;
+- `git diff --check`: PASS.
 
 The final CNX-442 source qualification before documentation/release convergence reported:
 

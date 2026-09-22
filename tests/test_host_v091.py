@@ -227,6 +227,101 @@ class HostV091Tests(unittest.TestCase):
             self.assertFalse(expired["active"])
             self.assertEqual(expired["reason"], "active-boot-grace-expired")
 
+    def test_current_gateway_boot_boundary_matches_live_status_pid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "openclaw-state"
+            database = state_dir / "state" / "openclaw.sqlite"
+            database.parent.mkdir(parents=True)
+            db = sqlite3.connect(database)
+            db.execute(
+                "CREATE TABLE gateway_boot_lifecycle("
+                "boot_id TEXT,pid INTEGER,started_at_ms INTEGER,"
+                "completed_at_ms INTEGER,outcome TEXT,startup_reason TEXT,reason TEXT)"
+            )
+            db.execute(
+                "INSERT INTO gateway_boot_lifecycle VALUES(?,?,?,?,?,?,?)",
+                ("boot-old", 111, 1000, None, None, None, None),
+            )
+            db.execute(
+                "INSERT INTO gateway_boot_lifecycle VALUES(?,?,?,?,?,?,?)",
+                ("boot-live", 222, 2000, None, None, None, None),
+            )
+            db.commit()
+            db.close()
+
+            self.patch(
+                cnx.legacy,
+                "gateway_status",
+                lambda: {
+                    "healthy": True,
+                    "stdout": "Runtime: running (pid 222, last run 0, Gateway process detected for gateway port 18789.)",
+                },
+            )
+            with mock.patch.dict(os.environ, {"OPENCLAW_STATE_DIR": str(state_dir)}):
+                boundary = cnx._current_gateway_boot_boundary()
+
+            self.assertEqual(boundary["bootId"], "boot-live")
+            self.assertEqual(boundary["pid"], 222)
+            self.assertEqual(boundary["startedAtMs"], 2000)
+            self.assertEqual(boundary["startedAt"], "1970-01-01T00:00:02+00:00")
+            self.assertEqual(boundary["previousBootId"], "boot-old")
+            self.assertEqual(boundary["previousPid"], 111)
+            self.assertEqual(boundary["previousStartedAtMs"], 1000)
+            self.assertEqual(boundary["previousStartedAt"], "1970-01-01T00:00:01+00:00")
+
+    def test_current_gateway_boot_orphan_triggers_exact_boundary_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            boundary = {
+                "bootId": "boot-current",
+                "pid": 4321,
+                "startedAt": "2026-09-22T11:22:30+00:00",
+            }
+            evidence = {
+                "boundary": boundary,
+                "orphans": [{"ticket_id": "T-OLD", "call_id": "C-OLD"}],
+            }
+            recovered = {
+                "result": "gateway-boundary-direct-recovery",
+                "interruptedDirectRecoveries": [{"ticketId": "T-OLD"}],
+            }
+
+            self.patch(cnx, "gateway_fast_probe", lambda: True)
+            self.patch(cnx, "_gateway_boundary_orphan_evidence", lambda _root: evidence)
+            self.patch(
+                cnx,
+                "_recover_gateway_boundary_orphans",
+                lambda _root, found: recovered if found is evidence else self.fail("wrong evidence"),
+            )
+            self.patch(cnx, "classify_wake", lambda _root: self.fail("orphan recovery must precede idle wake classification"))
+
+            result = cnx.supervisor_tick(root, True)
+
+            self.assertEqual(result, recovered)
+
+    def test_current_gateway_boot_without_old_active_call_preserves_idle_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            self.patch(cnx, "gateway_fast_probe", lambda: True)
+            self.patch(cnx, "_gateway_boundary_orphan_evidence", lambda _root: None)
+            self.patch(
+                cnx,
+                "classify_wake",
+                lambda _root: type("Decision", (), {
+                    "actionable": False,
+                    "authority": "none",
+                    "work_id": None,
+                    "reason": "idle",
+                })(),
+            )
+
+            result = cnx.supervisor_tick(root, True)
+
+            self.assertEqual(result["result"], "idle")
+            self.assertFalse(result["heavyPath"])
+
     def test_transient_gateway_probe_failure_does_not_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
@@ -240,6 +335,67 @@ class HostV091Tests(unittest.TestCase):
             result = cnx.supervisor_tick(root, True)
             self.assertEqual(result["result"], "idle")
 
+
+
+    def test_confirmed_gateway_restart_classifies_active_direct_calls_while_quiesced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            calls = []
+
+            def runtime(_root, *args, **_kwargs):
+                calls.append(args[:2])
+                return self.completed('{"ok":true}')
+
+            self.patch(cnx.legacy, "runtime", runtime)
+            with mock.patch.object(
+                cnx,
+                "_recover_gateway_interrupted_direct_calls",
+                side_effect=lambda _root: calls.append(("classify", "direct")) or [{"ticketId": "T-GATEWAY"}],
+                create=True,
+            ) as classify:
+                result = cnx._restart_unresponsive_gateway(root)
+
+            self.assertEqual(
+                calls,
+                [
+                    ("lifecycle", "prepare"),
+                    ("lifecycle", "stop"),
+                    ("classify", "direct"),
+                    ("lifecycle", "start"),
+                ],
+            )
+            classify.assert_called_once_with(root)
+            self.assertEqual(result["interruptedDirectRecoveries"], [{"ticketId": "T-GATEWAY"}])
+
+    def test_gateway_restart_restores_gateway_if_interruption_classification_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            calls = []
+
+            def runtime(_root, *args, **_kwargs):
+                calls.append(args[:2])
+                return self.completed('{"ok":true}')
+
+            self.patch(cnx.legacy, "runtime", runtime)
+            with mock.patch.object(
+                cnx,
+                "_recover_gateway_interrupted_direct_calls",
+                side_effect=RuntimeError("classification failed"),
+                create=True,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "classification failed"):
+                    cnx._restart_unresponsive_gateway(root)
+
+            self.assertEqual(
+                calls,
+                [
+                    ("lifecycle", "prepare"),
+                    ("lifecycle", "stop"),
+                    ("lifecycle", "start"),
+                ],
+            )
 
 if __name__ == "__main__":
     unittest.main()

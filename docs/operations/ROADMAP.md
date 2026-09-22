@@ -1,40 +1,58 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-09-21
+**Updated:** 2026-09-22
 
 This roadmap is directional and evidence-driven. A phase advances because its gate passes, not because code exists.
 
-## Current position — v0.9.6 release convergence
+## Current position — v0.9.7 exact Gateway-interruption recovery
 
-CNX-442 closed the authoritative Stop/session-queue defect by moving later owner ingress behind a durable pre-dispatch FIFO barrier. Final physical acceptance on OpenClaw 2026.9.5 proved no successor Host run after Stop and zero inference for the held cancelled Ticket.
+v0.9.6 is the latest published accepted release. CNX-444 opens the v0.9.7 line after a genuine Discord turn exposed a recovery gap across an OpenClaw Gateway process replacement.
 
-CNX-443 is the current release-convergence phase:
+The defect is narrow but fundamental:
 
-- reconcile current documentation with the accepted runtime;
-- add MIT licensing;
-- align version/release metadata to v0.9.6;
-- retain historical evidence without presenting it as current guidance;
-- pass complete release validation;
-- publish and independently verify v0.9.6.
+- a Direct Ticket and model call were durably recorded;
+- the external Host confirmed the Gateway was unresponsive;
+- the Gateway was replaced while the model call was still active;
+- the old process could no longer emit `model_call_ended` / `agent_end`;
+- provider-neutral safety correctly prevented timer-only destructive recovery;
+- the model-call row remained `active` and the Ticket stranded until OpenClaw's configured 2700-second whole-run timeout.
 
-## Short term — v0.9.6 publication
+v0.9.7 repairs that exact process-boundary gap without making elapsed time destructive authority.
+
+## Short term — CNX-444 / v0.9.7 qualification
 
 Required gates:
 
-1. current docs contain no misleading active v0.9.4/v0.9.5 release-state claims;
-2. current branch/watch instructions do not recreate retired automation;
-3. MIT License is present and linked;
-4. VERSION/package/manifest/lock/CI release contract agree on 0.9.6;
-5. namespace/baseline/skill/Python/plugin tests pass;
-6. package dry-run and release archive verification pass;
-7. exact candidate SHA is frozen and pushed;
-8. required GitHub checks are terminal and acceptable;
-9. release workflow publishes tag/assets/checksums against the exact candidate;
-10. public release identity and checksums are independently verified.
+1. RED reproduces the missing exact Gateway-interruption path.
+2. Confirmed hard-hang recovery orders `prepare -> stop/quiesce -> classify -> start`.
+3. Eligible active Direct calls are converted to pending Direct Recovery while inference is impossible.
+4. Gateway-interruption event/outcome evidence is distinct from deadline/timeout evidence.
+5. Response-ready, delivery, terminal, cancellation, workflow and owner-generation fences remain authoritative.
+6. Healthy slow local-model inference is never regenerated merely because the observational 15-minute deadline elapsed.
+7. Provider/model/auth/routing ownership remains OpenClaw-owned; CNX does not restart or reroute a provider as part of this repair.
+8. Focused and full Python suites pass.
+9. Full plugin/Vitest, evaluation, package validation and production audit pass.
+10. VERSION/package/manifest/lock/CI release contract agree on 0.9.7.
+11. Windows install-over/lifecycle acceptance passes on OpenClaw 2026.9.5.
+12. Live exact interruption/recovery proof demonstrates one authorized recovery and no duplicate inference/delivery.
+13. Exact candidate SHA is pushed and GitHub validation passes.
+14. Only then may v0.9.7 be published and independently checksum-verified.
+
+## Accepted predecessor
+
+CNX-443 / v0.9.6 remains final release GREEN:
+
+- public tag/release `v0.9.6`;
+- accepted release SHA `db8433676c2412706ef3b3966c97e3509f2255c8`;
+- OpenClaw 2026.9.5 physical lifecycle acceptance;
+- authoritative Stop/session FIFO acceptance;
+- MIT License and documentation convergence.
+
+The v0.9.6 tag/release must not be rewritten.
 
 ## Medium term — compatibility and resilience evidence
 
-After v0.9.6 publication:
+After v0.9.7:
 
 - formalize a newer OpenClaw regression dependency baseline rather than relying only on the older 2026.7.1-2 dev pin;
 - expand explicit compatibility testing around OpenClaw 2026.9.x+;

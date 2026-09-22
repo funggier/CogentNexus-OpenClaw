@@ -4,12 +4,14 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Current source/release line:** `v0.9.6`
+- **Current source line:** `v0.9.7` (development)
+- **Latest published release:** `v0.9.6`
 - **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 - **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 - **Managed provider ownership:** Ollama
 - **Cloud/provider/model/auth routing:** OpenClaw-owned pass-through
 - **CNX-442 authoritative Stop + session FIFO:** final live GREEN
+- **CNX-444 v0.9.7 exact Gateway-interruption recovery:** local repository/plugin/package qualification GREEN; exact-SHA CI and live Windows acceptance pending
 - **License:** MIT
 
 The package peer range remains broader than the exact runtimes physically qualified by this repository. A peer range is install compatibility, not proof of behavioral acceptance.
@@ -49,6 +51,12 @@ Durable result / delivery
       v
 Delivery confirmed -> completed
 ```
+
+### Exact Gateway-interruption recovery
+
+v0.9.7 adds an exact recovery boundary for an in-flight Direct model call that is physically interrupted by a confirmed Gateway process replacement. After a confirmed hard hang, the Host now prepares recoverable maintenance, stops/quiesces the old Gateway, classifies eligible active Direct calls as interrupted, persists pending Direct Recovery authority, and only then starts the replacement Gateway.
+
+The existing 15-minute model-call deadline remains observational only. A healthy slow model is never regenerated merely because elapsed time crossed that marker.
 
 ### Authoritative Stop behavior
 

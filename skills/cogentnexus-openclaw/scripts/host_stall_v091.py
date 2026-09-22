@@ -35,6 +35,7 @@ BASE_SUPERVISOR_TICK = legacy.supervisor_tick
 RECLAIM_AFTER_SECONDS = 90
 MAX_STALL_RECOVERY_ATTEMPTS = 5
 STALL_REASON = "CogentNexus-OpenClaw Host direct model-call deadline exceeded"
+GATEWAY_INTERRUPTION_REASON = "CogentNexus-OpenClaw confirmed Gateway process-boundary interruption"
 
 
 def _model_call_table(db: sqlite3.Connection) -> bool:
@@ -285,6 +286,212 @@ def classify_quiesced_direct_model_call(root: Path, claim: dict[str, Any]) -> di
     finally:
         db.close()
 
+
+def has_active_direct_model_calls(root: Path) -> bool:
+    """Return whether an unfenced Direct model call is still marked active."""
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return False
+    db = sqlite3.connect(path, timeout=2)
+    try:
+        if not _model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return False
+        ticket_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+        required = {"ticket_id", "status", "workflow_eligible", "workflow_id", "response_ready_at"}
+        if not required.issubset(ticket_columns):
+            return False
+        row = db.execute(
+            "SELECT 1 FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
+            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL LIMIT 1"
+        ).fetchone()
+        return row is not None
+    finally:
+        db.close()
+
+
+def find_gateway_boundary_orphaned_direct_calls(
+    root: Path,
+    gateway_started_at_iso: str,
+    predecessor_started_at_iso: str | None = None,
+) -> list[dict[str, Any]]:
+    """Find active Direct calls that predate the currently running Gateway boot."""
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return []
+    db = sqlite3.connect(path, timeout=2)
+    db.row_factory = sqlite3.Row
+    try:
+        if not _model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return []
+        ticket_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+        required = {"ticket_id", "owner_session_key", "status", "workflow_eligible", "workflow_id", "response_ready_at"}
+        if not required.issubset(ticket_columns):
+            return []
+        lower_bound = ""
+        parameters: list[Any] = [gateway_started_at_iso]
+        if predecessor_started_at_iso is not None:
+            lower_bound = "AND julianday(m.started_at) >= julianday(?) "
+            parameters.append(predecessor_started_at_iso)
+        rows = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at,"
+            "t.owner_session_key,t.status,t.response_ready_at "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
+            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND julianday(m.started_at) < julianday(?) " + lower_bound +
+            "ORDER BY m.started_at,m.ticket_id",
+            tuple(parameters),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        db.close()
+
+def classify_quiesced_gateway_interrupted_direct_calls(
+    root: Path,
+    now_iso: str | None = None,
+    interruption_evidence: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Authorize Direct recovery for active calls interrupted by a stopped Gateway.
+
+    This is not a timer recovery path. The caller must invoke it only after the
+    external Host has confirmed a hard-hung Gateway and quiesced/stopped that
+    Gateway generation. At that point an active model-call row is exact stale
+    execution evidence because the process boundary that owned the call no
+    longer exists.
+    """
+    cutoff = _stamp(now_iso)
+    delivery_fences = v091.reconcile_direct_delivery_before_recovery(root, cutoff)
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return []
+
+    db = sqlite3.connect(path, timeout=5)
+    db.row_factory = sqlite3.Row
+    try:
+        if not _model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return []
+
+        db.execute("BEGIN IMMEDIATE")
+        rows = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at,"
+            "m.recovery_attempt_count,t.owner_session_key,t.status,t.workflow_eligible,t.workflow_id,"
+            "t.response_ready_at,t.delivery_confirmed_at "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE m.state='active' "
+            "AND t.status IN ('accepted','waiting') "
+            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.response_ready_at IS NULL "
+            "ORDER BY m.started_at,m.ticket_id"
+        ).fetchall()
+
+        results: list[dict[str, Any]] = []
+        for raw in rows:
+            row = dict(raw)
+            ticket_id = str(row["ticket_id"])
+
+            delivery_evidence = None
+            if v091._db_table_exists(db, "cnx_assistant_delivery"):
+                delivery_evidence = db.execute(
+                    "SELECT status FROM cnx_assistant_delivery "
+                    "WHERE ticket_id=? AND kind='direct_result' "
+                    "ORDER BY delivery_id DESC LIMIT 1",
+                    (ticket_id,),
+                ).fetchone()
+
+            if row.get("delivery_confirmed_at") is not None or delivery_evidence is not None:
+                db.execute(
+                    "UPDATE cnx_direct_model_call "
+                    "SET state='ended',ended_at=?,outcome='delivery-or-terminal-fence',updated_at=? "
+                    "WHERE ticket_id=? AND call_id=? AND state='active'",
+                    (cutoff, cutoff, ticket_id, row["call_id"]),
+                )
+                results.append({
+                    "ticketId": ticket_id,
+                    "action": "held-no-inference",
+                    "recoveryAuthority": "gateway-interruption",
+                    "durableDirectResult": delivery_evidence is not None,
+                    "deliveryFences": delivery_fences,
+                })
+                continue
+
+            reason = (
+                f"{GATEWAY_INTERRUPTION_REASON}: callId={row['call_id']} "
+                f"provider={row.get('provider') or 'unknown'} model={row.get('model') or 'unknown'} "
+                f"startedAt={row.get('started_at') or 'unknown'}"
+            )[:2000]
+
+            changed = db.execute(
+                "UPDATE tickets SET status='accepted',workflow_eligible=0,"
+                "worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,"
+                "failure_class='interrupted',failure_message=?,delivery_last_error=?,updated_at=? "
+                "WHERE ticket_id=? AND status IN ('accepted','waiting') "
+                "AND workflow_eligible=0 AND workflow_id IS NULL AND response_ready_at IS NULL",
+                (reason, reason, cutoff, ticket_id),
+            )
+            if changed.rowcount != 1:
+                raise RuntimeError(
+                    f"Gateway-interrupted Direct Ticket changed during quiesced classification: {ticket_id}"
+                )
+
+            owner_generation = _queue_host_authorized_direct_recovery(
+                db,
+                ticket_id=ticket_id,
+                owner_session_key=str(row["owner_session_key"]),
+                reason=reason,
+                stamp=cutoff,
+            )
+
+            db.execute(
+                "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                (
+                    ticket_id,
+                    "host_direct_model_gateway_interruption_authorized",
+                    json.dumps({
+                        "runId": row["run_id"],
+                        "callId": row["call_id"],
+                        "provider": row.get("provider"),
+                        "model": row.get("model"),
+                        "startedAt": row.get("started_at"),
+                        "deadlineAt": row.get("deadline_at"),
+                        "reason": reason,
+                        "recoveryMode": "resume",
+                        "ownerGeneration": owner_generation,
+                        "source": "host-v097-gateway-interruption",
+                        "gatewayInterruption": interruption_evidence,
+                    }, ensure_ascii=False),
+                    cutoff,
+                ),
+            )
+
+            model_changed = db.execute(
+                "UPDATE cnx_direct_model_call SET "
+                "state='interrupted',ended_at=?,outcome='host-gateway-interruption-authorized',"
+                "recovery_started_at=?,recovery_attempt_count=recovery_attempt_count+1,updated_at=? "
+                "WHERE ticket_id=? AND call_id=? AND state='active'",
+                (cutoff, cutoff, cutoff, ticket_id, row["call_id"]),
+            )
+            if model_changed.rowcount != 1:
+                raise RuntimeError(
+                    f"Gateway-interrupted Direct model call changed during quiesced classification: {ticket_id}"
+                )
+
+            results.append({
+                "ticketId": ticket_id,
+                "action": "pre-response-recovery-authorized",
+                "recoveryAuthority": "gateway-interruption",
+                "recoveryState": "pending",
+                "ownerGeneration": owner_generation,
+                "deliveryFences": delivery_fences,
+            })
+
+        db.commit()
+        return results
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 def recover_expired_direct_model_call(root: Path, claim: dict[str, Any]) -> dict[str, Any]:
     """Quiesce CNX Gateway -> classify -> restart without provider lifecycle control."""

@@ -238,5 +238,129 @@ class HostDirectModelStallTests(unittest.TestCase):
         self.assertNotIn("--provider", function)
 
 
+
+    def test_gateway_interruption_classifies_active_call_before_observational_deadline(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-interruption-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+
+            results = stall.classify_quiesced_gateway_interrupted_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+            )
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0]["ticketId"], TICKET)
+            self.assertEqual(results[0]["action"], "pre-response-recovery-authorized")
+            self.assertEqual(results[0]["recoveryAuthority"], "gateway-interruption")
+
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome,recovery_attempt_count FROM cnx_direct_model_call WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("interrupted", "host-gateway-interruption-authorized", 1),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT mode,state,attempt_count,active_run_id,owner_generation FROM cnx_direct_recovery WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("resume", "pending", 0, None, 7),
+            )
+            db.close()
+
+    def test_gateway_interruption_classification_uses_exact_boundary_evidence(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-classify-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+
+            results = stall.classify_quiesced_gateway_interrupted_direct_calls(
+                root,
+                "2026-08-18T13:05:01+00:00",
+            )
+
+            self.assertEqual(len(results), 1)
+            result = results[0]
+            self.assertEqual(result["action"], "pre-response-recovery-authorized")
+            self.assertEqual(result["recoveryAuthority"], "gateway-interruption")
+            self.assertEqual(result["ownerGeneration"], 7)
+
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute(
+                    "SELECT status,workflow_eligible,failure_class,workflow_id FROM tickets WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("accepted", 0, "interrupted", None),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome FROM cnx_direct_model_call WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("interrupted", "host-gateway-interruption-authorized"),
+            )
+            events = [
+                row[0]
+                for row in db.execute(
+                    "SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id",
+                    (TICKET,),
+                )
+            ]
+            self.assertEqual(events, ["host_direct_model_gateway_interruption_authorized"])
+            db.close()
+
+    def test_find_gateway_boundary_orphan_requires_call_started_before_current_boot(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-orphan-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            make_db(root)
+
+            before = stall.find_gateway_boundary_orphaned_direct_calls(
+                root,
+                "2026-08-18T12:59:59+00:00",
+                "2026-08-18T12:55:00+00:00",
+            )
+            after = stall.find_gateway_boundary_orphaned_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+                "2026-08-18T12:55:00+00:00",
+            )
+            stale = stall.find_gateway_boundary_orphaned_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+                "2026-08-18T13:01:00+00:00",
+            )
+
+            self.assertEqual(before, [])
+            self.assertEqual(len(after), 1)
+            self.assertEqual(after[0]["ticket_id"], TICKET)
+            self.assertEqual(after[0]["call_id"], "call-live")
+            self.assertEqual(stale, [])
+
+    def test_gateway_interruption_classification_respects_response_ready_fence(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-ready-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root, response_ready_at="2026-08-18T13:04:59+00:00")
+
+            results = stall.classify_quiesced_gateway_interrupted_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+            )
+
+            self.assertEqual(results, [])
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,recovery_attempt_count FROM cnx_direct_model_call WHERE ticket_id=?",
+                    (TICKET,),
+                ).fetchone(),
+                ("active", 0),
+            )
+            self.assertEqual(db.execute("SELECT count(*) FROM cnx_direct_recovery").fetchone()[0], 0)
+            db.close()
+
+
 if __name__ == "__main__":
     unittest.main()

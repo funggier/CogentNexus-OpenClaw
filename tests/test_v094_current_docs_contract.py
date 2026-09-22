@@ -10,14 +10,14 @@ CURRENT_DOCS = (
     ROOT / "docs" / "INSTALL.md",
     ROOT / "docs" / "operations" / "ROADMAP.md",
     ROOT / "docs" / "operations" / "STATUS.md",
-    ROOT / "docs" / "releases" / "v0.9.6.md",
+    ROOT / "docs" / "releases" / "v0.9.7.md",
 )
 
 
 def test_current_docs_use_v096_and_delegate_publication_state_to_release_authority():
     for path in CURRENT_DOCS:
         text = path.read_text(encoding="utf-8")
-        assert "v0.9.6" in text or "`0.9.6`" in text, path
+        assert "v0.9.7" in text or "`0.9.7`" in text, path
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     current = (ROOT / "docs" / "CURRENT_STATE.md").read_text(encoding="utf-8")

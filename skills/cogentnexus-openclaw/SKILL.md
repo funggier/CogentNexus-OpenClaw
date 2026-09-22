@@ -5,7 +5,7 @@ description: "Durable Host-managed continuity, lifecycle control, session serial
 
 # CogentNexus-OpenClaw
 
-**Current source/release line:** `v0.9.6`
+**Current source/release line:** `v0.9.7`
 **Latest physical OpenClaw acceptance:** `2026.9.5 (ec9c1a1)`
 **Regression/dev OpenClaw pin:** `2026.7.1-2`
 **Managed local provider:** Ollama
@@ -41,6 +41,8 @@ A valid user Stop advances owner generation once and cancels active + held Ticke
 ## Host-managed recovery
 
 For a committed Direct turn interrupted before durable response, bounded recovery may be authorized only from durable evidence. Recovery preserves Ticket owner generation and original provider/model provenance.
+
+A confirmed Gateway process replacement is exact interruption evidence for active Direct calls owned by the old Gateway generation, but recovery authority is persisted only after Gateway inference is quiesced. An elapsed model-call deadline alone remains observational and does not authorize replacement inference.
 
 Restart recovery for a held pre-dispatch message is limited to accepted ingress that never bound to a Host run (`bound_run_id IS NULL`) and remains FIFO-fenced.
 

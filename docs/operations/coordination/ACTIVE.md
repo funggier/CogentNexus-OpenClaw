@@ -1,8 +1,8 @@
 # Active Coordination
 
-Status: `COMPLETE`
-State: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
-Task: `CNX-20260921-443-documentation-license-v096-release.md`
+Status: `IN_PROGRESS`
+State: `CNX444_V097_GATEWAY_INTERRUPTION_RECOVERY_IN_PROGRESS`
+Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
 Human final authority: `Operator`
@@ -10,11 +10,13 @@ Working branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
 ## Current objective
 
-CNX-443 is complete. CogentNexus-OpenClaw v0.9.6 was published from exact accepted candidate `db8433676c2412706ef3b3966c97e3509f2255c8`, independently verified, and advanced to `main` without force.
+CNX-444 is the v0.9.7 successor task. Repair the production continuity gap where a confirmed Gateway hard-hang restart physically interrupts an active Direct model call but leaves the CNX model-call lease `active`, preventing exact Direct recovery and eventually exposing the OpenClaw whole-run timeout.
+
+The repair must use exact Gateway-interruption evidence and must not restore timer-only destructive recovery.
 
 ## Current accepted predecessor
 
-CNX-442 is complete and final live GREEN.
+CNX-443 / v0.9.6 is complete and remains immutable. CNX-442 is also complete and final live GREEN.
 
 Authoritative predecessor evidence:
 
@@ -28,7 +30,7 @@ Authoritative predecessor evidence:
 
 The retired Codex `CogentNexus coordination watch` one-minute automation is not current authority and must not be recreated.
 
-Use this file plus `STATUS.md` and the linked CNX-443 task as the current durable handoff.
+Use this file plus `STATUS.md`, the linked CNX-444 task, and `reports/CNX-20260922-444-v097-gateway-interruption-direct-recovery-report.md` as the current durable handoff.
 
 Historical tasks/reports/reviews remain evidence only.
 

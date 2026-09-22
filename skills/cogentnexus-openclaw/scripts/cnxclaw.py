@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CogentNexus-OpenClaw v0.9.6 operator CLI boundary.
+"""CogentNexus-OpenClaw v0.9.7 operator CLI boundary.
 
 Ownership rules:
 - CNX lifecycle commands own CNX/Gateway lifecycle only.
@@ -272,7 +272,7 @@ def emit(value: Any) -> None:
 
 
 def help_text() -> str:
-    return """CogentNexus-OpenClaw v0.9.6
+    return """CogentNexus-OpenClaw v0.9.7
 
 CNX lifecycle (no provider/model selection):
   cnxclaw.cmd start
@@ -322,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
         return code
 
     if command in {"start", "stop", "restart", "status", "enable", "disable", "reset", "uninstall"} and has_option(args[1:], "--provider"):
-        emit({"result": "error", "error": "--provider is no longer a CNX lifecycle authority in v0.9.6; select provider/model in OpenClaw instead", "compatibility": "legacy input rejected and no route/lifecycle transition was attempted"})
+        emit({"result": "error", "error": "--provider is no longer a CNX lifecycle authority in v0.9.7; select provider/model in OpenClaw instead", "compatibility": "legacy input rejected and no route/lifecycle transition was attempted"})
         return 2
 
     if command == "check":

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -128,6 +130,205 @@ def _reconcile_healthy_runtime_marker(root: Path, execute_safe: bool) -> dict[st
     }
 
 
+GATEWAY_HARD_HANG_REASON = "CogentNexus-OpenClaw external supervisor confirmed an unresponsive Gateway"
+
+
+def _recover_gateway_interrupted_direct_calls(root: Path) -> list[dict[str, Any]]:
+    """Classify old-generation Direct calls only while the Gateway is stopped."""
+    import host_stall_v091 as stall
+
+    return stall.classify_quiesced_gateway_interrupted_direct_calls(root)
+
+
+def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
+    """Replace a confirmed hung Gateway and authorize only exact interrupted calls.
+
+    Pending Direct recovery rows are committed before the replacement Gateway
+    starts so startup liveness can observe them.
+    """
+    prepared = legacy.runtime(
+        root,
+        "lifecycle",
+        "prepare",
+        "--reason",
+        GATEWAY_HARD_HANG_REASON,
+        "--owner",
+        "cogentnexus-openclaw-host",
+        "--recovery-policy",
+        "healthy-runtime",
+        timeout=60,
+        check=True,
+    )
+    stopped = False
+    started = False
+    stop_result = None
+    start_result = None
+    interrupted: list[dict[str, Any]] = []
+    try:
+        stopped = True
+        stop_result = legacy.runtime(
+            root,
+            "lifecycle",
+            "stop",
+            "--reason",
+            GATEWAY_HARD_HANG_REASON,
+            "--owner",
+            "cogentnexus-openclaw-host",
+            timeout=240,
+            check=True,
+        )
+        interrupted = _recover_gateway_interrupted_direct_calls(root)
+        start_result = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
+        started = True
+        return {
+            "attempted": True,
+            "exitCode": int(getattr(start_result, "returncode", 0)),
+            "prepared": legacy.parse_json_output(getattr(prepared, "stdout", "") or ""),
+            "stopped": legacy.parse_json_output(getattr(stop_result, "stdout", "") or ""),
+            "started": legacy.parse_json_output(getattr(start_result, "stdout", "") or ""),
+            "interruptedDirectRecoveries": interrupted,
+        }
+    finally:
+        if stopped and not started:
+            legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
+
+
+def _current_gateway_boot_boundary() -> dict[str, Any] | None:
+    """Resolve the currently running Gateway PID to its OpenClaw boot row."""
+    status = legacy.gateway_status()
+    if not status.get("healthy"):
+        return None
+    stdout = str(status.get("stdout") or "")
+    match = re.search(r"Runtime:\s+running \(pid\s+(\d+)", stdout)
+    if not match:
+        return None
+    pid = int(match.group(1))
+    state_dir = Path(os.environ.get("OPENCLAW_STATE_DIR") or (Path.home() / ".openclaw"))
+    database = state_dir / "state" / "openclaw.sqlite"
+    if not database.exists():
+        return None
+    try:
+        db = sqlite3.connect(f"file:{database.as_posix()}?mode=ro", uri=True, timeout=0.1)
+        try:
+            row = db.execute(
+                "SELECT boot_id,pid,started_at_ms FROM gateway_boot_lifecycle "
+                "WHERE pid=? ORDER BY started_at_ms DESC LIMIT 1",
+                (pid,),
+            ).fetchone()
+            previous = None
+            if row is not None:
+                previous = db.execute(
+                    "SELECT boot_id,pid,started_at_ms FROM gateway_boot_lifecycle "
+                    "WHERE started_at_ms<? ORDER BY started_at_ms DESC LIMIT 1",
+                    (int(row[2]),),
+                ).fetchone()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return None
+    if row is None:
+        return None
+    started_at_ms = int(row[2])
+    started_at = datetime.fromtimestamp(started_at_ms / 1000.0, tz=timezone.utc).isoformat()
+    result = {
+        "bootId": str(row[0]),
+        "pid": int(row[1]),
+        "startedAtMs": started_at_ms,
+        "startedAt": started_at,
+    }
+    if previous is not None:
+        previous_started_ms = int(previous[2])
+        result["previousBootId"] = str(previous[0])
+        result["previousPid"] = int(previous[1])
+        result["previousStartedAtMs"] = previous_started_ms
+        result["previousStartedAt"] = datetime.fromtimestamp(
+            previous_started_ms / 1000.0,
+            tz=timezone.utc,
+        ).isoformat()
+    return result
+
+
+def _gateway_boundary_orphan_evidence(root: Path) -> dict[str, Any] | None:
+    """Return exact old-generation Direct calls under the current Gateway boot."""
+    import host_stall_v091 as stall
+
+    if not stall.has_active_direct_model_calls(root):
+        return None
+    boundary = _current_gateway_boot_boundary()
+    if boundary is None:
+        return None
+    predecessor_started_at = boundary.get("previousStartedAt")
+    if predecessor_started_at is None:
+        return None
+    orphans = stall.find_gateway_boundary_orphaned_direct_calls(
+        root,
+        boundary["startedAt"],
+        predecessor_started_at,
+    )
+    if not orphans:
+        return None
+    return {"boundary": boundary, "orphans": orphans}
+
+
+def _recover_gateway_boundary_orphans(root: Path, evidence: dict[str, Any]) -> dict[str, Any]:
+    """Quiesce the current Gateway and authorize recovery for exact predecessor work."""
+    import host_stall_v091 as stall
+
+    boundary = evidence["boundary"]
+    reason = (
+        "CogentNexus-OpenClaw current Gateway boot superseded active Direct model work: "
+        f"bootId={boundary.get('bootId')} pid={boundary.get('pid')} startedAt={boundary.get('startedAt')}"
+    )
+    prepared = legacy.runtime(
+        root,
+        "lifecycle",
+        "prepare",
+        "--reason",
+        reason,
+        "--owner",
+        "cogentnexus-openclaw-host",
+        "--recovery-policy",
+        "healthy-runtime",
+        timeout=60,
+        check=True,
+    )
+    stopped = False
+    started = False
+    stop_result = None
+    start_result = None
+    try:
+        stopped = True
+        stop_result = legacy.runtime(
+            root,
+            "lifecycle",
+            "stop",
+            "--reason",
+            reason,
+            "--owner",
+            "cogentnexus-openclaw-host",
+            timeout=240,
+            check=True,
+        )
+        interrupted = stall.classify_quiesced_gateway_interrupted_direct_calls(
+            root,
+            interruption_evidence=evidence,
+        )
+        start_result = legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
+        started = True
+        return {
+            "result": "gateway-boundary-direct-recovery",
+            "action": "gateway-boundary-direct-recovery",
+            "gatewayBoundary": boundary,
+            "detectedOrphans": evidence["orphans"],
+            "interruptedDirectRecoveries": interrupted,
+            "prepared": legacy.parse_json_output(getattr(prepared, "stdout", "") or ""),
+            "stopped": legacy.parse_json_output(getattr(stop_result, "stdout", "") or ""),
+            "started": legacy.parse_json_output(getattr(start_result, "stdout", "") or ""),
+        }
+    finally:
+        if stopped and not started:
+            legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
+
 def durable_work_hint(root: Path, now: str | None = None) -> bool:
     """Compatibility boolean backed exclusively by the canonical wake authority."""
     parsed_now = _parse_iso_timestamp(now) if now else None
@@ -244,6 +445,11 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
             "heavyPath": False,
             "maintenanceRecovery": maintenance_recovery,
         }
+
+    if execute_safe:
+        gateway_boundary_orphans = _gateway_boundary_orphan_evidence(root)
+        if gateway_boundary_orphans is not None:
+            return _recover_gateway_boundary_orphans(root, gateway_boundary_orphans)
 
     decision = classify_wake(root)
     if not decision.actionable:

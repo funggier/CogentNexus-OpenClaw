@@ -2,7 +2,7 @@
 
 This document records the durable architectural invariants that survive across release lines. It is not a release-status page; use [CURRENT_STATE.md](CURRENT_STATE.md) for the current source/release state.
 
-**Current source/release line:** `v0.9.6`
+**Current source/release line:** `v0.9.7`
 **Latest physical runtime acceptance:** OpenClaw `2026.9.5 (ec9c1a1)`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
 **Managed provider ownership:** Ollama
@@ -77,6 +77,12 @@ Ticket accepted
 If the Gateway process disappears while later ingress is being held before Host admission, only accepted ingress with `bound_run_id IS NULL` is eligible for the dedicated restart-recovery path. It remains FIFO-fenced behind older non-terminal ingress.
 
 Bound active runs remain owned by the normal Host/recovery reconciliation path; the held-ingress restart mechanism does not regenerate them.
+
+### Exact Gateway-interruption recovery
+
+A confirmed replacement of the Gateway process while a bound Direct model call is active is stronger evidence than an elapsed timer. v0.9.7 treats that process boundary as exact interruption evidence only after the Host has quiesced/stopped Gateway inference. Eligible active Direct calls may then be converted to pending Direct Recovery before the replacement Gateway starts.
+
+An elapsed model-call deadline with an otherwise healthy Gateway/provider remains observation-only and never authorizes destructive recovery.
 
 ### SQLite BUSY rule
 
