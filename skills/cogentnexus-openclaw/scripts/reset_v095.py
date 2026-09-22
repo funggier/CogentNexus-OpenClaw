@@ -13,6 +13,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,36 @@ PLUGIN_ID = base.PLUGIN_ID
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
 HOST_COMMAND_TIMEOUT_SECONDS = 300
 HOST_ENABLE_TIMEOUT_SECONDS = 600
+GATEWAY_RECOVERY_TIMEOUT_SECONDS = 180
+GATEWAY_RECOVERY_POLL_SECONDS = 15
+
+
+def _wait_gateway_healthy(
+    timeout_seconds: float = GATEWAY_RECOVERY_TIMEOUT_SECONDS,
+    poll_interval_seconds: float = GATEWAY_RECOVERY_POLL_SECONDS,
+) -> dict[str, Any]:
+    """Wait through bounded OpenClaw Gateway control-path transients."""
+    started = time.monotonic()
+    deadline = started + max(0.0, float(timeout_seconds))
+    attempts = 0
+    last: dict[str, Any] = {}
+    while True:
+        attempts += 1
+        last = base.gateway_health()
+        if last.get("healthy"):
+            return {
+                **last,
+                "readinessAttempts": attempts,
+                "readinessElapsedSeconds": round(time.monotonic() - started, 3),
+            }
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return {
+                **last,
+                "readinessAttempts": attempts,
+                "readinessElapsedSeconds": round(time.monotonic() - started, 3),
+            }
+        time.sleep(min(max(0.0, float(poll_interval_seconds)), remaining))
 
 
 def _plugin_payload(root: Path) -> bool:
@@ -161,7 +192,7 @@ def reset(root: Path) -> int:
             # OpenClaw 2026.9.x can transiently lose the Gateway control path
             # during the first plugin activation after fresh reset. Retry
             # exactly once only after the native Gateway is observably healthy.
-            retry_gateway = base.gateway_health()
+            retry_gateway = _wait_gateway_healthy()
             if not retry_gateway.get("healthy"):
                 detail = first_enable_detail
                 if enabled is not None:
@@ -201,7 +232,7 @@ def reset(root: Path) -> int:
             raise RuntimeError(f"Gateway activation failed after provider-neutral reset: {boundary}")
 
         plugin = base.verify_plugin_loaded()
-        gateway = base.gateway_health()
+        gateway = _wait_gateway_healthy()
         if not gateway.get("healthy"):
             raise RuntimeError("OpenClaw Gateway failed health verification after CogentNexus-OpenClaw reset")
 

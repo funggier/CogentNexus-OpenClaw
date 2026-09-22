@@ -190,3 +190,33 @@ The repaired worktree is locally GREEN:
 - plugin/package validation: PASS with `290` packed files.
 
 The next exact candidate must repeat the destructive lifecycle acceptance sequence because the SQLite contention repair changes production plugin source.
+
+## Reset retry-readiness blocker on e2781a13 — 2026-09-22
+
+Exact candidate `e2781a13929a08c231618e3b50b589342147decc` carried the CNX-198 pending-ingress SQLite contention repair and completed full local requalification before renewed physical acceptance.
+
+Physical acceptance evidence:
+
+- exact install-over: PASS, active/MANAGED generation 4;
+- installed CNX-198 production artifact SHA-256 matched the candidate build exactly;
+- exact clean reinstall: process exit code 0 with backup `T:\CogentNexus-OpenClaw-Release-Acceptance-Backups\20260922-121732`;
+- post-clean convergence: active/MANAGED generation 2, Gateway/OpenClaw 2026.9.5 healthy, plugin v0.9.6 enabled, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, route unchanged at `ollama/qwen3.8:27b`;
+- exact reset: FAIL.
+
+The reset failure remained fail-closed and provider-neutral. The first fresh-state enable returned a transactional activation failure after `openclaw plugins disable cogentnexus-openclaw` encountered Gateway `ETIMEDOUT`. Its rollback restored PASSTHROUGH and internally observed the native Gateway healthy after six readiness probes / about 91 seconds. The reset controller then performed one immediate `base.gateway_health()` probe, observed another transient timeout, and incorrectly concluded that the native Gateway had not recovered, so it never used the one permitted reset retry.
+
+Post-failure safety state was verified: CNX disabled/PASSTHROUGH generation 1, Gateway healthy, plugin disabled, pending outbox zero, no active quiescence lease, and the OpenClaw-owned route remained `ollama/qwen3.8:27b`.
+
+A RED-first reset regression reproduced the exact defect: transient Gateway health sequence `ETIMEDOUT -> ETIMEDOUT -> healthy` was rejected after the first probe. The minimal repair replaces the reset retry gate and final reset health verdict with bounded Gateway-health convergence while preserving exactly one transactional enable retry and leaving provider/model/auth/routing authority unchanged.
+
+Post-repair qualification is GREEN:
+
+- focused reset/lifecycle/quiescence/activation coverage: `45 passed, 2 subtests passed`;
+- full Python: `719 passed, 5 skipped, 38 subtests passed`;
+- plugin: `91/91` files, `429/429` tests;
+- evaluation: PASS, evidence SHA-256 `bf94d5e2090a20e1950ee0c263969caafcc9d499c973f6b8b11bb5164cedc582`;
+- production audit: `0 vulnerabilities`;
+- plugin/package validation: PASS with `290` packed files;
+- PowerShell contract gates and repository validation: PASS.
+
+Candidate `e2781a13...` is rejected because the reset-readiness repair changes production lifecycle source. A new exact candidate must repeat install-over, clean reinstall, reset, and final same-version install-over acceptance before publication.

@@ -527,3 +527,41 @@ Full local requalification after the pending-ingress contention repair is GREEN:
 - packed file count: `290`.
 
 A new exact candidate may now be frozen. Because this repair changes production plugin source, renewed live install-over / clean-reinstall / reset / final same-version install-over acceptance is required before publication.
+
+## Exact-candidate reset retry-readiness blocker on e2781a13
+
+The next exact local candidate was:
+
+`e2781a13929a08c231618e3b50b589342147decc`
+
+It carried the production CNX-198 pending-ingress contention repair and entered renewed physical lifecycle acceptance on OpenClaw 2026.9.5.
+
+The first exact install-over completed successfully with installer exit code 0. Post-install evidence showed active/MANAGED generation 4, Gateway/OpenClaw 2026.9.5 healthy, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, OpenClaw provider authority unchanged, and the CNX-198 compiled production artifact SHA-256 matching source and installed payload exactly.
+
+The exact clean-reinstall process then completed with exit code 0 and backup:
+
+`T:\CogentNexus-OpenClaw-Release-Acceptance-Backups\20260922-121732`
+
+An immediate post-clean probe briefly saw the Gateway process owning port 18789 while WebSocket connectivity timed out. Without restarting or duplicating the clean reinstall, the same Gateway process converged healthy. Final clean-reinstall verification showed active/MANAGED generation 2, Gateway/OpenClaw 2026.9.5 healthy, plugin v0.9.6 enabled, supervisor Ready/Enabled with `LastTaskResult=0`, pending outbox zero, route `ollama/qwen3.8:27b`, no active quiescence lease, and exact CNX-198 source/installed SHA-256 parity.
+
+The required exact reset then failed. The first fresh-state enable entered transactional activation and ultimately returned nonzero because the staging plugin-disable mutation hit Gateway `ETIMEDOUT`. Host rollback remained safe and restored PASSTHROUGH. Its own native restore evidence showed the Gateway healthy after six bounded probes / approximately 91 seconds. However, `reset_v095.py` used a single immediate `base.gateway_health()` call before deciding whether to use its one permitted retry. That next probe saw a transient timeout, so reset terminated with:
+
+`CogentNexus-OpenClaw enable failed after provider-neutral reset and native Gateway did not recover`
+
+The final safety state was independently verified: CNX disabled/PASSTHROUGH generation 1, Gateway healthy, plugin disabled, pending outbox zero, route unchanged at `ollama/qwen3.8:27b`, and no active supervisor quiescence lease.
+
+A RED-first unit contract reproduced the exact controller defect by returning Gateway health states `false, false, true`; the unmodified reset stopped after the first false result and returned code 1. The minimal production repair adds bounded health-only convergence inside `reset_v095.py` and uses it both before the single allowed retry and for the final reset health verdict. The retry count remains exactly one; persistent unhealth still fails closed; no provider/model/auth/routing mutation was added.
+
+Post-repair qualification is GREEN:
+
+- focused reset/lifecycle/quiescence/activation suite: `45 passed, 2 subtests passed`;
+- full Python suite: `719 passed, 5 skipped, 38 subtests passed`;
+- namespace/baseline/skill/Cogent/runtime/workflow gates: PASS;
+- benchmark validator and `git diff --check`: PASS;
+- PowerShell syntax, PS5.1 serializer, and exact root-process exit-code contracts: PASS;
+- Vitest: `91/91` files, `429/429` tests PASS;
+- evaluation: PASS with evidence SHA-256 `bf94d5e2090a20e1950ee0c263969caafcc9d499c973f6b8b11bb5164cedc582`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- `plugin:validate`: PASS with mixed-plugin/schema verification, Ticket DB bootstrap, and `290` packed files.
+
+Candidate `e2781a13...` is rejected for publication because this repair changes production reset source. The repaired worktree must now be committed as a new exact candidate and repeat the full four-stage physical lifecycle acceptance before exact-SHA GitHub validation and release publication.

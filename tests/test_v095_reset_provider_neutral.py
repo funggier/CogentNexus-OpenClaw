@@ -127,6 +127,62 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
             self.assertEqual(calls.count("enable"), 2)
             self.assertGreaterEqual(gateway_health.call_count, 2)
 
+    def test_gateway_convergence_wait_fails_closed_when_budget_expires(self):
+        with mock.patch.object(
+            reset_v095.base,
+            "gateway_health",
+            return_value={"healthy": False, "stderr": "ETIMEDOUT"},
+        ) as gateway_health:
+            result = reset_v095._wait_gateway_healthy(timeout_seconds=0, poll_interval_seconds=0)
+
+        self.assertFalse(result["healthy"])
+        self.assertEqual(result["readinessAttempts"], 1)
+        gateway_health.assert_called_once_with()
+
+    def test_reset_waits_for_gateway_convergence_before_one_retry(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            calls = []
+            failed = mock.Mock(returncode=1, stdout="first enable transient", stderr="ETIMEDOUT")
+            succeeded = mock.Mock(returncode=0, stdout="managed", stderr="")
+            ok = mock.Mock(returncode=0, stdout="{}", stderr="")
+
+            def run_host(_root, command):
+                calls.append(command)
+                if command == "enable":
+                    return failed if calls.count("enable") == 1 else succeeded
+                return ok
+
+            with (
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.6"}),
+                mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
+                mock.patch.object(reset_v095.base, "confirm", return_value=True),
+                mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
+                mock.patch.object(reset_v095.openclaw_route, "restore_native", return_value={"ok": True}),
+                mock.patch.object(reset_v095, "bootstrap_ticket_database"),
+                mock.patch.object(reset_v095.base, "disable_startup"),
+                mock.patch.object(reset_v095.base, "reset_plugin_configuration"),
+                mock.patch.object(reset_v095.base, "verify_plugin_loaded", return_value={"status": "loaded"}),
+                mock.patch.object(
+                    reset_v095.base,
+                    "gateway_health",
+                    side_effect=[
+                        {"healthy": False, "stderr": "ETIMEDOUT"},
+                        {"healthy": False, "stderr": "ETIMEDOUT"},
+                        {"healthy": True},
+                        {"healthy": True},
+                    ],
+                ) as gateway_health,
+                mock.patch.object(reset_v095.runtime_boundary, "activate_current_config", return_value={"ok": True}),
+                mock.patch("time.sleep"),
+                mock.patch("reset_v095.shutil.rmtree"),
+            ):
+                code = reset_v095.reset(root)
+
+            self.assertEqual(code, 0)
+            self.assertEqual(calls.count("enable"), 2)
+            self.assertGreaterEqual(gateway_health.call_count, 4)
+
     def test_reset_recovers_one_timed_out_enable_through_disabled_gateway_boundary(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
