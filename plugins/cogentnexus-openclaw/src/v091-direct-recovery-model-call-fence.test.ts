@@ -85,6 +85,36 @@ describe("Direct recovery provider-call ownership fence", () => {
     expect(nextDirectRecoveryWakeMs(path, {}, now)).toBeUndefined();
   });
 
+  it("refreshes owner-session liveness when the exact Direct model call starts", () => {
+    const { path, ticketId } = fixture();
+    let db = new DatabaseSync(path);
+    db.prepare("UPDATE cnx_sessions SET updated_at=? WHERE session_key=?")
+      .run("2026-08-18T12:00:00.000Z", "agent:main:dashboard:model-fence");
+    db.close();
+
+    expect(recordDirectModelCallStarted(path, {
+      runId: "run-live-provider",
+      callId: "call-refresh-owner-liveness",
+      now: new Date("2026-08-18T13:00:00.000Z"),
+      timeoutMs: 60_000,
+    })).toBe(true);
+
+    db = new DatabaseSync(path, { readOnly: true });
+    const session = db.prepare("SELECT updated_at FROM cnx_sessions WHERE session_key=?")
+      .get("agent:main:dashboard:model-fence");
+    db.close();
+    expect(session).toEqual({ updated_at: "2026-08-18T13:00:00.000Z" });
+
+    expect(closeDirectModelCallForRun(
+      path,
+      "run-live-provider",
+      "host-gateway-interruption-authorized",
+      new Date("2026-08-18T13:00:01.000Z"),
+    )).toBe(true);
+    expect(dueDirectRecovery(path, new Date("2026-08-18T13:00:02.000Z")))
+      .toMatchObject({ ticket_id: ticketId, owner_generation: 4 });
+  });
+
   it("keeps one durable authority across provider-call ordering interleavings", () => {
     const first = fixture();
     expect(recordDirectModelCallStarted(first.path, { runId: "run-live-provider", callId: "call-order-1", now: new Date("2026-08-18T13:00:00.000Z"), timeoutMs: 60_000 })).toBe(true);

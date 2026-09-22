@@ -244,6 +244,63 @@ RED-to-GREEN evidence:
 
 Candidate `87a5da93...` is superseded for release acceptance. A new exact candidate must pass CI, install-over parity, and the controlled live interruption acceptance before publication.
 
+## Direct model-call owner-session liveness repair
+
+Exact candidate `18f9a5d890a03709aa8d77c21091eecd1940d911` passed exact-SHA CI after the Windows Validate Vitest teardown flake was rerun successfully (Validate run `35758562382`, attempt 3). PS5.1 Acceptance Smoke and Windows Installer Pack Smoke were also SUCCESS.
+
+The candidate was installed over the live Windows machine with source/installed parity confirmed. A fresh controlled current-boot interruption fixture then proved that the OpenClaw 2026.9.5 force-stop repair works physically:
+
+- old Gateway PID: `28328`;
+- exact boot ID: `cd955aa0-e2b2-4a1e-a745-44f46a4f7a5d`;
+- fixture Ticket: `CNXT-e8296356-e204-4834-9a66-17be730e9f5b`;
+- exact model call: `cnx444-force-live-698bfae0:model:1`;
+- Gateway stop: PASS with explicit force authority;
+- old Gateway verified stopped;
+- replacement Gateway became healthy as PID `29592`;
+- exact interruption classifier emitted one `host_direct_model_gateway_interruption_authorized` event;
+- model-call outcome became `host-gateway-interruption-authorized`;
+- exactly one pending `cnx_direct_recovery` row was created;
+- no inference attempt, assistant delivery, or outbox duplication was created during classification.
+
+That acceptance exposed a separate recovery-liveness defect. The owner session remained:
+
+```text
+state = active
+generation = 0
+updated_at = 2026-09-22T16:52:42.910Z
+```
+
+while the interrupted call/recovery was created around `20:50Z`. The v0.9.7 startup bridge correctly classified the durable recovery as `ready`, but the v0.9.1 worker's 15-minute `sessionLivenessFence` correctly rejected the stale owner heartbeat. Repeated startup pulses therefore could not make the row claimable.
+
+Root cause: `recordDirectModelCallStarted()` persisted exact provider-call liveness but did not refresh the already-active owner session's `updated_at`. A real model-call start is itself exact evidence that the owner generation is live; failing to project that evidence into the session heartbeat made the startup bridge and worker eligibility semantics inconsistent.
+
+The minimal repair:
+
+- expands the exact accepted Direct Ticket lookup to include `owner_session_key`;
+- after the model-call lease is successfully written, refreshes only `cnx_sessions.updated_at` for that exact owner when the session row exists and remains `active`;
+- does not create/reactivate sessions;
+- does not change session state or generation;
+- does not relax the 15-minute stale-session fence;
+- does not change provider/model/auth/routing ownership.
+
+TDD evidence:
+
+- RED reproduced an active owner session stale by one hour; the successful Direct model-call start left `updated_at` stale and the later recovery remained ineligible;
+- GREEN proves the exact model-call start refreshes the owner heartbeat and, after the model-call fence is released, `dueDirectRecovery()` selects the same Ticket under generation 4;
+- focused model-call/recovery/liveness cluster: `4 files / 15 tests PASS`;
+- full Vitest: `91/91 files, 430/430 tests PASS`;
+- evaluation: PASS, evidence SHA-256 `e2e460a5e086b84afe8e6e51f2c8a85563b4a2b5aec071e95f82a3ef56c9931f`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- full Python repository suite: `732 passed, 5 skipped, 38 subtests passed`;
+- namespace isolation: PASS;
+- v0.9.7 baseline consistency: PASS;
+- `git diff --check`: PASS.
+
+The controlled fixture was then dispositioned through the canonical exact-generation Direct-recovery API. Final live cleanup showed zero pending recovery rows and zero pending outbox rows.
+
+Candidate `18f9a5d8...` is superseded for release acceptance. The next exact candidate must pass CI, install-over parity, and a fresh controlled interruption acceptance proving the recovery worker actually claims the pending row and reaches exactly-one inference/delivery.
+
 ## Version state
 
 Current source/package metadata:
@@ -276,4 +333,4 @@ Before CNX-444 can be classified release GREEN:
 
 ## Current classification
 
-`CNX444_V097_LOCAL_QUALIFICATION_GREEN_LIVE_ACCEPTANCE_PENDING`
+`CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`

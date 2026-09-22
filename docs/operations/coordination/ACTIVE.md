@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX444_V097_GATEWAY_INTERRUPTION_RECOVERY_IN_PROGRESS`
+State: `CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -13,6 +13,8 @@ Working branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 CNX-444 is the v0.9.7 successor task. Repair the production continuity gap where a confirmed Gateway hard-hang restart physically interrupts an active Direct model call but leaves the CNX model-call lease `active`, preventing exact Direct recovery and eventually exposing the OpenClaw whole-run timeout.
 
 The repair must use exact Gateway-interruption evidence and must not restore timer-only destructive recovery.
+
+Current local qualification also closes the owner-session liveness mismatch exposed by the first successful force-stop acceptance. The next gate is to freeze/push a new exact candidate, require exact-SHA CI, install it over the live machine, and repeat the controlled interruption until the recovery worker actually claims and completes exactly once.
 
 ## Current accepted predecessor
 

@@ -91,7 +91,7 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
   const db = open(databasePath);
   try {
     db.exec("BEGIN IMMEDIATE");
-    const ticket = db.prepare(`SELECT ticket_id FROM tickets
+    const ticket = db.prepare(`SELECT ticket_id,owner_session_key FROM tickets
       WHERE run_id=? AND status='accepted' AND workflow_eligible=0
         AND workflow_id IS NULL AND response_ready_at IS NULL
       ORDER BY created_at DESC LIMIT 1`).get(input.runId) as any;
@@ -121,6 +121,10 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
     if (changed.changes !== 1) {
       db.exec("COMMIT");
       return false;
+    }
+    if (columnExists(db, "cnx_sessions", "updated_at")) {
+      db.prepare("UPDATE cnx_sessions SET updated_at=? WHERE session_key=? AND state='active'")
+        .run(stamp, ticket.owner_session_key);
     }
     event(db, ticket.ticket_id, "direct_model_call_started", {
       runId: input.runId,

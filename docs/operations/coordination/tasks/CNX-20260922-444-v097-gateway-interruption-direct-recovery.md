@@ -59,6 +59,7 @@ active Direct model call
 10. Current Gateway identity MUST be resolved by matching the live Gateway PID to `gateway_boot_lifecycle`.
 11. Older historical active rows that predate the immediate predecessor boot MUST remain residue and MUST NOT be replayed automatically.
 12. Existing v0.9.6 release/tag remain immutable.
+13. A successfully persisted exact Direct model-call start MUST refresh liveness for the already-active owner session without changing state/generation, so startup recovery cannot be blocked solely by a stale heartbeat from before the live call.
 
 ## Evidence identity
 
@@ -85,7 +86,8 @@ RED tests MUST prove:
 - healthy/slow inference is not recovered by time alone;
 - current Gateway PID resolves to its exact boot row;
 - only the immediate predecessor boot window is eligible for post-restart orphan recovery;
-- older historical residue is excluded from automatic replay.
+- older historical residue is excluded from automatic replay;
+- a stale active owner-session heartbeat is refreshed by the exact Direct model-call start, and the resulting recovery becomes claimable without relaxing generation or stale-session fences.
 
 ## Validation
 
@@ -103,4 +105,4 @@ Before any v0.9.7 candidate is accepted:
 
 ## Current classification
 
-`CNX444_V097_GATEWAY_INTERRUPTION_RECOVERY_IN_PROGRESS`
+`CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`

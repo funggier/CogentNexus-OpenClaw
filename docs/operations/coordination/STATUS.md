@@ -1,14 +1,14 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX444_V097_GATEWAY_INTERRUPTION_RECOVERY_IN_PROGRESS`
+State: `CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Executor: `ChatGPT`
 
 ## Current phase
 
-v0.9.7 development has started under CNX-444. The immediate repair target is exact Direct recovery after a confirmed Gateway hard-hang process-boundary replacement. v0.9.6 remains the published accepted baseline.
+v0.9.7 development continues under CNX-444. Confirmed Gateway force-stop/classification now works physically, and the owner-session liveness mismatch that left the resulting recovery pending has a local RED-to-GREEN repair. The next gate is a new exact candidate + exact-SHA CI + live install-over + fresh exactly-once recovery acceptance. v0.9.6 remains the published accepted baseline.
 
 Final accepted candidate/tag SHA:
 
