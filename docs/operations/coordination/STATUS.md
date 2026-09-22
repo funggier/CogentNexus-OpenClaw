@@ -1,27 +1,20 @@
 # Coordination Status
 
-Status: `IN_PROGRESS`
-State: `CNX443_V096_RELEASE_PREPARATION`
+Status: `COMPLETE`
+State: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
 Task: `CNX-20260921-443-documentation-license-v096-release.md`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Executor: `ChatGPT`
 
 ## Current phase
 
-Documentation/release convergence for v0.9.6.
+v0.9.6 publication and CNX-443 release coordination are complete.
 
-Required remaining sequence:
+Final accepted candidate/tag SHA:
 
-1. finish current-facing documentation audit;
-2. add/verify MIT License;
-3. align version metadata and release contracts;
-4. create v0.9.6 release notes;
-5. run local release gates;
-6. freeze/push exact candidate;
-7. require exact-candidate GitHub validation;
-8. dispatch release workflow;
-9. verify public release/tag/assets/checksums;
-10. publish CNX-443 final report and mark coordination complete.
+`db8433676c2412706ef3b3966c97e3509f2255c8`
+
+Release workflow `35705294805` completed SUCCESS. Public `v0.9.6` is non-draft/non-prerelease, required assets are present, independent checksum verification passed, and `main` was fast-forwarded without force to the accepted release SHA before post-release coordination closeout.
 
 ## Accepted baseline carried forward
 

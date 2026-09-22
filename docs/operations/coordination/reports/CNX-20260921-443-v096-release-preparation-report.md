@@ -1,10 +1,10 @@
 # CNX-20260921-443 — v0.9.6 Release Preparation Report
 
-Status: `LOCAL_GATES_GREEN / PRE_CANDIDATE_FREEZE`
+Status: `COMPLETE / PUBLIC_RELEASE_VERIFIED`
 
 Classification:
 
-`CNX443_V096_LOCAL_RELEASE_GATES_GREEN`
+`CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
 
 Date: 2026-09-21
 
@@ -565,3 +565,71 @@ Post-repair qualification is GREEN:
 - `plugin:validate`: PASS with mixed-plugin/schema verification, Ticket DB bootstrap, and `290` packed files.
 
 Candidate `e2781a13...` is rejected for publication because this repair changes production reset source. The repaired worktree must now be committed as a new exact candidate and repeat the full four-stage physical lifecycle acceptance before exact-SHA GitHub validation and release publication.
+
+## Final v0.9.6 publication result
+
+Final accepted release candidate:
+
+`db8433676c2412706ef3b3966c97e3509f2255c8`
+
+This candidate completed the full four-stage physical acceptance sequence on OpenClaw 2026.9.5:
+
+- install-over: PASS;
+- clean reinstall: PASS;
+- reset: PASS;
+- final same-version install-over: PASS.
+
+The reset run exercised the repaired transient path in reality: first activation entered rollback, the reset controller waited through bounded native Gateway convergence instead of trusting a single transient probe, and exactly one re-enable retry proceeded to MANAGED successfully. Final same-version install-over also required six native readiness probes / approximately 98.2 seconds during handoff, independently reinforcing the bounded-readiness requirement.
+
+Final installed state after acceptance:
+
+- CNX state: active/MANAGED generation 4;
+- Gateway/OpenClaw: 2026.9.5 healthy;
+- plugin: v0.9.6 enabled;
+- supervisor: Ready/Enabled, `LastTaskResult=0`;
+- pending outbox: 0;
+- active quiescence lease: none;
+- default route: `ollama/qwen3.8:27b`;
+- provider/model/auth routing authority: OpenClaw-owned / unchanged;
+- `reset_v095.py` source/installed SHA-256 parity: PASS;
+- CNX-198 compiled artifact source/installed SHA-256 parity: PASS.
+
+Exact-SHA GitHub validation after the no-force push:
+
+- Validate `35704471804`: SUCCESS;
+- PS5.1 Acceptance Smoke `35704471761`: SUCCESS;
+- Windows Installer Pack Smoke `35704471732`: SUCCESS.
+
+Release workflow:
+
+- run: `35705294805`;
+- inputs: `version=0.9.6`, `candidate_sha=db8433676c2412706ef3b3966c97e3509f2255c8`;
+- candidate identity verification: PASS;
+- package job: SUCCESS;
+- publish job: SUCCESS.
+
+Public release:
+
+- tag: `v0.9.6`;
+- tag target: `db8433676c2412706ef3b3966c97e3509f2255c8`;
+- state: public, non-draft, non-prerelease;
+- published: 2026-09-22;
+- required assets: present.
+
+Independent asset verification downloaded the public assets to `T:\CogentNexus-OpenClaw-Release-Verification\v0.9.6` and computed:
+
+```text
+c0063145ac2b911f2cd84750a7bbd9b6c41b261e573edc4fdc3dfc079c335662  cogentnexus-openclaw-v0.9.6.tar.gz
+2974a764127758b7f87c6376aa5d492065a5ceb01ffe11fc311db7ccd1c36608  cogentnexus-openclaw-v0.9.6.zip
+373a83a7b0188814818996ce14beaae070c55f8c148e7b19d6f346d733890951  SHA256SUMS.txt
+```
+
+The two archive hashes exactly match the published `SHA256SUMS.txt`; all three computed hashes match GitHub's asset digests.
+
+Remote `main` was proven to be an ancestor of the accepted candidate and was fast-forwarded without force from `3d2225075e991d597cc19ef41b436fdee426af84` to `db8433676c2412706ef3b3966c97e3509f2255c8`. Current-facing README/install/current-state/release-note content was then re-read through the GitHub API from `main` and verified to describe v0.9.6, OpenClaw 2026.9.5, and the OpenClaw-owned provider/model/auth routing boundary.
+
+Final classification:
+
+`CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
+
+The immutable v0.9.6 tag remains on the exact accepted production candidate. This post-release coordination closeout is intentionally newer than the release tag.

@@ -7,6 +7,8 @@
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
+**Published release:** `v0.9.6`
+**Accepted release/tag SHA:** `db8433676c2412706ef3b3966c97e3509f2255c8`
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
@@ -112,7 +114,9 @@ The final CNX-442 source qualification before documentation/release convergence 
 - Ticket DB/package validation: PASS;
 - supported Windows install-over: PASS.
 
-CNX-443 re-runs the release gates against the final v0.9.6 candidate before publication.
+CNX-443 is complete. The final v0.9.6 candidate `db8433676c2412706ef3b3966c97e3509f2255c8` passed the full local qualification, four-stage physical lifecycle acceptance on OpenClaw 2026.9.5, exact-SHA GitHub validation, release workflow publication, and independent public asset checksum verification.
+
+Final release classification: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`.
 
 ## Coordination state
 

@@ -1,7 +1,7 @@
 # Active Coordination
 
-Status: `IN_PROGRESS`
-State: `CNX443_V096_RELEASE_PREPARATION`
+Status: `COMPLETE`
+State: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`
 Task: `CNX-20260921-443-documentation-license-v096-release.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -10,7 +10,7 @@ Working branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 
 ## Current objective
 
-Converge current-facing documentation, add MIT licensing, align exact v0.9.6 release metadata, run all required release gates, publish GitHub Release v0.9.6 from an exact validated candidate SHA, and verify the public tag/assets/checksums.
+CNX-443 is complete. CogentNexus-OpenClaw v0.9.6 was published from exact accepted candidate `db8433676c2412706ef3b3966c97e3509f2255c8`, independently verified, and advanced to `main` without force.
 
 ## Current accepted predecessor
 
@@ -31,3 +31,16 @@ The retired Codex `CogentNexus coordination watch` one-minute automation is not 
 Use this file plus `STATUS.md` and the linked CNX-443 task as the current durable handoff.
 
 Historical tasks/reports/reviews remain evidence only.
+
+## Final CNX-443 release authority
+
+- classification: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`;
+- accepted release/tag SHA: `db8433676c2412706ef3b3966c97e3509f2255c8`;
+- GitHub Release: `v0.9.6`, public, non-draft, non-prerelease;
+- release workflow run: `35705294805`, SUCCESS;
+- exact-SHA Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke: SUCCESS;
+- physical lifecycle: install-over PASS, clean reinstall PASS, reset PASS, final same-version install-over PASS;
+- live baseline: OpenClaw/Gateway `2026.9.5`, active/MANAGED, pending outbox zero;
+- route preserved: `ollama/qwen3.8:27b`, OpenClaw-owned model/auth routing;
+- release assets and independent SHA-256 verification: PASS;
+- `main` was fast-forwarded without force to the accepted release SHA before this post-release coordination closeout.
