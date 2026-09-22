@@ -134,7 +134,7 @@ After the minimal production repair:
 
 Python:
 
-- full repository suite: `728 passed, 5 skipped, 38 subtests passed`;
+- final full repository suite after v0.9.6→v0.9.7 upgrade-boundary repair: `729 passed, 5 skipped, 38 subtests passed`;
 - version/baseline/current-doc focused suite: `53 passed`;
 - namespace isolation: PASS;
 - v0.9.7 baseline consistency: PASS;
@@ -161,6 +161,21 @@ Plugin:
 - package validation: PASS, 290 packed files.
 
 A first package validation attempt correctly rejected CRLF bytes accidentally introduced into `package.json` during the version bump. The candidate was repaired by reconstructing package metadata from the accepted predecessor blob and applying only the v0.9.7 version edit. The successful package validation above is after that correction.
+
+## v0.9.6 -> v0.9.7 install-over preflight repair
+
+Before live install-over, exact preflight review found that the v0.9.7 version bump still allowed only `0.9.4` and `0.9.5` ownership manifests as upgrade predecessors. A RED test using an owned v0.9.6 fixture reproduced the failure: `installedVersion=0.9.6` was rejected against expected `0.9.7`.
+
+The minimal repair adds `0.9.6` to `UPGRADE_FROM_VERSIONS` while retaining all fail-closed ownership checks. Evidence after repair:
+
+- exact v0.9.6 predecessor RED -> GREEN;
+- ownership/installer regression: `66 passed, 1 skipped`;
+- focused predecessor + install-contract proof: `12 passed`;
+- final full Python suite exit: `0`;
+- final collection identity: `734 tests collected`;
+- final full suite accounting: `729 passed, 5 skipped, 38 subtests passed`.
+
+This repair was completed before any v0.9.7 mutation of the live v0.9.6 installation.
 
 ## Version state
 

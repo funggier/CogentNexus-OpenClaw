@@ -17,7 +17,7 @@ from typing import Any
 PRODUCT_ID = "cogentnexus-openclaw"
 DISPLAY_NAME = "CogentNexus-OpenClaw"
 INSTALLED_VERSION = "0.9.7"
-UPGRADE_FROM_VERSIONS = ("0.9.4", "0.9.5")
+UPGRADE_FROM_VERSIONS = ("0.9.4", "0.9.5", "0.9.6")
 SCHEMA_VERSION = 1
 MANIFEST_NAME = "ownership.json"
 PLUGIN_PACKAGE = "openclaw-plugin-cogentnexus-openclaw"
