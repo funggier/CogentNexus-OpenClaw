@@ -98,6 +98,26 @@ class WindowsStopLifecycleTests(unittest.TestCase):
         self.assertTrue(emitted[-1]["safeToPowerOff"])
         self.assertTrue(emitted[-1]["verifiedStopped"]["ollama"])
 
+    def test_lifecycle_stop_force_forwards_explicit_openclaw_authority(self):
+        config = self.config()
+        args = argparse.Namespace(
+            root=Path(tempfile.mkdtemp()), command_name="stop", reason="confirmed hard hang", owner="cogentnexus-openclaw-host", provider=False, force=True
+        )
+        emitted = []
+        with mock.patch.object(runtime, "load_config", return_value=config), \
+             mock.patch.object(runtime, "maintenance_status", return_value={"active": True}), \
+             mock.patch.object(runtime, "openclaw_executable", return_value="openclaw"), \
+             mock.patch.object(runtime, "run_command", return_value={"ok": True, "exitCode": 0}) as runner, \
+             mock.patch.object(runtime, "wait_for_runtime_stopped", return_value=(
+                 {"gateway": {"healthy": False}, "ollama": {"enabled": True, "healthy": True}},
+                 {"gateway": True, "ollama": False}, 1, True,
+             )), \
+             mock.patch.object(runtime, "append_runtime_event"), \
+             mock.patch.object(runtime, "emit", side_effect=emitted.append):
+            code = runtime.lifecycle_cmd(args)
+        self.assertEqual(code, 0)
+        self.assertEqual(runner.call_args_list[0].args[0], ["openclaw", "gateway", "stop", "--force"])
+
 
 if __name__ == "__main__":
     unittest.main()

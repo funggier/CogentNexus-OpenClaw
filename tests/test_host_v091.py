@@ -269,6 +269,37 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(boundary["previousStartedAtMs"], 1000)
             self.assertEqual(boundary["previousStartedAt"], "1970-01-01T00:00:01+00:00")
 
+    def test_gateway_boundary_orphan_recovery_uses_force_stop(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            calls = []
+
+            def runtime(_root, *args, **_kwargs):
+                calls.append(args)
+                return self.completed('{"ok":true}')
+
+            evidence = {
+                "boundary": {
+                    "bootId": "boot-current",
+                    "pid": 4321,
+                    "startedAt": "2026-09-22T11:22:30+00:00",
+                },
+                "orphans": [{"ticket_id": "T-OLD", "call_id": "C-OLD"}],
+            }
+            self.patch(cnx.legacy, "runtime", runtime)
+            with mock.patch(
+                "host_stall_v091.classify_quiesced_gateway_interrupted_direct_calls",
+                return_value=[{"ticketId": "T-OLD"}],
+            ) as classify:
+                result = cnx._recover_gateway_boundary_orphans(root, evidence)
+
+            stop_calls = [args for args in calls if args[:2] == ("lifecycle", "stop")]
+            self.assertEqual(len(stop_calls), 1)
+            self.assertIn("--force", stop_calls[0])
+            classify.assert_called_once_with(root, interruption_evidence=evidence)
+            self.assertEqual(result["interruptedDirectRecoveries"], [{"ticketId": "T-OLD"}])
+
     def test_current_gateway_boot_orphan_triggers_exact_boundary_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
@@ -343,8 +374,12 @@ class HostV091Tests(unittest.TestCase):
             self.seed_managed(root)
             calls = []
 
+            stop_calls = []
+
             def runtime(_root, *args, **_kwargs):
                 calls.append(args[:2])
+                if args[:2] == ("lifecycle", "stop"):
+                    stop_calls.append(args)
                 return self.completed('{"ok":true}')
 
             evidence = {
@@ -378,6 +413,8 @@ class HostV091Tests(unittest.TestCase):
             )
             current_evidence.assert_called_once_with(root)
             classify.assert_called_once_with(root, evidence)
+            self.assertEqual(len(stop_calls), 1)
+            self.assertIn("--force", stop_calls[0])
             self.assertEqual(result["interruptedDirectRecoveries"], [{"ticketId": "T-GATEWAY"}])
 
     def test_gateway_restart_restores_gateway_if_interruption_classification_fails(self):

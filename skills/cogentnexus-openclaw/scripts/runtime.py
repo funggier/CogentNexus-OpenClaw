@@ -416,7 +416,10 @@ def lifecycle_cmd(args):
     if args.command_name == "stop":
         marker = marker or set_maintenance(root, args.reason, args.owner)
         executable = openclaw_executable()
-        results = {"gateway": run_command([executable, "gateway", "stop"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}}
+        gateway_command = [executable, "gateway", "stop"] if executable else None
+        if gateway_command is not None and bool(getattr(args, "force", False)):
+            gateway_command.append("--force")
+        results = {"gateway": run_command(gateway_command, 60) if gateway_command else {"ok": False, "error": "openclaw CLI unavailable"}}
         if args.provider:
             results["ollama"] = stop_ollama(config)
         verified, verified_stopped, verification_attempts, stopped = wait_for_runtime_stopped(
@@ -1083,7 +1086,7 @@ def main():
     ls = lifecycle.add_parser("status"); ls.set_defaults(func=lifecycle_cmd)
     lp = lifecycle.add_parser("prepare"); lp.add_argument("--reason", default="planned shutdown"); lp.add_argument("--owner", default="operator"); lp.add_argument("--recovery-policy", choices=["manual","healthy-runtime"], default="manual"); lp.set_defaults(func=lifecycle_cmd)
     lc = lifecycle.add_parser("cancel"); lc.set_defaults(func=lifecycle_cmd)
-    lst = lifecycle.add_parser("stop"); lst.add_argument("--provider", action="store_true"); lst.add_argument("--reason", default="planned shutdown"); lst.add_argument("--owner", default="operator"); lst.set_defaults(func=lifecycle_cmd)
+    lst = lifecycle.add_parser("stop"); lst.add_argument("--provider", action="store_true"); lst.add_argument("--force", action="store_true"); lst.add_argument("--reason", default="planned shutdown"); lst.add_argument("--owner", default="operator"); lst.set_defaults(func=lifecycle_cmd)
     lr = lifecycle.add_parser("restart"); lr.add_argument("--reason", default="planned gateway restart"); lr.add_argument("--owner", default="operator"); lr.set_defaults(func=lifecycle_cmd)
     lstart = lifecycle.add_parser("start"); lstart.add_argument("--provider", action="store_true"); lstart.set_defaults(func=lifecycle_cmd)
 

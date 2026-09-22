@@ -208,6 +208,42 @@ Post-repair evidence:
 
 The previously installed `d2263cbe...` development candidate is therefore superseded for release acceptance. A new exact candidate must be committed, pushed, pass exact-SHA CI, and be installed over the live machine before the interruption acceptance is executed.
 
+## OpenClaw 2026.9.5 explicit Gateway-stop authority repair
+
+The first controlled live interruption acceptance against installed candidate `87a5da93e24c47e219322d25b99c97e487c34624` exposed a second production compatibility gap after exact generation scoping was already correct.
+
+The Host entered recoverable maintenance and attempted the ordered hard-hang boundary, but OpenClaw 2026.9.5 rejected the Gateway stop request because the runtime wrapper invoked `openclaw gateway stop` without explicit force authority. OpenClaw returned the exact safety refusal that stopping the operator's running Gateway requires `--force`.
+
+This was a clean RED, not a recovery-classification failure:
+
+- Gateway remained healthy and running;
+- the controlled Direct fixture remained `accepted` / model-call `active`;
+- no recovery row was created;
+- no maintenance marker was stranded;
+- the fixture was explicitly dispositioned through canonical Direct-recovery APIs after the RED observation.
+
+The minimal repair keeps ordinary lifecycle stop behavior unchanged and adds explicit force authority only where CNX already has exact Gateway replacement authority:
+
+- `runtime.py lifecycle stop` now accepts optional `--force` and forwards it to `openclaw gateway stop --force` only when requested;
+- confirmed hard-hang replacement passes `--force` to its quiesced Gateway stop;
+- exact current-boot orphan reconciliation passes `--force` to its quiesced Gateway stop;
+- provider/model/auth/routing ownership remains OpenClaw-owned and no provider stop/restart was added.
+
+RED-to-GREEN evidence:
+
+- three initial failures proved missing force propagation at runtime, hard-hang Host, and boundary-orphan Host layers;
+- focused lifecycle/Host suite: `19/19 PASS`;
+- selected recovery/lifecycle regression: `62/62 PASS`;
+- full Python repository suite: `732 passed, 5 skipped, 38 subtests passed`;
+- Vitest: `91/91 files, 429/429 tests PASS`;
+- namespace isolation / v0.9.7 baseline / workspace / Cogent / runtime / workflow / benchmark gates: PASS;
+- evaluation: PASS, evidence SHA-256 `52fea355d20a58a7f5e4899b04f1a3dbcd8cfd6ae91c46d43a418f17be4ba75e`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- `git diff --check`: PASS.
+
+Candidate `87a5da93...` is superseded for release acceptance. A new exact candidate must pass CI, install-over parity, and the controlled live interruption acceptance before publication.
+
 ## Version state
 
 Current source/package metadata:

@@ -200,6 +200,7 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
             GATEWAY_HARD_HANG_REASON,
             "--owner",
             "cogentnexus-openclaw-host",
+            "--force",
             timeout=240,
             check=True,
         )
@@ -337,6 +338,7 @@ def _recover_gateway_boundary_orphans(root: Path, evidence: dict[str, Any]) -> d
             reason,
             "--owner",
             "cogentnexus-openclaw-host",
+            "--force",
             timeout=240,
             check=True,
         )
