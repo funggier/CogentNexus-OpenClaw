@@ -474,3 +474,56 @@ A local RED reproduction removed OpenClaw from PATH only for those four focused 
 ```
 
 Candidate `c566af80...` is rejected for publication because exact-candidate GitHub validation is not GREEN. A new exact candidate will be frozen only after final local requalification of this test-isolation repair.
+
+## Exact-candidate CI contention blocker on 1fdfcfdf
+
+Candidate:
+
+`1fdfcfdf62c27e9354f307afa69044c08b917bb7`
+
+was pushed without force and local/remote SHA equality was proven. Its exact-SHA smoke workflows passed:
+
+- `PS5.1 Acceptance Smoke`: SUCCESS;
+- `Windows Installer Pack Smoke`: SUCCESS.
+
+The exact-SHA `Validate` workflow still failed. The prior OpenClaw-PATH isolation defect was repaired successfully: both macOS matrix jobs passed, and Python suites on Ubuntu/Windows advanced past the previous failures. The remaining failures were identical across Ubuntu 3.11/3.14 and Windows 3.11/3.14:
+
+`src/v198-discord-ticket-contention.test.ts`
+
+The failing contract expected transient SQLite writer contention to remain bounded and eventually admit the owner turn, but `before_agent_run` failed closed with:
+
+`Ticket-first pending ingress binding failed closed`
+
+Code inspection showed the CNX-198 contention repair wrapped `TicketStore.accept()` only. v0.9.6 pre-dispatch serialization now invokes `bindPendingIngressRun()` before fallback admission, so an exact `SQLITE_BUSY / database is locked` after the base five-second busy timeout escaped before the existing bounded retry could run.
+
+A deterministic local RED test now holds the SQLite writer lock for seven seconds and calls `bindPendingIngressRun()` directly. Before repair it rejected after the first five-second busy timeout with `ERR_SQLITE_ERROR / errcode 5 / database is locked`.
+
+The minimal repair extends the existing CNX-198 one-retry policy to `bindPendingIngressRun()` using the same exact transient-SQLite classifier. Non-SQLite errors and persistent contention remain fail-closed. Focused result after repair:
+
+```text
+2 passed
+```
+
+including both the new seven-second pending-bind contention regression and the original before_agent_run contention integration test.
+
+Candidate `1fdfcfdf...` is rejected for publication because this repair changes production plugin source. Full local requalification and renewed exact lifecycle acceptance are required before freezing the next release candidate.
+
+### Post-contention-repair local requalification
+
+Full local requalification after the pending-ingress contention repair is GREEN:
+
+- focused admission/serialization coverage: `62 passed`;
+- full Python suite: `717 passed, 5 skipped, 38 subtests passed`;
+- namespace/baseline/skill/Cogent/runtime/workflow gates: PASS;
+- benchmark validator self-test: PASS;
+- `git diff --check`: PASS;
+- full Vitest suite: `91/91` files, `429/429` tests PASS;
+- `npm run evaluation`: PASS;
+- evaluation evidence SHA-256: `66277b6c345b007f7f5418095cf2a56f9a160257aa7c8e41946cd0418a38c90c`;
+- `npm audit --omit=dev`: `0 vulnerabilities`;
+- `npm run plugin:validate`: PASS;
+- mixed-plugin/schema verification: PASS;
+- Ticket DB bootstrap: PASS;
+- packed file count: `290`.
+
+A new exact candidate may now be frozen. Because this repair changes production plugin source, renewed live install-over / clean-reinstall / reset / final same-version install-over acceptance is required before publication.

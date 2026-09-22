@@ -24,9 +24,9 @@ export function isTransientSqliteWriterContention(error: unknown): boolean {
  * before_agent_run boundary. Session reset/delete bookkeeping can briefly own
  * SQLite's writer lock. The base TicketStore wait is five seconds; if that
  * exact transient SQLITE_BUSY condition expires at the boundary, retry the
- * idempotent Ticket accept once. The second call retains TicketStore's normal
- * five-second bound, so persistent contention still fails closed rather than
- * bypassing Ticket-first durability.
+ * idempotent Ticket accept or pending-ingress bind once. The second call retains
+ * TicketStore's normal five-second bound, so persistent contention still fails
+ * closed rather than bypassing Ticket-first durability.
  */
 export function installTicketAdmissionContentionRetry(): void {
   const prototype = TicketStore.prototype as any;
@@ -43,6 +43,18 @@ export function installTicketAdmissionContentionRetry(): void {
     } catch (error) {
       if (!isTransientSqliteWriterContention(error)) throw error;
       return accept.call(this, input);
+    }
+  };
+  const bindPendingIngressRun = TicketStore.prototype.bindPendingIngressRun;
+  TicketStore.prototype.bindPendingIngressRun = function(
+    this: TicketStore,
+    input: Parameters<TicketStore["bindPendingIngressRun"]>[0],
+  ): ReturnType<TicketStore["bindPendingIngressRun"]> {
+    try {
+      return bindPendingIngressRun.call(this, input);
+    } catch (error) {
+      if (!isTransientSqliteWriterContention(error)) throw error;
+      return bindPendingIngressRun.call(this, input);
     }
   };
 }

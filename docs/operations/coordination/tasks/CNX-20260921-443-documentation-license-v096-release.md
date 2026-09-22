@@ -167,3 +167,26 @@ The matrix `Validate` workflow rejected the candidate because four Python tests 
 This is a test-isolation/CI-portability defect, not a production runtime defect. Candidate `c566af80...` is rejected for publication. The minimal repair mocks `openclaw_executable()` inside the four affected tests while leaving production code unchanged. Focused no-OpenClaw-PATH verification is GREEN: `12 passed`.
 
 A new exact candidate is required after final local requalification and exact-SHA GitHub validation.
+
+## Exact-candidate CI contention checkpoint — 2026-09-22
+
+Candidate `1fdfcfdf62c27e9354f307afa69044c08b917bb7` fixed the clean-runner OpenClaw-PATH test-isolation defect, but exact-SHA validation exposed one remaining cross-platform plugin failure: `v198-discord-ticket-contention.test.ts` failed on Ubuntu and Windows while macOS passed.
+
+Root cause is a production-path gap introduced by the newer pre-dispatch serialization flow: the bounded CNX-198 transient SQLite retry covered `TicketStore.accept()`, but `before_agent_run` now calls `bindPendingIngressRun()` first. An exact `SQLITE_BUSY / database is locked` can therefore fail closed before reaching the existing retry.
+
+A deterministic seven-second writer-lock regression reproduces the defect. The minimal repair applies the same single bounded retry and exact SQLite-contention classifier to `bindPendingIngressRun()`. Focused coverage is GREEN at `2 passed`.
+
+Because production source changes, candidate `1fdfcfdf...` is rejected. The next candidate must complete full local requalification and renewed live lifecycle acceptance before release.
+
+### Post-contention-repair qualification
+
+The repaired worktree is locally GREEN:
+
+- focused admission/serialization tests: `62/62`;
+- Python: `717 passed, 5 skipped, 38 subtests passed`;
+- plugin: `429/429`;
+- evaluation: PASS;
+- production audit: `0 vulnerabilities`;
+- plugin/package validation: PASS with `290` packed files.
+
+The next exact candidate must repeat the destructive lifecycle acceptance sequence because the SQLite contention repair changes production plugin source.

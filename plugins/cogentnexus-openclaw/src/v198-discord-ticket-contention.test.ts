@@ -31,6 +31,30 @@ function holdWriterLock(databasePath: string, holdMs: number): Promise<ChildProc
 }
 
 describe("Task 198 Discord Ticket-first contention", () => {
+  it("retries transient SQLite contention while binding pending ingress before admission", async () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx-v198-pending-bind-contention-"));
+    let locker: ChildProcess | undefined;
+    try {
+      const databasePath = join(root, "tickets.sqlite3");
+      new TicketStore(databasePath).snapshot();
+      locker = await holdWriterLock(databasePath, 7_000);
+
+      const store = new TicketStore(databasePath);
+      await expect(Promise.resolve().then(() => store.bindPendingIngressRun({
+        ownerSessionKey: "agent:main:discord:channel:1531201432861282405",
+        runId: "task198-pending-bind-contention-run",
+        prompt: "@Ce สวัสดีครับ",
+        sourceChannel: "discord",
+      }))).resolves.toEqual({ state: "missing" });
+    } finally {
+      if (locker && locker.exitCode === null) {
+        const exited = new Promise<void>((resolve) => locker!.once("exit", () => resolve()));
+        locker.kill();
+        await exited;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 15_000);
   it("does not turn transient SQLite writer contention into a fail-closed before_agent_run exception", async () => {
     const root = mkdtempSync(join(tmpdir(), "cnx-v198-discord-contention-"));
     let locker: ChildProcess | undefined;
@@ -73,7 +97,11 @@ describe("Task 198 Discord Ticket-first contention", () => {
       );
       expect(ticket).toMatchObject({ runId, ownerSessionKey: sessionKey, prompt, workflowEligible: false });
     } finally {
-      if (locker && locker.exitCode === null) locker.kill();
+      if (locker && locker.exitCode === null) {
+        const exited = new Promise<void>((resolve) => locker!.once("exit", () => resolve()));
+        locker.kill();
+        await exited;
+      }
       rmSync(root, { recursive: true, force: true });
     }
   }, 15_000);
