@@ -1,6 +1,6 @@
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,18 +9,16 @@ import {
 } from "./v095-direct-recovery.js";
 
 describe("v0.9.5 Direct Recovery compatibility boundaries", () => {
-  it("supplies an isolated session key/file to embedded recovery and erases the transcript directory", async () => {
+  it("uses a detached embedded recovery session without a legacy JSONL transcript target", async () => {
     let captured: any;
-    let directoryDuringRun = "";
     const api = {
       runtime: {
         agent: {
           runEmbeddedAgent: async (input: any) => {
             captured = input;
-            directoryDuringRun = dirname(input.sessionFile);
             expect(input.sessionKey).toMatch(/^temp:cogentnexus-openclaw-direct-recovery:/u);
-            expect(input.sessionFile).toMatch(/session\.jsonl$/u);
-            expect(existsSync(directoryDuringRun)).toBe(true);
+            expect(input.sessionFile).toBeUndefined();
+            expect(input.sessionPersistence).toBe("detached");
             expect(input.disableTrajectory).toBe(true);
             return { meta: { durationMs: 1 }, payloads: [{ text: "ok" }] };
           },
@@ -35,8 +33,8 @@ describe("v0.9.5 Direct Recovery compatibility boundaries", () => {
     });
 
     expect(captured.sessionKey).toBe("temp:cogentnexus-openclaw-direct-recovery:cnxclaw-direct-CNXT-test-1-g0");
-    expect(directoryDuringRun).not.toBe("");
-    expect(existsSync(directoryDuringRun)).toBe(false);
+    expect(captured.sessionFile).toBeUndefined();
+    expect(captured.sessionPersistence).toBe("detached");
   });
 
   it("durably prevents legacy Direct-to-workflow promotion once Direct Recovery owns the Ticket", () => {

@@ -1,6 +1,6 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+
+
+
 import { DatabaseSync } from "node:sqlite";
 import {
   launchV094DirectRecovery,
@@ -56,13 +56,12 @@ function safeSessionIdentity(value: unknown) {
 }
 
 /**
- * OpenClaw 2026.7.1-2 requires either an explicit sessionFile or a sessionKey
- * when resolving an embedded-agent transcript target. Direct Recovery is an
- * isolated helper run, so give it both a unique temporary key and temporary
- * transcript file and erase the directory on every completion/error/abort.
- *
- * This follows the same one-off embedded-run pattern used by OpenClaw's own
- * 2026.7.1-2 slug helper rather than writing into the owner Dashboard session.
+ * OpenClaw 2026.9.5 rejects legacy JSONL sessionFile targets for plugin
+ * async execution. Direct Recovery is an isolated helper run, so keep a
+ * unique internal key but make the embedded execution detached.
+ * Detached runs may use session identity for policy resolution without
+ * writing durable transcript or session metadata, and therefore need no
+ * helper-session cleanup transaction.
  */
 export function withV095EphemeralEmbeddedSession(api: any) {
   const owner = api?.runtime?.agent;
@@ -78,20 +77,14 @@ export function withV095EphemeralEmbeddedSession(api: any) {
       agent: {
         ...owner,
         runEmbeddedAgent: async (input: any) => {
-          const directory = mkdtempSync(join(tmpdir(), "cogentnexus-openclaw-direct-recovery-"));
-          const sessionFile = join(directory, "session.jsonl");
           const identity = safeSessionIdentity(input?.sessionId ?? input?.runId);
           const sessionKey = `temp:cogentnexus-openclaw-direct-recovery:${identity}`;
-          try {
-            return await runEmbeddedAgent.call(owner, {
-              ...input,
-              sessionKey,
-              sessionFile,
-              disableTrajectory: true,
-            });
-          } finally {
-            rmSync(directory, { recursive: true, force: true });
-          }
+          return await runEmbeddedAgent.call(owner, {
+            ...input,
+            sessionKey,
+            sessionPersistence: "detached",
+            disableTrajectory: true,
+          });
         },
       },
     },

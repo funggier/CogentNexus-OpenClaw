@@ -301,6 +301,48 @@ The controlled fixture was then dispositioned through the canonical exact-genera
 
 Candidate `18f9a5d8...` is superseded for release acceptance. The next exact candidate must pass CI, install-over parity, and a fresh controlled interruption acceptance proving the recovery worker actually claims the pending row and reaches exactly-one inference/delivery.
 
+## OpenClaw 2026.9.5 detached Direct Recovery compatibility repair
+
+After the owner-session liveness repair was installed and physically requalified, a fresh controlled Gateway interruption advanced farther than the prior acceptance: the pending Direct recovery was claimed by the worker and its attempt count increased. No inference had started yet.
+
+The worker then retried with the exact OpenClaw core error:
+
+`Plugin session ownership checks require a SQLite transcript marker.`
+
+This is a separate OpenClaw 2026.9.5 compatibility boundary, not an inference/provider failure. The existing v0.9.5 compatibility wrapper still supplied a temporary filesystem `session.jsonl` as `sessionFile` for the one-shot embedded recovery helper. OpenClaw 2026.9.5 plugin async-action ownership now accepts persisted transcript identity only through its SQLite session target/marker contract and rejects that legacy JSONL target before inference begins.
+
+Installed OpenClaw 2026.9.5 type/runtime evidence also exposes a purpose-built ephemeral contract:
+
+- `sessionPersistence: "detached"`;
+- detached runs may use session identity for policy resolution;
+- detached runs do not write durable transcript or session metadata.
+
+The minimal repair therefore preserves the existing isolated recovery identity and v0.9.6 `:subagent:` admission fence while removing the obsolete temporary JSONL transcript target:
+
+- no `sessionFile` is supplied;
+- the embedded recovery run sets `sessionPersistence: "detached"`;
+- `disableTrajectory: true` remains;
+- provider/model selection remains inherited from the original Direct call;
+- no SQLite marker is fabricated by CogentNexus-OpenClaw;
+- no durable helper session is created, so no helper-session cleanup transaction is required.
+
+TDD and regression evidence:
+
+- RED: v0.9.5 compatibility test observed a real temporary `session.jsonl` where the 2026.9.5 contract requires no legacy filesystem transcript target;
+- GREEN: focused v0.9.5 compatibility test `2/2 PASS`;
+- recovery compatibility cluster v0.9.1 through v0.9.7: `8/8 files, 24/24 tests PASS`;
+- full Vitest: `91/91 files, 430/430 tests PASS`;
+- full Python repository suite: `732 passed, 5 skipped, 38 subtests passed`;
+- namespace isolation / v0.9.7 baseline / workspace / Cogent / runtime / workflow / benchmark gates: PASS;
+- evaluation: PASS, evidence SHA-256 `522c2df2e8325403fbe6a69b50bc797d6dfc6624c4c72cc1134873c03661a973`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- `git diff --check`: PASS.
+
+The live fixture that exposed the SQLite marker incompatibility was explicitly dispositioned through the canonical exact-generation Direct-recovery API after observation. It produced no inference, assistant delivery, or outbox result, and no pending recovery row remains.
+
+Candidate `92e945c4...` is superseded for release acceptance. The next exact candidate must pass exact-SHA CI, install-over parity, and a fresh physical interruption acceptance proving detached recovery reaches exactly-one inference/result/delivery without duplicate work.
+
 ## Version state
 
 Current source/package metadata:
@@ -333,4 +375,4 @@ Before CNX-444 can be classified release GREEN:
 
 ## Current classification
 
-`CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_DETACHED_RECOVERY_COMPAT_LOCAL_GREEN_CANDIDATE_PENDING`

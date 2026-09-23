@@ -87,7 +87,8 @@ RED tests MUST prove:
 - current Gateway PID resolves to its exact boot row;
 - only the immediate predecessor boot window is eligible for post-restart orphan recovery;
 - older historical residue is excluded from automatic replay;
-- a stale active owner-session heartbeat is refreshed by the exact Direct model-call start, and the resulting recovery becomes claimable without relaxing generation or stale-session fences.
+- a stale active owner-session heartbeat is refreshed by the exact Direct model-call start, and the resulting recovery becomes claimable without relaxing generation or stale-session fences;
+- OpenClaw 2026.9.5 Direct Recovery uses detached embedded execution with no legacy JSONL `sessionFile`, while preserving the internal `:subagent:` admission fence and original provider/model.
 
 ## Validation
 
@@ -105,4 +106,4 @@ Before any v0.9.7 candidate is accepted:
 
 ## Current classification
 
-`CNX444_V097_SESSION_LIVENESS_REPAIR_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_DETACHED_RECOVERY_COMPAT_LOCAL_GREEN_CANDIDATE_PENDING`
