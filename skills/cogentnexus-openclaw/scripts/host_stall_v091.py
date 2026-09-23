@@ -379,6 +379,64 @@ def find_current_gateway_direct_calls(
         db.close()
 
 
+def _close_gateway_interrupted_inference_attempt(
+    db: sqlite3.Connection,
+    *,
+    ticket_id: str,
+    run_id: str,
+    call_id: str,
+    stamp: str,
+) -> str | None:
+    """Close the exact canonical inference attempt owned by an interrupted Gateway call."""
+    if not v091._db_table_exists(db, "cnx_inference_attempt"):
+        return None
+
+    rows = db.execute(
+        "SELECT attempt_id FROM cnx_inference_attempt "
+        "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='active' "
+        "ORDER BY started_at,attempt_id",
+        (ticket_id, run_id, call_id),
+    ).fetchall()
+    if len(rows) > 1:
+        raise RuntimeError(
+            f"Gateway-interrupted Direct call has ambiguous active inference attempts: "
+            f"ticket={ticket_id} run={run_id} call={call_id}"
+        )
+    if not rows:
+        return None
+
+    attempt_id = str(rows[0]["attempt_id"])
+    outcome = "host-gateway-interruption-authorized"
+    changed = db.execute(
+        "UPDATE cnx_inference_attempt SET state='ended',outcome=?,ended_at=? "
+        "WHERE attempt_id=? AND state='active'",
+        (outcome, stamp, attempt_id),
+    )
+    if changed.rowcount != 1:
+        raise RuntimeError(
+            f"Gateway-interrupted canonical inference attempt changed during quiesced classification: {attempt_id}"
+        )
+    db.execute(
+        "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+        (
+            ticket_id,
+            "inference_attempt_ended",
+            json.dumps(
+                {
+                    "attemptId": attempt_id,
+                    "callId": call_id,
+                    "runId": run_id,
+                    "outcome": outcome,
+                    "source": "cogentnexus-openclaw-canonical-attempt",
+                },
+                ensure_ascii=False,
+            ),
+            stamp,
+        ),
+    )
+    return attempt_id
+
+
 def classify_quiesced_gateway_interrupted_direct_calls(
     root: Path,
     now_iso: str | None = None,
@@ -524,6 +582,14 @@ def classify_quiesced_gateway_interrupted_direct_calls(
                 raise RuntimeError(
                     f"Gateway-interrupted Direct model call changed during quiesced classification: {ticket_id}"
                 )
+
+            _close_gateway_interrupted_inference_attempt(
+                db,
+                ticket_id=ticket_id,
+                run_id=str(row["run_id"]),
+                call_id=str(row["call_id"]),
+                stamp=cutoff,
+            )
 
             results.append({
                 "ticketId": ticket_id,

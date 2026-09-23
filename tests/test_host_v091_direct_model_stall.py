@@ -271,6 +271,69 @@ class HostDirectModelStallTests(unittest.TestCase):
             )
             db.close()
 
+    def test_gateway_interruption_closes_only_exact_active_canonical_inference_attempt(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-attempt-terminal-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.executescript(
+                """
+                CREATE TABLE cnx_inference_attempt (
+                  attempt_id TEXT PRIMARY KEY,
+                  ticket_id TEXT NOT NULL,
+                  session_key TEXT NOT NULL,
+                  session_generation INTEGER NOT NULL,
+                  run_id TEXT,
+                  call_id TEXT NOT NULL,
+                  provider TEXT,
+                  model TEXT,
+                  state TEXT NOT NULL,
+                  outcome TEXT,
+                  started_at TEXT NOT NULL,
+                  ended_at TEXT
+                );
+                """
+            )
+            db.execute(
+                "INSERT INTO cnx_inference_attempt VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                ("attempt-live", TICKET, OWNER, 7, "run-live", "call-live", "ollama", "qwen3.5:9b",
+                 "active", None, "2026-08-18T13:00:00+00:00", None),
+            )
+            db.execute(
+                "INSERT INTO cnx_inference_attempt VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                ("attempt-other", TICKET, OWNER, 7, "run-other", "call-other", "ollama", "qwen3.5:9b",
+                 "active", None, "2026-08-18T13:00:01+00:00", None),
+            )
+            db.commit()
+            db.close()
+
+            stall.classify_quiesced_gateway_interrupted_direct_calls(
+                root,
+                "2026-08-18T13:05:00+00:00",
+            )
+
+            db = sqlite3.connect(path)
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome,ended_at FROM cnx_inference_attempt WHERE attempt_id='attempt-live'"
+                ).fetchone(),
+                ("ended", "host-gateway-interruption-authorized", "2026-08-18T13:05:00+00:00"),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT state,outcome,ended_at FROM cnx_inference_attempt WHERE attempt_id='attempt-other'"
+                ).fetchone(),
+                ("active", None, None),
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT COUNT(*) FROM ticket_events WHERE ticket_id=? AND event_type='inference_attempt_ended'",
+                    (TICKET,),
+                ).fetchone()[0],
+                1,
+            )
+            db.close()
+
     def test_gateway_interruption_classification_uses_exact_boundary_evidence(self):
         with tempfile.TemporaryDirectory(prefix="cnxclaw-host-gateway-classify-") as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
