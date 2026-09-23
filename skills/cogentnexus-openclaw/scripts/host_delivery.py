@@ -129,6 +129,22 @@ def openclaw_executable() -> str:
     raise FileNotFoundError("OpenClaw CLI not found on PATH")
 
 
+def openclaw_command_prefix() -> list[str]:
+    """Return a shell-free OpenClaw argv prefix safe for arbitrary JSON payloads."""
+    executable = Path(openclaw_executable())
+    if executable.suffix.lower() not in {".cmd", ".bat"}:
+        return [str(executable)]
+
+    entrypoint = executable.parent / "node_modules" / "openclaw" / "openclaw.mjs"
+    local_node = executable.parent / "node.exe"
+    node = str(local_node) if local_node.is_file() else (shutil.which("node.exe") or shutil.which("node"))
+    if not entrypoint.is_file():
+        raise FileNotFoundError(f"OpenClaw Node entrypoint not found beside Windows launcher: {entrypoint}")
+    if not node:
+        raise FileNotFoundError("Node.js executable not found for OpenClaw Windows launcher")
+    return [node, str(entrypoint)]
+
+
 def _parse_json_stream(method: str, result: subprocess.CompletedProcess[str]) -> Any:
     stdout = captured_text(result.stdout).strip()
     stderr = captured_text(result.stderr).strip()
@@ -153,15 +169,17 @@ def _parse_json_stream(method: str, result: subprocess.CompletedProcess[str]) ->
 
 def gateway_rpc(method: str, params: dict[str, Any] | None = None, timeout: int = 30) -> Any:
     command = [
-        openclaw_executable(),
+        *openclaw_command_prefix(),
         "gateway",
         "call",
         method,
         "--params",
         json.dumps(params or {}, ensure_ascii=False, separators=(",", ":")),
+        "--timeout",
+        str(max(1, int(timeout)) * 1000),
         "--json",
     ]
-    result = run(command, timeout=timeout, check=True)
+    result = run(command, timeout=max(1, int(timeout)) + 5, check=True)
     return _parse_json_stream(method, result)
 
 

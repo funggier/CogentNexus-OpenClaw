@@ -210,6 +210,42 @@ class HostSessionDeliveryTests(unittest.TestCase):
         self.assertEqual(len(result["suppressed"]), 1)
         self.assertEqual(len(result["delivered"]), 1)
 
+    def test_gateway_rpc_bypasses_windows_cmd_launcher_for_metacharacter_safe_json(self):
+        npm_root = self.workspace / "npm"
+        launcher = npm_root / "openclaw.cmd"
+        node = npm_root / "node.exe"
+        entrypoint = npm_root / "node_modules" / "openclaw" / "openclaw.mjs"
+        entrypoint.parent.mkdir(parents=True, exist_ok=True)
+        launcher.write_text("@echo off\n", encoding="utf-8")
+        node.write_bytes(b"fake")
+        entrypoint.write_text("// fake\n", encoding="utf-8")
+        seen = {}
+
+        def fake_run(cmd, timeout=60, check=False):
+            seen["cmd"] = cmd
+            seen["timeout"] = timeout
+            seen["check"] = check
+            return subprocess.CompletedProcess(cmd, 0, stdout='{"ok":true}', stderr="")
+
+        marker_text = "<!-- cogentnexus-openclaw-delivery:test -->"
+        with mock.patch.object(host_delivery, "openclaw_executable", return_value=str(launcher)), \
+             mock.patch.object(host_delivery, "run", side_effect=fake_run):
+            result = host_delivery.gateway_rpc(
+                "chat.inject",
+                {"sessionKey": "A", "message": f"answer\\n\\n{marker_text}"},
+                timeout=15,
+            )
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(Path(seen["cmd"][0]), node)
+        self.assertEqual(Path(seen["cmd"][1]), entrypoint)
+        self.assertNotIn(str(launcher), seen["cmd"])
+        params = json.loads(seen["cmd"][seen["cmd"].index("--params") + 1])
+        self.assertEqual(params["message"], f"answer\\n\\n{marker_text}")
+        self.assertEqual(seen["timeout"], 20)
+        self.assertEqual(seen["cmd"][seen["cmd"].index("--timeout") + 1], "15000")
+        self.assertTrue(seen["check"])
+
     def test_run_pins_utf8_capture_instead_of_windows_ansi_codepage(self):
         process = mock.Mock()
         process.communicate.return_value = ('{"message":"ไทย"}', "")
@@ -224,7 +260,7 @@ class HostSessionDeliveryTests(unittest.TestCase):
         self.assertEqual(kwargs["errors"], "replace")
 
     def test_gateway_rpc_missing_streams_fails_closed_without_attribute_error(self):
-        host_delivery.openclaw_executable = lambda: "openclaw.cmd"
+        host_delivery.openclaw_executable = lambda: "openclaw.exe"
         host_delivery.run = lambda *args, **kwargs: subprocess.CompletedProcess(
             args[0], 0, stdout=None, stderr=None
         )
@@ -232,7 +268,7 @@ class HostSessionDeliveryTests(unittest.TestCase):
             host_delivery.gateway_rpc("chat.history", {"sessionKey": "A"})
 
     def test_gateway_rpc_accepts_json_from_secondary_captured_stream(self):
-        host_delivery.openclaw_executable = lambda: "openclaw.cmd"
+        host_delivery.openclaw_executable = lambda: "openclaw.exe"
         host_delivery.run = lambda *args, **kwargs: subprocess.CompletedProcess(
             args[0], 0, stdout=None, stderr='{"ok":true,"messageId":"m1"}'
         )
