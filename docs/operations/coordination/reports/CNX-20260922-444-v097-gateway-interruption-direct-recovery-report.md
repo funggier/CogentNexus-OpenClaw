@@ -343,6 +343,60 @@ The live fixture that exposed the SQLite marker incompatibility was explicitly d
 
 Candidate `92e945c4...` is superseded for release acceptance. The next exact candidate must pass exact-SHA CI, install-over parity, and a fresh physical interruption acceptance proving detached recovery reaches exactly-one inference/result/delivery without duplicate work.
 
+## Windows Gateway RPC UTF-8 + durable delivery wake repair
+
+The first detached-recovery live acceptance reached a real Direct recovery result:
+
+- Ticket: `CNXT-df3d2a62-f057-4008-b893-df75d7fdf0b8`;
+- recovery runtime: exactly one attempt;
+- provider/model: `ollama/qwen3.8:27b`;
+- response: `CNX444_RECOVERY_OK`;
+- recovery state advanced to `awaiting_delivery`;
+- exactly one durable `direct_result` delivery row was created.
+
+The first Host delivery attempt then failed before `chat.inject` with:
+
+`OpenClaw Gateway RPC chat.history returned no JSON output (exit=0, stdout=none, stderr=empty)`
+
+Exact reproduction against the installed Host proved the Windows subprocess root cause:
+
+- embedded Python preferred encoding: `cp1252`;
+- `openclaw gateway call chat.history --json` returned UTF-8 JSON containing Thai text;
+- Python's subprocess reader thread raised `UnicodeDecodeError` while decoding stdout with `cp1252`;
+- the failed reader left captured stdout unavailable, producing the observed no-JSON error.
+
+The Host transport repair pins captured OpenClaw Gateway RPC streams to UTF-8 with replacement only for undecodable bytes:
+
+- `encoding="utf-8"`;
+- `errors="replace"`;
+- command/timeout/check semantics are otherwise unchanged.
+
+A second production defect then prevented the failed durable delivery from retrying. The durable delivery worker still considered the row actionable, but `wake_authority_v095` applied the 15-minute Direct-Recovery liveness cutoff to `cnx_assistant_delivery.updated_at`. Once the pending delivery became older than 15 minutes, Supervisor wake classification returned idle forever even though exact session state/generation remained valid.
+
+The repair removes delivery age as wake authority. Delivery remains actionable until settled or fenced by durable authority:
+
+- owner session must still exist and remain `active`;
+- owner generation must still match;
+- terminal ticket rules remain unchanged;
+- Direct-Recovery 15-minute session-liveness fencing remains unchanged;
+- delivery retry/backoff remains owned by `host_delivery.next_actionable_delivery()`.
+
+RED-to-GREEN evidence:
+
+- UTF-8 capture focused delivery suite: `9/9 PASS`;
+- wake authority RED reproduced an old pending delivery incorrectly returning idle;
+- delivery/wake/actionability regression cluster: `34/34 PASS`;
+- stale Direct-owner liveness tests remain PASS;
+- full Python repository suite: `733 passed, 5 skipped, 38 subtests passed`;
+- full Vitest: `91/91 files, 430/430 tests PASS`;
+- namespace isolation / v0.9.7 baseline / workspace / Cogent / runtime / workflow / benchmark gates: PASS;
+- evaluation: PASS, evidence SHA-256 `376525eee0cb331163169f75567ec7583e552e31a7ff515ba3255e30b2fbcbf4`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- `git diff --check`: PASS.
+
+The live pending delivery remains durable evidence and will be used after exact-candidate install-over to prove that the repaired Supervisor wake + UTF-8 Gateway RPC path retries and settles without regenerating inference.
+
 ## Version state
 
 Current source/package metadata:
@@ -375,4 +429,4 @@ Before CNX-444 can be classified release GREEN:
 
 ## Current classification
 
-`CNX444_V097_DETACHED_RECOVERY_COMPAT_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_DELIVERY_RETRY_LOCAL_GREEN_CANDIDATE_PENDING`

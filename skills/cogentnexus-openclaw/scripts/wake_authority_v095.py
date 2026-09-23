@@ -81,13 +81,11 @@ def _find_pending_delivery(db: sqlite3.Connection, cutoff: str) -> WakeDecision 
                JOIN tickets t ON t.ticket_id=d.ticket_id
                JOIN cnx_sessions s ON s.session_key=d.owner_session_key
                WHERE d.status='pending'
-                 AND d.updated_at>=?
                  AND (t.status NOT IN ('completed','failed','cancelled') OR d.kind='direct_result')
                  AND s.state='active'
                  AND s.generation=d.owner_generation
                ORDER BY d.updated_at,d.delivery_id
                LIMIT 1""",
-            (cutoff,),
         ).fetchone()
         if rows is not None:
             return WakeDecision(True, "delivery", str(rows["delivery_id"]), "wake/delivery")

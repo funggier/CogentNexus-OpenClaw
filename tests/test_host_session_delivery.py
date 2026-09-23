@@ -4,6 +4,7 @@ import sqlite3
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -208,6 +209,19 @@ class HostSessionDeliveryTests(unittest.TestCase):
         self.assertEqual([item[0] for item in seen], ["B"])
         self.assertEqual(len(result["suppressed"]), 1)
         self.assertEqual(len(result["delivered"]), 1)
+
+    def test_run_pins_utf8_capture_instead_of_windows_ansi_codepage(self):
+        process = mock.Mock()
+        process.communicate.return_value = ('{"message":"ไทย"}', "")
+        process.returncode = 0
+        with mock.patch.object(host_delivery.subprocess, "Popen", return_value=process) as popen:
+            result = host_delivery.run(["openclaw.cmd", "gateway", "call"], timeout=1)
+
+        self.assertEqual(result.returncode, 0)
+        kwargs = popen.call_args.kwargs
+        self.assertTrue(kwargs["text"])
+        self.assertEqual(kwargs["encoding"], "utf-8")
+        self.assertEqual(kwargs["errors"], "replace")
 
     def test_gateway_rpc_missing_streams_fails_closed_without_attribute_error(self):
         host_delivery.openclaw_executable = lambda: "openclaw.cmd"

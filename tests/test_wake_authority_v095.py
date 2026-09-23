@@ -47,7 +47,7 @@ class WakeAuthorityV095Tests(unittest.TestCase):
         self.assertIsNone(decision.work_id)
         self.assertEqual(decision.reason, "idle/no-actionable-work")
 
-    def test_stale_nonactionable_delivery_is_idle(self):
+    def test_old_pending_delivery_remains_actionable_until_settled(self):
         root = self._root()
         db = self._db(root)
         stale = "2026-09-01T00:00:00+00:00"
@@ -56,8 +56,9 @@ class WakeAuthorityV095Tests(unittest.TestCase):
         db.execute("INSERT INTO cnx_assistant_delivery(ticket_id,owner_session_key,owner_generation,status,updated_at,kind) VALUES ('T-stale','S1',2,'pending',?,'assistant')", (stale,))
         db.commit(); db.close()
         decision = wake.classify_wake(root, self.NOW)
-        self.assertFalse(decision.actionable)
-        self.assertEqual(decision.authority, "none")
+        self.assertTrue(decision.actionable)
+        self.assertEqual(decision.authority, "delivery")
+        self.assertEqual(decision.work_id, "1")
 
     def test_exact_due_direct_recovery_returns_identity(self):
         root = self._root()

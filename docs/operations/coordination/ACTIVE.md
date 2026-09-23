@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX444_V097_DETACHED_RECOVERY_COMPAT_LOCAL_GREEN_CANDIDATE_PENDING`
+State: `CNX444_V097_DELIVERY_RETRY_LOCAL_GREEN_CANDIDATE_PENDING`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -14,7 +14,7 @@ CNX-444 is the v0.9.7 successor task. Repair the production continuity gap where
 
 The repair must use exact Gateway-interruption evidence and must not restore timer-only destructive recovery.
 
-Current local qualification closes both the owner-session liveness mismatch and the OpenClaw 2026.9.5 plugin ownership incompatibility exposed after the worker became claimable. Direct Recovery now uses detached embedded execution instead of the rejected legacy JSONL transcript target. The next gate is to freeze/push a new exact candidate, require exact-SHA CI, install it over the live machine, and repeat the controlled interruption until the recovery worker reaches exactly-one inference/result/delivery.
+Current local qualification now also closes the Windows Gateway RPC UTF-8 capture failure and the durable-delivery wake mismatch exposed after detached recovery produced a real response. The next gate is to freeze/push a new exact candidate, require exact-SHA CI, install it over the live machine, settle the existing durable delivery without regenerating inference, and then repeat a fresh controlled interruption for end-to-end exactly-once acceptance.
 
 ## Current accepted predecessor
 

@@ -161,12 +161,12 @@ class HostActionabilityTests(unittest.TestCase):
             self.add_pending_delivery(path, session_key=self.OWNER)
             self.assertTrue(cnx.durable_work_hint(root, self.NOW.isoformat()))
 
-    def test_stale_pending_delivery_does_not_wake(self):
+    def test_old_pending_delivery_still_wakes_until_settled(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"
             path = self.make_db(root, next_attempt="2026-09-06T19:00:00+00:00")
             self.add_pending_delivery(path, session_key=self.OWNER, updated_age=16)
-            self.assertFalse(cnx.durable_work_hint(root, self.NOW.isoformat()))
+            self.assertTrue(cnx.durable_work_hint(root, self.NOW.isoformat()))
 
     def test_inactive_pending_delivery_does_not_wake(self):
         with tempfile.TemporaryDirectory() as tmp:

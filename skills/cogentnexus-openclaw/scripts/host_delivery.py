@@ -90,6 +90,8 @@ def run(cmd: list[str], timeout: int = 60, check: bool = False) -> subprocess.Co
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         creationflags=creation_flags(),
         start_new_session=(os.name != "nt"),
     )
