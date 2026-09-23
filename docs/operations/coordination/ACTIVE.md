@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`
+State: `CNX444_V097_INTERRUPTED_ATTEMPT_CLOSE_EXACT_SHA_GREEN_LIVE_REACCEPTANCE_PENDING`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -16,7 +16,9 @@ The repair must use exact Gateway-interruption evidence and must not restore tim
 
 The exact `742248ca...` candidate was installed over the live machine with source/installed parity, active plugin state, canonical Supervisor restoration, OpenClaw 2026.9.5 health, and route preservation. That install proved the UTF-8 capture and age-independent wake repairs were present, but the preserved durable `CNX444_RECOVERY_OK` delivery still did not move: canonical wake classification returned delivery authority, while the production Supervisor fell through to the legacy heavy health path, which never invokes `host_delivery.flush_deliveries()`.
 
-A new TDD repair now dispatches only canonical assistant-delivery wakes (`wake/delivery` and legacy assistant-delivery compatibility) into the Host delivery bridge. Local qualification is GREEN. The next gate is to freeze/push a new exact candidate, require exact-SHA CI, install it over the live machine, settle the existing durable delivery without regenerating inference, and then repeat a fresh controlled interruption for end-to-end exactly-once acceptance.
+The durable-delivery path has now been physically settled exactly once, and a fresh controlled interruption on candidate `3c0db0c6...` recovered and delivered successfully. That fresh run exposed one remaining ledger defect: the original canonical `cnx_inference_attempt` stayed active after its Direct model call was authoritatively interrupted. Exact repair `036eef28842044499fec2588ab6c8605ad6bdd7c` closes only the matching active attempt inside the same quiesced classification transaction, fails closed on ambiguity, and records `inference_attempt_ended`. Exact-SHA CI is GREEN and the repaired source is installed. The next gate is one fresh post-`036eef` controlled interruption proving the canonical attempt closes exactly once before final lifecycle/release acceptance.
+
+Durable reconnect checkpoint: `reports/CNX-20260923-445-session-handoff-checkpoint.md`.
 
 ## Current accepted predecessor
 
