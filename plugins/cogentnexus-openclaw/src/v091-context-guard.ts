@@ -318,7 +318,7 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
 
   let pulse:(()=>void)|undefined;
   registrationApi.on?.("before_agent_run",async(event:any,ctx:any)=>{
-    if(!ctx.sessionKey||ctx.sessionKey.includes(":subagent:")||!ctx.runId)return {outcome:"pass"};
+    if(!ctx.sessionKey||ctx.sessionKey.includes(":subagent:")||!ctx.runId||String(ctx.runId).startsWith("cnxclaw-direct-"))return {outcome:"pass"};
     const {databasePath}=paths(ctx),db=openDb(databasePath);let ticket:any;
     try{ticket=currentDirectTicket(db,ctx.sessionKey,ctx.runId);}finally{db.close();}
     if(!ticket)return {outcome:"pass"};
