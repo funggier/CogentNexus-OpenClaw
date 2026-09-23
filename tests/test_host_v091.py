@@ -269,6 +269,39 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(boundary["previousStartedAtMs"], 1000)
             self.assertEqual(boundary["previousStartedAt"], "1970-01-01T00:00:01+00:00")
 
+    def test_current_gateway_boot_boundary_uses_local_listener_pid_when_health_not_required(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "openclaw-state"
+            database = state_dir / "state" / "openclaw.sqlite"
+            database.parent.mkdir(parents=True)
+            db = sqlite3.connect(database)
+            db.execute(
+                "CREATE TABLE gateway_boot_lifecycle("
+                "boot_id TEXT,pid INTEGER,started_at_ms INTEGER,"
+                "completed_at_ms INTEGER,outcome TEXT,startup_reason TEXT,reason TEXT)"
+            )
+            db.execute(
+                "INSERT INTO gateway_boot_lifecycle VALUES(?,?,?,?,?,?,?)",
+                ("boot-live", 222, 2000, None, None, None, None),
+            )
+            db.commit()
+            db.close()
+
+            self.patch(cnx, "_gateway_listener_pid", lambda: 222)
+            self.patch(
+                cnx.legacy,
+                "gateway_status",
+                lambda *_args, **_kwargs: self.fail(
+                    "unhealthy/interrupted boundary resolution must not depend on OpenClaw CLI status"
+                ),
+            )
+            with mock.patch.dict(os.environ, {"OPENCLAW_STATE_DIR": str(state_dir)}):
+                boundary = cnx._current_gateway_boot_boundary(require_healthy=False)
+
+            self.assertEqual(boundary["bootId"], "boot-live")
+            self.assertEqual(boundary["pid"], 222)
+            self.assertEqual(boundary["startedAtMs"], 2000)
+
     def test_gateway_boundary_orphan_recovery_uses_force_stop(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"

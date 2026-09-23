@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -225,16 +226,59 @@ def _restart_unresponsive_gateway(root: Path) -> dict[str, Any]:
             legacy.runtime(root, "lifecycle", "start", timeout=240, check=True)
 
 
+def _gateway_listener_pid() -> int | None:
+    """Resolve the Windows Gateway listener PID without waiting on Gateway RPC/CLI health."""
+    if os.name != "nt":
+        return None
+    try:
+        result = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=3,
+            check=False,
+        )
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    port = _gateway_port()
+    for raw_line in result.stdout.splitlines():
+        fields = raw_line.split()
+        if len(fields) < 5 or fields[0].upper() != "TCP":
+            continue
+        if fields[-2].upper() != "LISTENING":
+            continue
+        local_endpoint = fields[1]
+        _host, separator, port_text = local_endpoint.rpartition(":")
+        if not separator:
+            continue
+        try:
+            local_port = int(port_text)
+            pid = int(fields[-1])
+        except ValueError:
+            continue
+        if local_port == port and pid > 0:
+            return pid
+    return None
+
+
 def _current_gateway_boot_boundary(require_healthy: bool = True) -> dict[str, Any] | None:
-    """Resolve the currently running Gateway PID to its OpenClaw boot row."""
-    status = legacy.gateway_status() if require_healthy else legacy.gateway_status(timeout=5)
-    if require_healthy and not status.get("healthy"):
-        return None
-    stdout = str(status.get("stdout") or "")
-    match = re.search(r"Runtime:\s+running \(pid\s+(\d+)", stdout)
-    if not match:
-        return None
-    pid = int(match.group(1))
+    """Resolve the currently running Gateway PID to its exact OpenClaw boot row."""
+    pid = None
+    if not require_healthy:
+        pid = _gateway_listener_pid()
+    if pid is None:
+        status = legacy.gateway_status() if require_healthy else legacy.gateway_status(timeout=5)
+        if require_healthy and not status.get("healthy"):
+            return None
+        stdout = str(status.get("stdout") or "")
+        match = re.search(r"Runtime:\s+running \(pid\s+(\d+)", stdout)
+        if not match:
+            return None
+        pid = int(match.group(1))
     state_dir = Path(os.environ.get("OPENCLAW_STATE_DIR") or (Path.home() / ".openclaw"))
     database = state_dir / "state" / "openclaw.sqlite"
     if not database.exists():
