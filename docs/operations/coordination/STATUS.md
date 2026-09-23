@@ -1,14 +1,14 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX444_V097_DELIVERY_RETRY_LOCAL_GREEN_CANDIDATE_PENDING`
+State: `CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Executor: `ChatGPT`
 
 ## Current phase
 
-v0.9.7 development continues under CNX-444. Confirmed Gateway force-stop/classification, owner-session liveness, and detached Direct Recovery now work physically through response-ready. The remaining delivery failure was traced to Windows cp1252 decoding of UTF-8 Gateway RPC output plus an incorrect 15-minute age cutoff in delivery wake authority. Both are locally GREEN. The next gate is a new exact candidate + exact-SHA CI + live install-over + durable delivery settlement + fresh exactly-once recovery acceptance. v0.9.6 remains the published accepted baseline.
+v0.9.7 development continues under CNX-444. Exact candidate `742248ca...` was installed over the live Windows machine and proved parity, active/MANAGED health, canonical Supervisor restoration, OpenClaw 2026.9.5 health, and `ollama/qwen3.8:27b` route preservation. The preserved durable response remained pending without any new inference. Live tracing then exposed a final wiring gap: canonical delivery wake authority was correct, but `host_v091.supervisor_tick()` routed that wake into the legacy health supervisor instead of the Host delivery bridge. A TDD repair now dispatches canonical assistant-delivery wakes directly to bounded `host_delivery.flush_deliveries()`. Full local qualification is GREEN. The next gate is a new exact candidate + exact-SHA CI + install-over + durable delivery settlement + fresh exactly-once recovery acceptance. v0.9.6 remains the published accepted baseline.
 
 Final accepted candidate/tag SHA:
 

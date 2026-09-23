@@ -88,7 +88,8 @@ RED tests MUST prove:
 - only the immediate predecessor boot window is eligible for post-restart orphan recovery;
 - older historical residue is excluded from automatic replay;
 - a stale active owner-session heartbeat is refreshed by the exact Direct model-call start, and the resulting recovery becomes claimable without relaxing generation or stale-session fences;
-- OpenClaw 2026.9.5 Direct Recovery uses detached embedded execution with no legacy JSONL `sessionFile`, while preserving the internal `:subagent:` admission fence and original provider/model.
+- OpenClaw 2026.9.5 Direct Recovery uses detached embedded execution with no legacy JSONL `sessionFile`, while preserving the internal `:subagent:` admission fence and original provider/model;
+- an authoritative assistant-delivery wake executes the Host delivery bridge exactly once instead of falling through to a health-only legacy Supervisor path, and the next scheduled tick returns idle after the delivery is consumed.
 
 ## Validation
 
@@ -106,4 +107,4 @@ Before any v0.9.7 candidate is accepted:
 
 ## Current classification
 
-`CNX444_V097_DELIVERY_RETRY_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`

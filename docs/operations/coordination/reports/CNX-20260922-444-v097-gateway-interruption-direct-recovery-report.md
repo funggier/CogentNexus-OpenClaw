@@ -397,6 +397,53 @@ RED-to-GREEN evidence:
 
 The live pending delivery remains durable evidence and will be used after exact-candidate install-over to prove that the repaired Supervisor wake + UTF-8 Gateway RPC path retries and settles without regenerating inference.
 
+## Supervisor durable-delivery dispatch repair
+
+The exact candidate `742248ca7785f6e4ef377f7b2fd25e1ad210d81e` was then installed over the live Windows machine before touching the preserved durable result. The install completed with exit code 0 and restored the canonical runtime contract:
+
+- source/installed parity: PASS for `host_delivery.py`, `wake_authority_v095.py`, `host_v091.py`, `host_stall_v091.py`, `runtime.py`, and `namespace_ownership.py`;
+- plugin: v0.9.7, enabled and loaded;
+- controller: active/MANAGED, generation 16, `providerOwnership=openclaw`;
+- OpenClaw: 2026.9.5;
+- route: `ollama/qwen3.8:27b`;
+- `agents.defaults.timeoutSeconds=2700`;
+- canonical `CogentNexus-OpenClaw-Supervisor`: Ready, Enabled, `LastTaskResult=0`.
+
+Before the retry, the preserved live Ticket still proved exactly one recovery result and no regeneration:
+
+- Ticket `CNXT-df3d2a62-f057-4008-b893-df75d7fdf0b8` remained `accepted`;
+- stored response remained `CNX444_RECOVERY_OK`;
+- Direct recovery remained `awaiting_delivery`, `attempt_count=1`;
+- exactly one `direct_result` delivery row remained `pending`, `attempt_count=1`;
+- no `ticket_outbox` row existed;
+- exactly one `host_direct_model_gateway_interruption_authorized`, one `direct_recovery_runtime_started`, and one `direct_recovery_response_ready` event existed;
+- no new inference attempt was created.
+
+A canonical Supervisor run still left that durable state unchanged. Source tracing showed why: `wake_authority_v095.classify_wake()` correctly returned `authority=delivery`, but `host_v091.supervisor_tick()` sent every actionable wake into the legacy heavy Supervisor. That path reconciles runtime health/workflows and never calls `host_delivery.flush_deliveries()`. The previous regression test mocked the legacy heavy path as though it consumed delivery, so the missing production wiring was not covered.
+
+The new TDD repair is deliberately narrow:
+
+- RED: an authoritative `wake/delivery` decision expected the Host delivery bridge, but `_execute_delivery_wake` was called 0 times;
+- GREEN: only canonical assistant-delivery wakes (`wake/delivery` and the assistant-delivery legacy compatibility reason) dispatch to bounded `host_delivery.flush_deliveries(root, limit=1)`;
+- non-execute-safe observation returns delivery-pending without side effects;
+- outbox/direct-recovery legacy wake reasons retain their existing path;
+- provider/model/auth/routing ownership is unchanged.
+
+Local qualification after the production repair:
+
+- focused wake/session/delivery cluster: `16/16 PASS`;
+- expanded Host/wake/delivery regression: `45/45 PASS`;
+- full Python repository suite: `734 passed, 5 skipped, 38 subtests passed`;
+- full Vitest: `91/91 files, 430/430 tests PASS`;
+- namespace isolation / v0.9.7 baseline / workspace / Cogent / runtime / workflow / benchmark gates: PASS;
+- Windows PowerShell syntax / PS5.1 serializer / exact root-process self-tests: PASS;
+- evaluation: PASS, evidence SHA-256 `d99762bc9c272f9d087c187535fc2b61e6cd8bd6781d6ff7ab963f9e67172966`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 290 packed files;
+- `git diff --check`: PASS.
+
+Candidate `742248ca...` is retained as diagnostic live evidence but is superseded for release acceptance because it lacks the Supervisor delivery-dispatch repair. The preserved durable delivery intentionally remains the first live proof target for the next exact candidate; it must settle from stored `CNX444_RECOVERY_OK` without another recovery inference.
+
 ## Version state
 
 Current source/package metadata:
@@ -412,21 +459,32 @@ Publication state remains separate:
 - accepted v0.9.6 tag SHA: `db8433676c2412706ef3b3966c97e3509f2255c8`;
 - v0.9.7 is not yet published.
 
+## Historical incident residue disposition
+
+The original production incident Ticket `CNXT-6866c23d-8c58-4a48-8699-2e48944ffb73` is already explicitly retired through canonical durable authority. Read-only live DB verification shows:
+
+- Ticket state: `cancelled`;
+- Direct recovery state: `cancelled`, `attempt_count=0`;
+- event: `direct_recovery_dispositioned`;
+- disposition reason: recovery was created by a superseded pre-exact-scoping candidate and the historical operator request must not be replayed.
+
+This gate is satisfied and the historical Ticket must not be reopened during final acceptance.
+
 ## Remaining gates
 
 Before CNX-444 can be classified release GREEN:
 
-1. freeze an exact v0.9.7 candidate commit;
-2. install-over the exact candidate on Windows;
-3. verify source/installed parity for the repaired Host files;
-4. verify active/MANAGED health and OpenClaw 2026.9.5 route preservation;
-5. perform bounded physical lifecycle qualification;
-6. perform live exact Gateway-interruption recovery acceptance without duplicate inference/delivery;
-7. handle the historical stranded incident Ticket explicitly as residue, without silently replaying it;
-8. push the exact candidate and require GitHub CI success;
+1. freeze and push a new exact v0.9.7 candidate commit;
+2. require exact-SHA GitHub CI success;
+3. install-over that exact candidate on Windows;
+4. verify source/installed parity for the repaired Host files;
+5. verify active/MANAGED health and OpenClaw 2026.9.5 route preservation;
+6. settle the preserved `CNX444_RECOVERY_OK` durable delivery without regenerating inference;
+7. perform bounded physical lifecycle qualification;
+8. perform a fresh live exact Gateway-interruption recovery acceptance without duplicate inference/delivery;
 9. publish v0.9.7 only after local/live/exact-SHA gates are GREEN;
 10. independently verify release tag/assets/checksums.
 
 ## Current classification
 
-`CNX444_V097_DELIVERY_RETRY_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`

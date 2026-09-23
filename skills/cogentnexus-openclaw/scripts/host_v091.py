@@ -408,6 +408,34 @@ def gateway_startup_grace(now_ms: int | None = None) -> dict[str, Any]:
     }
 
 
+def _execute_delivery_wake(
+    root: Path,
+    decision: WakeDecision,
+    execute_safe: bool,
+) -> dict[str, Any]:
+    """Consume one authoritative assistant-delivery wake through the Host bridge."""
+    base = {
+        "action": "delivery" if execute_safe else "none",
+        "wakeAuthority": decision.authority,
+        "wakeWorkId": decision.work_id,
+        "wakeReason": decision.reason,
+        "durableWorkPending": True,
+        "providerRequired": False,
+        "heavyPath": True,
+    }
+    if not execute_safe:
+        return {"result": "delivery-pending", **base}
+
+    import host_delivery
+
+    delivery = host_delivery.flush_deliveries(root, limit=1)
+    return {
+        "result": "delivery" if not delivery.get("failed") else "delivery-retry",
+        **base,
+        "delivery": delivery,
+    }
+
+
 def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
     """Use one canonical durable wake decision before provider/heavy work."""
     legacy.initialize(root)
@@ -502,6 +530,9 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
         if maintenance_recovery is not None:
             result["maintenanceRecovery"] = maintenance_recovery
         return result
+
+    if decision.authority == "delivery" and decision.reason in {"wake/delivery", "wake/delivery/legacy"}:
+        return _execute_delivery_wake(root, decision, execute_safe)
 
     result = _LEGACY_SUPERVISOR_TICK(root, execute_safe)
     if isinstance(result, dict):

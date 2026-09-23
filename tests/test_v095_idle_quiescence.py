@@ -50,7 +50,7 @@ class IdleQuiescenceTests(unittest.TestCase):
         self.assertEqual(result["action"], "none")
         self.assertEqual(result["wakeReason"], "idle/no-actionable-work")
 
-    def test_second_scheduled_tick_after_wake_is_consumed_stays_out_of_heavy_path(self):
+    def test_second_scheduled_tick_after_delivery_wake_is_consumed_stays_idle(self):
         root = self._managed_root()
         actionable = host.WakeDecision(True, "delivery", "D1", "wake/delivery")
         consumed = host.WakeDecision(False, "none", None, "idle/no-actionable-work")
@@ -59,27 +59,51 @@ class IdleQuiescenceTests(unittest.TestCase):
         def classify(_root, _now=None):
             nonlocal calls
             calls += 1
-            return actionable if calls <= 2 else consumed
+            return actionable if calls == 1 else consumed
 
-        heavy_calls = []
+        delivery_calls = []
 
-        def heavy(_root, _execute_safe):
-            heavy_calls.append("heavy")
-            return {"result": "recovery", "action": "delivery"}
+        def deliver(_root, decision, execute_safe):
+            delivery_calls.append((decision.work_id, execute_safe))
+            return {"result": "delivery", "action": "delivery"}
 
         with mock.patch.object(host.legacy, "initialize"), \
              mock.patch.object(host.legacy, "load_state", return_value={"mode": "managed", "desiredGateway": "running"}), \
              mock.patch.object(host, "classify_wake", side_effect=classify), \
              mock.patch.object(host, "gateway_fast_probe", return_value=True), \
+             mock.patch.object(host, "_execute_delivery_wake", side_effect=deliver), \
              mock.patch.object(host, "ollama_fast_probe") as provider_probe, \
-             mock.patch.object(host, "LEGACY_SUPERVISOR_TICK", side_effect=heavy):
+             mock.patch.object(host, "LEGACY_SUPERVISOR_TICK") as heavy:
             first = host.supervisor_tick(root, execute_safe=True)
             second = host.supervisor_tick(root, execute_safe=True)
 
-        self.assertEqual(first["result"], "recovery")
+        self.assertEqual(first["result"], "delivery")
         self.assertEqual(second["result"], "idle")
-        self.assertEqual(heavy_calls, ["heavy"])
+        self.assertEqual(delivery_calls, [("D1", True)])
+        heavy.assert_not_called()
         provider_probe.assert_not_called()
+
+
+    def test_delivery_wake_executes_host_delivery_bridge_instead_of_legacy_heavy_path(self):
+        root = self._managed_root()
+        actionable = host.WakeDecision(True, "delivery", "1", "wake/delivery")
+        delivery_result = {
+            "result": "delivery",
+            "action": "delivery",
+            "delivery": {"delivered": [1], "suppressed": [], "failed": [], "pending": 0},
+        }
+
+        with mock.patch.object(host.legacy, "initialize"), \
+             mock.patch.object(host.legacy, "load_state", return_value={"mode": "managed", "desiredGateway": "running"}), \
+             mock.patch.object(host, "classify_wake", return_value=actionable), \
+             mock.patch.object(host, "gateway_fast_probe", return_value=True), \
+             mock.patch.object(host, "_execute_delivery_wake", return_value=delivery_result, create=True) as delivery, \
+             mock.patch.object(host, "LEGACY_SUPERVISOR_TICK") as heavy:
+            result = host.supervisor_tick(root, execute_safe=True)
+
+        delivery.assert_called_once_with(root, actionable, True)
+        heavy.assert_not_called()
+        self.assertEqual(result, delivery_result)
 
 
 if __name__ == "__main__":
