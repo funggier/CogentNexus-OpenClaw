@@ -11,6 +11,18 @@ export const OPENCLAW_NATIVE_RESTART_RESUME_BODY =
   "OpenClaw was waiting on tool/model work. Continue from the existing " +
   "transcript and finish the interrupted response.";
 
+export const OPENCLAW_NATIVE_RESTART_RESUME_BODY_2026_9_5 =
+  "Your previous turn was interrupted by a gateway restart while OpenClaw was waiting on tool/model work. " +
+  "The restart did not cancel the user's task. Continue from the existing transcript: check the current state, " +
+  "recover interrupted work, and finish the task without asking the user to repeat the request. Treat a tool " +
+  "result marked interrupted or missing as having an unknown outcome; verify what happened before repeating " +
+  "an action. If a tool failed, say so; never claim completion or success.";
+
+const OPENCLAW_NATIVE_RESTART_BODIES = [
+  OPENCLAW_NATIVE_RESTART_RESUME_BODY,
+  OPENCLAW_NATIVE_RESTART_RESUME_BODY_2026_9_5,
+] as const;
+
 export const OPENCLAW_QUEUED_USER_PREFIX =
   "[Queued user message that arrived while the previous turn was still active]\n";
 
@@ -45,19 +57,22 @@ function tableExists(db: DatabaseSync, name: string) {
  * hosts, so that one explicit suffix shape is allowed as well.
  */
 function matchesNativeRestartBody(content: string): boolean {
-  const bare = OPENCLAW_NATIVE_RESTART_RESUME_BODY;
-  const system = `[System] ${bare}`;
-
-  return (
-    content === bare ||
-    content === system ||
-    content.startsWith(
-      `${system}\n\nNote: The interrupted final reply was captured:`,
-    ) ||
-    content.startsWith(
-      `${bare}\n\nNote: The interrupted final reply was captured:`,
-    )
-  );
+  for (const bare of OPENCLAW_NATIVE_RESTART_BODIES) {
+    const system = `[System] ${bare}`;
+    if (
+      content === bare ||
+      content === system ||
+      content.startsWith(
+        `${system}\n\nNote: The interrupted final reply was captured:`,
+      ) ||
+      content.startsWith(
+        `${bare}\n\nNote: The interrupted final reply was captured:`,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function parseOpenClawNativeRestartDispatch(
@@ -78,31 +93,33 @@ function parseOpenClawNativeRestartDispatch(
     return undefined;
   }
 
-  const restartMarker =
-    `\n\n[System] ${OPENCLAW_NATIVE_RESTART_RESUME_BODY}`;
+  for (const body of OPENCLAW_NATIVE_RESTART_BODIES) {
+    const restartMarker = `\n\n[System] ${body}`;
+    const markerIndex = normalized.lastIndexOf(restartMarker);
 
-  const markerIndex = normalized.lastIndexOf(restartMarker);
+    if (markerIndex < OPENCLAW_QUEUED_USER_PREFIX.length) {
+      continue;
+    }
 
-  if (markerIndex < OPENCLAW_QUEUED_USER_PREFIX.length) {
-    return undefined;
+    const queuedPrompt = normalized.slice(
+      OPENCLAW_QUEUED_USER_PREFIX.length,
+      markerIndex,
+    );
+
+    if (!queuedPrompt) {
+      continue;
+    }
+
+    const restartTail = normalized.slice(markerIndex + 2);
+
+    if (!matchesNativeRestartBody(restartTail)) {
+      continue;
+    }
+
+    return { queuedPrompt };
   }
 
-  const queuedPrompt = normalized.slice(
-    OPENCLAW_QUEUED_USER_PREFIX.length,
-    markerIndex,
-  );
-
-  if (!queuedPrompt) {
-    return undefined;
-  }
-
-  const restartTail = normalized.slice(markerIndex + 2);
-
-  if (!matchesNativeRestartBody(restartTail)) {
-    return undefined;
-  }
-
-  return { queuedPrompt };
+  return undefined;
 }
 
 export function isOpenClawNativeRestartDispatch(content: unknown): boolean {
@@ -117,10 +134,10 @@ export function isOpenClawNativeRestartDispatch(content: unknown): boolean {
  * - nonterminal Direct-lane Ticket;
  * - pending/running cnx_direct_recovery;
  * - active owner session at the same fencing generation;
- * - original model call was durably interrupted by Host timeout authority.
+ * - original model call was durably interrupted by exact Host recovery authority.
  *
  * Any missing schema, lock/read error, generation mismatch, terminal state, or
- * absence of Host timeout authority returns undefined so native OpenClaw
+ * absence of exact Host recovery authority returns undefined so native OpenClaw
  * recovery remains available rather than stranding a session.
  */
 export function authoritativeCnxDirectRecovery(
@@ -165,7 +182,7 @@ export function authoritativeCnxDirectRecovery(
                 FROM cnx_direct_model_call m
                WHERE m.ticket_id=r.ticket_id
                  AND m.state='interrupted'
-                 AND m.outcome='host-timeout-authorized'
+                 AND m.outcome IN ('host-timeout-authorized','host-gateway-interruption-authorized')
             )
           ORDER BY COALESCE(r.next_attempt_at,r.created_at),r.ticket_id
           LIMIT 1`,
@@ -216,56 +233,85 @@ export function authoritativeCnxDirectRecovery(
  * recovery/delivery responsibility it already owns.
  */
 export function installV099NativeRestartOwnershipFence(api: any, config: Config) {
-  /**
-   * OpenClaw 2026.7.1-2 constructs the restart continuation as the final
-   * agent prompt after queued/orphaned user text has been merged. Therefore
-   * this ownership fence must run at before_agent_run, ahead of Ticket-first
-   * admission, rather than at the outbound before_dispatch surface.
-   *
-   * Suppression still requires both proofs:
-   *   1) exact native restart syntax;
-   *   2) positive durable same-session CogentNexus-OpenClaw Direct Recovery authority.
-   *
-   * For a queued-user envelope, the queued body must additionally equal the
-   * durable original Ticket.prompt exactly. New user intent passes through.
-   */
+  const blockedRuns = new Set<string>();
+  const expiryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  const rememberBlockedRun = (runId?: string) => {
+    if (!runId) return;
+    blockedRuns.add(runId);
+    const previous = expiryTimers.get(runId);
+    if (previous) clearTimeout(previous);
+    const timer = setTimeout(() => {
+      blockedRuns.delete(runId);
+      expiryTimers.delete(runId);
+    }, 5 * 60_000);
+    timer.unref?.();
+    expiryTimers.set(runId, timer);
+  };
+
+  const messageText = (message: any): string => {
+    const content = message?.content;
+    if (typeof content === "string") return content.trim();
+    if (!Array.isArray(content)) return "";
+    return content
+      .map((part: any) => {
+        if (typeof part === "string") return part;
+        if (!part || typeof part !== "object") return "";
+        if (typeof part.text === "string") return part.text;
+        if (typeof part.content === "string") return part.content;
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+  };
+
+  const ownedRestart = (content: unknown, event: any, ctx: any) => {
+    const dispatch = parseOpenClawNativeRestartDispatch(content);
+    if (!dispatch) return undefined;
+
+    const sessionKey =
+      (typeof ctx?.sessionKey === "string" && ctx.sessionKey.trim()) ||
+      (typeof event?.sessionKey === "string" && event.sessionKey.trim()) ||
+      undefined;
+    if (!sessionKey) return undefined;
+
+    const workspaceHint =
+      (typeof ctx?.workspaceDir === "string" && ctx.workspaceDir) ||
+      (typeof config.workspaceDir === "string" && config.workspaceDir) ||
+      (typeof api?.config?.agents?.defaults?.workspace === "string" &&
+        api.config.agents.defaults.workspace) ||
+      process.cwd();
+    const workspace = resolve(workspaceHint);
+    const path = resolve(
+      config.ticketDatabasePath ?? defaultTicketDatabase(workspace),
+    );
+
+    const ownership = authoritativeCnxDirectRecovery(path, sessionKey);
+    if (!ownership) return undefined;
+
+    if (
+      dispatch.queuedPrompt !== undefined &&
+      dispatch.queuedPrompt !== ownership.originalPrompt
+    ) {
+      return undefined;
+    }
+
+    return { sessionKey, ownership };
+  };
+
   api.on(
     "before_agent_run",
     (event: any, ctx: any) => {
-      const dispatch = parseOpenClawNativeRestartDispatch(event?.prompt);
-      if (!dispatch) return;
+      const match = ownedRestart(event?.prompt, event, ctx);
+      if (!match) return;
 
-      const sessionKey =
-        (typeof ctx?.sessionKey === "string" && ctx.sessionKey.trim()) ||
-        (typeof event?.sessionKey === "string" && event.sessionKey.trim()) ||
-        undefined;
-      if (!sessionKey) return;
-
-      const workspaceHint =
-        (typeof ctx?.workspaceDir === "string" && ctx.workspaceDir) ||
-        (typeof config.workspaceDir === "string" && config.workspaceDir) ||
-        (typeof api?.config?.agents?.defaults?.workspace === "string" &&
-          api.config.agents.defaults.workspace) ||
-        process.cwd();
-      const workspace = resolve(workspaceHint);
-      const path = resolve(
-        config.ticketDatabasePath ?? defaultTicketDatabase(workspace),
-      );
-
-      const ownership = authoritativeCnxDirectRecovery(path, sessionKey);
-      if (!ownership) return;
-
-      if (
-        dispatch.queuedPrompt !== undefined &&
-        dispatch.queuedPrompt !== ownership.originalPrompt
-      ) {
-        return;
-      }
+      rememberBlockedRun(ctx?.runId ?? event?.runId);
 
       api.logger.info?.(
         `CogentNexus-OpenClaw v0.9.9 suppressed OpenClaw native restart recovery ` +
-          `for ${sessionKey}: durable Direct recovery ${ownership.ticketId} ` +
-          `state=${ownership.recoveryState} generation=${ownership.ownerGeneration}`,
+          `for ${match.sessionKey}: durable Direct recovery ${match.ownership.ticketId} ` +
+          `state=${match.ownership.recoveryState} generation=${match.ownership.ownerGeneration}`,
       );
 
       return {
@@ -274,12 +320,39 @@ export function installV099NativeRestartOwnershipFence(api: any, config: Config)
           "duplicate OpenClaw native restart continuation is already owned by CogentNexus-OpenClaw Direct Recovery",
         category: "cnxclaw_v099_native_restart_ownership",
         metadata: {
-          ticketId: ownership.ticketId,
-          recoveryState: ownership.recoveryState,
-          ownerGeneration: ownership.ownerGeneration,
+          ticketId: match.ownership.ticketId,
+          recoveryState: match.ownership.recoveryState,
+          ownerGeneration: match.ownership.ownerGeneration,
         },
       };
     },
     { priority: 20_000, timeoutMs: 5_000 },
   );
+
+  api.on(
+    "before_message_write",
+    (event: any, ctx: any) => {
+      if (event?.message?.role !== "user") return;
+      const match = ownedRestart(messageText(event.message), event, ctx);
+      if (!match) return;
+      return { block: true };
+    },
+    { priority: 20_000, timeoutMs: 5_000 },
+  );
+
+  api.on(
+    "reply_payload_sending",
+    (event: any) => {
+      const runId = event?.runId;
+      if (!runId || !blockedRuns.has(runId)) return;
+      return {
+        cancel: true,
+        reason:
+          "suppressed duplicate OpenClaw native restart-recovery gate notice",
+      };
+    },
+    { priority: 20_000, timeoutMs: 5_000 },
+  );
+
+  return { blockedRuns };
 }
