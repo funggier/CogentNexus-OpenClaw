@@ -14,7 +14,7 @@ Compatibility evidence is split deliberately:
 - regression/dev dependency pin: OpenClaw `2026.7.1-2`;
 - latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`.
 
-## Release-tree or reviewed-source install
+## Development-candidate source install
 
 There is intentionally no `cnxclaw.cmd install` command. Install from an exact release tree or reviewed source checkout.
 

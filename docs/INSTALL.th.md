@@ -17,7 +17,7 @@
 - Python 3.11+ และ PyYAML
 - Node.js + npm เมื่อติดตั้งจาก source/release tree
 
-## ติดตั้งจาก release tree หรือ source ที่ตรวจแล้ว
+## ติดตั้งจาก development candidate
 
 ไม่มีคำสั่ง `cnxclaw.cmd install` โดยตั้งใจ การติดตั้งทำผ่าน repository installer จาก exact release tree หรือ source checkout ที่ตรวจแล้ว
 
