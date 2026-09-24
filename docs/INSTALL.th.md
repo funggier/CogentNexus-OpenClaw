@@ -17,7 +17,7 @@
 - Python 3.11+ และ PyYAML
 - Node.js + npm เมื่อติดตั้งจาก source/release tree
 
-## ติดตั้งจาก development candidate
+## ติดตั้งจาก release tree หรือ source ที่ตรวจแล้ว
 
 ไม่มีคำสั่ง `cnxclaw.cmd install` โดยตั้งใจ การติดตั้งทำผ่าน repository installer จาก exact release tree หรือ source checkout ที่ตรวจแล้ว
 
@@ -101,9 +101,11 @@ CNX-442 ผ่าน physical Discord acceptance บน OpenClaw 2026.9.5 แล
 
 ใช้ [CLEAN_REINSTALL.th.md](CLEAN_REINSTALL.th.md) เมื่อต้องการล้าง CNX-owned durable state และติดตั้งใหม่ โดยค่าเริ่มต้นควร backup ออกนอก active tree ก่อน
 
-## GitHub Release สำหรับ v0.9.7 หลังผ่าน acceptance
+## GitHub Release v0.9.7 ที่เผยแพร่แล้ว
 
-ไฟล์ที่คาดหวัง:
+Release/tag ที่ยอมรับแล้วชี้ไปที่ `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+
+ไฟล์ที่เผยแพร่:
 
 - `cogentnexus-openclaw-v0.9.7.tar.gz`
 - `cogentnexus-openclaw-v0.9.7.zip`

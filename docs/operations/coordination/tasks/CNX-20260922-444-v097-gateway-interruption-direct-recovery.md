@@ -1,6 +1,6 @@
 # CNX-20260922-444 — v0.9.7 Exact Gateway-Interruption Direct Recovery
 
-Status: `IN_PROGRESS`
+Status: `COMPLETE`
 
 Parent: `CNX-20260921-443`
 
@@ -107,4 +107,4 @@ Before any v0.9.7 candidate is accepted:
 
 ## Current classification
 
-`CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_RELEASE_GREEN`

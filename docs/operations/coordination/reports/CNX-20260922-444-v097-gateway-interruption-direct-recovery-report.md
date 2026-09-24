@@ -1,6 +1,6 @@
 # CNX-20260922-444 — v0.9.7 Exact Gateway-Interruption Direct Recovery Report
 
-Status: `LOCAL_QUALIFICATION_GREEN_LIVE_ACCEPTANCE_PENDING`
+Status: `RELEASE_GREEN`
 
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 
@@ -453,11 +453,12 @@ Current source/package metadata:
 - manifest = `0.9.7`;
 - lock root/package = `0.9.7`.
 
-Publication state remains separate:
+Publication state:
 
-- latest published release: `v0.9.6`;
-- accepted v0.9.6 tag SHA: `db8433676c2412706ef3b3966c97e3509f2255c8`;
-- v0.9.7 is not yet published.
+- latest published release: `v0.9.7`;
+- accepted v0.9.7 tag SHA: `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
+- Release workflow: `35948011186` — SUCCESS;
+- v0.9.6 remains immutable historical evidence.
 
 ## Historical incident residue disposition
 
@@ -470,21 +471,118 @@ The original production incident Ticket `CNXT-6866c23d-8c58-4a48-8699-2e48944ffb
 
 This gate is satisfied and the historical Ticket must not be reopened during final acceptance.
 
-## Remaining gates
+## Final exact candidate and live acceptance
 
-Before CNX-444 can be classified release GREEN:
+Final candidate:
 
-1. freeze and push a new exact v0.9.7 candidate commit;
-2. require exact-SHA GitHub CI success;
-3. install-over that exact candidate on Windows;
-4. verify source/installed parity for the repaired Host files;
-5. verify active/MANAGED health and OpenClaw 2026.9.5 route preservation;
-6. settle the preserved `CNX444_RECOVERY_OK` durable delivery without regenerating inference;
-7. perform bounded physical lifecycle qualification;
-8. perform a fresh live exact Gateway-interruption recovery acceptance without duplicate inference/delivery;
-9. publish v0.9.7 only after local/live/exact-SHA gates are GREEN;
-10. independently verify release tag/assets/checksums.
+`43f970895e3b6fe5de6d2f11ffe6bf544fcd2026` — `fix(v0.9.7): fence native restart recovery ownership`
+
+The final repair closed the last duplicate-result hazard discovered during physical acceptance. OpenClaw 2026.9.5 can synthesize a native restart-continuation prompt after a Gateway restart. The earlier ownership fence recognized only the older restart prompt and only `host-timeout-authorized` durable authority, so the OpenClaw native continuation could run in parallel with already-authorized CNX Direct Recovery.
+
+The final v0.9.7 ownership repair:
+
+- recognizes the exact legacy and OpenClaw 2026.9.5 restart prompt forms;
+- accepts durable CNX ownership from either `host-timeout-authorized` or `host-gateway-interruption-authorized`;
+- blocks only restart dispatches with matching durable recovery authority;
+- suppresses the synthetic restart-shaped user transcript message;
+- cancels the corresponding blocked-run gate reply;
+- remains fail-open for ordinary user input, unknown prompts, missing DB evidence, or ambiguous ownership.
+
+TDD and full local proof after the final repair:
+
+- focused native-restart ownership suite: `12/12 PASS`;
+- full Python repository suite: `737 passed, 5 skipped, 38 subtests`;
+- full Vitest: `92 files / 432 tests PASS`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, `292` packed files;
+- namespace / baseline / workspace / Cogent / runtime / workflow gates: PASS;
+- `git diff --check`: PASS.
+
+Exact-SHA CI for `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`:
+
+- Validate run `35944572696`: SUCCESS;
+- PS5.1 Acceptance Smoke run `35944572682`: SUCCESS;
+- Windows Installer Pack Smoke run `35944572655`: SUCCESS.
+
+The exact candidate was installed over the live Windows system. Installation completed with exit code 0, restored active/MANAGED generation 28, retained OpenClaw 2026.9.5 health, retained the canonical Supervisor as Ready/Enabled with `LastTaskResult=0`, and preserved the OpenClaw-owned route `ollama/qwen3.8:27b`. Source/installed parity passed for the final ownership fence and exact Gateway-interruption classifier.
+
+Final controlled physical Ticket:
+
+- session: `agent:main:cnx444-final-43f97089`;
+- Ticket: `CNXT-52baf1dc-c5b9-4971-b8d0-db0f6d27abde`;
+- original run: `bd0204f3-a4de-4c0e-b901-fe56595a5a46`;
+- original model call: `bd0204f3-a4de-4c0e-b901-fe56595a5a46:model:1`;
+- canonical attempt: `cnx-attempt-a5ec10b5-f480-46a8-9358-d77e94d26f0b`;
+- provider/model: `ollama/qwen3.8:27b`;
+- response token: `CNX444_FINAL_43F97089_20260924_OK`.
+
+The production hard-hang path captured the exact old Gateway boundary and completed with exit code 0. The underlying OpenClaw stop command reported `disk I/O error`, but the Host independently verified the old Gateway was stopped, classified only the exact captured call, restored a healthy replacement Gateway, and completed the bounded recovery path. This command-level warning is retained here rather than reclassified as a clean stop.
+
+Durable acceptance result:
+
+- Direct model call: `interrupted`;
+- model-call outcome: `host-gateway-interruption-authorized`;
+- exact canonical inference attempt: `ended`;
+- inference-attempt outcome: `host-gateway-interruption-authorized`;
+- exactly one `inference_attempt_ended` event;
+- exactly one Direct Recovery runtime;
+- Direct Recovery `attempt_count=1`;
+- recovery provider/model preserved as `ollama/qwen3.8:27b`;
+- exactly one `direct_recovery_response_ready`;
+- exactly one `direct_result` delivery row;
+- delivery status: `delivered`, attempt count `0`;
+- Ticket status: `completed`;
+- no outbox row;
+- no duplicate inference, recovery, response-ready, or delivery work.
+
+The dedicated OpenClaw transcript contained exactly two messages: the original user prompt and one assistant delivery. The assistant token appeared once, the CNX delivery marker appeared once, and no OpenClaw native restart synthetic user message, duplicate assistant result, or restart-control gate reply appeared.
+
+## Release publication and independent verification
+
+`main` was fast-forwarded without force from `8a6112016a6affa73e3ad5b7d5c2dbb701e7e133` to the accepted candidate.
+
+Release workflow:
+
+- workflow: `Release`;
+- run: `35948011186`;
+- event: `workflow_dispatch`;
+- candidate SHA: `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
+- package job: SUCCESS;
+- publish job: SUCCESS;
+- overall conclusion: SUCCESS.
+
+Published release:
+
+- tag: `v0.9.7`;
+- target: `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
+- draft: false;
+- prerelease: false;
+- published: `2026-09-24T02:40:09Z`.
+
+Independent public-asset verification downloaded the release to `T:\CNX-release-verify\v0.9.7` and recomputed hashes:
+
+- `cogentnexus-openclaw-v0.9.7.tar.gz`:
+  `6af5d0d23606ebd2bfe5f2974d0c237c001fd5e6ec8e0f6867ba24068c65c9bf`;
+- `cogentnexus-openclaw-v0.9.7.zip`:
+  `190b1224fc23f45a662e6e66d15a4e651313e13ee2782ccc2ad8df48674bee12`;
+- `SHA256SUMS.txt`:
+  `4e9fdda8c43373366cf3ba18704a8fe0831f77412c1819185407af29771b5485`.
+
+The ZIP/TAR hashes match both the downloaded `SHA256SUMS.txt` and GitHub asset digests. Required release files were independently found inside the downloaded ZIP.
+
+## Completed release gates
+
+1. exact v0.9.7 candidate frozen and pushed — PASS;
+2. exact-SHA GitHub CI — PASS;
+3. Windows install-over of exact candidate — PASS;
+4. installed/source parity — PASS;
+5. active/MANAGED OpenClaw 2026.9.5 health and route preservation — PASS;
+6. preserved durable delivery settlement without inference regeneration — PASS;
+7. bounded physical lifecycle qualification — PASS;
+8. fresh exact Gateway-interruption recovery with no duplicate inference/delivery — PASS;
+9. v0.9.7 publication — PASS;
+10. independent tag/assets/checksum verification — PASS.
 
 ## Current classification
 
-`CNX444_V097_SUPERVISOR_DELIVERY_DISPATCH_LOCAL_GREEN_CANDIDATE_PENDING`
+`CNX444_V097_RELEASE_GREEN`

@@ -1,36 +1,38 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current source line:** `v0.9.7` (development)
-**Current working branch:** `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+**Current source line:** `v0.9.7` (published accepted baseline)
+**Published baseline branch:** `main`
 **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
-**Published release:** `v0.9.6`
-**Accepted release/tag SHA:** `db8433676c2412706ef3b3966c97e3509f2255c8`
+**Published release:** `v0.9.7`
+**Accepted release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+**Release workflow:** `35948011186` — SUCCESS
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-v0.9.7 development is active under CNX-444. The current repair addresses a production continuity gap where a confirmed Gateway hard-hang restart physically destroyed an in-flight Direct model call while the durable CNX model-call row remained `active`, preventing exact recovery and eventually exposing the configured OpenClaw whole-run timeout.
+CNX-444 / v0.9.7 is complete and release GREEN. The published release closes the exact Gateway-process-boundary continuity gap without restoring timer-only destructive recovery.
 
-The published v0.9.6 baseline remains accepted and immutable while v0.9.7 qualification proceeds.
+Final v0.9.7 evidence:
 
-### CNX-444 v0.9.7 repair status
-
-Current repository evidence:
-
-- exact incident route was `ollama/qwen3.8:27b`;
-- OpenClaw whole-run timeout was correctly `2700s` (~45 minutes), so increasing timeout is not the repair;
-- the CNX 15-minute model-call deadline remains observational only;
-- confirmed hard-hang recovery now orders `prepare -> stop/quiesce -> exact Direct interruption classification -> start`;
-- pending Direct Recovery authority is persisted before the replacement Gateway becomes inference-capable;
-- gateway-specific recovery evidence is distinct from timeout evidence;
-- focused repair suite: `24/24 PASS`;
-- expanded Host/provider/recovery regression suite: `112/112 PASS`;
-- full local repository/plugin/package qualification is GREEN; exact-SHA CI and live Windows acceptance remain pending.
+- exact candidate/tag SHA: `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
+- exact-SHA CI: Validate `35944572696`, PS5.1 Acceptance Smoke `35944572682`, Windows Installer Pack Smoke `35944572655` — all SUCCESS;
+- installed/source parity: PASS;
+- live OpenClaw baseline: `2026.9.5 (ec9c1a1)`, active/MANAGED;
+- route preserved: `ollama/qwen3.8:27b`, with provider/model/auth routing OpenClaw-owned;
+- final live Ticket: `CNXT-52baf1dc-c5b9-4971-b8d0-db0f6d27abde`;
+- Direct model call became `interrupted` with `host-gateway-interruption-authorized`;
+- exact canonical inference attempt became `ended` with the same outcome;
+- exactly one Direct Recovery ran with `attempt_count=1`;
+- exactly one result was delivered: `CNX444_FINAL_43F97089_20260924_OK`;
+- final dedicated transcript contained exactly one user message and one assistant delivery, with no OpenClaw native-restart duplicate/control message;
+- Release workflow `35948011186`: SUCCESS;
+- public `v0.9.7` release is non-draft/non-prerelease and targets the exact accepted SHA;
+- downloaded public ZIP/TAR hashes independently matched `SHA256SUMS.txt` and GitHub asset digests.
 
 Final CNX-442 classification:
 
@@ -94,7 +96,7 @@ After Stop:
 | Durable result/delivery confirmation | Accepted |
 | Session-generation fencing | Accepted |
 | Restart recovery for held unbound ingress | Accepted in repository tests |
-| Exact Gateway-interruption recovery for bound active Direct calls | v0.9.7 local repository/plugin/package qualification GREEN; exact-SHA CI/live Windows acceptance pending |
+| Exact Gateway-interruption recovery for bound active Direct calls | Accepted and physically requalified in v0.9.7 |
 | PASSTHROUGH/native compatibility | Accepted |
 | MAINTENANCE deliberate-stop semantics | Accepted |
 | reset/uninstall ownership boundaries | Accepted |
@@ -122,25 +124,21 @@ Historical LM Studio/provider experiments remain historical evidence only.
 
 ## Known validation baseline
 
-Current CNX-444 v0.9.7 development evidence:
+Final CNX-444 / v0.9.7 evidence:
 
-- focused exact Gateway-interruption repair: `24/24 PASS`;
-- expanded Host/provider/recovery regression: `112/112 PASS`;
-- Python syntax: PASS;
-- `git diff --check`: PASS.
+- final full Python suite before candidate freeze: `737 passed, 5 skipped, 38 subtests`;
+- final full Vitest: `92 files / 432 tests PASS`;
+- focused native-restart ownership regression: `12/12 PASS`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, `292` packed files;
+- namespace/baseline/workspace/Cogent/runtime/workflow gates: PASS;
+- exact-SHA CI: all required workflows SUCCESS;
+- Windows same-version install-over: PASS;
+- exact live Gateway interruption and exactly-once recovery/delivery: PASS;
+- native OpenClaw restart duplicate suppression: PASS;
+- public release asset checksum verification: PASS.
 
-The final CNX-442 source qualification before documentation/release convergence reported:
-
-- affected Stop/FIFO/restart/wiring suite: `49/49 PASS`;
-- full plugin suite: `427 PASS / 1 historical CNX-383 RED`;
-- TypeScript build: PASS;
-- `plugin:validate`: PASS;
-- Ticket DB/package validation: PASS;
-- supported Windows install-over: PASS.
-
-CNX-443 is complete. The final v0.9.6 candidate `db8433676c2412706ef3b3966c97e3509f2255c8` passed the full local qualification, four-stage physical lifecycle acceptance on OpenClaw 2026.9.5, exact-SHA GitHub validation, release workflow publication, and independent public asset checksum verification.
-
-Final release classification: `CNX443_V096_DOCUMENTATION_LICENSE_RELEASE_GREEN`.
+CNX-443 / v0.9.6 remains immutable historical evidence and was not rewritten.
 
 ## Coordination state
 

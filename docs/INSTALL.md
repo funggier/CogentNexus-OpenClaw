@@ -1,6 +1,6 @@
 # Install CogentNexus-OpenClaw v0.9.7
 
-For production installation, use an exact published GitHub Release archive and verify `SHA256SUMS.txt`. The v0.9.7 source line is currently a development candidate; v0.9.6 remains the latest published release until v0.9.7 acceptance and publication complete. A moving branch is not a release identity.
+For production installation, use the exact published v0.9.7 GitHub Release archive and verify `SHA256SUMS.txt`. The accepted release/tag SHA is `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`. A moving branch is not a release identity.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ Compatibility evidence is split deliberately:
 - regression/dev dependency pin: OpenClaw `2026.7.1-2`;
 - latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`.
 
-## Development-candidate source install
+## Release-tree or reviewed-source install
 
 There is intentionally no `cnxclaw.cmd install` command. Install from an exact release tree or reviewed source checkout.
 
@@ -120,7 +120,7 @@ See [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md). A clean reinstall intentionally pu
 
 ## Release installation
 
-After v0.9.7 passes acceptance and is published, its release assets are:
+Published v0.9.7 release assets are:
 
 - `cogentnexus-openclaw-v0.9.7.tar.gz`
 - `cogentnexus-openclaw-v0.9.7.zip`

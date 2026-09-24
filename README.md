@@ -4,14 +4,15 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Current source line:** `v0.9.7` (development)
-- **Latest published release:** `v0.9.6`
+- **Current source line:** `v0.9.7` (published accepted baseline)
+- **Latest published release:** `v0.9.7`
+- **Accepted release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
 - **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 - **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 - **Managed provider ownership:** Ollama
 - **Cloud/provider/model/auth routing:** OpenClaw-owned pass-through
 - **CNX-442 authoritative Stop + session FIFO:** final live GREEN
-- **CNX-444 v0.9.7 exact Gateway-interruption recovery:** local repository/plugin/package qualification GREEN; exact-SHA CI and live Windows acceptance pending
+- **CNX-444 v0.9.7 exact Gateway-interruption recovery:** release GREEN; exact-SHA CI, Windows install-over, live interruption/recovery, native-restart ownership, and independent release checksum verification PASS
 - **License:** MIT
 
 The package peer range remains broader than the exact runtimes physically qualified by this repository. A peer range is install compatibility, not proof of behavioral acceptance.

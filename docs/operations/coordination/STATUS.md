@@ -1,29 +1,33 @@
 # Coordination Status
 
-Status: `IN_PROGRESS`
-State: `CNX444_V097_INTERRUPTED_ATTEMPT_CLOSE_EXACT_SHA_GREEN_LIVE_REACCEPTANCE_PENDING`
+Status: `COMPLETE`
+State: `CNX444_V097_RELEASE_GREEN`
 Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
 Branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
 Executor: `ChatGPT`
 
-## Current phase
+## Final phase
 
-v0.9.7 development continues under CNX-444. Durable delivery is now physically proven exactly once. A fresh real Direct interruption on `3c0db0c6...` also reached exactly-one recovery/result/delivery, but exposed that the canonical inference-attempt ledger remained active after the Direct call was interrupted. Current exact HEAD `036eef28842044499fec2588ab6c8605ad6bdd7c` repairs that boundary by ending only the exact matching active attempt and emitting `inference_attempt_ended`; exact-SHA Validate, PS5.1 Acceptance Smoke, and Windows Installer Pack Smoke are GREEN and the repaired source is installed. The next gate is one fresh post-`036eef` controlled interruption, not a replay of the consumed Tickets. See `reports/CNX-20260923-445-session-handoff-checkpoint.md`. v0.9.6 remains the published accepted baseline.
+v0.9.7 is published and accepted.
 
 Final accepted candidate/tag SHA:
 
-`db8433676c2412706ef3b3966c97e3509f2255c8`
+`43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
 
-Release workflow `35705294805` completed SUCCESS. Public `v0.9.6` is non-draft/non-prerelease, required assets are present, independent checksum verification passed, and `main` was fast-forwarded without force to the accepted release SHA before post-release coordination closeout.
+Release workflow `35948011186` completed SUCCESS. Public `v0.9.7` is non-draft/non-prerelease, targets the exact accepted SHA, required assets are present, and independently downloaded ZIP/TAR files match `SHA256SUMS.txt` and GitHub asset digests.
+
+Final live acceptance on OpenClaw `2026.9.5` used Ticket `CNXT-52baf1dc-c5b9-4971-b8d0-db0f6d27abde`. The exact interrupted model call and canonical inference attempt closed once with `host-gateway-interruption-authorized`; one recovery ran; one result was delivered; and the dedicated transcript contained no native OpenClaw restart duplicate.
+
+The accepted route remains `ollama/qwen3.8:27b`; provider/model/auth routing remains OpenClaw-owned.
 
 ## Accepted baseline carried forward
 
-CNX-442 final physical Stop acceptance is GREEN. It must not be reopened or reinterpreted merely because release/docs work is continuing.
+CNX-443 / v0.9.6 and CNX-442 remain immutable historical GREEN evidence. Their tags/releases are not rewritten.
 
 Validated/current live OpenClaw runtime baseline: `2026.9.5 (ec9c1a1)`.
 
-Regression/dev OpenClaw dependency pin remains `2026.7.1-2` for repository test/development compatibility only; it is not the current live runtime baseline.
+Regression/dev OpenClaw dependency pin remains `2026.7.1-2` for repository test/development compatibility only.
 
 ## Watcher retirement
 
-The old Codex `CogentNexus coordination watch` automation and stale catalog/session entries were removed on 2026-09-21. Current coordination does not require or assume a persistent one-minute watcher.
+The old Codex `CogentNexus coordination watch` automation and stale catalog/session entries remain retired. Current coordination does not require or assume a persistent one-minute watcher.
