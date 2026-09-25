@@ -243,9 +243,80 @@ def reconcile_default_session() -> dict[str, Any]:
 
 
 PLUGIN_MUTATION_TIMEOUT_SECONDS = 180
+PLUGIN_MUTATION_RECONCILE_TIMEOUT_SECONDS = 60
+
+
+def _plugin_config_enabled_matches(enabled: bool) -> bool:
+    result = run(
+        [openclaw_executable(), "config", "get", f"plugins.entries.{PLUGIN_ID}.enabled"],
+        timeout=PLUGIN_MUTATION_RECONCILE_TIMEOUT_SECONDS,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+    value = captured_text(result.stdout).strip()
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(parsed, bool) and parsed is enabled
+
+
+def _plugin_inspect_matches(enabled: bool) -> bool:
+    result = run(
+        [openclaw_executable(), "plugins", "inspect", PLUGIN_ID, "--json"],
+        timeout=PLUGIN_MUTATION_RECONCILE_TIMEOUT_SECONDS,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+    try:
+        payload = json.loads(captured_text(result.stdout))
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(payload, dict):
+        return False
+    plugin = payload.get("plugin", payload)
+    if not isinstance(plugin, dict) or plugin.get("enabled") is not enabled:
+        return False
+    expected_status = "loaded" if enabled else "disabled"
+    if plugin.get("status") != expected_status:
+        return False
+    diagnostics = payload.get("diagnostics", [])
+    return isinstance(diagnostics, list) and not diagnostics
+
+
+def _reconcile_timed_out_plugin_mutation(enabled: bool) -> bool:
+    """Accept a timed-out OpenClaw plugin mutation only with converged authority.
+
+    OpenClaw 2026.9.5 can persist plugins enable/disable and then fail to exit.
+    A timeout is therefore ambiguous: it is not success until the canonical
+    config, regenerated plugin registry, and plugin inspector all agree on the
+    requested state. Any missing or conflicting evidence remains fail-closed.
+    """
+    try:
+        if not _plugin_config_enabled_matches(enabled):
+            return False
+        refreshed = run(
+            [openclaw_executable(), "plugins", "registry", "--refresh"],
+            timeout=PLUGIN_MUTATION_RECONCILE_TIMEOUT_SECONDS,
+            check=False,
+        )
+        if refreshed.returncode != 0:
+            return False
+        return _plugin_inspect_matches(enabled)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
 
 def plugin_enabled(enabled: bool) -> None:
-    run([openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID], timeout=PLUGIN_MUTATION_TIMEOUT_SECONDS, check=True)
+    command = [openclaw_executable(), "plugins", "enable" if enabled else "disable", PLUGIN_ID]
+    try:
+        run(command, timeout=PLUGIN_MUTATION_TIMEOUT_SECONDS, check=True)
+    except subprocess.TimeoutExpired:
+        if _reconcile_timed_out_plugin_mutation(enabled):
+            return
+        raise
 
 
 def configure_managed_plugin() -> None:
