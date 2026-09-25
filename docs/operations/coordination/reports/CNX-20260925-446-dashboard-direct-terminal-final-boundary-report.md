@@ -400,18 +400,91 @@ RED-to-GREEN evidence:
 - `git diff --check`: PASS;
 - full Python after this second installer repair: 743 passed, 5 skipped, 38 subtests passed in approximately 390 seconds.
 
-## Remaining gates
+## Final exact-candidate qualification
 
-Before Task 446 is release-green:
+Final production-code candidate:
 
-1. commit and push the exact source SHA containing the dependency-lifecycle repair;
-2. require exact-SHA GitHub Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke GREEN on that SHA;
-3. complete a real install-over from that exact SHA;
-4. prove installed/source parity, plugin loaded state, Gateway health, and runtime attestation;
-5. rerun a fresh Codex progress -> tool -> terminal acceptance on the installed candidate;
-6. restore the v092 supervisor and prove stable runtime health;
-7. only then may v0.9.8 release preparation proceed.
+`b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
 
-## Current classification
+Exact-SHA CI:
 
-`CNX446_LIVE_GREEN_INSTALLER_DEPENDENCY_LIFECYCLE_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
+- Validate run `36125311413`: SUCCESS;
+- Windows Installer Pack Smoke run `36125311412`: SUCCESS;
+- PS5.1 Acceptance Smoke run `36125311419`: SUCCESS.
+
+The final real install-over began at approximately `2026-09-25T12:07:26Z` and completed successfully at `12:14:16Z` with exit code 0.
+
+The live install proved both installer compatibility repairs:
+
+1. candidate preparation completed with `npm ci --ignore-scripts` and no OpenClaw peer/dev postinstall hang;
+2. the OpenClaw 2026.9.5 plugin disable lifecycle crossed the known post-mutation timeout boundary, reconciled through canonical config + registry refresh + plugin inspection, and the Host transaction proceeded to a durable managed authority commit rather than rolling back.
+
+Install outcome:
+
+- Host mode: `active`;
+- generation: 30;
+- provider ownership: `openclaw`;
+- Gateway restart requested and completed;
+- Gateway verified healthy after bounded readiness polling;
+- Ollama verified healthy;
+- v092 supervisor installed as hidden background task, Ready/Enabled, `LastTaskResult=0`;
+- no recovered Tickets were required;
+- no post-commit recovery error occurred.
+
+Independent post-install verification:
+
+- repository HEAD remained exact `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`, clean and upstream-equal;
+- source/installed `host_legacy_v094.py` SHA-256:
+  `217c9f6b5e68e79ccc06e7895700ade1c6bcad37bd80de4fb8dfd0cad4d3a876`;
+- source/installed `v091-dashboard-verified-delivery.js` SHA-256:
+  `cfadb60ae8110671bca579acea3d9234f5905b716cdfbffb1eff46f918cad5a8`;
+- plugin inspector: enabled=true, activated=true, status=loaded, diagnostics=[];
+- Gateway Dashboard HTTP: 200 in 7 ms;
+- runtime attestation: `runnerReady=true`, `globalHookCount=7`;
+- `classification=AMBIGUOUS` remains the known OpenClaw 2026.9.5 public-SDK limitation because per-plugin hook count is not exposed;
+- Ticket DB: zero non-terminal Tickets, zero outbox rows.
+
+OpenClaw inspector reports `trust.reason="provenance-invalid"` for the local archive install. Inspection of OpenClaw 2026.9.5 source shows that non-official archive records fall through to this trust classification; it is not a load diagnostic. The plugin remains explicitly enabled, activated, loaded, with empty diagnostics.
+
+## Fresh installed-candidate Codex/App-Server acceptance
+
+A fresh run was executed after the successful exact-candidate install:
+
+- session: `agent:main:dashboard:6090e8c3-88fc-420d-8ee8-1f498b9146f6`;
+- run: `cnx446-live-codex-c-send-v1`;
+- Ticket: `CNXT-95707ba8-a977-451e-b526-8ff83eb06c8c`;
+- provider/model: `openai/gpt-5.6-luna`;
+- runtime: `codex`;
+- route: Direct.
+
+Timestamped terminal-boundary evidence:
+
+- commentary seq 44: `2026-09-25T12:17:56.979Z`, `stopReason="stop"`, no `runTerminal`;
+- tool call seq 45: `2026-09-25T12:17:59.305Z`, no `runTerminal`;
+- tool result seq 46: `2026-09-25T12:17:59.346Z`;
+- true final seq 47: `2026-09-25T12:18:00.772Z`, `runTerminal=true`.
+
+Ticket terminal events occurred only after the true final:
+
+- `response_ready`: `2026-09-25T12:18:00.786Z`;
+- `direct_response_durable`: same timestamp;
+- `delivery_confirmed`: `2026-09-25T12:18:00.793Z`;
+- `completed`: `2026-09-25T12:18:00.793Z`.
+
+Final text:
+
+`CNX446_TERMINAL_FINAL_C — # AGENTS.md - Your Workspace`
+
+Marker-stripped SHA-256:
+
+`b876888d047dd37bd76f65f39ca6307a7b7a96523f0543cf3e59047da582f1d6`
+
+The SHA exactly matches the Ticket payload. Event cardinality is exactly one each for `response_ready`, `direct_response_durable`, `delivery_confirmed`, and `completed`; exactly one `direct_result` delivery row exists.
+
+Native Ollama control from `cnx446-ollama-live-a` remains GREEN and proves that the Codex-specific terminal fence did not globally require `runTerminal`.
+
+## Final classification
+
+`CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_GREEN`
+
+Task 446 is complete. v0.9.8 release preparation may proceed from production-code candidate `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`.

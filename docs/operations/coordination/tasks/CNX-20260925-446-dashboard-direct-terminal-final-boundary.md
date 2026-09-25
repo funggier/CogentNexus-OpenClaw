@@ -1,6 +1,6 @@
 # CNX-20260925-446 — Dashboard Direct Terminal-Final Boundary Repair
 
-Status: `IN_PROGRESS`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 Parent: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
@@ -173,4 +173,52 @@ Record:
 
 ## Current classification
 
-`CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_RED_PENDING`
+`CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_GREEN`
+
+## Completion checkpoint — 2026-09-25
+
+Task 446 is PASS.
+
+Accepted production-code candidate:
+
+`b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
+
+The final candidate includes:
+
+- the exact-run + `runTerminal=true` fence for Codex/App-Server mirrored fallback delivery;
+- preservation of native/Ollama fallback behavior;
+- fail-closed reconciliation for OpenClaw 2026.9.5 plugin mutation commands that persist state and then time out;
+- `npm ci --ignore-scripts` for candidate dependency preparation so unrelated peer/dev lifecycle scripts cannot stall install-over before classification.
+
+Exact-SHA GitHub gates for `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec` are GREEN:
+
+- Validate `36125311413`;
+- Windows Installer Pack Smoke `36125311412`;
+- PS5.1 Acceptance Smoke `36125311419`.
+
+A real install-over from the exact candidate completed successfully on OpenClaw 2026.9.5. Independent post-install checks proved:
+
+- source/installed Host SHA-256 parity;
+- source/installed terminal-boundary plugin dist SHA-256 parity;
+- CNX Host `active`, generation 30;
+- plugin enabled/activated/loaded with empty diagnostics;
+- Gateway HTTP 200 and native Gateway health GREEN;
+- runtime attestation `runnerReady=true`, `globalHookCount=7`;
+- v092 hidden supervisor Ready/Enabled with `LastTaskResult=0`;
+- no non-terminal Tickets and zero outbox rows.
+
+Fresh installed-candidate Codex acceptance:
+
+- run `cnx446-live-codex-c-send-v1`;
+- Ticket `CNXT-95707ba8-a977-451e-b526-8ff83eb06c8c`;
+- commentary seq 44 at `12:17:56.979Z`: non-terminal;
+- tool call/result seq 45/46 at `12:17:59.305Z` / `12:17:59.346Z`: non-terminal;
+- final seq 47 at `12:18:00.772Z`: `runTerminal=true`;
+- `response_ready` only at `12:18:00.786Z`;
+- delivery confirmation/completion only at `12:18:00.793Z`;
+- terminal plain-text SHA-256 `b876888d047dd37bd76f65f39ca6307a7b7a96523f0543cf3e59047da582f1d6`, exactly matching the Ticket payload;
+- exactly one durable Direct result, one delivery confirmation, and one completion.
+
+Native Ollama acceptance also remains GREEN from run `cnx446-ollama-live-a`.
+
+The live defect is no longer reproducible and all PASS criteria are satisfied. v0.9.7 remains immutable.

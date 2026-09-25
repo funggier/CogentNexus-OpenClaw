@@ -1,0 +1,188 @@
+# CNX-20260925-447 — v0.9.8 Release Preparation and Publication
+
+Status: `IN_PROGRESS`
+Owner: ChatGPT
+Executor: ChatGPT
+Parent: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
+Target release: `v0.9.8`
+Working branch: `cnx-447-v098-release-preparation`
+Production-code authority: `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
+
+## Objective
+
+Prepare, qualify, publish, and independently verify CogentNexus-OpenClaw v0.9.8 from the production behavior accepted by Task 446, without weakening the terminal-final boundary, Ticket-first semantics, native Ollama behavior, OpenClaw-owned routing, installer recovery, or the immutable v0.9.7 release.
+
+## Why this task exists
+
+Task 446 repaired the Dashboard Direct terminal-final defect and exposed two OpenClaw 2026.9.5 installer compatibility hazards that were also repaired:
+
+1. plugin enable/disable may persist the requested mutation and then fail to exit before the CLI timeout;
+2. candidate dependency preparation must not execute unrelated peer/dev lifecycle scripts.
+
+The final production-code candidate `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec` passed exact-SHA CI, real install-over, independent installed/source parity, runtime attestation, supervisor checks, native Ollama acceptance, and fresh installed-candidate Codex progress -> tool -> terminal acceptance.
+
+Release work must now convert that accepted production behavior into a coherent v0.9.8 release candidate, requalify the exact release SHA, publish through the repository release workflow, and independently verify the public artifacts.
+
+## Release invariants
+
+1. v0.9.7 tag/release/history are immutable.
+2. Production behavior accepted at `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec` must not change silently.
+3. Any production-code change after that SHA requires renewed focused/full qualification and live acceptance.
+4. Version/docs/package metadata changes must be internally consistent at v0.9.8.
+5. OpenClaw 2026.9.5 remains the validated runtime baseline.
+6. Provider/model/auth authority remains OpenClaw-owned.
+7. Native Ollama fallback must remain valid; `runTerminal` must not become a global requirement.
+8. Release publication must use an exact candidate SHA; no force-push or tag rewrite.
+9. Public tag, GitHub release, archives, and checksums must be independently verified after publication.
+10. `main` may advance only by proven ancestry/fast-forward after the release candidate is accepted.
+
+## Stage 1 — release baseline and scope audit
+
+Before version mutation:
+
+- verify Task 446 is COMPLETE/PASS;
+- verify branch base ancestry includes exact production-code authority `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`;
+- verify repository clean except intentional Task 446 closure / Task 447 coordination docs;
+- verify v0.9.7 public tag and release remain unchanged;
+- inventory every current-facing version reference and OpenClaw baseline reference;
+- inspect release workflow inputs and artifact/checksum contract;
+- identify any stale documentation that must move from v0.9.7 to v0.9.8.
+
+## Stage 2 — version and release-documentation preparation
+
+Update only the metadata/documentation required for v0.9.8 unless a new defect is proven.
+
+At minimum verify/update as applicable:
+
+- root `VERSION`;
+- plugin `package.json` / lockfile metadata;
+- plugin manifest/current-version documentation;
+- README/install/clean-reinstall/current release references;
+- release notes/changelog/history;
+- coordination status and report references.
+
+Describe the v0.9.8 changes factually:
+
+- Dashboard Direct terminal-final boundary repair;
+- exact mirrored run correlation;
+- native/Ollama fallback preservation;
+- OpenClaw 2026.9.5 plugin-mutation timeout reconciliation;
+- installer dependency lifecycle suppression with `npm ci --ignore-scripts`.
+
+## Stage 3 — local exact-candidate validation
+
+Require at least:
+
+- focused terminal-boundary tests;
+- focused plugin-mutation-timeout tests;
+- focused installer lifecycle tests;
+- full plugin Vitest;
+- TypeScript/plugin validation;
+- production dependency audit;
+- full Python suite;
+- repository validation/self-tests used by the current release process;
+- PowerShell parser / PS5.1 relevant tests;
+- `git diff --check`.
+
+If any production source changes beyond version metadata are introduced, repeat the full Task 446 semantic/live qualification before continuing.
+
+## Stage 4 — exact release-candidate live lifecycle qualification
+
+From the exact release SHA:
+
+- install-over on OpenClaw 2026.9.5;
+- prove installed/source production-file SHA-256 parity;
+- prove Host active/MANAGED and plugin loaded;
+- prove Gateway native health;
+- prove v092 supervisor Ready/Enabled and `LastTaskResult=0`;
+- prove no non-terminal Tickets/pending outbox residue;
+- perform clean reinstall and reset/re-enable acceptance if required by the current release workflow/baseline;
+- verify OpenClaw-owned route remains coherent.
+
+At minimum rerun a fresh Codex Dashboard progress -> tool -> terminal acceptance if any runtime/package contents differ from the already accepted installed candidate.
+
+## Stage 5 — no-force push and exact-SHA GitHub gates
+
+- commit the exact release candidate;
+- push without force;
+- prove local/remote SHA equality;
+- require Validate GREEN;
+- require PS5.1 Acceptance Smoke GREEN;
+- require Windows Installer Pack Smoke GREEN;
+- require any additional release-required workflow gates GREEN.
+
+## Stage 6 — publish v0.9.8
+
+Only after all prior stages are GREEN:
+
+- dispatch the repository release workflow with `version=0.9.8` and the exact candidate SHA;
+- require candidate identity verification and publish jobs GREEN;
+- do not manually move an existing tag.
+
+## Stage 7 — independent public verification
+
+After publication:
+
+- verify tag `v0.9.8` points exactly to the accepted release SHA;
+- verify GitHub release is public, non-draft, non-prerelease unless the workflow intentionally specifies otherwise;
+- enumerate all assets;
+- verify archive digests against `SHA256SUMS.txt`;
+- independently download/hash release archives when practical;
+- verify current-facing public documentation reflects v0.9.8 and OpenClaw 2026.9.5.
+
+## Stage 8 — main convergence and final runtime check
+
+- prove accepted release SHA is a descendant of current `main`;
+- fast-forward `main` without force only after public release verification;
+- verify remote/local `main` equality;
+- re-read public documentation from `main`;
+- confirm installed runtime remains healthy and no coordination residue is left.
+
+## PASS criteria
+
+Task 447 is PASS only when:
+
+- exact v0.9.8 candidate is locally and live qualified;
+- exact-SHA GitHub gates are GREEN;
+- release workflow succeeds;
+- public tag/release/assets/checksums independently match the accepted SHA;
+- `main` converges by safe fast-forward;
+- final runtime remains healthy;
+- v0.9.7 remains unchanged.
+
+## FAIL / BLOCKED criteria
+
+Stop and record evidence if:
+
+- candidate identity becomes ambiguous;
+- production code changes without renewed qualification;
+- install-over/clean lifecycle cannot converge;
+- terminal-boundary or native Ollama behavior regresses;
+- any required exact-SHA CI gate is not GREEN;
+- public tag/release does not match the candidate SHA;
+- main cannot be advanced by safe ancestry/fast-forward;
+- publication would require history rewrite.
+
+## Evidence required
+
+Record:
+
+- starting base SHA and Task 446 authority;
+- complete version/reference inventory;
+- exact release-candidate SHA;
+- local validation counts;
+- live lifecycle evidence and installed/source hashes;
+- exact-SHA GitHub workflow IDs/status;
+- release workflow run ID;
+- public tag/release URL/metadata;
+- asset names and SHA-256 values;
+- main convergence evidence;
+- final runtime/controller/plugin/supervisor/Ticket health.
+
+## Report destination
+
+`docs/operations/coordination/reports/CNX-20260925-447-v098-release-preparation-and-publication-report.md`
+
+## Current classification
+
+`CNX447_V098_RELEASE_PREPARATION_BASELINE_PENDING`
