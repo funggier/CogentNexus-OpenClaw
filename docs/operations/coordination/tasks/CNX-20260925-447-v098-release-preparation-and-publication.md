@@ -284,3 +284,36 @@ The accepted dispatch explicitly used workflow ref `cnx-447-v098-release-prepara
 Current classification:
 
 `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
+
+## Post-release main CI contract repair — 2026-09-25
+
+Post-release docs commit:
+
+`8d2204a6f1f0978873ef6c00bc3035cf3e664dc6`
+
+was pushed and `main` fast-forwarded without force. Public current-facing docs were reread from GitHub `main` and matched the published v0.9.8 authority.
+
+Final live verification after main convergence remained GREEN:
+
+- installed ownership/plugin version `0.9.8`;
+- controller active/MANAGED generation 32;
+- Gateway OpenClaw 2026.9.5 running / connectivity OK;
+- plugin enabled/loaded with empty diagnostics;
+- runtime `runnerReady=true`, global hook count 7;
+- supervisor Ready/Enabled/Hidden / `LastTaskResult=0`;
+- SQLite integrity `ok`;
+- non-terminal Tickets 0;
+- pending outbox 0.
+
+Main Validate run `36160610790` failed only because `tests/test_install_docs_authority.py` still expected the pre-publication heading `Development-candidate source install` / Thai equivalent. The published docs correctly renamed that section to `Exact release/source-tree install`.
+
+The test contract was updated to the published heading with no production/runtime/workflow change.
+
+Post-repair local validation:
+
+- focused docs/release contracts: `15 passed`;
+- full Python: `745 passed, 5 skipped, 38 subtests passed`.
+
+Current classification:
+
+`CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`

@@ -1,7 +1,7 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
+State: `CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Branch: `cnx-447-v098-release-preparation`
 Executor: `ChatGPT`
@@ -47,8 +47,8 @@ Validation summary:
 - PowerShell/PS5.1/POSIX syntax/self-tests: PASS;
 - `git diff --check`: PASS.
 
-No v0.9.8 tag/release/main mutation has occurred.
+v0.9.8 is published at immutable tag SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`, and `main` has already fast-forwarded to post-release docs commit `8d2204a6f1f0978873ef6c00bc3035cf3e664dc6`.
 
 ## Next gate
 
-v0.9.8 is published and independently verified. Commit the post-release docs-only convergence, then prove ancestry and fast-forward `main` without force before the final runtime check.
+Main Validate run `36160610790` exposed one stale docs-parser contract after publication. The heading parser is repaired locally; focused tests are `15/15` and full Python is `745 passed, 5 skipped, 38 subtests`. Commit/push this test-only repair, require branch CI GREEN, then fast-forward `main` to the same exact SHA and require final main CI GREEN.

@@ -283,4 +283,43 @@ v0.9.7 immutability was re-proven after v0.9.8 publication:
 
 `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
 
-The immutable v0.9.8 tag is complete. Current-facing docs have been converged locally to the published state; safe ancestry proof and no-force `main` fast-forward remain.
+The immutable v0.9.8 tag is complete.
+
+## Main convergence and post-release CI contract repair
+
+Post-release docs commit `8d2204a6f1f0978873ef6c00bc3035cf3e664dc6` contained only README/AGENTS/docs changes relative to the immutable release tag. Ancestry proof showed:
+
+- old remote `main` `17e60d1f53fce4f37c7bc8cbec6ccb6bca14222e` was an ancestor of release SHA `4f9b07d6...`;
+- release SHA `4f9b07d6...` was an ancestor of docs commit `8d2204a6...`.
+
+`main` was then fast-forwarded without force to `8d2204a6...`.
+
+GitHub API reread of `README.md`, `docs/CURRENT_STATE.md`, and `docs/releases/v0.9.8.md` from `main` proved they now identify v0.9.8 as the published accepted baseline and record the exact release SHA/workflow.
+
+Independent live post-main verification remained GREEN:
+
+- ownership installedVersion: `0.9.8`;
+- plugin package version: `0.9.8`;
+- controller active/MANAGED, generation 32, provider ownership OpenClaw;
+- Gateway OpenClaw 2026.9.5 runtime running / connectivity probe OK;
+- plugin enabled/loaded / diagnostics empty;
+- runtime attestation `runnerReady=true`, `globalHookCount=7`;
+- supervisor Ready/Enabled/Hidden / `LastTaskResult=0`;
+- SQLite integrity `ok`;
+- non-terminal Tickets zero;
+- pending outbox zero.
+
+The first post-main Validate run `36160610790` exposed one stale test contract, not a product defect. Current install documentation had correctly changed its heading from pre-publication `Development-candidate source install` to published-state `Exact release/source-tree install`, but `tests/test_install_docs_authority.py` still split the document on the old heading.
+
+The minimal repair updates only that docs-parser contract to the published English/Thai headings. No production/runtime/workflow source changed.
+
+Post-repair local validation:
+
+- focused docs/release contract tests: `15 passed`;
+- full Python suite: `745 passed, 5 skipped, 38 subtests passed`.
+
+Current classification:
+
+`CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
+
+The next authority boundary is exact repair-commit CI on the release branch, followed by a no-force fast-forward of `main` to the same SHA and final main CI.

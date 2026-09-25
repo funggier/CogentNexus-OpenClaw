@@ -9,7 +9,7 @@ def test_canonical_install_docs_separate_install_prerequisites_from_runtime_read
     for path in DOCS:
         text = path.read_text(encoding="utf-8")
         marker = "## Requirements" if path.name == "INSTALL.md" else "## สิ่งที่ต้องมี"
-        end_marker = "## Development-candidate source install" if path.name == "INSTALL.md" else "## ติดตั้งจาก development candidate"
+        end_marker = "## Exact release/source-tree install" if path.name == "INSTALL.md" else "## ติดตั้งจาก exact release/source tree"
         requirements = text.split(marker, 1)[1].split(end_marker, 1)[0].lower()
         assert "ollama" not in requirements
         assert "ollama" not in requirements.lower()
@@ -29,7 +29,7 @@ def test_canonical_install_docs_do_not_claim_installer_owns_provider_preflight()
         text = path.read_text(encoding="utf-8").lower()
         assert "provider/gateway preflight" not in text
         assert "ตรวจ provider/gateway preflight" not in text
-        install_section = text.split("## development-candidate source install", 1)[1].split("## what the installer does", 1)[0] if path.name == "INSTALL.md" else text.split("## ติดตั้งจาก development candidate", 1)[1].split("## สิ่งที่ installer ทำ", 1)[0]
+        install_section = text.split("## exact release/source-tree install", 1)[1].split("## what the installer does", 1)[0] if path.name == "INSTALL.md" else text.split("## ติดตั้งจาก exact release/source tree", 1)[1].split("## สิ่งที่ installer ทำ", 1)[0]
         assert "--provider" not in install_section.lower()
         assert "-provider" not in install_section.lower()
 

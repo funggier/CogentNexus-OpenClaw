@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
+State: `CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -77,14 +77,37 @@ Completed:
 
 The earlier run `36159246629` was cancelled before publication because it executed the stale default-branch workflow definition.
 
+## Main convergence checkpoint
+
+Post-release docs commit `8d2204a6f1f0978873ef6c00bc3035cf3e664dc6` was pushed and `main` was fast-forwarded without force from `17e60d1f53fce4f37c7bc8cbec6ccb6bca14222e`.
+
+Independent verification after the fast-forward:
+
+- remote `main` = `8d2204a6...`;
+- public README/CURRENT_STATE/v0.9.8 release notes read from `main` show the published v0.9.8 authority correctly;
+- live ownership/plugin = `0.9.8`;
+- controller = active/MANAGED generation 32;
+- Gateway OpenClaw 2026.9.5 connectivity = healthy;
+- plugin = enabled/loaded, diagnostics empty;
+- runtime runner ready / global hooks 7;
+- supervisor = Ready/Enabled/Hidden / `LastTaskResult=0`;
+- SQLite integrity = `ok`, non-terminal Tickets 0, pending outbox 0.
+
+Main Validate run `36160610790` then exposed a docs-contract-only regression: `tests/test_install_docs_authority.py` still parsed the old pre-publication section heading `Development-candidate source install`. The public docs had correctly changed that heading to `Exact release/source-tree install`.
+
+The contract was updated to parse the published heading. Post-repair proof:
+
+- focused docs/release contract suite: `15 passed`;
+- full Python suite: `745 passed, 5 skipped, 38 subtests passed`;
+- no production/runtime/workflow source changed.
+
 ## Immediate next gates
 
-1. commit/push the post-release docs-only convergence;
-2. prove current remote `main` is an ancestor of the accepted release lineage;
-3. fast-forward `main` without force;
-4. reread public current-facing docs from `main`;
-5. perform final live runtime/ownership/Ticket health verification;
-6. publish final coordination closeout without moving either release tag.
+1. commit/push the docs-contract test repair;
+2. require exact repair commit CI GREEN on the release branch;
+3. fast-forward `main` without force to that exact commit;
+4. require main CI GREEN for the same SHA;
+5. close CNX-447 without moving v0.9.8 or v0.9.7 tags.
 
 ## Safety boundary
 
