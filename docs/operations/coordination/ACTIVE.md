@@ -1,36 +1,41 @@
 # Active Coordination
 
-Status: `COMPLETE`
-State: `CNX444_V097_RELEASE_GREEN`
-Task: `CNX-20260922-444-v097-gateway-interruption-direct-recovery.md`
+Status: `IN_PROGRESS`
+State: `CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_RED_PENDING`
+Task: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
 Human final authority: `Operator`
-Working branch: `cnx-357-openai-dashboard-ticket-first-requalification-v2`
+Working branch: `cnx-446-dashboard-direct-terminal-final-boundary`
+Target release line: `v0.9.8`
 
 ## Current objective
 
-CNX-444 is complete. v0.9.7 is the published accepted baseline. No successor implementation task is active in this coordination file.
+Repair the live OpenClaw 2026.9.5 Dashboard Direct completion-boundary defect in which a non-terminal assistant progress/commentary write can be staged as the durable result and close the Ticket before the exact run finishes.
 
-## Final v0.9.7 authority
+## Production trigger
 
-- accepted candidate/tag SHA: `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
-- public GitHub Release: `v0.9.7`, non-draft, non-prerelease;
-- Release workflow: `35948011186`, SUCCESS;
-- exact-SHA Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke: SUCCESS;
-- Windows install-over and installed/source parity: PASS;
-- live OpenClaw/Gateway: `2026.9.5`, active/MANAGED;
-- route preserved: `ollama/qwen3.8:27b`, OpenClaw-owned provider/model/auth routing;
-- final physical Ticket: `CNXT-52baf1dc-c5b9-4971-b8d0-db0f6d27abde`;
-- exact Gateway-interruption classification + canonical inference-attempt closure: PASS;
-- exactly-one Direct Recovery and exactly-one delivered assistant result: PASS;
-- OpenClaw native restart duplicate/control-message suppression: PASS;
-- independent public ZIP/TAR checksum verification: PASS.
+Session `6090e8c3-88fc-420d-8ee8-1f498b9146f6`, run `63bb6787-a016-426b-9ba0-d84ac15ff555`, Ticket `CNXT-f191f552-305a-4950-a77c-1dfd3444d253` proved:
 
-## Coordination rule
+- Ticket-first admission and Direct routing were correct;
+- a progress message was incorrectly marked durable/delivered/completed;
+- the exact run continued tool execution for about 110 seconds afterward;
+- true terminal OpenAI/Codex mirrored output carried `__openclaw.runTerminal=true`, while the progress message did not;
+- native Ollama terminal messages do not expose that field, so the repair must remain provider-neutral.
 
-The retired Codex `CogentNexus coordination watch` one-minute automation is not current authority and must not be recreated.
+## Immediate execution order
 
-Use this file plus `STATUS.md` and `reports/CNX-20260922-444-v097-gateway-interruption-direct-recovery-report.md` as the durable final handoff for v0.9.7.
+1. Add a RED production-topology regression.
+2. Fence mirrored fallback staging on exact terminal/run authority.
+3. Preserve existing `before_agent_finalize` and native Ollama/legacy behavior.
+4. Run focused then full plugin validation.
+5. Commit/push exact repair candidate.
+6. Run exact-SHA CI.
+7. Deploy/install-over only after local/CI GREEN.
+8. Perform a fresh live Dashboard progress -> tools -> terminal acceptance.
+9. Update the CNX-446 report and coordination state.
+10. Publish v0.9.8 only after all release gates are GREEN.
 
-CNX-443 / v0.9.6 and older tasks remain immutable historical evidence.
+## Baseline authority
+
+v0.9.7 remains the immutable published baseline. CNX-444 remains historical GREEN evidence and is not modified.
