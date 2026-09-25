@@ -30,7 +30,7 @@ jobs:
           if ($npmVersion -ne '12.0.2') { throw "expected npm 12.0.2, got $npmVersion" }
       - name: Install plugin development dependencies
         working-directory: plugins/cogentnexus-openclaw
-        run: npm ci
+        run: npm ci --ignore-scripts
       - name: Build and validate plugin before packing
         working-directory: plugins/cogentnexus-openclaw
         run: npm run plugin:validate

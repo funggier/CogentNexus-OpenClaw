@@ -1,6 +1,6 @@
 # Clean reinstall on Windows
 
-`scripts/clean-reinstall.ps1` removes the live CogentNexus-OpenClaw installation/state owned by the current OpenClaw workspace and then runs the v0.9.7 installer from the current candidate/source package again.
+`scripts/clean-reinstall.ps1` removes the live CogentNexus-OpenClaw installation/state owned by the current OpenClaw workspace and then runs the v0.9.8 installer from the current candidate/source package again.
 
 ## Important
 

@@ -1,4 +1,4 @@
-# Provider Lifecycle — CogentNexus-OpenClaw v0.9.7
+# Provider Lifecycle — CogentNexus-OpenClaw v0.9.8
 
 CogentNexus-OpenClaw separates **continuity ownership** from **provider/model/auth ownership**.
 
@@ -40,7 +40,7 @@ Typical lifecycle:
 .\cnxclaw.cmd check provider
 ```
 
-Provider/model selection itself remains an OpenClaw routing concern. Legacy `--provider` input that implied CNX provider-routing authority is not part of the current v0.9.7 contract.
+Provider/model selection itself remains an OpenClaw routing concern. Legacy `--provider` input that implied CNX provider-routing authority is not part of the current v0.9.8 contract.
 
 If Ollama is unavailable, unhealthy, or has no usable selected route, managed startup must fail closed rather than choose another provider implicitly.
 
@@ -75,7 +75,7 @@ The original provider/model provenance remains part of recovery fencing.
 
 ## Stop and queued-input boundary
 
-Provider ownership does not override session Stop authority. The v0.9.7 pre-dispatch FIFO barrier prevents a cancelled held message from reaching the Host queue after a user Stop, regardless of provider.
+Provider ownership does not override session Stop authority. The v0.9.8 pre-dispatch FIFO barrier prevents a cancelled held message from reaching the Host queue after a user Stop, regardless of provider.
 
 ## Fresh state/reset
 

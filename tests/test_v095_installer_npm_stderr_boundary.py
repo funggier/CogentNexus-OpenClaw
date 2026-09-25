@@ -25,3 +25,20 @@ def test_installer_npm_ci_suppresses_dependency_lifecycle_scripts():
         "both candidate-preparation npm ci paths must install dependencies without executing "
         "OpenClaw peer/dev dependency lifecycle scripts"
     )
+
+
+def test_all_candidate_dependency_preparation_surfaces_suppress_dependency_lifecycle_scripts():
+    root = INSTALLER.parents[1]
+    surfaces = {
+        "scripts/install.sh": (root / "scripts/install.sh").read_text(encoding="utf-8"),
+        "scripts/publish-release.ps1": (root / "scripts/publish-release.ps1").read_text(encoding="utf-8"),
+        ".github/workflows/validate.yml": (root / ".github/workflows/validate.yml").read_text(encoding="utf-8"),
+        ".github/workflows/release.yml": (root / ".github/workflows/release.yml").read_text(encoding="utf-8"),
+        ".github/workflows/windows-installer-pack-smoke.yml": (
+            root / ".github/workflows/windows-installer-pack-smoke.yml"
+        ).read_text(encoding="utf-8"),
+    }
+    for relative, text in surfaces.items():
+        plain_ci = re.findall(r"(?m)^\\s*(?:- run:\\s*)?npm ci\\s*$", text)
+        assert plain_ci == [], f"{relative} must not execute dependency lifecycle scripts during candidate preparation"
+        assert "npm ci --ignore-scripts" in text, relative

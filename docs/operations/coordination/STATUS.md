@@ -1,7 +1,7 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX447_V098_RELEASE_PREPARATION_BASELINE`
+State: `CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Branch: `cnx-447-v098-release-preparation`
 Executor: `ChatGPT`
@@ -31,10 +31,24 @@ The accepted production-code candidate has:
 
 ## Current phase
 
-Stage 1 — release baseline and scope audit.
+Stage 3 — local exact-candidate validation: GREEN.
 
-No version/tag/release/main mutation has been authorized by evidence yet. The next work is to enumerate version references, inspect release.yml/package contracts, and establish the minimal metadata/documentation delta for v0.9.8.
+The v0.9.8 metadata/current docs/release notes are aligned, candidate dependency preparation is lifecycle-script-safe, and all local release gates completed successfully.
+
+Validation summary:
+
+- focused release contracts: 40/40 PASS;
+- full Python: 745 passed, 5 skipped, 38 subtests;
+- Vitest: 93 files / 436 tests PASS;
+- evaluation: PASS;
+- production audit: 0 vulnerabilities;
+- plugin/package validation: PASS, 294 packed files;
+- payload identity: `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`;
+- PowerShell/PS5.1/POSIX syntax/self-tests: PASS;
+- `git diff --check`: PASS.
+
+No v0.9.8 tag/release/main mutation has occurred.
 
 ## Next gate
 
-Create a complete release-reference inventory and confirm the repository publication workflow before changing version metadata.
+Commit/push the exact release candidate without force, prove remote equality, then require exact-SHA GitHub release gates GREEN before live lifecycle qualification.

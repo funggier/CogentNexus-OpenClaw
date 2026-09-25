@@ -38,7 +38,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
                 return ok
 
             with (
-                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.7"}),
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.8"}),
                 mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
                 mock.patch.object(reset_v095.base, "confirm", return_value=True),
                 mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
@@ -108,7 +108,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
                 return ok
 
             with (
-                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.7"}),
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.8"}),
                 mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
                 mock.patch.object(reset_v095.base, "confirm", return_value=True),
                 mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
@@ -154,7 +154,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
                 return ok
 
             with (
-                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.7"}),
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.8"}),
                 mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
                 mock.patch.object(reset_v095.base, "confirm", return_value=True),
                 mock.patch.object(reset_v095, "_run_host", side_effect=run_host),
@@ -199,7 +199,7 @@ class V095ResetProviderNeutralTests(unittest.TestCase):
                 return ok
 
             with (
-                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.7"}),
+                mock.patch.object(reset_v095.namespace_ownership, "verify_manifest", return_value={"version": "0.9.8"}),
                 mock.patch.object(reset_v095, "resolve_installed_bootstrap", return_value=root / "bootstrap-ticket-db.mjs"),
                 mock.patch.object(reset_v095.base, "confirm", return_value=True),
                 mock.patch.object(reset_v095, "_run_host", side_effect=run_host),

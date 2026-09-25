@@ -1,12 +1,14 @@
 # CogentNexus-OpenClaw Flexible Roadmap
 
-**Updated:** 2026-09-24
+**Updated:** 2026-09-25
 
 This roadmap is directional and evidence-driven. A phase advances because its gate passes, not because code exists.
 
-## Current position — v0.9.7 exact Gateway-interruption recovery
+## Current position — v0.9.8 release preparation
 
-v0.9.7 is the latest published accepted release. CNX-444 closed the recovery gap exposed by a genuine Discord turn across an OpenClaw Gateway process replacement.
+v0.9.8 is the current source candidate. v0.9.7 remains the latest published accepted release until the v0.9.8 exact-SHA release workflow and public artifact verification complete.
+
+CNX-446 closed the Dashboard Direct terminal-final boundary defect on OpenClaw 2026.9.5: Codex/App-Server commentary/tool rows remain non-terminal, the exact mirrored `runTerminal=true` final alone may drive Direct durable completion, and native Ollama fallback remains valid. Physical install-over qualification also hardened plugin-mutation timeout reconciliation and dependency lifecycle isolation.
 
 The defect is narrow but fundamental:
 
@@ -52,7 +54,7 @@ The v0.9.6 tag/release must not be rewritten.
 
 ## Medium term — compatibility and resilience evidence
 
-After v0.9.7:
+After v0.9.8 publication:
 
 - formalize a newer OpenClaw regression dependency baseline rather than relying only on the older 2026.7.1-2 dev pin;
 - expand explicit compatibility testing around OpenClaw 2026.9.x+;

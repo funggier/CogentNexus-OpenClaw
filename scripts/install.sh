@@ -197,7 +197,7 @@ if [ "$SKIP_PLUGIN" -eq 0 ] && [ "$PLUGIN_ALREADY_EXACT" -eq 0 ]; then
   (
     trap 'rm -f "$PLUGIN_DIR/$PACKAGE_FILE"' EXIT HUP INT TERM
     cd "$PLUGIN_DIR"
-    npm ci
+    npm ci --ignore-scripts
     npm run plugin:validate
     node ./scripts/bootstrap-ticket-db.mjs --workspace "$WORKSPACE"
     PACKAGE_JSON=$(npm pack --json)

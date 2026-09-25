@@ -88,7 +88,7 @@ EXECUTION / TOOLS / RESULT
 
 The session owns continuity.
 
-In CogentNexus-OpenClaw v0.9.7, OpenClaw remains the provider/model/auth/routing authority. The logical provider router in this document is therefore OpenClaw-owned unless future evidence requires otherwise.
+In CogentNexus-OpenClaw v0.9.8, OpenClaw remains the provider/model/auth/routing authority. The logical provider router in this document is therefore OpenClaw-owned unless future evidence requires otherwise.
 
 CogentNexus-OpenClaw must preserve Ticket/session/policy/delivery continuity across provider/model changes and must not create a competing routing authority.
 

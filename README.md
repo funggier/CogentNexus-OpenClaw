@@ -4,15 +4,18 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Current source line:** `v0.9.7` (published accepted baseline)
+- **Current source line:** `v0.9.8` (release candidate; not yet published)
 - **Latest published release:** `v0.9.7`
-- **Accepted release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+- **Latest published release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+- **v0.9.8 production-code authority before release metadata:** `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
 - **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 - **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 - **Managed provider ownership:** Ollama
 - **Cloud/provider/model/auth routing:** OpenClaw-owned pass-through
 - **CNX-442 authoritative Stop + session FIFO:** final live GREEN
-- **CNX-444 v0.9.7 exact Gateway-interruption recovery:** release GREEN; exact-SHA CI, Windows install-over, live interruption/recovery, native-restart ownership, and independent release checksum verification PASS
+- **CNX-446 v0.9.8 terminal-final boundary:** live GREEN on Codex/App-Server and native Ollama; exact production-code candidate install-over and post-install acceptance PASS
+- **CNX-447 v0.9.8 release preparation:** in progress
+- **CNX-444 v0.9.7 exact Gateway-interruption recovery:** published release GREEN; immutable historical evidence
 - **License:** MIT
 
 The package peer range remains broader than the exact runtimes physically qualified by this repository. A peer range is install compatibility, not proof of behavioral acceptance.

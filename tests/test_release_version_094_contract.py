@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = "0.9.7"
+EXPECTED = "0.9.8"
 
 
 def test_release_metadata_is_aligned_to_next_stability_version():
@@ -17,6 +17,11 @@ def test_release_metadata_is_aligned_to_next_stability_version():
     assert lock["version"] == EXPECTED
     assert lock["packages"][""]["version"] == EXPECTED
     assert (ROOT / f"docs/releases/v{EXPECTED}.md").is_file()
+
+
+def test_current_release_accepts_immediate_published_predecessor_for_upgrade():
+    source = (ROOT / "skills/cogentnexus-openclaw/scripts/namespace_ownership.py").read_text(encoding="utf-8")
+    assert 'UPGRADE_FROM_VERSIONS = ("0.9.4", "0.9.5", "0.9.6", "0.9.7")' in source
 
 
 def test_release_note_describes_stability_bugfix_followup():
@@ -43,7 +48,7 @@ def test_current_facing_documents_use_next_stability_version():
     for relative in paths:
         text = (ROOT / relative).read_text(encoding="utf-8")
         assert "v0.9.3" not in text, relative
-        assert "v0.9.7" in text, relative
+        assert "v0.9.8" in text, relative
 
 
 def test_release_workflow_rejects_existing_tag_and_release_before_publication():

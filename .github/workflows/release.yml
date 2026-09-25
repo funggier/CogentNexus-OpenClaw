@@ -105,7 +105,7 @@ jobs:
           printf '["/tmp/cogentnexus-openclaw","/tmp/keep"]' | \
             python scripts/filter_plugin_paths.py --plugin-id cogentnexus-openclaw | \
             python -c 'import json,sys; assert json.load(sys.stdin) == ["/tmp/keep"]'
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         working-directory: plugins/cogentnexus-openclaw
       - run: npm test
         working-directory: plugins/cogentnexus-openclaw

@@ -1,8 +1,8 @@
 # Current Project Status
 
-**Updated:** 2026-09-24
-**Active task:** none — CNX-444 completed
-**Current source line:** v0.9.7 (published accepted baseline)
+**Updated:** 2026-09-25
+**Active task:** CNX-447 — v0.9.8 release preparation and publication
+**Current source line:** v0.9.8 (release candidate; not yet published)
 **Latest published release:** v0.9.7
 **Accepted release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
 **Release workflow:** `35948011186` — SUCCESS
@@ -14,7 +14,9 @@
 
 ## Current accepted runtime position
 
-CNX-444 / v0.9.7 is release GREEN. The exact candidate passed local suites, exact-SHA GitHub CI, Windows install-over, live Gateway-interruption recovery, native-restart ownership fencing, exactly-once delivery, publication, and independent public-asset checksum verification.
+CNX-446 is COMPLETE/GREEN and supplies the accepted v0.9.8 production behavior before release metadata. Production-code authority `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec` passed exact-SHA GitHub CI, real Windows install-over, installed/source parity, Gateway/runtime/supervisor checks, fresh Codex progress -> tool -> terminal acceptance, and native Ollama control acceptance.
+
+CNX-447 is now preparing the exact v0.9.8 release candidate. v0.9.7 remains the latest published accepted release and its release proof below is immutable historical evidence.
 
 The final physical Ticket was `CNXT-52baf1dc-c5b9-4971-b8d0-db0f6d27abde`. Its active Direct model call and exact canonical inference attempt were both closed with `host-gateway-interruption-authorized`; one recovery ran with `attempt_count=1`; one result was delivered; and the dedicated transcript contained exactly one assistant result with no native OpenClaw restart duplicate.
 

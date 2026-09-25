@@ -1,21 +1,24 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current source line:** `v0.9.7` (published accepted baseline)
+**Current source line:** `v0.9.8` (release candidate; not yet published)
 **Published baseline branch:** `main`
 **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
-**Published release:** `v0.9.7`
-**Accepted release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
-**Release workflow:** `35948011186` — SUCCESS
+**Latest published release:** `v0.9.7`
+**Latest published release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+**v0.9.8 production-code authority before release metadata:** `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
+**v0.9.7 release workflow:** `35948011186` — SUCCESS
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-CNX-444 / v0.9.7 is complete and release GREEN. The published release closes the exact Gateway-process-boundary continuity gap without restoring timer-only destructive recovery.
+CNX-446 is complete with classification `CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_GREEN`. The v0.9.8 source line is now in CNX-447 release preparation. The accepted production-code behavior prevents Codex/App-Server progress/tool rows from becoming durable Direct results, preserves native Ollama fallback, reconciles only proven OpenClaw plugin-mutation timeout ambiguity, and suppresses unrelated dependency lifecycle scripts during candidate preparation.
+
+v0.9.7 remains the latest published accepted release and immutable historical baseline.
 
 Final v0.9.7 evidence:
 

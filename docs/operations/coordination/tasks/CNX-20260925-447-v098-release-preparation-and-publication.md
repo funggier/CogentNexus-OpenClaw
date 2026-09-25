@@ -183,6 +183,40 @@ Record:
 
 `docs/operations/coordination/reports/CNX-20260925-447-v098-release-preparation-and-publication-report.md`
 
+## Local candidate qualification checkpoint — 2026-09-25
+
+Release/version preparation is locally GREEN.
+
+Key release-preparation changes:
+
+- VERSION/package/manifest/lock/current CLI/ownership authority advanced coherently to `0.9.8`;
+- owned v0.9.7 installations are explicitly accepted as the immediate in-place upgrade predecessor;
+- current-facing documentation identifies v0.9.8 as a release candidate while v0.9.7 remains the latest published immutable release;
+- release notes `docs/releases/v0.9.8.md` describe the terminal-final and installer hardening changes;
+- all candidate dependency-preparation surfaces now use `npm ci --ignore-scripts`, while explicit test/build/evaluation/package validation commands remain authoritative.
+
+Local validation:
+
+- focused release/version/docs/lifecycle contracts: `40 passed`;
+- namespace isolation: PASS;
+- baseline consistency: `v0.9.8 / Bridge v0.9.8` PASS;
+- skill/workspace singleton validation: PASS;
+- Cogent/runtime/workflow self-tests: PASS;
+- benchmark validator self-test: PASS;
+- full Python: `745 passed, 5 skipped, 38 subtests passed`;
+- full Vitest: `93 files / 436 tests PASS`;
+- evaluation: PASS, evidence SHA-256 `ce5b0c4148e76fe9fdf6c3e36d8a7c8af6528a2b9418e6b5fd14572f473f6ca4`;
+- production `npm audit --omit=dev`: `0 vulnerabilities`;
+- plugin validation: PASS, 46 config properties, 5 tools, 9 required Ticket DB tables, 294 packed files;
+- exact release metadata: VERSION/package/manifest/lock/root-lock all `0.9.8`;
+- payload identity: SHA-256 `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`, 294 files;
+- PowerShell parser: PASS;
+- PS5.1 serializer and root-process self-tests: PASS;
+- POSIX `sh -n scripts/install.sh`: PASS;
+- `git diff --check`: PASS.
+
+One local release-preparation defect was found and repaired before candidate freeze: Windows version editing had converted static package identity files to CRLF, and `plugin:validate` correctly rejected `package.json`. The static package identity files were normalized back to canonical LF and `plugin:validate` then passed.
+
 ## Current classification
 
-`CNX447_V098_RELEASE_PREPARATION_BASELINE_PENDING`
+`CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`

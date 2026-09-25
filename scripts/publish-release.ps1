@@ -52,7 +52,7 @@ if (-not $SkipLocalValidation) {
         if ($LASTEXITCODE -ne 0) { throw "Python tests failed" }
         Push-Location (Join-Path $repoRoot "plugins\cogentnexus-openclaw")
         try {
-            npm ci
+            npm ci --ignore-scripts
             if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
             npm test
             if ($LASTEXITCODE -ne 0) { throw "plugin tests failed" }

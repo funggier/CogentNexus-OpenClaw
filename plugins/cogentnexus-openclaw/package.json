@@ -1,6 +1,6 @@
 {
   "name": "openclaw-plugin-cogentnexus-openclaw",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "type": "module",
   "private": true,
   "scripts": {
