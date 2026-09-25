@@ -1,7 +1,7 @@
 # Current Project Status
 
 **Updated:** 2026-09-25
-**Active task:** CNX-447 — v0.9.8 release preparation and publication
+**Active task:** none — CNX-447 v0.9.8 release preparation and publication is complete
 **Current source/release line:** v0.9.8 (published accepted baseline)
 **Latest published release:** v0.9.8
 **Accepted release/tag SHA:** `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`

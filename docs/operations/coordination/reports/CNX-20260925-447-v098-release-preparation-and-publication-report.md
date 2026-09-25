@@ -1,6 +1,6 @@
 # CNX-20260925-447 — v0.9.8 Release Preparation and Publication Report
 
-Status: `IN_PROGRESS`
+Status: `COMPLETE`
 Branch: `cnx-447-v098-release-preparation`
 Target release: `v0.9.8`
 Task 446 production-code authority: `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
@@ -322,4 +322,44 @@ Current classification:
 
 `CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
 
-The next authority boundary is exact repair-commit CI on the release branch, followed by a no-force fast-forward of `main` to the same SHA and final main CI.
+## Exact repair CI and final main convergence
+
+Exact post-release docs-contract repair:
+
+`af90ff5c3259f2fb82228a1089f20cafe62cecc2`
+
+The branch was pushed without force. Exact-SHA branch validation:
+
+- Validate `36162086121`: SUCCESS;
+- PS5.1 Acceptance Smoke `36162086188`: SUCCESS;
+- Windows Installer Pack Smoke `36162086282`: SUCCESS.
+
+Validate proved package dry-run plus all Ubuntu/macOS/Windows Python 3.11/3.14 matrix jobs GREEN. This independently confirms the stale heading parser no longer fails on clean runners.
+
+Ancestry proof then confirmed remote `main` `8d2204a6f1f0978873ef6c00bc3035cf3e664dc6` was an ancestor of `af90ff5c...`. `main` fast-forwarded without force to the exact repair SHA.
+
+Exact-SHA main validation:
+
+- Validate `36163150015`: SUCCESS;
+- PS5.1 Acceptance Smoke `36163150106`: SUCCESS;
+- Windows Installer Pack Smoke `36163150135`: SUCCESS.
+
+No release tag was moved. No v0.9.8 production/runtime/workflow byte changed after publication.
+
+## Final disposition
+
+`CNX447_V098_RELEASE_GREEN`
+
+Task CNX-447 is COMPLETE.
+
+Release authority remains:
+
+- v0.9.8 tag/target: `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- accepted Release workflow: `36159455993`;
+- public asset verification: PASS;
+- installed live version: `0.9.8`;
+- OpenClaw baseline: `2026.9.5`;
+- final live health before closeout: active/MANAGED generation 32, plugin loaded, Gateway connected, supervisor healthy, SQLite integrity `ok`, non-terminal Tickets 0, outbox 0;
+- v0.9.7 tag/assets remain immutable.
+
+The final coordination closeout is intentionally a docs-only descendant of the immutable release tag.

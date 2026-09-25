@@ -1,7 +1,7 @@
 # Active Coordination
 
-Status: `IN_PROGRESS`
-State: `CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
+Status: `COMPLETE`
+State: `CNX447_V098_RELEASE_GREEN`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -101,13 +101,29 @@ The contract was updated to parse the published heading. Post-repair proof:
 - full Python suite: `745 passed, 5 skipped, 38 subtests passed`;
 - no production/runtime/workflow source changed.
 
-## Immediate next gates
+## Final closeout
 
-1. commit/push the docs-contract test repair;
-2. require exact repair commit CI GREEN on the release branch;
-3. fast-forward `main` without force to that exact commit;
-4. require main CI GREEN for the same SHA;
-5. close CNX-447 without moving v0.9.8 or v0.9.7 tags.
+Post-release docs-contract repair commit:
+
+`af90ff5c3259f2fb82228a1089f20cafe62cecc2`
+
+Branch exact-SHA gates:
+
+- Validate `36162086121` — SUCCESS;
+- PS5.1 Acceptance Smoke `36162086188` — SUCCESS;
+- Windows Installer Pack Smoke `36162086282` — SUCCESS.
+
+`main` was fast-forwarded without force from `8d2204a6...` to the same exact repair SHA.
+
+Main exact-SHA gates:
+
+- Validate `36163150015` — SUCCESS;
+- PS5.1 Acceptance Smoke `36163150106` — SUCCESS;
+- Windows Installer Pack Smoke `36163150135` — SUCCESS.
+
+No production/runtime/workflow source changed in the repair. The immutable v0.9.8 release tag remains `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`; v0.9.7 remains unchanged.
+
+CNX-447 is complete.
 
 ## Safety boundary
 

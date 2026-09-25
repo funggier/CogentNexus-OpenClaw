@@ -1,6 +1,6 @@
 # CNX-20260925-447 — v0.9.8 Release Preparation and Publication
 
-Status: `IN_PROGRESS`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 Parent: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
@@ -317,3 +317,31 @@ Post-repair local validation:
 Current classification:
 
 `CNX447_V098_POST_RELEASE_CI_REPAIR_PENDING`
+
+## Final release closeout
+
+Exact post-release contract repair:
+
+`af90ff5c3259f2fb82228a1089f20cafe62cecc2`
+
+Branch CI for the exact repair SHA:
+
+- Validate `36162086121`: SUCCESS;
+- PS5.1 Acceptance Smoke `36162086188`: SUCCESS;
+- Windows Installer Pack Smoke `36162086282`: SUCCESS.
+
+The already-converged `main` branch was then fast-forwarded without force from `8d2204a6...` to the same SHA.
+
+Main CI for the exact repair SHA:
+
+- Validate `36163150015`: SUCCESS across package dry-run plus Ubuntu/macOS/Windows Python 3.11/3.14 matrix;
+- PS5.1 Acceptance Smoke `36163150106`: SUCCESS;
+- Windows Installer Pack Smoke `36163150135`: SUCCESS.
+
+The repair changed only the install-document parser contract and coordination evidence. Release/runtime production code and release workflow bytes were unchanged.
+
+Final classification:
+
+`CNX447_V098_RELEASE_GREEN`
+
+Task 447 is COMPLETE. The published v0.9.8 tag remains fixed at `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`; v0.9.7 remains immutable historical evidence.
