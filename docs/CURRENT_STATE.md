@@ -1,24 +1,35 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current source line:** `v0.9.8` (release candidate; not yet published)
+**Current source/release line:** `v0.9.8` (published accepted baseline)
 **Published baseline branch:** `main`
 **Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
-**Latest published release:** `v0.9.7`
-**Latest published release/tag SHA:** `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`
+**Latest published release:** `v0.9.8`
+**Latest published release/tag SHA:** `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
 **v0.9.8 production-code authority before release metadata:** `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
-**v0.9.7 release workflow:** `35948011186` — SUCCESS
+**v0.9.8 release workflow:** `36159455993` — SUCCESS
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-CNX-446 is complete with classification `CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_GREEN`. The v0.9.8 source line is now in CNX-447 release preparation. The accepted production-code behavior prevents Codex/App-Server progress/tool rows from becoming durable Direct results, preserves native Ollama fallback, reconciles only proven OpenClaw plugin-mutation timeout ambiguity, and suppresses unrelated dependency lifecycle scripts during candidate preparation.
+CNX-447 has published v0.9.8 from exact accepted candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`. The release prevents Codex/App-Server progress/tool rows from becoming durable Direct results, preserves native Ollama fallback, reconciles only proven OpenClaw plugin-mutation timeout ambiguity, and isolates unrelated dependency lifecycle scripts during candidate/release preparation. Public TAR/ZIP assets and `SHA256SUMS.txt` were independently downloaded and verified.
 
-v0.9.7 remains the latest published accepted release and immutable historical baseline.
+v0.9.7 remains immutable historical evidence.
+
+Final v0.9.8 release evidence:
+
+- exact candidate/tag SHA: `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- exact-SHA CI: Validate `36144053827`, PS5.1 Acceptance Smoke `36144053553`, Windows Installer Pack Smoke `36144053896` — all SUCCESS;
+- real v0.9.7 -> v0.9.8 install-over: PASS / exit 0;
+- installed/source payload parity: 294 files / `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`;
+- fresh Codex/App-Server terminal-final acceptance: PASS;
+- Release workflow `36159455993`: SUCCESS;
+- public v0.9.8 release: non-draft/non-prerelease and targets the exact accepted SHA;
+- public TAR/ZIP hashes independently match `SHA256SUMS.txt` and GitHub asset digests.
 
 Final v0.9.7 evidence:
 

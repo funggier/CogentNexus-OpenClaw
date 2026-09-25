@@ -5,7 +5,7 @@ Use this file as the compact repository entry point. Current operational truth l
 ## Project identity
 
 - Repository: `funggier/CogentNexus-OpenClaw`
-- Current source/release line: `v0.9.8` (release candidate; latest published release remains `v0.9.7`)
+- Current source/release line: `v0.9.8` (published accepted baseline; release/tag SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`)
 - Current working branch: read from remote coordination `ACTIVE.md` / `STATUS.md`; do not hard-code an older branch
 - License: MIT
 

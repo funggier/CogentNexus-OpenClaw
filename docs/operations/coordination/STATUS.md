@@ -1,7 +1,7 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`
+State: `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Branch: `cnx-447-v098-release-preparation`
 Executor: `ChatGPT`
@@ -31,9 +31,9 @@ The accepted production-code candidate has:
 
 ## Current phase
 
-Stage 3 — local exact-candidate validation: GREEN.
+Stages 1-5 pre-publication qualification: GREEN.
 
-The v0.9.8 metadata/current docs/release notes are aligned, candidate dependency preparation is lifecycle-script-safe, and all local release gates completed successfully.
+The exact v0.9.8 candidate is frozen at `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`, exact-SHA GitHub gates are GREEN, real v0.9.7 -> v0.9.8 install-over is GREEN, installed/source payload parity is exact, and a fresh installed-candidate Codex terminal-final acceptance is GREEN.
 
 Validation summary:
 
@@ -51,4 +51,4 @@ No v0.9.8 tag/release/main mutation has occurred.
 
 ## Next gate
 
-Commit/push the exact release candidate without force, prove remote equality, then require exact-SHA GitHub release gates GREEN before live lifecycle qualification.
+v0.9.8 is published and independently verified. Commit the post-release docs-only convergence, then prove ancestry and fast-forward `main` without force before the final runtime check.

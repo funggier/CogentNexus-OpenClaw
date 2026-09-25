@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`
+State: `CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
 Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -51,13 +51,40 @@ Stage 1-3 local preparation is GREEN:
 - payload identity: `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0` / 294 files;
 - `git diff --check`: PASS.
 
+## Pre-publication authority
+
+Exact release candidate: `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`.
+
+Completed:
+
+- no-force push and local/remote SHA equality: PASS;
+- Validate `36144053827`: SUCCESS;
+- PS5.1 Acceptance Smoke `36144053553`: SUCCESS;
+- Windows Installer Pack Smoke `36144053896`: SUCCESS;
+- real v0.9.7 -> v0.9.8 install-over: PASS / exit 0;
+- installed/source payload parity: PASS, 294 files, fingerprint `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`;
+- runtime/plugin/Gateway/supervisor/Ticket health: PASS;
+- fresh Codex progress -> tool -> terminal acceptance: PASS;
+- clean-reinstall/reset baseline review: no additional destructive cycle required.
+
+## Publication result
+
+- accepted Release run: `36159455993` — SUCCESS;
+- tag `v0.9.8` -> exact candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- public/non-draft/non-prerelease: PASS;
+- independent TAR/ZIP/SHA256SUMS verification: PASS;
+- v0.9.7 immutability re-proven.
+
+The earlier run `36159246629` was cancelled before publication because it executed the stale default-branch workflow definition.
+
 ## Immediate next gates
 
-1. commit the exact v0.9.8 candidate;
-2. push without force and prove local/remote SHA equality;
-3. require exact-SHA Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke GREEN;
-4. perform real exact-SHA v0.9.7 -> v0.9.8 install-over and independent parity/health verification;
-5. complete remaining lifecycle/release publication gates before any tag/main mutation.
+1. commit/push the post-release docs-only convergence;
+2. prove current remote `main` is an ancestor of the accepted release lineage;
+3. fast-forward `main` without force;
+4. reread public current-facing docs from `main`;
+5. perform final live runtime/ownership/Ticket health verification;
+6. publish final coordination closeout without moving either release tag.
 
 ## Safety boundary
 

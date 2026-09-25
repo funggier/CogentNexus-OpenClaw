@@ -220,3 +220,67 @@ One local release-preparation defect was found and repaired before candidate fre
 ## Current classification
 
 `CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`
+
+## Exact candidate / CI / live checkpoint — 2026-09-25
+
+Exact release candidate:
+
+`4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
+
+The branch was pushed without force and local/remote SHA equality was proven.
+
+Exact-SHA GitHub gates:
+
+- Validate `36144053827`: SUCCESS;
+- PS5.1 Acceptance Smoke `36144053553`: SUCCESS;
+- Windows Installer Pack Smoke `36144053896`: SUCCESS.
+
+Real v0.9.7 -> v0.9.8 install-over on OpenClaw 2026.9.5 completed once with exit code 0. Independent post-install evidence proves:
+
+- ownership/plugin version: `0.9.8`;
+- controller: active/MANAGED, generation `32`, provider ownership `openclaw`;
+- Gateway: OpenClaw 2026.9.5, running and connectivity healthy;
+- plugin: enabled / loaded / diagnostics empty;
+- runtime attestation: `runnerReady=true`, `globalHookCount=7`;
+- supervisor: Ready / Enabled / Hidden / `LastTaskResult=0`;
+- SQLite integrity: `ok`;
+- non-terminal Tickets: `0`;
+- pending outbox: `0`;
+- source/installed payload identity: exact match, `294` files, SHA-256 `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`.
+
+Fresh installed-candidate Codex/App-Server acceptance:
+
+- session: `agent:main:dashboard:6090e8c3-88fc-420d-8ee8-1f498b9146f6`;
+- run: `cnx447-v098-codex-terminal-acceptance-v1`;
+- Ticket: `CNXT-d029a929-d280-4b43-af52-bfb31ce062eb`;
+- commentary seq 49: no `runTerminal`;
+- tool call seq 50: no `runTerminal`;
+- tool result seq 51;
+- true final seq 52: `runTerminal=true`, exact durable text `CNX447_V098_TERMINAL_FINAL`;
+- Ticket terminal events began only after the true final;
+- one delivered direct-result row, attempt count 0;
+- no outbox row.
+
+Clean reinstall/reset were reviewed against the actual release baseline. They are not required by `.github/workflows/release.yml` and were not universal v0.9.7 release gates. The four-stage physical lifecycle used for v0.9.6 was task-specific because that release repaired clean-reinstall/reset behavior. No destructive clean/reset cycle is repeated for v0.9.8 without a defect or release requirement.
+
+Current pre-publication classification:
+
+`CNX447_V098_PREPUBLICATION_GREEN`
+
+## Publication checkpoint — 2026-09-25
+
+A first Release dispatch (`36159246629`) was cancelled before publication because it used the older workflow definition from default `main`; it produced no tag/release side effect.
+
+The accepted dispatch explicitly used workflow ref `cnx-447-v098-release-preparation`:
+
+- Release run `36159455993`: SUCCESS;
+- package: SUCCESS;
+- publish: SUCCESS;
+- public tag `v0.9.8` -> `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- public/non-draft/non-prerelease: PASS;
+- independently downloaded TAR/ZIP hashes match `SHA256SUMS.txt` and GitHub asset digests;
+- v0.9.7 tag/assets remain unchanged.
+
+Current classification:
+
+`CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`

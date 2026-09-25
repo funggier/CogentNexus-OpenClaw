@@ -129,8 +129,158 @@ The first v0.9.8 version edit on Windows converted static plugin identity files 
 
 The static package identity files were normalized back to canonical LF. The repeated `plugin:validate` then passed with 294 packed files, and the focused release contracts remained 40/40 GREEN.
 
+## Exact candidate and exact-SHA CI
+
+Exact release candidate:
+
+`4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
+
+Commit subject:
+
+`release: prepare CogentNexus-OpenClaw v0.9.8`
+
+The branch was pushed without force and local/remote SHA equality was proven.
+
+Exact-SHA GitHub gates:
+
+- Validate `36144053827`: SUCCESS;
+- PS5.1 Acceptance Smoke `36144053553`: SUCCESS;
+- Windows Installer Pack Smoke `36144053896`: SUCCESS.
+
+## Real v0.9.7 -> v0.9.8 install-over
+
+A single supported install-over from the published v0.9.7 installation to exact candidate `4f9b07d6...` completed with exit code 0 on OpenClaw 2026.9.5.
+
+The transaction:
+
+- quiesced the supervisor before handoff;
+- entered transactional PASSTHROUGH/native authority;
+- restarted and re-proved the native Gateway;
+- advanced controller generation 30 -> 31 during handoff;
+- backed up the installed skill;
+- bootstrapped the Ticket DB with zero pending outbox;
+- packed and installed exact `openclaw-plugin-cogentnexus-openclaw-0.9.8.tgz`;
+- finalized plugin rollover;
+- restored the owned runtime/launcher;
+- re-enabled the plugin and returned to MANAGED authority;
+- completed with controller generation 32.
+
+Independent post-install verification:
+
+- ownership installedVersion: `0.9.8`;
+- plugin package version: `0.9.8`;
+- controller: active / desired Gateway running / generation 32 / provider ownership OpenClaw;
+- Gateway: OpenClaw 2026.9.5, runtime running, connectivity probe OK;
+- plugin: enabled / loaded / diagnostics `[]`;
+- runtime attestation: `runnerReady=true`, `globalHookCount=7`;
+- `classification=AMBIGUOUS` remains the known public-SDK limitation because OpenClaw 2026.9.5 does not expose the per-plugin hook count;
+- v092 supervisor: Ready / Enabled / Hidden / `LastTaskResult=0`;
+- SQLite integrity: `ok`;
+- non-terminal Tickets: zero;
+- pending outbox: zero.
+
+Full source/installed payload identity is byte-contract equal:
+
+- source: 294 files / `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`;
+- installed: 294 files / same fingerprint.
+
+## Fresh installed-candidate Codex terminal-final acceptance
+
+One controlled Dashboard `chat.send` was executed on the existing authenticated owner session:
+
+- session: `agent:main:dashboard:6090e8c3-88fc-420d-8ee8-1f498b9146f6`;
+- run: `cnx447-v098-codex-terminal-acceptance-v1`;
+- Ticket: `CNXT-d029a929-d280-4b43-af52-bfb31ce062eb`;
+- provider/model: `openai/gpt-5.6-luna`;
+- runtime: `codex`;
+- route: Direct.
+
+Transcript order:
+
+- seq 49: assistant commentary/progress, exact run id, Codex/App-Server mirror, no `runTerminal`;
+- seq 50: tool call reading `AGENTS.md`, exact run id, no `runTerminal`;
+- seq 51: successful tool result;
+- seq 52: exact final `CNX447_V098_TERMINAL_FINAL`, same run id, `runTerminal=true`.
+
+The final transcript row was recorded at approximately `2026-09-25T16:07:52.523Z`. Ticket terminal authority followed:
+
+- `response_ready`: `2026-09-25T16:07:52.516Z` from the terminal-final staging boundary;
+- `direct_response_durable`: same timestamp;
+- `delivery_confirmed`: `2026-09-25T16:07:52.526Z`;
+- `completed`: `2026-09-25T16:07:52.526Z`.
+
+The stored direct-result text is exactly `CNX447_V098_TERMINAL_FINAL`; delivery status is `delivered`, attempt count is 0, and there is no outbox row. No commentary/tool row became the durable result.
+
+## Clean-reinstall/reset disposition
+
+No additional destructive clean-reinstall/reset cycle is required for this release candidate.
+
+Reason:
+
+- the current Release workflow does not require either operation;
+- v0.9.7's accepted release contract required exact install-over/source parity plus its task-specific live interruption acceptance, not universal clean/reset acceptance;
+- the v0.9.6 four-stage lifecycle was explicitly task-specific because CNX-443 was repairing clean-reinstall/reset lifecycle behavior;
+- v0.9.8 introduces no clean-reinstall/reset production repair requiring renewed destructive qualification.
+
+Therefore Stage 4's conditional clean/reset clause is satisfied by baseline review rather than an unnecessary destructive mutation.
+
 ## Current classification
 
-`CNX447_V098_LOCAL_GREEN_CANDIDATE_COMMIT_PENDING`
+`CNX447_V098_PREPUBLICATION_GREEN`
 
-No v0.9.8 tag, release, or main mutation has occurred. The next authority boundary is the exact no-force candidate commit/push and exact-SHA GitHub CI.
+## Release workflow provenance correction
+
+The first workflow dispatch, run `36159246629`, was intentionally rejected and force-cancelled before archive staging or publication. It was dispatched without an explicit workflow ref, so GitHub executed the older `release.yml` definition from default branch `main`. That definition still labeled/executed plain `npm ci`, while the exact candidate workflow had already been hardened to `npm ci --ignore-scripts`.
+
+Evidence:
+
+- run `36159246629`: conclusion `cancelled`;
+- package stopped during `npm test`;
+- evaluation/audit/plugin validation/release metadata/archive staging were skipped;
+- publish job never ran;
+- remote `refs/tags/v0.9.8` remained absent.
+
+The accepted release dispatch explicitly bound the workflow definition to branch `cnx-447-v098-release-preparation`, whose remote HEAD was the exact release candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`.
+
+## Publication and independent public verification
+
+Accepted Release workflow:
+
+- run: `36159455993`;
+- event: `workflow_dispatch`;
+- workflow ref: `cnx-447-v098-release-preparation`;
+- run head SHA: `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- package job: SUCCESS;
+- publish job: SUCCESS;
+- overall conclusion: SUCCESS.
+
+Published release:
+
+- tag: `v0.9.8`;
+- exact target: `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`;
+- draft: false;
+- prerelease: false;
+- published: `2026-09-25T16:16:45Z`.
+
+Independent verification downloaded all public assets to:
+
+`T:\CNX-release-verify\v0.9.8-36159455993`
+
+Recomputed SHA-256:
+
+- `cogentnexus-openclaw-v0.9.8.tar.gz`: `de2b4dcee696ca48cf9521e6844a350cd79f4f2336499bd5fc64c6fc0a551143`;
+- `cogentnexus-openclaw-v0.9.8.zip`: `2c9f9214feb7d90b9a1b3d89c71a4dcd4ecacfa425618baaeb8e8d97a2a1e4f3`;
+- `SHA256SUMS.txt`: `8693865c7d0feb91628e71c9e808392cb84dc65f662b6340f37a70ef7bcc0c61`.
+
+The TAR/ZIP hashes exactly match the downloaded `SHA256SUMS.txt` and GitHub asset digests. Both archives contain the required plugin release identity files and each contains 2,171 entries.
+
+v0.9.7 immutability was re-proven after v0.9.8 publication:
+
+- tag still targets `43f970895e3b6fe5de6d2f11ffe6bf544fcd2026`;
+- prior TAR/ZIP/checksum asset digests are unchanged.
+
+## Current classification
+
+`CNX447_V098_PUBLISHED_MAIN_CONVERGENCE_PENDING`
+
+The immutable v0.9.8 tag is complete. Current-facing docs have been converged locally to the published state; safe ancestry proof and no-force `main` fast-forward remain.
