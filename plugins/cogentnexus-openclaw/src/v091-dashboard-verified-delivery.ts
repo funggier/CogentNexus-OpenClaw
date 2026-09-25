@@ -72,6 +72,16 @@ function messageText(message: any): string {
     .map((part: any) => part.text).join("\n");
 }
 
+function codexMirrorRunAuthority(message: any) {
+  const meta = message?.__openclaw;
+  const mirrorOrigin = typeof meta?.mirrorOrigin === "string" ? meta.mirrorOrigin : undefined;
+  return {
+    isCodexMirror: mirrorOrigin === "codex-app-server",
+    runId: typeof meta?.runId === "string" && meta.runId.trim() ? meta.runId.trim() : undefined,
+    runTerminal: meta?.runTerminal === true,
+  };
+}
+
 function isBareSilentReply(text: string) {
   return /^NO_REPLY$/iu.test(text.trim());
 }
@@ -515,12 +525,28 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
     const sessionKey = typeof ctx?.sessionKey === "string" ? ctx.sessionKey : undefined;
     const text = messageText(event.message).trim();
     if (!sessionKey || !text) return;
-    const candidate: NativeTranscriptCandidate | undefined = nativeTranscriptCandidates.get(sessionKey) ?? (() => {
+    const establishedCandidate = nativeTranscriptCandidates.get(sessionKey);
+    const mirrorAuthority = codexMirrorRunAuthority(event.message);
+    const candidate: NativeTranscriptCandidate | undefined = establishedCandidate ?? (() => {
       if (trustedIngressSurface(ctx) === "discord") return undefined;
+
+      // OpenClaw 2026.9.5 Codex/App-Server can persist visible commentary/progress
+      // messages before the exact run becomes terminal. stopReason="stop" is not
+      // terminal authority here; require the mirror's exact run + runTerminal.
+      if (mirrorAuthority.isCodexMirror) {
+        if (!mirrorAuthority.runTerminal || !mirrorAuthority.runId) return undefined;
+        const ticket = dashboardTicket(path, mirrorAuthority.runId);
+        if (!ticket || ticket.owner_session_key !== sessionKey) return undefined;
+        return { runId: ticket.run_id, sessionKey, text, ingressSurface: "dashboard" };
+      }
+
+      // Preserve the proven native/legacy path (including Ollama), where this
+      // Codex mirror metadata is not projected into the assistant message.
       const ticket = dashboardTicketForSession(path, sessionKey);
       return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
     })();
     if (!candidate || text !== candidate.text) return;
+    if (mirrorAuthority.isCodexMirror && mirrorAuthority.runId && mirrorAuthority.runId !== candidate.runId) return;
     const ingressSurface = trustedIngressSurface(ctx);
     if (candidate.ingressSurface === "dashboard" && ingressSurface === "discord") return;
     const staged = stageDashboardDirectResult(path, {
