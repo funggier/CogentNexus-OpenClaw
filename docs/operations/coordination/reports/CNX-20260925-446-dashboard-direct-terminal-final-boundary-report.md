@@ -362,13 +362,51 @@ RED-to-GREEN / regression evidence for this additional repair:
 - full Python after the repair: 742 passed, 5 skipped, 38 subtests passed;
 - `git diff --check`: PASS.
 
+## Second real install-over finding: dependency lifecycle side effect
+
+The timeout-reconciliation repair was committed and pushed as:
+
+`6f8c9ab25b52da8673fa9099cc2660063581d570`
+
+Exact-SHA GitHub status for that commit was fully GREEN:
+
+- Validate run `36122764663`: SUCCESS;
+- PS5.1 Acceptance Smoke run `36122764650`: SUCCESS;
+- Windows Installer Pack Smoke run `36122764661`: SUCCESS.
+
+A real install-over from that exact SHA then stopped earlier than the prior failure: candidate preparation invoked plain `npm ci` before classification. npm resolved `openclaw@2026.7.1-2` from the plugin peer/dev dependency graph and entered:
+
+`scripts/postinstall-bundled-plugins.mjs`
+
+The npm/node child tree stopped making progress. This was not a CNX runtime mutation and not the OpenClaw 2026.9.5 runtime itself; it was a lifecycle side effect of the dependency installed for build/type validation.
+
+The installer attempt was terminated while still before classification/first install mutation. The parent PowerShell installer was stopped and the orphaned npm/node child tree was explicitly terminated. Gateway/Ticket state was therefore not intentionally mutated by this attempt.
+
+The installer repair is deliberately narrow:
+
+- both candidate dependency-preparation paths now use `npm ci --ignore-scripts`;
+- dependency installation remains deterministic from the lockfile;
+- TypeScript/plugin validation still runs explicitly through `npm run plugin:validate`;
+- package construction still runs explicitly through `npm pack`;
+- no CNX plugin install lifecycle script is being skipped because the plugin package does not define a required install/preinstall/postinstall lifecycle;
+- unrelated peer/dev dependency lifecycle side effects are no longer executed during candidate preparation.
+
+RED-to-GREEN evidence:
+
+- added lifecycle-suppression contract before repair: 1 passed / 1 failed;
+- after repair: 2/2 PASS;
+- related installer transaction/runtime/package regression: 60/60 PASS;
+- PowerShell parser for `scripts/install.ps1`: PASS;
+- `git diff --check`: PASS;
+- full Python after this second installer repair: 743 passed, 5 skipped, 38 subtests passed in approximately 390 seconds.
+
 ## Remaining gates
 
 Before Task 446 is release-green:
 
-1. commit and push the new exact source SHA containing the timeout reconciliation;
+1. commit and push the exact source SHA containing the dependency-lifecycle repair;
 2. require exact-SHA GitHub Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke GREEN on that SHA;
-3. rebuild and complete a real install-over with the repaired Host helper;
+3. complete a real install-over from that exact SHA;
 4. prove installed/source parity, plugin loaded state, Gateway health, and runtime attestation;
 5. rerun a fresh Codex progress -> tool -> terminal acceptance on the installed candidate;
 6. restore the v092 supervisor and prove stable runtime health;
@@ -376,4 +414,4 @@ Before Task 446 is release-green:
 
 ## Current classification
 
-`CNX446_LIVE_GREEN_INSTALLER_TIMEOUT_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
+`CNX446_LIVE_GREEN_INSTALLER_DEPENDENCY_LIFECYCLE_REPAIR_LOCAL_GREEN_COMMIT_PENDING`

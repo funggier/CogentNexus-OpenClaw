@@ -1,7 +1,7 @@
 # Coordination Status
 
 Status: `IN_PROGRESS`
-State: `CNX446_LIVE_GREEN_INSTALLER_TIMEOUT_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
+State: `CNX446_LIVE_GREEN_INSTALLER_DEPENDENCY_LIFECYCLE_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
 Task: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
 Branch: `cnx-446-dashboard-direct-terminal-final-boundary`
 Executor: `ChatGPT`
@@ -50,6 +50,21 @@ Validation:
 - full Python: 742 passed, 5 skipped, 38 subtests passed;
 - `git diff --check`: PASS.
 
+## Second install-over compatibility finding
+
+Exact SHA `6f8c9ab25b52da8673fa9099cc2660063581d570` passed GitHub Validate, PS5.1 Acceptance Smoke, and Windows Installer Pack Smoke. A real install-over from that SHA then stalled before classification because plain `npm ci` executed the peer/dev dependency lifecycle script from `openclaw@2026.7.1-2`.
+
+The attempt was terminated before the first install mutation and its orphan npm/node children were removed. The installer now uses `npm ci --ignore-scripts` in both dependency-preparation paths, preserving explicit `plugin:validate` and `npm pack` while suppressing unrelated dependency lifecycle side effects.
+
+Validation of this second installer repair:
+
+- RED contract: 1 passed / 1 failed;
+- focused GREEN: 2/2;
+- related installer regression: 60/60;
+- PowerShell parser: PASS;
+- full Python: 743 passed, 5 skipped, 38 subtests passed;
+- `git diff --check`: PASS.
+
 ## Current next gate
 
-Commit/push the new installer-compatible SHA and require exact-SHA CI GREEN before another real install-over. After install-over, re-prove installed runtime health and rerun the Codex terminal-boundary live gate before v0.9.8 publication.
+Commit/push the dependency-lifecycle repair and require exact-SHA CI GREEN before another real install-over. After install-over, re-prove installed runtime health and rerun the Codex terminal-boundary live gate before v0.9.8 publication.

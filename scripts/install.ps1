@@ -393,7 +393,7 @@ $classificationInventoryPath = Join-Path ([IO.Path]::GetTempPath()) ("cnx-plugin
 if (-not $SkipPlugin) {
     Push-Location $pluginDir
     try {
-        $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+        $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci", "--ignore-scripts")
         if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
         if ($npmCi.ExitCode -ne 0) { throw "candidate npm ci failed before classification" }
         $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")
@@ -597,7 +597,7 @@ if ($actions.installPlugin) {
     Push-Location $pluginDir
     try {
         if (-not $pluginPrepared) {
-            $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci")
+            $npmCi = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("ci", "--ignore-scripts")
             if ($npmCi.Output) { Write-Host $npmCi.Output.TrimEnd() }
             if ($npmCi.ExitCode -ne 0) { throw "npm ci failed" }
             $npmValidate = Invoke-NativeInstallerDiagnostic -Executable "npm.cmd" -Arguments @("run", "plugin:validate")

@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `IN_PROGRESS`
-State: `CNX446_LIVE_GREEN_INSTALLER_TIMEOUT_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
+State: `CNX446_LIVE_GREEN_INSTALLER_DEPENDENCY_LIFECYCLE_REPAIR_LOCAL_GREEN_COMMIT_PENDING`
 Task: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
 Assigned executor: `ChatGPT`
 Review owner: `ChatGPT independent final verification`
@@ -50,20 +50,32 @@ The Host helper now handles only that ambiguous timeout case:
 
 No SQLite state is edited directly.
 
+## Second real install-over finding
+
+The first timeout-reconciliation commit `6f8c9ab25b52da8673fa9099cc2660063581d570` was pushed and all exact-SHA GitHub workflows were GREEN. A new real install-over from that exact SHA then stopped before classification/first install mutation because candidate preparation ran plain `npm ci`.
+
+On this machine, npm resolved the plugin peer/dev dependency `openclaw@2026.7.1-2` and entered its `postinstall-bundled-plugins.mjs` lifecycle script. That child stopped making progress. The installer parent was terminated before the first install mutation, and the orphaned npm/node child tree was explicitly removed.
+
+The candidate dependency install is now narrowed to `npm ci --ignore-scripts` in both installer preparation paths. This still installs the dependency graph required by TypeScript/plugin validation, while preventing peer/dev dependency lifecycle side effects from running during CNX candidate preparation. The CNX plugin itself has no required install lifecycle script; explicit `npm run plugin:validate` and `npm pack` remain authoritative build/package gates.
+
 ## Current validation
 
-- timeout reconciliation focused tests: 6/6 PASS;
-- related Host / installer regression: 90/90 PASS;
+- plugin-mutation timeout reconciliation focused tests: 6/6 PASS;
+- related Host / installer regression for that repair: 90/90 PASS;
 - production OpenClaw parser probe: config=true, inspect=true;
-- full Python: 742 passed, 5 skipped, 38 subtests passed;
+- dependency-lifecycle RED: 1 passed / 1 failed before `--ignore-scripts`;
+- dependency-lifecycle focused GREEN: 2/2 PASS;
+- installer transaction/runtime/package regression after `--ignore-scripts`: 60/60 PASS;
+- PowerShell parser for `scripts/install.ps1`: PASS;
+- full Python after the second installer repair: 743 passed, 5 skipped, 38 subtests passed;
 - `git diff --check`: PASS;
-- previous plugin semantic suite/build/audit remain GREEN because the new delta is Python Host/install logic only.
+- prior Codex/App-Server and native Ollama live acceptance remain GREEN.
 
 ## Immediate next gates
 
-1. commit and push the exact new source SHA;
+1. commit and push the exact source SHA containing the dependency-lifecycle repair;
 2. require exact-SHA GitHub Validate / PS5.1 Acceptance Smoke / Windows Installer Pack Smoke GREEN on that SHA;
-3. rebuild and perform a real install-over with the timeout reconciliation in the installed Host;
+3. perform a real install-over from that exact SHA;
 4. prove installed/source parity, plugin loaded state, Gateway health, and runtime attestation;
 5. rerun a fresh Codex progress -> tool -> terminal live acceptance on the installed candidate;
 6. restore the v092 supervisor and re-prove stable runtime health;
