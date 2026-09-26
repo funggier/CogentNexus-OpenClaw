@@ -41,7 +41,7 @@ function estimateTokens(value:unknown) {
 }
 
 async function verifyHardTrim(api:any,sessionKey:string,maxLines:number,result:any) {
-  if(result?.ok!==true||result?.compacted!==true)throw new Error(`hard trim ${maxLines} did not confirm compaction`);
+  if(result?.ok!==true)throw new Error(`hard trim ${maxLines} did not confirm a valid maintenance result`);
   const kept=Number(result?.kept);
   if(!Number.isInteger(kept)||kept<0||kept>maxLines)throw new Error(`hard trim ${maxLines} returned invalid kept=${String(result?.kept)}`);
 

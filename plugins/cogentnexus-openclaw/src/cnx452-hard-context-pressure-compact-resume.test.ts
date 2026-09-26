@@ -22,7 +22,7 @@ function setup(root:string, runId:string, sessionKey:string) {
   return {path,ticket};
 }
 
-function harness(input:{root:string;path:string;sessionKey:string;compactSucceeds:boolean}) {
+function harness(input:{root:string;path:string;sessionKey:string;compactSucceeds:boolean;compactAtMaxLines?:number;hardTrimMaxLines?:number}) {
   let hook:any;
   let compactCalls=0;
   let compacted=false;
@@ -31,7 +31,7 @@ function harness(input:{root:string;path:string;sessionKey:string;compactSucceed
     registerService:()=>{},
   };
   const api={
-    runtime:{gateway:{request:async(method:string)=>{
+    runtime:{gateway:{request:async(method:string,params?:any)=>{
       if(method==="sessions.describe")return {session:{
         key:input.sessionKey,
         sessionId:"physical-cnx452",
@@ -41,6 +41,16 @@ function harness(input:{root:string;path:string;sessionKey:string;compactSucceed
       }};
       if(method==="sessions.compact"){
         compactCalls+=1;
+        if(input.compactAtMaxLines!==undefined){
+          const maxLines=Number(params?.maxLines);
+          if(Number.isFinite(maxLines)&&maxLines<=input.compactAtMaxLines){
+            compacted=true;
+            return {ok:true,compacted:false,kept:maxLines,cnxVerification:{
+              source:"bounded-post-trim-estimate",tokens:12000,safeLimit:21626,contextWindow:24576,kept:maxLines,messageCount:12,
+            }};
+          }
+          return {ok:true,compacted:false,kept:8};
+        }
         if(input.compactSucceeds){
           compacted=true;
           return {ok:true,compacted:true,result:{tokensBefore:23000,tokensAfter:12000}};
@@ -56,7 +66,7 @@ function harness(input:{root:string;path:string;sessionKey:string;compactSucceed
     workspaceDir:input.root,
     ticketDatabasePath:input.path,
     contextCompactionTimeoutMs:30000,
-    contextHardTrimMaxLines:60,
+    contextHardTrimMaxLines:input.hardTrimMaxLines??60,
   });
   return {hook,getCompactCalls:()=>compactCalls};
 }
@@ -95,6 +105,38 @@ describe("CNX-452 hard context pressure compact/resume",()=>{
       rmSync(root,{recursive:true,force:true});
     }
   });
+  it("adapts below 60 retained lines when a few huge transcript records keep hard pressure unsafe",async()=>{
+    const root=mkdtempSync(join(tmpdir(),"cnx452-few-huge-lines-"));
+    try{
+      const sessionKey="agent:main:dashboard:cnx452-few-huge-lines";
+      const runId="cnx452-few-huge-lines-run";
+      const {path,ticket}=setup(root,runId,sessionKey);
+      const {hook,getCompactCalls}=harness({
+        root,path,sessionKey,compactSucceeds:false,compactAtMaxLines:4,hardTrimMaxLines:200,
+      });
+
+      const decision=await hook(
+        {prompt:"continue",messages:[{role:"assistant",content:"x".repeat(60000)}],systemPrompt:"system"},
+        {sessionKey,runId,workspaceDir:root,contextTokenBudget:24576},
+      );
+
+      expect(decision).toEqual({outcome:"pass"});
+      // semantic + 200 + 120 + 60 + 30 + 15 + 8 + 4
+      expect(getCompactCalls()).toBe(8);
+
+      const db=new DatabaseSync(path,{readOnly:true});
+      expect(db.prepare("SELECT status,failure_class,failure_message FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({status:"accepted",failure_class:null,failure_message:null});
+      expect(db.prepare("SELECT state,hard_required,last_action,last_tokens_before,last_tokens_after FROM cnx_context_maintenance WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({state:"done",hard_required:1,last_action:"hard-trim-4",last_tokens_before:23000,last_tokens_after:12000});
+      expect(db.prepare("SELECT count(*) AS n FROM ticket_events WHERE ticket_id=? AND event_type='context_pressure_inline_resolved'").get(ticket.ticketId))
+        .toEqual({n:1});
+      db.close();
+    }finally{
+      rmSync(root,{recursive:true,force:true});
+    }
+  });
+
   it("fails closed without Direct recovery when bounded compaction cannot establish a safe context",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx452-unresolved-"));
     try{

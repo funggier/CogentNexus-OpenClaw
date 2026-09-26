@@ -168,10 +168,15 @@ describe("CNX-426 model-switch-aware context budget",()=>{
           }};
           if(method==="sessions.compact"){
             compactCalls.push(params);
-            if(params?.maxLines!==undefined)hardTrimmed=true;
+            if(params?.maxLines!==undefined){
+              hardTrimmed=true;
+              return {ok:true,compacted:false,kept:Number(params.maxLines),cnxVerification:{
+                source:"fresh-session-counter",tokens:12000,safeLimit:36044,contextWindow:40960,kept:Number(params.maxLines),
+              }};
+            }
             return {ok:true,compacted:true,result:{
               tokensBefore:38000,
-              tokensAfter:hardTrimmed?12000:38000,
+              tokensAfter:38000,
             }};
           }
           throw new Error(`unexpected ${method}`);

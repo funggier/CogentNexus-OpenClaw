@@ -59,6 +59,22 @@ Working branch: `cnx-452-hard-context-pressure-compact-resume`
 - evaluation evidence SHA-256: `088e235bcc3df923519918e30a5d301f88e961f73b7a3e3bf37349e1103bb660`;
 - packed plugin payload: `300` files.
 
+## Live qualification round 1 / repair round 2
+
+Physical live hard-pressure acceptance reached `23838/24576` before inference but failed because OpenClaw 2026.9.5 rejects semantic `sessions.compact` during the same active run and reports bounded `maxLines` trimming as `compacted:false` even when the transcript is actually trimmed. A `maxLines=20` probe physically reduced the transcript to 20 events / 12 logical messages with bounded estimate `9642/24576`, safely below the `21626` limit.
+
+Round-2 repair treats `compacted` as semantic-checkpoint metadata rather than line-trim authority, requires verified post-trim token evidence, deepens the compatibility trim ladder, and rebuilds `dist` from the repaired TS source.
+
+Round-2 validation:
+
+- focused: `5 files / 25 tests PASS`;
+- full Python: `754 passed, 5 skipped, 38 subtests passed`;
+- full Vitest: `96 files / 448 tests PASS`;
+- build/evaluation/plugin validation/audit: PASS;
+- evaluation evidence SHA-256: `a322470a9cedcc0120f0dc407b5016ccdf20e406a406f1899d9bee08a444b677`;
+- packed plugin payload: `300` files;
+- compiled dist inspection: deep v091 ladder + verified post-trim evidence gate present.
+
 ## Current classification
 
-`CNX452_LOCAL_GREEN_CI_PENDING`
+`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`

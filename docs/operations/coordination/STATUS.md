@@ -1,7 +1,7 @@
 # Coordination Status
 
 Status: `ACTIVE`
-State: `CNX452_LOCAL_GREEN_CI_PENDING`
+State: `CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
 Task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
 Branch: `cnx-452-hard-context-pressure-compact-resume`
 Executor: `ChatGPT`
@@ -18,4 +18,4 @@ Replace the hard-pressure `block-as-defer` semantic with authority-fenced inline
 
 ## Current classification
 
-`CNX452_RED_TEST_PREPARATION`
+`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`

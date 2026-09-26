@@ -272,7 +272,7 @@ async function maintain(api:any,row:Maintenance,config:ContextGuardConfig,worksp
   let expectedSessionId=afterSemantic.sessionId??row.session_id;
   const capsule=await snapshotCapsule(api,workspaceDir,databasePath,row,afterSemantic,semanticError??"hard context pressure");
   const first=Math.max(20,Math.min(1000,Math.floor(config.contextHardTrimMaxLines??200)));
-  const candidates=[first,Math.min(first,120),60].filter((value,index,array)=>array.indexOf(value)===index);
+  const candidates=[first,Math.min(first,120),60,30,15,8,4,2].filter((value,index,array)=>array.indexOf(value)===index);
   let lastError=semanticError;
   for(const maxLines of candidates){
     if(!currentAuthority(databasePath,row)){finish(databasePath,row,{state:"cancelled",action:"authority-revoked-during-hard-trim",capsule});return {action:"authority-revoked-during-hard-trim",capsule};}
@@ -282,11 +282,16 @@ async function maintain(api:any,row:Maintenance,config:ContextGuardConfig,worksp
     }
     try{
       const result=await request("sessions.compact",{key:row.session_key,...(agentId?{agentId}:{}),maxLines},{timeoutMs:120000});
-      if(result?.ok!==true||result?.compacted!==true){lastError=`hard trim ${maxLines} did not confirm compaction`;continue;}
+      const verification=result?.cnxVerification;
+      const verifiedTokens=Number(verification?.tokens);
+      if(result?.ok!==true||!verification||!Number.isFinite(verifiedTokens)||verifiedTokens<=0){
+        lastError=`hard trim ${maxLines} did not provide verified post-trim token evidence`;continue;
+      }
       if(!currentAuthority(databasePath,row)){finish(databasePath,row,{state:"cancelled",action:"authority-revoked-after-hard-trim",capsule});return {action:"authority-revoked-after-hard-trim",capsule};}
       const post=await describe(api,row.session_key);expectedSessionId=post?.sessionId??expectedSessionId;
-      const tokens=Number(post?.totalTokens??0)||undefined;
-      if(!tokens||tokens<=Math.floor(window*0.88)||maxLines===candidates.at(-1)){
+      const freshPostTokens=post?.totalTokensFresh===true?(Number(post?.totalTokens??0)||undefined):undefined;
+      const tokens=freshPostTokens??verifiedTokens;
+      if(tokens<=Math.floor(window*0.88)){
         finish(databasePath,row,{state:"done",action:`hard-trim-${maxLines}`,before,after:tokens,capsule});return {action:`hard-trim-${maxLines}`,before,after:tokens,capsule};
       }
       lastError=`hard trim ${maxLines} still reports ${tokens}/${window}`;

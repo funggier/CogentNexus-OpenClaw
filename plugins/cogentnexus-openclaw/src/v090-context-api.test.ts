@@ -81,6 +81,31 @@ describe("v0.9 context maintenance OpenClaw projection",()=>{
     expect(gatewayRequest).not.toHaveBeenCalled();
   });
 
+  it("accepts physical line trim evidence even when OpenClaw reports compacted false",async()=>{
+    const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({
+      code:0,stdout:JSON.stringify({ok:true,compacted:false,kept:20}),stderr:"",signal:null,killed:false,termination:"exit",
+    }));
+    const getSessionMessages=vi.fn(async()=>({messages:[
+      {role:"user",content:"hello"},
+      {role:"assistant",content:"world"},
+    ]}));
+    const api={runtime:{
+      gateway:{request:vi.fn()},
+      agent:{session:{getSessionEntry:()=>({contextTokens:24576,totalTokensFresh:false})}},
+      subagent:{getSessionMessages},
+      system:{runCommandWithTimeout},
+    }};
+    const proxy=createContextMaintenanceApi(api,{workspaceDir:"C:/workspace",pythonCommand:"python"});
+    const result=await proxy.runtime.gateway.request("sessions.compact",{key:"agent:main:dashboard:A",maxLines:20},{timeoutMs:90000});
+    expect(result).toMatchObject({
+      ok:true,
+      compacted:false,
+      kept:20,
+      cnxVerification:{source:"bounded-post-trim-estimate",contextWindow:24576,kept:20},
+    });
+    expect(getSessionMessages).toHaveBeenCalledWith({sessionKey:"agent:main:dashboard:A",limit:200});
+  });
+
   it("rejects a hard trim that still has an unsafe fresh token count",async()=>{
     const runCommandWithTimeout=vi.fn(async(_argv:string[],_options:any)=>({code:0,stdout:JSON.stringify({ok:true,compacted:true,kept:60}),stderr:""}));
     const api={runtime:{

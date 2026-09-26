@@ -79,4 +79,52 @@ CNX-451 soft observe-and-pass and CNX-426 effective model-window authority remai
 
 ## Current classification
 
-`CNX452_LOCAL_GREEN_CI_PENDING`
+`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
+
+## Live qualification round 1 — physical failure and repair evidence
+
+The first installed-candidate live acceptance on the original Dashboard owner session did **not** pass, so Task 452 remained open.
+
+- Ticket: `CNXT-94a53d84-511f-45bb-ab60-04d83962bb9d`
+- run: `325bae4f-45cc-49b4-96ee-0d7ef67bc326`
+- owner: `agent:main:dashboard:f6d5474d-df42-44c4-af8a-f4bfb68dfee8`
+- pressure: `23838/24576 = 96.997%`, level `hard`
+- `context_pressure_hard_observed` occurred before any model call.
+- maintenance ended `context_pressure_inline_unresolved`; OpenClaw then converted hook `outcome=block` into `failed/permanent`.
+- no model call/inference attempt started for that failed turn.
+
+Physical OpenClaw contract evidence:
+
+- semantic `sessions.compact` during `before_agent_run` is rejected because the same session already has an active run;
+- line trim `maxLines=60` returned `{ok:true, compacted:false, kept:23}`;
+- line trim `maxLines=20` returned `{ok:true, compacted:false, kept:20}`;
+- the transcript physically reduced to 20 transcript events / 12 logical messages;
+- bounded post-trim estimate was `9642/24576 = 39.2%`, below safe limit `21626`.
+
+Therefore `compacted` is semantic-checkpoint evidence and is not authoritative for bounded `maxLines` trimming. Hard-trim safety authority is now:
+
+1. `ok=true`;
+2. valid integer `kept <= maxLines`;
+3. fresh post-trim session tokens when available, otherwise bounded transcript estimation;
+4. verified token count below the effective turn-window safety limit.
+
+A second defect was proven: TS source already contained a deeper hard-trim ladder while packaged/installed `dist/v091-context-guard.js` still contained the older `200 -> 120 -> 60` ladder. Package-to-installed parity therefore did not prove source-to-dist semantic parity.
+
+Round-2 repair:
+
+- `v090-context-api.ts` accepts physical line-trim results without requiring `compacted=true`, then verifies post-trim occupancy;
+- v090/v091 guards require `cnxVerification` and verified token evidence before accepting hard trim;
+- missing/unknown post-trim occupancy is not auto-accepted;
+- v090/v091 hard-trim ladders converge below 60 lines;
+- CNX-426 fixture models the verified line-trim contract;
+- physical-schema regression `ok:true, compacted:false, kept:20` is covered.
+
+Round-2 validation so far:
+
+- focused: 5 files / 25 tests PASS;
+- full Vitest: 96 files / 448 tests PASS;
+- build: PASS; compiled `dist/v091-context-guard.js` contains the deep ladder and verified-evidence gate;
+- evaluation: PASS, evidence SHA-256 `a322470a9cedcc0120f0dc407b5016ccdf20e406a406f1899d9bee08a444b677`;
+- plugin validation: PASS, 300 packed files;
+- production dependency audit: 0 vulnerabilities;
+- full Python: `754 passed, 5 skipped, 38 subtests passed`.

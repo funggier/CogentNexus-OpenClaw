@@ -1,7 +1,7 @@
 # Active Coordination
 
 Status: `ACTIVE`
-State: `CNX452_LOCAL_GREEN_CI_PENDING`
+State: `CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
 Task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
 Assigned executor: `ChatGPT`
 Human final authority: `Operator`
@@ -20,4 +20,4 @@ Compact the exact owner session synchronously under durable authority, re-evalua
 
 ## Current classification
 
-`CNX452_RED_TEST_PREPARATION`
+`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
