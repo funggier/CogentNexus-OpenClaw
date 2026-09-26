@@ -1,6 +1,6 @@
 # CNX-20260926-449 — Long-Running Model Lease Guard
 
-Status: `ACTIVE`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 Parent: `CNX-20260926-448-native-ollama-terminal-boundary-and-long-running-semantics.md`
@@ -76,6 +76,20 @@ Validation:
 - build/evaluation/plugin validation/audit/diff-check: PASS;
 - evaluation evidence SHA-256: `71bff654a2f3005f1528bb6377bdb4145dcee30fa216ae1012299b2e38debd28`.
 
-## Current classification
+## Physical installed-candidate qualification
 
-`CNX449_LOCAL_GREEN_CI_PENDING`
+- Exact candidate SHA: `dfb3706e7c11e61cc7987a7e4928f3c5d7203435`.
+- Exact-SHA GitHub CI: Validate `36224230322`, Windows Installer Pack `36224230304`, PS5.1 `36224230318` — all SUCCESS.
+- Supported install-over: exit `0`; MANAGED generation `36`; Gateway/OpenClaw `2026.9.5` healthy; supervisor healthy; Ollama healthy.
+- Source/installed payload identity: `296` files, fingerprint `561c3903d2bb0476c37912b10941587ea76f0e07ac26e095d02bde08a04009c9` on both sides.
+- Fresh live `ollama/qwen3.8:27b` call recorded a durable 45-minute lease (`timeoutMs=2700000`).
+- Installed Host deterministic failed-probe proof returned `gateway-long-running-protected` and did not invoke the restart sentinel.
+- Natural scheduled supervisor continued successfully during the live call; Gateway child PID stayed `38760`.
+- The live model call ran `1,210,862 ms` (~20m10.9s), exceeding the old 15-minute boundary by >5 minutes, then completed successfully with marker `CNX449_OLLAMA_LONG_RUNNING_OK`.
+- `response_ready` occurred after model/inference end, preserving the CNX-448 terminal fence.
+- Isolated headless test Ticket was explicitly cancelled after evidence capture; final runtime has `pendingOutbox=0`.
+- Headless CLI return-to-caller receipt semantics are tracked separately as Task 450 / GitHub issue #42.
+
+## Final classification
+
+`CNX449_LONG_RUNNING_OLLAMA_GUARD_GREEN`
