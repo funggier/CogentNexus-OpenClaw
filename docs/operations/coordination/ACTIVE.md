@@ -1,23 +1,21 @@
 # Active Coordination
 
-Status: `IDLE`
-State: `CNX449_LONG_RUNNING_OLLAMA_GUARD_GREEN`
-Task: none
-Last completed task: `CNX-20260926-449-long-running-model-lease-guard.md`
-Follow-up backlog: `CNX-20260926-450-headless-agent-durable-settlement.md`
+Status: `ACTIVE`
+State: `CNX451_LOCAL_GREEN_CI_PENDING`
+Task: `CNX-20260926-451-soft-context-pressure-pass.md`
+Assigned executor: `ChatGPT`
 Human final authority: `Operator`
-Working branch: `cnx-449-long-running-model-lease-guard`
-Baseline release: `v0.9.8` (immutable)
-Candidate product SHA: `dfb3706e7c11e61cc7987a7e4928f3c5d7203435`
+Working branch: `cnx-451-soft-context-pressure-pass`
+Baseline SHA: `3a08d06d3b152e347011b6bdafeef985c2ed45ad`
 
-## Last accepted result
+## Trigger
 
-CNX-449 is GREEN. Slow local `ollama/qwen3.8:27b` inference is protected by a 45-minute durable Direct model-call lease. An unexpired active Direct lease prevents probe-only hard-hang Gateway restart. A fresh installed-candidate live call completed after ~20m11s without Gateway restart.
+Dashboard session `f6d5474d` completed turns 1–2 but rejected turn 3 before inference at soft context pressure 21093/24576 (85.8%).
 
-## Follow-up
+## Objective
 
-Task 450 / GitHub issue #42 records the separate headless `openclaw agent` return-to-caller delivery-receipt contract gap. It is backlog and is not active.
+Soft context pressure must be observable but non-blocking. Preserve the existing hard-pressure safety barrier.
 
 ## Current classification
 
-`CNX449_LONG_RUNNING_OLLAMA_GUARD_GREEN`
+`CNX451_RED_TEST_PREPARATION`

@@ -1,30 +1,21 @@
 # Coordination Status
 
-Status: `COMPLETE`
-State: `CNX449_LONG_RUNNING_OLLAMA_GUARD_GREEN`
-Task: `CNX-20260926-449-long-running-model-lease-guard.md`
-Branch: `cnx-449-long-running-model-lease-guard`
+Status: `ACTIVE`
+State: `CNX451_LOCAL_GREEN_CI_PENDING`
+Task: `CNX-20260926-451-soft-context-pressure-pass.md`
+Branch: `cnx-451-soft-context-pressure-pass`
 Executor: `ChatGPT`
 Baseline release: `v0.9.8` (immutable)
-Baseline SHA: `bffa539a59f8d0318cbffb062a73b205c8cb8705`
-Candidate product SHA: `dfb3706e7c11e61cc7987a7e4928f3c5d7203435`
+Baseline SHA: `3a08d06d3b152e347011b6bdafeef985c2ed45ad`
 
-## Result
+## Accepted predecessor
 
-- Ollama default durable Direct model-call lease: 45 minutes.
-- Non-Ollama default remains 15 minutes.
-- Explicit timeout override remains authoritative within existing bounds.
-- Unexpired active Direct lease fences probe-only Gateway hard-hang restart.
-- Exact candidate CI: 3/3 workflows SUCCESS.
-- Physical install-over: PASS.
-- Source/installed payload: 296 files, exact fingerprint match.
-- Fresh qwen3.8:27b live call: completed after 1,210,862 ms (~20m10.9s), beyond the old 15-minute boundary, with no premature Gateway restart.
-- Final runtime: MANAGED generation 36, Gateway/Ollama/supervisor healthy, pending outbox 0.
+CNX-449 is GREEN and main is at `3a08d06d3b152e347011b6bdafeef985c2ed45ad`. CNX-450 remains backlog only.
 
-## Follow-up backlog
+## New live regression
 
-`CNX-20260926-450-headless-agent-durable-settlement.md` / GitHub issue `#42`: define durable settlement for headless `openclaw agent` return-to-caller responses. This is separate from Task 449.
+Third Dashboard turn failed before inference because v091 context guard treated `soft` pressure as a blocking hook result. GitHub issue: `#43`.
 
-## Final classification
+## Current classification
 
-`CNX449_LONG_RUNNING_OLLAMA_GUARD_GREEN`
+`CNX451_RED_TEST_PREPARATION`

@@ -145,6 +145,25 @@ function event(db:DatabaseSync,ticketId:string,type:string,payload:unknown,stamp
     .run(ticketId,type,JSON.stringify(payload),stamp);
 }
 
+function observeSoftPressure(databasePath:string,input:{sessionKey:string;runId:string;session:SessionDescription|null;pressure:ContextPressure}) {
+  const db=openDb(databasePath),stamp=iso();
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const auth=authority(db,input.sessionKey),ticket=currentDirectTicket(db,input.sessionKey,input.runId);
+    if(!auth||auth.state!=="active"||!ticket){db.exec("COMMIT");return undefined;}
+    const reason=`context pressure ${Math.round(input.pressure.ratio*100)}% (${input.pressure.projectedTokens}/${input.pressure.contextWindow})`;
+    event(db,ticket.ticket_id,"context_pressure_soft_observed",{
+      sessionKey:input.sessionKey,
+      generation:auth.generation,
+      sessionId:input.session?.sessionId,
+      pressure:input.pressure,
+      reason,
+      policy:"observe-and-pass",
+    },stamp);
+    db.exec("COMMIT");
+    return {ticketId:ticket.ticket_id,generation:auth.generation};
+  } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;}finally{db.close();}
+}
 function authorize(databasePath:string,input:{sessionKey:string;runId:string;session:SessionDescription|null;pressure:ContextPressure}) {
   const db=openDb(databasePath),stamp=iso();
   try {
@@ -329,6 +348,11 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
     const pressureSession=turnBudget?{...(session??{}),contextTokens:turnBudget}:session;
     const pressure=contextPressure({messages:event.messages,prompt:event.prompt,systemPrompt:event.systemPrompt,session:pressureSession,config});
     if(pressure.level==="normal")return {outcome:"pass"};
+    if(pressure.level==="soft"){
+      const observed=observeSoftPressure(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,session,pressure});
+      if(observed)api.logger.info?.(`CogentNexus-OpenClaw context soft observation ${ctx.sessionKey}: ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${observed.ticketId}; owner inference remains enabled`);
+      return {outcome:"pass"};
+    }
     const queued=authorize(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,session,pressure});
     if(!queued)return {outcome:"pass"};
     api.logger.info?.(`CogentNexus-OpenClaw context barrier ${ctx.sessionKey}: ${pressure.level} ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${queued.ticketId}`);
