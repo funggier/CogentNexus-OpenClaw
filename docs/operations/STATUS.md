@@ -5,7 +5,7 @@
 **Working branch:** `cnx-453-supervisor-direct-lease-fence`
 **Task baseline:** `09eec4113b371d39334d90a332fa9a6455530db0` (CNX-451 candidate)
 **GitHub issue:** `#45`
-**Current classification:** `CNX453_LOCAL_GREEN_CI_PENDING`
+**Current classification:** `CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`
 
 ## Active development position
 

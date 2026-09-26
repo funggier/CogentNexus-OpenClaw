@@ -75,16 +75,49 @@ The operator requested extending resident model keep-alive from 2 hours to 6 hou
 - restart is intentionally deferred until CNX-453 settlement/recovery state is clean so no model work is interrupted;
 - historical docs that record the former `2h` setting are left unchanged as historical evidence.
 
+## First physical candidate qualification
+
+Candidate `21176b07ad98ada944612d444fe5e2d9a8ee0d2b` passed:
+- Validate `36239918676` — SUCCESS;
+- PS5.1 `36239918629` — SUCCESS;
+- Windows Installer Pack `36239918685` — SUCCESS;
+- physical install-over exit `0`;
+- source/installed repaired Host files exact;
+- Supervisor `ExecutionTimeLimit=PT15M` and `IgnoreNew`;
+- Gateway healthy, controller MANAGED generation `40`.
+
+### Follow-up physical finding
+
+After the first candidate install, the original Ticket remained too old for the 15-minute session resume-authority freshness fence. Refusing resume was correct, but the pre-boundary model-call and canonical inference attempt also remained `active`.
+
+RED reproduced the exact semantic gap: stale session authority was not resumed, while the model call incorrectly remained `active`.
+
+The follow-up repair separates these authorities:
+- Gateway startup/process-boundary proof settles pre-cutoff execution evidence regardless of session freshness;
+- session freshness still controls whether the Ticket may be promoted for resume;
+- stale-session settlement uses outcome `host-startup-boundary-settled`;
+- fresh resumable settlement preserves `host-startup-interruption-promoted`.
+
+Follow-up validation:
+- focused startup settlement `2/2 PASS`;
+- CNX-453 Host regressions `33/33 PASS`;
+- full Python `754 passed, 5 skipped, 38 subtests passed`;
+- full Vitest `95 files / 444 tests PASS`;
+- build PASS;
+- evaluation PASS, evidence SHA-256 `48e3dc446018c96cc4dcff6d888d06eb281a5e525b0526b2c8cce90c5a1f8d6f`;
+- plugin validation PASS (`298` packed files);
+- production audit `0 vulnerabilities`;
+- `git diff --check` and skill validator PASS.
+
 ## Remaining gates
 
-1. commit/push exact candidate SHA;
-2. GitHub exact-SHA CI;
-3. physical install-over so installed Host skills and Scheduled Task match the candidate;
-4. verify Scheduled Task reports `ExecutionTimeLimit=PT15M` and `IgnoreNew`;
-5. run startup reconciliation and confirm no stale active predecessor model-call/attempt remains;
-6. perform controlled Ollama restart after durable work is quiescent and verify new server environment / residency behavior reflects `6h`;
-7. live long-running Direct lease requalification and then resume CNX-451 soft-pressure acceptance.
+1. commit/push follow-up exact candidate SHA;
+2. exact-SHA GitHub CI;
+3. physical install-over of the follow-up candidate;
+4. confirm the stale prime model-call / canonical attempt are no longer active without authorizing a stale-session resume;
+5. perform controlled Ollama restart after durable work is quiescent and verify `OLLAMA_KEEP_ALIVE=6h` is active;
+6. live long-running Direct lease requalification, then resume CNX-451 soft-pressure acceptance.
 
 ## Current classification
 
-`CNX453_LOCAL_GREEN_CI_PENDING`
+`CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`

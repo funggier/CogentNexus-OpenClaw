@@ -529,6 +529,7 @@ def _settle_promoted_direct_execution(
     ticket_id: str,
     cutoff_iso: str,
     stamp: str,
+    outcome: str = "host-startup-interruption-promoted",
 ) -> list[dict[str, Any]]:
     """Close pre-cutoff Direct execution evidence before startup resume promotion.
 
@@ -554,7 +555,6 @@ def _settle_promoted_direct_execution(
 
     has_attempts = _db_table_exists(db, "cnx_inference_attempt")
     settled: list[dict[str, Any]] = []
-    outcome = "host-startup-interruption-promoted"
 
     for raw in rows:
         run_id, call_id, provider, model, started_at, deadline_at = raw
@@ -644,6 +644,51 @@ def _settle_promoted_direct_execution(
     return settled
 
 
+def _settle_nonpromotable_pre_cutoff_direct_execution(
+    db: sqlite3.Connection,
+    *,
+    cutoff_iso: str,
+    stamp: str,
+    promotable_ticket_ids: set[str],
+) -> dict[str, list[dict[str, Any]]]:
+    """Settle stale Direct execution even when session authority is too old to resume.
+
+    Gateway startup is authoritative proof that any pre-cutoff model call cannot
+    still be executing inside the previous Gateway process. Session freshness is
+    therefore a resume-authority fence, not an execution-settlement fence.
+    """
+    if not _db_table_exists(db, "cnx_direct_model_call"):
+        return {}
+
+    rows = db.execute(
+        "SELECT DISTINCT m.ticket_id "
+        "FROM cnx_direct_model_call AS m "
+        "JOIN tickets AS t ON t.ticket_id=m.ticket_id "
+        "WHERE m.state='active' "
+        "AND julianday(m.started_at) < julianday(?) "
+        "AND t.status IN ('accepted','waiting') "
+        "AND t.response_ready_at IS NULL "
+        "ORDER BY m.ticket_id",
+        (cutoff_iso,),
+    ).fetchall()
+
+    settled_by_ticket: dict[str, list[dict[str, Any]]] = {}
+    for (raw_ticket_id,) in rows:
+        ticket_id = str(raw_ticket_id)
+        if ticket_id in promotable_ticket_ids:
+            continue
+        settled = _settle_promoted_direct_execution(
+            db,
+            ticket_id=ticket_id,
+            cutoff_iso=cutoff_iso,
+            stamp=stamp,
+            outcome="host-startup-boundary-settled",
+        )
+        if settled:
+            settled_by_ticket[ticket_id] = settled
+    return settled_by_ticket
+
+
 def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) -> list[str]:
     """Promote only Direct work that never reached response_ready."""
     reconcile_direct_delivery_before_recovery(root, cutoff_iso)
@@ -668,6 +713,13 @@ def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) ->
             "AND julianday(s.updated_at)>=julianday(?)-(15.0/1440.0) ORDER BY t.created_at,t.ticket_id",
             (cutoff_iso, stamp),
         ).fetchall()
+        promotable_ticket_ids = {str(ticket_id) for (ticket_id,) in rows}
+        _settle_nonpromotable_pre_cutoff_direct_execution(
+            db,
+            cutoff_iso=cutoff_iso,
+            stamp=stamp,
+            promotable_ticket_ids=promotable_ticket_ids,
+        )
         updated: list[str] = []
         for (ticket_id,) in rows:
             changed = db.execute(

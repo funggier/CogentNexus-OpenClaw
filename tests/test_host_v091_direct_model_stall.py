@@ -619,6 +619,96 @@ class HostDirectModelStallTests(unittest.TestCase):
                 db.close()
 
 
+    def test_startup_boundary_settles_stale_execution_without_authorizing_stale_session_resume(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-startup-stale-session-settlement-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.execute("ALTER TABLE cnx_sessions ADD COLUMN session_id TEXT")
+            db.execute(
+                "UPDATE cnx_sessions SET session_id='physical-stale',updated_at='2026-08-18T12:00:00+00:00' WHERE session_key=?",
+                (OWNER,),
+            )
+            db.execute(
+                """CREATE TABLE cnx_inference_attempt (
+                     attempt_id TEXT PRIMARY KEY,
+                     ticket_id TEXT NOT NULL,
+                     session_key TEXT NOT NULL,
+                     session_generation INTEGER NOT NULL,
+                     run_id TEXT NOT NULL,
+                     call_id TEXT NOT NULL,
+                     provider TEXT,
+                     model TEXT,
+                     state TEXT NOT NULL,
+                     outcome TEXT,
+                     started_at TEXT NOT NULL,
+                     ended_at TEXT
+                   )"""
+            )
+            db.execute(
+                """INSERT INTO cnx_inference_attempt(
+                     attempt_id,ticket_id,session_key,session_generation,run_id,call_id,
+                     provider,model,state,outcome,started_at,ended_at
+                   ) VALUES (?,?,?,?,?,?,?,?,'active',NULL,?,NULL)""",
+                (
+                    "attempt-stale-session",
+                    TICKET,
+                    OWNER,
+                    7,
+                    "run-live",
+                    "call-live",
+                    "ollama",
+                    "qwen3.5:9b",
+                    "2026-08-18T13:00:00+00:00",
+                ),
+            )
+            db.commit()
+            db.close()
+
+            cutoff = "2026-08-18T13:30:00+00:00"
+            with mock.patch.object(stall.v091.legacy, "now_iso", return_value=cutoff):
+                recovered = stall.v091.promote_interrupted_direct_v091(
+                    root,
+                    cutoff,
+                    "Gateway resumed after interruption",
+                )
+
+            self.assertEqual(recovered, [], "stale session authority must not be resumed")
+            db = sqlite3.connect(path)
+            try:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?",
+                        (TICKET,),
+                    ).fetchone(),
+                    ("accepted", 0, None),
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT state,outcome,ended_at FROM cnx_direct_model_call WHERE ticket_id=?",
+                        (TICKET,),
+                    ).fetchone(),
+                    ("interrupted", "host-startup-boundary-settled", cutoff),
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT state,outcome,ended_at FROM cnx_inference_attempt WHERE attempt_id='attempt-stale-session'"
+                    ).fetchone(),
+                    ("ended", "host-startup-boundary-settled", cutoff),
+                )
+                event_types = [
+                    row[0]
+                    for row in db.execute(
+                        "SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id",
+                        (TICKET,),
+                    ).fetchall()
+                ]
+                self.assertIn("host_startup_interrupted_execution_settled", event_types)
+                self.assertNotIn("host_recovered_direct", event_types)
+            finally:
+                db.close()
+
+
 
 if __name__ == "__main__":
     unittest.main()

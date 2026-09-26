@@ -83,6 +83,33 @@ Validation:
 
 Operational note: persistent User `OLLAMA_KEEP_ALIVE` is now `6h`; the running Ollama process still has the inherited `2h` value and will be restarted only after durable work is quiescent.
 
+## Physical candidate checkpoint
+
+First candidate `21176b07ad98ada944612d444fe5e2d9a8ee0d2b`:
+- exact-SHA CI 3/3 SUCCESS;
+- physical install-over exit `0`;
+- installed/source Host hashes exact for repaired surfaces;
+- Windows Supervisor reports `ExecutionTimeLimit=PT15M`, `IgnoreNew`, and successful ticks;
+- controller returned MANAGED generation `40`.
+
+Physical requalification exposed one narrower boundary case: the session freshness fence correctly prevents resuming a session older than 15 minutes, but the same filter also prevented settlement of that session's pre-boundary active model-call / canonical inference-attempt.
+
+Follow-up repair:
+- execution settlement is now independent of stale-session resume authorization;
+- non-promotable pre-cutoff active Direct calls are settled as `host-startup-boundary-settled`;
+- their canonical attempts end with the same outcome;
+- Ticket lane/status is not promoted merely to settle execution evidence;
+- fresh-session promotion retains existing `host-startup-interruption-promoted` semantics.
+
+Follow-up validation:
+- RED reproduced the physical stale active call;
+- focused GREEN `2/2`;
+- CNX-453 Host regressions `33/33`;
+- full Python `754 passed, 5 skipped, 38 subtests passed`;
+- full Vitest `95 files / 444 tests PASS`;
+- build/evaluation/plugin validation/audit/diff-check/skill validation PASS;
+- evaluation evidence SHA-256 `48e3dc446018c96cc4dcff6d888d06eb281a5e525b0526b2c8cce90c5a1f8d6f`.
+
 ## Current classification
 
-`CNX453_LOCAL_GREEN_CI_PENDING`
+`CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`
