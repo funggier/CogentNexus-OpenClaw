@@ -303,7 +303,7 @@ def has_active_direct_model_calls(root: Path) -> bool:
         row = db.execute(
             "SELECT 1 FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
             "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
-            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL LIMIT 1"
+            "AND t.workflow_id IS NULL AND t.response_ready_at IS NULL LIMIT 1"
         ).fetchone()
         return row is not None
     finally:
@@ -329,7 +329,7 @@ def active_unexpired_direct_model_call(root: Path, now_iso: str | None = None) -
             "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at "
             "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
             "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
-            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
             "AND julianday(m.deadline_at) > julianday(?) "
             "ORDER BY julianday(m.deadline_at) DESC,m.ticket_id LIMIT 1",
             (cutoff,),
@@ -367,7 +367,7 @@ def find_gateway_boundary_orphaned_direct_calls(
             "t.owner_session_key,t.status,t.response_ready_at "
             "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
             "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
-            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
             "AND julianday(m.started_at) < julianday(?) " + lower_bound +
             "ORDER BY m.started_at,m.ticket_id",
             tuple(parameters),
@@ -398,7 +398,7 @@ def find_current_gateway_direct_calls(
             "t.owner_session_key,t.status,t.response_ready_at "
             "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
             "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
-            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
             "AND julianday(m.started_at) >= julianday(?) "
             "ORDER BY m.started_at,m.ticket_id",
             (gateway_started_at_iso,),
@@ -499,7 +499,7 @@ def classify_quiesced_gateway_interrupted_direct_calls(
             "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
             "WHERE m.state='active' "
             "AND t.status IN ('accepted','waiting') "
-            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL "
+            "AND t.workflow_id IS NULL "
             "AND t.response_ready_at IS NULL "
             "ORDER BY m.started_at,m.ticket_id"
         ).fetchall()
@@ -562,7 +562,7 @@ def classify_quiesced_gateway_interrupted_direct_calls(
                 "worker_id=NULL,lease_token=NULL,lease_expires_at=NULL,heartbeat_at=NULL,"
                 "failure_class='interrupted',failure_message=?,delivery_last_error=?,updated_at=? "
                 "WHERE ticket_id=? AND status IN ('accepted','waiting') "
-                "AND workflow_eligible=0 AND workflow_id IS NULL AND response_ready_at IS NULL",
+                "AND workflow_id IS NULL AND response_ready_at IS NULL",
                 (reason, reason, cutoff, ticket_id),
             )
             if changed.rowcount != 1:

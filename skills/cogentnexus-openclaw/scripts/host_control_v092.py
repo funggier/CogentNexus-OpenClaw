@@ -36,12 +36,66 @@ ADAPTER_STOP_VERIFY_SECONDS = 5.0
 
 
 def _run_periodic_supervisor_in_process(argv: list[str] | None = None) -> int:
-    """Run the composed Host without another scheduled-task child process."""
+    """Run the composed Host without another scheduled-task child process.
+
+    The scheduled entrypoint owns one final destructive-recovery fence. An
+    unexpired Direct model-call lease is durable execution evidence, so a
+    transiently unresponsive Gateway must not be quiesced underneath it even
+    if a lower compatibility layer regresses. Healthy Gateways still delegate
+    normally so delivery/reconciliation work is not delayed.
+    """
+    import host_stall_v091 as stall
+    import host_v091 as host_v091
     import host_v092
 
     args = host_v092.legacy.build_parser().parse_args(argv)
+    root = args.root.resolve()
     try:
-        host_v092.legacy.emit(host_v092.base.supervisor_tick(args.root.resolve(), args.execute_safe))
+        if args.execute_safe:
+            try:
+                lease = stall.active_unexpired_direct_model_call(root)
+            except Exception as error:
+                host_v092.legacy.emit({
+                    "result": "gateway-lease-fence-unavailable",
+                    "action": "none",
+                    "wakeAuthority": "none",
+                    "wakeWorkId": None,
+                    "wakeReason": "gateway/direct-model-lease-evidence-unavailable",
+                    "gatewayHealthy": None,
+                    "durableWorkPending": True,
+                    "providerRequired": False,
+                    "heavyPath": False,
+                    "error": str(error),
+                })
+                return 1
+
+            if lease is not None and not host_v091.gateway_fast_probe():
+                host_v092.legacy.emit({
+                    "result": "gateway-long-running-protected",
+                    "action": "none",
+                    "wakeAuthority": "none",
+                    "wakeWorkId": None,
+                    "wakeReason": "gateway/active-direct-model-lease",
+                    "probe": "periodic-entry-lightweight-http+sqlite-ro",
+                    "gatewayHealthy": False,
+                    "durableWorkPending": True,
+                    "providerRequired": False,
+                    "heavyPath": False,
+                    "longRunningProtection": {
+                        "protected": True,
+                        "reason": "active-direct-model-lease",
+                        "ticketId": lease.get("ticket_id"),
+                        "runId": lease.get("run_id"),
+                        "callId": lease.get("call_id"),
+                        "provider": lease.get("provider"),
+                        "model": lease.get("model"),
+                        "startedAt": lease.get("started_at"),
+                        "deadlineAt": lease.get("deadline_at"),
+                    },
+                })
+                return 0
+
+        host_v092.legacy.emit(host_v092.base.supervisor_tick(root, args.execute_safe))
         return 0
     except Exception as error:
         host_v092.legacy.emit({"result": "error", "error": str(error)})

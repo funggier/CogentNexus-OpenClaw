@@ -522,6 +522,128 @@ def reconcile_direct_delivery_before_recovery(root: Path, cutoff_iso: str) -> di
         db.close()
 
 
+
+def _settle_promoted_direct_execution(
+    db: sqlite3.Connection,
+    *,
+    ticket_id: str,
+    cutoff_iso: str,
+    stamp: str,
+) -> list[dict[str, Any]]:
+    """Close pre-cutoff Direct execution evidence before startup resume promotion.
+
+    A Gateway process boundary makes any still-active model call that started
+    before the startup cutoff stale execution evidence. Settlement is performed
+    inside the same transaction as Ticket promotion so a resumable Ticket can
+    never be committed while its predecessor model-call / canonical attempt is
+    still marked active.
+    """
+    if not _db_table_exists(db, "cnx_direct_model_call"):
+        return []
+
+    rows = db.execute(
+        "SELECT run_id,call_id,provider,model,started_at,deadline_at "
+        "FROM cnx_direct_model_call "
+        "WHERE ticket_id=? AND state='active' "
+        "AND julianday(started_at) < julianday(?) "
+        "ORDER BY julianday(started_at),call_id",
+        (ticket_id, cutoff_iso),
+    ).fetchall()
+    if not rows:
+        return []
+
+    has_attempts = _db_table_exists(db, "cnx_inference_attempt")
+    settled: list[dict[str, Any]] = []
+    outcome = "host-startup-interruption-promoted"
+
+    for raw in rows:
+        run_id, call_id, provider, model, started_at, deadline_at = raw
+        changed = db.execute(
+            "UPDATE cnx_direct_model_call SET state='interrupted',ended_at=?,outcome=?,updated_at=? "
+            "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='active'",
+            (stamp, outcome, stamp, ticket_id, run_id, call_id),
+        )
+        if changed.rowcount != 1:
+            raise RuntimeError(
+                f"startup interruption settlement changed before commit: "
+                f"ticket={ticket_id} run={run_id} call={call_id}"
+            )
+
+        attempt_id = None
+        if has_attempts:
+            attempt_rows = db.execute(
+                "SELECT attempt_id FROM cnx_inference_attempt "
+                "WHERE ticket_id=? AND run_id=? AND call_id=? AND state='active' "
+                "ORDER BY started_at,attempt_id",
+                (ticket_id, run_id, call_id),
+            ).fetchall()
+            if len(attempt_rows) > 1:
+                raise RuntimeError(
+                    "startup interruption settlement found ambiguous canonical attempts: "
+                    f"ticket={ticket_id} run={run_id} call={call_id}"
+                )
+            if attempt_rows:
+                attempt_id = str(attempt_rows[0][0])
+                attempt_changed = db.execute(
+                    "UPDATE cnx_inference_attempt SET state='ended',outcome=?,ended_at=? "
+                    "WHERE attempt_id=? AND state='active'",
+                    (outcome, stamp, attempt_id),
+                )
+                if attempt_changed.rowcount != 1:
+                    raise RuntimeError(
+                        f"startup interruption attempt changed before commit: {attempt_id}"
+                    )
+                db.execute(
+                    "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+                    (
+                        ticket_id,
+                        "inference_attempt_ended",
+                        json.dumps(
+                            {
+                                "attemptId": attempt_id,
+                                "callId": str(call_id),
+                                "runId": str(run_id),
+                                "outcome": outcome,
+                                "source": "host-v091-startup-interruption-settlement",
+                            },
+                            ensure_ascii=False,
+                        ),
+                        stamp,
+                    ),
+                )
+
+        settled.append(
+            {
+                "runId": str(run_id),
+                "callId": str(call_id),
+                "attemptId": attempt_id,
+                "provider": provider,
+                "model": model,
+                "startedAt": started_at,
+                "deadlineAt": deadline_at,
+                "outcome": outcome,
+            }
+        )
+
+    db.execute(
+        "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
+        (
+            ticket_id,
+            "host_startup_interrupted_execution_settled",
+            json.dumps(
+                {
+                    "cutoff": cutoff_iso,
+                    "calls": settled,
+                    "source": "host-v091-startup-interruption-settlement",
+                },
+                ensure_ascii=False,
+            ),
+            stamp,
+        ),
+    )
+    return settled
+
+
 def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) -> list[str]:
     """Promote only Direct work that never reached response_ready."""
     reconcile_direct_delivery_before_recovery(root, cutoff_iso)
@@ -555,12 +677,23 @@ def promote_interrupted_direct_v091(root: Path, cutoff_iso: str, reason: str) ->
             )
             if changed.rowcount != 1:
                 continue
+            settled_execution = _settle_promoted_direct_execution(
+                db,
+                ticket_id=str(ticket_id),
+                cutoff_iso=cutoff_iso,
+                stamp=stamp,
+            )
             db.execute(
                 "INSERT INTO ticket_events(ticket_id,event_type,payload_json,created_at) VALUES (?,?,?,?)",
                 (
                     ticket_id,
                     "host_recovered_direct",
-                    json.dumps({"reason": reason, "cutoff": cutoff_iso, "source": "host-v091"}),
+                    json.dumps({
+                        "reason": reason,
+                        "cutoff": cutoff_iso,
+                        "source": "host-v091",
+                        "settledExecution": settled_execution,
+                    }, ensure_ascii=False),
                     stamp,
                 ),
             )

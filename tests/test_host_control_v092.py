@@ -1,4 +1,5 @@
 import sys
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -66,6 +67,149 @@ class HostControlV092Tests(unittest.TestCase):
 
             self.assertEqual(code, 0)
             run_in_process.assert_called_once_with()
+
+
+    def test_periodic_composed_host_protects_unexpired_direct_lease_after_lane_drift(self):
+        import host_v092 as composed
+        import host_v091 as host_v091
+        import host_stall_v091 as stall
+
+        with tempfile.TemporaryDirectory(prefix="cnx453-periodic-lease-") as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            runtime = root / "runtime"
+            runtime.mkdir(parents=True)
+            db = sqlite3.connect(runtime / "cogentnexus-openclaw.sqlite3")
+            db.executescript(
+                """
+                CREATE TABLE tickets (
+                  ticket_id TEXT PRIMARY KEY,
+                  status TEXT NOT NULL,
+                  workflow_eligible INTEGER NOT NULL,
+                  workflow_id TEXT,
+                  response_ready_at TEXT
+                );
+                CREATE TABLE cnx_direct_model_call (
+                  ticket_id TEXT PRIMARY KEY,
+                  run_id TEXT NOT NULL,
+                  call_id TEXT NOT NULL,
+                  state TEXT NOT NULL,
+                  provider TEXT,
+                  model TEXT,
+                  started_at TEXT NOT NULL,
+                  deadline_at TEXT NOT NULL,
+                  ended_at TEXT,
+                  outcome TEXT,
+                  duration_ms INTEGER,
+                  recovery_started_at TEXT,
+                  recovery_attempt_count INTEGER NOT NULL DEFAULT 0,
+                  updated_at TEXT NOT NULL
+                );
+                """
+            )
+            db.execute(
+                "INSERT INTO tickets(ticket_id,status,workflow_eligible,workflow_id,response_ready_at) "
+                "VALUES ('T-PHYSICAL','waiting',1,NULL,NULL)"
+            )
+            db.execute(
+                "INSERT INTO cnx_direct_model_call("
+                "ticket_id,run_id,call_id,state,provider,model,started_at,deadline_at,updated_at"
+                ") VALUES ('T-PHYSICAL','run-physical','call-physical','active','ollama','qwen3.8:27b',"
+                "'2026-09-26T10:03:47.895Z','2026-09-26T10:48:47.895Z','2026-09-26T10:03:47.895Z')"
+            )
+            db.commit()
+            db.close()
+
+            argv = [
+                "--root",
+                str(root),
+                "supervisor",
+                "tick",
+                "--execute-safe",
+            ]
+            emitted = []
+            with mock.patch.object(composed.base.legacy, "load_state", return_value={"mode": "managed", "desiredGateway": "running"}), \
+                 mock.patch.object(composed.base, "claim_terminal_error_direct_model_call", return_value=None), \
+                 mock.patch.object(composed.base, "_single_open_circuit_diagnostic", return_value=None), \
+                 mock.patch.object(host_v091.legacy, "initialize", return_value={}), \
+                 mock.patch.object(host_v091, "gateway_fast_probe", return_value=False), \
+                 mock.patch.object(host_v091.time, "sleep", return_value=None), \
+                 mock.patch.object(host_v091, "gateway_startup_grace", return_value={"active": False, "reason": "test"}), \
+                 mock.patch.object(stall.legacy, "now_iso", return_value="2026-09-26T10:20:26.832704+00:00"), \
+                 mock.patch.object(host_v091, "_restart_unresponsive_gateway", side_effect=AssertionError("lease fence bypassed")), \
+                 mock.patch.object(composed.legacy, "emit", side_effect=lambda value: emitted.append(value)):
+                code = control._run_periodic_supervisor_in_process(argv)
+
+            self.assertEqual(code, 0)
+            self.assertEqual(len(emitted), 1)
+            self.assertEqual(emitted[0]["result"], "gateway-long-running-protected")
+            self.assertEqual(emitted[0]["longRunningProtection"]["ticketId"], "T-PHYSICAL")
+
+
+    def test_periodic_entrypoint_fences_unexpired_lease_before_composed_supervisor(self):
+        import host_v092 as composed
+        import host_v091 as host_v091
+        import host_stall_v091 as stall
+
+        with tempfile.TemporaryDirectory(prefix="cnx453-entry-lease-") as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            lease = {
+                "ticket_id": "T-ENTRY",
+                "run_id": "run-entry",
+                "call_id": "call-entry",
+                "provider": "ollama",
+                "model": "qwen3.8:27b",
+                "started_at": "2026-09-26T10:41:57.566Z",
+                "deadline_at": "2026-09-26T11:26:57.566Z",
+            }
+            emitted = []
+            argv = ["--root", str(root), "supervisor", "tick", "--execute-safe"]
+
+            with mock.patch.object(stall, "active_unexpired_direct_model_call", return_value=lease), \
+                 mock.patch.object(host_v091, "gateway_fast_probe", return_value=False), \
+                 mock.patch.object(
+                     composed.base,
+                     "supervisor_tick",
+                     side_effect=AssertionError("destructive composed supervisor must be fenced before entry"),
+                 ), \
+                 mock.patch.object(composed.legacy, "emit", side_effect=lambda value: emitted.append(value)):
+                code = control._run_periodic_supervisor_in_process(argv)
+
+            self.assertEqual(code, 0)
+            self.assertEqual(len(emitted), 1)
+            self.assertEqual(emitted[0]["result"], "gateway-long-running-protected")
+            self.assertEqual(emitted[0]["wakeReason"], "gateway/active-direct-model-lease")
+            self.assertEqual(emitted[0]["longRunningProtection"]["ticketId"], "T-ENTRY")
+
+    def test_periodic_entrypoint_with_healthy_gateway_delegates_despite_active_lease(self):
+        import host_v092 as composed
+        import host_v091 as host_v091
+        import host_stall_v091 as stall
+
+        with tempfile.TemporaryDirectory(prefix="cnx453-entry-healthy-") as directory:
+            root = Path(directory) / ".cogentnexus-openclaw"
+            lease = {
+                "ticket_id": "T-HEALTHY",
+                "run_id": "run-healthy",
+                "call_id": "call-healthy",
+                "provider": "ollama",
+                "model": "qwen3.8:27b",
+                "started_at": "2026-09-26T10:41:57.566Z",
+                "deadline_at": "2026-09-26T11:26:57.566Z",
+            }
+            emitted = []
+            delegated = {"result": "idle", "action": "none"}
+
+            with mock.patch.object(stall, "active_unexpired_direct_model_call", return_value=lease), \
+                 mock.patch.object(host_v091, "gateway_fast_probe", return_value=True), \
+                 mock.patch.object(composed.base, "supervisor_tick", return_value=delegated) as supervisor, \
+                 mock.patch.object(composed.legacy, "emit", side_effect=lambda value: emitted.append(value)):
+                code = control._run_periodic_supervisor_in_process(
+                    ["--root", str(root), "supervisor", "tick", "--execute-safe"]
+                )
+
+            self.assertEqual(code, 0)
+            supervisor.assert_called_once_with(root.resolve(), True)
+            self.assertEqual(emitted, [delegated])
 
     def test_verified_stop_waits_for_ownership_release(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,7 +1,16 @@
 # Current Project Status
 
-**Updated:** 2026-09-25
-**Active task:** none — CNX-447 v0.9.8 release preparation and publication is complete
+**Updated:** 2026-09-26
+**Active task:** CNX-453 — scheduled supervisor Direct-lease fence and Gateway recovery settlement
+**Working branch:** `cnx-453-supervisor-direct-lease-fence`
+**Task baseline:** `09eec4113b371d39334d90a332fa9a6455530db0` (CNX-451 candidate)
+**GitHub issue:** `#45`
+**Current classification:** `CNX453_LOCAL_GREEN_CI_PENDING`
+
+## Active development position
+
+CNX-451 soft-context-pressure repair is code/CI/install green but live acceptance is blocked by CNX-453. During a dedicated Ollama `qwen3.8:27b` live run, the scheduled Host stopped an unresponsive Gateway while the Direct model-call lease was still unexpired. Startup reconciliation restored the Gateway and generated an authorized recovery continuation without user resend, but the interrupted original model-call and canonical inference-attempt rows remained stale `active`. CNX-453 owns the destructive-restart lease fence and recovery-settlement repair.
+
 **Current source/release line:** v0.9.8 (published accepted baseline)
 **Latest published release:** v0.9.8
 **Accepted release/tag SHA:** `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`

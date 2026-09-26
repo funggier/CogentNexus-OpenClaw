@@ -505,5 +505,120 @@ class HostDirectModelStallTests(unittest.TestCase):
             db.close()
 
 
+    def test_unexpired_active_call_remains_restart_fence_after_lane_metadata_drift(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-lane-drift-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.execute(
+                "UPDATE tickets SET status='waiting',workflow_eligible=1 WHERE ticket_id=?",
+                (TICKET,),
+            )
+            db.commit()
+            db.close()
+
+            active = stall.active_unexpired_direct_model_call(
+                root,
+                "2026-08-18T13:14:59+00:00",
+            )
+
+            self.assertIsNotNone(
+                active,
+                "an active cnx_direct_model_call lease must remain a destructive-restart fence even if Ticket lane metadata drifted",
+            )
+            self.assertEqual(active["ticket_id"], TICKET)
+            self.assertEqual(active["call_id"], "call-live")
+
+    def test_startup_promotion_settles_pre_cutoff_model_call_and_inference_attempt(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-startup-settlement-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            path = make_db(root)
+            db = sqlite3.connect(path)
+            db.execute("ALTER TABLE cnx_sessions ADD COLUMN session_id TEXT")
+            db.execute(
+                "UPDATE cnx_sessions SET session_id='physical-current',updated_at='2026-08-18T13:09:00+00:00' WHERE session_key=?",
+                (OWNER,),
+            )
+            db.execute(
+                """CREATE TABLE cnx_inference_attempt (
+                     attempt_id TEXT PRIMARY KEY,
+                     ticket_id TEXT NOT NULL,
+                     session_key TEXT NOT NULL,
+                     session_generation INTEGER NOT NULL,
+                     run_id TEXT NOT NULL,
+                     call_id TEXT NOT NULL,
+                     provider TEXT,
+                     model TEXT,
+                     state TEXT NOT NULL,
+                     outcome TEXT,
+                     started_at TEXT NOT NULL,
+                     ended_at TEXT
+                   )"""
+            )
+            db.execute(
+                """INSERT INTO cnx_inference_attempt(
+                     attempt_id,ticket_id,session_key,session_generation,run_id,call_id,
+                     provider,model,state,outcome,started_at,ended_at
+                   ) VALUES (?,?,?,?,?,?,?,?,'active',NULL,?,NULL)""",
+                (
+                    "attempt-live",
+                    TICKET,
+                    OWNER,
+                    7,
+                    "run-live",
+                    "call-live",
+                    "ollama",
+                    "qwen3.5:9b",
+                    "2026-08-18T13:00:00+00:00",
+                ),
+            )
+            db.commit()
+            db.close()
+
+            cutoff = "2026-08-18T13:10:00+00:00"
+            with mock.patch.object(stall.v091.legacy, "now_iso", return_value=cutoff):
+                recovered = stall.v091.promote_interrupted_direct_v091(
+                    root,
+                    cutoff,
+                    "Gateway resumed after interruption",
+                )
+
+            self.assertEqual(recovered, [TICKET])
+            db = sqlite3.connect(path)
+            try:
+                self.assertEqual(
+                    db.execute(
+                        "SELECT status,workflow_eligible,failure_class FROM tickets WHERE ticket_id=?",
+                        (TICKET,),
+                    ).fetchone(),
+                    ("waiting", 1, "interrupted"),
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT state,outcome,ended_at FROM cnx_direct_model_call WHERE ticket_id=?",
+                        (TICKET,),
+                    ).fetchone(),
+                    ("interrupted", "host-startup-interruption-promoted", cutoff),
+                )
+                self.assertEqual(
+                    db.execute(
+                        "SELECT state,outcome,ended_at FROM cnx_inference_attempt WHERE attempt_id='attempt-live'"
+                    ).fetchone(),
+                    ("ended", "host-startup-interruption-promoted", cutoff),
+                )
+                event_types = [
+                    row[0]
+                    for row in db.execute(
+                        "SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id",
+                        (TICKET,),
+                    ).fetchall()
+                ]
+                self.assertIn("host_recovered_direct", event_types)
+                self.assertIn("inference_attempt_ended", event_types)
+            finally:
+                db.close()
+
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -52,6 +52,10 @@ def validate_windows_task_encoding():
         document = payload.decode("utf-16")
         if 'encoding="UTF-16"' not in document:
             raise SystemExit("Windows task XML declaration must match its UTF-16 encoding")
+        if "<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>" not in document:
+            raise SystemExit("Windows supervisor task must reject overlapping instances")
+        if "<ExecutionTimeLimit>PT15M</ExecutionTimeLimit>" not in document:
+            raise SystemExit("Windows supervisor task execution budget must remain PT15M")
 
 def run_workflow_self_test():
     attempts = 2 if sys.platform == "win32" else 1
