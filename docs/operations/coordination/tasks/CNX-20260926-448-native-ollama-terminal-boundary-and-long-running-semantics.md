@@ -1,6 +1,6 @@
 # CNX-20260926-448 — Native Ollama Terminal Boundary and Long-Running Semantics
 
-Status: `ACTIVE`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 Parent: `CNX-20260925-446-dashboard-direct-terminal-final-boundary.md`
@@ -134,6 +134,52 @@ Local validation:
 
 No timeout value or provider/model routing was changed. Long-running Ollama execution remains permitted; Task 448 changes only terminal-result authority.
 
+## Installed-candidate and live acceptance
+
+Exact implementation commit:
+
+`d6cf9e9c532da00880c16a700495edb833658cb4`
+
+GitHub exact-SHA CI:
+
+- Validate run `36214305293`: SUCCESS;
+- PS5.1 Acceptance Smoke run `36214305250`: SUCCESS;
+- Windows Installer Pack Smoke run `36214305241`: SUCCESS.
+
+Physical install-over on OpenClaw 2026.9.5:
+
+- installer exit: `0`;
+- controller returned to MANAGED/active, generation `34`;
+- provider ownership remained `openclaw`;
+- Gateway 2026.9.5 healthy on `127.0.0.1:18789`;
+- supervisor returned Ready/Enabled/Hidden with `LastTaskResult=0`;
+- packaged payload versus installed extension: `296/296` byte-equal, no missing/changed/extra non-`node_modules` files;
+- package-payload manifest SHA-256: `9559891cbdb63bf58b4b2b3fd05068ee0013fd7d65f2342d9ced7eee8c298b29`.
+
+Fresh native Ollama multi-step acceptance:
+
+- session: `agent:main:dashboard:b723e91b-d6d5-4407-8b9f-e8fee5847fe9`;
+- run: `cnx448-live-native-ollama-small-v1`;
+- Ticket: `CNXT-2ad1a0db-cd2e-4ac1-b1a5-43570009fabe`;
+- provider/model: `ollama/qwen3:1.7b`;
+- transcript seq 4: assistant `stopReason="toolUse"`, exact run id;
+- transcript seq 5: toolResult;
+- the Ticket remained non-terminal throughout the intermediate write and had no direct-result delivery;
+- the second model call then completed and only then produced `response_ready` at `2026-09-26T04:04:20.141Z`;
+- delivery confirmed at `2026-09-26T04:04:20.580Z`;
+- exactly one `direct_result` delivery row exists and no outbox row remains.
+
+The small-model tool invocation itself produced a tool validation error and the final assistant text reported that error. This does not weaken the terminal-boundary proof: the run still exercised the required `toolUse -> toolResult -> later assistant final` topology, and CogentNexus did not settle on the intermediate assistant write.
+
+A simultaneous long-running `ollama/qwen3.8:27b` control later entered the existing hard-hang recovery path. Recovery preserved the original provider/model, produced the requested final `CNX448_OLLAMA_TOOL_FINAL`, retried delivery under resource pressure, and completed exactly once with one delivery row and no outbox residue. Task 448 does not change that timeout/recovery policy.
+
+Post-acceptance runtime:
+
+- SQLite integrity: `ok`;
+- non-terminal Tickets: `0`;
+- pending outbox: `0`;
+- pending assistant delivery: `0`.
+
 ## Current classification
 
-`CNX448_LOCAL_GREEN_CI_PENDING`
+`CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`

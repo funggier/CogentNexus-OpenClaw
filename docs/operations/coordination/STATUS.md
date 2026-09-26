@@ -1,10 +1,10 @@
 # Coordination Status
 
-Status: `ACTIVE`
-State: `CNX448_LOCAL_GREEN_CI_PENDING`
-Task: `CNX-20260926-448-native-ollama-terminal-boundary-and-long-running-semantics.md`
+Status: `IDLE`
+State: `CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`
+Task: none
 Branch: `cnx-448-native-ollama-terminal-boundary`
-Executor: `ChatGPT`
+Executor: none
 Baseline release: `v0.9.8` (immutable)
 Baseline SHA: `49915000ecbec131112937cd44ec7a5f0effa00a`
 
@@ -39,10 +39,26 @@ Validation: focused `20/20`, full Vitest `94/441`, full Python `745 passed / 5 s
 
 GitHub issue: `#40`.
 
+## Final qualification
+
+- implementation SHA: `d6cf9e9c532da00880c16a700495edb833658cb4`;
+- focused contracts: `20/20 PASS`;
+- full plugin Vitest: `94 files / 441 tests PASS`;
+- full Python: `745 passed, 5 skipped, 38 subtests passed`;
+- build/evaluation/plugin validation/audit/diff-check: PASS;
+- exact-SHA GitHub CI: Validate `36214305293`, PS5.1 `36214305250`, Windows Installer Pack `36214305241` — all SUCCESS;
+- physical install-over: exit `0`, MANAGED generation `34`;
+- package/installed parity: `296/296` exact, manifest SHA-256 `9559891cbdb63bf58b4b2b3fd05068ee0013fd7d65f2342d9ced7eee8c298b29`;
+- fresh native Ollama tool-use continuation: PASS;
+- SQLite integrity: `ok`;
+- non-terminal Tickets: `0`;
+- pending outbox: `0`;
+- pending assistant delivery: `0`.
+
+The long-running qwen3.8 control exercised the existing recovery path under memory pressure and completed exactly once. Timeout/recovery policy remains unchanged.
+
 ## Current classification
 
-`CNX448_LOCAL_GREEN_CI_PENDING`
+`CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`
 
-## Next gate
-
-Commit/push exact candidate SHA, require GitHub CI GREEN, then perform physical install-over/source-parity and fresh native Ollama acceptance.
+No active task.

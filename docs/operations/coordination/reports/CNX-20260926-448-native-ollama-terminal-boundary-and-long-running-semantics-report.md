@@ -1,7 +1,7 @@
 # CNX-20260926-448 — Native Ollama Terminal Boundary and Long-Running Semantics Report
 
-Status: `IN_PROGRESS`
-Classification: `CNX448_LOCAL_GREEN_CI_PENDING`
+Status: `COMPLETE`
+Classification: `CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`
 GitHub issue: `#40`
 Working branch: `cnx-448-native-ollama-terminal-boundary`
 Baseline SHA: `49915000ecbec131112937cd44ec7a5f0effa00a`
@@ -154,15 +154,132 @@ Git whitespace validation:
 git diff --check: PASS
 ```
 
-## Current disposition
+## Exact candidate and GitHub CI
 
-The source repair is locally GREEN. Remaining acceptance gates are:
+Implementation commit:
 
-1. exact candidate commit and branch publication;
-2. GitHub exact-SHA CI;
-3. physical install-over and source/installed parity;
-4. fresh native Ollama live acceptance proving intermediate tool-use cannot complete a Ticket and true final settlement remains exactly once.
+`d6cf9e9c532da00880c16a700495edb833658cb4`
+
+Commit subject:
+
+`fix: fence native Ollama terminal delivery`
+
+Exact-SHA GitHub CI:
+
+- Validate `36214305293`: SUCCESS;
+- PS5.1 Acceptance Smoke `36214305250`: SUCCESS;
+- Windows Installer Pack Smoke `36214305241`: SUCCESS.
+
+## Physical install-over
+
+A real install-over was run against the existing OpenClaw 2026.9.5 installation.
+
+Result:
+
+- installer exit code `0`;
+- package validation and Ticket DB bootstrap PASS;
+- pre-install native handoff PASS;
+- plugin local-package install PASS;
+- controller returned to `active` / MANAGED at generation `34`;
+- provider ownership remained `openclaw`;
+- Gateway 2026.9.5 returned healthy on `127.0.0.1:18789`;
+- supervisor returned Ready / Enabled / Hidden / `LastTaskResult=0`;
+- SQLite integrity remained `ok`.
+
+The installer again exercised the known OpenClaw 2026.9.5 CLI non-exit behavior during plugin lifecycle mutation. Its existing bounded reconciliation path handled the mutation and the installer completed successfully.
+
+## Package/installed parity
+
+A fresh `npm pack --ignore-scripts` payload was compared byte-for-byte with the installed extension, excluding dependency material under `node_modules` from the package identity contract.
+
+Result:
+
+- package files: `296`;
+- present and compared: `296`;
+- matched: `296`;
+- missing: `0`;
+- changed: `0`;
+- extra installed non-`node_modules` files: `0`;
+- package-payload manifest SHA-256: `9559891cbdb63bf58b4b2b3fd05068ee0013fd7d65f2342d9ced7eee8c298b29`.
+
+Therefore the installed candidate is byte-contract equal to the package produced from the exact source candidate.
+
+## Fresh native Ollama multi-step acceptance
+
+A fresh Dashboard session was created through OpenClaw. OpenClaw initially resolved the user's normal local target `ollama/qwen3.8:27b`. To obtain a bounded control while the 27B run continued, a separate fresh Dashboard session was switched through the OpenClaw-owned `sessions.patch` boundary to `ollama/qwen3:1.7b`; CogentNexus did not select or override the provider/model.
+
+Acceptance session:
+
+- session: `agent:main:dashboard:b723e91b-d6d5-4407-8b9f-e8fee5847fe9`;
+- OpenClaw session id: `47b4d0c9-44c6-4f3f-bb4b-d90a45b43312`;
+- run: `cnx448-live-native-ollama-small-v1`;
+- Ticket: `CNXT-2ad1a0db-cd2e-4ac1-b1a5-43570009fabe`;
+- provider/model: `ollama/qwen3:1.7b`.
+
+Transcript/evidence order:
+
+1. first native model call started `03:57:28.804Z`;
+2. assistant seq 4 persisted at `04:02:28.562Z` with exact run id, provider/model `ollama/qwen3:1.7b`, and `stopReason="toolUse"`;
+3. toolResult seq 5 persisted at `04:02:29.868Z`;
+4. a second native model call started at `04:02:30.176Z`;
+5. the second model call ended at `04:04:19.653Z`;
+6. only after that later model completion did CogentNexus record `response_ready` at `04:04:20.141Z`;
+7. delivery was confirmed and the Ticket completed at `04:04:20.580Z`.
+
+At the intermediate tool-use boundary:
+
+- Ticket remained `accepted`;
+- `response_ready_at` remained null;
+- `delivery_confirmed_at` remained null;
+- there was no `direct_result` delivery row.
+
+The model selected the generic `tool_call` surface with invalid arguments for the requested file read, so the toolResult was a validation error and the later assistant final reported that error. This still exercises the required production topology: an intermediate assistant `toolUse`, a toolResult, then a later assistant terminal write. The semantic contract under test is terminal authority, not tool argument quality.
+
+Final durable state:
+
+- exactly one `direct_result` delivery row;
+- delivery status `delivered`;
+- zero outbox rows for the Ticket;
+- no duplicate settlement.
+
+This directly proves the production defect is repaired.
+
+## Long-running qwen3.8 control and recovery observation
+
+The simultaneous fresh `ollama/qwen3.8:27b` run used:
+
+- session: `agent:main:dashboard:a9817a41-2845-4ee6-8aea-6d65c261aa4d`;
+- run: `cnx448-live-native-ollama-tool-v5`;
+- Ticket: `CNXT-71469a13-022a-4517-b0e6-3bdf9ba5668d`.
+
+The first model call remained long-running and the existing Host logic later authorized its hard-hang recovery path. This is separate from Task 448's terminal-result classifier. No timeout or recovery threshold was changed by Task 448.
+
+Recovery preserved `ollama/qwen3.8:27b`, generated final `CNX448_OLLAMA_TOOL_FINAL`, and created one durable delivery. Delivery experienced two bounded retries under severe resource pressure:
+
+- one Node subprocess exited with JavaScript heap OOM;
+- one `chat.inject` call exceeded its bounded command timeout.
+
+The existing retry/reconciliation path subsequently confirmed delivery at `04:28:07.001322Z` and completed the Ticket exactly once.
+
+This run is therefore recorded as resilience evidence, not as the primary terminal-boundary acceptance.
+
+## Post-acceptance runtime cleanliness
+
+Final database checks:
+
+- `PRAGMA integrity_check = ok`;
+- global non-terminal Tickets: `0`;
+- pending outbox: `0`;
+- pending assistant deliveries: `0`.
+
+Both fresh acceptance Tickets have exactly one delivery row and zero outbox rows.
+
+## Final disposition
+
+Task 448 is GREEN. The native OpenClaw/Ollama path now shares the CNX-446 terminal-authority principle without globally requiring Codex `runTerminal` metadata:
+
+`intermediate/tool-use output != terminal authority`
 
 Current classification:
 
-`CNX448_LOCAL_GREEN_CI_PENDING`
+`CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`

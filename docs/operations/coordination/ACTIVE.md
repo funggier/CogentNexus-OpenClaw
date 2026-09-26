@@ -1,9 +1,9 @@
 # Active Coordination
 
-Status: `ACTIVE`
-State: `CNX448_LOCAL_GREEN_CI_PENDING`
-Task: `CNX-20260926-448-native-ollama-terminal-boundary-and-long-running-semantics.md`
-Assigned executor: `ChatGPT`
+Status: `IDLE`
+State: `CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`
+Task: none
+Assigned executor: none
 Review owner: `ChatGPT independent final verification`
 Human final authority: `Operator`
 Working branch: `cnx-448-native-ollama-terminal-boundary`
@@ -33,23 +33,26 @@ intermediate/tool-use assistant output
 
 Long-running local inference is explicitly acceptable and must remain separate from terminal classification.
 
-## Current phase
+## Completed result
 
-Local implementation and qualification are GREEN.
+Task 448 is complete.
 
-- GitHub issue: `#40`;
-- focused contracts: `20/20 PASS`;
-- full plugin Vitest: `94 files / 441 tests PASS`;
-- full Python: `745 passed, 5 skipped, 38 subtests passed`;
-- build/evaluation/plugin validation/audit/diff-check: PASS.
+- exact implementation SHA: `d6cf9e9c532da00880c16a700495edb833658cb4`;
+- exact-SHA GitHub CI: three required workflows SUCCESS;
+- physical install-over: PASS, controller returned MANAGED generation `34`;
+- package/installed payload parity: `296/296` exact, manifest SHA-256 `9559891cbdb63bf58b4b2b3fd05068ee0013fd7d65f2342d9ced7eee8c298b29`;
+- fresh native Ollama multi-step acceptance: PASS;
+- intermediate `stopReason="toolUse"` did not create `response_ready`, delivery, or Ticket completion;
+- later native final settled exactly once;
+- SQLite integrity `ok`, non-terminal Tickets `0`, pending outbox `0`, pending assistant delivery `0`.
 
-Next gates:
+A simultaneous long-running `ollama/qwen3.8:27b` control entered the existing recovery path and still completed exactly once. Task 448 did not alter timeout/recovery thresholds.
 
-1. commit and push exact candidate SHA;
-2. require GitHub exact-SHA CI GREEN;
-3. physical install-over/source parity;
-4. fresh native Ollama live acceptance;
-5. close Task 448 only after runtime evidence is GREEN.
+## Current classification
+
+`CNX448_NATIVE_OLLAMA_TERMINAL_BOUNDARY_GREEN`
+
+No new task is active.
 
 ## Safety constraints
 
