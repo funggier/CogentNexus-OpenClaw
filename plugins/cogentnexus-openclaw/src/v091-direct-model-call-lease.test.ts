@@ -38,7 +38,7 @@ describe("v0.9.1 Direct model-call durable lease", () => {
         provider: "ollama",
         model: "qwen3.5:9b",
         started_at: "2026-08-18T13:00:00.000Z",
-        deadline_at: new Date(startedAt.getTime() + DIRECT_MODEL_CALL_TIMEOUT_MS).toISOString(),
+        deadline_at: new Date(startedAt.getTime() + 45 * 60_000).toISOString(),
       });
       db.close();
 
@@ -54,6 +54,46 @@ describe("v0.9.1 Direct model-call durable lease", () => {
         .toEqual({ state: "ended", ended_at: "2026-08-18T13:00:01.234Z", outcome: "ok", duration_ms: 1234 });
       expect((db.prepare(`SELECT event_type FROM ticket_events WHERE ticket_id=? ORDER BY event_id`).all(ticket.ticketId) as any[]).map(x => x.event_type))
         .toEqual(["accepted", "routed", "direct_model_call_started", "direct_model_call_ended"]);
+      db.close();
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it("keeps non-Ollama default lease at 15 minutes and honors explicit overrides", () => {
+    const root = mkdtempSync(join(tmpdir(), "cnx449-provider-lease-"));
+    const path = join(root, "tickets.sqlite3");
+    try {
+      const store = new TicketStore(path);
+      const cloud = store.accept({ runId: "run-cloud", ownerSessionKey: "owner", prompt: "cloud" });
+      store.route(cloud.ticketId, false);
+      const cloudStart = new Date("2026-09-26T06:00:00.000Z");
+      expect(recordDirectModelCallStarted(path, {
+        runId: "run-cloud",
+        callId: "call-cloud",
+        provider: "openai",
+        model: "gpt-test",
+        now: cloudStart,
+      })).toBe(true);
+
+      let db = new DatabaseSync(path, { readOnly: true });
+      expect((db.prepare("SELECT deadline_at FROM cnx_direct_model_call WHERE ticket_id=?").get(cloud.ticketId) as any).deadline_at)
+        .toBe(new Date(cloudStart.getTime() + DIRECT_MODEL_CALL_TIMEOUT_MS).toISOString());
+      db.close();
+
+      const override = store.accept({ runId: "run-override", ownerSessionKey: "owner", prompt: "override" });
+      store.route(override.ticketId, false);
+      const overrideStart = new Date("2026-09-26T07:00:00.000Z");
+      expect(recordDirectModelCallStarted(path, {
+        runId: "run-override",
+        callId: "call-override",
+        provider: "ollama",
+        model: "qwen3.8:27b",
+        timeoutMs: 20 * 60_000,
+        now: overrideStart,
+      })).toBe(true);
+
+      db = new DatabaseSync(path, { readOnly: true });
+      expect((db.prepare("SELECT deadline_at FROM cnx_direct_model_call WHERE ticket_id=?").get(override.ticketId) as any).deadline_at)
+        .toBe(new Date(overrideStart.getTime() + 20 * 60_000).toISOString());
       db.close();
     } finally { rmSync(root, { recursive: true, force: true }); }
   });

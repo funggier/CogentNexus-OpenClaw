@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { defaultTicketDatabase, TicketStore } from "./ticket-store.js";
 
 export const DIRECT_MODEL_CALL_TIMEOUT_MS = 15 * 60_000;
+export const OLLAMA_DIRECT_MODEL_CALL_TIMEOUT_MS = 45 * 60_000;
 
 const HOST_RECOVERY_FINALIZE_FENCE = Symbol.for("cogentnexus-openclaw.v091.host-recovery-finalize-fence");
 const HOST_RECOVERY_RESUME_FENCE = Symbol.for("cogentnexus-openclaw.v091.host-recovery-resume-fence");
@@ -86,7 +87,11 @@ export function recordDirectModelCallStarted(databasePath: string, input: ModelC
   if (!input.runId || !input.callId) return false;
   const now = input.now ?? new Date();
   const stamp = now.toISOString();
-  const timeoutMs = Math.max(60_000, Math.min(input.timeoutMs ?? DIRECT_MODEL_CALL_TIMEOUT_MS, 3_600_000));
+  const provider = String(input.provider ?? "").trim().toLowerCase();
+  const defaultTimeoutMs = provider === "ollama"
+    ? OLLAMA_DIRECT_MODEL_CALL_TIMEOUT_MS
+    : DIRECT_MODEL_CALL_TIMEOUT_MS;
+  const timeoutMs = Math.max(60_000, Math.min(input.timeoutMs ?? defaultTimeoutMs, 3_600_000));
   const deadline = new Date(now.getTime() + timeoutMs).toISOString();
   const db = open(databasePath);
   try {

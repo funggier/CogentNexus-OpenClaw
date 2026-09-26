@@ -109,6 +109,18 @@ def make_db(root: Path, *, response_ready_at=None):
 
 
 class HostDirectModelStallTests(unittest.TestCase):
+    def test_unexpired_direct_model_call_is_exposed_as_restart_guard_only_before_deadline(self):
+        with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-guard-") as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            make_db(root)
+            active = stall.active_unexpired_direct_model_call(root, "2026-08-18T13:14:59+00:00")
+            self.assertIsNotNone(active)
+            self.assertEqual(active["ticket_id"], TICKET)
+            self.assertEqual(active["call_id"], "call-live")
+            self.assertEqual(active["provider"], "ollama")
+            self.assertEqual(active["deadline_at"], "2026-08-18T13:15:00+00:00")
+            self.assertIsNone(stall.active_unexpired_direct_model_call(root, "2026-08-18T13:15:00+00:00"))
+
     def test_claim_is_host_durable_but_does_not_mutate_ticket(self):
         with tempfile.TemporaryDirectory(prefix="cnxclaw-host-stall-") as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"

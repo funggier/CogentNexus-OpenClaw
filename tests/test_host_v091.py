@@ -386,6 +386,33 @@ class HostV091Tests(unittest.TestCase):
             self.assertEqual(result["result"], "idle")
             self.assertFalse(result["heavyPath"])
 
+    def test_unresponsive_gateway_with_unexpired_direct_lease_does_not_restart(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / ".cogentnexus-openclaw"
+            self.seed_managed(root)
+            self.patch(cnx, "gateway_fast_probe", lambda: False)
+            self.patch(cnx.time, "sleep", lambda _seconds: None)
+            self.patch(cnx, "gateway_startup_grace", lambda: {"active": False, "reason": "unit-test"})
+            self.patch(cnx, "_restart_unresponsive_gateway", lambda _root: self.fail("unexpired Direct lease must protect Gateway"))
+            guard = {
+                "protected": True,
+                "reason": "active-direct-model-lease",
+                "ticketId": "T-SLOW",
+                "runId": "run-slow",
+                "callId": "call-slow",
+                "provider": "ollama",
+                "model": "qwen3.8:27b",
+                "deadlineAt": "2026-09-26T07:00:00+00:00",
+            }
+            with mock.patch.object(cnx, "_gateway_long_running_direct_guard", return_value=guard, create=True) as lease_guard:
+                result = cnx.supervisor_tick(root, True)
+
+            lease_guard.assert_called_once_with(root)
+            self.assertEqual(result["result"], "gateway-long-running-protected")
+            self.assertEqual(result["action"], "none")
+            self.assertEqual(result["longRunningProtection"], guard)
+            self.assertFalse(result["gatewayHealthy"])
+
     def test_transient_gateway_probe_failure_does_not_restart(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / ".cogentnexus-openclaw"

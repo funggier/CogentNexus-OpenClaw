@@ -147,6 +147,26 @@ def _recover_gateway_interrupted_direct_calls(
     )
 
 
+def _gateway_long_running_direct_guard(root: Path) -> dict[str, Any] | None:
+    """Protect an unexpired Direct model-call lease from probe-only hard-hang restart."""
+    import host_stall_v091 as stall
+
+    call = stall.active_unexpired_direct_model_call(root)
+    if call is None:
+        return None
+    return {
+        "protected": True,
+        "reason": "active-direct-model-lease",
+        "ticketId": call.get("ticket_id"),
+        "runId": call.get("run_id"),
+        "callId": call.get("call_id"),
+        "provider": call.get("provider"),
+        "model": call.get("model"),
+        "startedAt": call.get("started_at"),
+        "deadlineAt": call.get("deadline_at"),
+    }
+
+
 def _gateway_current_direct_evidence(root: Path) -> dict[str, Any] | None:
     """Snapshot exact active Direct calls owned by the Gateway being replaced."""
     import host_stall_v091 as stall
@@ -509,6 +529,21 @@ def supervisor_tick(root: Path, execute_safe: bool) -> dict[str, Any]:
                     "providerRequired": False,
                     "heavyPath": False,
                     "startupGrace": startup_grace,
+                }
+            long_running_protection = _gateway_long_running_direct_guard(root)
+            if long_running_protection is not None:
+                return {
+                    "result": "gateway-long-running-protected",
+                    "action": "none",
+                    "wakeAuthority": "none",
+                    "wakeWorkId": None,
+                    "wakeReason": "gateway/active-direct-model-lease",
+                    "probe": "lightweight-http+sqlite-ro",
+                    "gatewayHealthy": False,
+                    "durableWorkPending": True,
+                    "providerRequired": False,
+                    "heavyPath": False,
+                    "longRunningProtection": long_running_protection,
                 }
             if execute_safe:
                 hard_hang_restart = _restart_unresponsive_gateway(root)

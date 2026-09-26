@@ -310,6 +310,35 @@ def has_active_direct_model_calls(root: Path) -> bool:
         db.close()
 
 
+def active_unexpired_direct_model_call(root: Path, now_iso: str | None = None) -> dict[str, Any] | None:
+    """Return one unfenced Direct model call whose durable lease is still active."""
+    cutoff = _stamp(now_iso)
+    path = legacy.ticket_db(root)
+    if not path.exists():
+        return None
+    db = sqlite3.connect(path, timeout=2)
+    db.row_factory = sqlite3.Row
+    try:
+        if not _model_call_table(db) or not v091._db_table_exists(db, "tickets"):
+            return None
+        ticket_columns = {str(row[1]) for row in db.execute("PRAGMA table_info(tickets)").fetchall()}
+        required = {"ticket_id", "status", "workflow_eligible", "workflow_id", "response_ready_at"}
+        if not required.issubset(ticket_columns):
+            return None
+        row = db.execute(
+            "SELECT m.ticket_id,m.run_id,m.call_id,m.provider,m.model,m.started_at,m.deadline_at "
+            "FROM cnx_direct_model_call m JOIN tickets t ON t.ticket_id=m.ticket_id "
+            "WHERE m.state='active' AND t.status IN ('accepted','waiting') "
+            "AND t.workflow_eligible=0 AND t.workflow_id IS NULL AND t.response_ready_at IS NULL "
+            "AND julianday(m.deadline_at) > julianday(?) "
+            "ORDER BY julianday(m.deadline_at) DESC,m.ticket_id LIMIT 1",
+            (cutoff,),
+        ).fetchone()
+        return dict(row) if row is not None else None
+    finally:
+        db.close()
+
+
 def find_gateway_boundary_orphaned_direct_calls(
     root: Path,
     gateway_started_at_iso: str,
