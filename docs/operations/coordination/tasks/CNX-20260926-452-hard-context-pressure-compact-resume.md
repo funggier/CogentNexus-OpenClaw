@@ -1,6 +1,6 @@
 # CNX-20260926-452 — Hard Context Pressure Compact/Resume
 
-Status: `ACTIVE`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 GitHub issue: `#44`
@@ -71,10 +71,54 @@ Round-2 validation:
 - full Python: `754 passed, 5 skipped, 38 subtests passed`;
 - full Vitest: `96 files / 448 tests PASS`;
 - build/evaluation/plugin validation/audit: PASS;
-- evaluation evidence SHA-256: `a322470a9cedcc0120f0dc407b5016ccdf20e406a406f1899d9bee08a444b677`;
+- evaluation evidence SHA-256: `51d56575225b9e1b10238b8c46b50113facf4de2ebc12b313c6d986dcea0535d`;
 - packed plugin payload: `300` files;
 - compiled dist inspection: deep v091 ladder + verified post-trim evidence gate present.
 
+## Live round-2 acceptance — GREEN
+
+Exact product candidate: `b116fa188d41d1acb8110e59fca4bf056a160643`.
+
+Exact-SHA GitHub CI:
+
+- Validate `36267805183`: SUCCESS;
+- PS5.1 Acceptance Smoke `36267805207`: SUCCESS;
+- Windows Installer Pack Smoke `36267805221`: SUCCESS.
+
+Installed payload parity:
+
+- source: `300` files / `7e66e09fc475959dfdb2d675debf168211aed1eb1d8713781a99d29d4f5d31cc`;
+- installed: `300` files / the same fingerprint.
+
+Live owner session: `agent:main:dashboard:cnx452-r2-live-hard`.
+
+A preceding setup run used qualification-harness `--timeout 900` and therefore terminated at ~900 seconds before the final hard-pressure acceptance turn. This was a harness timeout, not a CNX-452 product failure; no duplicate retry was performed and durable state settled with no active call/outbox residue. The final acceptance used `--timeout 3600`.
+
+Final hard-pressure Ticket:
+
+- Ticket: `CNXT-20ab5f72-61e6-4003-b630-8504cceef59b`;
+- run: `821c949a-22ff-49a9-8ebe-84a2a90fe578`;
+- provider/model: `ollama/qwen3:1.7b`;
+- before: `37808/40960 = 92.3%`, level `hard`;
+- `context_pressure_hard_observed` occurred before inference;
+- inline maintenance action: `hard-trim-200`;
+- after: `23497/40960 = 57.4%`, level `normal`;
+- `context_pressure_inline_resolved` occurred before `direct_model_call_started`;
+- maintenance: `done`, `hard_required=1`, one attempt, no error;
+- Direct recovery rows: `0`;
+- model call outcome: `completed`, duration `156059 ms`;
+- final marker: `CNX452_R2_HARD_OK`;
+- completion: `stopReason=stop`;
+- response durable, delivery confirmed exactly once, Ticket completed.
+
+Post-acceptance runtime:
+
+- SQLite integrity: `ok`;
+- nonterminal Tickets: `0`;
+- pending outbox: `0`;
+- active Direct model calls: `0`;
+- `OLLAMA_KEEP_ALIVE=6h` physically active.
+
 ## Current classification
 
-`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
+`CNX452_HARD_CONTEXT_COMPACT_RESUME_GREEN`

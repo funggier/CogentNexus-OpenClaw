@@ -1,7 +1,7 @@
 # CNX-20260926-452 — Hard Context Pressure Compact/Resume Report
 
-Status: `IN_PROGRESS`
-Classification: `CNX452_LOCAL_GREEN_CI_PENDING`
+Status: `COMPLETE`
+Classification: `CNX452_HARD_CONTEXT_COMPACT_RESUME_GREEN`
 GitHub issue: `#44`
 Working branch: `cnx-452-hard-context-pressure-compact-resume`
 Baseline SHA: `a03dadecc2a95550046978d18ba3590c56ceb615`
@@ -69,17 +69,49 @@ CNX-451 soft observe-and-pass and CNX-426 effective model-window authority remai
 - `OLLAMA_KEEP_ALIVE=6h`: persistent and physically active.
 - `v0.9.8`: immutable.
 
-## Remaining gates
+## Final qualification
 
-1. commit/push exact candidate SHA;
-2. GitHub exact-SHA CI;
-3. physical install-over and source/installed parity;
-4. fresh live hard-pressure owner-session acceptance;
-5. verify inline compaction occurs before inference, the same Ticket/run proceeds, and terminal/delivery settlement remains exactly once.
+Product candidate: `b116fa188d41d1acb8110e59fca4bf056a160643`.
 
-## Current classification
+Exact-SHA CI:
 
-`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
+- Validate `36267805183`: SUCCESS;
+- PS5.1 Acceptance Smoke `36267805207`: SUCCESS;
+- Windows Installer Pack Smoke `36267805221`: SUCCESS.
+
+Source/installed payload parity: `300/300` files, fingerprint `7e66e09fc475959dfdb2d675debf168211aed1eb1d8713781a99d29d4f5d31cc`.
+
+A setup run using `openclaw agent --timeout 900` ended at ~900 seconds and was classified as qualification-harness timeout rather than product failure. The final live acceptance used `--timeout 3600`.
+
+Fresh live round-2 hard-pressure acceptance:
+
+- owner: `agent:main:dashboard:cnx452-r2-live-hard`;
+- Ticket: `CNXT-20ab5f72-61e6-4003-b630-8504cceef59b`;
+- run: `821c949a-22ff-49a9-8ebe-84a2a90fe578`;
+- provider/model: `ollama/qwen3:1.7b`;
+- pressure before maintenance: `37808/40960` (`hard`);
+- `context_pressure_hard_observed` persisted before inference;
+- inline action: `hard-trim-200`;
+- verified post-trim pressure: `23497/40960` (`normal`);
+- `context_pressure_inline_resolved` persisted before the first model call;
+- maintenance: `done`, one attempt, no error;
+- no Direct recovery row;
+- model call completed in `156059 ms`;
+- final visible marker: `CNX452_R2_HARD_OK`;
+- `stopReason=stop`;
+- response durable, delivery confirmed exactly once, Ticket completed.
+
+Final runtime invariants:
+
+- SQLite integrity `ok`;
+- nonterminal Tickets `0`;
+- pending outbox `0`;
+- active Direct model calls `0`;
+- `OLLAMA_KEEP_ALIVE=6h` physically active.
+
+## Final classification
+
+`CNX452_HARD_CONTEXT_COMPACT_RESUME_GREEN`
 
 ## Live qualification round 1 — physical failure and repair evidence
 
@@ -124,7 +156,7 @@ Round-2 validation so far:
 - focused: 5 files / 25 tests PASS;
 - full Vitest: 96 files / 448 tests PASS;
 - build: PASS; compiled `dist/v091-context-guard.js` contains the deep ladder and verified-evidence gate;
-- evaluation: PASS, evidence SHA-256 `a322470a9cedcc0120f0dc407b5016ccdf20e406a406f1899d9bee08a444b677`;
+- evaluation: PASS, evidence SHA-256 `51d56575225b9e1b10238b8c46b50113facf4de2ebc12b313c6d986dcea0535d`;
 - plugin validation: PASS, 300 packed files;
 - production dependency audit: 0 vulnerabilities;
 - full Python: `754 passed, 5 skipped, 38 subtests passed`.

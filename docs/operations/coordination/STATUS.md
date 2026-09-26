@@ -1,21 +1,21 @@
 # Coordination Status
 
-Status: `ACTIVE`
-State: `CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
-Task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
-Branch: `cnx-452-hard-context-pressure-compact-resume`
-Executor: `ChatGPT`
+Status: `IDLE`
+State: `NO_ACTIVE_TASK`
+Last completed task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
+Last completed classification: `CNX452_HARD_CONTEXT_COMPACT_RESUME_GREEN`
+Product candidate SHA: `b116fa188d41d1acb8110e59fca4bf056a160643`
 Baseline release: `v0.9.8` (immutable)
-Baseline SHA: `a03dadecc2a95550046978d18ba3590c56ceb615`
 
-## Accepted predecessor
+## Accepted state
 
-CNX-451 is GREEN and closed on main. CNX-453 is GREEN. `OLLAMA_KEEP_ALIVE=6h` is physically active. CNX-450 remains backlog only.
+- CNX-451: GREEN and closed on main.
+- CNX-453: GREEN and closed.
+- CNX-452: GREEN after live round-2 hard-pressure qualification.
+- `OLLAMA_KEEP_ALIVE=6h`: persistent and physically active.
+- CNX-450: backlog only.
+- `v0.9.8`: immutable.
 
-## Active objective
+## Current state
 
-Replace the hard-pressure `block-as-defer` semantic with authority-fenced inline compact/re-evaluate/resume behavior. GitHub issue: `#44`.
-
-## Current classification
-
-`CNX452_LIVE_R2_LOCAL_GREEN_CI_PENDING`
+No active task.
