@@ -1,6 +1,6 @@
 # CNX-20260926-451 — Soft Context Pressure Must Not Block Dashboard Turns
 
-Status: `ACTIVE`
+Status: `COMPLETE`
 Owner: ChatGPT
 Executor: ChatGPT
 GitHub issue: `#43`
@@ -58,6 +58,52 @@ Working branch: `cnx-451-soft-context-pressure-live-v2`
 - `OLLAMA_KEEP_ALIVE=6h` is persistent and physically active;
 - remaining gate: fresh live soft-pressure owner turn plus exactly-once settlement.
 
-## Current classification
 
-`CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
+## Fresh live soft-pressure acceptance
+
+Dedicated owner session:
+
+- session key: `agent:main:dashboard:cnx451-soft-live-v2-01`;
+- OpenClaw session id: `9fc97be5-22d6-4ea9-bb9e-a5b878bd4458`;
+- native provider/model: `ollama/qwen3:1.7b`;
+- `OLLAMA_KEEP_ALIVE=6h` remained live.
+
+Context was increased only through supported owner turns. Prime plus probes A-C remained normal. Probe D produced the required physical soft-pressure topology:
+
+- Ticket: `CNXT-411507aa-8653-4b47-9aea-7bd8d4a69c82`;
+- run: `bc68c747-ea31-489a-a43d-fdc3e6e145f2`;
+- projected context: `30866 / 40960` (`75.356%`);
+- soft limit: `30310`;
+- hard limit: `36864`;
+- level: `soft`;
+- source: `fresh-session-counter`;
+- durable event: `context_pressure_soft_observed`;
+- policy: `observe-and-pass`.
+
+Immediately after the soft observation the same Ticket entered `direct_model_call_started` and canonical `inference_attempt_started`; it was not blocked and no failure state was written.
+
+No `cnx_direct_recovery` row and no `cnx_context_maintenance` row were created for the soft observation.
+
+The model call completed after `346916 ms` and the exact terminal chain was:
+
+`direct_model_call_ended -> inference_attempt_ended -> response_ready -> direct_response_durable -> delivery_confirmed -> completed`
+
+Exactly-once counts for the acceptance Ticket:
+
+- `context_pressure_soft_observed`: 1;
+- model-call start/end: 1/1;
+- inference-attempt start/end: 1/1;
+- `response_ready`: 1;
+- `direct_response_durable`: 1;
+- `delivery_confirmed`: 1;
+- `completed`: 1;
+- delivery rows: 1 (`direct_result`, `delivered`, attempt_count `0`);
+- Ticket outbox rows: 0;
+- global pending outbox: 0;
+- SQLite integrity: `ok`.
+
+CLI acceptance exited `0` with marker `CNX451_SOFT_PROBE_D_OK` and `stopReason=stop`.
+
+## Final classification
+
+`CNX451_SOFT_CONTEXT_PRESSURE_GREEN`

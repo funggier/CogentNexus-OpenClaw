@@ -1,31 +1,31 @@
 # Active Coordination
 
-Status: `ACTIVE`
-State: `CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
-Task: `CNX-20260926-451-soft-context-pressure-pass.md`
-Assigned executor: `ChatGPT`
+Status: `COMPLETE`
+State: `CNX451_SOFT_CONTEXT_PRESSURE_GREEN`
+Active task: `none`
+Completed task: `CNX-20260926-451-soft-context-pressure-pass.md`
+Executor: `ChatGPT`
 Human final authority: `Operator`
 Working branch: `cnx-451-soft-context-pressure-live-v2`
-Baseline/main SHA: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
+Product baseline/main before docs closeout: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
 GitHub issue: `#43`
 
-## Accepted prerequisites
+## Result
 
-- CNX-451 implementation candidate `09eec4113b371d39334d90a332fa9a6455530db0` passed exact-SHA CI and physical install-over.
-- CNX-453 infrastructure blocker is GREEN and closed on main at `520d07d5bdb26be22fc03fd48a241c91bc3436ea`.
-- CNX-453 physical qualification proved >23-minute Ollama inference can remain protected by the Direct lease, terminal settlement remains exactly once, and `OLLAMA_KEEP_ALIVE=6h` is live.
+Fresh live owner-session soft-pressure acceptance is GREEN.
 
-## Remaining objective
+- session: `agent:main:dashboard:cnx451-soft-live-v2-01`;
+- Ticket: `CNXT-411507aa-8653-4b47-9aea-7bd8d4a69c82`;
+- pressure: `30866/40960`, level `soft`, policy `observe-and-pass`;
+- native Ollama inference started after the soft observation;
+- no recovery/context-maintenance authority was created;
+- terminal settlement was exactly once;
+- pending outbox: `0`;
+- SQLite integrity: `ok`;
+- `OLLAMA_KEEP_ALIVE=6h` remains physically active.
 
-Produce a fresh live owner-session turn whose context guard classifies pressure as `soft`, then prove:
-- `context_pressure_soft_observed` is durable;
-- the hook does not return a terminal block;
-- model inference starts;
-- no recovery/context-maintenance authority is created by the soft observation;
-- terminal response settles exactly once with zero outbox residue.
-
-CNX-452 remains backlog for hard-pressure compact/resume semantics.
+CNX-453 is closed GREEN. CNX-452 / GitHub issue `#44` remains BACKLOG for hard-pressure compact/resume semantics and is not active.
 
 ## Current classification
 
-`CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
+`CNX451_SOFT_CONTEXT_PRESSURE_GREEN`

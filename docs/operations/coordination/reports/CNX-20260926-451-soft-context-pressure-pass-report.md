@@ -1,7 +1,7 @@
 # CNX-20260926-451 — Soft Context Pressure Must Not Block Dashboard Turns Report
 
-Status: `IN_PROGRESS`
-Classification: `CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
+Status: `COMPLETE`
+Classification: `CNX451_SOFT_CONTEXT_PRESSURE_GREEN`
 GitHub issue: `#43`
 Working branch: `cnx-451-soft-context-pressure-live-v2`
 Baseline/main SHA: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
@@ -76,10 +76,61 @@ GREEN focused qualification:
 - CNX-453 infrastructure blocker repaired and closed GREEN on main `520d07d5bdb26be22fc03fd48a241c91bc3436ea`;
 - `OLLAMA_KEEP_ALIVE=6h` confirmed live.
 
-## Remaining gate
+## Final gate status
 
-Fresh live Dashboard-equivalent owner-session soft-pressure acceptance: durable `context_pressure_soft_observed`, no terminal block, inference starts, no soft-created recovery/maintenance authority, and terminal result settles exactly once with zero pending outbox.
+Fresh live Dashboard-equivalent owner-session soft-pressure acceptance: `ACCEPTED`. Durable soft observation, non-blocking inference start, zero soft-created recovery/maintenance authority, exactly-once terminal settlement, and zero pending outbox were all physically proven.
 
-## Current classification
 
-`CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
+## Fresh live soft-pressure acceptance — GREEN
+
+After CNX-453 was closed GREEN, CNX-451 was re-qualified on a fresh dedicated owner session without direct DB manipulation.
+
+Session:
+
+- key: `agent:main:dashboard:cnx451-soft-live-v2-01`;
+- session id: `9fc97be5-22d6-4ea9-bb9e-a5b878bd4458`;
+- provider/model: `ollama/qwen3:1.7b`;
+- keep-alive: `6h` physically active.
+
+Context was built using supported OpenClaw owner turns only. Prime and probes A-C remained normal. Probe D was sized from the live context-guard estimator and entered the required soft range without touching hard pressure.
+
+Acceptance Ticket:
+
+- Ticket `CNXT-411507aa-8653-4b47-9aea-7bd8d4a69c82`;
+- run `bc68c747-ea31-489a-a43d-fdc3e6e145f2`;
+- projected tokens `30866 / 40960` = `75.356%`;
+- soft limit `30310`;
+- hard limit `36864`;
+- level `soft`;
+- source `fresh-session-counter`;
+- policy `observe-and-pass`.
+
+Durable sequence:
+
+`accepted -> routed -> context_pressure_soft_observed -> direct_model_call_started -> inference_attempt_started -> direct_model_call_ended -> inference_attempt_ended -> response_ready -> direct_response_durable -> delivery_confirmed -> completed`
+
+The soft observation therefore did not terminate or defer the user turn. Native Ollama inference started immediately after the observation.
+
+Negative-authority proof:
+
+- `cnx_direct_recovery` rows for Ticket: `0`;
+- `cnx_context_maintenance` rows for Ticket: `0`;
+- failure class/message: null;
+- Ticket outbox rows: `0`;
+- global pending outbox: `0`.
+
+Exactly-once proof:
+
+- each soft/model/attempt/response/delivery/completed event count: exactly `1`;
+- delivery table: one `direct_result`, status `delivered`, attempt_count `0`;
+- model-call duration: `346916 ms`;
+- CLI exit: `0`;
+- final marker: `CNX451_SOFT_PROBE_D_OK`;
+- terminal `stopReason=stop`;
+- SQLite integrity: `ok`.
+
+This closes the production regression originally observed on Dashboard session `f6d5474d`: soft pressure is now observable but non-blocking. Hard-pressure compact/resume semantics remain intentionally separate under CNX-452 / GitHub issue #44.
+
+## Final classification
+
+`CNX451_SOFT_CONTEXT_PRESSURE_GREEN`
