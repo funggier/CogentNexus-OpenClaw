@@ -102,13 +102,13 @@ describe("CNX-426 model-switch-aware context budget",()=>{
       );
       expect(decision).toMatchObject({
         outcome:"block",
-        category:"cnxclaw_context_pressure",
+        category:"cnxclaw_context_pressure_unresolved",
         metadata:{ticketId:ticket.ticketId,pressure:{contextWindow:40960}},
       });
       const db=new DatabaseSync(path,{readOnly:true});
-      const row=db.prepare("SELECT context_window,projected_tokens FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey);
+      const row=db.prepare("SELECT state,context_window,projected_tokens,last_action FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey);
       db.close();
-      expect(row).toEqual({context_window:40960,projected_tokens:38004});
+      expect(row).toEqual({state:"cancelled",context_window:40960,projected_tokens:38004,last_action:"inline-maintenance-error"});
     }finally{rmSync(root,{recursive:true,force:true});}
   });
 
@@ -116,12 +116,16 @@ describe("CNX-426 model-switch-aware context budget",()=>{
   it("keeps the stored turn budget authoritative when passive compaction observes a stale larger session window",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx426-passive-compact-"));
     try{
-      const runId="run-passive-compact",{path,sessionKey}=setup(root,runId);
-      const hook=harness({root,path,sessionKey,describedContextTokens:262144,totalTokens:38000});
+      const runId="run-passive-compact",{path,ticket,sessionKey}=setup(root,runId);
+      const hook=harness({root,path,sessionKey,describedContextTokens:262144,totalTokens:10000});
       expect(await hook(
         {prompt:"continue",messages:[],systemPrompt:""},
         {sessionKey,runId,workspaceDir:root,contextTokenBudget:40960},
-      )).toMatchObject({outcome:"block",metadata:{pressure:{contextWindow:40960}}});
+      )).toEqual({outcome:"pass"});
+      const seed=new DatabaseSync(path),stamp=new Date().toISOString();
+      seed.prepare("INSERT INTO cnx_context_maintenance(session_key,owner_generation,ticket_id,state,hard_required,attempt_count,next_attempt_at,last_error,session_id,context_window,projected_tokens,created_at,updated_at) VALUES (?,?,?,\'pending\',1,0,?,NULL,?,?,?,?,?)")
+        .run(sessionKey,7,ticket.ticketId,stamp,"physical-model-switch",40960,38000,stamp,stamp);
+      seed.close();
       const result=settleExistingContextHoldFromCompaction({
         databasePath:path,
         sessionKey,
@@ -147,11 +151,11 @@ describe("CNX-426 model-switch-aware context budget",()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx426-maintenance-"));
     try{
       const runId="run-maintenance",{path,sessionKey}=setup(root,runId);
-      let hook:any,service:any,hardTrimmed=false;
+      let hook:any,hardTrimmed=false;
       const compactCalls:any[]=[];
       const registration={
         on:(name:string,fn:any)=>{if(name==="before_agent_run")hook=fn;},
-        registerService:(value:any)=>{service=value;},
+        registerService:()=>{},
       };
       const api={
         runtime:{gateway:{request:async(method:string,params:any)=>{
@@ -178,11 +182,7 @@ describe("CNX-426 model-switch-aware context budget",()=>{
       expect(await hook(
         {prompt:"continue",messages:[],systemPrompt:""},
         {sessionKey,runId,workspaceDir:root,contextTokenBudget:40960},
-      )).toMatchObject({outcome:"block",metadata:{pressure:{contextWindow:40960}}});
-      await service.start({workspaceDir:root});
-      await vi.advanceTimersByTimeAsync(1100);
-      await Promise.resolve();
-      await service.stop();
+      )).toEqual({outcome:"pass"});
       expect(compactCalls.some((params)=>params?.maxLines!==undefined)).toBe(true);
       const db=new DatabaseSync(path,{readOnly:true});
       expect(db.prepare("SELECT state,last_action,context_window FROM cnx_context_maintenance WHERE session_key=?").get(sessionKey))
@@ -206,9 +206,8 @@ describe("CNX-426 model-switch-aware context budget",()=>{
         runtime:{gateway:{request:async(method:string)=>{
           gatewayCalls++;
           if(method==="sessions.describe")return {session:{
-            key:sessionKey,sessionId:"physical-terminal",contextTokens:32768,totalTokens:30000,totalTokensFresh:true,
+            key:sessionKey,sessionId:"physical-terminal",contextTokens:32768,totalTokens:10000,totalTokensFresh:true,
           }};
-          if(method==="sessions.compact")return {ok:true,compacted:true,result:{tokensBefore:30000,tokensAfter:4000}};
           throw new Error(`unexpected ${method}`);
         }}},
         logger:{info:()=>{},warn:()=>{}},
@@ -217,10 +216,12 @@ describe("CNX-426 model-switch-aware context budget",()=>{
       expect(await hook(
         {prompt:"next",messages:[],systemPrompt:""},
         {sessionKey,runId,workspaceDir:root,contextTokenBudget:32768},
-      )).toMatchObject({outcome:"block",metadata:{ticketId:ticket.ticketId}});
-      const db=new DatabaseSync(path);
+      )).toEqual({outcome:"pass"});
+      const db=new DatabaseSync(path),stamp=new Date().toISOString();
+      db.prepare("INSERT INTO cnx_context_maintenance(session_key,owner_generation,ticket_id,state,hard_required,attempt_count,next_attempt_at,last_error,session_id,context_window,projected_tokens,created_at,updated_at) VALUES (?,?,?,'pending',1,0,?,NULL,?,?,?,?,?)")
+        .run(sessionKey,7,ticket.ticketId,stamp,"physical-terminal",32768,30000,stamp,stamp);
       db.prepare("UPDATE tickets SET status='failed',failure_class='permanent',failure_message='host blocked',updated_at=? WHERE ticket_id=?")
-        .run(new Date().toISOString(),ticket.ticketId);
+        .run(stamp,ticket.ticketId);
       db.close();
 
       gatewayCalls=0;
@@ -248,7 +249,7 @@ describe("CNX-426 model-switch-aware context budget",()=>{
       );
       expect(decision).toMatchObject({
         outcome:"block",
-        category:"cnxclaw_context_pressure",
+        category:"cnxclaw_context_pressure_unresolved",
         metadata:{ticketId:ticket.ticketId,pressure:{contextWindow:32768}},
       });
     }finally{rmSync(root,{recursive:true,force:true});}

@@ -60,7 +60,9 @@ describe("v0.9.1 production wiring", () => {
     const contextSource = readFileSync(new URL("./v091-context-guard.ts", import.meta.url), "utf8");
     const directSource = readFileSync(new URL("./v091-direct-recovery.ts", import.meta.url), "utf8");
     expect(contextSource).not.toContain("setInterval(");
-    expect(contextSource).toContain("queueMicrotask(()=>pulse?.())");
+    expect(contextSource).not.toContain("queueMicrotask(()=>pulse?.())");
+    expect(contextSource).toContain("context_pressure_inline_resolved");
+    expect(contextSource).toContain("context_pressure_inline_unresolved");
     expect(contextSource).toContain("nextDueDelay");
     expect(directSource).not.toContain("setInterval(");
     expect(directSource).toContain("nextDirectRecoveryWakeMs");

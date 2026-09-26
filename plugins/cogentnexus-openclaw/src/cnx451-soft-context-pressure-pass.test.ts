@@ -82,7 +82,7 @@ describe("CNX-451 soft context pressure",()=>{
     }
   });
 
-  it("preserves the existing hard-pressure barrier",async()=>{
+  it("preserves fail-closed hard-pressure safety when inline compaction cannot establish a safe context",async()=>{
     const root=mkdtempSync(join(tmpdir(),"cnx451-hard-"));
     try{
       const sessionKey="agent:main:dashboard:cnx451-hard";
@@ -96,15 +96,18 @@ describe("CNX-451 soft context pressure",()=>{
 
       expect(decision).toMatchObject({
         outcome:"block",
-        category:"cnxclaw_context_pressure",
+        category:"cnxclaw_context_pressure_unresolved",
         metadata:{ticketId:ticket.ticketId,pressure:{level:"hard",contextWindow:24576}},
       });
 
       const db=new DatabaseSync(path,{readOnly:true});
-      expect(db.prepare("SELECT state,hard_required FROM cnx_context_maintenance WHERE ticket_id=?").get(ticket.ticketId))
-        .toEqual({state:"pending",hard_required:1});
-      expect(db.prepare("SELECT state FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId))
-        .toEqual({state:"pending"});
+      expect(db.prepare("SELECT state,hard_required,last_action FROM cnx_context_maintenance WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({state:"cancelled",hard_required:1,last_action:"inline-maintenance-error"});
+      const recoveryExists=Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type=\'table\' AND name=\'cnx_direct_recovery\'").get());
+      expect(recoveryExists ? db.prepare("SELECT count(*) AS n FROM cnx_direct_recovery WHERE ticket_id=?").get(ticket.ticketId) : {n:0})
+        .toEqual({n:0});
+      expect(db.prepare("SELECT status,failure_class,failure_message FROM tickets WHERE ticket_id=?").get(ticket.ticketId))
+        .toEqual({status:"accepted",failure_class:null,failure_message:null});
       db.close();
     } finally {
       rmSync(root,{recursive:true,force:true});

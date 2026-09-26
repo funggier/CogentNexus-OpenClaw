@@ -1,21 +1,21 @@
 # Coordination Status
 
-Status: `COMPLETE`
-State: `CNX451_SOFT_CONTEXT_PRESSURE_GREEN`
-Active task: `none`
-Completed task: `CNX-20260926-451-soft-context-pressure-pass.md`
-Branch: `cnx-451-soft-context-pressure-live-v2`
+Status: `ACTIVE`
+State: `CNX452_LOCAL_GREEN_CI_PENDING`
+Task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
+Branch: `cnx-452-hard-context-pressure-compact-resume`
+Executor: `ChatGPT`
 Baseline release: `v0.9.8` (immutable)
-Product baseline/main before docs closeout: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
+Baseline SHA: `a03dadecc2a95550046978d18ba3590c56ceb615`
 
-## Accepted result
+## Accepted predecessor
 
-CNX-451 is GREEN after fresh physical soft-pressure qualification. The live turn recorded one `context_pressure_soft_observed` event at `30866/40960`, proceeded into native Ollama inference, created no recovery or context-maintenance authority, and settled response/delivery/completion exactly once with zero pending outbox.
+CNX-451 is GREEN and closed on main. CNX-453 is GREEN. `OLLAMA_KEEP_ALIVE=6h` is physically active. CNX-450 remains backlog only.
 
-`OLLAMA_KEEP_ALIVE=6h` is persistent and physically active.
+## Active objective
 
-CNX-452 / GitHub issue `#44` remains BACKLOG only; no task is currently active.
+Replace the hard-pressure `block-as-defer` semantic with authority-fenced inline compact/re-evaluate/resume behavior. GitHub issue: `#44`.
 
 ## Current classification
 
-`CNX451_SOFT_CONTEXT_PRESSURE_GREEN`
+`CNX452_RED_TEST_PREPARATION`

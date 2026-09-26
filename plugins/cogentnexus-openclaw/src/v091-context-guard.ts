@@ -164,38 +164,49 @@ function observeSoftPressure(databasePath:string,input:{sessionKey:string;runId:
     return {ticketId:ticket.ticket_id,generation:auth.generation};
   } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;}finally{db.close();}
 }
-function authorize(databasePath:string,input:{sessionKey:string;runId:string;session:SessionDescription|null;pressure:ContextPressure}) {
+function authorizeHardMaintenance(databasePath:string,input:{sessionKey:string;runId:string;session:SessionDescription|null;pressure:ContextPressure}) {
   const db=openDb(databasePath),stamp=iso();
   try {
     db.exec("BEGIN IMMEDIATE");
     const auth=authority(db,input.sessionKey),ticket=currentDirectTicket(db,input.sessionKey,input.runId);
-    if(!auth||auth.state!=="active"||!ticket){db.exec("COMMIT");return undefined;}
-    const recoveryTable=db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cnx_direct_recovery'").get();
-    if(!recoveryTable) db.exec(`CREATE TABLE cnx_direct_recovery(
-      ticket_id TEXT PRIMARY KEY REFERENCES tickets(ticket_id) ON DELETE CASCADE,
-      mode TEXT NOT NULL DEFAULT 'resume',state TEXT NOT NULL DEFAULT 'pending',attempt_count INTEGER NOT NULL DEFAULT 0,
-      active_run_id TEXT,next_attempt_at TEXT,last_error TEXT,owner_generation INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`);
-    const reason=`context pressure ${Math.round(input.pressure.ratio*100)}% (${input.pressure.projectedTokens}/${input.pressure.contextWindow})`;
-    db.prepare(`INSERT INTO cnx_direct_recovery(ticket_id,mode,state,attempt_count,active_run_id,next_attempt_at,last_error,owner_generation,created_at,updated_at)
-      VALUES (?,'resume','pending',0,NULL,?,?,?, ?,?) ON CONFLICT(ticket_id) DO UPDATE SET
-      mode='resume',state='pending',active_run_id=NULL,next_attempt_at=excluded.next_attempt_at,last_error=excluded.last_error,
-      owner_generation=excluded.owner_generation,updated_at=excluded.updated_at`)
-      .run(ticket.ticket_id,stamp,reason,auth.generation,stamp,stamp);
-    db.prepare(`UPDATE tickets SET failure_class='interrupted',failure_message=?,delivery_last_error=?,response_ready_at=NULL,
-      delivery_confirmed_at=NULL,updated_at=? WHERE ticket_id=? AND status='accepted'`).run(reason,reason,stamp,ticket.ticket_id);
+    if(!auth||auth.state!=="active"||!ticket||input.pressure.level!=="hard"){db.exec("COMMIT");return undefined;}
     db.prepare(`INSERT INTO cnx_context_maintenance(session_key,owner_generation,ticket_id,state,hard_required,attempt_count,next_attempt_at,last_error,
-      session_id,context_window,projected_tokens,created_at,updated_at) VALUES (?,?,?,'pending',?,0,?,NULL,?,?,?,?,?)
+      session_id,context_window,projected_tokens,created_at,updated_at) VALUES (?,?,?,'pending',1,0,?,NULL,?,?,?,?,?)
       ON CONFLICT(session_key) DO UPDATE SET owner_generation=excluded.owner_generation,ticket_id=excluded.ticket_id,state='pending',
-      hard_required=excluded.hard_required,attempt_count=0,next_attempt_at=excluded.next_attempt_at,last_error=NULL,
+      hard_required=1,attempt_count=0,next_attempt_at=excluded.next_attempt_at,last_error=NULL,
       session_id=excluded.session_id,context_window=excluded.context_window,projected_tokens=excluded.projected_tokens,
       capsule_path=NULL,completed_at=NULL,updated_at=excluded.updated_at`)
-      .run(input.sessionKey,auth.generation,ticket.ticket_id,input.pressure.level==="hard"?1:0,stamp,input.session?.sessionId??null,
+      .run(input.sessionKey,auth.generation,ticket.ticket_id,stamp,input.session?.sessionId??null,
         input.pressure.contextWindow,input.pressure.projectedTokens,stamp,stamp);
-    event(db,ticket.ticket_id,"context_pressure_deferred",{sessionKey:input.sessionKey,generation:auth.generation,sessionId:input.session?.sessionId,
-      pressure:input.pressure,reason},stamp);
+    event(db,ticket.ticket_id,"context_pressure_hard_observed",{
+      sessionKey:input.sessionKey,generation:auth.generation,sessionId:input.session?.sessionId,
+      pressure:input.pressure,policy:"inline-compact-before-run",
+    },stamp);
     db.exec("COMMIT");
-    return {ticketId:ticket.ticket_id,generation:auth.generation};
+    const row:Maintenance={
+      session_key:input.sessionKey,owner_generation:auth.generation,ticket_id:ticket.ticket_id,state:"pending",
+      hard_required:1,attempt_count:0,session_id:input.session?.sessionId??null,
+      context_window:input.pressure.contextWindow,projected_tokens:input.pressure.projectedTokens,
+    };
+    return {ticketId:ticket.ticket_id,generation:auth.generation,row};
+  } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;}finally{db.close();}
+}
+
+function recordInlinePressureEvent(databasePath:string,input:{
+  sessionKey:string;runId:string;ticketId:string;eventType:"context_pressure_inline_resolved"|"context_pressure_inline_unresolved";
+  before:ContextPressure;after?:ContextPressure;action?:string;error?:string;
+}) {
+  const db=openDb(databasePath),stamp=iso();
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const auth=authority(db,input.sessionKey),ticket=currentDirectTicket(db,input.sessionKey,input.runId);
+    if(!auth||auth.state!=="active"||!ticket||ticket.ticket_id!==input.ticketId){db.exec("COMMIT");return false;}
+    event(db,input.ticketId,input.eventType,{
+      sessionKey:input.sessionKey,generation:auth.generation,before:input.before,after:input.after,
+      action:input.action,error:input.error,policy:"inline-compact-before-run",
+    },stamp);
+    db.exec("COMMIT");
+    return true;
   } catch(error){try{db.exec("ROLLBACK");}catch{}throw error;}finally{db.close();}
 }
 
@@ -338,7 +349,7 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
   let pulse:(()=>void)|undefined;
   registrationApi.on?.("before_agent_run",async(event:any,ctx:any)=>{
     if(!ctx.sessionKey||ctx.sessionKey.includes(":subagent:")||!ctx.runId||String(ctx.runId).startsWith("cnxclaw-direct-"))return {outcome:"pass"};
-    const {databasePath}=paths(ctx),db=openDb(databasePath);let ticket:any;
+    const {workspaceDir,databasePath}=paths(ctx),db=openDb(databasePath);let ticket:any;
     try{ticket=currentDirectTicket(db,ctx.sessionKey,ctx.runId);}finally{db.close();}
     if(!ticket)return {outcome:"pass"};
     let session:SessionDescription|null=null;
@@ -353,13 +364,54 @@ export function installContextGuard(api:any,registrationApi:any,config:ContextGu
       if(observed)api.logger.info?.(`CogentNexus-OpenClaw context soft observation ${ctx.sessionKey}: ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${observed.ticketId}; owner inference remains enabled`);
       return {outcome:"pass"};
     }
-    const queued=authorize(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,session,pressure});
+    const queued=authorizeHardMaintenance(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,session,pressure});
     if(!queued)return {outcome:"pass"};
-    api.logger.info?.(`CogentNexus-OpenClaw context barrier ${ctx.sessionKey}: ${pressure.level} ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${queued.ticketId}`);
-    queueMicrotask(()=>pulse?.());
-    return {outcome:"block",reason:"CogentNexus-OpenClaw committed this request and deferred owner inference before context overflow",
-      category:"cnxclaw_context_pressure",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
-  },{priority:1500,timeoutMs:10000});
+    const row=queued.row;
+    api.logger.info?.(`CogentNexus-OpenClaw hard context maintenance ${ctx.sessionKey}: ${pressure.projectedTokens}/${pressure.contextWindow} ticket=${queued.ticketId}`);
+    if(!claim(databasePath,row)){
+      recordInlinePressureEvent(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,ticketId:queued.ticketId,
+        eventType:"context_pressure_inline_unresolved",before:pressure,error:"maintenance authority claim failed"});
+      return {outcome:"block",reason:"CogentNexus-OpenClaw could not claim hard-context maintenance authority",
+        category:"cnxclaw_context_pressure_unresolved",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
+    }
+    let result:any;
+    try{
+      result=await maintain(api,row,config,workspaceDir,databasePath);
+    }catch(error){
+      const message=error instanceof Error?error.message:String(error);
+      finish(databasePath,row,{state:"cancelled",action:"inline-maintenance-error",error:message});
+      recordInlinePressureEvent(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,ticketId:queued.ticketId,
+        eventType:"context_pressure_inline_unresolved",before:pressure,error:message});
+      api.logger.warn?.(`CogentNexus-OpenClaw inline hard context maintenance failed ${ctx.sessionKey}: ${message}`);
+      return {outcome:"block",reason:"CogentNexus-OpenClaw could not establish a safe context after bounded compaction",
+        category:"cnxclaw_context_pressure_unresolved",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
+    }
+    let postSession:SessionDescription|null=null;
+    try{postSession=await describe(api,ctx.sessionKey);}catch(error){
+      const message=error instanceof Error?error.message:String(error);
+      finish(databasePath,row,{state:"cancelled",action:"inline-post-describe-error",error:message});
+      recordInlinePressureEvent(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,ticketId:queued.ticketId,
+        eventType:"context_pressure_inline_unresolved",before:pressure,action:result?.action,error:message});
+      return {outcome:"block",reason:"CogentNexus-OpenClaw could not verify context after compaction",
+        category:"cnxclaw_context_pressure_unresolved",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure}};
+    }
+    const postPressureSession=turnBudget?{...(postSession??{}),contextTokens:turnBudget}:postSession;
+    // sessions.compact changes the physical transcript after before_agent_run captured event.messages.
+    // Revalidate from the fresh owner-session counter plus the current prompt/system, not the stale pre-compact transcript snapshot.
+    const postPressure=contextPressure({messages:[],prompt:event.prompt,systemPrompt:event.systemPrompt,session:postPressureSession,config});
+    if(postPressure.level!=="hard"){
+      recordInlinePressureEvent(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,ticketId:queued.ticketId,
+        eventType:"context_pressure_inline_resolved",before:pressure,after:postPressure,action:result?.action});
+      api.logger.info?.(`CogentNexus-OpenClaw hard context resolved inline ${ctx.sessionKey}: ${pressure.projectedTokens}->${postPressure.projectedTokens}/${postPressure.contextWindow} action=${result?.action??"unknown"}`);
+      return {outcome:"pass"};
+    }
+    const message=`context remains hard after bounded maintenance (${postPressure.projectedTokens}/${postPressure.contextWindow})`;
+    finish(databasePath,row,{state:"cancelled",action:"inline-postcondition-hard",before:pressure.projectedTokens,after:postPressure.projectedTokens,error:message});
+    recordInlinePressureEvent(databasePath,{sessionKey:ctx.sessionKey,runId:ctx.runId,ticketId:queued.ticketId,
+      eventType:"context_pressure_inline_unresolved",before:pressure,after:postPressure,action:result?.action,error:message});
+    return {outcome:"block",reason:"CogentNexus-OpenClaw context remains unsafe after bounded compaction",
+      category:"cnxclaw_context_pressure_unresolved",metadata:{ticketId:queued.ticketId,ownerGeneration:queued.generation,pressure:postPressure}};
+  },{priority:1500,timeoutMs:Math.min(2400000,Math.max(60000,(config.contextCompactionTimeoutMs??600000)+420000))});
 
   let initial:ReturnType<typeof setTimeout>|undefined,retry:ReturnType<typeof setTimeout>|undefined,active=false,rerun=false,stopped=false;
   registrationApi.registerService?.({id:"cogentnexus-openclaw-context-maintenance-v091",start:async(ctx:any)=>{
