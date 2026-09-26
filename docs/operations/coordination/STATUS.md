@@ -1,54 +1,48 @@
 # Coordination Status
 
-Status: `COMPLETE`
-State: `CNX447_V098_RELEASE_GREEN`
-Task: `CNX-20260925-447-v098-release-preparation-and-publication.md`
-Branch: `cnx-447-v098-release-preparation`
+Status: `ACTIVE`
+State: `CNX448_LOCAL_GREEN_CI_PENDING`
+Task: `CNX-20260926-448-native-ollama-terminal-boundary-and-long-running-semantics.md`
+Branch: `cnx-448-native-ollama-terminal-boundary`
 Executor: `ChatGPT`
-Target release: `v0.9.8`
-Production-code authority: `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
+Baseline release: `v0.9.8` (immutable)
+Baseline SHA: `49915000ecbec131112937cd44ec7a5f0effa00a`
 
-## Task 446 result
+## Accepted predecessor
 
-`CNX446_DASHBOARD_DIRECT_TERMINAL_BOUNDARY_GREEN`
+CNX-447 / v0.9.8 is complete and remains immutable.
 
-The live defect is no longer reproducible. Codex/App-Server progress and tool writes remain non-terminal; the exact mirrored `runTerminal=true` final alone becomes the durable Direct result. Native Ollama fallback remains GREEN.
+CNX-446 proved the terminal-authority pattern for Codex/App-Server mirrored messages: progress/tool writes cannot settle Direct delivery; exact mirrored `runTerminal=true` final authority is required.
 
-## Release-preparation baseline
+## New live defect
 
-The accepted production-code candidate has:
+Native Ollama session `4e97d1d4-2007-43d0-838d-0a929f1e8140` demonstrated that the preserved native fallback is too permissive:
 
-- exact-SHA GitHub CI GREEN;
-- real OpenClaw 2026.9.5 install-over PASS;
-- installed/source production-file parity PASS;
-- Host active generation 30;
-- plugin loaded with empty diagnostics;
-- Gateway healthy;
-- runtime hook runner ready;
-- v092 supervisor healthy;
-- no non-terminal Tickets/outbox residue;
-- fresh installed-candidate Codex acceptance GREEN.
+- `ollama/qwen3.8:27b`;
+- exact run `189e1a24-8230-4d50-90fc-d24d25ca1acc`;
+- assistant `stopReason="toolUse"` with tool calls;
+- intermediate text was incorrectly staged/delivered;
+- Ticket completed before tool continuation;
+- later host state was `interrupted`, yielding `host_terminal_conflict`.
 
-## Current phase
+## Local repair result
 
-Stages 1-5 pre-publication qualification: GREEN.
+The production topology was reproduced RED before source changes. The repair now classifies native OpenClaw terminal authority before the existing Direct settlement boundary:
 
-The exact v0.9.8 candidate is frozen at `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`, exact-SHA GitHub gates are GREEN, real v0.9.7 -> v0.9.8 install-over is GREEN, installed/source payload parity is exact, and a fresh installed-candidate Codex terminal-final acceptance is GREEN.
+- `toolUse` / tool-call-bearing assistant writes: non-terminal;
+- aborted/error/timeout/interrupted writes: not terminal success;
+- native exact `__openclaw.runId`: exact Ticket/session fence;
+- true native terminal success: existing durable settlement remains valid;
+- Codex/App-Server CNX-446 behavior: unchanged.
 
-Validation summary:
+Validation: focused `20/20`, full Vitest `94/441`, full Python `745 passed / 5 skipped / 38 subtests`, build/evaluation/plugin validation/audit/diff-check PASS.
 
-- focused release contracts: 40/40 PASS;
-- full Python: 745 passed, 5 skipped, 38 subtests;
-- Vitest: 93 files / 436 tests PASS;
-- evaluation: PASS;
-- production audit: 0 vulnerabilities;
-- plugin/package validation: PASS, 294 packed files;
-- payload identity: `173d6f95de3d5eaef420b47faf27d0d98f52190e570b8109dcc49f078423f9c0`;
-- PowerShell/PS5.1/POSIX syntax/self-tests: PASS;
-- `git diff --check`: PASS.
+GitHub issue: `#40`.
 
-v0.9.8 is published at immutable tag SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`, and `main` has already fast-forwarded to post-release docs commit `8d2204a6f1f0978873ef6c00bc3035cf3e664dc6`.
+## Current classification
+
+`CNX448_LOCAL_GREEN_CI_PENDING`
 
 ## Next gate
 
-The stale docs-parser contract found by main Validate `36160610790` was repaired in `af90ff5c3259f2fb82228a1089f20cafe62cecc2`. Branch CI (`36162086121`, `36162086188`, `36162086282`) and main CI (`36163150015`, `36163150106`, `36163150135`) are all SUCCESS. CNX-447 is complete and v0.9.8 remains immutable at release/tag SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`.
+Commit/push exact candidate SHA, require GitHub CI GREEN, then perform physical install-over/source-parity and fresh native Ollama acceptance.

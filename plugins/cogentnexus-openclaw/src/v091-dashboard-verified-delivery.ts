@@ -82,6 +82,36 @@ function codexMirrorRunAuthority(message: any) {
   };
 }
 
+type NativeTerminalClassification = "terminal-success" | "non-terminal" | "interrupted" | "unknown";
+
+function nativeTerminalAuthority(message: any): {
+  classification: NativeTerminalClassification;
+  runId?: string;
+  reason: string;
+} {
+  const meta = message?.__openclaw;
+  const runId = typeof meta?.runId === "string" && meta.runId.trim() ? meta.runId.trim() : undefined;
+  const stopReason = typeof message?.stopReason === "string" ? message.stopReason.trim() : "";
+  const normalizedStopReason = stopReason.toLowerCase();
+  const content = Array.isArray(message?.content) ? message.content : [];
+  const hasToolCall = content.some((part: any) => part?.type === "toolCall" || part?.type === "tool_call");
+  const hasError = typeof message?.errorMessage === "string" && message.errorMessage.trim().length > 0;
+
+  if (hasToolCall || normalizedStopReason === "tooluse" || normalizedStopReason === "tool_use") {
+    return { classification: "non-terminal", runId, reason: hasToolCall ? "tool-call-content" : "tool-use-stop" };
+  }
+  if (hasError || ["aborted", "error", "timeout", "cancelled", "canceled", "interrupted"].includes(normalizedStopReason)) {
+    return { classification: "interrupted", runId, reason: hasError ? "error-message" : "interrupted-stop" };
+  }
+  if (["stop", "completed", "complete", "end_turn", "endturn"].includes(normalizedStopReason)) {
+    return { classification: "terminal-success", runId, reason: "native-terminal-stop" };
+  }
+  if (!stopReason) {
+    return { classification: "terminal-success", runId, reason: "legacy-native-no-stop-reason" };
+  }
+  return { classification: "unknown", runId, reason: "unknown-stop-reason" };
+}
+
 function isBareSilentReply(text: string) {
   return /^NO_REPLY$/iu.test(text.trim());
 }
@@ -540,8 +570,17 @@ export function installV091DashboardVerifiedDelivery(api: any, cfg: DashboardVer
         return { runId: ticket.run_id, sessionKey, text, ingressSurface: "dashboard" };
       }
 
-      // Preserve the proven native/legacy path (including Ollama), where this
-      // Codex mirror metadata is not projected into the assistant message.
+      // Native OpenClaw/Ollama does not expose Codex runTerminal metadata, so
+      // classify its own terminal evidence before allowing the legacy fallback
+      // to stage a durable result. Tool-use/progress and interrupted writes are
+      // explicitly non-success and must leave the Ticket recoverable.
+      const nativeAuthority = nativeTerminalAuthority(event.message);
+      if (nativeAuthority.classification !== "terminal-success") return undefined;
+      if (nativeAuthority.runId) {
+        const ticket = dashboardTicket(path, nativeAuthority.runId);
+        if (!ticket || ticket.owner_session_key !== sessionKey) return undefined;
+        return { runId: ticket.run_id, sessionKey, text };
+      }
       const ticket = dashboardTicketForSession(path, sessionKey);
       return ticket ? { runId: ticket.run_id, sessionKey, text } : undefined;
     })();

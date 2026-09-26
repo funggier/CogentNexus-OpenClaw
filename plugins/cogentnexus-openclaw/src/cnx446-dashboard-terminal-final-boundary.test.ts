@@ -214,6 +214,47 @@ describe("CNX-446 Dashboard Direct terminal-final boundary", () => {
     }
   });
 
+  it("does not settle a native Ollama tool-use assistant write as the durable final", () => {
+    const s = setup("native-tool-use");
+    try {
+      const runId = "189e1a24-8230-4d50-90fc-d24d25ca1acc";
+      const sessionKey = "agent:main:dashboard:4e97d1d4-2007-43d0-838d-0a929f1e8140";
+      const ticket = acceptDirect(s.path, runId, sessionKey);
+      const beforeMessageWrite = s.hooks.get("before_message_write");
+
+      const toolUse = {
+        role: "assistant",
+        provider: "ollama",
+        model: "qwen3.8:27b",
+        stopReason: "toolUse",
+        content: [
+          { type: "text", text: "I will inspect the skill and memory before answering. </think>" },
+          { type: "toolCall", id: "call-read", name: "read", arguments: {} },
+          { type: "toolCall", id: "call-memory", name: "memory_search", arguments: {} },
+        ],
+        __openclaw: { runId },
+      };
+
+      const result = beforeMessageWrite?.(
+        { message: toolUse },
+        { sessionKey, agentId: "main" },
+      ) as any;
+
+      expect(result).toBeUndefined();
+      expect(messageText(result?.message ?? toolUse)).not.toContain("cogentnexus-openclaw-delivery:");
+
+      const state = ticketState(s.path, ticket.ticketId) as any;
+      expect(state.ticket).toEqual({
+        status: "accepted",
+        response_ready_at: null,
+        delivery_confirmed_at: null,
+      });
+      expect(state.deliveryCount).toEqual({ n: 0 });
+    } finally {
+      s.cleanup();
+    }
+  });
+
   it("preserves the proven native fallback when OpenClaw does not provide mirrored runTerminal metadata", () => {
     const s = setup("native");
     try {
