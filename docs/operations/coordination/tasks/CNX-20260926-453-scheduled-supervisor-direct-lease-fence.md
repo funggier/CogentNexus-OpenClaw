@@ -110,6 +110,42 @@ Follow-up validation:
 - build/evaluation/plugin validation/audit/diff-check/skill validation PASS;
 - evaluation evidence SHA-256 `48e3dc446018c96cc4dcff6d888d06eb281a5e525b0526b2c8cce90c5a1f8d6f`.
 
-## Current classification
+## Final physical qualification
 
-`CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`
+Follow-up candidate `f90a67b739ed60355c9194407f6b7e20309a5918` passed exact-SHA CI:
+- Validate `36241804747` — SUCCESS;
+- PS5.1 Acceptance Smoke `36241804750` — SUCCESS;
+- Windows Installer Pack Smoke `36241804778` — SUCCESS.
+
+Installed Host surfaces match source byte-for-byte for the repaired files. The installed Windows Supervisor reports `ExecutionTimeLimit=PT15M`, `MultipleInstances=IgnoreNew`, one-minute cadence, and successful ticks.
+
+Physical long-running requalification:
+- session `agent:main:dashboard:cnx453-soft-live-v2`;
+- Ticket `CNXT-41b9af1b-a2e9-48ff-81b4-b1d468fbc6da`;
+- run `2e4c1f7f-372b-4702-916d-7c943eabeb31`;
+- provider/model `ollama/qwen3.8:27b`;
+- call #1 ran `1,384,388 ms` (~23m04s) and ended `toolUse`;
+- the intermediate tool-use did not produce `response_ready`, delivery, or completion;
+- call #2 ran `233,345 ms` (~3m53s) and produced the terminal assistant result;
+- Ticket completed only after call #2;
+- one durable response/delivery confirmation, zero outbox residue;
+- Gateway stayed HTTP 200 and scheduled supervisor ticks remained successful throughout the >15-minute execution;
+- no premature maintenance or Gateway restart occurred.
+
+Startup settlement requalification:
+- original prime call `b40ea823...:model:1` is now `interrupted / host-startup-boundary-settled`;
+- its canonical attempt is `ended / host-startup-boundary-settled`;
+- continuation call `c3b3fc87...:model:1` and attempt are ended with `host-gateway-interruption-authorized`;
+- no active Direct model-call residue remains.
+
+Operational keep-alive:
+- persistent User `OLLAMA_KEEP_ALIVE=6h`;
+- live `ollama ps` confirms `qwen3.8:27b ... UNTIL 6 hours from now`.
+
+Two historical inference-attempt rows from 2026-09-22/23 remain marked active without active model-call rows. They predate CNX-453 and are recorded as separate cleanup debt; they did not participate in this recovery or lease decision.
+
+Status: `COMPLETE`
+
+## Final classification
+
+`CNX453_SCHEDULED_SUPERVISOR_DIRECT_LEASE_GREEN`

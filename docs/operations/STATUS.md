@@ -1,11 +1,11 @@
 # Current Project Status
 
 **Updated:** 2026-09-26
-**Active task:** CNX-453 — scheduled supervisor Direct-lease fence and Gateway recovery settlement
+**Active task:** CNX-453 — physical GREEN, closeout CI pending
 **Working branch:** `cnx-453-supervisor-direct-lease-fence`
-**Task baseline:** `09eec4113b371d39334d90a332fa9a6455530db0` (CNX-451 candidate)
+**Task candidate:** `f90a67b739ed60355c9194407f6b7e20309a5918`
 **GitHub issue:** `#45`
-**Current classification:** `CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`
+**Current classification:** `CNX453_PHYSICAL_GREEN_CLOSEOUT_CI_PENDING`
 
 ## Active development position
 

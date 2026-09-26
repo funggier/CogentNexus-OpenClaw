@@ -1,7 +1,7 @@
 # CNX-20260926-453 — Scheduled Supervisor Direct-Lease Fence and Gateway Recovery Settlement Report
 
-Status: `IN_PROGRESS`
-Classification: `CNX453_LOCAL_GREEN_CI_PENDING`
+Status: `COMPLETE`
+Classification: `CNX453_SCHEDULED_SUPERVISOR_DIRECT_LEASE_GREEN`
 GitHub issue: `#45`
 Working branch: `cnx-453-supervisor-direct-lease-fence`
 Baseline SHA: `09eec4113b371d39334d90a332fa9a6455530db0`
@@ -109,15 +109,41 @@ Follow-up validation:
 - production audit `0 vulnerabilities`;
 - `git diff --check` and skill validator PASS.
 
-## Remaining gates
+## Follow-up exact-SHA CI
 
-1. commit/push follow-up exact candidate SHA;
-2. exact-SHA GitHub CI;
-3. physical install-over of the follow-up candidate;
-4. confirm the stale prime model-call / canonical attempt are no longer active without authorizing a stale-session resume;
-5. perform controlled Ollama restart after durable work is quiescent and verify `OLLAMA_KEEP_ALIVE=6h` is active;
-6. live long-running Direct lease requalification, then resume CNX-451 soft-pressure acceptance.
+Candidate `f90a67b739ed60355c9194407f6b7e20309a5918`:
+- Validate `36241804747` — SUCCESS;
+- PS5.1 Acceptance Smoke `36241804750` — SUCCESS;
+- Windows Installer Pack Smoke `36241804778` — SUCCESS.
 
-## Current classification
+## Final physical requalification
 
-`CNX453_FOLLOWUP_LOCAL_GREEN_CI_PENDING`
+Installed/source repaired Host surfaces are byte-identical. The physical Supervisor reports `PT15M`, `IgnoreNew`, enabled/hidden state, one-minute cadence, and successful ticks.
+
+Long-running live run:
+- session `agent:main:dashboard:cnx453-soft-live-v2`;
+- Ticket `CNXT-41b9af1b-a2e9-48ff-81b4-b1d468fbc6da`;
+- run `2e4c1f7f-372b-4702-916d-7c943eabeb31`;
+- `ollama/qwen3.8:27b`;
+- model call #1: `1,384,388 ms` (~23m04s), completed with host transcript `stopReason=toolUse`;
+- tool result followed; no premature `response_ready` or delivery;
+- model call #2: `233,345 ms` (~3m53s), completed terminally;
+- `response_ready` `13:30:39.566Z`;
+- delivery confirmed and Ticket completed `13:30:39.635Z`;
+- exactly one durable delivery, zero pending outbox.
+
+During the >15-minute first call the Gateway remained HTTP 200 and the scheduled Supervisor continued successful ticks. No hard-hang maintenance or Gateway restart was triggered while the Direct lease was active.
+
+Settlement verification:
+- stale prime call `b40ea823...:model:1` -> `interrupted / host-startup-boundary-settled`;
+- matching canonical attempt -> `ended / host-startup-boundary-settled`;
+- continuation call/attempt -> `host-gateway-interruption-authorized`;
+- active Direct model calls after requalification: `0`.
+
+Ollama keep-alive is now live, not only persistent: `ollama ps` reports `qwen3.8:27b` retained for `6 hours from now`.
+
+Two pre-existing orphan inference-attempt rows from 2026-09-22/23 remain `active` without active model-call rows. They predate this task and are tracked as separate cleanup debt; CNX-453's physical Ticket/call lineage is clean.
+
+## Final classification
+
+`CNX453_SCHEDULED_SUPERVISOR_DIRECT_LEASE_GREEN`
