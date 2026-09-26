@@ -1,31 +1,31 @@
 # Active Coordination
 
 Status: `ACTIVE`
-State: `CNX453_PHYSICAL_GREEN_CLOSEOUT_CI_PENDING`
-Task: `CNX-20260926-453-scheduled-supervisor-direct-lease-fence.md`
+State: `CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
+Task: `CNX-20260926-451-soft-context-pressure-pass.md`
 Assigned executor: `ChatGPT`
 Human final authority: `Operator`
-Working branch: `cnx-453-supervisor-direct-lease-fence`
-Candidate SHA: `f90a67b739ed60355c9194407f6b7e20309a5918`
-GitHub issue: `#45`
+Working branch: `cnx-451-soft-context-pressure-live-v2`
+Baseline/main SHA: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
+GitHub issue: `#43`
 
-## Physical qualification
+## Accepted prerequisites
 
-CNX-453 is physically GREEN:
-- exact-SHA CI for `f90a67b...`: 3/3 SUCCESS;
-- installed repaired Host surfaces match source;
-- Supervisor: `PT15M`, `IgnoreNew`, one-minute cadence;
-- live `ollama/qwen3.8:27b` call #1 ran ~23m04s without premature Gateway restart;
-- intermediate `toolUse` remained non-terminal;
-- call #2 completed terminally after ~3m53s;
-- exactly-once durable delivery, zero pending outbox;
-- stale prime execution was settled without stale-session resume;
-- `OLLAMA_KEEP_ALIVE=6h` is confirmed live by `ollama ps`.
+- CNX-451 implementation candidate `09eec4113b371d39334d90a332fa9a6455530db0` passed exact-SHA CI and physical install-over.
+- CNX-453 infrastructure blocker is GREEN and closed on main at `520d07d5bdb26be22fc03fd48a241c91bc3436ea`.
+- CNX-453 physical qualification proved >23-minute Ollama inference can remain protected by the Direct lease, terminal settlement remains exactly once, and `OLLAMA_KEEP_ALIVE=6h` is live.
 
-## Next
+## Remaining objective
 
-Publish docs-only CNX-453 closeout, wait exact-SHA CI, fast-forward main, then resume CNX-451 soft-pressure live acceptance.
+Produce a fresh live owner-session turn whose context guard classifies pressure as `soft`, then prove:
+- `context_pressure_soft_observed` is durable;
+- the hook does not return a terminal block;
+- model inference starts;
+- no recovery/context-maintenance authority is created by the soft observation;
+- terminal response settles exactly once with zero outbox residue.
+
+CNX-452 remains backlog for hard-pressure compact/resume semantics.
 
 ## Current classification
 
-`CNX453_PHYSICAL_GREEN_CLOSEOUT_CI_PENDING`
+`CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`

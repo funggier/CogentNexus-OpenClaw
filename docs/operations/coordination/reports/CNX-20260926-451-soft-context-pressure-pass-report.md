@@ -1,10 +1,10 @@
 # CNX-20260926-451 — Soft Context Pressure Must Not Block Dashboard Turns Report
 
 Status: `IN_PROGRESS`
-Classification: `CNX451_LOCAL_GREEN_CI_PENDING`
+Classification: `CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
 GitHub issue: `#43`
-Working branch: `cnx-451-soft-context-pressure-pass`
-Baseline SHA: `3a08d06d3b152e347011b6bdafeef985c2ed45ad`
+Working branch: `cnx-451-soft-context-pressure-live-v2`
+Baseline/main SHA: `520d07d5bdb26be22fc03fd48a241c91bc3436ea`
 Baseline release: `v0.9.8` (immutable)
 
 ## Production defect
@@ -68,14 +68,18 @@ GREEN focused qualification:
 - Production dependency audit: `0 vulnerabilities`.
 - `git diff --check`: PASS.
 
-## Remaining gates
+## Accepted gates since local qualification
 
-1. commit/push exact candidate SHA;
-2. GitHub exact-SHA CI;
-3. physical install-over and package/installed parity;
-4. live Dashboard soft-pressure acceptance on the affected session or an equivalent soft-pressure owner session;
-5. verify model call starts instead of permanent block and settlement remains exactly once.
+- implementation candidate `09eec4113b371d39334d90a332fa9a6455530db0` committed/pushed;
+- exact-SHA CI 3/3 SUCCESS;
+- physical install-over exit `0` and package/installed parity accepted;
+- CNX-453 infrastructure blocker repaired and closed GREEN on main `520d07d5bdb26be22fc03fd48a241c91bc3436ea`;
+- `OLLAMA_KEEP_ALIVE=6h` confirmed live.
+
+## Remaining gate
+
+Fresh live Dashboard-equivalent owner-session soft-pressure acceptance: durable `context_pressure_soft_observed`, no terminal block, inference starts, no soft-created recovery/maintenance authority, and terminal result settles exactly once with zero pending outbox.
 
 ## Current classification
 
-`CNX451_LOCAL_GREEN_CI_PENDING`
+`CNX451_LIVE_SOFT_ACCEPTANCE_PENDING`
