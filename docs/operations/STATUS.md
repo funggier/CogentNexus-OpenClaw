@@ -1,18 +1,19 @@
 # Current Project Status
 
-**Updated:** 2026-09-27
-**Active task:** `CNX-20260927-456-v0.9.9-release.md`
-**Working branch:** `cnx-456-v0.9.9-release`
-**GitHub issue:** `#48`
-**Current classification:** `CNX456_V099_PUBLISHED_MAIN_CONVERGENCE_PENDING`
+**Updated:** 2026-09-28
+**Active task:** none
+**Latest completed task:** `CNX-20260927-456-v0.9.9-release.md`
+**GitHub issue:** `#48` — completed
+**Current classification:** `CNX456_V099_RELEASE_MAIN_CONVERGENCE_GREEN`
 
 ## Current accepted position
 
-CogentNexus-OpenClaw v0.9.9 is published, independently verified, and physically installed on OpenClaw 2026.9.6. The immutable public tag targets exact candidate `ea3b454815378dc1d45b2db621662744ddcd9936`.
+CogentNexus-OpenClaw v0.9.9 is published, independently verified, physically installed on OpenClaw 2026.9.6, and converged to `main` by fast-forward only. The immutable public tag targets exact release candidate `ea3b454815378dc1d45b2db621662744ddcd9936`.
 
 **Current source/release line:** v0.9.9 (published accepted baseline)
 **Latest published release:** v0.9.9
 **Accepted release/tag SHA:** `ea3b454815378dc1d45b2db621662744ddcd9936`
+**Post-release main convergence SHA:** `bdcf8180204a79aea9dbadc4d436241378612043`
 **Release workflow:** `36335012227` — SUCCESS
 **Validated OpenClaw runtime:** `2026.9.6`
 **Managed Host:** active / MANAGED / generation 56
@@ -23,15 +24,20 @@ CogentNexus-OpenClaw v0.9.9 is published, independently verified, and physically
 **Cloud/model/auth routing:** OpenClaw-owned pass-through
 **License:** MIT
 
-## Exact-SHA qualification
+## Qualification
 
-- Validate `36333858334`: SUCCESS;
-- PS5.1 Acceptance Smoke `36333858304`: SUCCESS;
-- Windows Installer Pack Smoke `36333858298`: SUCCESS;
+- exact-candidate Validate `36333858334`: SUCCESS;
+- exact-candidate PS5.1 Acceptance Smoke `36333858304`: SUCCESS;
+- exact-candidate Windows Installer Pack Smoke `36333858298`: SUCCESS;
 - Release `36335012227`: SUCCESS;
+- post-release main Validate `36336713410`: SUCCESS;
+- post-release main PS5.1 Acceptance Smoke `36336713372`: SUCCESS;
+- post-release main Windows Installer Pack Smoke `36336713419`: SUCCESS;
 - local full Python: `764 passed, 5 skipped, 38 subtests passed`;
-- Vitest: 96 files / 448 tests PASS;
-- production audit: 0 vulnerabilities.
+- local Vitest: `96 files / 448 tests` PASS;
+- evaluation: PASS;
+- production `npm audit --omit=dev`: 0 vulnerabilities;
+- plugin validation: PASS / 300 packed files.
 
 ## Physical install-over
 
@@ -52,9 +58,5 @@ CogentNexus-OpenClaw v0.9.9 is published, independently verified, and physically
 - SHA256SUMS: `72abd0a17e4d68458f266e3d84fddf6f40e53df5d861a7241121736c332a9637`.
 
 Independent public downloads match `SHA256SUMS.txt` and GitHub asset digests. Documentation ZIP contains 59 bounded documentation entries and no coordination internals.
-
-## Remaining closeout
-
-Fast-forward `main` to the post-release current-document convergence commit, verify remote main, then mark CNX-456 COMPLETE / coordination IDLE and close Issue #48.
 
 Historical v0.9.6/v0.9.7/v0.9.8 tags/releases remain immutable.

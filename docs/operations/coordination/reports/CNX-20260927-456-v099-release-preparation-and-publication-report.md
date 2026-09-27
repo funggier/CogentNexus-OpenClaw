@@ -1,6 +1,6 @@
 # CNX-20260927-456 — v0.9.9 Release Preparation and Publication Report
 
-Status: `PUBLISHED_MAIN_CONVERGENCE_PENDING`
+Status: `COMPLETE`
 Branch: `cnx-456-v0.9.9-release`
 GitHub Issue: `#48`
 Release: `v0.9.9`
@@ -171,4 +171,25 @@ Reason:
 
 `CNX456_V099_PUBLISHED_PUBLIC_VERIFICATION_GREEN`
 
-The immutable v0.9.9 tag/release is complete. Post-release current-document convergence to `main` is the only remaining closeout step; the published tag/release must not be rewritten.
+The immutable v0.9.9 tag/release is complete and must not be rewritten.
+
+## Main convergence closeout
+
+- remote `main` before convergence: `ac0c6dc9f390bc6b3d7ae42b2ec75e757a858295`;
+- post-release documentation convergence commit: `bdcf8180204a79aea9dbadc4d436241378612043`;
+- local ancestry proof: 8 commits ahead / 0 behind, therefore pure fast-forward;
+- release branch fast-forward: verified, no force;
+- main fast-forward: verified, no force;
+- remote branch and main both resolved to `bdcf8180204a79aea9dbadc4d436241378612043` before final closeout;
+- main Validate `36336713410`: SUCCESS;
+- main PS5.1 Acceptance Smoke `36336713372`: SUCCESS;
+- main Windows Installer Pack Smoke `36336713419`: SUCCESS;
+- fresh closeout local Python: `764 passed, 5 skipped, 38 subtests passed`;
+- fresh closeout Vitest: `96 files / 448 tests` PASS;
+- fresh closeout evaluation: PASS, evidence SHA-256 `41dfd58fba30b8e9b92e2c2dbe84e46de8dc54faefac082da59df4a4a1483161`;
+- fresh closeout production audit: `0 vulnerabilities`;
+- fresh closeout plugin validation: PASS, 46 config properties / 5 tools / 9 required Ticket DB tables / 300 packed files.
+
+Final classification: `CNX456_V099_RELEASE_MAIN_CONVERGENCE_GREEN`.
+
+CNX-456 is complete and coordination is IDLE.
