@@ -2,32 +2,46 @@
 
 Date: 2026-09-27
 Status: `PASS`
-Classification: `CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN`
+Classification: `CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN_WITH_OPENAI_ROUTE_BOUNDARY`
 GitHub Issue: #46
 
 ## Result
 
-The live OpenClaw/CogentNexus model catalog was refreshed for both OpenAI and Ollama while preserving OpenClaw provider ownership and the existing default route.
+The live OpenClaw/CogentNexus model catalog was refreshed and physically qualified without changing the default model or provider ownership.
 
-### Final OpenAI catalog
+## Final OpenAI models exposed by this runtime
 
-- `openai/gpt-5.5`
-- `openai/gpt-5.6-luna`
+- `openai/gpt-6-astra`
 - `openai/gpt-5.6-sol`
 - `openai/gpt-5.6-terra`
-- `openai/gpt-6-astra`
-- `openai/gpt-6-luna`
-- `openai/gpt-6-sol`
+- `openai/gpt-5.6-luna`
+- `openai/gpt-5.5`
 
 Aliases:
-- `gpt -> openai/gpt-6-sol`
-- `gpt-mini -> openai/gpt-6-luna`
+- `gpt -> openai/gpt-6-astra`
+- `gpt-mini -> openai/gpt-5.6-luna`
 
-Retired/stale selectable entries `openai/gpt-5.4` and `openai/gpt-5.4-mini` were removed from both selectable configuration and runtime model policy.
+Stale GPT-5.4 entries were removed.
 
-GPT-6 Sol/Luna required explicit provider registration because OpenClaw 2026.9.5's hosted catalog had not yet natively registered those two model IDs.
+### GPT-6 Sol/Luna are intentionally not exposed
 
-### Final Ollama catalog
+OpenAI's API catalog has GPT-6 Sol/Luna, but the current live OpenClaw route uses the Codex plugin with ChatGPT-account authentication.
+
+A physical Gateway turn for `openai/gpt-6-luna` returned:
+
+`400 invalid_request_error: The 'gpt-6-luna' model is not supported when using Codex with a ChatGPT account.`
+
+The initial compatibility experiment that manually registered GPT-6 Sol/Luna was therefore rolled back.
+
+Current dependency boundary:
+- OpenClaw: `2026.9.5`
+- `@openclaw/codex`: `2026.9.5`
+- bundled `@openai/codex`: `0.154.0`
+- latest discovered `@openclaw/codex`: `2026.9.6`, requiring OpenClaw `>=2026.9.6`
+
+No unsupported dependency override was applied.
+
+## Final Ollama models exposed
 
 - `ollama/qwen3:1.7b`
 - `ollama/qwen3.5:0.8b`
@@ -36,58 +50,63 @@ GPT-6 Sol/Luna required explicit provider registration because OpenClaw 2026.9.5
 - `ollama/qwen3.6:27b`
 - `ollama/qwen3.8:27b`
 
-New Qwen 3.5 models are registered with operational `contextWindow/num_ctx = 24576`.
+New Qwen 3.5 entries use operational context 24576.
 
 Default remains `ollama/qwen3.8:27b`.
 
-## Root cause of incomplete initial visibility
-
-OpenClaw model availability has multiple independent layers.
-
-The initial refresh updated the catalog/config but an actual GPT-6 override was rejected because `agents.defaults.modelPolicy.allow` still contained the old GPT-5.4 entries.
-
-After updating the runtime policy, GPT-6 Sol/Luna then exposed a second OpenClaw 2026.9.5 compatibility gap: they were not present in the native OpenAI provider catalog. Explicit OpenAI provider model registration resolved model resolution.
-
 ## Physical evidence
 
-Ollama:
-- OpenClaw isolated probe selected `ollama/qwen3.5:0.8b`.
-- `ollama ps` physically showed the model loaded.
-- context: `24576`
-- retention: `6 hours from now`
-- run reached `stopReason=stop`.
+### OpenAI GPT-6 Astra
+Gateway smoke:
+- status: OK
+- requested: `openai/gpt-6-astra`
+- effective: `openai/gpt-6-astra`
+- response model: `gpt-6-astra`
+- fallback used: false
+- exact marker returned
 
-OpenAI:
-- initial probe correctly exposed the stale model-policy fence.
-- second probe correctly exposed missing native provider registration.
-- after both repairs, GPT-6 Luna passed model resolution and run reached `stopReason=stop`.
-- final CLI envelope was lost to an unrelated isolated-agent cleanup failure.
+### OpenAI GPT-5.6 Luna
+Gateway smoke with `thinking=low`:
+- status: OK
+- requested/effective/response model: `openai/gpt-5.6-luna`
+- fallback used: false
+- exact marker returned
 
-## Separate observed debt
+### Ollama Qwen 3.5
+Gateway smoke:
+- requested/effective/response model: `ollama/qwen3.5:0.8b`
+- fallback used: false
+- run completed successfully
+- the 0.8B model did not follow the exact-marker instruction, which is a model-quality result rather than a route failure
 
-`openclaw agent exec` cleanup can fail after a completed run:
-- Codex one-shot shared-client cleanup may not settle.
-- temporary agent SQLite WAL/SHM deletion can return EBUSY.
+`ollama ps`:
+- `qwen3.5:0.8b` loaded
+- context: 24576
+- keep-alive: 6 hours
 
-This did not prevent model selection/routing qualification and is not classified as a model-catalog defect.
+## Final runtime health
 
-## Final health
-
+- config validation: PASS
+- OpenAI visible model count: 5
+- Ollama visible model count: 6
 - Gateway HTTP: 200
 - CogentNexus mode: MANAGED / active
 - desired Gateway: running
 - provider ownership: OpenClaw
-- Supervisor: Ready
-- Supervisor LastTaskResult: 0
-- config validation: PASS
-- SQLite integrity: ok
-- nonterminal Tickets: 0
-- pending outbox: 0
-- active Direct model calls: 0
-- historical orphan inference-attempt rows: 2, unchanged
-- Ollama User keep-alive: 6h
 - default model: `ollama/qwen3.8:27b`
+- User `OLLAMA_KEEP_ALIVE=6h`: unchanged
+- active Direct model calls after qualification: 0
+- CNX-454 accepted-only smoke Ticket: cancelled through host controller
+- historical orphan inference attempts from 2026-09-22/23: unchanged
+
+## Cleanup and disturbance notes
+
+An early Gateway restart during qualification temporarily became unresponsive. The runtime recovered and final catalog updates were completed using supported hot configuration without another restart.
+
+CNX-454 live test sessions were deleted using the Gateway session lifecycle. Retained deleted-session archives remain subject to OpenClaw's normal retention behavior.
+
+`openclaw agent exec` showed a separate one-shot cleanup defect; final qualification used normal Gateway turns instead.
 
 ## Conclusion
 
-`CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN`
+`CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN_WITH_OPENAI_ROUTE_BOUNDARY`

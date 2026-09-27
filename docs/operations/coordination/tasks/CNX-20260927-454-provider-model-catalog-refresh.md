@@ -2,113 +2,111 @@
 
 Status: `COMPLETE`
 GitHub Issue: #46
-Classification: `CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN`
+Classification: `CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN_WITH_OPENAI_ROUTE_BOUNDARY`
 
 ## Objective
 
-Refresh the selectable OpenAI and Ollama model catalog used by the live OpenClaw/CogentNexus runtime without changing provider ownership or the default model.
+Refresh the selectable OpenAI and Ollama models used by the live OpenClaw/CogentNexus runtime while preserving provider ownership, the default model, and existing runtime policy.
 
 ## Starting baseline
 
 - main baseline: `08d55d4da5a8ee4513c30b17dc42049a2a30509b`
-- prior coordination state: `IDLE / NO_ACTIVE_TASK`
-- default model: `ollama/qwen3.8:27b`
 - OpenClaw: `2026.9.5`
 - CogentNexus: MANAGED / active
+- default model: `ollama/qwen3.8:27b`
 - `v0.9.8`: immutable
 
-## Completed changes
+## Final OpenAI catalog for this live route
 
-### OpenAI
-
-Selectable/configured:
-- `openai/gpt-5.5`
-- `openai/gpt-5.6-luna`
+Selectable and runtime-allowed:
+- `openai/gpt-6-astra`
 - `openai/gpt-5.6-sol`
 - `openai/gpt-5.6-terra`
-- `openai/gpt-6-astra`
-- `openai/gpt-6-luna`
-- `openai/gpt-6-sol`
+- `openai/gpt-5.6-luna`
+- `openai/gpt-5.5`
 
 Removed stale selectable entries:
 - `openai/gpt-5.4`
 - `openai/gpt-5.4-mini`
 
 Aliases:
-- `gpt -> openai/gpt-6-sol`
-- `gpt-mini -> openai/gpt-6-luna`
+- `gpt -> openai/gpt-6-astra`
+- `gpt-mini -> openai/gpt-5.6-luna`
 
-OpenClaw 2026.9.5 hosted catalog did not natively register GPT-6 Sol/Luna, so the OpenAI provider received explicit model registration while retaining OpenClaw provider/auth ownership.
+### GPT-6 Sol/Luna boundary
 
-### Ollama
+OpenAI's API currently exposes `gpt-6-sol` and `gpt-6-luna`, but they are not retained in the final selector for this machine's current OpenClaw/Codex ChatGPT-auth route.
 
-Selectable/configured local catalog:
-- `qwen3.8:27b`
-- `qwen3.6:27b`
-- `qwen3:1.7b`
-- `qwen3.5:9b`
-- `qwen3.5:4b`
-- `qwen3.5:0.8b`
+Physical Gateway probe for `openai/gpt-6-luna` returned HTTP 400 from the Codex route:
 
-New Qwen 3.5 entries use bounded operational context `24576` instead of native 262k to avoid unnecessary memory/context pressure on this host.
+`The 'gpt-6-luna' model is not supported when using Codex with a ChatGPT account.`
+
+OpenClaw `2026.9.5` uses `@openclaw/codex 2026.9.5`, which pins `@openai/codex 0.154.0`.
+The current `@openclaw/codex 2026.9.6` requires OpenClaw `>=2026.9.6`, so no unsupported cross-version plugin update or node_modules override was performed.
+
+## Final Ollama catalog
+
+Selectable and runtime-allowed:
+- `ollama/qwen3.8:27b`
+- `ollama/qwen3.6:27b`
+- `ollama/qwen3:1.7b`
+- `ollama/qwen3.5:9b`
+- `ollama/qwen3.5:4b`
+- `ollama/qwen3.5:0.8b`
+
+The new Qwen 3.5 entries are bounded to operational `contextWindow/num_ctx = 24576` instead of native 262144 to avoid unnecessary memory/context pressure.
 
 Default remains:
 `ollama/qwen3.8:27b`
 
-## Required configuration layers repaired
+## Required configuration layers
 
-Updating only the visible model list was insufficient. The complete runtime contract required all of:
+The completed update covers:
+1. hosted model catalog refresh,
+2. `agents.defaults.models`,
+3. `agents.defaults.modelPolicy.allow`,
+4. `models.providers.ollama.models[]`,
+5. model aliases.
 
-1. `agents.defaults.models`
-2. `agents.defaults.modelPolicy.allow`
-3. `models.providers.ollama.models[]`
-4. explicit `models.providers.openai.models[]` registration for current OpenAI models
-5. model aliases
+An attempted explicit OpenAI provider registration for GPT-6 Sol/Luna was removed after physical qualification proved the current ChatGPT-auth Codex route does not support Luna.
 
-The stale `modelPolicy.allow` was the reason GPT-6 initially appeared in `models list` but was rejected by an actual model override.
+## Physical qualification
 
-## Qualification
+PASS:
+- `openclaw config validate`
+- GPT-6 Astra Gateway turn: requested/effective/response model all `openai/gpt-6-astra`, no fallback, exact marker returned.
+- GPT-5.6 Luna Gateway turn with `thinking=low`: requested/effective/response model all `openai/gpt-5.6-luna`, no fallback, exact marker returned.
+- Qwen 3.5 Gateway turn: requested/effective/response model all `ollama/qwen3.5:0.8b`, no fallback.
+- `ollama ps` physically showed Qwen 3.5 loaded with context 24576 and 6-hour retention.
+- Gateway HTTP 200 after final hot configuration.
+- CogentNexus remains MANAGED / active.
+- `providerOwnership=openclaw`.
+- default remains `ollama/qwen3.8:27b`.
+- User `OLLAMA_KEEP_ALIVE=6h` unchanged.
 
-- `openclaw config validate`: PASS
-- OpenAI model list: 7 available/configured
-- Ollama model list: 6 available
-- Runtime allowlist: current OpenAI + Ollama entries present
-- stale GPT-5.4 / GPT-5.4-mini absent from runtime allowlist
-- Gateway: HTTP 200
-- CogentNexus: MANAGED / active
-- provider ownership: OpenClaw
-- Supervisor: Ready, LastTaskResult 0
-- SQLite integrity: ok
-- nonterminal Tickets: 0
-- active Direct model calls: 0
-- pending outbox: 0
-- historical orphan inference attempts: 2 unchanged
-- User `OLLAMA_KEEP_ALIVE=6h`: unchanged
-- physical Qwen 3.5 route: `qwen3.5:0.8b` loaded by OpenClaw with context 24576 and 6-hour retention
+Expected/qualified boundary:
+- GPT-6 Luna physical Gateway turn is rejected by the current Codex ChatGPT-account route and is therefore not exposed in the final selector.
+- GPT-6 Sol is likewise deferred with Luna rather than exposed without route qualification.
 
-## OpenAI execution probe note
+## Cleanup
 
-After policy/provider registration, a GPT-6 Luna isolated `agent exec` run passed model resolution and ended with `stopReason=stop`.
+- CNX-454 accepted-only smoke Ticket was cancelled through host controller.
+- CNX-454 live test sessions were deleted through `openclaw sessions delete`.
+- OpenClaw retained deleted-session archives according to its normal retention lifecycle.
+- temporary `cnx454-*` files under `~/.openclaw` were removed.
+- no direct SQLite mutation was performed.
 
-The CLI still returned an error during isolated-agent cleanup:
-`Codex one-shot client cleanup could not be confirmed`.
+## Observed separate debt
 
-A Qwen 3.5 isolated probe likewise reached the requested provider/model and `stopReason=stop`, then hit an EBUSY cleanup error on the temporary agent SQLite files.
+`openclaw agent exec` one-shot qualification can finish the model turn but fail cleanup:
+- Codex shared-client release may not settle.
+- temporary SQLite WAL/SHM cleanup can return EBUSY.
 
-These cleanup failures are separate from model catalog/routing and were not repaired under CNX-454.
-
-## Runtime disturbance observed during qualification
-
-A Gateway restart performed during early diagnosis entered a temporary unresponsive state. The runtime recovered, and the final model updates were completed through OpenClaw's supported hot config application without another restart.
-
-Final Gateway health is GREEN.
+Gateway-based qualification was used for final route evidence. This cleanup behavior was not repaired under CNX-454.
 
 ## Invariants preserved
 
-- `providerOwnership=openclaw`
-- default remains `ollama/qwen3.8:27b`
-- Ollama keep-alive remains 6h
-- no direct SQLite mutation
+- provider ownership remains OpenClaw
 - no force push
 - no published tag/release mutation
 - `v0.9.8` remains immutable
