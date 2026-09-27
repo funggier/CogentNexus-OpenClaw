@@ -19,6 +19,7 @@ WORKSPACE = Path(__file__).resolve().parents[3]
 DEFAULT_ROOT = WORKSPACE / ".cogentnexus-openclaw"
 OUTPUT_LIMIT = 3000
 LIFECYCLE_START_READY_TIMEOUT_SECONDS = 180.0
+LIFECYCLE_RESTART_COMMAND_TIMEOUT_SECONDS = 180.0
 
 DEFAULT_CONFIG = {
     "schemaVersion": 1,
@@ -436,7 +437,7 @@ def lifecycle_cmd(args):
     if args.command_name == "restart":
         marker = set_maintenance(root, args.reason, args.owner, "healthy-runtime")
         executable = openclaw_executable()
-        result = run_command([executable, "gateway", "restart"], 60) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
+        result = run_command([executable, "gateway", "restart"], LIFECYCLE_RESTART_COMMAND_TIMEOUT_SECONDS) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
         append_runtime_event(root, "ACTION", "Recoverable Gateway restart requested", {"result": result})
         emit({"restartRequested": bool(result.get("ok")), "maintenance": marker, "result": result,
               "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."})
