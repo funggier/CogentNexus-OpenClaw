@@ -86,6 +86,7 @@ def test_native_gateway_restore_reconciles_nonzero_commands_when_readiness_is_he
         calls.append((list(argv), timeout))
         return subprocess.CompletedProcess(argv, 1, "", "OpenClaw CLI readiness timeout")
 
+    monkeypatch.setattr(host.legacy, "openclaw_executable", lambda: "openclaw")
     monkeypatch.setattr(host.legacy, "run", failed_command)
     monkeypatch.setattr(
         host,
@@ -163,6 +164,7 @@ def test_runtime_restart_stays_failed_when_gateway_never_becomes_healthy(monkeyp
 def test_native_gateway_restore_stays_failed_when_readiness_never_recovers(monkeypatch):
     host = _load("cnx_host_v091_v099_failclosed", "host_v091.py")
 
+    monkeypatch.setattr(host.legacy, "openclaw_executable", lambda: "openclaw")
     monkeypatch.setattr(
         host.legacy,
         "run",
@@ -245,6 +247,7 @@ def test_runtime_restart_rejects_unrelated_command_failure_even_if_gateway_is_he
 def test_native_gateway_restore_rejects_unrelated_command_failure_even_if_healthy(monkeypatch):
     host = _load("cnx_host_v091_v099_unrelated_failure", "host_v091.py")
 
+    monkeypatch.setattr(host.legacy, "openclaw_executable", lambda: "openclaw")
     monkeypatch.setattr(
         host.legacy,
         "run",
