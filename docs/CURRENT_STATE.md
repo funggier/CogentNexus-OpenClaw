@@ -1,22 +1,24 @@
 # CogentNexus-OpenClaw Current Operational State
 
-**Current source/release line:** `v0.9.8` (published accepted baseline)
+**Current source/release line:** `v0.9.9`
 **Published baseline branch:** `main`
 **Validated OpenClaw runtime baseline:** `2026.9.6`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
-**Latest published release:** `v0.9.8`
-**Latest published release/tag SHA:** `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
-**v0.9.8 production-code authority before release metadata:** `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
-**v0.9.8 release workflow:** `36159455993` — SUCCESS
+**Publication authority:** GitHub Release/tag from the exact validated v0.9.9 candidate SHA
+**Immutable published predecessor:** `v0.9.8` / `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
+**CNX-456 target:** `v0.9.9` exact-SHA release qualification
+**Validated live runtime before release:** OpenClaw `2026.9.6`, CogentNexus-OpenClaw MANAGED generation 54
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-CNX-447 has published v0.9.8 from exact accepted candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`. The release prevents Codex/App-Server progress/tool rows from becoming durable Direct results, preserves native Ollama fallback, reconciles only proven OpenClaw plugin-mutation timeout ambiguity, and isolates unrelated dependency lifecycle scripts during candidate/release preparation. Public TAR/ZIP assets and `SHA256SUMS.txt` were independently downloaded and verified.
+CNX-456 is preparing v0.9.9 from the physically qualified OpenClaw 2026.9.6/CNX-455 baseline. Publication is exact-SHA gated and includes the program archives, documentation ZIP, SHA256 evidence, CI qualification, physical installation qualification, and post-publication asset verification.
+
+Historical CNX-447 published v0.9.8 from exact accepted candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`. Its public TAR/ZIP assets and `SHA256SUMS.txt` remain immutable historical evidence.
 
 v0.9.7 remains immutable historical evidence.
 
@@ -125,7 +127,7 @@ Two separate facts must not be conflated:
 
 1. `plugins/cogentnexus-openclaw/package.json` keeps OpenClaw `2026.7.1-2` as the regression/dev dependency pin.
 2. The latest real installed runtime used for final CNX-442 physical acceptance was OpenClaw `2026.9.5 (ec9c1a1)`.
-3. CNX-455 physically qualified the live runtime on OpenClaw `2026.9.6`: CogentNexus returned to MANAGED generation 54, the default remained `ollama/qwen3.8:27b` with a six-hour Ollama keep-alive, and GPT-6 Astra/Sol/Luna each completed with the requested/effective model unchanged and no fallback.
+3. CNX-455 physically qualified the live runtime on OpenClaw `2026.9.6`: CogentNexus-OpenClaw returned to MANAGED generation 54, the default remained `ollama/qwen3.8:27b` with a six-hour Ollama keep-alive, and GPT-6 Astra/Sol/Luna each completed with the requested/effective model unchanged and no fallback.
 
 The package peer range is an install compatibility declaration, not an operational guarantee across every OpenClaw version.
 
@@ -147,7 +149,7 @@ CNX-455 / OpenClaw 2026.9.6 compatibility evidence:
 - managed GPT-6 Astra, Sol and Luna smoke tests each completed on the requested model with no fallback;
 - focused restart-timeout regression: `1 passed`; runtime self-test: PASS;
 - full Python suite: `755 passed, 5 skipped, 38 subtests passed`;
-- post-suite Gateway, CogentNexus plugin, Discord and supervisor health: GREEN.
+- post-suite Gateway, CogentNexus-OpenClaw plugin, Discord and supervisor health: GREEN.
 
 Final CNX-444 / v0.9.7 evidence:
 

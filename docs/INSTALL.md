@@ -1,6 +1,6 @@
-# Install CogentNexus-OpenClaw v0.9.8
+# Install CogentNexus-OpenClaw v0.9.9
 
-v0.9.8 is the latest published production release at tag/SHA `v0.9.8` / `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`. For production installation, use the exact GitHub Release archive and verify `SHA256SUMS.txt`; a moving branch is not a release identity.
+This is the current-facing installation guide for v0.9.9. Install from the exact GitHub Release/tag and verify `SHA256SUMS.txt`; a moving branch is not a release identity. The v0.9.8 predecessor remains immutable historical release evidence.
 
 ## Requirements
 
@@ -69,7 +69,7 @@ cd "$HOME\.openclaw\workspace"
 A healthy managed installation should show:
 
 - active/managed CNX controller;
-- loaded v0.9.8 plugin;
+- loaded v0.9.9 plugin;
 - healthy Gateway;
 - selected/usable OpenClaw model route;
 - Ollama readiness when managed local-provider ownership is active;
@@ -120,10 +120,11 @@ See [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md). A clean reinstall intentionally pu
 
 ## Release installation
 
-The published v0.9.8 release assets are:
+The v0.9.9 release assets are:
 
-- `cogentnexus-openclaw-v0.9.8.tar.gz`
-- `cogentnexus-openclaw-v0.9.8.zip`
+- `cogentnexus-openclaw-v0.9.9.tar.gz`
+- `cogentnexus-openclaw-v0.9.9.zip`
+- `cogentnexus-openclaw-v0.9.9-document.zip`
 - `SHA256SUMS.txt`
 - release notes
 
@@ -135,5 +136,6 @@ Verify archive checksums before installation.
 - [PROVIDERS.md](PROVIDERS.md)
 - [CHECK_SYSTEM.md](CHECK_SYSTEM.md)
 - [COMMANDS.th.md](COMMANDS.th.md)
-- [v0.9.8 release notes](releases/v0.9.8.md)
+- [v0.9.9 release notes](releases/v0.9.9.md)
+- [v0.9.8 published release notes](releases/v0.9.8.md)
 - [v0.9.7 published release notes](releases/v0.9.7.md)

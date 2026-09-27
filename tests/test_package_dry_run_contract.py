@@ -113,3 +113,30 @@ def test_openclaw_peer_range_is_documented_as_package_install_compatibility_only
     assert "Validated OpenClaw runtime baseline: `2026.9.6" in readme
     assert "test/development dependency only" in lowered
     assert "does not extend the operational guarantee" in lowered
+
+
+def test_package_dry_run_builds_and_proves_documentation_archive():
+    script = "\n".join(str(step.get("run", "")) for step in _package_steps())
+    for marker in (
+        "build_documentation_archive.py",
+        "$name-document.zip",
+        "cogentnexus-openclaw-v0.9.9-document.zip",
+        "docs/releases/v0.9.9.md",
+        "DOCUMENTATION_INDEX.md",
+        "documentation archive unexpectedly contains coordination internals",
+    ):
+        assert marker in script, f"documentation package proof is missing: {marker}"
+
+
+def test_release_workflow_publishes_documentation_archive_as_a_first_class_asset():
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    for marker in (
+        "build_documentation_archive.py",
+        "$name-document.zip",
+        "SHA256SUMS.txt",
+        "DOCUMENTATION_INDEX.md",
+        "documentation archive unexpectedly contains coordination internals",
+    ):
+        assert marker in release, f"release workflow is missing documentation asset marker: {marker}"
+    assert '"$RUNNER_TEMP/release/$name-document.zip"' in release
+    assert 'sha256sum "$name.tar.gz" "$name.zip" "$name-document.zip"' in release

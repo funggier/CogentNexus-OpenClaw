@@ -5,7 +5,7 @@ description: "Durable Host-managed continuity, lifecycle control, session serial
 
 # CogentNexus-OpenClaw
 
-**Current source/release line:** `v0.9.8`
+**Current source/release line:** `v0.9.9`
 **Latest physical OpenClaw acceptance:** `2026.9.6`
 **Regression/dev OpenClaw pin:** `2026.7.1-2`
 **Managed local provider:** Ollama

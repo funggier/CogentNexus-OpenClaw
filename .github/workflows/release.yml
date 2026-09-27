@@ -171,14 +171,29 @@ jobs:
           done
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
-          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          python scripts/build_documentation_archive.py \
+            --repo-root . \
+            --version "$REQUESTED_VERSION" \
+            --output "$out/$name-document.zip"
+          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" "$name-document.zip" > SHA256SUMS.txt)
           (cd "$out" && sha256sum -c SHA256SUMS.txt)
           tar -tzf "$out/$name.tar.gz" > "$out/tar-contents.txt"
           unzip -Z1 "$out/$name.zip" > "$out/zip-contents.txt"
+          unzip -Z1 "$out/$name-document.zip" > "$out/document-contents.txt"
+          doc_root="$name-document"
+          for doc_rel in "DOCUMENTATION_INDEX.md" "README.md" "LICENSE" "VERSION" "docs/INSTALL.md" "docs/INSTALL.th.md" "docs/COMMANDS.th.md" "docs/CURRENT_STATE.md" "docs/BASELINE.md" "docs/PROVIDERS.md" "docs/operations/ROADMAP.md" "docs/operations/STATUS.md" "docs/releases/v${REQUESTED_VERSION}.md" "skills/cogentnexus-openclaw/SKILL.md"; do
+            grep -Fx "$doc_root/$doc_rel" "$out/document-contents.txt"
+          done
+          if grep -F "/docs/operations/coordination/" "$out/document-contents.txt"; then
+            echo "documentation archive unexpectedly contains coordination internals" >&2
+            exit 1
+          fi
           for rel in "${required[@]}"; do
             grep -Fx "$name/$rel" "$out/tar-contents.txt"
             grep -Fx "$name/$rel" "$out/zip-contents.txt"
           done
+          unzip -tq "$out/$name-document.zip"
+          test -s "$out/$name-document.zip"
           cp "docs/releases/$tag.md" "$out/RELEASE_NOTES.md"
           test -s "$out/RELEASE_NOTES.md"
       - name: Stage validated release assets
@@ -227,6 +242,7 @@ jobs:
           common=(
             "$RUNNER_TEMP/release/$name.tar.gz"
             "$RUNNER_TEMP/release/$name.zip"
+            "$RUNNER_TEMP/release/$name-document.zip"
             "$RUNNER_TEMP/release/SHA256SUMS.txt"
           )
           for asset in "${common[@]}" "$notes"; do

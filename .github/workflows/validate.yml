@@ -141,7 +141,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - name: Verify CogentNexus-OpenClaw v0.9.8 metadata
+      - name: Verify CogentNexus-OpenClaw v0.9.9 metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -150,15 +150,15 @@ jobs:
           manifest_version=$(node -p "JSON.parse(require('fs').readFileSync('./plugins/cogentnexus-openclaw/openclaw.plugin.json')).version")
           lock_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').version")
           lock_root_version=$(node -p "require('./plugins/cogentnexus-openclaw/package-lock.json').packages[''].version")
-          test "$core" = "0.9.8"
-          test "$package_version" = "0.9.8"
+          test "$core" = "0.9.9"
+          test "$package_version" = "0.9.9"
           test "$package_version" = "$manifest_version"
           test "$package_version" = "$lock_version"
           test "$package_version" = "$lock_root_version"
           test -s docs/BASELINE.md
           test -s docs/INSTALL.md
           test -s docs/INSTALL.th.md
-          test -s docs/releases/v0.9.8.md
+          test -s docs/releases/v0.9.9.md
       - name: Install plugin dependencies
         working-directory: plugins/cogentnexus-openclaw
         run: npm ci --ignore-scripts
@@ -173,7 +173,7 @@ jobs:
           mkdir -p "$out"
           python skills/cogentnexus-openclaw/scripts/plugin_payload_identity.py \
             --plugin-root plugins/cogentnexus-openclaw \
-            --version 0.9.8 > "$out/PAYLOAD_IDENTITY.json"
+            --version 0.9.9 > "$out/PAYLOAD_IDENTITY.json"
           python - <<'PY'
           import json
           import os
@@ -181,7 +181,7 @@ jobs:
 
           target = Path(os.environ["RUNNER_TEMP"]) / "release" / "PAYLOAD_IDENTITY.json"
           payload = json.loads(target.read_text(encoding="utf-8"))
-          assert payload["version"] == "0.9.8"
+          assert payload["version"] == "0.9.9"
           assert isinstance(payload["fileCount"], int) and payload["fileCount"] > 0
           assert isinstance(payload["fingerprint"], str) and len(payload["fingerprint"]) == 64
           print(json.dumps(payload, sort_keys=True))
@@ -190,7 +190,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          name="cogentnexus-openclaw-v0.9.8"
+          name="cogentnexus-openclaw-v0.9.9"
           stage="$RUNNER_TEMP/$name"
           out="$RUNNER_TEMP/release"
           required=(
@@ -207,17 +207,46 @@ jobs:
           done
           tar -C "$RUNNER_TEMP" -czf "$out/$name.tar.gz" "$name"
           (cd "$RUNNER_TEMP" && zip -qr "$out/$name.zip" "$name")
-          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" > SHA256SUMS.txt)
+          python scripts/build_documentation_archive.py \
+            --repo-root . \
+            --version 0.9.9 \
+            --output "$out/$name-document.zip"
+          (cd "$out" && sha256sum "$name.tar.gz" "$name.zip" "$name-document.zip" > SHA256SUMS.txt)
           (cd "$out" && sha256sum -c SHA256SUMS.txt)
           tar -tzf "$out/$name.tar.gz" > "$out/tar-contents.txt"
           unzip -Z1 "$out/$name.zip" > "$out/zip-contents.txt"
+          unzip -Z1 "$out/$name-document.zip" > "$out/document-contents.txt"
+          doc_root="$name-document"
+          for rel in \
+            "DOCUMENTATION_INDEX.md" \
+            "README.md" \
+            "LICENSE" \
+            "VERSION" \
+            "docs/INSTALL.md" \
+            "docs/INSTALL.th.md" \
+            "docs/COMMANDS.th.md" \
+            "docs/CURRENT_STATE.md" \
+            "docs/BASELINE.md" \
+            "docs/PROVIDERS.md" \
+            "docs/operations/ROADMAP.md" \
+            "docs/operations/STATUS.md" \
+            "docs/releases/v0.9.9.md" \
+            "skills/cogentnexus-openclaw/SKILL.md"; do
+            grep -Fx "$doc_root/$rel" "$out/document-contents.txt"
+          done
+          if grep -F "/docs/operations/coordination/" "$out/document-contents.txt"; then
+            echo "documentation archive unexpectedly contains coordination internals" >&2
+            exit 1
+          fi
           for rel in "${required[@]}"; do
             grep -Fx "$name/$rel" "$out/tar-contents.txt"
             grep -Fx "$name/$rel" "$out/zip-contents.txt"
           done
           unzip -tq "$out/$name.zip"
+          unzip -tq "$out/$name-document.zip"
           test -s "$out/$name.tar.gz"
           test -s "$out/$name.zip"
+          test -s "$out/$name-document.zip"
           test -s "$out/SHA256SUMS.txt"
       - name: Record exact package provenance
         shell: bash
@@ -235,7 +264,7 @@ jobs:
           package_version = Path("VERSION").read_text(encoding="utf-8").strip()
           if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
               raise SystemExit("GITHUB_SHA is not an exact 40-hex source commit")
-          if package_version != "0.9.8" or identity.get("version") != package_version:
+          if package_version != "0.9.9" or identity.get("version") != package_version:
               raise SystemExit("package provenance version mismatch")
           fingerprint = identity.get("fingerprint")
           file_count = identity.get("fileCount")
@@ -252,8 +281,9 @@ jobs:
                   raise SystemExit(f"invalid archive SHA256 for {filename}")
               archive_sha256[filename] = digest
           expected = {
-              "cogentnexus-openclaw-v0.9.8.tar.gz",
-              "cogentnexus-openclaw-v0.9.8.zip",
+              "cogentnexus-openclaw-v0.9.9.tar.gz",
+              "cogentnexus-openclaw-v0.9.9.zip",
+              "cogentnexus-openclaw-v0.9.9-document.zip",
           }
           if set(archive_sha256) != expected:
               raise SystemExit("archive SHA256 set is incomplete")
@@ -275,7 +305,7 @@ jobs:
       - name: Retain package proof
         uses: actions/upload-artifact@v4
         with:
-          name: cogentnexus-openclaw-v0.9.8-package-proof-${{ github.sha }}
+          name: cogentnexus-openclaw-v0.9.9-package-proof-${{ github.sha }}
           path: ${{ runner.temp }}/release
           if-no-files-found: error
           retention-days: 14

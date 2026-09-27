@@ -4,11 +4,11 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 ## Current status
 
-- **Current source/release line:** `v0.9.8` (published accepted baseline)
-- **Latest published release:** `v0.9.8`
-- **Latest published release/tag SHA:** `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
-- **Release workflow:** `36159455993` — SUCCESS
-- **v0.9.8 production-code authority before release metadata:** `b908efe9f82550bc3cc071ad24c0f2d1d41cc4ec`
+- **Current source/release line:** `v0.9.9`
+- **Publication authority:** exact GitHub Release/tag created only from a CI-proven v0.9.9 commit
+- **Immutable published predecessor:** `v0.9.8` / `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
+- **CNX-455 OpenClaw 2026.9.6 qualification:** GREEN; MANAGED generation 54; GPT-6 Astra/Sol/Luna no-fallback PASS
+- **CNX-456 v0.9.9 release:** active; exact-SHA CI/package/install/publication verification required
 - **Validated OpenClaw runtime baseline:** `2026.9.6`
 - **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 - **Managed provider ownership:** Ollama
@@ -21,7 +21,7 @@ CogentNexus-OpenClaw is a durable Host/control layer for OpenClaw. It keeps acce
 
 The package peer range remains broader than the exact runtimes physically qualified by this repository. A peer range is install compatibility, not proof of behavioral acceptance.
 
-See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the authoritative operational state and [docs/operations/coordination/ACTIVE.md](docs/operations/coordination/ACTIVE.md) for the current development/release task.
+See [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md) for the authoritative operational state, [docs/releases/v0.9.9.md](docs/releases/v0.9.9.md) for release-line changes, and [docs/operations/coordination/ACTIVE.md](docs/operations/coordination/ACTIVE.md) for the current development/release task.
 
 > **Continuity invariant:** once eligible work is durably accepted, it must not silently disappear. It must eventually become delivered/completed, cancelled, or explicitly failed with durable evidence.
 

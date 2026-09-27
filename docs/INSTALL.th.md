@@ -1,6 +1,6 @@
-# ติดตั้ง CogentNexus-OpenClaw v0.9.8 บน Windows
+# ติดตั้ง CogentNexus-OpenClaw v0.9.9 บน Windows
 
-คู่มือนี้เป็น **current-facing installation guide** สำหรับ v0.9.8 ซึ่งเป็น production release ที่เผยแพร่ล่าสุดแล้วที่ tag/SHA `v0.9.8` / `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037` ควรติดตั้งจาก GitHub Release ที่ระบุเวอร์ชันชัดเจนและตรวจ `SHA256SUMS.txt` ก่อนใช้งานเสมอ
+คู่มือนี้เป็น **current-facing installation guide** สำหรับ v0.9.9 ให้ติดตั้งจาก exact GitHub Release/tag และตรวจ `SHA256SUMS.txt` ก่อนใช้งานเสมอ ส่วน v0.9.8 คงเป็นหลักฐาน release ก่อนหน้าที่ไม่แก้ย้อนหลัง
 
 ## ข้อมูล compatibility ที่ต้องแยกให้ออก
 
@@ -55,7 +55,7 @@ cd "$HOME\.openclaw\workspace"
 - ไม่เก็บ/refresh Cloud credentials
 - ไม่ fallback provider แบบเงียบ
 
-## พฤติกรรม Stop/Queue ที่สาย v0.9.8 ยังคงรับรอง
+## พฤติกรรม Stop/Queue ที่สาย v0.9.9 ยังคงรับรอง
 
 ข้อความที่สองใน owner session เดียวกันจะถูก persist แล้ว hold ที่ `before_dispatch` หาก Ticket ก่อนหน้ายังไม่ terminal จึงยังไม่เข้า Host queue
 
@@ -101,12 +101,13 @@ CNX-442 ผ่าน physical Discord acceptance บน OpenClaw 2026.9.5 แล
 
 ใช้ [CLEAN_REINSTALL.th.md](CLEAN_REINSTALL.th.md) เมื่อต้องการล้าง CNX-owned durable state และติดตั้งใหม่ โดยค่าเริ่มต้นควร backup ออกนอก active tree ก่อน
 
-## GitHub Release v0.9.8
+## GitHub Release v0.9.9
 
-v0.9.8 เผยแพร่แล้วจาก exact accepted SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037` ผ่าน Release workflow `36159455993` ไฟล์ release คือ:
+เมื่อเผยแพร่ v0.9.9 แล้ว ให้ยึด exact GitHub Release/tag เป็น authority และตรวจ checksum ของ assets ก่อนใช้งาน ไฟล์ release คือ:
 
-- `cogentnexus-openclaw-v0.9.8.tar.gz`
-- `cogentnexus-openclaw-v0.9.8.zip`
+- `cogentnexus-openclaw-v0.9.9.tar.gz`
+- `cogentnexus-openclaw-v0.9.9.zip`
+- `cogentnexus-openclaw-v0.9.9-document.zip`
 - `SHA256SUMS.txt`
 - release notes
 

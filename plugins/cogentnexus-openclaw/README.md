@@ -1,10 +1,10 @@
-# CogentNexus-OpenClaw Bridge — v0.9.8
+# CogentNexus-OpenClaw Bridge — v0.9.9
 
 This plugin is the OpenClaw-side bridge for durable Ticket admission, same-session serialization, Direct Recovery, delivery continuity, session/generation fencing, and compatibility ownership rules.
 
 ## Current compatibility facts
 
-- Package version: `0.9.8`
+- Package version: `0.9.9`
 - Peer install range: OpenClaw `>=2026.5.17`
 - Regression/dev dependency pin: OpenClaw `2026.7.1-2` (test/development dependency only)
 - Validated OpenClaw runtime baseline: `2026.9.6`
@@ -66,7 +66,7 @@ npm audit --omit=dev
 npm run plugin:validate
 ```
 
-Release validation additionally runs repository namespace/baseline/skill/Python tests and exact archive/checksum checks.
+Release validation additionally runs repository namespace/baseline/skill/Python tests, deterministic program/documentation archive checks, and SHA-256 provenance checks.
 
 See the root `README.md`, `docs/CURRENT_STATE.md`, and `docs/BASELINE.md`.
 
