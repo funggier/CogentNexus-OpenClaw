@@ -22,7 +22,7 @@ The managed provider contract does not silently fall back from Ollama to another
 Two facts are intentionally separate:
 
 - regression/dev dependency pin: OpenClaw `2026.7.1-2`;
-- latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`.
+- latest physical runtime acceptance: OpenClaw `2026.9.6`.
 
 The peer dependency range is an install-compatibility declaration. It does not prove every behavior against every version in that range.
 

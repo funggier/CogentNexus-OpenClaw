@@ -12,7 +12,7 @@ v0.9.8 is the latest published production release at tag/SHA `v0.9.8` / `4f9b07d
 Compatibility evidence is split deliberately:
 
 - regression/dev dependency pin: OpenClaw `2026.7.1-2`;
-- latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`.
+- latest physical runtime acceptance: OpenClaw `2026.9.6`.
 
 ## Exact release/source-tree install
 

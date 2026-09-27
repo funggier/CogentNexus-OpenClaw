@@ -5,7 +5,7 @@
 ## ข้อมูล compatibility ที่ต้องแยกให้ออก
 
 - OpenClaw ที่ pin ไว้สำหรับ regression/dev dependency: `2026.7.1-2`
-- OpenClaw ที่ผ่าน physical runtime acceptance ล่าสุดจริง: `2026.9.5 (ec9c1a1)`
+- OpenClaw ที่ผ่าน physical runtime acceptance ล่าสุดจริง: `2026.9.6`
 
 สองค่านี้มีความหมายต่างกัน ไม่ควรใช้ peer/dependency range เป็นหลักฐานว่า runtime ทุกเวอร์ชันผ่าน acceptance แล้ว
 

@@ -110,6 +110,6 @@ def test_openclaw_peer_range_is_documented_as_package_install_compatibility_only
     assert f"`{peer_range}`" in readme
     assert "package-install compatibility" in lowered
     assert f"Regression/dev dependency pin: OpenClaw `{regression_pin}`" in readme
-    assert "Validated OpenClaw runtime baseline: `2026.9.5" in readme
+    assert "Validated OpenClaw runtime baseline: `2026.9.6" in readme
     assert "test/development dependency only" in lowered
     assert "does not extend the operational guarantee" in lowered

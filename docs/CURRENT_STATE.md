@@ -2,7 +2,7 @@
 
 **Current source/release line:** `v0.9.8` (published accepted baseline)
 **Published baseline branch:** `main`
-**Validated OpenClaw runtime baseline:** `2026.9.5 (ec9c1a1)`
+**Validated OpenClaw runtime baseline:** `2026.9.6`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2` (test/development dependency only; not the current live baseline)
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
@@ -104,7 +104,7 @@ After Stop:
 | Gateway lifecycle control | Accepted |
 | Managed local provider | Ollama |
 | Cloud/model/auth routing | OpenClaw-owned pass-through |
-| Validated OpenClaw runtime baseline | `2026.9.5 (ec9c1a1)` |
+| Validated OpenClaw runtime baseline | `2026.9.6` |
 | Regression/dev OpenClaw dependency pin | `2026.7.1-2` (test/development only) |
 | Response-ready immutability | Accepted |
 | Durable result/delivery confirmation | Accepted |
@@ -125,6 +125,7 @@ Two separate facts must not be conflated:
 
 1. `plugins/cogentnexus-openclaw/package.json` keeps OpenClaw `2026.7.1-2` as the regression/dev dependency pin.
 2. The latest real installed runtime used for final CNX-442 physical acceptance was OpenClaw `2026.9.5 (ec9c1a1)`.
+3. CNX-455 physically qualified the live runtime on OpenClaw `2026.9.6`: CogentNexus returned to MANAGED generation 54, the default remained `ollama/qwen3.8:27b` with a six-hour Ollama keep-alive, and GPT-6 Astra/Sol/Luna each completed with the requested/effective model unchanged and no fallback.
 
 The package peer range is an install compatibility declaration, not an operational guarantee across every OpenClaw version.
 
@@ -137,6 +138,16 @@ CogentNexus-OpenClaw manages Ollama only when local managed-provider ownership i
 Historical LM Studio/provider experiments remain historical evidence only.
 
 ## Known validation baseline
+
+CNX-455 / OpenClaw 2026.9.6 compatibility evidence:
+
+- transactional MANAGED activation repaired the runtime restart command budget from 60 to 180 seconds after a measured 128.801-second OpenClaw 2026.9.6 restart;
+- the pre-repair activation failed closed and rolled back to healthy PASSTHROUGH before the repair was applied;
+- repaired activation completed transactionally at MANAGED generation 54 with provider/model/auth ownership still OpenClaw-owned;
+- managed GPT-6 Astra, Sol and Luna smoke tests each completed on the requested model with no fallback;
+- focused restart-timeout regression: `1 passed`; runtime self-test: PASS;
+- full Python suite: `755 passed, 5 skipped, 38 subtests passed`;
+- post-suite Gateway, CogentNexus plugin, Discord and supervisor health: GREEN.
 
 Final CNX-444 / v0.9.7 evidence:
 

@@ -3,7 +3,7 @@
 This document records the durable architectural invariants that survive across release lines. It is not a release-status page; use [CURRENT_STATE.md](CURRENT_STATE.md) for the current source/release state.
 
 **Current source/release line:** `v0.9.8` (published accepted baseline; tag SHA `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`)
-**Latest physical runtime acceptance:** OpenClaw `2026.9.5 (ec9c1a1)`
+**Latest physical runtime acceptance:** OpenClaw `2026.9.6`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
 **Managed provider ownership:** Ollama
 **Cloud/provider/model/auth routing:** OpenClaw-owned pass-through
@@ -112,9 +112,21 @@ Managed local-provider ownership is Ollama-only. Cloud routes remain OpenClaw-ow
 
 ## OpenClaw compatibility
 
-OpenClaw `2026.7.1-2` remains the regression/dev dependency pin used by the package test surface. The latest physical runtime acceptance is OpenClaw `2026.9.5 (ec9c1a1)`. These are distinct facts and must remain labeled separately.
+OpenClaw `2026.7.1-2` remains the regression/dev dependency pin used by the package test surface. The latest physical runtime acceptance is OpenClaw `2026.9.6`. These are distinct facts and must remain labeled separately.
 
 ## Accepted latest live proof
+
+CNX-455 latest runtime compatibility acceptance on OpenClaw `2026.9.6` proved:
+
+- supported-package upgrade convergence completed;
+- CogentNexus MANAGED authority is active at generation 54 with OpenClaw-owned provider/model/auth routing;
+- default `ollama/qwen3.8:27b`, 24,576 context and six-hour Ollama keep-alive remained intact;
+- GPT-6 Astra, GPT-6 Sol and GPT-6 Luna each completed physically with no reroute/fallback;
+- the OpenClaw 2026.9.6 Gateway restart path required about 128.8 seconds, so CogentNexus now uses a bounded 180-second restart command budget instead of the prior 60 seconds;
+- focused regression, runtime self-test and the full `755 passed, 5 skipped, 38 subtests passed` suite are GREEN;
+- final Gateway/CogentNexus/Discord/supervisor health is GREEN.
+
+CNX-442 remains the authoritative Stop/FIFO physical proof:
 
 CNX-442 final physical acceptance proved:
 

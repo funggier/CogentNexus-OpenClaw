@@ -7,8 +7,8 @@ This plugin is the OpenClaw-side bridge for durable Ticket admission, same-sessi
 - Package version: `0.9.8`
 - Peer install range: OpenClaw `>=2026.5.17`
 - Regression/dev dependency pin: OpenClaw `2026.7.1-2` (test/development dependency only)
-- Validated OpenClaw runtime baseline: `2026.9.5 (ec9c1a1)`
-- Latest physical runtime acceptance: OpenClaw `2026.9.5 (ec9c1a1)`
+- Validated OpenClaw runtime baseline: `2026.9.6`
+- Latest physical runtime acceptance: OpenClaw `2026.9.6`
 
 The peer range declares package-install compatibility only; it does not extend the operational guarantee beyond explicitly qualified evidence. The validated runtime baseline is the currently used and physically qualified OpenClaw runtime; the older regression/dev pin is retained only for repository test/development compatibility.
 
@@ -54,7 +54,7 @@ v0.9.7 adds exact Gateway-interruption recovery for bound active Direct calls. A
 
 ## Native restart compatibility
 
-Historical compatibility modules retain OpenClaw 2026.7.1-2-specific shapes where required by regression tests. Current runtime acceptance additionally covers OpenClaw 2026.9.5. Do not rewrite version-specific compatibility code comments merely because the public package version advances.
+Historical compatibility modules retain OpenClaw 2026.7.1-2-specific shapes where required by regression tests. Current runtime acceptance additionally covers OpenClaw 2026.9.6. Do not rewrite version-specific compatibility code comments merely because the public package version advances.
 
 ## Development validation
 
