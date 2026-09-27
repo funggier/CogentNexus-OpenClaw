@@ -1,6 +1,6 @@
 # ติดตั้ง CogentNexus-OpenClaw v0.9.9 บน Windows
 
-คู่มือนี้เป็น **current-facing installation guide** สำหรับ v0.9.9 ให้ติดตั้งจาก exact GitHub Release/tag และตรวจ `SHA256SUMS.txt` ก่อนใช้งานเสมอ ส่วน v0.9.8 คงเป็นหลักฐาน release ก่อนหน้าที่ไม่แก้ย้อนหลัง
+คู่มือนี้เป็น **current-facing installation guide** สำหรับ v0.9.9 ซึ่งเผยแพร่แล้วที่ exact tag/SHA `v0.9.9` / `ea3b454815378dc1d45b2db621662744ddcd9936` ให้ติดตั้งจาก exact GitHub Release และตรวจ `SHA256SUMS.txt` ก่อนใช้งานเสมอ ส่วน v0.9.8 คงเป็นหลักฐาน release ก่อนหน้าที่ไม่แก้ย้อนหลัง
 
 ## ข้อมูล compatibility ที่ต้องแยกให้ออก
 
@@ -103,7 +103,7 @@ CNX-442 ผ่าน physical Discord acceptance บน OpenClaw 2026.9.5 แล
 
 ## GitHub Release v0.9.9
 
-เมื่อเผยแพร่ v0.9.9 แล้ว ให้ยึด exact GitHub Release/tag เป็น authority และตรวจ checksum ของ assets ก่อนใช้งาน ไฟล์ release คือ:
+v0.9.9 เผยแพร่แล้วจาก exact accepted SHA `ea3b454815378dc1d45b2db621662744ddcd9936` ผ่าน Release workflow `36335012227` ให้ยึด exact GitHub Release/tag เป็น authority และตรวจ checksum ของ assets ก่อนใช้งาน ไฟล์ release คือ:
 
 - `cogentnexus-openclaw-v0.9.9.tar.gz`
 - `cogentnexus-openclaw-v0.9.9.zip`

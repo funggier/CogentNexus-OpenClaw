@@ -2,7 +2,7 @@
 
 This document records the durable architectural invariants that survive across release lines. It is not a release-status page; use [CURRENT_STATE.md](CURRENT_STATE.md) for the current source/release state.
 
-**Current source/release line:** `v0.9.9` (exact-SHA publication gated; v0.9.8 remains immutable historical release evidence)
+**Current source/release line:** `v0.9.9` (published accepted baseline; tag SHA `ea3b454815378dc1d45b2db621662744ddcd9936`)
 **Latest physical runtime acceptance:** OpenClaw `2026.9.6`
 **Regression/dev dependency pin:** OpenClaw `2026.7.1-2`
 **Managed provider ownership:** Ollama

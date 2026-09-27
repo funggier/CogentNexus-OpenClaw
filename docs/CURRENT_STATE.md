@@ -7,16 +7,18 @@
 **Managed provider ownership:** **Ollama**
 **Cloud/provider/model/auth routing:** OpenClaw-owned **pass-through**
 **License:** MIT
-**Publication authority:** GitHub Release/tag from the exact validated v0.9.9 candidate SHA
+**Latest published release:** `v0.9.9`
+**Latest published release/tag SHA:** `ea3b454815378dc1d45b2db621662744ddcd9936`
+**Release workflow:** `36335012227` — SUCCESS
 **Immutable published predecessor:** `v0.9.8` / `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`
-**CNX-456 target:** `v0.9.9` exact-SHA release qualification
-**Validated live runtime before release:** OpenClaw `2026.9.6`, CogentNexus-OpenClaw MANAGED generation 54
+**CNX-456 classification:** `CNX456_V099_PUBLISHED_PUBLIC_VERIFICATION_GREEN`
+**Validated live runtime after release install-over:** OpenClaw `2026.9.6`, CogentNexus-OpenClaw MANAGED generation 56
 
 GitHub Releases/tags are authoritative for whether a release has actually been published. The source line may advance to the next version before the publication workflow completes.
 
 ## Current classification
 
-CNX-456 is preparing v0.9.9 from the physically qualified OpenClaw 2026.9.6/CNX-455 baseline. Publication is exact-SHA gated and includes the program archives, documentation ZIP, SHA256 evidence, CI qualification, physical installation qualification, and post-publication asset verification.
+CNX-456 published v0.9.9 from exact candidate `ea3b454815378dc1d45b2db621662744ddcd9936`. Exact-SHA CI, physical Windows install-over on OpenClaw 2026.9.6, MANAGED restoration, source/installed parity, public asset SHA-256 verification, and the bounded documentation archive all passed.
 
 Historical CNX-447 published v0.9.8 from exact accepted candidate `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`. Its public TAR/ZIP assets and `SHA256SUMS.txt` remain immutable historical evidence.
 

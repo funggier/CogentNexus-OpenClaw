@@ -1,6 +1,6 @@
 # Install CogentNexus-OpenClaw v0.9.9
 
-This is the current-facing installation guide for v0.9.9. Install from the exact GitHub Release/tag and verify `SHA256SUMS.txt`; a moving branch is not a release identity. The v0.9.8 predecessor remains immutable historical release evidence.
+v0.9.9 is the latest published production release at exact tag/SHA `v0.9.9` / `ea3b454815378dc1d45b2db621662744ddcd9936`. Install from the exact GitHub Release and verify `SHA256SUMS.txt`; a moving branch is not a release identity. The v0.9.8 predecessor remains immutable historical release evidence.
 
 ## Requirements
 
@@ -120,7 +120,7 @@ See [CLEAN_REINSTALL.md](CLEAN_REINSTALL.md). A clean reinstall intentionally pu
 
 ## Release installation
 
-The v0.9.9 release assets are:
+The published v0.9.9 release assets are:
 
 - `cogentnexus-openclaw-v0.9.9.tar.gz`
 - `cogentnexus-openclaw-v0.9.9.zip`

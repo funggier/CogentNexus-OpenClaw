@@ -4,11 +4,11 @@
 
 This roadmap is directional and evidence-driven. A phase advances because its gate passes, not because code exists.
 
-## Current position — v0.9.9 release qualification
+## Current position — v0.9.9 published accepted baseline
 
-v0.9.9 is the current source/release line. Publication is exact-SHA gated by CNX-456; v0.9.8 remains the immutable published predecessor at `4f9b07d6e29e2051a44d2681cce0f8ecf5f47037`.
+v0.9.9 is the latest published accepted release. Exact release/tag SHA is `ea3b454815378dc1d45b2db621662744ddcd9936`; Release workflow `36335012227` completed successfully and all public assets/checksums, including the documentation ZIP, were independently verified.
 
-CNX-455 physically qualified this immutable v0.9.8 release against OpenClaw `2026.9.6`. The live Host is MANAGED, the default remains `ollama/qwen3.8:27b` with six-hour keep-alive, GPT-6 Astra/Sol/Luna all pass without fallback, and a bounded 180-second Gateway restart budget closes the 2026.9.6 cold-start compatibility gap exposed by a measured 128.801-second restart.
+CNX-456 physically requalified the v0.9.9 candidate against OpenClaw `2026.9.6`, including same-version install-over and a native Gateway restart that converged in 134.873 seconds inside the bounded 180-second budget. CNX-455 had previously qualified the v0.9.8 predecessor against OpenClaw `2026.9.6`. The live Host is MANAGED, the default remains `ollama/qwen3.8:27b` with six-hour keep-alive, GPT-6 Astra/Sol/Luna all pass without fallback, and a bounded 180-second Gateway restart budget closes the 2026.9.6 cold-start compatibility gap exposed by a measured 128.801-second restart.
 
 CNX-446 closed the Dashboard Direct terminal-final boundary defect on OpenClaw 2026.9.5: Codex/App-Server commentary/tool rows remain non-terminal, the exact mirrored `runTerminal=true` final alone may drive Direct durable completion, and native Ollama fallback remains valid. Physical install-over qualification also hardened plugin-mutation timeout reconciliation and dependency lifecycle isolation.
 

@@ -1,25 +1,28 @@
 # Coordination Status
 
 Status: `ACTIVE`
-State: `CNX-20260927-456_V0_9_9_RELEASE`
+State: `CNX-20260927-456_V0_9_9_MAIN_CONVERGENCE_PENDING`
 Active task: `CNX-20260927-456-v0.9.9-release.md`
 GitHub Issue: `#48`
 Branch: `cnx-456-v0.9.9-release`
-Target release: `v0.9.9`
-Baseline release: `v0.9.8` (immutable)
+Latest published release: `v0.9.9`
+Release/tag SHA: `ea3b454815378dc1d45b2db621662744ddcd9936`
+Release workflow: `36335012227` — SUCCESS
 Validated live OpenClaw runtime: `2026.9.6`
 
-## Accepted prior state
+## Accepted release evidence
 
-- CNX-455: GREEN and closed.
-- CogentNexus Host: MANAGED / active, generation 54.
-- provider/model/auth ownership: OpenClaw.
-- default model: `ollama/qwen3.8:27b`.
-- local context: 24576.
-- Ollama keep-alive: 6h.
-- GPT-6 Astra/Sol/Luna: physical PASS without fallback.
-- full Python suite at CNX-455: `755 passed, 5 skipped, 38 subtests passed`.
+- exact-SHA Validate `36333858334`: SUCCESS;
+- PS5.1 Acceptance Smoke `36333858304`: SUCCESS;
+- Windows Installer Pack Smoke `36333858298`: SUCCESS;
+- physical install-over: exit 0;
+- MANAGED generation: 56;
+- native Gateway restart: 134873 ms inside 180-second budget;
+- source/installed skill parity: 97/97 equal;
+- public release: non-draft / non-prerelease;
+- public TAR/ZIP/document ZIP hashes independently match `SHA256SUMS.txt` and GitHub digests;
+- documentation archive: 59 entries, required docs complete, no coordination internals.
 
-## Current work
+## Remaining work
 
-Prepare and publish v0.9.9 with a verified documentation ZIP asset and post-publication evidence.
+Fast-forward `main` to the post-release documentation convergence commit, verify remote main exact SHA, then close CNX-456 and Issue #48.

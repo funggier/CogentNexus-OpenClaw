@@ -1,14 +1,15 @@
 # Active Coordination
 
 Status: `ACTIVE`
-State: `CNX-20260927-456_V0_9_9_RELEASE`
+State: `CNX-20260927-456_V0_9_9_MAIN_CONVERGENCE_PENDING`
 Active task: `CNX-20260927-456-v0.9.9-release.md`
 GitHub Issue: `#48`
 Branch: `cnx-456-v0.9.9-release`
-Starting SHA: `0da15e96740b8de86de1daef7930253685d3b72d`
-Target release: `v0.9.9`
+Published release: `v0.9.9`
+Release/tag SHA: `ea3b454815378dc1d45b2db621662744ddcd9936`
+Release workflow: `36335012227` — SUCCESS
 Validated live OpenClaw runtime: `2026.9.6`
 
 ## Current objective
 
-Converge current-facing documentation and release metadata, add the documentation ZIP release asset, qualify source/package/install/runtime behavior, and publish v0.9.9 from one exact proven commit.
+Converge verified post-release current-facing documentation to `main` by fast-forward only, verify remote main, then mark CNX-456 COMPLETE and return coordination to IDLE.
