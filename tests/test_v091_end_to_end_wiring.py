@@ -55,6 +55,11 @@ class V091EndToEndWiringTests(unittest.TestCase):
         self.patch(cnx.legacy, "apply_policy", lambda _workspace, _root: True)
         self.patch(cnx.legacy, "startup", startup_impl or (lambda *_args, **_kwargs: self.completed('{"enabled":true}')))
         self.patch(cnx.legacy, "runtime", runtime_impl or (lambda *_args, **_kwargs: self.completed('{"ok":true}')))
+        self.patch(
+            cnx.runtime_boundary,
+            "activate_current_config",
+            lambda: {"ok": True, "phase": "verified"},
+        )
         self.patch(cnx.legacy, "gateway_status", gateway_impl or (lambda: {"healthy": True}))
         self.patch(cnx.legacy, "reconcile_default_session", lambda: {"ok": True, "created": False})
         self.patch(cnx.legacy, "promote_interrupted_direct", lambda *_args, **_kwargs: [])

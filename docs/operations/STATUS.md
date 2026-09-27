@@ -32,6 +32,7 @@ The 2026.9.6 Gateway restart compatibility repair uses a bounded 180-second rest
 - Windows package/install-over/reset qualification;
 - exact-SHA CI workflows;
 - physical post-install MANAGED runtime verification;
+- requalification of OpenClaw 2026.9.6 late-readiness reconciliation after the first v0.9.9 install-over candidate safely rolled back on an ambiguous CLI health timeout;
 - exact GitHub Release/tag publication;
 - downloaded public asset SHA-256 verification;
 - post-release documentation/coordination closeout.

@@ -334,20 +334,60 @@ def _wait_native_gateway_ready(
             time.sleep(sleep_for)
 
 
+def _native_gateway_command_readiness_ambiguous(result: subprocess.CompletedProcess[str]) -> bool:
+    if result.returncode == 0:
+        return False
+    output = f"{result.stdout or ''}\n{result.stderr or ''}".lower()
+    timed_out = "timed out" in output or "timeout" in output
+    readiness_related = any(
+        marker in output
+        for marker in ("gateway", "health", "ready", "readiness", "/healthz", "/readyz")
+    )
+    return timed_out and readiness_related
+
+
 def _restore_native_gateway() -> dict[str, Any]:
-    restart = legacy.run([legacy.openclaw_executable(), "gateway", "restart"], timeout=180)
-    if restart.returncode != 0:
-        restart = legacy.run([legacy.openclaw_executable(), "gateway", "start"], timeout=180)
-    if restart.returncode != 0:
-        raise RuntimeError((restart.stderr or restart.stdout or "native Gateway restore command failed").strip())
+    restart_result = legacy.run([legacy.openclaw_executable(), "gateway", "restart"], timeout=180)
+    final_command = restart_result
+    start_result = None
+    if restart_result.returncode != 0:
+        start_result = legacy.run([legacy.openclaw_executable(), "gateway", "start"], timeout=180)
+        final_command = start_result
+
+    # OpenClaw 2026.9.x can return nonzero from restart/start when its internal
+    # readiness window expires even though the Scheduled Task has been launched
+    # and the Gateway becomes healthy shortly afterwards. Only readiness-style
+    # command failures are eligible for later-health reconciliation; unrelated
+    # command failures remain fail-closed even if another Gateway is healthy.
+    command_authorized = restart_result.returncode == 0
+    if start_result is not None:
+        command_authorized = (
+            start_result.returncode == 0
+            or _native_gateway_command_readiness_ambiguous(start_result)
+        )
+
     readiness = _wait_native_gateway_ready()
-    if not readiness.get("healthy"):
-        raise RuntimeError(f"native Gateway failed health verification after bounded restore wait: {readiness}")
+    if not readiness.get("healthy") or not command_authorized:
+        detail = (final_command.stderr or final_command.stdout or "native Gateway restore command failed").strip()
+        raise RuntimeError(
+            f"native Gateway failed health verification after bounded restore wait: "
+            f"{readiness}; commandAuthorized={command_authorized}; command={detail}"
+        )
+
+    reconciled = bool(
+        start_result is not None
+        and start_result.returncode != 0
+        and _native_gateway_command_readiness_ambiguous(start_result)
+    )
     return {
-        "exitCode": restart.returncode,
-        "stdout": (restart.stdout or "").strip(),
-        "stderr": (restart.stderr or "").strip(),
+        "exitCode": 0,
+        "commandExitCode": final_command.returncode,
+        "restartExitCode": restart_result.returncode,
+        "startExitCode": start_result.returncode if start_result is not None else None,
+        "stdout": (final_command.stdout or "").strip(),
+        "stderr": (final_command.stderr or "").strip(),
         "healthy": True,
+        "reconciledByReadiness": reconciled,
         "readinessAttempts": readiness.get("attempts"),
         "readinessElapsedSeconds": readiness.get("elapsedSeconds"),
         "readinessProbeTimeoutSeconds": readiness.get("probeTimeoutSeconds"),

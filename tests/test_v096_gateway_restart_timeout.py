@@ -54,6 +54,15 @@ def test_lifecycle_restart_uses_openclaw_2026_9_6_convergence_budget(monkeypatch
     monkeypatch.setattr(runtime, "run_command", fake_run_command)
     monkeypatch.setattr(runtime, "append_runtime_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(runtime, "emit", lambda value: observed.setdefault("emitted", value))
+    monkeypatch.setattr(
+        runtime,
+        "wait_for_runtime_health",
+        lambda _config, timeout_seconds, require_ollama: (
+            {"gateway": {"healthy": True}, "ollama": {"healthy": True}},
+            1,
+            True,
+        ),
+    )
 
     args = SimpleNamespace(
         root=tmp_path,

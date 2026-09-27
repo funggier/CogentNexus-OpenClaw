@@ -220,6 +220,22 @@ def gateway_status_healthy(result):
         return False
     return "connectivity probe: ok" in output
 
+
+def gateway_command_readiness_ambiguous(result):
+    """Only readiness-style command failures may be reconciled by later health."""
+    if result.get("ok"):
+        return False
+    output = "\n".join(
+        str(result.get(key) or "")
+        for key in ("stdout", "stderr", "error")
+    ).lower()
+    timed_out = "timed out" in output or "timeout" in output
+    readiness_related = any(
+        marker in output
+        for marker in ("gateway", "health", "ready", "readiness", "/healthz", "/readyz")
+    )
+    return timed_out and readiness_related
+
 def gateway_probe(timeout, fixture=None):
     if fixture in ("gateway-fail", "all-fail"):
         return {"name": "gateway", "enabled": True, "healthy": False, "evidence": "fixture"}
@@ -437,11 +453,74 @@ def lifecycle_cmd(args):
     if args.command_name == "restart":
         marker = set_maintenance(root, args.reason, args.owner, "healthy-runtime")
         executable = openclaw_executable()
-        result = run_command([executable, "gateway", "restart"], LIFECYCLE_RESTART_COMMAND_TIMEOUT_SECONDS) if executable else {"ok": False, "error": "openclaw CLI unavailable"}
-        append_runtime_event(root, "ACTION", "Recoverable Gateway restart requested", {"result": result})
-        emit({"restartRequested": bool(result.get("ok")), "maintenance": marker, "result": result,
-              "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted."})
-        return 0 if result.get("ok") else 2
+        restart_result = (
+            run_command(
+                [executable, "gateway", "restart"],
+                LIFECYCLE_RESTART_COMMAND_TIMEOUT_SECONDS,
+            )
+            if executable
+            else {"ok": False, "error": "openclaw CLI unavailable"}
+        )
+        start_result = None
+        if executable and not restart_result.get("ok"):
+            # OpenClaw 2026.9.x may launch/replace the Scheduled Task successfully
+            # but return nonzero because its own readiness window expires before
+            # the cold Gateway becomes healthy. Reconcile external readiness
+            # before treating the command result as terminal.
+            start_result = run_command(
+                [executable, "gateway", "start"],
+                LIFECYCLE_RESTART_COMMAND_TIMEOUT_SECONDS,
+            )
+
+        command_authorized = bool(restart_result.get("ok"))
+        if start_result is not None:
+            command_authorized = bool(
+                start_result.get("ok")
+                or gateway_command_readiness_ambiguous(start_result)
+            )
+
+        verified, verification_attempts, healthy = wait_for_runtime_health(
+            config,
+            timeout_seconds=LIFECYCLE_START_READY_TIMEOUT_SECONDS,
+            require_ollama=False,
+        )
+        success = bool(command_authorized and healthy)
+        if success:
+            clear_maintenance(root)
+        reconciled = bool(
+            success
+            and start_result is not None
+            and not start_result.get("ok")
+            and gateway_command_readiness_ambiguous(start_result)
+        )
+        verification = {
+            "healthy": healthy,
+            "commandAuthorized": command_authorized,
+            "attempts": verification_attempts,
+            "timeoutSeconds": LIFECYCLE_START_READY_TIMEOUT_SECONDS,
+            "gateway": verified.get("gateway") if isinstance(verified, dict) else None,
+        }
+        append_runtime_event(
+            root,
+            "ACTION",
+            "Recoverable Gateway restart reconciled" if healthy else "Recoverable Gateway restart incomplete",
+            {
+                "restartResult": restart_result,
+                "startResult": start_result,
+                "verification": verification,
+                "reconciled": reconciled,
+            },
+        )
+        emit({
+            "restartRequested": bool(success),
+            "maintenance": maintenance_status(root),
+            "result": restart_result,
+            "startResult": start_result,
+            "verification": verification,
+            "reconciled": reconciled,
+            "recovery": "The native supervisor will start and verify Gateway if this caller is interrupted.",
+        })
+        return 0 if success else 2
     if args.command_name == "start":
         results = {}
         initial = {"gateway": gateway_probe(int(config["supervisor"]["commandTimeoutSeconds"])), "ollama": ollama_probe(config)}
