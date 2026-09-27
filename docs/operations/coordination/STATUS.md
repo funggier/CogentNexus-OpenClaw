@@ -2,18 +2,24 @@
 
 Status: `IDLE`
 State: `NO_ACTIVE_TASK`
-Last completed task: `CNX-20260926-452-hard-context-pressure-compact-resume.md`
-Last completed classification: `CNX452_HARD_CONTEXT_COMPACT_RESUME_GREEN`
-Product candidate SHA: `b116fa188d41d1acb8110e59fca4bf056a160643`
+Last completed task: `CNX-20260927-454-provider-model-catalog-refresh.md`
+Last completed classification: `CNX454_PROVIDER_MODEL_CATALOG_REFRESH_GREEN`
 Baseline release: `v0.9.8` (immutable)
 
 ## Accepted state
 
-- CNX-451: GREEN and closed on main.
+- CNX-451: GREEN and closed.
+- CNX-452: GREEN and closed.
 - CNX-453: GREEN and closed.
-- CNX-452: GREEN after live round-2 hard-pressure qualification.
+- CNX-454: OpenAI + Ollama model catalog refresh GREEN.
+- OpenAI aliases: `gpt -> gpt-6-sol`, `gpt-mini -> gpt-6-luna`.
+- Ollama Qwen 3.5 models are selectable with bounded 24k operational context.
+- default model: `ollama/qwen3.8:27b`.
 - `OLLAMA_KEEP_ALIVE=6h`: persistent and physically active.
+- Gateway: healthy.
+- provider ownership: OpenClaw.
 - CNX-450: backlog only.
+- historical orphan inference-attempt rows: 2, unchanged.
 - `v0.9.8`: immutable.
 
 ## Current state
